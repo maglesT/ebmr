@@ -24,7 +24,7 @@
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
-import { SignedIntent } from './intents.ts';
+import { ActId, SignedIntent } from './intents.ts';
 
 /**
  * What a quality act carries besides its subject: the extra-testing decision and its tests; the retest's new date and
@@ -78,6 +78,8 @@ export const SignableAction = z.discriminatedUnion('kind', [
     decision: z.enum(['RELEASE', 'REJECT']),
     /** A RELEASE names its route, and only a RELEASE does (IN-24 (c)). */
     route: z.enum(['IDENTITY_TESTED', 'VENDOR_HISTORY']).optional(),
+    /** The person's own reason, both halves (a status decision such as a rejection carries one: DI-22, EBMR-AUDIT-002). */
+    reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
   }),
   z.strictObject({
     kind: z.literal('REPROCESSING_ACT'),
@@ -95,7 +97,7 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('ACT_APPROVAL'),
     /** The GMP batch and the act proposed on it (aggregate batch_act): QA's VOID_AUTHORISED approval of a void (S28). */
     batchId: Uuid,
-    actId: Uuid,
+    actId: ActId,
   }),
   z.strictObject({
     kind: z.literal('PLANT_VERIFY'),

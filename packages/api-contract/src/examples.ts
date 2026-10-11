@@ -102,9 +102,12 @@ export const EXAMPLES = {
   'batches-list': { schema: r.batches.list.response, data: gmpBatch.list, routeId: r.batches.list.id },
   'batches-batch': { schema: r.batches.batch.response, data: gmpBatch.batch, routeId: r.batches.batch.id },
   'batches-step': { schema: r.batches.step.response, data: gmpBatch.step, routeId: r.batches.step.id },
+  // A TB-08 step: the BLOCK_ENTRY form of its ADDITION with the block's own schema (source and authorisedBy server-filled).
+  'batches-step-tb08': { schema: r.batches.step.response, data: gmpBatch.stepTb08, routeId: r.batches.step.id },
   'batches-work-queue': { schema: r.batches.workQueue.response, data: gmpBatch.workQueue, routeId: r.batches.workQueue.id },
   'batches-timeline': { schema: r.batches.timeline.response, data: gmpBatch.timeline, routeId: r.batches.timeline.id },
   'batches-command': { schema: r.batches.command.response, data: gmpBatch.commandResult, routeId: r.batches.command.id },
+  'batches-verify-replay': { schema: r.batches.verifyReplay.response, data: { ...replay, runId: gmpBatch.batch.header.runId }, routeId: r.batches.verifyReplay.id },
   'batches-propose-act': { schema: r.batches.proposeAct.response, data: s6.proposedAct, routeId: r.batches.proposeAct.id },
   'batches-sscc': { schema: r.batches.sscc.response, data: s6.sscc, routeId: r.batches.sscc.id },
   'batches-issue-sscc': { schema: r.batches.issueSscc.response, data: s6.sscc.ssccs[1], routeId: r.batches.issueSscc.id },
@@ -158,6 +161,10 @@ export const EXAMPLES = {
   'quality-erp-products': { schema: r.quality.erpProducts.response, data: s6.quality.erpProducts, routeId: r.quality.erpProducts.id },
   'quality-erp-materials': { schema: r.quality.erpMaterials.response, data: s6.quality.erpMaterials, routeId: r.quality.erpMaterials.id },
   'quality-lots': { schema: r.quality.lots.response, data: s6.quality.lots, routeId: r.quality.lots.id },
+  'esig-describe': { schema: r.esig.describe.response, data: s6.describe, routeId: r.esig.describe.id },
+  'quality-reprocessing-requests': { schema: r.quality.reprocessingRequests.response, data: s6.reprocessing.requests, routeId: r.quality.reprocessingRequests.id },
+  'quality-reprocessing-authorisations': { schema: r.quality.reprocessingAuthorisations.response, data: s6.reprocessing.authorisations, routeId: r.quality.reprocessingAuthorisations.id },
+  'quality-residues': { schema: r.quality.residues.response, data: s6.reprocessing.residues, routeId: r.quality.residues.id },
   'quality-receive-lot': { schema: r.quality.receiveLot.response, data: s6.quality.lots.lots[0], routeId: r.quality.receiveLot.id },
 } as const satisfies Record<string, Example>;
 
@@ -176,6 +183,9 @@ export const SLICE_6_ROUTE_IDS: readonly string[] = [
   r.quality.erpMaterials,
   r.quality.lots,
   r.quality.receiveLot,
+  r.quality.reprocessingRequests,
+  r.quality.reprocessingAuthorisations,
+  r.quality.residues,
 ].map((route) => route.id);
 
 export type ExampleName = keyof typeof EXAMPLES;

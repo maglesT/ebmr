@@ -6,10 +6,17 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 
 const quality = routes.quality;
-import { terminalOf } from '@ebmr/test-kit';
-import { startServer, type TestServer } from '../support/harness.ts';
-import { refusalOf, valueOf } from '../esig/support.ts';
+import { passwordActor, terminalOf } from '@ebmr/test-kit';
+import { randomUUID } from 'node:crypto';
+import { identity, withCommand } from '@ebmr/kernel';
+import type { Result, SignatureCredentials } from '@ebmr/api-contract';
+import type { TestBrowser, TestServer } from '../support/harness.ts';
+import { actorOfBrowser, personaIn, refusalOf, tapFor, valueOf } from '../esig/support.ts';
+import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
+import { startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { signAction } from '../support/signed-acts.ts';
 
+let w: GmpBatchWorld;
 let gmp: TestServer;
 
 /** The shape apps/simulators/src/erp posts (apps never import each other): one product, one material, `orders` orders. */
@@ -25,10 +32,11 @@ function erpCatalogue(opts: { orders: number; firstOrder?: number }) {
 }
 
 beforeAll(async () => {
-  gmp = await startServer('GMP');
-}, 300_000);
+  w = await startGmpBatchWorld();
+  gmp = w.gmp;
+}, 600_000);
 afterAll(async () => {
-  await gmp?.close();
+  await w?.close();
 });
 
 describe('quality routes (GMP)', () => {
@@ -53,4 +61,224 @@ describe('quality routes (GMP)', () => {
     // A wrong key is refused, and a person's credentials never write the ERP stub.
     expect((await browser.call(quality.erpImport, { body: { ...creds, serviceKey: `${creds.serviceKey}x`, catalogue: erpCatalogue({ orders: 0 }) } })).ok).toBe(false);
   });
+
+  it('the reprocessing registers are listed read-only (requests, authorisations, reservable residue), and the server describes what a signable action signs', async () => {
+    const qa = await gmp.asPersona('qaInvestigator');
+    expect(valueOf(await qa.call(quality.reprocessingRequests)).requests).toEqual(expect.any(Array));
+    expect(valueOf(await qa.call(quality.reprocessingAuthorisations, { query: {} })).authorisations).toEqual(expect.any(Array));
+    expect(valueOf(await qa.call(quality.residues, { query: {} })).containers).toEqual(expect.any(Array));
+    const batchId = '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e';
+    const issuer = await gmp.asPersona('issuer');
+    const d = valueOf(await issuer.call(routes.esig.describe, { body: { action: { kind: 'GMP_BATCH_ISSUE', batchId, reason: { code: 'PLAN', text: 'Plan' }, variants: {}, inputs: {} } } }));
+    expect(d).toEqual({ kind: 'GMP_BATCH_ISSUE', aggregateType: 'batch_issue', aggregateId: batchId, meaning: 'ISSUED', expectedState: 'PLANNED' });
+  });
+
+});
+
+const password = (p: GrantedPerson): SignatureCredentials => ({ kind: 'PASSWORD', loginName: p.loginName, password: p.password });
+
+/** A person holding `role` who has acknowledged the e-signature policy (as the seed's personas have), signed in on the QA office PC. */
+async function signer(role: string, name: string): Promise<{ person: GrantedPerson; browser: TestBrowser }> {
+  const person = await grantedPerson(gmp, role, name);
+  const ctx = await passwordActor(gmp.db, person, terminalOf(gmp.seed, 'PC-QA-01').fingerprint);
+  await withCommand(gmp.db.app, ctx, (c) => identity.acknowledgeEsigPolicy(c));
+  await identity.endSession(gmp.db.app, ctx.sessionId);
+  return { person, browser: await loginOf(gmp, person) };
+}
+
+/** A signed act that must succeed (the refusal shown when it does not). */
+async function signedOk(r: Promise<Result<unknown>>): Promise<void> {
+  const out = await r;
+  expect(out.ok, out.ok ? '' : JSON.stringify(out.error)).toBe(true);
+}
+
+/** A DB call as the application role in the persona's own session; the error text, or null when it passed. */
+async function asApp(b: TestBrowser, key: string, sql: string, params: unknown[]): Promise<string | null> {
+  try {
+    await withCommand(gmp.db.app, { ...(await actorOfBrowser(gmp, b, key)), correlationId: randomUUID() }, (c) => c.query(sql, params));
+    return null;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)', () => {
+  it('[IN-02] a deviation classified MINOR without a rationale is refused by the route and by the database', async () => {
+    const qa = await gmp.asPersona('qaInvestigator');
+    for (const riskRationale of ['', '   ', 'too short']) {
+      const r = await qa.call(quality.raiseDeviation, { body: { kind: 'DEVIATION', title: 'Label roll mix-up', classification: 'MINOR', riskRationale } });
+      expect(r.ok, JSON.stringify(riskRationale)).toBe(false);
+    }
+    // The database refuses it as the application role in the person's own session, and nobody writes the table directly.
+    const p = { kind: 'DEVIATION', title: 'Label roll mix-up', classification: 'MINOR' };
+    expect(await asApp(qa, 'qaInvestigator', 'select site.raise_deviation($1::jsonb)', [JSON.stringify(p)])).toMatch(/EBMR-SITE-301.*risk rationale/);
+    expect(await asApp(qa, 'qaInvestigator', 'select site.raise_deviation($1::jsonb)', [JSON.stringify({ ...p, riskRationale: '         ' })])).toMatch(/EBMR-SITE-301/);
+    expect(
+      await asApp(qa, 'qaInvestigator', "insert into site.deviation (ref, site_code, ref_year, ref_serial, kind, title, classification, risk_rationale, raised_by_person, raised_by_account, correlation_id) values ('DEV-X', 'SITE-1', 2026, 99999, 'DEVIATION', 't', 'MINOR', '', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", []),
+    ).toMatch(/permission denied/);
+    expect(valueOf(await qa.call(quality.raiseDeviation, { body: { kind: 'DEVIATION', title: 'Label roll mix-up', classification: 'MINOR', riskRationale: 'Caught at line clearance; no product affected' } })).classification).toBe('MINOR');
+  });
+
+  it('deviation conclusion and closure succeed through the ceremony and are refused for the initiator or changed content', async () => {
+    const [inv, qa2] = await Promise.all([gmp.asPersona('qaInvestigator'), gmp.asPersona('qaApprover2')]);
+    const d = valueOf(await inv.call(quality.raiseDeviation, { body: { kind: 'DEVIATION', title: 'Granulation end point late', classification: 'MAJOR', riskRationale: 'End point reached after the validated time' } }));
+    valueOf(await inv.call(quality.startInvestigation, { params: { deviationId: d.deviationId }, body: {} }));
+    valueOf(await inv.call(quality.recordFinding, { params: { deviationId: d.deviationId }, body: { assignableCause: true, cause: 'Binder added slowly by a worn pump', rootCauseCategory: 'EQUIPMENT' } }));
+    const conclude = { kind: 'QUALITY_ACT' as const, act: 'DEVIATION_CONCLUDE' as const, subjectId: d.deviationId, input: {} };
+    expect((await signAction(gmp, inv, 'qaInvestigator', conclude)).ok).toBe(false);
+    expect((await signAction(gmp, qa2, 'qaApprover2', conclude, { tamper: true })).ok).toBe(false);
+    expect(valueOf(await inv.call(quality.deviation, { params: { deviationId: d.deviationId } })).state).toBe('UNDER_INVESTIGATION');
+    await signedOk(signAction(gmp, qa2, 'qaApprover2', conclude));
+    const close = { kind: 'QUALITY_ACT' as const, act: 'DEVIATION_CLOSE' as const, subjectId: d.deviationId, input: {} };
+    expect((await signAction(gmp, inv, 'qaInvestigator', close)).ok).toBe(false);
+    await signedOk(signAction(gmp, qa2, 'qaApprover2', close));
+    expect(valueOf(await inv.call(quality.deviation, { params: { deviationId: d.deviationId } })).state).toBe('CLOSED');
+    // An act that carries what another act takes is refused before anything is signed.
+    expect(refusalOf(await signAction(gmp, qa2, 'qaApprover2', { ...conclude, input: { decision: 'EXTRA_TESTS' } }))?.code).toBe('EBMR-API-ACT-INPUT');
+  }, 180_000);
+
+  it('a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content', async () => {
+    const [analyst, head, qaRel] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover'), gmp.asPersona('qaInvestigator')]);
+    const erp = gmp.seed.services.find((s) => s.key === 'erpInterface');
+    if (!erp) throw new Error('no ERP interface');
+    const creds = { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminalOf(gmp.seed, erp.terminal).fingerprint };
+    const material = { materialCode: 'MAT-S6', materialName: 'Slice 6 excipient', materialKind: 'EXCIPIENT' as const, unit: 'kg', maxRetestMonths: 24, erpReference: 'SAP-MAT-S6' };
+    valueOf(await gmp.browser().call(quality.erpImport, { body: { ...creds, catalogue: { products: [], materials: [material], orders: [] } } }));
+    const warehouse = await loginOf(gmp, await grantedPerson(gmp, 'WAREHOUSE_LABELLING', 'Ramesh Iyer (warehouse)'));
+    const receive = async (lotCode: string) =>
+      valueOf(await warehouse.call(quality.receiveLot, {
+        body: { materialCode: 'MAT-S6', lotCode, supplier: 'Demo Excipients', supplierLot: `S-${lotCode}`, quantity: '100.000', expiresAt: '2029-09-30T00:00:00+05:30', retestAt: '2027-03-31T00:00:00+05:30' },
+      }));
+    const lot = await receive(`L6-${randomUUID().slice(0, 6).toUpperCase()}`);
+    expect(lot).toMatchObject({ status: 'QUARANTINE', material: { code: 'MAT-S6', kind: 'EXCIPIENT' }, quantity: '100' });
+    expect(valueOf(await warehouse.call(quality.lots, { query: { materialCode: 'MAT-S6' } })).lots.map((l) => l.lotId)).toContain(lot.lotId);
+
+    // A release result, approved by the head of QC (never its analyst, never on other content than shown).
+    const result = valueOf(await analyst.call(quality.recordLotResult, {
+      params: { lotId: lot.lotId },
+      body: { testCode: 'ASSAY', methodReference: 'STP-S6-01', purpose: 'RELEASE', value: '99.5', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
+    }));
+    const approve = { kind: 'QUALITY_ACT' as const, act: 'LOT_RESULT_APPROVE' as const, subjectId: result.resultId, input: {} };
+    expect((await signAction(gmp, analyst, 'qcAnalyst', approve)).ok).toBe(false);
+    expect((await signAction(gmp, head, 'qcApprover', approve, { tamper: true })).ok).toBe(false);
+    await signedOk(signAction(gmp, head, 'qcApprover', approve));
+    expect(valueOf(await analyst.call(quality.lotResults, { params: { lotId: lot.lotId } })).results[0]?.state).toBe('APPROVED');
+
+    // The retest: an approved retest result, then QC's signed decision of the new date.
+    const retestResult = valueOf(await analyst.call(quality.recordLotResult, {
+      params: { lotId: lot.lotId },
+      body: { testCode: 'ASSAY', methodReference: 'STP-S6-01', purpose: 'RETEST', value: '99.1', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
+    }));
+    await signedOk(signAction(gmp, head, 'qcApprover', { ...approve, subjectId: retestResult.resultId }));
+    const retest = { kind: 'QUALITY_ACT' as const, act: 'LOT_RETEST' as const, subjectId: lot.lotId, input: { retestAt: '2027-09-30T00:00:00+05:30', results: [retestResult.resultId] } };
+    expect((await signAction(gmp, analyst, 'qcAnalyst', retest)).ok).toBe(false);
+    expect((await signAction(gmp, head, 'qcApprover', retest, { tamper: true })).ok).toBe(false);
+    await signedOk(signAction(gmp, head, 'qcApprover', retest));
+    expect(valueOf(await analyst.call(quality.lots, { query: { materialCode: 'MAT-S6' } })).lots.find((l) => l.lotId === lot.lotId)?.retest?.text).toMatch(/30-SEP-2027/);
+    // Bypass: the signed retest writer refuses a call without the person's own signature.
+    expect(await asApp(head, 'qcApprover', 'select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], null)', [lot.lotId, '2027-10-31T00:00:00+05:30', [retestResult.resultId]])).toMatch(/EBMR-SITE-190/);
+
+    // The release on the identity route (QA), refused for QC's analyst and for other content.
+    expect(await asApp(analyst, 'qcAnalyst', "select site.record_identity_result($1, 'PASS', 'STP-S6-ID', 'IR-S6-1')", [lot.lotId])).toBeNull();
+    const release = { kind: 'LOT_DECISION' as const, lotId: lot.lotId, decision: 'RELEASE' as const, route: 'IDENTITY_TESTED' as const };
+    expect((await signAction(gmp, analyst, 'qcAnalyst', release)).ok).toBe(false);
+    expect((await signAction(gmp, qaRel, 'qaInvestigator', release, { tamper: true })).ok).toBe(false);
+    const released = await signAction(gmp, qaRel, 'qaInvestigator', release);
+    expect(released.ok, released.ok ? '' : JSON.stringify(released.error)).toBe(true);
+    expect(valueOf(await analyst.call(quality.lots, { query: { materialCode: 'MAT-S6' } })).lots.find((l) => l.lotId === lot.lotId)?.status).toBe('RELEASED');
+
+    // The rejection of a quarantined lot: the server names its meaning from the lot's state.
+    const other = await receive(`L6-${randomUUID().slice(0, 6).toUpperCase()}`);
+    const reject = { kind: 'LOT_DECISION' as const, lotId: other.lotId, decision: 'REJECT' as const, reason: { code: 'QC_FAILURE', text: 'Supplier certificate does not match the lot' } };
+    expect(valueOf(await head.call(routes.esig.describe, { body: { action: reject } }))).toMatchObject({ meaning: 'MATERIAL_LOT_REJECTED', expectedState: 'QUARANTINE' });
+    expect((await signAction(gmp, analyst, 'qcAnalyst', reject)).ok).toBe(false);
+    expect((await signAction(gmp, head, 'qcApprover', reject, { meaning: 'MATERIAL_LOT_STATUS_DECIDED' })).ok).toBe(false);
+    await signedOk(signAction(gmp, head, 'qcApprover', reject));
+    expect(valueOf(await head.call(quality.lots, { query: { materialCode: 'MAT-S6' } })).lots.find((l) => l.lotId === other.lotId)?.status).toBe('REJECTED');
+  }, 300_000);
+
+  it('the QC decision on extra testing of a batch succeeds through the ceremony and is refused for the wrong person or changed content', async () => {
+    const [analyst, head, issuer] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover'), gmp.asPersona('issuer')]);
+    const batchId = await w.issued(issuer);
+    const act = { kind: 'QUALITY_ACT' as const, act: 'QC_EXTRA_TESTING_DECISION' as const, subjectId: batchId, input: { decision: 'EXTRA_TESTS' as const, tests: ['IMPURITIES', 'DISSOLUTION'] } };
+    const d = valueOf(await head.call(routes.esig.describe, { body: { action: act } }));
+    const { rows } = await gmp.db.admin.query<{ id: string }>("select site.qc_extra_testing_aggregate_id($1, 'EXTRA_TESTS', array['IMPURITIES', 'DISSOLUTION']) as id", [batchId]);
+    expect(d).toMatchObject({ aggregateType: 'qc_extra_testing', aggregateId: rows[0]?.id, meaning: 'QC_EXTRA_TESTING_DECIDED' });
+    expect((await signAction(gmp, analyst, 'qcAnalyst', act)).ok).toBe(false);
+    expect((await signAction(gmp, head, 'qcApprover', act, { tamper: true })).ok).toBe(false);
+    expect(valueOf(await head.call(quality.extraTesting, { params: { batchId } })).decision).toBeNull();
+    await signedOk(signAction(gmp, head, 'qcApprover', act));
+    expect(valueOf(await head.call(quality.extraTesting, { params: { batchId } })).decision).toMatchObject({ decision: 'EXTRA_TESTS', tests: ['DISSOLUTION', 'IMPURITIES'] });
+  }, 300_000);
+
+  it('the reprocessing acts sign nothing for a person without the quality unit\'s authority, for changed content, or when the database refuses the record', async () => {
+    const [analyst, issuer] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('issuer')]);
+    const { person: qaFloor, browser: qaBrowser } = await signer('QA_SHOP_FLOOR', 'Farah Ali (QA shop floor)');
+    const batchId = await w.issued(issuer);
+    // A container of the batch that no inspection step put reusable residue into (written as the owner for the test).
+    const container = randomUUID();
+    await withCommand(gmp.db.admin, { ...(await actorOfBrowser(gmp, issuer, 'issuer')), correlationId: randomUUID() }, async (c) => {
+      await c.query(
+        "insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account) select $1, 'OC-' || b.batch_number || '-9001', b.id, b.batch_number, $3, $4, 'BLEND', 'kg', gen_random_uuid(), gen_random_uuid() from recipe.batch_execution b where b.id = $2",
+        [container, batchId, w.content.header.product.code, w.content.header.product.strength],
+      );
+    });
+    const reserve = { kind: 'REPROCESSING_ACT' as const, act: 'RESERVE_RESIDUE' as const, subjectId: container, input: {} };
+    expect((await signAction(gmp, analyst, 'qcAnalyst', reserve)).ok).toBe(false);
+    expect((await signAction(gmp, qaBrowser, 'x', reserve, { tamper: true, credentials: password(qaFloor) })).ok).toBe(false);
+    const refused = await signAction(gmp, qaBrowser, 'x', reserve, { credentials: password(qaFloor) });
+    expect(refusalOf(refused)?.code).toBe('EBMR-RPR-010');
+    const { rows } = await gmp.db.admin.query<{ n: string }>("select count(*)::text as n from esig.signature where aggregate_type = 'output_container' and aggregate_id = $1", [container]);
+    expect(rows[0]?.n).toBe('0');
+    const authorise = { kind: 'REPROCESSING_ACT' as const, act: 'AUTHORISE_ADDITION' as const, subjectId: randomUUID(), input: {} };
+    expect(refusalOf(await signAction(gmp, qaBrowser, 'x', authorise, { credentials: password(qaFloor) }))?.status ?? 404).toBeGreaterThanOrEqual(400);
+  }, 300_000);
+
+  it('plant verifications (cleaning, clearance, repair) succeed through the ceremony and are refused for the performer or changed content', async () => {
+    const [steward, issuer] = await Promise.all([gmp.asPersona('steward'), gmp.asPersona('issuer')]);
+    const { person: tech1, browser: b1 } = await signer('MAINTENANCE_TECHNICIAN', 'Suresh Pillai (maintenance)');
+    const { person: tech2, browser: b2 } = await signer('MAINTENANCE_TECHNICIAN', 'Anand Rao (maintenance)');
+    const tag = randomUUID().slice(0, 4).toUpperCase();
+    valueOf(await steward.call(routes.plant.defineEquipmentClass, { body: { code: `BLD${tag}`, kind: 'PROCESS', description: 'Bin blender', cleanHold: '72 hours', dirtyHold: '24 hours' } }));
+    valueOf(await steward.call(routes.plant.defineArea, { body: { code: `RM${tag}`, kind: 'ROOM', name: 'Blending room' } }));
+    const eq = valueOf(await steward.call(routes.plant.defineEquipment, { body: { code: `BLD-${tag}`, name: 'Bin blender 200 L', classCode: `BLD${tag}`, areaCode: `RM${tag}` } }));
+    expect(eq).toMatchObject({ kind: 'PROCESS', areaCode: `RM${tag}` });
+    const started = valueOf(await b1.call(routes.plant.startCleaning, { body: { target: 'EQUIPMENT', code: eq.code, level: 'MAJOR' } }));
+    valueOf(await b1.call(routes.plant.completeCleaning, { params: { id: started.cleaningId }, body: {} }));
+    expect(valueOf(await b2.call(routes.plant.pendingVerifications)).items.map((i) => i.id)).toContain(started.cleaningId);
+    const verify = { kind: 'PLANT_VERIFY' as const, act: 'CLEANING' as const, id: started.cleaningId };
+    expect((await signAction(gmp, b1, 'x', verify, { credentials: password(tech1) })).ok).toBe(false);
+    expect((await signAction(gmp, b2, 'x', verify, { tamper: true, credentials: password(tech2) })).ok).toBe(false);
+    const ok = await signAction(gmp, b2, 'x', verify, { credentials: password(tech2) });
+    expect(ok.ok, ok.ok ? '' : JSON.stringify(ok.error)).toBe(true);
+
+    // A repair of the unit's open failure, verified by another technician.
+    // The failure is signalled by the operator at the unit (STEP.EXECUTE), with a badge tap on the kiosk.
+    const operatorAtUnit = await gmp.asPersona('operator1');
+    const batchNumber = valueOf(await issuer.call(routes.batches.batch, { params: { batchId: await w.issued(issuer) } })).header.batchNumber;
+    const failure = { event: 'EVENT' as const, kind: 'FAILURE_SIGNALLED' as const, detail: 'Drive belt slipping', batchNumber };
+    valueOf(await operatorAtUnit.call(routes.plant.equipmentEvent, { params: { code: eq.code }, body: failure, attribution: await tapFor(operatorAtUnit, personaIn(gmp, 'operator1'), 'POST', `/api/plant/equipment/${eq.code}/events`, failure) }));
+    const repair = valueOf(await b1.call(routes.plant.equipmentEvent, { params: { code: eq.code }, body: { event: 'REPAIR', detail: 'Belt replaced', reference: 'WO-2026-0101' } }));
+    const verifyRepair = { kind: 'PLANT_VERIFY' as const, act: 'REPAIR' as const, id: repair.id };
+    expect((await signAction(gmp, b1, 'x', verifyRepair, { credentials: password(tech1) })).ok).toBe(false);
+    await signedOk(signAction(gmp, b2, 'x', verifyRepair, { credentials: password(tech2) }));
+
+    // A clearance of the room for a GMP batch, recorded by an operator on the room's kiosk and verified by a verifier.
+    // The room is cleaned (and the cleaning verified) before it is cleared.
+    const roomCleaning = valueOf(await b1.call(routes.plant.startCleaning, { body: { target: 'AREA', code: `RM${tag}`, level: 'MAJOR' } }));
+    valueOf(await b1.call(routes.plant.completeCleaning, { params: { id: roomCleaning.cleaningId }, body: {} }));
+    await signedOk(signAction(gmp, b2, 'x', { kind: 'PLANT_VERIFY', act: 'CLEANING', id: roomCleaning.cleaningId }, { credentials: password(tech2) }));
+    const batchId = await w.issued(issuer);
+    const operator = await gmp.asPersona('operator1');
+    // The plant's product list names the batch's product (master data; no screen of slice 6 writes it).
+    expect(await asApp(steward, 'steward', "select plant.define_product(jsonb_build_object('code', $1::text, 'name', $2::text, 'highlyPotent', false))", [w.content.header.product.code, w.content.header.product.name])).toBeNull();
+    const body = { areaCode: `RM${tag}`, type: 'PRODUCT_CHANGE' as const, batchId, result: 'PASSED' as const };
+    const clearance = await operator.call(routes.plant.recordClearance, { body, attribution: await tapFor(operator, personaIn(gmp, 'operator1'), 'POST', '/api/plant/clearances', body) });
+    if (!clearance.ok) throw new Error(`the clearance was refused: ${JSON.stringify(clearance.error)}`);
+    const { person: verifier, browser: vb } = await signer('VERIFIER', 'Kavya Reddy (verifier)');
+    const verifyClearance = { kind: 'PLANT_VERIFY' as const, act: 'CLEARANCE' as const, id: clearance.value.clearanceId };
+    expect((await signAction(gmp, operator, 'operator1', verifyClearance)).ok).toBe(false);
+    expect((await signAction(gmp, vb, 'x', verifyClearance, { tamper: true, credentials: password(verifier) })).ok).toBe(false);
+    await signedOk(signAction(gmp, vb, 'x', verifyClearance, { credentials: password(verifier) }));
+  }, 300_000);
 });

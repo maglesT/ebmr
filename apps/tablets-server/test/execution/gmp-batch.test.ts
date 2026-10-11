@@ -191,7 +191,7 @@ describe('GMP batches on the GMP installation (slice 2b)', () => {
       ['SIGN_PERFORMED', true],
     ]);
     for (const c of cmds) expect(c.evidence).not.toHaveProperty('packageHash');
-    const replay = valueOf(await issuer.call(routes.execution.verifyReplay, { params: { runId: plan.batchId }, body: {} }));
+    const replay = valueOf(await issuer.call(routes.batches.verifyReplay, { params: { batchId: plan.batchId }, body: {} }));
     expect(replay.identical).toBe(true);
     const violations = await gmp.db.app.query<{ problem: string }>('select problem from recipe.execution_violations()');
     expect(violations.rows).toEqual([]);

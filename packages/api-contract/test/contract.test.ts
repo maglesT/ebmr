@@ -205,7 +205,10 @@ describe('route table', () => {
 
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
-    expect(fresh.map((r) => r.id).sort()).toEqual(['batches.command', 'esig.createChallenge', 'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch']);
+    expect(fresh.map((r) => r.id).sort()).toEqual([
+      'batches.command', 'batches.issueSscc', 'batches.proposeAct', 'esig.createChallenge', 'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch',
+      'plant.completeCleaning', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning',
+    ]);
     for (const r of fresh) {
       expect(r.auth, r.id).toBe('SESSION');
       expect(r.mutating, r.id).toBe(true);
@@ -213,11 +216,14 @@ describe('route table', () => {
     }
   });
 
-  it('[DI-05][INV-18] designer routes and the GMP batch plan are GMP only, test packages and test batches sandbox only; running batches, devices and the rest serve both', () => {
+  it('[DI-05][INV-18] designer routes and the GMP batch plan are GMP only, test packages and running test batches sandbox only (GMP batches run under batches, D-S6-1); work queue, lots, devices and the rest serve both', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
     expect(routes.execution.planBatch.installation).toBe('GMP');
     for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
-    const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue'];
+    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.command];
+    for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
+    for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe('GMP');
+    const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];
     for (const r of Object.values(routes.execution).filter((x) => !installationBound.includes(x.id))) expect(r.installation, r.id).toBe('ANY');
     for (const r of [...Object.values(routes.devices), ...Object.values(routes.meta), ...Object.values(routes.session), ...Object.values(routes.access), ...Object.values(routes.esig), ...Object.values(routes.audit)]) {
       expect(r.installation, r.id).toBe('ANY');

@@ -99,9 +99,9 @@ const VALUE_FIELDS: Record<string, FieldSchema> = {
   value: { type: 'decimal', description: 'Value as decimal text in the tag unit' },
   unit: UNIT,
   source: { type: 'string', enum: ['EQUIPMENT', 'MANUAL'], description: 'EQUIPMENT: a process reading received from the gateway; MANUAL: keyed under the MBR fallback path' },
-  readingId: { type: 'string', pattern: UUID, optional: true, description: 'The process reading (EQUIPMENT only)' },
-  quality: { type: 'string', enum: [...QUALITIES], optional: true, description: 'Quality the device reported (EQUIPMENT only)' },
-  receivedAtUs: { type: 'string', pattern: /^[0-9]{1,20}$/, optional: true, description: 'Database time the server received the reading (EQUIPMENT only)' },
+  readingId: { type: 'string', pattern: UUID, optional: true, serverFilled: true, description: 'The process reading (EQUIPMENT only)' },
+  quality: { type: 'string', enum: [...QUALITIES], optional: true, serverFilled: true, description: 'Quality the device reported (EQUIPMENT only)' },
+  receivedAtUs: { type: 'string', pattern: /^[0-9]{1,20}$/, optional: true, serverFilled: true, description: 'Database time the server received the reading (EQUIPMENT only)' },
 };
 
 function valueEntry(description: string): ObjectSchema {

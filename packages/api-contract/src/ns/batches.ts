@@ -8,17 +8,18 @@
  * database reads for each (never the browser's).
  */
 import { z } from 'zod';
-import { DecimalString, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
-import { ClientIntent, StepKey } from '../intents.ts';
+import { DecimalString, Empty, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
+import { ActId, ClientIntent, StepKey } from '../intents.ts';
 import { defineRoute } from '../route.ts';
-import { CommandResultView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
+import { CommandResultView, ReplayReportView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
 
 const batchParams = z.strictObject({ batchId: Uuid });
 const stepParams = z.strictObject({ batchId: Uuid, stepKey: StepKey });
 
 /** An act proposed for approval before it is recorded (recipe.propose_act): QA signs its meaning on aggregate batch_act. */
 export const ProposedActView = z.strictObject({
-  actId: Uuid,
+  /** The act's aggregate id (batch_act): <batch>:act@<state version>:<hash of the act>; the void is sent at that state version. */
+  actId: ActId,
   batchId: Uuid,
   /** The engine command the act will be (VOID_ATTEMPT). */
   commandType: z.literal('VOID_ATTEMPT'),
@@ -143,6 +144,18 @@ export const batches = {
     }),
     response: CommandResultView,
   }),
+  verifyReplay: defineRoute({
+    id: 'batches.verifyReplay',
+    method: 'POST',
+    path: '/api/batches/:batchId/verify-replay',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Replay the stored rows of the GMP batch and report identical or the first difference',
+    params: batchParams,
+    body: Empty,
+    response: ReplayReportView,
+  }),
   proposeAct: defineRoute({
     id: 'batches.proposeAct',
     method: 'POST',
@@ -150,9 +163,10 @@ export const batches = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Propose a void of an attempt for QA\'s approval (the approval is signed on the act; the void is then sent as a command)',
     params: batchParams,
-    body: z.strictObject({
+    body: withAttribution({
       intent: z.strictObject({
         type: z.literal('VOID_ATTEMPT'),
         stepKey: StepKey,
@@ -181,9 +195,10 @@ export const batches = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Issue the next SSCC for a TB-24 step of the batch (number and check digit from the database, PR-42)',
     params: stepParams,
-    body: z.strictObject({}),
+    body: withAttribution({}),
     response: SsccView,
   }),
   additionSources: defineRoute({
