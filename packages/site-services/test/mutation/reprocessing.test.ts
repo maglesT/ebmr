@@ -473,3 +473,165 @@ describe('the checks of a whole-batch request at planning (recipe-core 0625, rec
     expect(await problem(await signedRequest([elsewhere.id]))).toMatch(/^parent .* is not of .* at site SITE-1$/);
   });
 });
+
+describe('the reprocessing registers and what is signed (recipe-core 0621, 0622, 0624, 0625)', () => {
+  type Json = Record<string, unknown>;
+  const one = async <T>(text: string, params: unknown[]): Promise<T> => (await db.admin.query<{ r: T }>(text, params)).rows[0]?.r as T;
+  /** `work` as the superuser with every trigger off but `enabled` ([table, trigger] pairs), rolled back. */
+  async function onlyTriggers<T>(enabled: [string, string][], work: (q: (text: string, params?: unknown[]) => Promise<string>) => Promise<T>): Promise<T> {
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      for (const [t, g] of enabled) await c.query(`alter table ${t} enable always trigger ${g}`);
+      return await work(async (text, params = []) => {
+        await c.query('savepoint s');
+        try {
+          await c.query(text, params);
+          await c.query('release savepoint s');
+          return '';
+        } catch (e) {
+          await c.query('rollback to savepoint s');
+          return e instanceof Error ? e.message : String(e);
+        }
+      });
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  }
+  const closedContainer = async (b: GmpBatch, reserved: boolean): Promise<string> => {
+    const id = randomUUID();
+    await w.fixture(
+      `insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account)
+       values ($1, $2, $3, $4, $5, $6, 'INSPECTION', 'kg', gen_random_uuid(), gen_random_uuid())`,
+      [id, `OC-R${randomUUID().slice(0, 6)}-${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`, b.id, b.number, PRODUCT, STRENGTH],
+    );
+    await w.fixture("insert into plant.container_close (container_id, net_quantity, person_id, account_id) values ($1, '2', gen_random_uuid(), gen_random_uuid())", [id]);
+    if (reserved) await w.fixture('insert into recipe.residue_reservation (container_id, signature_id, reserved_by_person, reserved_by_account, correlation_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
+    return id;
+  };
+  const addition = (receiving: GmpBatch, source: GmpBatch, container: string, net: string, unit = 'kg') =>
+    `insert into recipe.source_addition (batch_id, batch_number, step_key, entry_id, block, container_id, case_code, net_quantity, unit, source_batch_id, source_batch_number,
+                                         product_code, strength, source_generated_at, source_manufactured_at, added_by_person)
+     values ('${receiving.id}', '${receiving.number}', 'add@', 'EN-${Math.floor(Math.random() * 1e8) + 1}', 'TB-08@1', '${container}', 'REPROCESSING_ADDITION', ${net}, '${unit}',
+             '${source.id}', '${source.number}', '${PRODUCT}', '${STRENGTH}', clock_timestamp(), clock_timestamp(), gen_random_uuid())`;
+
+  it('[PR-47][INV-33] an addition is taken in its container\'s unit; a container reserved or taken from is never charged or merged, and only such a container is refused', async () => {
+    const S = await batch('EXECUTION_COMPLETE');
+    const R = await batch();
+    const reserved = await closedContainer(S, true);
+    const taken = await closedContainer(S, false);
+    const free = await closedContainer(S, false);
+    const other = await closedContainer(S, false);
+    await onlyTriggers([['recipe.source_addition', 'ab_source_addition_remaining'], ['plant.container_charge', 'ab_rpr_charge'], ['plant.container_merge', 'ab_rpr_merge']], async (q) => {
+      expect(await q(addition(R, S, taken, '1', 'g'))).toMatch(/is not counted in g: an addition is taken in its container's unit .*\[EBMR-RPR-040\]/);
+      expect(await q(addition(R, S, taken, '3'))).toMatch(/its remaining quantity never goes below zero .*\[EBMR-RPR-040\]/);
+      expect(await q(addition(R, S, taken, '2'))).toBe('');
+      const charge = (c: string) => q("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id) values ($1, $2, 'BLENDING', 'CHARGE', 'x', gen_random_uuid(), gen_random_uuid())", [c, R.id]);
+      const merge = (s: string, t: string) => q('insert into plant.container_merge (source_id, target_id, person_id, account_id) values ($1, $2, gen_random_uuid(), gen_random_uuid())', [s, t]);
+      expect(await charge(reserved)).toMatch(/This container cannot be charged or packed: it is reserved for reprocessing or an addition took from it.*\[EBMR-RPR-041\]/);
+      expect(await charge(taken)).toMatch(/cannot be charged or packed.*\[EBMR-RPR-041\]/);
+      expect(await merge(reserved, other)).toMatch(/This container cannot be merged: .*\[EBMR-RPR-041\]/);
+      expect(await merge(other, taken)).toMatch(/cannot be merged.*\[EBMR-RPR-041\]/);
+      // A container neither reserved nor taken from is charged and merged, whatever else the registers hold.
+      expect(await merge(other, free)).toBe('');
+      expect(await charge(free)).toBe('');
+    });
+  });
+
+  it('[INV-33][PR-47] what a batch received is its own: a link or addition of another batch does not make it reprocessed', async () => {
+    const P = await batch('EXECUTION_COMPLETE');
+    const child = await batch('EXECUTION_COMPLETE');
+    const unrelated = await batch('EXECUTION_COMPLETE');
+    await w.fixture(
+      "insert into recipe.batch_parent_link (child_batch_id, parent_batch_id, parent_batch_number, parent_containers, request_id) values ($1, $2, $3, '{}', gen_random_uuid())",
+      [child.id, P.id, P.number],
+    );
+    expect(await one<boolean>('select recipe.batch_contains_recovered($1) as r', [child.id])).toBe(true);
+    expect(await one<string>('select recipe.batch_reprocessing_basis($1) as r', [child.id])).toBe('WHOLE_BATCH');
+    expect(await one<boolean>('select recipe.batch_contains_recovered($1) as r', [unrelated.id])).toBe(false);
+    expect(await one<string | null>('select recipe.batch_reprocessing_basis($1) as r', [unrelated.id])).toBeNull();
+  });
+
+  it('[INV-33][IN-18] at commit a batch of a reprocessing master names its own parents; a batch of another master needs none', async () => {
+    const P = await batch('EXECUTION_COMPLETE');
+    const linked = await batch('EXECUTION_COMPLETE');
+    await w.fixture(
+      "insert into recipe.batch_parent_link (child_batch_id, parent_batch_id, parent_batch_number, parent_containers, request_id) values ($1, $2, $3, '{}', gen_random_uuid())",
+      [linked.id, P.id, P.number],
+    );
+    const family = async (kind: string): Promise<string> => {
+      const id = randomUUID();
+      await w.fixture(
+        `insert into recipe.mbr_family (id, code, title, edition, record_kind, product_code, product_name, strength, dosage_form, batch_sizes, created_by_person, created_by_account)
+         values ($1, $2, 'Master', 'tablets', $3, $4, 'Paracetamol tablets', $5, $6, '[{"id": "BS-1", "quantity": {"value": "100", "unit": "kg"}}]', gen_random_uuid(), gen_random_uuid())`,
+        [id, unique('FAM-'), kind, PRODUCT, STRENGTH, `Form ${randomUUID().slice(0, 6)}`],
+      );
+      return id;
+    };
+    const commit = async (familyId: string): Promise<string> => {
+      const c = await db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query("set local session_replication_role = 'replica'");
+        await c.query('alter table recipe.stub_batch enable always trigger zz_reprocessing_parents');
+        await c.query(
+          `insert into recipe.stub_batch (id, batch_number, family_id, markets, site, line, batch_size, created_by_person, created_by_account)
+           values (gen_random_uuid(), $1, $2, '{IN}', 'SITE-1', 'LINE-1', 'BS-1', gen_random_uuid(), gen_random_uuid())`,
+          [unique('RB'), familyId],
+        );
+        await c.query('commit');
+        return '';
+      } catch (e) {
+        await c.query('rollback').catch(() => undefined);
+        return e instanceof Error ? e.message : String(e);
+      } finally {
+        // A committed ENABLE ALWAYS outlives the transaction: the trigger goes back to its migration's mode.
+        await c.query('alter table recipe.stub_batch enable trigger zz_reprocessing_parents');
+        c.release();
+      }
+    };
+    expect(await commit(await family('REPROCESSING'))).toMatch(/runs a reprocessing master but names no parent batches.*\[EBMR-RPR-053\]/);
+    expect(await commit(await family('PROCESSING'))).toBe('');
+  });
+
+  it('[DI-37][PR-47] what the quality unit signs names this authorisation\'s batch and source container, and this request\'s master, parents and risk evaluation', async () => {
+    const S = await batch('EXECUTION_COMPLETE');
+    const R = await batch();
+    await batch();
+    const src = await closedContainer(S, true);
+    await closedContainer(S, true);
+    const { id } = await w.sql<{ id: string }>(qcu, 'select recipe.propose_reprocessing_authorisation($1, $2, $3, $4, $5) as r', [R.id, 'add', src, 'INV-1', 'RA-1']);
+    const auth = await one<{ content: Json & { source_container: Json } }>('select recipe.reprocessing_authorisation_content($1) as r', [id]);
+    expect(auth.content).toMatchObject({ batch_id: R.id, batch_number: R.number, step: 'add', case: 'REPROCESSING_ADDITION' });
+    expect(auth.content.source_container).toMatchObject({ id: src, batch_id: S.id, batch_number: S.number, net_quantity: '2', quantity_unit: 'kg' });
+
+    const fam = randomUUID();
+    await w.fixture(
+      `insert into recipe.mbr_family (id, code, title, edition, record_kind, product_code, product_name, strength, dosage_form, batch_sizes, created_by_person, created_by_account)
+       values ($1, $2, 'Reprocessing master', 'tablets', 'REPROCESSING', $3, 'Paracetamol tablets', $4, 'Film-coated tablet', '[{"id": "BS-1", "quantity": {"value": "100", "unit": "kg"}}]', gen_random_uuid(), gen_random_uuid())`,
+      [fam, unique('FAM-'), PRODUCT, STRENGTH],
+    );
+    const evidence = async (sha: string): Promise<string> => {
+      const id = randomUUID();
+      await w.fixture(
+        `insert into site.evidence_document (id, sha256, media_type, size_bytes, storage_key, title, site_code, uploaded_by_person, uploaded_by_account, correlation_id)
+         values ($1, $2, 'application/pdf', 1024, $3, 'Risk evaluation', 'SITE-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+        [id, sha, `evidence/${id}.pdf`],
+      );
+      return id;
+    };
+    await evidence('d'.repeat(64));
+    const doc = await evidence('c'.repeat(64));
+    const P1 = await batch('EXECUTION_COMPLETE');
+    const P2 = await batch('EXECUTION_COMPLETE');
+    const req = await w.sql<{ id: string }>(issuer, 'select recipe.propose_reprocessing_request($1, $2, $3::uuid[], $4, $5) as r', [fam, 'SITE-1', [P2.id, P1.id], 'DEV-9', doc]);
+    const content = await one<{ content: Json & { family: Json; parents: Json[] } }>('select recipe.reprocessing_request_content($1) as r', [req.id]);
+    expect(content.content.family).toMatchObject({ id: fam, record_kind: 'REPROCESSING', product_code: PRODUCT });
+    expect(content.content.parents.map((p) => p['id']).sort()).toEqual([P1.id, P2.id].sort());
+    expect(String(content.content['title'])).toContain([P1.number, P2.number].sort().join(', '));
+    const stored = await one<string | null>('select sha256 as r from site.evidence_document where id = $1', [doc]);
+    expect(content.content['risk_evaluation_sha256']).toBe(stored);
+  });
+});
