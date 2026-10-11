@@ -606,7 +606,7 @@ export const TARGETS: Target[] = [
     functions: ['recipe.erp_order_problem', 'recipe.open_erp_order_for', 'site.erp_receive_product',
                 'site.product_master_of', 'site.receive_lot', 'site.erp_receive_material', 'site.erp_material_current',
                 'site.material_master_of', 'site.erp_receive_order', 'site.erp_order_of'],
-    tests: [site('quality/interfaces.test.ts'), site('lots/lots.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/gmp-issue.test.ts')],
+    tests: [site('mutation/erp-interfaces.test.ts'), site('quality/interfaces.test.ts'), site('lots/lots.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/gmp-issue.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: reprocessing: residue sources, authorisation, source additions, whole-batch requests, recovered
