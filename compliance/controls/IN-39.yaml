@@ -22,6 +22,14 @@ implemented_by:
     - "G-11: a value outside its action limit raises LIMIT_BREACH and ENVIRONMENT_EXCURSION, stops the step until a deviation is linked, and notifies production and QA"
 tests:
   - "packages/recipe-core/test/blocks/process.test.ts > G-11 environmental condition check > [IN-39][PR-25] a pressure difference below its action limit stops the step, links a deviation and notifies production and QA"
+clauses:
+  - clause: "enter a differential pressure below the action limit at compression start; the step is blocked or a deviation opens"
+    tests:
+      - "packages/recipe-core/test/blocks/process.test.ts > G-11 environmental condition check > [IN-39][PR-25] a pressure difference below its action limit stops the step, links a deviation and notifies production and QA"
+  - clause: "and both departments are notified."
+    deferred:
+      phase: 4
+      reason: "The run records the notification to production and QA with the exception (the engine's NOTIFICATION effect, asserted by the test of the clause above); delivering notifications to people (inbox or alerting) is not built in Phase 3. It comes with the review and release work of Phase 4 (build outline 11)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

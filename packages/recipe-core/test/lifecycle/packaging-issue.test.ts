@@ -123,6 +123,38 @@ describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
     expect(await q<Json>('select purpose, batch_number from recipe.batch_execution where id = $1', [order])).toEqual([{ purpose: 'GMP_BATCH', batch_number: planned.batchNumber }]);
   });
 
+  it('[PR-01] a packaging order for a pack type with no approved packaging master is refused: the pack type\'s master only drafted, approved but not authorised for the market, or not listing the pack size; a processing master never plans a packaging order; the approved and authorised one plans', async () => {
+    const proc = await master('tablet-granulation-compression');
+    const parent = randomUUID();
+    await plan(parent, { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'] });
+    await issue(parent, 'tablet-granulation-compression');
+    // Pack families of the same product differ here by pack size: the family identity (recipe-core 0110) holds no pack
+    // type of its own (reported to the planner, slice 6c).
+    const packContent = (count: string): MbrContent => {
+      const m = uniqueContent('tablet-blister-packaging', ['IN']);
+      m.header.product = { ...m.header.product, code: proc.product };
+      m.header.batchSizes = m.header.batchSizes.map((b) => ({ ...b, quantity: { ...b.quantity, value: count } }));
+      return without(m, ['G-09', 'G-10']) as MbrContent;
+    };
+    // A pack type (its own family: product, pack type, pack sizes) whose master is only a draft, and one approved but
+    // with no market authorisation: neither is an approved packaging master an order can be planned on.
+    const drafted = await w.newVersion(packContent('20001'));
+    const unauthorised = await w.approvedVersion(packContent('20002'));
+    const packSize = SIZE['tablet-blister-packaging'];
+    const order = 'ERP-NOT-REACHED';
+    const pack = await master('tablet-blister-packaging', proc.product);
+    expect({
+      draftOnly: await codeOf(plan(randomUUID(), { familyId: drafted.familyId, batchSize: packSize, parentBatch: parent, erpOrder: order })),
+      notAuthorised: await codeOf(plan(randomUUID(), { familyId: unauthorised.familyId, batchSize: packSize, parentBatch: parent, erpOrder: order })),
+      unlistedPackSize: await codeOf(plan(randomUUID(), { familyId: pack.familyId, batchSize: 'PO-99K', parentBatch: parent, erpOrder: order })),
+      processingMaster: await codeOf(plan(randomUUID(), { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'], parentBatch: parent })),
+      unknownFamily: await codeOf(plan(randomUUID(), { familyId: randomUUID(), batchSize: packSize, parentBatch: parent, erpOrder: order })),
+    }).toEqual({ draftOnly: 'EBMR-EXE-192', notAuthorised: 'EBMR-EXE-192', unlistedPackSize: 'EBMR-EXE-192', processingMaster: 'EBMR-EXE-198', unknownFamily: 'EBMR-EXE-192' });
+    expect(await q('select 1 from recipe.stub_batch b join recipe.mbr_family f on f.id = b.family_id where f.id in ($1, $2)', [drafted.familyId, unauthorised.familyId])).toEqual([]);
+    const planned = await plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize, parentBatch: parent });
+    expect(planned.batchNumber).toMatch(/\/P01$/);
+  });
+
   it('[INV-27][IN-18] a packaging order without its processing batch, of a batch not issued or cancelled, of another product, or a processing batch naming a parent, is refused; a packaging number of another batch is never taken; the role cannot link a number directly', async () => {
     const proc = await master('tablet-granulation-compression');
     const pack = await master('tablet-blister-packaging', proc.product);

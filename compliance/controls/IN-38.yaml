@@ -30,6 +30,15 @@ tests:
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [IN-38][PR-29] TB-22: any leaking pocket fails the test (a forged pass is refused) and holds every container of the machine since the track's last passing test; a test outside the validated method is refused; a pass is recorded only from the step; the step closes only with an end-of-run test of every track"
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [IN-38][PR-29] TB-22 missed leak test at database time (IN-38 (c)): the server sweeper records the alarm and the MISSED hold of the machine without any entry; the next entry must list it with LEAK_TEST_MISSED (a forged engine that leaves it out is refused)"
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-34][PR-35][IN-38] review 4b: a TB-23 or TB-24 entry is stored only on a line occupied now by this batch's packaging order, on a passed and verified clearance for it and for the artwork set its G-21 step names; a potent product only on a line flagged isolated"
+clauses:
+  - clause: "one user signs both \"performed\" and \"verified\" for blister clearance; refused."
+    tests:
+      - "apps/tablets-server/test/blocks/blister/blocks.test.ts > TB-21 line check (engine) > [IN-38] the independent line check has a verifier in the MBR (TB21-INDEPENDENT), and the engine never lets the person who performed it verify it: performer and a different verifier"
+      - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [IN-38][PR-34][PR-35] the run and the leak test start only after a completed independent line check of the same machine (performed, then verified by another person), on the line the order still occupies"
+  - clause: "Skip the scheduled leak test; the record flags a missed IPC."
+    tests:
+      - "apps/tablets-server/test/blocks/blister/blocks.test.ts > TB-22 leak test (engine) > [IN-38][PR-29] a test is due at the start, one interval after the track's last test, at once after a reel change and at the end; one not made within the grace is missed and the next entry lists it with LEAK_TEST_MISSED (IN-38 (c))"
+      - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [IN-38][PR-29] TB-22 missed leak test at database time (IN-38 (c)): the server sweeper records the alarm and the MISSED hold of the machine without any entry; the next entry must list it with LEAK_TEST_MISSED (a forged engine that leaves it out is refused)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

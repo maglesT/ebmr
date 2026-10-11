@@ -36,6 +36,10 @@ tests:
   - "packages/recipe-core/test/plant/status-blocks.test.ts > G-10@2: the room occupancy an entry names is the plant record (recipe-core 0521, EBMR-EXE-210) > [INV-15][IN-21][PR-34] an AREA_OCCUPANCY entry stands only on an open occupancy of its room by this batch on a passed, verified clearance, started by the person recording it"
   - "packages/recipe-core/test/plant/status-blocks.test.ts > review backlog #5: plant transitions evaluate the batch product (recipe-core 0522) > [DI-17][IN-21] an operator whose STEP.EXECUTE is limited to a product starts and ends a press use and opens a container for a batch of that product, and is refused for another product"
   - "packages/recipe-core/test/containers/containers.test.ts > press codes are plant equipment; a check and an open never race (recipe-core 0540) > [PR-22][IN-21] a container, an in-process check and a discharge configuration name a PROCESS unit of the plant: an unknown code or an instrument is refused"
+clauses:
+  - clause: "start compression on a room with status \"to be cleaned\"; refused."
+    tests:
+      - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [IN-21][INV-15] start compression on a room with status \"to be cleaned\": refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

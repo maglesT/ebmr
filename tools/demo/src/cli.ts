@@ -24,7 +24,7 @@ async function run(dev: boolean): Promise<void> {
     throw new Error('the demo is not set up: run `pnpm demo:setup` first');
   }
   if (!dev && !existsSync(join(WEB_DIST, 'index.html'))) await buildWeb();
-  const stack = await startStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, ports: DEMO_PORTS, webDist: dev ? null : WEB_DIST });
+  const stack = await startStack({ databases: DEMO_DATABASES, keysDir: KEYS_DIR, ports: DEMO_PORTS, webDist: dev ? null : WEB_DIST, demoDevices: true });
   const viteServers = dev
     ? [
         spawn('pnpm', ['--filter', '@ebmr/tablets-web', 'dev'], { cwd: REPO_ROOT, stdio: 'inherit', env: { ...process.env, EBMR_WEB_PORT: '5173', EBMR_API_ORIGIN: stack.urls.gmp } }),

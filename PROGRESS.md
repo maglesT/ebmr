@@ -72,6 +72,15 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   the expiry cap (recipe-core 0620 to 0625, tablets 1020 to 1022). Merged (PR #16). Slice 6 plan:
   `docs/build-plan/phase-3/slice-6-plan.md`, built on `phase-3/slice-6`; then the Phase 3 exit (decision 0009). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
+- Slice 6c (`phase-3/slice-6c`, in progress): catalog-test clauses for the 16 Phase 3 exit controls; DI-04 clause 2,
+  PR-01 clause 2 and the DI-33 reprocessing scope tested; simulators for every process kind, packaging-line kinds in the
+  database (tablets 1060), instruments on the scale protocol, a demo gateway with press, coater, printer and line
+  devices; the GMP demo seed (shop-floor personas, the site gateway's identity, ERP catalogue, GB-T-01 lots tested and
+  released); the GB-T-01 worksheet and expected quantities; the golden CI job under libfaketime. **For the owner
+  (D-S6-10), re-deferred with reasons in the register:** IN-17 "release is blocked" and IN-39 "both departments are
+  notified" to Phase 4 (batch release and notification delivery are Phase 4). Open: TB20-NO-PLAN through deviation-lite
+  needs a TB-20@2 (block data schemas are fixed per version); a packaging family's identity holds no pack type (two pack
+  types of one product at one pack size cannot both exist; recipe-core 0110, for the planner).
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 

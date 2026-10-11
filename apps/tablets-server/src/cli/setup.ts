@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { esig, withCommand, type ActorContext } from '@ebmr/kernel';
+import { esig, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import type { DemoDeviceView } from '@ebmr/api-contract';
 import {
   asAdmin,
@@ -31,11 +31,14 @@ import {
   editionMigrationSources,
   openDatabase,
   openPersonaSession,
+  openServiceSession,
   passwordActor,
   personaOf,
   provisionBootstrappedSandbox,
   seedDemoSite,
+  terminalOf,
   type DeviceKey,
+  type ServiceKey,
   type SiteSeed,
 } from '@ebmr/test-kit';
 import { FEATURES } from '../features/index.ts';
@@ -148,6 +151,22 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         return { ...a, reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' };
       },
       adminActor: () => passwordActor(db, seed.bootstrap.admin, seed.bootstrap.admin.fingerprint, { reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
+      serviceActorFor: async (k): Promise<ActorContext> => ({ ...(await openServiceSession(db, seed, k as ServiceKey)), reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
+      signAs: async (signer, aggregate, meaning, expectedState): Promise<string> => {
+        const p = personaOf(seed, signer);
+        const t = terminalOf(seed, p.homeTerminal);
+        const actor = { ...(await openPersonaSession(db, seed, signer)), reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' };
+        // The set-up tool reads the content it shows the signer with the installation's own (superuser) connection: no
+        // browser session exists here to preview it (tablets 0410). The challenge, the authentication and the signature
+        // are the persona's, and the database's guards decide as for any signature.
+        const content = await esig.contentForSigning(db.admin, aggregate.type, aggregate.id);
+        const challenge = await withCommand(db.app, actor, (c) =>
+          esig.createChallenge(c, { aggregateType: aggregate.type, aggregateId: aggregate.id, contentVersion: content.contentVersion ?? '1', meaning, clientContentHash: content.contentHash ?? '' }),
+        );
+        const ev = await identity.authenticate(db.authn, { method: 'PASSWORD', identifier: p.loginName, secret: p.password, deviceFingerprint: t.fingerprint, purpose: 'SIGNATURE', challengeId: challenge.challengeId });
+        const signed = await withCommand(db.app, actor, (c) => esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState }, key));
+        return signed.signatureId;
+      },
       exchangeDir: opts.exchangeDir,
       gatewaySpki: opts.gatewaySpki ?? null,
       log,
