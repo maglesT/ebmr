@@ -3,7 +3,9 @@
  * own command, and the ERP stub's import runs as the ERP interface's service identity; every rule is the database's.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { quality } from '@ebmr/api-contract';
+import { routes } from '@ebmr/api-contract';
+
+const quality = routes.quality;
 import { terminalOf } from '@ebmr/test-kit';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { refusalOf, valueOf } from '../esig/support.ts';

@@ -9,9 +9,10 @@ import { devices } from './ns/devices.ts';
 import { esig } from './ns/esig.ts';
 import { execution } from './ns/execution.ts';
 import { meta } from './ns/meta.ts';
+import { quality } from './ns/quality.ts';
 import { session } from './ns/session.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices } as const;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices, quality } as const;
 export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
@@ -25,4 +26,5 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   designer: 'C2',
   execution: 'C3',
   devices: 'C5',
+  quality: 'C3',
 };

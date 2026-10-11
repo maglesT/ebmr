@@ -6,7 +6,7 @@
  * The ERP import is authenticated by the ERP interface's own service identity (SERVICE_KEY on its host terminal, as the
  * sweeper's session is opened), runs as that identity (source INTEGRATION, role ERP_INTERFACE) and ends the session.
  */
-import { quality, type DeviationView, type ErpCatalogue, type LotResultView } from '@ebmr/api-contract';
+import { routes, type DeviationView, type ErpCatalogue, type LotResultView } from '@ebmr/api-contract';
 import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
@@ -86,11 +86,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   bindRoutes(
     scope,
     app,
-    quality,
+    routes.quality,
     {
       raiseDeviation: async ({ body, actor, idempotencyKey, requestHash }) => {
-        const { attribution: _a, ...d } = body;
-        void _a;
+        const d = body;
         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
           const { rows } = await c.query<{ r: { deviationId: string } }>('select site.raise_deviation($1::jsonb) as r', [JSON.stringify(d)]);
           return rows[0]?.r.deviationId ?? '';
@@ -113,8 +112,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return deviationView(pool, params.deviationId);
       },
       recordFinding: async ({ params, body, actor, idempotencyKey, requestHash }) => {
-        const { attribution: _a, ...f } = body;
-        void _a;
+        const f = body;
         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
           await c.query('select site.record_deviation_finding($1, $2::jsonb)', [params.deviationId, JSON.stringify(f)]);
           return null;
@@ -129,8 +127,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return deviationView(pool, params.deviationId);
       },
       recordLotResult: async ({ params, body, actor, idempotencyKey, requestHash }) => {
-        const { attribution: _a, ...r } = body;
-        void _a;
+        const r = body;
         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
           const { rows } = await c.query<{ r: { resultId: string } }>('select site.record_lot_test_result($1, $2::jsonb) as r', [params.lotId, JSON.stringify(r)]);
           return rows[0]?.r.resultId ?? '';
