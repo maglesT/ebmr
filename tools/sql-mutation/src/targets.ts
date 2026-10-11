@@ -596,7 +596,7 @@ export const TARGETS: Target[] = [
                 'site.cancel_deviation', 'site.register_evidence_document', 'site.evidence_document_problem',
                 'site.qc_test_codes', 'site.qc_extra_testing_content', 'site.record_qc_extra_testing_decision',
                 'site.qc_extra_testing_decision_of', 'site.assert_deviation_qa_signature', 'site.deviation_ref_problem'],
-    tests: [site('quality/deviation.test.ts'), site('quality/lims.test.ts'), r('lifecycle/gmp-references.test.ts')],
+    tests: [site('mutation/deviations.test.ts'), site('quality/interfaces.test.ts'), site('quality/deviation.test.ts'), site('quality/lims.test.ts'), r('lifecycle/gmp-references.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: ERP masters and production orders as received (site-services 0732, 0750, 0751; recipe-core 0602)
