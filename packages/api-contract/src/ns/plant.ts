@@ -21,6 +21,7 @@ export const AreaView = z.strictObject({
   negativePressure: z.boolean(),
   state: z.string(),
 });
+export type AreaView = z.infer<typeof AreaView>;
 export const EquipmentClassView = z.strictObject({
   code: z.string(),
   kind: z.enum(['PROCESS', 'INSTRUMENT', 'UTILITY']),
@@ -31,6 +32,7 @@ export const EquipmentClassView = z.strictObject({
   checkRegime: z.enum(['PER_USE', 'DAILY']).nullable(),
   cipValidationRef: z.string().nullable(),
 });
+export type EquipmentClassView = z.infer<typeof EquipmentClassView>;
 export const EquipmentView = z.strictObject({
   equipmentId: Uuid,
   code: z.string(),
@@ -42,6 +44,7 @@ export const EquipmentView = z.strictObject({
   /** Why the unit may not be used now (the database's fitness check), or null. */
   fitness: z.string().nullable(),
 });
+export type EquipmentView = z.infer<typeof EquipmentView>;
 export const ToolingSetView = z.strictObject({
   setId: Uuid,
   code: z.string(),
@@ -57,6 +60,7 @@ export const ToolingSetView = z.strictObject({
   dies: z.number().int(),
   strokeLimit: z.string(),
 });
+export type ToolingSetView = z.infer<typeof ToolingSetView>;
 export const DetectorView = z.strictObject({
   equipmentId: Uuid,
   code: z.string(),
@@ -65,6 +69,7 @@ export const DetectorView = z.strictObject({
   classCode: z.string(),
   areaCode: z.string().nullable(),
 });
+export type DetectorView = z.infer<typeof DetectorView>;
 export const TestPieceView = z.strictObject({
   testPieceId: Uuid,
   code: z.string(),
@@ -73,6 +78,7 @@ export const TestPieceView = z.strictObject({
   certificateRef: z.string(),
   certifiedUntil: Instant,
 });
+export type TestPieceView = z.infer<typeof TestPieceView>;
 export const CleaningView = z.strictObject({
   cleaningId: Uuid,
   target: z.enum(['EQUIPMENT', 'AREA']),
@@ -83,6 +89,7 @@ export const CleaningView = z.strictObject({
   startedBy: PersonRef,
   startedAt: Instant,
 });
+export type CleaningView = z.infer<typeof CleaningView>;
 export const ClearanceView = z.strictObject({
   clearanceId: Uuid,
   areaCode: z.string(),
@@ -93,6 +100,7 @@ export const ClearanceView = z.strictObject({
   recordedBy: PersonRef,
   recordedAt: Instant,
 });
+export type ClearanceView = z.infer<typeof ClearanceView>;
 export const PendingVerificationView = z.strictObject({
   act: z.enum(['CLEANING', 'CLEARANCE', 'REPAIR']),
   id: Uuid,
@@ -102,6 +110,7 @@ export const PendingVerificationView = z.strictObject({
   recordedBy: PersonRef,
   recordedAt: Instant,
 });
+export type PendingVerificationView = z.infer<typeof PendingVerificationView>;
 
 const EquipmentEventKind = z.enum([
   'QUALIFIED',

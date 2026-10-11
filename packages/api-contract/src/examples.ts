@@ -107,6 +107,7 @@ export const EXAMPLES = {
   'batches-work-queue': { schema: r.batches.workQueue.response, data: gmpBatch.workQueue, routeId: r.batches.workQueue.id },
   'batches-timeline': { schema: r.batches.timeline.response, data: gmpBatch.timeline, routeId: r.batches.timeline.id },
   'batches-command': { schema: r.batches.command.response, data: gmpBatch.commandResult, routeId: r.batches.command.id },
+  'batches-verify-replay': { schema: r.batches.verifyReplay.response, data: { ...replay, runId: gmpBatch.batch.header.runId }, routeId: r.batches.verifyReplay.id },
   'batches-propose-act': { schema: r.batches.proposeAct.response, data: s6.proposedAct, routeId: r.batches.proposeAct.id },
   'batches-sscc': { schema: r.batches.sscc.response, data: s6.sscc, routeId: r.batches.sscc.id },
   'batches-issue-sscc': { schema: r.batches.issueSscc.response, data: s6.sscc.ssccs[1], routeId: r.batches.issueSscc.id },

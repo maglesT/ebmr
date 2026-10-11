@@ -24,7 +24,7 @@
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
-import { SignedIntent } from './intents.ts';
+import { ActId, SignedIntent } from './intents.ts';
 
 /**
  * What a quality act carries besides its subject: the extra-testing decision and its tests; the retest's new date and
@@ -95,7 +95,7 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('ACT_APPROVAL'),
     /** The GMP batch and the act proposed on it (aggregate batch_act): QA's VOID_AUTHORISED approval of a void (S28). */
     batchId: Uuid,
-    actId: Uuid,
+    actId: ActId,
   }),
   z.strictObject({
     kind: z.literal('PLANT_VERIFY'),

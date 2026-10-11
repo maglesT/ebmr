@@ -1,7 +1,8 @@
 /**
  * Namespace `execution` (C3): test packages and test batches (TEST-) in the sandbox, GMP batches planned from an effective
- * MBR version in GMP (Phase 3 slice 2b), and on both installations the step screen, the work queue, commands, replay and
- * lots (Phase 2 apps plan sections 7 and 9). The GMP batch is issued through the e-signature ceremony (signable action
+ * MBR version in GMP (Phase 3 slice 2b), and on both installations the work queue and lots (Phase 2 apps plan sections 7
+ * and 9). Since Phase 3 slice 6 (D-S6-1) the running test batch (`/api/test-runs/*`: runs, run, step, timeline, replay,
+ * commands) is the sandbox's only; a GMP batch runs under `/api/batches/*` (namespace `batches`, same handlers). The GMP batch is issued through the e-signature ceremony (signable action
  * GMP_BATCH_ISSUE, meaning ISSUED); test packages stay sandbox-only and GMP batches GMP-only (DI-05, INV-18).
  *
  * The browser never decides GMP outcomes: `actions` come from the server (availableActions by dry-run through
@@ -481,7 +482,7 @@ export const execution = {
     id: 'execution.runs',
     method: 'GET',
     path: '/api/test-runs',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Test runs',
@@ -491,7 +492,7 @@ export const execution = {
     id: 'execution.run',
     method: 'GET',
     path: '/api/test-runs/:runId',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Run overview: stages, steps, exceptions, holds, timers',
@@ -502,7 +503,7 @@ export const execution = {
     id: 'execution.step',
     method: 'GET',
     path: '/api/test-runs/:runId/steps/:stepKey',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'The step screen of one step instance',
@@ -523,7 +524,7 @@ export const execution = {
     id: 'execution.timeline',
     method: 'GET',
     path: '/api/test-runs/:runId/timeline',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Every engine call of the run (issue, commands, prepares, sweeps), refusals included',
@@ -534,7 +535,7 @@ export const execution = {
     id: 'execution.verifyReplay',
     method: 'POST',
     path: '/api/test-runs/:runId/verify-replay',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Replay the stored rows and report identical or the first difference',
@@ -557,7 +558,7 @@ export const execution = {
     id: 'execution.command',
     method: 'POST',
     path: '/api/test-runs/:runId/commands',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',

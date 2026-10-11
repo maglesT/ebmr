@@ -1,6 +1,6 @@
 {
   "proposedAct": {
-    "actId": "7d1e2f30-4a5b-4c6d-8e7f-9a0b1c2d3e41",
+    "actId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:act@7:3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b",
     "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
     "commandType": "VOID_ATTEMPT",
     "meaning": "VOID_AUTHORISED",

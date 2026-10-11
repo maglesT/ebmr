@@ -16,6 +16,9 @@ import type { engine } from '@ebmr/recipe-core/pure';
 import { DataValueWire, DecimalString, Uuid } from './common.ts';
 import { TabletEntryKind } from './tablet-entries.ts';
 
+/** An act proposed for approval on a batch (aggregate batch_act, recipe-core 0470). */
+export const ActId = z.string().regex(/^[0-9a-f-]{36}:act@[0-9]{1,10}:[0-9a-f]{64}$/, 'an act id: <batch>:act@<state version>:<hash>');
+
 /** A step instance: `<phase or hold point id>@<context key>` as the engine names it (e.g. `p-blend@` or `p-dry@R=2/L=3`). */
 export const StepKey = z.string().min(2).max(512).regex(/@/, 'a step key names the step and its context: <step>@<context>');
 
@@ -145,7 +148,7 @@ export const ClientIntent = z.discriminatedUnion('type', [
     reason: z.string().trim().min(1).max(2000),
     /** An existing data point of the item (refused when it holds a result). */
     point: z.string().min(1).max(128).optional(),
-    approvalActId: Uuid.optional(),
+    approvalActId: ActId.optional(),
   }),
 ]);
 export type ClientIntent = z.infer<typeof ClientIntent>;

@@ -189,6 +189,13 @@ export const designer = {
       product: ProductRef,
       batchSizes: z.array(z.strictObject({ quantity: DecimalString, unit: z.string().min(1) })).min(1),
       markets: z.array(z.string().min(2)).min(1),
+      /**
+       * Phase 3 slice 6 ("Choose a product", decision 0006): an APPROVED formula version of the product and strength
+       * (FORMULA.READ). The server writes the template's BOM quantities from it (computed, INV-25) and the database pins
+       * the version to the MBR, checking the product, the reference batch size (the formula's theoretical batch mass) and
+       * every quantity.
+       */
+      formulaVersionId: Uuid.optional(),
     }),
     response: VersionView,
   }),
