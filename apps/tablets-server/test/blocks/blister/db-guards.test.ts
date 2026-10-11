@@ -316,6 +316,8 @@ describe('the blister blocks in the database (tablets 0970 to 0972)', () => {
       await asSetup(sbx, "insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by) values ($1, 'PROCESS', 'Packaging line (test)', interval '72 hours', interval '48 hours', false, gen_random_uuid())", [cls]);
       await asSetup(sbx, "insert into plant.equipment (id, code, name, class_code, kind, recorded_by) values (gen_random_uuid(), $1, $1, $2, 'PROCESS', gen_random_uuid())", [code, cls]);
     }
+    // Review 4b (tablets 0988): the cartoning unit runs on the order's cleared and occupied line (the blister line's area).
+    await asSetup(sbx, 'update plant.equipment set area_id = (select area_id from plant.equipment where code = $2) where code = $1', [CARTON_UNIT, machine]);
     for (const s of ['p-tb24@', 'p-g21u@']) await d.ok('operator1', { type: 'START_STEP', stepKey: s });
     expect(await rec.record('p-tb24', { kind: 'CHALLENGE', device: 'CW', trigger: 'START', result: 'PASS' })).toBe('ok');
     expect((await checks(CARTON_UNIT)).at(-1)).toEqual(['D.CW', 'PASS']);

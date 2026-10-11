@@ -15,7 +15,11 @@ import { actorOfBrowser } from '../../esig/support.ts';
 import { codeOf } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { fakeTimers, lastEntry, laxEntry, recorder, stateOf, tamperHandler, type Entry } from '../granulation/db-support.ts';
-import { BOTTLE_UNIT, CARTON_UNIT, lineMbr, lineUnits, PREFIX, TESTER, torqueTester } from './db-support.ts';
+import { openPersonaSession, openServiceSession } from '@ebmr/test-kit';
+import { recordIpcOverdue } from '../../../src/features/execution/sweeper.ts';
+import { occupiedLine } from '../blister/db-support.ts';
+import { asSetup } from '../compression/plant-support.ts';
+import { BOTTLE_UNIT, BOTTLE_UNIT_2, CARTON_ARTWORK_SET, CARTON_UNIT, LABEL_ARTWORK_SET, lineMbr, lineUnits, PREFIX, TESTER, torqueTester } from './db-support.ts';
 
 type Json = Record<string, unknown>;
 let sbx: ExecServer;
@@ -52,6 +56,12 @@ const types = async (key: string): Promise<string[]> =>
   Object.values((await stateOf(sbx, d.runId)).exceptions).filter((e) => (e['source'] as Json)['stepKey'] === key).map((e) => String(e['type'])).sort();
 const checks = async (unit: string): Promise<string[][]> =>
   (await sbx.db.admin.query<{ s: string; r: string }>("select coalesce(stream, '-') as s, result as r from plant.ipc_check where batch_id = $1 and press_code = $2 order by recorded_at, id", [d.runId, unit])).rows.map((r) => [r.s, r.r]);
+const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+/** A master-data command as the data steward. */
+async function asSteward<T = Json>(text: string, params: unknown[]): Promise<T> {
+  const steward = await openPersonaSession(sbx.db, sbx.seed, 'steward');
+  return withCommand(sbx.db.app, { ...steward, correlationId: randomUUID() }, async (c) => (await c.query<{ r: T }>(text, params)).rows[0]?.r as T);
+}
 const open = (unit: string) => asOp<{ container_id: string; version: number; label_code: string }>('select plant.open_container($1, $2, $3, $4) as r', [d.runId, 'PACKAGING', 'kg', unit]);
 const held = (c: { container_id: string }) => sql<number>('select count(*)::int as r from plant.container_hold where container_id = $1', [c.container_id]);
 /** The refusal of a signed act, or 'ok'. */
@@ -104,7 +114,7 @@ beforeAll(async () => {
   batchNumber = (await sql<string>('select batch_number as r from recipe.batch_execution where id = $1', [runId])) ?? '';
   product = String((((await content())['header'] as Json)['product'] as Json)['code']);
   me = personaIn(sbx, 'operator1').personId;
-  await lineUnits(sbx, runId, [BOTTLE_UNIT, CARTON_UNIT]);
+  await lineUnits(sbx, runId, [BOTTLE_UNIT, CARTON_UNIT, BOTTLE_UNIT_2]);
   await torqueTester(sbx);
   await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb23@' });
   await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb24@' });
@@ -163,6 +173,28 @@ describe('the packaging-line blocks in the database (tablets 0985 to 0987)', () 
       (phaseIn(x, 'p-tb23')['config'] as Json)['tamperEvident'] = true;
     })).toBeNull();
     expect(await problem((x) => ((x['header'] as Json)['marketSet'] = ['IN', 'EU']))).toMatch(/TB24-ATD-REQUIRED/);
+  });
+
+  it('[PR-34][PR-35][IN-38] review 4b: a TB-23 or TB-24 entry is stored only on a line occupied now by this batch\'s packaging order, on a passed and verified clearance for it and for the artwork set its G-21 step names; a potent product only on a line flagged isolated', async () => {
+    const rej: Entry = { kind: 'REJECTS', reason: 'OTHER', bottles: '1' };
+    const cw: Entry = { kind: 'CHALLENGE', device: 'CW', trigger: 'START', result: 'PASS' };
+    expect(await verdict('p-tb23', rej)).toMatch(/^EBMR-TAB-384 .*TB23-LINE/s);
+    expect(await verdict('p-tb24', cw)).toMatch(/^EBMR-TAB-384 .*TB24-LINE/s);
+    await occupiedLine(sbx, d.runId, BOTTLE_UNIT, batchNumber, 'ROLL-LABEL:ART-0');
+    expect(await rec.message('p-tb23', rej)).toMatch(/cleared for artwork set ROLL-LABEL:ART-0, not ROLL-LABEL:ART-1 \(TB23-LINE.*EBMR-TAB-384/s);
+    await occupiedLine(sbx, d.runId, CARTON_UNIT, batchNumber, CARTON_ARTWORK_SET, 'TEST-ORDER-OTHER');
+    expect(await rec.message('p-tb24', cw)).toMatch(/passed and verified clearance.*TB24-LINE.*EBMR-TAB-384/s);
+    const line = await occupiedLine(sbx, d.runId, BOTTLE_UNIT, batchNumber, LABEL_ARTWORK_SET);
+    const cartons = await occupiedLine(sbx, d.runId, CARTON_UNIT, batchNumber, CARTON_ARTWORK_SET);
+    // A potent product (plant product list, as TB-21 reads it): only on an isolated line.
+    await asSetup(sbx, 'update plant.product set highly_potent = true where code = $1', [product]);
+    expect(await verdict('p-tb23', rej)).toMatch(/^EBMR-TAB-384 .*TB23-ISOLATION/s);
+    await asSteward('select tab.record_line_isolation($1, true, $2) as r', [line, 'QUAL-LINE-ISO-BTL']);
+    expect(await verdict('p-tb23', rej)).toBe('ok');
+    expect(await verdict('p-tb24', cw)).toMatch(/^EBMR-TAB-384 .*TB24-ISOLATION/s);
+    await asSetup(sbx, 'update plant.product set highly_potent = false where code = $1', [product]);
+    expect(await verdict('p-tb24', cw)).toBe('ok');
+    void cartons;
   });
 
   it('[PR-37][IN-22] TB-23 checks are judged by the database (a forged pass or a dropped exception is refused); a failing check holds every container of the bottle line since its stream\'s last passing check; a PASS on the line is recorded only from a passing entry of its step, once; a torque check needs a tester in use for the batch', async () => {
@@ -317,6 +349,24 @@ describe('the packaging-line blocks in the database (tablets 0985 to 0987)', () 
     // Through the server: the engine would close the step; the database refuses it while the pools are not reconciled.
     expect(await signedOutcome('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-tb24@' })).toMatch(/EBMR-TAB-381.*TB24-AGGREGATION|TB24-AGGREGATION.*EBMR-TAB-381/s);
     expect((await stateOf(sbx, d.runId)).steps['p-tb24@']?.['status']).toBe('IN_PROGRESS');
+  });
+
+  it('[PR-37][IN-22] review 4b: a missed periodic line check and a missed device challenge of a running bottle line are recorded by the server sweeper at database time with the MISSED hold of the line\'s containers, without any entry; the next check raises LINE_CHECK_MISSED', async () => {
+    await occupiedLine(sbx, d.runId, BOTTLE_UNIT_2, batchNumber, LABEL_ARTWORK_SET);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb23m@' });
+    expect(await verdict('p-tb23m', { kind: 'COUNT_CHECK', counts: ['30'] })).toBe('ok');
+    expect(await verdict('p-tb23m', { kind: 'CHALLENGE', device: 'SEALDET', trigger: 'START', result: 'PASS' })).toBe('ok');
+    const box = await open(BOTTLE_UNIT_2);
+    await wait(3_500);
+    const sweeper = { ...(await openServiceSession(sbx.db, sbx.seed, 'sweeper')), correlationId: randomUUID() };
+    const alarms = (await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === d.runId && a.stepKey === 'p-tb23m@');
+    expect(alarms.map((m) => [m.stream, m.test, m.held])).toEqual([['COUNT', 'LINE_CHECK', true], ['D.SEALDET', 'CHALLENGE', true]]);
+    expect((await checks(BOTTLE_UNIT_2)).filter((c) => c[1] === 'MISSED')).toEqual([['COUNT', 'MISSED'], ['D.SEALDET', 'MISSED']]);
+    expect(await sql<string>('select plant.container_usable_problem($1) as r', [box.container_id])).toMatch(/under a hold/);
+    // Once per due time; the TB-24 step and the other TB-23 step are not due.
+    expect((await recordIpcOverdue(sbx.built.ctx, sweeper)).filter((a) => a.batchId === d.runId && a.stepKey === 'p-tb23m@')).toEqual([]);
+    expect(await verdict('p-tb23m', { kind: 'COUNT_CHECK', counts: ['30'] })).toBe('ok');
+    expect(await types('p-tb23m@')).toEqual(['LINE_CHECK_MISSED']);
   });
 });
 

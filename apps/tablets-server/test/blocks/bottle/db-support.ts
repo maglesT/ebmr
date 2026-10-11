@@ -13,6 +13,10 @@ type Json = Record<string, unknown>;
 
 export const BOTTLE_UNIT = 'TEST-LINE-BTL';
 export const CARTON_UNIT = 'TEST-LINE-CTN';
+/** The unit of p-tb23m, the bottle line whose checks and challenges fall due every 2 s (the sweeper test). */
+export const BOTTLE_UNIT_2 = 'TEST-LINE-BTL2';
+export const LABEL_ARTWORK_SET = 'ROLL-LABEL:ART-1';
+export const CARTON_ARTWORK_SET = 'CARTON:ART-1';
 export const TESTER = 'TEST-TQ-01';
 export const GTIN = '08901234567890';
 export const PREFIX = '089012345';
@@ -42,7 +46,7 @@ export const TB24_CONFIG: Json = {
   cartonsPerShipper: '20', ssccPrefix: PREFIX, printedStep: 'p-prt',
 };
 
-/** dc-mini for IN and US with p-lbl, p-prt (G-21), p-tb23 and p-tb24 in parallel branches before the dispensing. */
+/** dc-mini for IN and US with p-lbl, p-prt (G-21), p-tb23, p-tb24 and p-tb23m (checks every 2 s) in parallel branches before the dispensing. */
 export function lineMbr(): flow.MbrContent {
   return dcMiniVariant((prep, content) => {
     (content['header'] as Json)['marketSet'] = ['IN', 'US'];
@@ -51,6 +55,7 @@ export function lineMbr(): flow.MbrContent {
       phaseOf('p-prt', 'G-21', { items: [item('CARTON', 'TEST-MAT-CTN')], markets: { US: { gtin: GTIN } }, serialisation: { markets: ['US'] } }),
       phaseOf('p-tb23', 'TB-23', TB23_CONFIG),
       phaseOf('p-tb24', 'TB-24', TB24_CONFIG),
+      phaseOf('p-tb23m', 'TB-23', { ...TB23_CONFIG, unit: BOTTLE_UNIT_2, checkEvery: { value: '2', unit: 's' }, devices: [{ id: 'SEALDET', kind: 'SEAL_DETECTOR', every: { value: '2', unit: 's' } }] }),
     ];
     const par = { kind: 'parallel', id: 'par-line', branches: branches.map((b, i) => ({ id: `br-line-${i + 1}`, name: `Line ${i + 1}`, body: b })) };
     return [par, ...prep];
