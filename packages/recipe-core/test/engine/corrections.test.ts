@@ -237,6 +237,15 @@ describe('paths (b) void and (c) invalidation; repeats (DI-29, INV-41)', () => {
     expect(Object.values(run.state.points).map((p) => `${p.attempt}:${p.kind}:${p.status}`)).toEqual(['1:ABORTED:VALID', '2:ABORTED:VALID', '3:VALUE:INVALIDATED', '4:ABORTED:VALID']);
   });
 
+  it('[DI-29][DI-24] a result of another item of the step does not stop a void of this one (mutation follow-up)', () => {
+    const run = Run.issue(define(mbrWith(seq('ops', phase('t', { records: ['a', 'b'] }), phase('z')), { parameters: [param('a'), param('b')] })));
+    run.start('t');
+    run.record('t', 'b', kg('1.00'));
+    run.ok({ type: 'VOID_ATTEMPT', actor: OP1, step: 't', item: 'a', reason: 'sample dropped', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } });
+    run.record('t', 'a', kg('2.00'));
+    run.refused({ type: 'VOID_ATTEMPT', actor: OP1, step: 't', item: 'a', reason: 'wrong', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } }, 'ENG-VOID-RESULT');
+  });
+
   it('[DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible', () => {
     const run = Run.issue(define(ipc()));
     run.start('t');
