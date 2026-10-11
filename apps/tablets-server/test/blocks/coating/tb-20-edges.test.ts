@@ -146,6 +146,7 @@ describe('TB-20 AQL', () => {
     expect(ev(2n, {})?.['sampleSize']).toBe('2');
     expect(ev(1n, {})).toBeUndefined();
     expect(ev(199680n, {}, 'NORMAL', { ...CFG, aql: { level: 'II', major: '0.010', minor: '2.5' } })?.['sampleSize']).toBe('1250');
+    expect(ev(199680n, {}, 'NORMAL', { ...CFG, aql: { level: 'II', major: '2.5', minor: '0.010' } })?.['sampleSize']).toBe('1250');
     expect(ev(199680n, {}, 'NORMAL', { ...CFG, aql: undefined })).toBeUndefined();
     expect(ev(199680n, {}, 'NORMAL', { ...CFG, aql: { level: 'IV', major: '0.65', minor: '2.5' } })).toBeUndefined();
     expect(ev(199680n, {}, 'NORMAL', { ...CFG, aql: { level: 'II', major: '0.65' } })).toBeUndefined();
