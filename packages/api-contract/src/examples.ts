@@ -160,6 +160,19 @@ export const EXAMPLES = {
   'quality-erp-orders': { schema: r.quality.erpOrders.response, data: s6.quality.erpOrders, routeId: r.quality.erpOrders.id },
   'quality-erp-products': { schema: r.quality.erpProducts.response, data: s6.quality.erpProducts, routeId: r.quality.erpProducts.id },
   'quality-erp-materials': { schema: r.quality.erpMaterials.response, data: s6.quality.erpMaterials, routeId: r.quality.erpMaterials.id },
+  'quality-erp-pending': {
+    schema: r.quality.erpPending.response,
+    data: {
+      pending: [
+        {
+          masterKind: 'PRODUCT', key: 'PCM500|500 mg', versionId: '0b5c1d2e-3f40-4a51-8b62-7c83d94ea5f6', erpReference: 'SAP-MM-FG-PCM500/2', receivedAt: { us: '1790000000000000', text: '21-SEP-2026 19:43:20 +05:30 (Asia/Kolkata)' },
+          values: { productName: 'Paracetamol tablets IP 500 mg', reprocessingPermitted: true, betaLactam: false, shelfLifeMonths: 36 },
+          inEffect: { productName: 'Paracetamol tablets IP 500 mg', reprocessingPermitted: false, betaLactam: false, shelfLifeMonths: 36 },
+        },
+      ],
+    },
+    routeId: r.quality.erpPending.id,
+  },
   'quality-lots': { schema: r.quality.lots.response, data: s6.quality.lots, routeId: r.quality.lots.id },
   'esig-describe': { schema: r.esig.describe.response, data: s6.describe, routeId: r.esig.describe.id },
   'quality-reprocessing-requests': { schema: r.quality.reprocessingRequests.response, data: s6.reprocessing.requests, routeId: r.quality.reprocessingRequests.id },

@@ -9,7 +9,7 @@
 --   * site.revoke_batch_reservations(batch, cause): one BATCH_ENDED revocation for every not yet revoked reservation of
 --     the batch, naming the cause and carrying the deciding person's reason as given; returns how many. Owner only:
 --     the batch side calls it when the batch's stored status becomes EXECUTION_COMPLETE, ABORTED or CANCELLED
---     (recipe-core 0700).
+--     (recipe-core 0700); a batch with no open reservation needs no actor (nothing is written).
 
 set local role ebmr_owner;
 
@@ -20,9 +20,14 @@ alter table site.lot_reservation_revocation add constraint lot_reservation_revoc
 create function site.revoke_batch_reservations(p_batch uuid, p_cause text) returns integer
 language plpgsql volatile security definer set search_path = pg_catalog, site, pg_temp as $$
 declare
-  v_ctx jsonb := site.require_actor();
+  v_ctx jsonb;
   v_n   integer;
 begin
+  if not exists (select 1 from site.lot_reservation r
+                  where r.batch_id = p_batch and not exists (select 1 from site.lot_reservation_revocation x where x.reservation_id = r.id)) then
+    return 0;
+  end if;
+  v_ctx := site.require_actor();
   insert into site.lot_reservation_revocation (reservation_id, kind, cause, reason_code, reason_text, revoked_by_person, revoked_by_account)
   select r.id, 'BATCH_ENDED', p_cause, nullif(btrim(coalesce(v_ctx ->> 'reason_code', '')), ''), nullif(btrim(coalesce(v_ctx ->> 'reason_text', '')), ''),
          (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid

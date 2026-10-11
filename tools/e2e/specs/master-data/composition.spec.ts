@@ -6,13 +6,17 @@
  */
 import { routes } from '@ebmr/api-contract';
 import { expect, signIn, test } from '../../fixtures/index.ts';
-import { gmpKiosk, importErp, signedInApi } from '../../fixtures/slice6.ts';
+import { confirmErp, gmpKiosk, importErp, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 
 test('[DI-13] an operator cannot open the composition @office', async ({ browser, e2e, officePage, persona, api, evidence }, testInfo) => {
   const steward = persona('GMP', 'steward');
   const operator = persona('GMP', 'operator1');
   const erp = await importErp(api('GMP'), e2e.seeds.GMP, `dc${testInfo.parallelIndex}${Date.now() % 100000}`);
+  // QA confirms the new codes: a new master is in effect only then (site-services 0802, exit review HIGH-1).
+  const qaMaster = await officePage('GMP', 'PC-QA-01');
+  await signIn.office(qaMaster, persona('GMP', 'approver'));
+  await confirmErp(qaMaster, e2e, persona('GMP', 'approver'), erp);
 
   const office = await officePage('GMP', 'PC-QA-01');
   await signIn.office(office, steward);

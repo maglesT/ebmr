@@ -132,4 +132,19 @@ describe('extra testing, reprocessing, ERP status', () => {
     const counts = await screen.findByTestId('erp-counts');
     await waitFor(() => expect(counts.textContent).toContain(`Production orders: ${example('quality-erp-orders').orders.length}`));
   });
+
+  it('[PR-47][IN-19] a master change waiting for QA shows the values in effect beside the received ones; the QA MBR approver confirms it through the ceremony, others are not offered the act (exit review HIGH-1)', async () => {
+    const p = example('quality-erp-pending').pending[0];
+    const ui = renderOffice('/quality/erp', { role: 'QA_MBR_APPROVER' });
+    const box = await screen.findByTestId('erp-pending');
+    expect(await within(box).findByText('reprocessingPermitted: false -> true')).toBeTruthy();
+    await userEvent.click(within(box).getByRole('button', { name: 'Confirm PCM500 500 mg' }));
+    await waitFor(() => expect(ui.ceremony.sign).toHaveBeenCalledTimes(1));
+    expect(ui.ceremony.sign.mock.calls[0]?.[0].action).toEqual({ kind: 'MASTER_DATA_APPROVE', masterKind: 'ERP_PRODUCT', versionId: p?.versionId });
+    cleanup();
+    renderOffice('/quality/erp', { role: 'QA_REVIEWER' });
+    const other = await screen.findByTestId('erp-pending');
+    expect(await within(other).findByText('Waiting for QA')).toBeTruthy();
+    expect(within(other).queryByRole('button', { name: /^Confirm/ })).toBeNull();
+  });
 });

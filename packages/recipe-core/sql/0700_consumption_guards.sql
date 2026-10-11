@@ -7,8 +7,8 @@
 --
 --   * recipe.consume_lot (CREATE OR REPLACE from 0430): also refuses unless the batch's stored status is ISSUED or
 --     IN_PROGRESS (EBMR-RCP-432), read under a share lock on the state row so a concurrent status change waits.
---   * recipe.consumption_entry: which entry of the batch record names a consumption (one entry per consumption), with
---     the transaction that wrote it. Owner only; written by
+--   * recipe.consumption_entry (insert-only, audited; the application role reads it): which entry of the batch record
+--     names a consumption (one entry per consumption), with the transaction that wrote it. Written by owner code only:
 --       - the row trigger zzs_execution_consumption_entries (after update on recipe.execution_state): a new entry whose
 --         data names a consumption of this batch made in this transaction (TB-01, tablets 0843);
 --       - recipe.claim_consumption(batch, consumption, entry key), owner only, for an edition whose entry pairs its
@@ -61,8 +61,9 @@ create table recipe.consumption_entry (
   recorded_at     timestamptz not null default clock_timestamp()
 );
 revoke all on recipe.consumption_entry from public;
-create trigger aa_insert_only before update or delete on recipe.consumption_entry for each row execute function kernel.reject_mutation();
-create trigger aa_no_truncate before truncate on recipe.consumption_entry for each statement execute function kernel.reject_mutation();
+
+select platform.enforce_db_time('recipe.consumption_entry', array['recorded_at']);
+select kernel.register_audited_table('recipe.consumption_entry', 'batch', 'batch_id', true);
 
 -- Names consumption p_consumption by entry p_entry_key of batch p_batch, when it is a consumption into that batch made
 -- in this transaction (otherwise nothing is recorded, and the deferred check refuses the consumption it leaves). Owner
@@ -129,6 +130,7 @@ $$;
 create trigger zzt_execution_batch_end after update on recipe.execution_state
   for each row execute function recipe.batch_end_reservations();
 
+grant select on recipe.consumption_entry to ebmr_app;
 revoke all on function recipe.claim_consumption(uuid, uuid, text), recipe.consumption_entries_record(), recipe.consumption_named_check(),
                        recipe.batch_end_reservations() from public;
 

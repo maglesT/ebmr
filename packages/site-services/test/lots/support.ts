@@ -39,6 +39,8 @@ export interface Cast {
   operator: SeededActor;
   /** The ERP interface: posts the material master a receipt takes the kind, name and unit from (site services 0750). */
   erp: SeededActor;
+  /** QA confirms a new or changed material master (ERP_MASTER_CONFIRMED, site services 0802). */
+  qaMaster: SeededActor;
 }
 
 export async function seedCast(db: TestDatabase): Promise<Cast> {
@@ -52,6 +54,7 @@ export async function seedCast(db: TestDatabase): Promise<Cast> {
     admin: await signerActor(db, 'SYSTEM_ADMINISTRATOR'),
     operator: await signerActor(db, 'OPERATOR'),
     erp: await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' }),
+    qaMaster: await signerActor(db, 'QA_MBR_APPROVER'),
   };
 }
 
@@ -114,13 +117,17 @@ export class World {
     return { ...lot, materialCode, lotCode };
   }
 
-  /** Posts a material master version as the ERP interface (the latest version wins). */
+  /** Posts a material master version as the ERP interface; QA confirms it when it does not take effect on its own (site services 0802). */
   async material(materialCode: string, materialName: string, materialKind: MaterialKind, unit = 'kg', maxRetestMonths: number | null = 24): Promise<void> {
-    await this.run(this.cast.erp, (c) =>
-      c.query('select site.erp_receive_material($1::jsonb)', [
+    const id = await this.run(this.cast.erp, async (c) =>
+      (await c.query<{ id: string }>('select site.erp_receive_material($1::jsonb) as id', [
         JSON.stringify({ materialCode, materialName, materialKind, unit, ...(maxRetestMonths ? { maxRetestMonths } : {}), erpReference: `ERP-${materialCode}` }),
-      ]),
+      ])).rows[0]?.id ?? '',
     );
+    const { rows } = await this.db.app.query<{ s: string }>("select site.erp_master_state('MATERIAL', $1) as s", [id]);
+    if (rows[0]?.s !== 'PENDING') return;
+    const sig = await signFor(this.db, this.cast.qaMaster, { type: 'erp_master', id: `MATERIAL/${id}` }, 'ERP_MASTER_CONFIRMED', 'PENDING');
+    await this.run(this.cast.qaMaster, (c) => c.query("select site.confirm_erp_master('MATERIAL', $1, $2)", [id, sig]));
   }
 
   async version(lotId: string): Promise<string> {

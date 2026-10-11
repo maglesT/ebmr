@@ -68,6 +68,7 @@ export {
   ErpCatalogue,
   ErpImportView,
   ErpOrderView,
+  ErpPendingView,
   EvidenceDocumentView,
   ExtraTestingView,
   LotResultView,

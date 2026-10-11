@@ -38,3 +38,17 @@ export async function signAction(
   const body = { challengeId: challenge.value.challengeId, credentials: opts.credentials ?? credentialsOf(server, personaKey), action };
   return b.call(routes.esig.sign, { body: { ...body, proof: await b.proof('POST', '/api/esig/sign', body) } });
 }
+
+/**
+ * QA (persona `personaKey`, the QA MBR approver by default) confirms every received ERP master version not in effect,
+ * each with its own ERP_MASTER_CONFIRMED signature (MASTER_DATA_APPROVE; site-services 0802). Returns how many.
+ */
+export async function confirmErpPending(server: TestServer, personaKey = 'approver'): Promise<number> {
+  const qa = await server.asPersona(personaKey);
+  const { pending } = valueOf(await qa.call(routes.quality.erpPending));
+  for (const p of pending) {
+    const r = await signAction(server, qa, personaKey, { kind: 'MASTER_DATA_APPROVE', masterKind: p.masterKind === 'PRODUCT' ? 'ERP_PRODUCT' : 'ERP_MATERIAL', versionId: p.versionId });
+    if (!r.ok) throw new Error(`SETUP: the confirmation of ${p.masterKind} ${p.key} was refused: ${JSON.stringify(r.error)}`);
+  }
+  return pending.length;
+}
