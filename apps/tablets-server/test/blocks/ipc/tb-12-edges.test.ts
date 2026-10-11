@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import type { blocks } from '@ebmr/recipe-core/pure';
 import { acceptSecondStage, acceptWeightCheck, pendingFirstStages, resultOf, weightConfigProblems, weightNominal } from '../../../src/blocks/tb-12.ts';
+import { RULE_SETS, type RuleSet } from '../../../src/blocks/ipc/rule-sets.ts';
 
 type Json = Record<string, unknown>;
 type E = { id: string; kind: string; data: Json; recordedAt: bigint };
@@ -96,6 +97,9 @@ describe('TB-12 weight checks', () => {
     const i = data(acceptWeightCheck(one, weigh(['250.0', '261.0'])));
     expect(i).toMatchObject({ weights: ['250.0', '261.0'], mode: 'INDIVIDUAL', result: 'FAIL', evaluation: { mode: 'INDIVIDUAL', n: 2, outside: 1 } });
     expect(i).not.toHaveProperty('groupWeight');
+    // A weighing member outside GROUP mode does not make a check weigh together (mutation follow-up).
+    const oneG = view({ mode: 'INDIVIDUAL', tabletType: 'UNCOATED', targetWeightMg: '250.0', n: 2, individual: { action: '4' }, weighing: 'GROUP' });
+    expect(refused(acceptWeightCheck(oneG, weigh(n(2))))).toBe('ok');
     // Group mode weighed one by one: the statistics and the group evaluation both.
     const grp1 = view({ mode: 'GROUP', tabletType: 'UNCOATED', targetWeightMg: '250.0', n: 2, weighing: 'INDIVIDUAL', tolerance: { action: '1' } });
     expect(data(acceptWeightCheck(grp1, weigh(['250.0', '252.0'])))['evaluation']).toMatchObject({ mode: 'GROUP', n: 2, total: '502', sd: '1.4142', mean: '251.0000' });
@@ -161,6 +165,32 @@ describe('TB-12 the second stage of a weight variation', () => {
     expect(data(pass)).toMatchObject({ check: 'E1', ruleSets: [{ code: 'IP-UDU', version: 1 }, { code: 'USP-UDU', version: 1 }], result: 'PASS', evaluation: { mode: 'CONTENT', stage: 'SECOND', n: 30, assay: '99', targetContent: '100' } });
     const fail = acceptSecondStage(v, second(20, { weights: [...n(19), '400.0'] }));
     expect(data(fail)['result']).toBe('FAIL');
+  });
+
+  it('[IN-34][INV-41] every bound rule set must pass, at either stage: one market\'s stricter set failing is enough (mutation follow-up; USP made stricter for the test)', () => {
+    const usp = RULE_SETS.find((r) => r.code === 'USP-UDU') as RuleSet;
+    const saved = usp.params;
+    (usp as { params: unknown }).params = { ...(saved as object), acceptanceLimit: '2.0' };
+    try {
+      const v = view(cfg, { markets: ['IN', 'US'] });
+      const r = data(acceptWeightCheck(v, weigh(n(10), { assay: '96.0', assayRef: 'LIMS-1' })));
+      expect(r['result']).toBe('SECOND_STAGE');
+      expect(((r['evaluation'] as Json)['criteria'] as Json[]).map((c) => c['pass'])).toEqual([true, false]);
+      const pending = { id: 'E1', kind: 'WEIGHT_CHECK', data: r, recordedAt: NOW - 10n };
+      const s = data(acceptSecondStage(view(cfg, { markets: ['IN', 'US'], entries: [pending] }), second(20)));
+      expect(s['result']).toBe('FAIL');
+      expect(((s['evaluation'] as Json)['criteria'] as Json[]).map((c) => c['pass'])).toEqual([true, false]);
+    } finally {
+      (usp as { params: unknown }).params = saved;
+    }
+  });
+
+  it('[INV-41][DI-29] the second stage of another first stage does not count as this one\'s (mutation follow-up)', () => {
+    const first = firstOf();
+    const other = { ...first, id: 'E0' };
+    const v = view(cfg, { markets: ['IN', 'US'], entries: [other, first, { id: 'E2', kind: 'WEIGHT_SECOND_STAGE', data: { check: 'E0' }, recordedAt: NOW - 5n }] });
+    expect(refused(acceptSecondStage(v, second(20)))).toBe('ok');
+    expect(pendingFirstStages(v).map((p) => p.id)).toEqual(['E1']);
   });
 
   it('[INV-41][DI-29] a pending first stage blocks a new first stage of its own stream only (TB-11 streams)', () => {
