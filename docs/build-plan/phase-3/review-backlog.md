@@ -218,3 +218,13 @@ Backlog (low):
 - "One part shipper" is enforced per TB-24 step, not per batch; a batch with two TB-24 steps could carry two.
 - Reel release and expiry are checked at entry only; a reel quarantined mid-run is not caught (Phase 4, lot status
   events).
+
+## Slice 5b open items (builder report, 11 October 2026)
+
+- TB-20 NO-PLAN through a deviation (slice 3d #3) is not built: TB-20@1 needs an AQL result before it is performed,
+  so the path needs a change-path extension; it stays fail-safe (the lot cannot leave) until then (slice 6).
+- No HTTP routes or api-contract entries for TB-08 and G-24@2, and no server-side resolution of TB-08 source facts
+  (the database re-reads them; screens in slice 6).
+- The G-24@1 GMP refusal is proven on the function only; on GMP a G-24@1 step cannot start at all (0330, 0345).
+- Defaults: per-use QA authorisation is the QA confirmation of the expiry cap (IN-19 (b)); the addition percentage is
+  of the MBR's first batch size; REPROCESSING.AUTHORISE goes to QA_SHOP_FLOOR and AUTHORISED_PERSON.
