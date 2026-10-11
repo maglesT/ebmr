@@ -5,21 +5,42 @@
  * newer view of the step is already on show or the view was computed for someone other than the person signed in
  * now; a read of the step begun before the commit never replaces it.
  */
-import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient, type UseQueryOptions } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { routes, type StepScreenView } from '@ebmr/api-contract';
-import { queryKey, useApiQuery } from '../../api/hooks.ts';
+import { routes, type AnyRoute, type CallInput, type RouteResponse, type StepScreenView } from '@ebmr/api-contract';
+import { ApiError, queryKey } from '../../api/hooks.ts';
+import { callRead } from './family.ts';
 import { SESSION_CHANGE_EVENT, type SessionChangeDetail, type SignedInNow, type Viewer } from './session.tsx';
 
 export const stepQueryKey = (runId: string, stepKey: string) => queryKey(routes.execution.step, { params: { runId, stepKey } });
 export const runQueryKey = (runId: string) => queryKey(routes.execution.run, { params: { runId } });
 
+/**
+ * A floor read on this installation's route family (family.ts): the query key is the execution route's on both
+ * installations, so invalidations and the post-commit view work the same; the request goes to /api/batches/* on GMP.
+ */
+export function useFloorRead<R extends AnyRoute>(
+  route: R,
+  input?: Pick<CallInput<R>, 'params' | 'query'>,
+  options: Omit<UseQueryOptions<RouteResponse<R>, ApiError>, 'queryKey' | 'queryFn'> = {},
+) {
+  return useQuery<RouteResponse<R>, ApiError>({
+    ...options,
+    queryKey: queryKey(route, input),
+    queryFn: async ({ signal }) => {
+      const r = await callRead(route, { ...(input ?? {}), signal });
+      if (!r.ok) throw new ApiError(r.error);
+      return r.value;
+    },
+  });
+}
+
 export function useStepView(runId: string, stepKey: string) {
-  return useApiQuery(routes.execution.step, { params: { runId, stepKey } }, { refetchInterval: 30_000 });
+  return useFloorRead(routes.execution.step, { params: { runId, stepKey } }, { refetchInterval: 30_000 });
 }
 
 export function useRunView(runId: string) {
-  return useApiQuery(routes.execution.run, { params: { runId } }, { refetchInterval: 30_000 });
+  return useFloorRead(routes.execution.run, { params: { runId } }, { refetchInterval: 30_000 });
 }
 
 /**

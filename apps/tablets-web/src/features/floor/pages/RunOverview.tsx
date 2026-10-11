@@ -10,7 +10,6 @@ import { useState } from 'react';
 import { routes, type ActionView, type Result, type RouteResponse } from '@ebmr/api-contract';
 import { Banner, Button, floor } from '@ebmr/ui-kit';
 import { api } from '../../../api/client.ts';
-import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
@@ -19,7 +18,8 @@ import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
 import { HoldBatchDialog, LinkDeviationDialog, RaiseExceptionDialog, ReleaseHoldDialog } from '../dialogs/CommandDialogs.tsx';
 import { DispositionDialog } from '../dialogs/SignDialogs.tsx';
-import { useRunView } from '../queries.ts';
+import { isGmpFloor } from '../family.ts';
+import { useFloorRead, useRunView } from '../queries.ts';
 import { useLeaveGuard } from '../unsettled.ts';
 import { useSignedAction } from '../useSignedAction.ts';
 import { actionLabel, st } from '../text.ts';
@@ -51,7 +51,7 @@ function ReplayResult({ replay }: { replay: Replay }) {
 }
 
 function Timeline({ runId }: { runId: string }) {
-  const timeline = useApiQuery(routes.execution.timeline, { params: { runId } });
+  const timeline = useFloorRead(routes.execution.timeline, { params: { runId } });
   if (!timeline.data) return timeline.error ? <RefusalMessage error={timeline.error.error} /> : null;
   return (
     <table className={wcls('table')} aria-label={st('run.timeline')}>
@@ -130,9 +130,12 @@ export function RunOverviewPage() {
       <h1>{st('run.title', { batch: view.header.batchNumber })}</h1>
       {held ? <Banner tone="warning" title={st('leave.held')} /> : null}
       <div className={wcls('row')}>
-        <Button variant="primary" onPress={() => void verify()} isDisabled={replaying}>
-          {st('run.verify')}
-        </Button>
+        {/* The replay check is a sandbox route (/api/test-runs/:runId/replay); GMP has no such route. */}
+        {isGmpFloor() ? null : (
+          <Button variant="primary" onPress={() => void verify()} isDisabled={replaying}>
+            {st('run.verify')}
+          </Button>
+        )}
         <a href={auditHref(view.auditChain)} className={wcls('link')}>
           {st('run.audit')}
         </a>
