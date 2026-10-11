@@ -659,7 +659,7 @@ describe('what the readers compute', () => {
     const check = async (eq: string | null, area: string | null, product: string) =>
       (await q<{ r: { ok: boolean; reason?: string; batch_number?: number } }>('select plant.campaign_check($1, $2, $3) as r', [eq, area, product]))[0]?.r;
     const camp = (def: Partial<plant.CampaignDefinition>) =>
-      w.run(w.cast.steward, (c) => plant.openCampaign(c, { product: x, maxBatches: 5, maxDays: 10, validationRef: `VAL-${tag()}`, ...def } as plant.CampaignDefinition));
+      w.run(w.cast.steward, (c) => plant.openCampaign(c, { product: x, maxBatches: 5, maxDays: 10, validationRef: `VAL-${tag()}`, ...def }));
     // Press B has an open campaign of X; press A has a closed campaign of X and an open one of Y.
     const a = await w.press();
     const b = await w.press();

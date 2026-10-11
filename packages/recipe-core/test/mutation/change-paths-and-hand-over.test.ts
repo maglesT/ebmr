@@ -69,11 +69,11 @@ describe('the register row of an exception record (DI-26)', () => {
 
   it('[DI-26][PR-13] the row records the flags the record carries, false where it carries none', async () => {
     const batch = randomUUID();
-    const row = async (x: Record<string, unknown>) =>
+    const row = async (x: Record<string, unknown>): Promise<Record<string, boolean> | undefined> =>
       replica(async (c) => {
         await register(c, batch, 'X3', x);
         return (
-          await c.query('select mandatory, qa_only, deviation_required, registration_relevant, release_blocking from recipe.exception_register where batch_id = $1', [batch])
+          await c.query<Record<string, boolean>>('select mandatory, qa_only, deviation_required, registration_relevant, release_blocking from recipe.exception_register where batch_id = $1', [batch])
         ).rows[0];
       });
     expect(await row({ category: 'FLOW', severity: 'ALERT', type: 'LOOP' })).toEqual({

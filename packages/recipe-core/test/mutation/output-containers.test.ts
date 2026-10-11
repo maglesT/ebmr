@@ -262,7 +262,7 @@ describe('each refusal with its own code', () => {
   it('[DI-17] a disposition is checked against the product of the container disposed of', async () => {
     const atv = await newBatch();
     const met = await newBatch({ code: 'MET-500', name: 'Metformin tablets', strength: '500 mg' });
-    const scoped = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Mira Metformin', scope: { product: 'MET-500' } as never });
+    const scoped = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Mira Metformin', scope: { product: 'MET-500' } });
     const p = await press();
     // A held container of each product.
     const hMet = await close(await open(met, p));
