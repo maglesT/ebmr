@@ -24,6 +24,17 @@ export interface FeatureSeedContext {
   actorFor(key: string): Promise<ActorContext>;
   /** The installation's system administrator, for configuration (SYSTEM.CONFIGURE). */
   adminActor(): Promise<ActorContext>;
+  /**
+   * Slice 6c (GMP demo seed): a session of a seeded service identity (e.g. 'erpInterface') on its SERVER terminal,
+   * declaring its own role.
+   */
+  serviceActorFor(key: string): Promise<ActorContext>;
+  /**
+   * Slice 6c (GMP demo seed): an electronic signature of persona `signer` (office personas: user ID and password at its
+   * home terminal) with `meaning` over the aggregate in `expectedState`, through the kernel's ceremony (challenge,
+   * authentication for the signature, seal with the installation's DEMO-ONLY seal key). Returns the signature id.
+   */
+  signAs(signer: string, aggregate: { type: string; id: string }, meaning: string, expectedState: string | null): Promise<string>;
   exchangeDir: string;
   /** Sandbox: base64 SPKI of the site gateway's Ed25519 key (set-up `--gateway-spki`); null when none was given. */
   gatewaySpki: string | null;

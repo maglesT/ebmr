@@ -31,6 +31,9 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'PC-QC-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QC laboratory office PC (results, approvals, deviation-lite)', key: 'BROWSER' },
   { code: 'SRV-ERP-01', installation: 'GMP', deviceClass: 'SERVER', description: 'ERP interface host (product and material masters, production orders)', key: 'SERVICE' },
   { code: 'KIOSK-DISP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1 (GMP batches)', key: 'BROWSER' },
+  // Phase 3 slice 6c (demo seed, backlog 3b): a second GMP kiosk and the GMP site gateway's server terminal.
+  { code: 'KIOSK-GRAN-1', installation: 'GMP', deviceClass: 'SHARED', room: 'GRAN-1', description: 'Shop-floor kiosk, granulation suite GRAN-1 (GMP batches)', key: 'BROWSER' },
+  { code: 'GW-01', installation: 'GMP', deviceClass: 'SERVER', description: 'Site gateway (scales, instruments and process equipment), GMP installation', key: 'SERVICE' },
   { code: 'TEST-PC-01', installation: 'SANDBOX', deviceClass: 'PERSONAL', description: 'Sandbox office PC (batch issue, package import)', key: 'BROWSER' },
   { code: 'TEST-KIOSK-DISP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1', key: 'BROWSER' },
   { code: 'TEST-KIOSK-BLEND-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'BLEND-1', description: 'Shop-floor kiosk, blending room BLEND-1', key: 'BROWSER' },
@@ -80,6 +83,14 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'qaInvestigator', installation: 'GMP', legalName: 'Divya Menon', loginName: 'divya.menon', roleCode: 'QA_REVIEWER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'QA investigator', demo: { password: 'Demo-QaInvestigator-2026!' } },
   { key: 'qaApprover2', installation: 'GMP', legalName: 'Arvind Rao', loginName: 'arvind.rao', roleCode: 'QA_REVIEWER', kiosk: false, homeTerminal: 'PC-QA-01', title: 'QA approver (second QA person)', demo: { password: 'Demo-QaApprover2-2026!' } },
   { key: 'qcuAuthoriser', installation: 'GMP', legalName: 'Shalini Kapoor', loginName: 'shalini.kapoor', roleCode: 'AUTHORISED_PERSON', kiosk: false, homeTerminal: 'PC-QA-01', title: 'Quality-unit authoriser (reprocessing)', demo: { password: 'Demo-QcuAuthoriser-2026!' } },
+  // GMP (shop floor; Phase 3 slice 6c, backlog 3b): the second operator, the verifier, the shift supervisor, QA on the
+  // floor and the head of production, so a GMP batch is performed, verified, dispositioned and approved by distinct people.
+  { key: 'operator2', installation: 'GMP', legalName: 'Arjun Das', loginName: 'arjun.das', roleCode: 'OPERATOR', kiosk: true, homeTerminal: 'KIOSK-GRAN-1', title: 'Operator', demo: { password: 'Demo-GmpOperator2-2026!', pin: '573106', badgeUid: '04B10000000002' } },
+  { key: 'verifier1', installation: 'GMP', legalName: 'Kavya Reddy', loginName: 'kavya.reddy', roleCode: 'VERIFIER', kiosk: true, homeTerminal: 'KIOSK-DISP-1', title: 'Verifier', demo: { password: 'Demo-GmpVerifier1-2026!', pin: '815243', badgeUid: '04B10000000003' } },
+  { key: 'supervisor1', installation: 'GMP', legalName: 'Sanjay Kulkarni', loginName: 'sanjay.kulkarni', roleCode: 'SHIFT_SUPERVISOR', kiosk: true, homeTerminal: 'KIOSK-GRAN-1', title: 'Shift supervisor', demo: { password: 'Demo-GmpSupervisor1-2026!', pin: '260489', badgeUid: '04B10000000004' } },
+  { key: 'qa1', installation: 'GMP', legalName: 'Fatima Sheikh', loginName: 'fatima.sheikh', roleCode: 'QA_SHOP_FLOOR', kiosk: true, homeTerminal: 'KIOSK-GRAN-1', title: 'QA (shop floor)', demo: { password: 'Demo-GmpQa1-2026!', pin: '937462', badgeUid: '04B10000000005' } },
+  { key: 'warehouse1', installation: 'GMP', legalName: 'Manoj Pillai', loginName: 'manoj.pillai', roleCode: 'WAREHOUSE_LABELLING', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Warehouse (receipt and labelling)', demo: { password: 'Demo-GmpWarehouse1-2026!' } },
+  { key: 'head1', installation: 'GMP', legalName: 'Lakshmi Iyengar', loginName: 'lakshmi.iyengar', roleCode: 'HEAD_OF_PRODUCTION', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Head of production', demo: { password: 'Demo-GmpHeadProd1-2026!' } },
   // Sandbox (test runs on the shop floor)
   { key: 'issuer', installation: 'SANDBOX', legalName: 'TEST-Rohan Gupta', loginName: 'test-issuer', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Batch issuer', demo: { password: 'Demo-Issuer-2026!' } },
   { key: 'steward', installation: 'SANDBOX', legalName: 'TEST-Neha Joshi', loginName: 'test-steward', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Master-data steward (test lots)', demo: { password: 'Demo-Steward-2026!' } },
@@ -135,6 +146,8 @@ export const SERVICES: readonly ServiceSpec[] = [
   // GMP: the ERP interface (site services 0732: ERP_INTERFACE, INTERFACE.WRITE and nothing else; INTEGRATION accounts
   // only), which posts the product and material masters and the production orders (slice 5a, D-S5-4).
   { key: 'erpInterface', installation: 'GMP', legalName: 'ERP interface', loginName: 'erp.interface', accountKind: 'INTEGRATION', roleCode: 'ERP_INTERFACE', terminal: 'SRV-ERP-01' },
+  // GMP: the site gateway (Phase 3 slice 6c, backlog 3b), with the sandbox gateway's role (INTERFACE.WRITE only).
+  { key: 'gateway', installation: 'GMP', legalName: 'Site gateway GW-01', loginName: 'gw-01', accountKind: 'INTEGRATION', roleCode: 'SITE_GATEWAY', terminal: 'GW-01' },
 ];
 
 /** Names of the installation's first administrator and process owner (sandbox names carry TEST-). */

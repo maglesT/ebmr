@@ -23,8 +23,8 @@ describe('the demo gateway configuration (slice 6c, D-S6-8)', () => {
     const processDevices = config['processDevices'] as { equipment: string; port: number }[];
     expect(processDevices.map((d) => d.equipment)).toEqual(['PRESS', 'COATER', 'BOTTLE_LINE', 'CARTONER']);
     expect((config['printers'] as unknown[]).length).toBe(1);
-    const ports = DEMO_DEVICES.flatMap((d) => [d.tcp, d.http]);
-    expect(new Set([...ports, ...Object.values(DEMO_PORTS)]).size).toBe(ports.length + Object.values(DEMO_PORTS).length);
+    const ports: number[] = [...DEMO_DEVICES.flatMap((d): number[] => [d.tcp, d.http]), ...(Object.values(DEMO_PORTS) as number[])];
+    expect(new Set(ports).size).toBe(ports.length);
   });
 
   it('without the demo devices only the scale is configured (the E2E stack)', () => {
