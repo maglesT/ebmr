@@ -13,7 +13,8 @@ import type { Result, SignatureCredentials } from '@ebmr/api-contract';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { actorOfBrowser, personaIn, refusalOf, tapFor, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
-import { startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { actorOf, gmpLifecycleWorld, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { reason } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { signAction } from '../support/signed-acts.ts';
 
 let w: GmpBatchWorld;
@@ -195,7 +196,34 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     expect((await signAction(gmp, head, 'qcApprover', reject, { meaning: 'MATERIAL_LOT_STATUS_DECIDED' })).ok).toBe(false);
     await signedOk(signAction(gmp, head, 'qcApprover', reject));
     expect(valueOf(await head.call(quality.lots, { query: { materialCode: 'MAT-S6' } })).lots.find((l) => l.lotId === other.lotId)?.status).toBe('REJECTED');
+
+    // [DI-35] A lot on hold is rejected with the meaning the lot's machine requires from every state, MATERIAL_LOT_REJECTED:
+    // the server names it, and the status meaning is refused. The hold itself is QA's signed decision in the database.
+    const world = await gmpLifecycleWorld(gmp);
+    const qaHold = await actorOf(gmp, 'qaApprover2');
+    const holdSig = await world.sign(qaHold, 'material_lot', lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
+    const lotVersion = (await gmp.db.admin.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId])).rows[0]?.v;
+    await world.run(qaHold, (c) => c.query("select site.change_lot_status($1, 'HOLD', $2::bigint, $3)", [lot.lotId, lotVersion, holdSig]), reason('Customer complaint on the supplier lot under investigation'));
+    const rejectHeld = { kind: 'LOT_DECISION' as const, lotId: lot.lotId, decision: 'REJECT' as const, reason: { code: 'QC_FAILURE', text: 'Complaint investigation confirmed the supplier lot is out of specification' } };
+    expect(valueOf(await qaRel.call(routes.esig.describe, { body: { action: rejectHeld } }))).toMatchObject({ meaning: 'MATERIAL_LOT_REJECTED', expectedState: 'ON_HOLD' });
+    expect((await signAction(gmp, qaRel, 'qaInvestigator', rejectHeld, { meaning: 'MATERIAL_LOT_STATUS_DECIDED' })).ok).toBe(false);
+    // From hold the decision is QA's (MATERIAL.QA_DISPOSITION): the head of QC is refused by the database, QA signs it.
+    expect((await signAction(gmp, head, 'qcApprover', rejectHeld)).ok).toBe(false);
+    await signedOk(signAction(gmp, qaRel, 'qaInvestigator', rejectHeld));
+    expect(valueOf(await head.call(quality.lots, { query: { materialCode: 'MAT-S6' } })).lots.find((l) => l.lotId === lot.lotId)?.status).toBe('REJECTED');
   }, 300_000);
+
+  it('[INV-40] a lot receipt from a shared kiosk without a fresh badge tap is refused with 428 and records nothing; with the tap it reaches the database', async () => {
+    const kiosk = await gmp.asPersona('operator1');
+    const lotCode = `L6K-${randomUUID().slice(0, 6).toUpperCase()}`;
+    const body = { materialCode: 'MAT-S6', lotCode, supplier: 'Demo Excipients', supplierLot: `S-${lotCode}`, quantity: '10.000', expiresAt: '2029-09-30T00:00:00+05:30' };
+    expect(refusalOf(await kiosk.call(quality.receiveLot, { body }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });
+    const count = async () => (await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from site.material_lot where lot_code = $1', [lotCode])).rows[0]?.n;
+    expect(await count()).toBe('0');
+    // With the operator's tap the request is the operator's: the database decides it by the operator's own role.
+    const tapped = await kiosk.call(quality.receiveLot, { body, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', '/api/lots', body) });
+    expect(refusalOf(tapped)?.status).not.toBe(428);
+  }, 180_000);
 
   it('the QC decision on extra testing of a batch succeeds through the ceremony and is refused for the wrong person or changed content', async () => {
     const [analyst, head, issuer] = await Promise.all([gmp.asPersona('qcAnalyst'), gmp.asPersona('qcApprover'), gmp.asPersona('issuer')]);

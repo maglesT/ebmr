@@ -28,7 +28,7 @@ const officeOf = (server: TestServer): string => (server.kind === 'GMP' ? 'PC-QA
  * A person holding `roleCode` (optionally until `validTo`), requested by the administrator and approved by the owner. In
  * the sandbox the legal name given must be a test label (TEST-..., DI-05), and the user ID is made one.
  */
-export async function grantedPerson(server: TestServer, roleCode: string, legalName: string, validTo?: string): Promise<GrantedPerson> {
+export async function grantedPerson(server: TestServer, roleCode: string, legalName: string, validTo?: string, scope?: { site?: string; product?: string }): Promise<GrantedPerson> {
   const admin = await passwordActor(server.db, server.seed.bootstrap.admin, server.seed.bootstrap.admin.fingerprint);
   const owner = await passwordActor(server.db, server.seed.bootstrap.owner, server.seed.bootstrap.owner.fingerprint);
   // In the sandbox a user ID is a test label too (DI-05).
@@ -42,7 +42,7 @@ export async function grantedPerson(server: TestServer, roleCode: string, legalN
     const accountId = await identity.createAccount(c, { personId, loginName, kind: 'HUMAN' });
     const { secret } = await identity.issueInitialSecret(c, accountId, 'PASSWORD');
     await identity.activateAccount(c, accountId);
-    const grantId = await identity.requestRoleGrant(c, { accountId, roleCode, reason: `test set-up: ${roleCode}`, ...(validTo ? { validTo } : {}) });
+    const grantId = await identity.requestRoleGrant(c, { accountId, roleCode, reason: `test set-up: ${roleCode}`, ...(validTo ? { validTo } : {}), ...(scope ? { scope } : {}) });
     return { personId, accountId, secret, grantId };
   });
   await withCommand(server.db.app, reason(owner), (c) => identity.decideRoleGrant(c, created.grantId, true, `test set-up: ${roleCode}`));

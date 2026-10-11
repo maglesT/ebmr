@@ -10,7 +10,7 @@
  * a new MBR; an MBR pins the formula version, and its approval is refused while that version is not APPROVED.
  */
 import { z } from 'zod';
-import { DecimalString, Instant, IntegerString, PersonRef, SignableRef, Uuid } from '../common.ts';
+import { DecimalString, Instant, IntegerString, PersonRef, SignableRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
 const MaterialCode = z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/);
@@ -123,8 +123,9 @@ export const masterData = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Record a formula for a product and strength of the product master and a batch size in units (FORMULA.MANAGE)',
-    body: z.strictObject({
+    body: withAttribution({
       productCode: z.string().min(1).max(64),
       strength: z.string().min(1).max(64),
       batchSizeUnits: IntegerString,
@@ -149,9 +150,10 @@ export const masterData = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Write a new DRAFT version of the formula (per-unit composition; batch quantities computed by the database)',
     params: formulaParams,
-    body: z.strictObject({
+    body: withAttribution({
       changeReason: z.string().trim().min(1).max(2000),
       lines: z.array(FormulaLineInput).min(1).max(60),
     }),

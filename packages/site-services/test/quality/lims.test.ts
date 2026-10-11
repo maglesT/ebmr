@@ -35,31 +35,49 @@ async function approve(resultId: string, by: SeededActor = w.cast.qcHead): Promi
 }
 const state = async (resultId: string): Promise<string> => (await db.app.query<{ s: string }>('select site.lot_test_state($1) as s', [resultId])).rows[0]?.s ?? '';
 
-/** Releases a lot on the identity-tested route (identity result, MATERIAL_LOT_RELEASED by the head of QC). */
-const lotState = async (lotId: string): Promise<string> =>
-  (await db.admin.query<{ s: string }>("select state as s from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lotId])).rows[0]?.s ?? '';
+/** The aggregate a retest decision is signed under (0762): the lot, the new instant and the results. */
+async function retestAggregate(lotId: string, at: string, ids: string[]): Promise<string> {
+  return (await db.app.query<{ id: string }>('select site.lot_retest_aggregate_id($1, $2::timestamptz, $3::uuid[]) as id', [lotId, at, ids])).rows[0]?.id ?? '';
+}
 
 /**
- * QC's retest decision: the person's LOT_RETEST_APPROVED signature on the lot and the signed writer in one command (0760,
- * 0761), as the server's signing command runs them, so a refused decision keeps no signature either.
+ * QC's retest decision: the person's LOT_RETEST_APPROVED signature on the retest decision (aggregate lot_retest: the lot,
+ * the new instant and the results, 0762) and the signed writer in one command, as the server's signing command runs them,
+ * so a refused decision keeps no signature either. `record` records another decision with that signature (a bypass
+ * attempt); `reuse` records with an earlier signature instead of signing.
  */
-async function signedRetest(lotId: string, at: string, ids: string[], by: SeededActor = w.cast.qcHead): Promise<unknown> {
+async function signedRetest(
+  lotId: string,
+  at: string,
+  ids: string[],
+  by: SeededActor = w.cast.qcHead,
+  opts: { record?: { at: string; ids: string[] }; reuse?: string } = {},
+): Promise<{ retestId: string | undefined; signatureId: string }> {
   await ensureSealKey(db);
-  const content = await esig.contentForSigning(db.app, 'material_lot', lotId);
-  const state = await lotState(lotId);
+  const rec = opts.record ?? { at, ids };
+  if (opts.reuse !== undefined) {
+    const reused = opts.reuse;
+    return withCommand(db.app, { ...by, correlationId: randomUUID() }, async (c) => {
+      const { rows } = await c.query<{ r: string }>('select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], $4)::text as r', [lotId, rec.at, rec.ids, reused]);
+      return { retestId: rows[0]?.r, signatureId: reused };
+    });
+  }
+  const aggregateId = await retestAggregate(lotId, at, ids);
+  const content = await esig.contentForSigning(db.app, 'lot_retest', aggregateId);
   const challenge = await withCommand(db.app, { ...by, correlationId: randomUUID() }, (c) =>
-    esig.createChallenge(c, { aggregateType: 'material_lot', aggregateId: lotId, contentVersion: content.contentVersion ?? '1', meaning: 'LOT_RETEST_APPROVED', clientContentHash: content.contentHash ?? '' }),
+    esig.createChallenge(c, { aggregateType: 'lot_retest', aggregateId, contentVersion: content.contentVersion ?? '1', meaning: 'LOT_RETEST_APPROVED', clientContentHash: content.contentHash ?? '' }),
   );
   const ev = await identity.authenticate(seedAuthn(db), {
     method: 'PASSWORD', identifier: by.seed.loginName, secret: by.seed.password, deviceFingerprint: by.seed.deviceFingerprint, purpose: 'SIGNATURE', challengeId: challenge.challengeId,
   });
   return withCommand(db.app, { ...by, correlationId: randomUUID(), authEventId: ev.authEventId }, async (c) => {
-    const sig = await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: state }, testSealKey);
-    const { rows } = await c.query<{ r: string }>('select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], $4)::text as r', [lotId, at, ids, sig.signatureId]);
-    return rows[0]?.r;
+    const sig = await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: 'OPEN' }, testSealKey);
+    const { rows } = await c.query<{ r: string }>('select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], $4)::text as r', [lotId, rec.at, rec.ids, sig.signatureId]);
+    return { retestId: rows[0]?.r, signatureId: sig.signatureId };
   });
 }
 
+/** Releases a lot on the identity-tested route (identity result, MATERIAL_LOT_RELEASED by the head of QC). */
 async function release(lotId: string, signer: SeededActor = w.cast.qcHead2): Promise<void> {
   await w.sql(w.cast.analyst, "select site.record_identity_result($1, 'PASS', 'IR-01', $2)", [lotId, unique('T')]);
   const sig = await signFor(db, signer, { type: 'material_lot', id: lotId }, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
@@ -231,5 +249,37 @@ describe('retest (PR-18)', () => {
     expect((await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n).toBe('0');
     await signedRetest(lot.lotId, at, [r.resultId]);
     expect((await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n).toBe('1');
+  });
+
+  it('[PR-18][DI-37] the retest signature binds the new instant and the results, and records one retest only: another instant, other results or a second use are refused as the application role', async () => {
+    const lot = await w.lot({ materialKind: 'EXCIPIENT', retestAt: '2029-01-01T00:00:00Z', maxRetestMonths: 12 });
+    const r = await result(lot.lotId, assay('99.7', 'RETEST'));
+    await approve(r.resultId);
+    const r2 = await result(lot.lotId, assay('99.5', 'RETEST'));
+    await approve(r2.resultId);
+    const inMonths = async (m: number): Promise<string> =>
+      (await db.admin.query<{ t: string }>('select (clock_timestamp() + make_interval(months => $1))::text as t', [m])).rows[0]?.t ?? '';
+    const at6 = await inMonths(6);
+    const at9 = await inMonths(9);
+    const count = async (): Promise<string | undefined> =>
+      (await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n;
+    // What is signed names the decision: the content shows the new instant and each result, OPEN until recorded.
+    const content = await esig.contentForSigning(db.app, 'lot_retest', await retestAggregate(lot.lotId, at6, [r.resultId]));
+    expect(content.exists).toBe(true);
+    expect(content.state).toBe('OPEN');
+    // A signature for 6 months on result r does not record 9 months, nor 6 months on other results.
+    expect(await refusal(signedRetest(lot.lotId, at6, [r.resultId], w.cast.qcHead, { record: { at: at9, ids: [r.resultId] } }))).toMatch(/EBMR-ESIG/);
+    expect(await refusal(signedRetest(lot.lotId, at6, [r.resultId], w.cast.qcHead, { record: { at: at6, ids: [r.resultId, r2.resultId] } }))).toMatch(/EBMR-ESIG/);
+    expect(await count()).toBe('0');
+    const first = await signedRetest(lot.lotId, at6, [r.resultId]);
+    expect(await count()).toBe('1');
+    expect((await esig.contentForSigning(db.app, 'lot_retest', await retestAggregate(lot.lotId, at6, [r.resultId]))).state).toBe('DECIDED');
+    // Used once: the same signature does not record the same decision again (its content is now DECIDED, so the signature
+    // no longer matches it; the register of signed retests refuses a second use as well), nor another one.
+    expect(await refusal(signedRetest(lot.lotId, at6, [r.resultId], w.cast.qcHead, { reuse: first.signatureId }))).toMatch(/EBMR-ESIG-070 .*CONTENT_MISMATCH|EBMR-SITE-191/);
+    expect(await refusal(signedRetest(lot.lotId, at9, [r.resultId], w.cast.qcHead, { reuse: first.signatureId }))).toMatch(/EBMR-ESIG/);
+    expect(await count()).toBe('1');
+    // The register of signed retests is not writable by the application role.
+    expect(await refusal(db.app.query('insert into site.lot_retest_signature (retest_id, lot_id, signature_id, signer_person) values (gen_random_uuid(), $1, gen_random_uuid(), gen_random_uuid())', [lot.lotId]))).toMatch(/permission denied/);
   });
 });

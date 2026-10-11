@@ -10,7 +10,7 @@ import { allRoutes, buildPath, ClientEntry, routes, TABLET_ENTRY_KINDS_BY_BLOCK,
 import { blocks } from '@ebmr/recipe-core';
 import { tabletsBlockRegistry } from '../../src/features/edition-blocks.ts';
 import { resolveBlockEntry, serverFilledMembers } from '../../src/features/execution/block-entries.ts';
-import { personaIn, refusalOf, tapFor, valueOf } from '../esig/support.ts';
+import { personaIn, refusalOf, sessionOfBrowser, tapFor, valueOf } from '../esig/support.ts';
 import type { TestBrowser } from '../support/harness.ts';
 import { startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 import { signAction } from '../support/signed-acts.ts';
@@ -127,6 +127,17 @@ describe('GMP batch routes (slice 6a, D-S6-1)', () => {
       [batchId],
     );
     expect(rows[0]).toMatchObject({ command_type: 'RECORD_ENTRY', accepted: false, command: { entry: { kind: 'SHIPPER' } } });
+  }, 120_000);
+
+  it('[DI-17] the planning read is the batch issuer\'s: a session whose role holds no BATCH.ISSUE is refused, by route and in the database', async () => {
+    const analyst = await w.gmp.asPersona('qcAnalyst');
+    expect(refusalOf(await analyst.call(routes.planning.orders))?.code).toBe('EBMR-IAM-040');
+    expect(refusalOf(await operator.call(routes.planning.orders))?.code).toBe('EBMR-IAM-040');
+    expect(valueOf(await issuer.call(routes.planning.orders)).orders.length).toBeGreaterThan(0);
+    // As the application role: the session read refuses the analyst's token, and the site-wide reader is the owner's only.
+    const token = (await sessionOfBrowser(w.gmp, analyst)).tokenHash;
+    await expect(w.gmp.db.app.query('select tab.planning_orders($1)', [token])).rejects.toThrow(/EBMR-IAM-040.*BATCH\.ISSUE/);
+    await expect(w.gmp.db.app.query("select recipe.planning_orders('SITE-1')")).rejects.toThrow(/permission denied/);
   }, 120_000);
 
   it('every new route parses with its contract schema', async () => {
