@@ -1,7 +1,8 @@
 /**
  * Namespace `execution` (C3): test packages and test batches (TEST-) in the sandbox, GMP batches planned from an effective
- * MBR version in GMP (Phase 3 slice 2b), and on both installations the step screen, the work queue, commands, replay and
- * lots (Phase 2 apps plan sections 7 and 9). The GMP batch is issued through the e-signature ceremony (signable action
+ * MBR version in GMP (Phase 3 slice 2b), and on both installations the work queue and lots (Phase 2 apps plan sections 7
+ * and 9). Since Phase 3 slice 6 (D-S6-1) the running test batch (`/api/test-runs/*`: runs, run, step, timeline, replay,
+ * commands) is the sandbox's only; a GMP batch runs under `/api/batches/*` (namespace `batches`, same handlers). The GMP batch is issued through the e-signature ceremony (signable action
  * GMP_BATCH_ISSUE, meaning ISSUED); test packages stay sandbox-only and GMP batches GMP-only (DI-05, INV-18).
  *
  * The browser never decides GMP outcomes: `actions` come from the server (availableActions by dry-run through
@@ -11,6 +12,7 @@
 import { z } from 'zod';
 import { DataValueWire, DecimalString, Empty, Instant, IntegerString, PersonRef, RunVersion, SignableRef, Uuid, Watermark, withAttribution } from '../common.ts';
 import { ClientIntent, StepKey } from '../intents.ts';
+import { BlockEntryFormView } from '../tablet-entries.ts';
 import { defineRoute } from '../route.ts';
 import { ScaleStatusView } from './devices.ts';
 import { ManifestationView } from './esig.ts';
@@ -224,6 +226,11 @@ export const StepScreenView = z.strictObject({
   fields: z.array(FieldView),
   entries: z.array(EntryView),
   entryForms: z.array(EntryFormView),
+  /**
+   * Phase 3 slice 6: the entry kinds of the step's block the browser sends as a BLOCK_ENTRY (tablet blocks, G-06@1,
+   * G-21@1, G-24@2; the typed kinds excluded), each with the block's own schema; empty for other blocks.
+   */
+  blockEntries: z.array(BlockEntryFormView),
   exceptions: z.array(ExceptionView),
   signatures: z.array(ManifestationView),
   actions: z.array(ActionView),
@@ -475,7 +482,7 @@ export const execution = {
     id: 'execution.runs',
     method: 'GET',
     path: '/api/test-runs',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Test runs',
@@ -485,7 +492,7 @@ export const execution = {
     id: 'execution.run',
     method: 'GET',
     path: '/api/test-runs/:runId',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Run overview: stages, steps, exceptions, holds, timers',
@@ -496,7 +503,7 @@ export const execution = {
     id: 'execution.step',
     method: 'GET',
     path: '/api/test-runs/:runId/steps/:stepKey',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'The step screen of one step instance',
@@ -517,7 +524,7 @@ export const execution = {
     id: 'execution.timeline',
     method: 'GET',
     path: '/api/test-runs/:runId/timeline',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Every engine call of the run (issue, commands, prepares, sweeps), refusals included',
@@ -528,7 +535,7 @@ export const execution = {
     id: 'execution.verifyReplay',
     method: 'POST',
     path: '/api/test-runs/:runId/verify-replay',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: false,
     summary: 'Replay the stored rows and report identical or the first difference',
@@ -551,7 +558,7 @@ export const execution = {
     id: 'execution.command',
     method: 'POST',
     path: '/api/test-runs/:runId/commands',
-    installation: 'ANY',
+    installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',

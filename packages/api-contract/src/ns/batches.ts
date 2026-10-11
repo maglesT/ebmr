@@ -8,17 +8,18 @@
  * database reads for each (never the browser's).
  */
 import { z } from 'zod';
-import { DecimalString, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
-import { ClientIntent, StepKey } from '../intents.ts';
+import { DecimalString, Empty, Instant, PersonRef, RunVersion, Uuid, withAttribution } from '../common.ts';
+import { ActId, ClientIntent, StepKey } from '../intents.ts';
 import { defineRoute } from '../route.ts';
-import { CommandResultView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
+import { CommandResultView, ReplayReportView, RunSummaryView, RunView, StepScreenView, TimelineEntryView, WorkQueueItem } from './execution.ts';
 
 const batchParams = z.strictObject({ batchId: Uuid });
 const stepParams = z.strictObject({ batchId: Uuid, stepKey: StepKey });
 
 /** An act proposed for approval before it is recorded (recipe.propose_act): QA signs its meaning on aggregate batch_act. */
 export const ProposedActView = z.strictObject({
-  actId: Uuid,
+  /** The act's aggregate id (batch_act): <batch>:act@<state version>:<hash of the act>; the void is sent at that state version. */
+  actId: ActId,
   batchId: Uuid,
   /** The engine command the act will be (VOID_ATTEMPT). */
   commandType: z.literal('VOID_ATTEMPT'),
@@ -142,6 +143,18 @@ export const batches = {
       viewStepKey: StepKey.optional(),
     }),
     response: CommandResultView,
+  }),
+  verifyReplay: defineRoute({
+    id: 'batches.verifyReplay',
+    method: 'POST',
+    path: '/api/batches/:batchId/verify-replay',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Replay the stored rows of the GMP batch and report identical or the first difference',
+    params: batchParams,
+    body: Empty,
+    response: ReplayReportView,
   }),
   proposeAct: defineRoute({
     id: 'batches.proposeAct',

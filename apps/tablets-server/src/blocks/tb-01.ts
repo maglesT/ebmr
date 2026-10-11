@@ -124,7 +124,7 @@ const WEIGHING_ENTRY: ObjectSchema = {
     balance: { type: 'string', description: 'Balance id: an instrument with an open use for this batch (checked by the database)' },
     source: { type: 'string', enum: ['DEVICE', 'MANUAL'], description: 'From the balance interface, or keyed by hand (flagged; two-person mode)' },
     fefoReason: { type: 'string', optional: true, description: 'Why a lot other than the first-expiring usable one is dispensed (PR-18)' },
-    consumption: { type: 'string', pattern: UUID, optional: true, description: 'The lot consumption the server made for this container on GMP (INV-13, INV-14)' },
+    consumption: { type: 'string', pattern: UUID, optional: true, serverFilled: true, description: 'The lot consumption the server made for this container on GMP (INV-13, INV-14)' },
   },
 };
 

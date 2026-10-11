@@ -152,29 +152,36 @@ export class RunDriver {
     return b;
   }
 
+  /** GMP batches run under /api/batches/*, test runs under /api/test-runs/* (Phase 3 slice 6, D-S6-1). */
+  get gmp(): boolean {
+    return this.server.built.ctx.installation === 'GMP';
+  }
+
   async version(persona = Object.keys(this.browsers)[0] ?? ''): Promise<number> {
-    return valueOf(await this.browser(persona).call(routes.execution.run, { params: { runId: this.runId } })).header.version;
+    return (await this.runView(persona)).header.version;
   }
 
   async stepView(persona: string, stepKey: string) {
-    return valueOf(await this.browser(persona).call(routes.execution.step, { params: { runId: this.runId, stepKey } }));
+    const b = this.browser(persona);
+    return valueOf(this.gmp ? await b.call(routes.batches.step, { params: { batchId: this.runId, stepKey } }) : await b.call(routes.execution.step, { params: { runId: this.runId, stepKey } }));
   }
 
   async runView(persona: string) {
-    return valueOf(await this.browser(persona).call(routes.execution.run, { params: { runId: this.runId } }));
+    const b = this.browser(persona);
+    return valueOf(this.gmp ? await b.call(routes.batches.batch, { params: { batchId: this.runId } }) : await b.call(routes.execution.run, { params: { runId: this.runId } }));
   }
 
   /** A plain intent (tap on a kiosk). */
   async command(persona: string, intent: ClientIntent, opts: { expectedVersion?: number; idempotencyKey?: string; viewStepKey?: string } = {}) {
     const b = this.browser(persona);
     const body = { expectedVersion: opts.expectedVersion ?? (await this.version(persona)), intent, ...(opts.viewStepKey ? { viewStepKey: opts.viewStepKey } : {}) };
+    const extra = { ...(opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : {}) };
+    if (this.gmp) {
+      const path = `/api/batches/${this.runId}/commands`;
+      return b.call(routes.batches.command, { params: { batchId: this.runId }, body, ...(kiosk(b) ? { attribution: await this.tap(b, persona, path, body) } : {}), ...extra });
+    }
     const path = `/api/test-runs/${this.runId}/commands`;
-    return b.call(routes.execution.command, {
-      params: { runId: this.runId },
-      body,
-      ...(kiosk(b) ? { attribution: await this.tap(b, persona, path, body) } : {}),
-      ...(opts.idempotencyKey ? { idempotencyKey: opts.idempotencyKey } : {}),
-    });
+    return b.call(routes.execution.command, { params: { runId: this.runId }, body, ...(kiosk(b) ? { attribution: await this.tap(b, persona, path, body) } : {}), ...extra });
   }
 
   async ok(persona: string, intent: ClientIntent) {

@@ -49,6 +49,11 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
   /** The aggregate, meaning and expected state the challenge names. */
   describe(action: A): { aggregateType: string; aggregateId: string; meaning: string; expectedState?: string };
   /**
+   * Phase 3 slice 6: the same, when it depends on the record's state (e.g. the meaning of a lot rejection), read now for
+   * POST /api/esig/describe. Absent: describe() answers.
+   */
+  describeNow?(db: pg.Pool | pg.PoolClient, action: A): Promise<{ aggregateType: string; aggregateId: string; meaning: string; expectedState?: string }>;
+  /**
    * The signer's own reason the sign command carries, both halves, for an action whose change needs one (the kernel
    * refuses such a change without it, EBMR-AUDIT-002): taken from the action the person sent, never written by the
    * system (DI-22, DI-24). Absent: the command carries no reason.

@@ -24,9 +24,9 @@
  * (MBR.AUTHOR in the product scope) and refuses administrators (DI-17, DI-18). A2 registers MBR_TRANSITION.
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
-import { sandbox } from '@ebmr/kernel';
+import { sandbox, withCommand } from '@ebmr/kernel';
 import { routes } from '@ebmr/api-contract';
-import { lifecycle } from '@ebmr/recipe-core';
+import { formula, lifecycle } from '@ebmr/recipe-core';
 import { flow } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
@@ -35,6 +35,7 @@ import { refusal, type HttpRefusal } from '../../platform/http/refusal.ts';
 import { siteToday } from './adapters/expressions.ts';
 import { marketSetProblem } from './adapters/market-minima.ts';
 import { contentFromTemplate, FamilyInputError, KNOWN_MARKETS } from './family.ts';
+import { compositionGate, withFormulaBom } from './formula-choice.ts';
 import { DESIGNER_GUIDANCE } from './guidance.ts';
 import { slotPool } from './limits.ts';
 import {
@@ -357,10 +358,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
 
   bindRoutes(scope, app, routes.designer, {
     // Phase 3 slice 6a-0: "Choose a product" arrives with slice 6a.
-    formulaChoice: () =>
-      Promise.reject(
-        refusal(501, { code: 'NOT_IMPLEMENTED', kind: 'NOT_ENABLED', whatHappened: 'This function is not available yet.', why: 'It arrives with Phase 3 slice 6a.', whatYouCanDo: ['Use another path for now.'] }),
-      ),
+    // "Choose a product" (decision 0006): the approved formula's BOM with its computed quantities (FORMULA.READ, DI-13).
+    formulaChoice: async (ctx) => {
+      ctx.requireSession();
+      const q = ctx.query;
+      const c = await withCommand(pool, ctx.actor(), (client) => formula.formulaChoice(client, q.product, q.strength, q.batchSize));
+      return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines };
+    },
     templates: () => Promise.resolve({ templates: templateViews }),
 
     families: async () => ({ families: await familyViews(pool, app) }),
@@ -395,8 +399,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       const { result } = await uniqueViolationAsConflict(
         () =>
           withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
-            const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(content));
-            const v = await lifecycle.createVersion(c, familyId, content, `Created from template ${template.templateId}`);
+            // "Choose a product" (decision 0006): the BOM quantities from the approved formula version (FORMULA.READ in the
+            // database), and the pin, which the database checks against the content (EBMR-FRM-019, INV-25).
+            const chosen = body.formulaVersionId ? await formula.formulaVersionForMbr(c, body.formulaVersionId) : null;
+            const withBom = chosen ? withFormulaBom(content, chosen) : content;
+            const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(withBom));
+            const v = await lifecycle.createVersion(c, familyId, withBom, `Created from template ${template.templateId}${chosen ? ` with formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)}` : ''}`);
+            if (chosen) await formula.pinFormula(c, v.versionId, chosen.versionId);
             return { versionId: v.versionId };
           }),
         `An MBR family ${body.familyCode} or one for the same product, strength and batch sizes`,
@@ -404,7 +413,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       return versionView(pool, app, result.versionId);
     },
 
-    version: (ctx) => versionView(pool, app, ctx.params.versionId),
+    version: async (ctx) => {
+      // DI-13: an MBR whose composition comes from the formulation library opens only for a reader holding FORMULA.READ.
+      await compositionGate(pool, ctx.actor(), ctx.params.versionId);
+      return versionView(pool, app, ctx.params.versionId);
+    },
 
     async saveContent(ctx) {
       const id = ctx.params.versionId;
