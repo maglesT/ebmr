@@ -103,6 +103,10 @@ assessment, draft attributes, sandbox-run evidence and verification record of th
 batch-number rule; lot reservations; equipment and instrument uses, area occupancy, output containers and the tooling
 register; the reprocessing authorisation proposal; the release of a held container (signed by the kernel ceremony
 directly). Also: no HTTP path from gateway readings to G-06 entries (simulators unused; values keyed under the manual
-fallback); G-07 on a GMP batch consumes no lot (the driver consumes each weighing with recipe.consume_lot); CORRECT_ENTRY
-has no HTTP intent (the negative asks the engine directly); a refusal text says "test run" on a GMP batch; the coating
-pan load does not check for held compression containers.
+fallback); CORRECT_ENTRY has no HTTP intent (the negative asks the engine directly); a refusal text says "test run" on a
+GMP batch.
+
+Fixed after the first review (coordinator): the coating pan load is refused while a compression output container of the
+batch is on hold (tablets 1092, EBMR-TAB-390); a GMP G-07 weighing of a lot is consumed from the batch's reservation in
+its command and the database refuses one without it (tablets 1093, EBMR-TAB-391), so the dispenser now weighs the other
+materials too and the driver no longer consumes them itself.

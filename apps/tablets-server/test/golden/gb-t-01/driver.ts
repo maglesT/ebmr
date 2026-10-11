@@ -295,8 +295,9 @@ export async function dispensing(g: GoldenBatch): Promise<void> {
       weigh('p-disp-api@', 'dispMcc', 'BOM-MCC', 'GBT-MCC-001', W.mcc, bal),
     ],
   });
+  // The dispenser weighs the other materials too: on GMP the server consumes each net from the batch's reservation of
+  // its lot in the same command (tablets 1093), so the genealogy holds every lot.
   await g.step('p-disp-exc@', {
-    performer: 'operator2',
     entries: [
       weigh('p-disp-exc@', 'dispLac', 'BOM-LAC', 'GBT-LAC-001', W.lac, bal),
       weigh('p-disp-exc@', 'dispPvp', 'BOM-PVP', 'GBT-PVP-001', W.pvp, bal),
@@ -307,15 +308,6 @@ export async function dispensing(g: GoldenBatch): Promise<void> {
       weigh('p-disp-exc@', 'dispFcs', 'BOM-FCS', 'GBT-FCS-001', W.fcs, bal),
     ],
   });
-  // G-07@1 on GMP takes no lot consumption with its weighing (its entry schema has no consumption member; TB-01's has):
-  // the designated dispenser (DISPENSE.EXECUTE) consumes each dispensed net from the batch's reservation in the database
-  // (recipe.consume_lot, the function TB-01's weighing calls), so the genealogy holds every lot. A residual: G-07 needs a
-  // version that does it.
-  const disp = g.b('operator1');
-  for (const [lot, net] of [['GBT-LAC-001', W.lac], ['GBT-PVP-001', W.pvp], ['GBT-IPA-001', W.ipa], ['GBT-CCS-001', W.ccs], ['GBT-SIO-001', W.sio], ['GBT-MGS-001', W.mgs], ['GBT-FCS-001', W.fcs]] as const) {
-    const res = await dbAs<Json>(g.w, disp, 'operator1', "select tab.tb01_reservation_for($1::uuid, $2, $3::numeric, 'kg') as r", [g.batchId, lot, net]);
-    await dbAs(g.w, disp, 'operator1', 'select recipe.consume_lot($1::uuid, $2::uuid, $3, $4::numeric, $5) as r', [g.batchId, res['reservationId'], res['materialCode'], res['quantity'], res['unit']]);
-  }
   await g.step('p-disp-recon@', { performer: 'operator2' });
   await g.closeStage('S-DISP@');
   await g.release(['DISP-1'], 'operator2');

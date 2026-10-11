@@ -203,6 +203,27 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await sql('select tab.coating_close_problem($1, $2, $3) as r', [c, old, closed])).toMatch(/TB19-LAST-CHECK/);
   });
 
+  it('[PR-29][IN-35][IN-37] TB-18: cores under hold are never coated: the pan load is refused while a compression output container of the batch is held (EBMR-TAB-390, TB18-HELD-CORES); once QA has decided on it the load is stored (GB-T-01 residual)', async () => {
+    const press = (await cleanUnit(sbx, d.runId)).code;
+    const held = await container('COMPRESSION', press);
+    await asOp('select plant.record_ipc_check($1, $2, null, $3, $4) as r', [d.runId, press, 'FAIL', 'TEST-WEIGHT-FAIL']);
+    expect(await stateOfContainer(held.id)).toBe('HELD');
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'cores@' });
+    // Written as the application role straight to the store (the engine accepts it: it knows no plant containers).
+    const load = { kind: 'PAN_LOAD', quantity: { value: '60.000', unit: 'kg' } };
+    const refused = await rec.message('cores', load);
+    expect(refused).toMatch(/EBMR-TAB-390/);
+    expect(refused).toContain(held.label);
+    expect(Object.values((await stateOf(sbx, d.runId)).entries).filter((e) => e['kind'] === 'PAN_LOAD')).toEqual([]);
+    // QA rejects the held container: no container of the compression output is on hold any more.
+    const version = await sql<string>("select version::text as r from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [held.id]);
+    advance();
+    const qa = await actorOfBrowser(sbx, d.browser('qa1'), 'qa1', { reasonCode: 'IPC_FAILED', reasonText: 'Held cores rejected after the failed weight check' });
+    await withCommand(sbx.db.app, qa, (c) => c.query('select plant.reject_container($1, $2::bigint) as r', [held.id, version]));
+    expect(await stateOfContainer(held.id)).toBe('REJECTED');
+    expect(await sql<string[]>('select tab.held_compression_containers($1) as r', [d.runId])).toEqual([]);
+  });
+
   it('[IN-37][PR-08][PR-29][DI-29][INV-25][DI-34] TB-18: the cores and the core mean are the block\'s; a coating suspension only of this batch, within its use-by at the row\'s time and never beyond what was prepared; the parameter log and the weight gain computed by the database; the gain above its maximum only with the exception for QA; computed items never typed; the loop bounded', async () => {
     // Suspensions: a film coat that expires in 3 s, one for an hour, and a binder.
     for (const s of ['p-tb03f', 'p-tb03c', 'p-tb03b']) await d.ok('operator1', { type: 'START_STEP', stepKey: `${s}@` });
@@ -211,7 +232,8 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     }
     const prep = async (s: string) => lastEntry(sbx, d.runId, `${s}@`, 'PREPARED');
     // Cores.
-    await d.ok('operator1', { type: 'START_STEP', stepKey: 'cores@' });
+    // Started by the test above (the held cores); started here when this test runs alone.
+    if ((await stateOf(sbx, d.runId)).steps['cores@']?.['status'] !== 'IN_PROGRESS') await d.ok('operator1', { type: 'START_STEP', stepKey: 'cores@' });
     const room = { kind: 'ROOM_CHECK', filteredAir: true, temperature: '26.0', humidity: '45' };
     expect(await verdict('cores', room, { tamper: laxEntry('cores', { ...strip(room), withinLimits: true, checkedBy: me }) })).toMatch(/^EBMR-EXE-270 .*withinLimits/s);
     const noAir = { ...room, filteredAir: false, temperature: '24.0' };

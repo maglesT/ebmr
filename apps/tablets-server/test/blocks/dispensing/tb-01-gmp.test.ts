@@ -41,6 +41,8 @@ const LINE = 'L1';
 const BATCH_SIZE = 'BS-100K';
 const STEP = 'p-tb01';
 const KEY = `${STEP}@`;
+const G07_STEP = 'p-g07';
+const G07_KEY = `${G07_STEP}@`;
 const BALANCE = 'BAL-07';
 
 let gmp: ExecServer;
@@ -92,19 +94,28 @@ function gmpContent(): flow.MbrContent {
   );
   const stage = ((((m['procedure'] as Json)['body'] as Json)['children'] as Json[])[0] as Json)['body'] as Json;
   const prep = ((stage['children'] as Json[])[0] as Json)['body'] as Json;
-  prep['children'] = [
-    {
-      kind: 'phase', id: STEP, name: 'Potency-adjusted dispensing', block: { type: 'TB-01', version: '1' },
-      config: {
-        active: { bomLine: 'BOM-PCM', basis: 'AS_IS', standardIs: 'FORM', standardBasis: 'paracetamol at 100.0 % as is' },
-        compensation: { mode: 'EXCIPIENT', bomLine: 'BOM-MCC', min: '8.000', max: '11.000' },
-        readability: '0.001',
-        tolerancePercent: { active: '0.5', excipient: '1.0' },
-      },
-      records: ['tbApi', 'tbMcc'], computes: [], reads: [], consumes: ['BOM-PCM', 'BOM-MCC'], produces: [], uses: [], equipment: [],
-      signatures: { perform: { role: 'DISPENSER' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } },
-      significant: true, riskClass: 'HIGH',
+  (m['parameters'] as Json[]).push({ id: 'g07Mgs', name: 'Magnesium stearate dispensed (G-07)', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'NON_CRITICAL', riskClass: 'MEDIUM', capture: 'DEVICE' });
+  const tb01 = {
+    kind: 'phase', id: STEP, name: 'Potency-adjusted dispensing', block: { type: 'TB-01', version: '1' },
+    config: {
+      active: { bomLine: 'BOM-PCM', basis: 'AS_IS', standardIs: 'FORM', standardBasis: 'paracetamol at 100.0 % as is' },
+      compensation: { mode: 'EXCIPIENT', bomLine: 'BOM-MCC', min: '8.000', max: '11.000' },
+      readability: '0.001',
+      tolerancePercent: { active: '0.5', excipient: '1.0' },
     },
+    records: ['tbApi', 'tbMcc'], computes: [], reads: [], consumes: ['BOM-PCM', 'BOM-MCC'], produces: [], uses: [], equipment: [],
+    signatures: { perform: { role: 'DISPENSER' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } },
+    significant: true, riskClass: 'HIGH',
+  };
+  // A G-07 dispensing step beside it (slice 6d: on GMP its weighing of a lot is consumed too, tablets 1093).
+  const g07 = {
+    kind: 'phase', id: G07_STEP, name: 'Dispense the lubricant', block: { type: 'G-07', version: '1' }, config: { tolerance: { percent: '1.0' } },
+    records: ['g07Mgs'], computes: [], reads: [], consumes: ['BOM-MGS'], produces: [], uses: [], equipment: [],
+    signatures: { perform: { role: 'DISPENSER' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } },
+    significant: true, riskClass: 'HIGH',
+  };
+  prep['children'] = [
+    { kind: 'parallel', id: 'par-disp', branches: [{ id: 'br-tb01', name: 'Potency-adjusted', body: tb01 }, { id: 'br-g07', name: 'Lubricant', body: g07 }] },
     ...(prep['children'] as Json[]),
   ];
   const strip = (n: unknown): unknown => {
@@ -135,6 +146,7 @@ const LOTS: { code: string; material: string; days: number; state: string; assay
   { code: 'L26-0202', material: 'MAT-PCM', days: 900, state: 'RELEASED', assay: '99.0' },
   { code: 'L26-0203', material: 'MAT-PCM', days: 650, state: 'QUARANTINE', assay: '99.0' },
   { code: 'L26-0301', material: 'MAT-MCC', days: 700, state: 'RELEASED' },
+  { code: 'L26-0401', material: 'MAT-MGS', days: 700, state: 'RELEASED' },
 ];
 const lotIds = new Map<string, string>();
 
@@ -379,5 +391,55 @@ describe('TB-01 on the GMP installation (site lots, reservations, consumption)',
     });
     expect(await readFor()).toBeNull();
     expect(await gmp.db.app.query("insert into tab.lot_assay_source (assay_result_id, value_kind, lims_result_id) values (gen_random_uuid(), 'assay', $1)", [good]).then(() => 'ok', (e: unknown) => String(e))).toMatch(/permission denied/);
+  });
+});
+
+describe('G-07 on the GMP installation (slice 6d: every dispensed lot is consumed, tablets 1093)', () => {
+  let b: { batchId: string; batchNumber: string };
+  beforeAll(async () => {
+    b = await issued();
+    await prepareBatch(b);
+  }, 300_000);
+
+  const consumptions = async () =>
+    (
+      await gmp.db.admin.query<{ lot: string; batch: string; quantity: string; unit: string }>(
+        'select l.lot_code as lot, c.batch_number as batch, c.quantity::text, c.unit from site.lot_consumption c join site.material_lot l on l.id = c.lot_id where c.batch_id = $1 order by c.consumed_at',
+        [b.batchId],
+      )
+    ).rows.map((r) => [r.lot, r.batch, r.quantity, r.unit]);
+
+  it('[INV-13][INV-14][PR-57] a G-07 weighing of a site lot on GMP is consumed from the batch\'s reservation in the same command, so the genealogy holds the lot', async () => {
+    const d = await dispenser(b.batchId);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: G07_KEY });
+    await d.ok('operator1', { type: 'RECORD_ENTRY', stepKey: G07_KEY, entry: { kind: 'CONTAINER_WEIGHING', item: 'g07Mgs', bomLine: 'BOM-MGS', lotCode: 'L26-0401', manual: { gross: '1.600', tare: '1.000', unit: 'kg', deviceCode: BALANCE } } });
+    expect(await consumptions()).toEqual([['L26-0401', b.batchNumber, '0.600', 'kg']]);
+  });
+
+  it('[INV-13][INV-14][PR-57] past the server, a GMP G-07 weighing of a lot without its consumption, or with a consumption of another quantity, is refused by the database (EBMR-TAB-391)', async () => {
+    const run = await runContext(gmp.db.admin, b.batchId);
+    const facts = (await gmp.db.admin.query<{ f: Json }>('select tab.lot_facts($1, $2::uuid) as f', ['L26-0401', b.batchId])).rows[0]?.f ?? {};
+    const lot = { id: 'L26-0401', material: 'MAT-MGS', status: 'RELEASED', expiresAtUs: facts['expiresAtUs'], retestAtUs: facts['retestAtUs'], identityTested: true };
+    const attempt = async (n: number, consume: string | null) => {
+      const browser = (await dispenser(b.batchId)).browser('operator1');
+      vi.advanceTimersByTime(7_000);
+      return messageOf(
+        withCommand(gmp.db.app, await actorOfBrowser(gmp, browser, 'operator1'), async (c) => {
+          if (consume) {
+            const res = (await c.query<{ r: Json }>('select tab.tb01_reservation_for($1::uuid, $2, $3::numeric, $4) as r', [b.batchId, 'L26-0401', consume, 'kg'])).rows[0]?.r ?? {};
+            await c.query('select recipe.consume_lot($1::uuid, $2::uuid, $3, $4::numeric, $5) as r', [b.batchId, res['reservationId'], 'MAT-MGS', consume, 'kg']);
+          }
+          const tx = await execution.ExecutionTx.open(c, run.def, b.batchId);
+          const roles = await engineRoles(c);
+          const actor = engineActor(personaIn(gmp, 'operator1').personId, roles);
+          const entry = { kind: 'CONTAINER_WEIGHING', item: 'g07Mgs', bomLine: 'BOM-MGS', container: `${b.batchNumber}/C8${n}`, lot, gross: '1.010', tare: '1.000', unit: 'kg', balance: BALANCE, source: 'MANUAL' };
+          const command: engine.Command = { type: 'RECORD_ENTRY', commandId: randomUUID(), actor, step: G07_STEP, context: [], entry };
+          return appendAs(tx, command, engineResult(tx, command), roles);
+        }),
+      );
+    };
+    expect(await attempt(1, null)).toMatch(/consumed no such quantity of that lot.*G07-CONSUMPTION.*EBMR-TAB-391/s);
+    expect(await attempt(2, '0.020')).toMatch(/G07-CONSUMPTION.*EBMR-TAB-391/s);
+    expect(await attempt(3, '0.010')).toBe('ok');
   });
 });
