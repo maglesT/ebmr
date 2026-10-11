@@ -6,7 +6,10 @@
  * batch, which can never take bulk. Run as the application role through the routes.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { routes } from '@ebmr/api-contract';
+import { toDbContext } from '@ebmr/kernel';
+import { freshTap, openPersonaSession } from '@ebmr/test-kit';
 import { personaIn, tapFor } from '../../esig/support.ts';
 import { refusalOf, RunDriver } from '../../execution/support.ts';
 import { gmpContent, startGmpBatchWorld, type GmpBatchWorld } from '../../support/gmp-world.ts';
@@ -78,4 +81,18 @@ describe('a packing step needs bulk issued to its batch (exit review HIGH-3; tab
     const refused = refusalOf(await operator.call(routes.batches.issueBulk, { params: { batchId }, body, attribution: tap }));
     expect([refused?.code, refused?.why]).toEqual(['EBMR-PKG-001', expect.stringMatching(/batch .* is no packaging order/)]);
   }, 300_000);
+
+  it('[INV-27][IN-18] bulk is issued only to a batch that exists as an issued GMP batch', async () => {
+    const actor = { ...(await openPersonaSession(w.gmp.db, w.gmp.seed, 'operator1')), authEventId: await freshTap(w.gmp.db, w.gmp.seed, 'operator1'), reasonCode: 'TEST', reasonText: 'bulk issue kill test' };
+    const c = await w.gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(actor))]);
+      const unknown = randomUUID();
+      await expect(c.query('select recipe.issue_packaging_bulk($1, $2)', [unknown, ['OC-X-1001']])).rejects.toThrow(`EBMR-PKG-001 batch ${unknown} is no issued GMP batch`);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
 });
