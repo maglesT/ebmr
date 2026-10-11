@@ -117,7 +117,7 @@ describe('time constraints (INV-20)', () => {
     expect(Object.keys(run.state.timeInstances).sort()).toEqual(['TC-DRY@R=1/L=1', 'TC-DRY@R=1/L=2', 'TC-DRY@R=2/L=1']);
   });
 
-  it('[INV-20][IN-13] an intermediate held beyond its hold time: the consuming step is blocked until QA dispositions the exception', () => {
+  it('[INV-20][IN-13][IN-15] an intermediate held beyond its hold time: the consuming step is blocked until QA dispositions the exception', () => {
     const mbr = mbrWith(seq('ops', phase('make', { produces: ['I-X'] }), phase('wait'), phase('use', { uses: ['I-X'] })), {
       intermediates: [{ id: 'I-X', name: 'Wet mass', holdTime: { max: { value: '2', unit: 'h' }, source: { kind: 'HOLD_STUDY', ref: 'HS' } } }],
     });

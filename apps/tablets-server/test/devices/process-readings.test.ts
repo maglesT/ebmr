@@ -71,7 +71,7 @@ async function operator(): Promise<ActorContext> {
 }
 
 /** operator1 records `entry` at p-press past the server, claiming `claim` first (a process reading id) in the same command. */
-async function record(entry: Json & { kind: string }, opts: { claim?: string; ack?: { reading: string; comment: string } } = {}): Promise<string> {
+async function record(entry: Json & { kind: string }, opts: { claim?: string; ack?: { reading: string; comment: string }; forge?: (r: engine.StepResult) => engine.StepResult } = {}): Promise<string> {
   const run = await runContext(sbx.db.admin, d.runId);
   const me = personaIn(sbx, 'operator1');
   return codeOf(
@@ -81,7 +81,8 @@ async function record(entry: Json & { kind: string }, opts: { claim?: string; ac
       const tx = await execution.ExecutionTx.open(c, run.def, d.runId);
       const roles = await engineRoles(c);
       const command: engine.Command = { type: 'RECORD_ENTRY', commandId: randomUUID(), actor: engineActor(me.personId, roles), step: 'p-press', context: [], entry };
-      return appendAs(tx, command, engineResult(tx, command), roles);
+      const honest = engineResult(tx, command);
+      return appendAs(tx, command, opts.forge ? opts.forge(structuredClone(honest)) : honest, roles);
     }),
   );
 }
@@ -217,6 +218,40 @@ describe('process readings over the gateway uplink (tablets 0820)', () => {
     await expect(sbx.db.app.query('delete from tab.process_reading')).rejects.toThrow(/permission denied/);
     await expect(sbx.db.admin.query('delete from tab.process_reading where id = $1', [alarm.id])).rejects.toThrow(/EBMR-AUDIT-004/);
     await expect(sbx.db.admin.query('update tab.process_alarm_ack set comment = $1', ['x'])).rejects.toThrow(/EBMR-AUDIT-004/);
+  });
+
+  it('[DI-04][PR-14] the equipment reports another recipe version than the MBR names: the RECIPE_CHECK is stored only with matches false and RECIPE_MISMATCH, which stops the step for QA; a forged match or a dropped exception is refused by the database', async () => {
+    const check = { kind: 'RECIPE_CHECK', recipe: 'RCP-COMP', recipeVersion: '4' };
+    const checkOf = (r: engine.StepResult) => Object.values(r.state.entries).find((e) => e.kind === 'RECIPE_CHECK' && e.data['recipeVersion'] === '4');
+    const dropMismatch = (r: engine.StepResult) => {
+      const gone = Object.entries(r.state.exceptions).filter(([, x]) => x.type === 'RECIPE_MISMATCH').map(([k]) => k);
+      for (const k of gone) delete r.state.exceptions[k];
+      // A consistent forgery: the row's events do not tell of the exception either.
+      return { ...r, events: r.events.filter((ev) => !(ev.type === 'EXCEPTION_RAISED' && gone.includes(ev.exception))) };
+    };
+    const outcomes = {
+      forgedMatch: await record(check, {
+        forge: (r) => {
+          const e = checkOf(r);
+          if (e) e.data['matches'] = true;
+          return dropMismatch(r);
+        },
+      }),
+      droppedException: await record(check, { forge: dropMismatch }),
+      honest: await record(check),
+    };
+    expect(outcomes).toEqual({ forgedMatch: 'EBMR-EXE-126', droppedException: 'EBMR-EXE-275', honest: 'ok' });
+    const { rows } = await sbx.db.admin.query<{ data: Json; ex: { type: string; severity: string; status: string }[] }>(
+      `select v -> 'data' as data,
+              (select jsonb_agg(jsonb_build_object('type', x ->> 'type', 'severity', x ->> 'severity', 'status', x ->> 'status'))
+                 from jsonb_each(s.state -> 'exceptions') q(k, x) where x ->> 'type' = 'RECIPE_MISMATCH') as ex
+         from recipe.execution_state s, jsonb_each(s.state -> 'entries') e(k, v)
+        where s.batch_id = $1 and v ->> 'kind' = 'RECIPE_CHECK'`,
+      [d.runId],
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.data).toMatchObject({ recipe: 'RCP-COMP', recipeVersion: '4', matches: false });
+    expect(rows[0]?.ex).toEqual([{ type: 'RECIPE_MISMATCH', severity: 'ACTION', status: 'OPEN' }]);
   });
 
   it('[DI-31][PR-14] interface loss is read from readings that stop arriving: a step is lost while unbound or when its device sent nothing for longer than the configured age (database time)', async () => {

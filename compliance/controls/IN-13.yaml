@@ -24,7 +24,7 @@ implemented_by:
   invariants:
     - "INV-20"
 tests:
-  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][IN-13] an intermediate held beyond its hold time: the consuming step is blocked until QA dispositions the exception"
+  - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][IN-13][IN-15] an intermediate held beyond its hold time: the consuming step is blocked until QA dispositions the exception"
   - "apps/tablets-web/test/designer/document-complete.test.tsx > the read-only document shows the members of the saved content (review F44) > [PR-08][IN-13][INV-34] time constraints show what a breach does, the early warning and whether pauses count; hold times their storage"
   - "packages/recipe-core/test/execution/system-facts-sql.test.ts > the time breaches the database accepts as the system's (P35, P28) > [INV-20][IN-13] the hold time of an intermediate breached at a refused command is accepted; a hold time the MBR does not define is not"
   - "packages/recipe-core/test/mutation/system-facts-and-time.test.ts > the time constraints of the batch's MBR (recipe.time_constraint_of, 0299) > [INV-20][IN-13][DI-34] the hold time of an intermediate is one only from a phase producing it to a phase using it, with a maximum and an id of exactly three parts"

@@ -14,7 +14,7 @@ describe('G-01 issuance and header', () => {
   const def = fixtureDefinition('tablet-granulation-compression');
   const inputs = FIXTURE_INPUTS['tablet-granulation-compression'];
 
-  it('[PR-01] a batch can only be issued at a batch size the MBR lists; there is no free scaling', () => {
+  it('[PR-01][IN-13] a batch can only be issued at a batch size the MBR lists; there is no free scaling', () => {
     expect(() => Run.issue(def, { inputs, batchSize: 'BS-400K' })).toThrow(IssueRefusedError);
     expect(() => Run.issue(def, { inputs, batchSize: 'BS-400K' })).toThrow(/approved sizes/);
   });
