@@ -36,6 +36,8 @@ declare
   v_ctx jsonb := site.require_actor();
   v_sig jsonb;
 begin
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('QC.RESULT_APPROVE', jsonb_build_object('site', (select l.site_code from site.material_lot l where l.id = p_lot)));
   if p_signature is null then
     raise exception using errcode = 'P0001', message = 'EBMR-SITE-190 a retest decision is signed LOT_RETEST_APPROVED by the QC person who takes it (PR-18, DI-35)';
   end if;

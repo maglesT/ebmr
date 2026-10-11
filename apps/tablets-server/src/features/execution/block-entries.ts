@@ -36,6 +36,33 @@ export function serverFilledMembers(schema: ObjectSchema): string[] {
     .map(([k]) => k);
 }
 
+const isRecord = (v: unknown): v is Readonly<Record<string, unknown>> => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/** The members at any depth (through objects, array items and record values) the schema marks serverFilled and the data names, as paths. */
+function sentServerFilled(f: FieldSchema, value: unknown, path: string): string[] {
+  if (f.serverFilled === true) return [path];
+  switch (f.type) {
+    case 'object':
+      return sentInObject(f, value, path);
+    case 'array':
+      return Array.isArray(value) ? value.flatMap((v, i) => sentServerFilled(f.items, v, `${path}[${String(i)}]`)) : [];
+    case 'record':
+      return isRecord(value) ? Object.entries(value).flatMap(([k, v]) => sentServerFilled(f.values, v, `${path}.${k}`)) : [];
+    default:
+      return [];
+  }
+}
+
+function sentInObject(schema: ObjectSchema, value: unknown, path: string): string[] {
+  if (!isRecord(value)) return [];
+  return Object.entries(schema.fields).flatMap(([k, f]) => (k in value ? sentServerFilled(f, value[k], path === '' ? k : `${path}.${k}`) : []));
+}
+
+/** The server-filled members an entry names, at any depth (DI-32): the browser never sends one. */
+export function serverFilledSent(schema: ObjectSchema, data: Readonly<Record<string, unknown>>): string[] {
+  return sentInObject(schema, data, '');
+}
+
 function wireOf(f: FieldSchema): BlockFieldSchemaWire {
   const common = { description: f.description, ...(f.optional !== undefined ? { optional: f.optional } : {}), ...(f.serverFilled ? { serverFilled: true } : {}) };
   switch (f.type) {
@@ -116,7 +143,7 @@ export async function resolveBlockEntry(ctx: BlockEntryContext, entryKind: Table
   }
   const schema = ctx.block?.dataSchema?.entries[entryKind];
   const filled = schema ? serverFilledMembers(schema) : [];
-  const sent = filled.filter((m) => m in data);
+  const sent = schema ? serverFilledSent(schema, data) : [];
   if (sent.length > 0) {
     throw refuse(
       'EBMR-API-SERVER-FILLED',

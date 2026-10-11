@@ -7,8 +7,9 @@
 import { describe, expect, it } from 'vitest';
 import type pg from 'pg';
 import { BlockEntryFormView, TABLET_ENTRY_KINDS_BY_BLOCK, TYPED_ENTRY_KINDS, type TabletEntryKind } from '@ebmr/api-contract';
+import type { blocks } from '@ebmr/recipe-core';
 import { tabletsBlockRegistry } from '../../src/features/edition-blocks.ts';
-import { blockEntryForms, resolveBlockEntry, SERVER_FILLED, serverFilledMembers } from '../../src/features/execution/block-entries.ts';
+import { blockEntryForms, resolveBlockEntry, SERVER_FILLED, serverFilledMembers, serverFilledSent } from '../../src/features/execution/block-entries.ts';
 import { HttpRefusal } from '../../src/platform/http/refusal.ts';
 
 const registry = tabletsBlockRegistry();
@@ -83,6 +84,29 @@ describe('BLOCK_ENTRY forms and server-filled members (slice 6)', () => {
       }
     }
     expect(await codeOf(resolveBlockEntry({ client: none, batchId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', stepKey: 'p@', block: blockOf('TB-01@1') }, 'CONTAINER_WEIGHING', {}))).toBe('EBMR-API-BLOCK-ENTRY-TYPED');
+  });
+
+  it('[DI-32][DI-31] a server-filled member nested in an object, an array item or a record value is refused too, before anything is read', async () => {
+    const base = blockOf('G-24@2');
+    const nested: blocks.ObjectSchema = {
+      type: 'object',
+      description: 'synthetic',
+      fields: {
+        note: { type: 'string', description: 'typed' },
+        reading: { type: 'object', description: 'r', optional: true, fields: { value: { type: 'decimal', description: 'v' }, receivedAtUs: { type: 'string', description: 't', serverFilled: true, optional: true } } },
+        lines: { type: 'array', description: 'l', optional: true, items: { type: 'object', description: 'i', fields: { qty: { type: 'decimal', description: 'q' }, lot: { type: 'string', description: 'lot', serverFilled: true, optional: true } } } },
+        byKey: { type: 'record', description: 'k', optional: true, values: { type: 'object', description: 'kv', fields: { job: { type: 'string', description: 'j', serverFilled: true, optional: true } } } },
+      },
+    };
+    const block = { ...base, dataSchema: { ...base.dataSchema, entries: { ADDITION: nested } } } as blocks.BlockVersion;
+    const none = fakeClient({});
+    const run = (data: Record<string, unknown>) => resolveBlockEntry({ client: none, batchId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e', stepKey: 'p@', block }, 'ADDITION', data);
+    expect(await codeOf(run({ note: 'a', reading: { value: '1', receivedAtUs: '1' } }))).toBe('EBMR-API-SERVER-FILLED');
+    expect(await codeOf(run({ note: 'a', lines: [{ qty: '1' }, { qty: '2', lot: 'L-1' }] }))).toBe('EBMR-API-SERVER-FILLED');
+    expect(await codeOf(run({ note: 'a', byKey: { k1: { job: 'J-1' } } }))).toBe('EBMR-API-SERVER-FILLED');
+    expect(serverFilledSent(nested, { reading: { receivedAtUs: '1' }, lines: [{ lot: 'x' }], byKey: { a: { job: 'y' } } })).toEqual(['reading.receivedAtUs', 'lines[0].lot', 'byKey.a.job']);
+    // Without them, the entry passes (the engine's schema decides the rest).
+    expect(await run({ note: 'a', reading: { value: '1' }, lines: [{ qty: '1' }], byKey: { k1: {} } })).toMatchObject({ kind: 'ADDITION', note: 'a' });
   });
 
   it('[DI-32] the server fills an addition\'s source facts and its authoriser, and a first print\'s job, from the database', async () => {

@@ -206,8 +206,11 @@ describe('route table', () => {
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
-      'batches.command', 'batches.issueSscc', 'batches.proposeAct', 'esig.createChallenge', 'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch',
-      'plant.completeCleaning', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning',
+      'batches.command', 'batches.issueSscc', 'batches.proposeAct', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
+      'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'plant.completeCleaning',
+      'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
+      'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
+      'quality.registerEvidenceDocument',
     ]);
     for (const r of fresh) {
       expect(r.auth, r.id).toBe('SESSION');

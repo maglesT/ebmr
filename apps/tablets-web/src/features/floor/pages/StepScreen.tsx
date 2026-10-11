@@ -4,7 +4,7 @@
  * Everything shown is the server's view; what can be done is the server's answer.
  */
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Banner, floor } from '@ebmr/ui-kit';
+import { Banner, Button, floor } from '@ebmr/ui-kit';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
@@ -12,6 +12,7 @@ import { StepExceptions } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
 import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
+import { voidableAttempts } from '../dialogs/VoidAttemptDialog.tsx';
 import { useRunView, useStepView } from '../queries.ts';
 import { rendererFor } from '../renderers/registry.ts';
 import { st } from '../text.ts';
@@ -22,7 +23,9 @@ import type { RunView, StepScreenView } from '@ebmr/api-contract';
 function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | undefined }) {
   const navigate = useNavigate();
   const signed = useSignedAction(view.run.runId);
-  const { perform, dialogs, busy } = useStepActions(view, runView, signed);
+  const { perform, dialogs, busy, openVoid } = useStepActions(view, runView, signed);
+  // DI-24: an attempt is voided with a reason (never deleted); offered here when the server lists no void action itself.
+  const voidOffered = !view.actions.some((a) => a.action === 'VOID_ATTEMPT') && voidableAttempts(view).length > 0;
   const { Renderer } = rendererFor(view);
   return (
     <div className={wcls('screen')}>
@@ -52,6 +55,11 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
             <h2 className={wcls('sectionTitle')}>{st('signatures.title')}</h2>
             <floor.SignatureList label={st('signatures.title')} signatures={view.signatures} />
           </section>
+        ) : null}
+        {voidOffered ? (
+          <Button onPress={openVoid} isDisabled={busy}>
+            {st('void.open')}
+          </Button>
         ) : null}
         <StepActionBar view={view} perform={perform} busy={busy} />
         {dialogs}

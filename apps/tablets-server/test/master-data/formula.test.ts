@@ -10,15 +10,19 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type FormulaLineInput } from '@ebmr/api-contract';
 import { terminalOf } from '@ebmr/test-kit';
 import { withCommand } from '@ebmr/kernel';
-import { actorOfBrowser, refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
+import { lifecycle } from '@ebmr/recipe-core';
+import { actorOfBrowser, refusalOf, sessionOfBrowser, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
+import { grantedPerson, loginOf } from '../support/granted-person.ts';
+import { gmpLifecycleWorld } from '../support/gmp-world.ts';
 import { signAction } from '../support/signed-acts.ts';
 
 let gmp: TestServer;
 let steward: TestBrowser;
 let approver: TestBrowser;
 let author: TestBrowser;
-let regulatory: TestBrowser;
+/** A person without FORMULA.READ on an office PC: the batch issuer (D-S6-4). */
+let outsider: TestBrowser;
 
 const md = routes.masterData;
 /** One product per test (an MBR family is unique per product, strength and batch sizes). */
@@ -38,7 +42,7 @@ async function importMasters(): Promise<void> {
   const material = (code: string, name: string, kind: 'API' | 'EXCIPIENT') => ({ materialCode: code, materialName: name, materialKind: kind, unit: 'kg', maxRetestMonths: 24, erpReference: `SAP-${code}` });
   const catalogue = {
     products: [
-      ...['A', 'B', 'C', 'D'].map((t) => ({ productCode: prod(t).code, strength: prod(t).strength, productName: prod(t).name, betaLactam: false, shelfLifeMonths: 36, erpReference: `SAP-FG-${prod(t).code}` })),
+      ...['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((t) => ({ productCode: prod(t).code, strength: prod(t).strength, productName: prod(t).name, betaLactam: false, shelfLifeMonths: 36, erpReference: `SAP-FG-${prod(t).code}` })),
       { productCode: 'IBU400', strength: '400 mg', productName: 'Ibuprofen tablets IP 400 mg', betaLactam: false, shelfLifeMonths: 36, erpReference: 'SAP-FG-IBU400' },
     ],
     materials: [material('MAT-PCM', 'Paracetamol IP', 'API'), material('MAT-MCC', 'Microcrystalline cellulose', 'EXCIPIENT'), material('MAT-MGS', 'Magnesium stearate', 'EXCIPIENT'),
@@ -72,7 +76,7 @@ async function asApp(b: TestBrowser, key: string, sql: string, params: unknown[]
 
 beforeAll(async () => {
   gmp = await startSigningServer('GMP', { stub: false });
-  [steward, approver, author, regulatory] = await Promise.all([gmp.asPersona('steward'), gmp.asPersona('approver'), gmp.asPersona('author'), gmp.asPersona('regulatory')]);
+  [steward, approver, author, outsider] = await Promise.all([gmp.asPersona('steward'), gmp.asPersona('approver'), gmp.asPersona('author'), gmp.asPersona('issuer')]);
   await importMasters();
 }, 300_000);
 afterAll(async () => {
@@ -100,8 +104,8 @@ describe('formulation library (slice 6a)', () => {
     const other = await newFormula('50000');
     expect(await asApp(steward, 'steward', 'select recipe.formula_add_version($1, $2::jsonb)', [other, JSON.stringify({ changeReason: 'per batch', lines: [{ ...LINES[1], basis: 'PER_BATCH', quantity: '9.4' }] })])).toMatch(/EBMR-FRM-009/);
     // Bypass: the application role writes no formula line itself.
-    expect(await asApp(steward, 'steward', "insert into recipe.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, potency_adjusted, compensating, batch_quantity_kg) values ($1, 'x', 9, 'MAT-MCC', 'x', 'EXCIPIENT', 'PER_UNIT', 1, false, false, 99)", [v.versionId])).toMatch(/permission denied/);
-    expect(await asApp(steward, 'steward', 'update recipe.formula_line set batch_quantity_kg = 1 where version_id = $1', [v.versionId])).toMatch(/permission denied/);
+    expect(await asApp(steward, 'steward', "insert into formulary.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, potency_adjusted, compensating, batch_quantity_kg) values ($1, 'x', 9, 'MAT-MCC', 'x', 'EXCIPIENT', 'PER_UNIT', 1, false, false, 99)", [v.versionId])).toMatch(/permission denied/);
+    expect(await asApp(steward, 'steward', 'update formulary.formula_line set batch_quantity_kg = 1 where version_id = $1', [v.versionId])).toMatch(/permission denied/);
   }, 120_000);
 
   it('a formula version approved by its author is refused; a second person approves it through the ceremony, and changed content signs nothing', async () => {
@@ -119,18 +123,18 @@ describe('formulation library (slice 6a)', () => {
     expect(after.versions[0]).toMatchObject({ state: 'APPROVED', approvedBy: { loginName: 'meera.iyer' } });
     expect(after.formula.approvedVersion).toBe(1);
     // Bypass: the author's own signature handed to the database directly is refused there too, and nobody writes an approval row.
-    expect(await asApp(steward, 'steward', "insert into recipe.formula_approval (version_id, signature_id, approved_by_person, approved_by_account, correlation_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [v.versionId])).toMatch(/permission denied/);
+    expect(await asApp(steward, 'steward', "insert into formulary.formula_approval (version_id, signature_id, approved_by_person, approved_by_account, correlation_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [v.versionId])).toMatch(/permission denied/);
   }, 120_000);
 
   it('[DI-13] a user without FORMULA.READ cannot open a formula or the composition of an MBR, by route or in the database', async () => {
     const formulaId = await newFormula('100000');
     const versionId = await approvedVersion(formulaId);
-    // The regulatory signer holds no FORMULA.READ (D-S6-4): the formula's identity, never its composition.
-    const seen = valueOf(await regulatory.call(md.formula, { params: { formulaId } }));
+    // The batch issuer holds no FORMULA.READ (D-S6-4): the formula's identity, never its composition.
+    const seen = valueOf(await outsider.call(md.formula, { params: { formulaId } }));
     expect(seen.compositionReadable).toBe(false);
     expect(seen.versions.map((v) => v.lines)).toEqual([null]);
     expect(valueOf(await author.call(md.formula, { params: { formulaId } })).versions[0]?.lines).toHaveLength(3);
-    const choice = await regulatory.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } });
+    const choice = await outsider.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } });
     expect(refusalOf(choice)?.code).toBe('EBMR-IAM-040');
     expect(valueOf(await author.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } })).bom).toHaveLength(3);
     // On a shop-floor kiosk the read needs no badge tap (it is no command): an operator without FORMULA.READ is refused
@@ -142,23 +146,24 @@ describe('formulation library (slice 6a)', () => {
     expect(valueOf(await kiosk.call(md.formulas)).formulas.map((f) => f.formulaId)).toContain(formulaId);
     expect(refusalOf(await kiosk.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } }))?.code).toBe('EBMR-IAM-040');
 
-    // The MBR taken from it: the author opens it; the regulatory signer does not.
+    // The MBR taken from it: the author opens it; the batch issuer does not.
     const family = valueOf(await author.call(routes.designer.createFamily, {
       body: { templateId: 'dc-mini', familyCode: `PCM-F-${formulaId.slice(0, 6)}`, product: PRODUCT, batchSizes: [{ quantity: '60.000', unit: 'kg' }], markets: ['IN'], formulaVersionId: versionId },
     }));
     expect(valueOf(await author.call(routes.designer.version, { params: { versionId: family.versionId } })).versionId).toBe(family.versionId);
-    expect(refusalOf(await regulatory.call(routes.designer.version, { params: { versionId: family.versionId } }))?.code).toBe('EBMR-IAM-040');
+    expect(refusalOf(await outsider.call(routes.designer.version, { params: { versionId: family.versionId } }))?.code).toBe('EBMR-IAM-040');
 
-    // In the database, as the application role in the regulatory signer's own session: the readers refuse, and the
+    // In the database, as the application role in the batch issuer's own session: the readers refuse, and the
     // tables are not readable at all.
-    expect(await asApp(regulatory, 'regulatory', 'select recipe.formula_choice($1, $2, 100000)', [PRODUCT.code, PRODUCT.strength])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
-    expect(await asApp(regulatory, 'regulatory', 'select recipe.mbr_composition($1)', [family.versionId])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
-    expect(await asApp(regulatory, 'regulatory', 'select recipe.formula_version_for_mbr($1)', [versionId])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
-    expect(await asApp(regulatory, 'regulatory', "select r -> 0 -> 'versions' -> 0 -> 'lines' as l from recipe.formula_read($1) r", [formulaId])).toBeNull();
-    const { rows } = await withCommand(gmp.db.app, await actorOfBrowser(gmp, regulatory, 'regulatory'), (c) => c.query<{ l: unknown }>("select recipe.formula_read($1) -> 0 -> 'versions' -> 0 -> 'lines' as l", [formulaId]));
+    expect(await asApp(outsider, 'issuer', 'select recipe.formula_choice($1, $2, 100000)', [PRODUCT.code, PRODUCT.strength])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
+    expect(await asApp(outsider, 'issuer', 'select recipe.mbr_composition($1)', [family.versionId])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
+    expect(await asApp(outsider, 'issuer', 'select recipe.formula_version_for_mbr($1)', [versionId])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
+    // The session's read (no command, tablets 1041) serves the identity only to a reader without FORMULA.READ.
+    const { rows } = await gmp.db.app.query<{ l: unknown }>("select tab.formula_read($1, $2) -> 0 -> 'versions' -> 0 -> 'lines' as l", [(await sessionOfBrowser(gmp, outsider)).tokenHash, formulaId]);
     expect(rows[0]?.l).toBeNull();
-    expect(await asApp(regulatory, 'regulatory', 'select * from recipe.formula_line', [])).toMatch(/permission denied/);
-    expect(await asApp(author, 'author', 'select * from recipe.formula_line', [])).toMatch(/permission denied/);
+    expect(await asApp(outsider, 'issuer', 'select recipe.formula_read($1)', [formulaId])).toMatch(/permission denied/);
+    expect(await asApp(outsider, 'issuer', 'select * from formulary.formula_line', [])).toMatch(/permission denied/);
+    expect(await asApp(author, 'author', 'select * from formulary.formula_line', [])).toMatch(/permission denied/);
   }, 180_000);
 
   it('"Choose a product" refuses a DRAFT formula version, a version of another product and a caller without FORMULA.READ', async () => {
@@ -173,7 +178,7 @@ describe('formulation library (slice 6a)', () => {
     const { rows } = await gmp.db.admin.query<{ n: string }>("select count(*)::text as n from recipe.mbr_family where code in ('PCM-DRAFT', 'PCM-OTHER')");
     expect(rows[0]?.n).toBe('0');
     // A caller without FORMULA.READ: refused by the database's own check (MBR authors hold it, D-S6-4).
-    expect(await asApp(regulatory, 'regulatory', 'select recipe.formula_version_for_mbr($1)', [other])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
+    expect(await asApp(outsider, 'issuer', 'select recipe.formula_version_for_mbr($1)', [other])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
   }, 180_000);
 
   it('an MBR pinning a DRAFT formula cannot be approved', async () => {
@@ -192,14 +197,14 @@ describe('formulation library (slice 6a)', () => {
     // A DRAFT pinned (only the owner can write a pin directly; the application role cannot): the approval guard refuses it.
     const draft = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'Second', lines: LINES } })).versionId;
     expect(await asApp(author, 'author', 'select recipe.formula_pin_mbr($1, $2)', [family.versionId, draft])).toMatch(/EBMR-FRM-016|EBMR-FRM-018/);
-    expect(await asApp(author, 'author', "insert into recipe.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [family.versionId, draft])).toMatch(/permission denied/);
+    expect(await asApp(author, 'author', "insert into formulary.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [family.versionId, draft])).toMatch(/permission denied/);
     const second = valueOf(await author.call(routes.designer.createFamily, {
       body: { templateId: 'dc-mini', familyCode: `PCM-Q-${formulaId.slice(0, 6)}`, product: P, batchSizes: [{ quantity: '30.000', unit: 'kg' }], markets: ['IN'] },
     }));
     // The owner's forged pin (superuser connection, in the author's session so the audit trail records it).
     await withCommand(gmp.db.admin, await actorOfBrowser(gmp, author, 'author'), (c) =>
       c.query(
-        "insert into recipe.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
+        "insert into formulary.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
         [second.versionId, draft],
       ),
     );
@@ -208,4 +213,92 @@ describe('formulation library (slice 6a)', () => {
     expect((await signAction(gmp, approver, 'approver', { kind: 'MASTER_DATA_APPROVE', masterKind: 'FORMULA', versionId: draft })).ok).toBe(true);
     expect(await guard(family.versionId)).toMatch(/is SUPERSEDED, not APPROVED.*EBMR-FRM-020/);
   }, 180_000);
+
+  it('[DI-13] the e-signature preview of a formula version, or of an MBR version pinning one, is refused to a session without FORMULA.READ, even on a shop-floor kiosk', async () => {
+    const P = prod('E');
+    const formulaId = await newFormula('100000', P);
+    const versionId = await approvedVersion(formulaId);
+    const family = valueOf(await author.call(routes.designer.createFamily, {
+      body: { templateId: 'dc-mini', familyCode: `PCM-E-${formulaId.slice(0, 6)}`, product: P, batchSizes: [{ quantity: '60.000', unit: 'kg' }], markets: ['IN'], formulaVersionId: versionId },
+    }));
+    const kiosk = await gmp.asPersona('operator1');
+    // On the kiosk the meaning is the tapping person's to hold, so only the record rule stands between the operator and the
+    // composition: refused (EBMR-TAB-020, answered ESIG_PREVIEW_NOT_ALLOWED), for the formula version and for the MBR that pins it.
+    const formulaPreview = await kiosk.call(routes.esig.content, { query: { aggregateType: 'formula_version', aggregateId: versionId, intent: 'FORMULA_APPROVED' } });
+    expect(refusalOf(formulaPreview)?.code).toBe('ESIG_PREVIEW_NOT_ALLOWED');
+    expect(JSON.stringify(refusalOf(formulaPreview))).toMatch(/FORMULA\.READ/);
+    const mbrPreview = await kiosk.call(routes.esig.content, { query: { aggregateType: 'mbr_version', aggregateId: family.versionId, intent: 'APPROVED' } });
+    expect(refusalOf(mbrPreview)?.code).toBe('ESIG_PREVIEW_NOT_ALLOWED');
+    expect(JSON.stringify(refusalOf(mbrPreview))).toMatch(/FORMULA\.READ/);
+    // The signatures of the formula version are refused the same way; the QA approver (FORMULA.READ) previews it.
+    expect(refusalOf(await kiosk.call(routes.esig.signatures, { query: { aggregateType: 'formula_version', aggregateId: versionId } }))?.code).toBe('EBMR-TAB-020');
+    expect(valueOf(await approver.call(routes.esig.content, { query: { aggregateType: 'formula_version', aggregateId: versionId, intent: 'FORMULA_APPROVED' } })).canonicalText).toContain('MAT-PCM');
+    // In the database, as the application role, with the kiosk session's token: the preview rule names FORMULA.READ.
+    const token = (await sessionOfBrowser(gmp, kiosk)).tokenHash;
+    const { rows } = await gmp.db.app.query<{ p: string | null }>("select tab.signing_preview_problem($1, 'formula_version', $2, 'FORMULA_APPROVED') as p", [token, versionId]);
+    expect(rows[0]?.p).toMatch(/FORMULA\.READ/);
+    const problem = async (tokenHash: string, type: string, id: string, meaning: string) =>
+      (await gmp.db.app.query<{ p: string | null }>('select tab.signing_preview_problem($1, $2, $3, $4) as p', [tokenHash, type, id, meaning])).rows[0]?.p ?? null;
+    expect(await problem(token, 'mbr_version', family.versionId, 'APPROVED')).toMatch(/FORMULA\.READ/);
+    // The QA approver (FORMULA.READ, MBR.APPROVE) passes the same rule for both records.
+    const approverToken = (await sessionOfBrowser(gmp, approver)).tokenHash;
+    expect(await problem(approverToken, 'formula_version', versionId, 'FORMULA_APPROVED')).toBeNull();
+    expect(await problem(approverToken, 'mbr_version', family.versionId, 'APPROVED')).toBeNull();
+  }, 180_000);
+
+  it('[DI-13] FORMULA.READ is judged in the grant\'s product scope: an MBR author granted for one product reads that product\'s composition only', async () => {
+    const P = prod('F');
+    const ownFormula = await newFormula('100000', P);
+    await approvedVersion(ownFormula);
+    const otherFormula = await newFormula('400000');
+    await approvedVersion(otherFormula);
+    const scoped = await loginOf(gmp, await grantedPerson(gmp, 'MBR_AUTHOR', 'Scoped Author', undefined, { product: P.code }));
+    const own = valueOf(await scoped.call(md.formula, { params: { formulaId: ownFormula } }));
+    expect(own.compositionReadable).toBe(true);
+    expect(own.versions[0]?.lines).toHaveLength(3);
+    const other = valueOf(await scoped.call(md.formula, { params: { formulaId: otherFormula } }));
+    expect(other.compositionReadable).toBe(false);
+    expect(other.versions.map((v) => v.lines)).toEqual([null]);
+    expect(valueOf(await scoped.call(routes.designer.formulaChoice, { query: { product: P.code, strength: P.strength, batchSize: '100000' } })).bom).toHaveLength(3);
+    expect(refusalOf(await scoped.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } }))?.code).toBe('EBMR-IAM-040');
+    // The session reads in the database, as the application role: the same answers.
+    const token = (await sessionOfBrowser(gmp, scoped)).tokenHash;
+    const lines = async (id: string) => (await gmp.db.app.query<{ l: unknown }>("select tab.formula_read($1, $2) -> 0 -> 'versions' -> 0 -> 'lines' as l", [token, id])).rows[0]?.l;
+    expect(await lines(ownFormula)).toHaveLength(3);
+    expect(await lines(otherFormula)).toBeNull();
+    await expect(gmp.db.app.query('select tab.formula_choice($1, $2, $3, 100000)', [token, PRODUCT.code, PRODUCT.strength])).rejects.toThrow(/EBMR-IAM-040.*FORMULA\.READ/);
+  }, 180_000);
+
+  it('[PR-06] an MBR pinning an APPROVED formula version is approved through its whole life cycle as the application role, and one whose version was superseded is not', async () => {
+    // Two MBRs, each pinning the APPROVED version 1 of its own product's formula.
+    const pinned = async (tag: string) => {
+      const P = prod(tag);
+      const formulaId = await newFormula('100000', P);
+      const v1 = await approvedVersion(formulaId);
+      const versionId = valueOf(await author.call(routes.designer.createFamily, {
+        body: { templateId: 'dc-mini', familyCode: `PCM-${tag}-${formulaId.slice(0, 6)}`, product: P, batchSizes: [{ quantity: '60.000', unit: 'kg' }], markets: ['IN'], formulaVersionId: v1 },
+      })).versionId;
+      return { formulaId, versionId };
+    };
+    const first = (await pinned('G')).versionId;
+    const h = await pinned('H');
+    const second = h.versionId;
+    const world = await gmpLifecycleWorld(gmp);
+    const toChecked = async (versionId: string) => {
+      const { content } = await lifecycle.loadContent(gmp.db.admin, versionId);
+      await world.prepare(versionId, content);
+      await world.startVerification(versionId);
+      await world.submit(versionId);
+      await world.check(versionId);
+    };
+    // The approval runs the guard inside the definer transition, as the application role: approved.
+    await toChecked(first);
+    await world.approve(first);
+    expect((await world.state(first)).state).toBe('APPROVED');
+    // A second formula version supersedes the first: the MBR still pinning it is refused at approval.
+    await toChecked(second);
+    await approvedVersion(h.formulaId);
+    await expect(world.approve(second)).rejects.toThrow(/SUPERSEDED.*EBMR-FRM-020/);
+    expect((await world.state(second)).state).toBe('CHECKED');
+  }, 300_000);
 });

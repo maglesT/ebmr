@@ -144,8 +144,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Define a room or line',
-    body: z.strictObject({
+    body: withAttribution({
       code: Code,
       kind: z.enum(['ROOM', 'LINE']),
       name: z.string().trim().min(1).max(200),
@@ -163,8 +164,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Define an equipment class (process, instrument or utility) with its hold times and regimes',
-    body: z.strictObject({
+    body: withAttribution({
       code: Code,
       kind: z.enum(['PROCESS', 'INSTRUMENT', 'UTILITY']),
       description: z.string().trim().min(1).max(500),
@@ -184,8 +186,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Define a unit of equipment of a class, in an area',
-    body: z.strictObject({ code: Code, name: z.string().trim().min(1).max(200), classCode: Code, areaCode: Code.optional() }),
+    body: withAttribution({ code: Code, name: z.string().trim().min(1).max(200), classCode: Code, areaCode: Code.optional() }),
     response: EquipmentView,
   }),
   toolingSets: list('plant.toolingSets', '/api/master-data/plant/tooling-sets', 'Punch and die sets of the tooling register', 'toolingSets', ToolingSetView),
@@ -196,8 +199,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Register a punch and die set for a product',
-    body: z.strictObject({
+    body: withAttribution({
       code: Code,
       product: z.string().min(1).max(64),
       type: z.enum(['B', 'D', 'BB']),
@@ -221,8 +225,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Define a metal detector or reject gate (a unit of an instrument class, with its device type)',
-    body: z.strictObject({
+    body: withAttribution({
       code: Code,
       name: z.string().trim().min(1).max(200),
       device: z.enum(['METAL_DETECTOR', 'REJECT_GATE']),
@@ -239,8 +244,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Register a certified test piece',
-    body: z.strictObject({
+    body: withAttribution({
       code: Code,
       kind: z.enum(['FERROUS', 'NON_FERROUS', 'STAINLESS', 'REJECT_SAMPLE']),
       size: z.strictObject({ value: DecimalString, unit: z.enum(['mm', 'mg', 'units']) }),
@@ -257,8 +263,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Define a utility (a unit of a UTILITY class)',
-    body: z.strictObject({ code: Code, name: z.string().trim().min(1).max(200), classCode: Code, areaCode: Code.optional() }),
+    body: withAttribution({ code: Code, name: z.string().trim().min(1).max(200), classCode: Code, areaCode: Code.optional() }),
     response: EquipmentView,
   }),
   startCleaning: defineRoute({
