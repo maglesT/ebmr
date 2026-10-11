@@ -19,6 +19,7 @@ export const SCREEN_EN = {
   'action.HOLD_BATCH': 'Hold the batch',
   'action.RELEASE_HOLD': 'Release the hold',
   'action.COMPLETE_LOOP_ITERATION': 'Complete this iteration',
+  'action.VOID_ATTEMPT': 'Void the attempt (with a reason)',
   'action.laterRelease': 'Not on this screen yet; it arrives with the next release.',
   'action.noMeaning': 'The server did not name what this signature means, so it cannot be signed here.',
   'action.noSignable': 'The server did not name the record to sign, so it cannot be signed here.',

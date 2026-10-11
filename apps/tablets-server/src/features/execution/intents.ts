@@ -33,7 +33,7 @@
 import type pg from 'pg';
 import { sandbox } from '@ebmr/kernel';
 import { engine, type flow } from '@ebmr/recipe-core';
-import type { ClientDataSource, ClientEntry, ClientIntent, DataValueWire, Refusal, SignedIntent } from '@ebmr/api-contract';
+import { TYPED_ENTRY_KINDS, type ClientDataSource, type ClientEntry, type ClientIntent, type DataValueWire, type Refusal, type SignedIntent } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { ClaimedReading } from '../../platform/ports.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
@@ -497,6 +497,19 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       return { entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: e.equipmentRef, labelId: e.labelId, answers: e.answers.map((a) => ({ id: a.id, answer: a.answer })) }, evidence: {} };
     case 'ACKNOWLEDGE':
       return { entry: { kind: 'ACKNOWLEDGE', mode: e.mode }, evidence: {} };
+    case 'BLOCK_ENTRY':
+      // D-S6-2: the block's own entry schema (engine) and the database's guards decide; the kinds whose lots and readings
+      // the server resolves travel only in their typed variants.
+      if (TYPED_ENTRY_KINDS.includes(e.entryKind)) {
+        throw refuse(
+          'EBMR-API-BLOCK-ENTRY-TYPED',
+          `A ${e.entryKind} entry is sent in its own form, not as a block entry.`,
+          'The server reads the lots and scale readings of this entry kind itself; the browser does not supply them.',
+          ['DI-08'],
+          [`Record the ${e.entryKind} entry from the step screen's own form.`],
+        );
+      }
+      return { entry: { ...e.data, kind: e.entryKind }, evidence: {} };
   }
 }
 
@@ -533,6 +546,14 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
       return { command: { ...base, type: 'HOLD_BATCH', holdType: intent.holdType, reason: intent.reason }, evidence: {} };
     case 'RELEASE_HOLD':
       return { command: { ...base, type: 'RELEASE_HOLD', hold: intent.hold, reason: intent.reason }, evidence: {} };
+    case 'VOID_ATTEMPT':
+      throw refusal(501, {
+        code: 'NOT_IMPLEMENTED',
+        kind: 'NOT_ENABLED',
+        whatHappened: 'Voiding an attempt is not available yet.',
+        why: 'It arrives with Phase 3 slice 6a.',
+        whatYouCanDo: ['Use another path for now.'],
+      });
   }
 }
 

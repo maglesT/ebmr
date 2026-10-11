@@ -4,10 +4,12 @@
  * these routes carry the person's or the ERP interface's own command.
  *
  * Signed acts (the QA conclusion and closure of a deviation, the QC approval of a result, the QC decision on extra
- * testing) need signable actions of their own; they are not in this namespace yet.
+ * testing, the retest, the release and rejection of a lot) are the signable actions QUALITY_ACT and LOT_DECISION (Phase 3
+ * slice 6). Slice 6 adds the lists the screens need, evidence documents, the extra-testing decision of a batch, the ERP
+ * stub's masters and orders as read, and the material lots (list and receipt; kind, name and unit from the master).
  */
 import { z } from 'zod';
-import { DecimalString, Uuid } from '../common.ts';
+import { Base64Text, DecimalString, Instant, IntegerString, PersonRef, Uuid } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
 const DeviationKind = z.enum(['DEVIATION', 'OOS', 'INVESTIGATION']);
@@ -78,6 +80,59 @@ export const ErpCatalogue = z.strictObject({
   ),
 });
 export type ErpCatalogue = z.infer<typeof ErpCatalogue>;
+
+export const EvidenceDocumentView = z.strictObject({
+  documentId: Uuid,
+  title: z.string(),
+  mediaType: z.string(),
+  sizeBytes: IntegerString,
+  sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  uploadedBy: PersonRef,
+  uploadedAt: Instant,
+});
+export type EvidenceDocumentView = z.infer<typeof EvidenceDocumentView>;
+
+export const ExtraTestingView = z.strictObject({
+  batchId: Uuid,
+  decision: z
+    .strictObject({ decision: z.enum(['NONE_REQUIRED', 'EXTRA_TESTS']), tests: z.array(z.string()), signatureId: Uuid, decidedAt: Instant })
+    .nullable(),
+});
+export type ExtraTestingView = z.infer<typeof ExtraTestingView>;
+
+export const ErpOrderView = z.strictObject({
+  orderNo: z.string(),
+  siteCode: z.string(),
+  productCode: z.string(),
+  strength: z.string(),
+  batchSize: DecimalString,
+  batchSizeUnit: z.string(),
+  bom: z.array(z.strictObject({ materialCode: z.string(), quantity: DecimalString, unit: z.string() })),
+  erpReference: z.string(),
+  receivedAt: Instant,
+});
+export type ErpOrderView = z.infer<typeof ErpOrderView>;
+
+/** A material lot of the site as the screens list it (status from its state machine, dates from the lot register). */
+export const LotSummaryView = z.strictObject({
+  lotId: Uuid,
+  lotCode: z.string(),
+  material: z.strictObject({ code: z.string(), name: z.string(), kind: z.string() }),
+  status: z.string(),
+  /** State version, for the lot decision's expected state. */
+  version: IntegerString,
+  quantity: DecimalString,
+  unit: z.string(),
+  supplier: z.string().nullable(),
+  supplierLot: z.string().nullable(),
+  expiry: Instant.nullable(),
+  retest: Instant.nullable(),
+  receivedAt: Instant,
+});
+export type LotSummaryView = z.infer<typeof LotSummaryView>;
+
+const ErpProductView = ErpCatalogue.shape.products.element;
+const ErpMaterialView = ErpCatalogue.shape.materials.element;
 
 export const quality = {
   raiseDeviation: defineRoute({
@@ -192,6 +247,104 @@ export const quality = {
     summary: 'The test results of a lot with their verdicts and states',
     params: lotParams,
     response: z.strictObject({ results: z.array(LotResultView) }),
+  }),
+  deviations: defineRoute({
+    id: 'quality.deviations',
+    method: 'GET',
+    path: '/api/quality/deviations',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Deviation-lite records of the site, newest first, filtered by state, kind or linked batch',
+    query: z.strictObject({ state: DeviationState.optional(), kind: DeviationKind.optional(), batchId: Uuid.optional() }),
+    response: z.strictObject({ deviations: z.array(DeviationView) }),
+  }),
+  registerEvidenceDocument: defineRoute({
+    id: 'quality.registerEvidenceDocument',
+    method: 'POST',
+    path: '/api/quality/evidence-documents',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Store a document (investigation report, certificate) and register it; its SHA-256 and size are computed by the server',
+    body: z.strictObject({
+      title: z.string().trim().min(1).max(200),
+      mediaType: z.enum(['application/pdf', 'image/png', 'image/jpeg', 'image/tiff', 'text/plain', 'text/csv', 'application/json', 'application/xml']),
+      /** The document's bytes, base64 (at most about 4 MB of content). */
+      contentBase64: Base64Text.max(5_600_000),
+    }),
+    response: EvidenceDocumentView,
+  }),
+  extraTesting: defineRoute({
+    id: 'quality.extraTesting',
+    method: 'GET',
+    path: '/api/quality/batches/:batchId/extra-testing',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The QC decision on extra testing of a batch (the latest), or none yet',
+    params: z.strictObject({ batchId: Uuid }),
+    response: ExtraTestingView,
+  }),
+  erpOrders: defineRoute({
+    id: 'quality.erpOrders',
+    method: 'GET',
+    path: '/api/quality/erp/orders',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Production orders the ERP stub sent for the site',
+    response: z.strictObject({ orders: z.array(ErpOrderView) }),
+  }),
+  erpProducts: defineRoute({
+    id: 'quality.erpProducts',
+    method: 'GET',
+    path: '/api/quality/erp/products',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The product master as the ERP stub sent it (current entries)',
+    response: z.strictObject({ products: z.array(ErpProductView) }),
+  }),
+  erpMaterials: defineRoute({
+    id: 'quality.erpMaterials',
+    method: 'GET',
+    path: '/api/quality/erp/materials',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The material master as the ERP stub sent it (current entries)',
+    response: z.strictObject({ materials: z.array(ErpMaterialView) }),
+  }),
+  lots: defineRoute({
+    id: 'quality.lots',
+    method: 'GET',
+    path: '/api/lots',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Material lots of the site, filtered by material or status',
+    query: z.strictObject({ materialCode: Code.optional(), status: z.string().regex(/^[A-Z_]{1,40}$/).optional() }),
+    response: z.strictObject({ lots: z.array(LotSummaryView) }),
+  }),
+  receiveLot: defineRoute({
+    id: 'quality.receiveLot',
+    method: 'POST',
+    path: '/api/lots',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Receive a lot of a material of the ERP material master into quarantine (kind, name and unit from the master)',
+    body: z.strictObject({
+      materialCode: Code,
+      lotCode: Code,
+      supplier: z.string().trim().min(1).max(200),
+      supplierLot: z.string().trim().min(1).max(64),
+      quantity: DecimalString,
+      expiresAt: z.iso.datetime({ offset: true }),
+      retestAt: z.iso.datetime({ offset: true }).optional(),
+    }),
+    response: LotSummaryView,
   }),
   erpImport: defineRoute({
     id: 'quality.erpImport',

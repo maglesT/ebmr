@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { DecimalString, Empty, Instant, PersonRef, Uuid, Watermark } from '../common.ts';
 import { defineRoute } from '../route.ts';
+import { FormulaChoiceView } from './master-data.ts';
 
 /** MBR content as JSON (flow.parseMbr checks it on both sides; the contract does not repeat the model). */
 export const MbrContentWire = z.looseObject({ format: z.string(), formatVersion: z.number().int() });
@@ -298,5 +299,21 @@ export const designer = {
     mutating: false,
     summary: 'Reference documents (DMS stand-in) with version and hash',
     response: z.strictObject({ documents: z.array(ReferenceDocumentView) }),
+  }),
+  formulaChoice: defineRoute({
+    id: 'designer.formulaChoice',
+    method: 'GET',
+    path: '/api/designer/formula-choice',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: '"Choose a product": the approved formula version of a product, strength and batch size, with its bill of materials and computed quantities (FORMULA.READ)',
+    query: z.strictObject({
+      product: z.string().min(1).max(64),
+      strength: z.string().min(1).max(64),
+      /** Units (tablets) per batch. */
+      batchSize: z.string().regex(/^[1-9][0-9]{0,11}$/),
+    }),
+    response: FormulaChoiceView,
   }),
 } as const;
