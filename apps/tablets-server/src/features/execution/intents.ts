@@ -33,10 +33,11 @@
 import type pg from 'pg';
 import { sandbox } from '@ebmr/kernel';
 import { engine, type flow } from '@ebmr/recipe-core';
-import { TYPED_ENTRY_KINDS, type ClientDataSource, type ClientEntry, type ClientIntent, type DataValueWire, type Refusal, type SignedIntent } from '@ebmr/api-contract';
+import { type ClientDataSource, type ClientEntry, type ClientIntent, type DataValueWire, type Refusal, type SignedIntent } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { ClaimedReading } from '../../platform/ports.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
+import { resolveBlockEntry } from './block-entries.ts';
 import { lotForEngine, resolveLot } from './lots.ts';
 import { tb01Consumption, tb01FefoCheck, tb01Lots } from './tb01.ts';
 
@@ -431,7 +432,7 @@ export function labelBatch(code: string): string {
   return i > 0 ? code.slice(0, i) : code;
 }
 
-async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry, target?: { step: string; context: flow.Frame[] }): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
+async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry, target?: { step: string; context: flow.Frame[] }, stepKey = ''): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
   const tb01 = target !== undefined && ctx.def.steps.get(target.step)?.block?.type === 'TB-01';
   switch (e.kind) {
     case 'POTENCY_CALCULATION': {
@@ -497,19 +498,13 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       return { entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: e.equipmentRef, labelId: e.labelId, answers: e.answers.map((a) => ({ id: a.id, answer: a.answer })) }, evidence: {} };
     case 'ACKNOWLEDGE':
       return { entry: { kind: 'ACKNOWLEDGE', mode: e.mode }, evidence: {} };
-    case 'BLOCK_ENTRY':
-      // D-S6-2: the block's own entry schema (engine) and the database's guards decide; the kinds whose lots and readings
-      // the server resolves travel only in their typed variants.
-      if (TYPED_ENTRY_KINDS.includes(e.entryKind)) {
-        throw refuse(
-          'EBMR-API-BLOCK-ENTRY-TYPED',
-          `A ${e.entryKind} entry is sent in its own form, not as a block entry.`,
-          'The server reads the lots and scale readings of this entry kind itself; the browser does not supply them.',
-          ['DI-08'],
-          [`Record the ${e.entryKind} entry from the step screen's own form.`],
-        );
-      }
-      return { entry: { ...e.data, kind: e.entryKind }, evidence: {} };
+    case 'BLOCK_ENTRY': {
+      // D-S6-2: the block's own entry schema (engine) and the database's guards decide; the server refuses the members
+      // it fills and fills those it reads from the database (block-entries.ts).
+      const block = target ? ctx.def.steps.get(target.step)?.block : undefined;
+      const entry = await resolveBlockEntry({ client: ctx.client, batchId: ctx.state.header.batchId, stepKey, block }, e.entryKind, e.data);
+      return { entry, evidence: {} };
+    }
   }
 }
 
@@ -533,7 +528,7 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
     }
     case 'RECORD_ENTRY': {
       const t = stepTarget(ctx.state, intent.stepKey);
-      const r = await resolveEntry(ctx, roomOfStep(ctx, t.step), intent.entry, t);
+      const r = await resolveEntry(ctx, roomOfStep(ctx, t.step), intent.entry, t, intent.stepKey);
       return { command: { ...base, type: 'RECORD_ENTRY', step: t.step, context: t.context, entry: r.entry, ...(r.occurredAt ? { occurredAt: r.occurredAt } : {}) }, evidence: r.evidence };
     }
     case 'RAISE_EXCEPTION': {

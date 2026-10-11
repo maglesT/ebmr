@@ -221,7 +221,7 @@ export const TB08: BlockVersion = {
           tare: { type: 'decimal', min: '0', description: 'Tare weight' },
           unit: { type: 'string', enum: ['kg', 'g'], description: 'Unit of the weighing (the container unit)' },
           authorisation: { type: 'string', pattern: UUID, optional: true, description: "The quality unit's signed authorisation of this use" },
-          authorisedBy: { type: 'string', pattern: UUID, optional: true, description: 'Its signer, read from the database (filled by the server)' },
+          authorisedBy: { type: 'string', pattern: UUID, optional: true, serverFilled: true, description: 'Its signer, read from the database (filled by the server)' },
           source: R.SOURCE_FACTS_SCHEMA,
         },
       },

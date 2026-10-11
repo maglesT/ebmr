@@ -540,6 +540,7 @@
         ]
       }
     ],
+    "blockEntries": [],
     "exceptions": [],
     "signatures": [],
     "actions": [
@@ -883,6 +884,7 @@
           ]
         }
       ],
+      "blockEntries": [],
       "exceptions": [],
       "signatures": [],
       "actions": [
@@ -931,6 +933,281 @@
         "aggregateType": "batch_step",
         "aggregateId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:p-disp-clear@"
       }
+    }
+  },
+  "stepTb08": {
+    "asOf": {
+      "us": "1790584743000000",
+      "text": "28-SEP-2026 14:09:03 +05:30 (Asia/Kolkata)"
+    },
+    "run": {
+      "runId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+      "batchNumber": "B26-0001",
+      "product": {
+        "code": "PCM500",
+        "name": "Paracetamol 500 mg tablets",
+        "strength": "500 mg"
+      },
+      "markets": [
+        "IN"
+      ],
+      "status": "IN_PROGRESS",
+      "statusText": "In progress",
+      "watermark": null,
+      "version": 7,
+      "mbr": {
+        "familyCode": "PCM500-DC",
+        "versionNumber": "1",
+        "revision": 2,
+        "contentHash": "cb18a68e2b76788cf23ff7cee413489c5995cc7ae913644ac465581916a9b50e"
+      },
+      "stage": {
+        "stageKey": "S-DISP@",
+        "number": "1",
+        "name": "Dispensing"
+      },
+      "room": "DISP-1",
+      "equipment": [
+        {
+          "ref": "balance",
+          "code": "BAL-01",
+          "name": "Balance 60 kg, d = 1 g"
+        }
+      ],
+      "timers": [],
+      "scale": {
+        "deviceCode": "BAL-01",
+        "roomCode": "DISP-1",
+        "status": "ONLINE",
+        "lastHeartbeat": {
+          "us": "1790584723000000",
+          "text": "28-SEP-2026 14:08:43 +05:30 (Asia/Kolkata)"
+        },
+        "gatewayCode": "GW-01",
+        "resolution": "0.001",
+        "unit": "kg"
+      },
+      "scales": [
+        {
+          "deviceCode": "BAL-01",
+          "roomCode": "DISP-1",
+          "status": "ONLINE",
+          "lastHeartbeat": {
+            "us": "1790584723000000",
+            "text": "28-SEP-2026 14:08:43 +05:30 (Asia/Kolkata)"
+          },
+          "gatewayCode": "GW-01",
+          "resolution": "0.001",
+          "unit": "kg"
+        }
+      ],
+      "identity": {
+        "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e51",
+        "legalName": "Priya Nair",
+        "loginName": "test-operator-1",
+        "role": "OPERATOR"
+      },
+      "lastSavedAt": {
+        "us": "1790584683000000",
+        "text": "28-SEP-2026 14:08:03 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "step": {
+      "stepKey": "p-add@",
+      "stepId": "p-add",
+      "number": "1.2.1",
+      "ordinal": 4,
+      "of": 13,
+      "title": "Recovery addition",
+      "kind": "PHASE",
+      "block": "TB-08@1",
+      "blockTitle": "Rework or recovered-material addition",
+      "status": "IN_PROGRESS",
+      "statusText": "In progress",
+      "instruction": {
+        "text": "Dispense paracetamol into labelled containers on BAL-01; scan the lot label first.",
+        "sop": {
+          "refId": "SOP-DISP-001",
+          "code": "SOP-DISP-001",
+          "title": "Dispensing of raw materials",
+          "version": "4",
+          "hash": "a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1"
+        }
+      },
+      "dispositions": []
+    },
+    "fields": [],
+    "entries": [],
+    "entryForms": [],
+    "blockEntries": [
+      {
+        "kind": "ADDITION",
+        "title": "Addition",
+        "description": "A weighed take from a closed output container of an earlier batch (the source facts are read from the database)",
+        "schema": {
+          "type": "object",
+          "description": "A weighed take from a closed output container of an earlier batch (the source facts are read from the database)",
+          "fields": {
+            "container": {
+              "type": "string",
+              "description": "The source output container",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "gross": {
+              "type": "decimal",
+              "description": "Gross weight",
+              "min": "0",
+              "minExclusive": true
+            },
+            "tare": {
+              "type": "decimal",
+              "description": "Tare weight",
+              "min": "0"
+            },
+            "unit": {
+              "type": "string",
+              "description": "Unit of the weighing (the container unit)",
+              "enum": [
+                "kg",
+                "g"
+              ]
+            },
+            "authorisation": {
+              "type": "string",
+              "description": "The quality unit's signed authorisation of this use",
+              "optional": true,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "authorisedBy": {
+              "type": "string",
+              "description": "Its signer, read from the database (filled by the server)",
+              "optional": true,
+              "serverFilled": true,
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            },
+            "source": {
+              "type": "object",
+              "description": "The source container as the database reads it at the moment of use (filled by the server, checked again by the database)",
+              "fields": {
+                "container": {
+                  "type": "string",
+                  "description": "Output container id",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "sourceBatchId": {
+                  "type": "string",
+                  "description": "Batch record that created the container",
+                  "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+                },
+                "product": {
+                  "type": "string",
+                  "description": "Product code of the source batch"
+                },
+                "strength": {
+                  "type": "string",
+                  "description": "Strength of the source batch"
+                },
+                "stage": {
+                  "type": "string",
+                  "description": "Stage the container was filled at"
+                },
+                "unit": {
+                  "type": "string",
+                  "description": "Unit of the container",
+                  "enum": [
+                    "kg",
+                    "g",
+                    "units"
+                  ]
+                },
+                "case": {
+                  "type": "string",
+                  "description": "Reserved residue (reprocessing addition) or QA-released material (recovery); absent when neither",
+                  "optional": true,
+                  "enum": [
+                    "REPROCESSING_ADDITION",
+                    "RECOVERY"
+                  ]
+                },
+                "generatedAtUs": {
+                  "type": "string",
+                  "description": "When the material was generated: the container closed (epoch microseconds)",
+                  "pattern": "^[0-9]{1,20}$"
+                },
+                "manufacturedAtUs": {
+                  "type": "string",
+                  "description": "When the source batch was issued (epoch microseconds)",
+                  "pattern": "^[0-9]{1,20}$"
+                },
+                "containsRecovered": {
+                  "type": "boolean",
+                  "description": "The source batch itself contains recovered or reprocessed material"
+                },
+                "remaining": {
+                  "type": "string",
+                  "description": "What the container still holds, in its unit",
+                  "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]*[1-9])?$"
+                },
+                "expiry": {
+                  "type": "string",
+                  "description": "Expiry month of the source batch (product master shelf life), when known",
+                  "optional": true,
+                  "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+                }
+              },
+              "serverFilled": true
+            }
+          }
+        }
+      }
+    ],
+    "exceptions": [],
+    "signatures": [],
+    "actions": [
+      {
+        "action": "RECORD_ENTRY",
+        "available": true,
+        "primary": true,
+        "requires": "TAP",
+        "meaning": null,
+        "reason": null,
+        "target": null,
+        "whoCanHelp": []
+      },
+      {
+        "action": "SIGN_PERFORMED",
+        "available": false,
+        "primary": false,
+        "requires": "SIGNATURE",
+        "meaning": "PERFORMED",
+        "reason": "The dispensed total 12.503 kg is outside the tolerance of the 25.000 kg target; dispense the remaining quantity first",
+        "target": null,
+        "whoCanHelp": []
+      },
+      {
+        "action": "RAISE_EXCEPTION",
+        "available": true,
+        "primary": false,
+        "requires": "TAP",
+        "meaning": null,
+        "reason": null,
+        "target": null,
+        "whoCanHelp": []
+      },
+      {
+        "action": "HOLD_BATCH",
+        "available": false,
+        "primary": false,
+        "requires": "TAP",
+        "meaning": null,
+        "reason": "Only a production supervisor or QA may hold the batch",
+        "target": null,
+        "whoCanHelp": []
+      }
+    ],
+    "signable": {
+      "aggregateType": "batch_step",
+      "aggregateId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e:p-disp-api@"
     }
   }
 }

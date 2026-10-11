@@ -162,7 +162,7 @@ const DATA_SCHEMA = {
       description: 'The first-print approval of a printer\'s job',
       fields: {
         device: { type: 'string', description: 'Printer id' },
-        job: { type: 'string', pattern: /^[!-~]{1,64}$/, description: 'Print job id (released by the server)' },
+        job: { type: 'string', pattern: /^[!-~]{1,64}$/, serverFilled: true, description: 'Print job id (released by the server)' },
         approved: { type: 'boolean', description: 'The first print matches the job and the artwork' },
         specimen: { type: 'string', pattern: SHA256, optional: true, description: 'SHA-256 of the specimen image' },
       },

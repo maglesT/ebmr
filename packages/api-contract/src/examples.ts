@@ -102,6 +102,8 @@ export const EXAMPLES = {
   'batches-list': { schema: r.batches.list.response, data: gmpBatch.list, routeId: r.batches.list.id },
   'batches-batch': { schema: r.batches.batch.response, data: gmpBatch.batch, routeId: r.batches.batch.id },
   'batches-step': { schema: r.batches.step.response, data: gmpBatch.step, routeId: r.batches.step.id },
+  // A TB-08 step: the BLOCK_ENTRY form of its ADDITION with the block's own schema (source and authorisedBy server-filled).
+  'batches-step-tb08': { schema: r.batches.step.response, data: gmpBatch.stepTb08, routeId: r.batches.step.id },
   'batches-work-queue': { schema: r.batches.workQueue.response, data: gmpBatch.workQueue, routeId: r.batches.workQueue.id },
   'batches-timeline': { schema: r.batches.timeline.response, data: gmpBatch.timeline, routeId: r.batches.timeline.id },
   'batches-command': { schema: r.batches.command.response, data: gmpBatch.commandResult, routeId: r.batches.command.id },
