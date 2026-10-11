@@ -285,6 +285,9 @@ describe('a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 
     // The parents: two issued GMP batches of one processing master.
     const parentMaster = await effective();
     const parents = [await issuedBatch(parentMaster), await issuedBatch(parentMaster)];
+    // Review 5 (0625): only a parent whose execution is complete or aborted is reprocessed as a whole. Running two batches
+    // to completion is out of scope here; the parent-state rule has its own tests (site-services quality/reprocessing).
+    await db.admin.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = any($1::uuid[])", [parents.map((p) => p.batchId)]);
     // The reprocessing master: the same product and strength, record kind REPROCESSING (the numbering rule is the product's).
     const rc = structuredClone(parentMaster.content);
     (rc.header as { recordKind: string }).recordKind = 'REPROCESSING';

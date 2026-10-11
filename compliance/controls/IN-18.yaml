@@ -70,6 +70,7 @@ tests:
   - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][IN-18][IN-19][PR-47] a reworked batch is planned only on a QCU-authorised request: refused without the authorisation, a concluded investigation, a stored risk evaluation, the product's permission, or when authorised by the issuer; a request is used once"
   - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][IN-18] a planned batch of a reprocessing master without its parents is refused at commit; the registers are written only through their commands"
   - "packages/recipe-core/test/lifecycle/gmp-references.test.ts > a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 0603) > [INV-33][IN-18] a reprocessing batch of a REPROCESSING master is planned, signed and issued end to end with a PROCESSING number from the register, linked to its parents"
+  - "packages/site-services/test/quality/reprocessing.test.ts > whole-batch reprocessing (recipe-core 0624) > [INV-33][IN-18][PR-47] a parent is a finished batch, never one still running, never itself a reprocessing child, and never named by another authorised request"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
