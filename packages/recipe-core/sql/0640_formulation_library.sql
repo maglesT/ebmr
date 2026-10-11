@@ -3,17 +3,17 @@
 -- DI-35 (two-person approval), PR-06 (an approved master's content never changes: a new formula version needs a new MBR
 -- version)). Rules hold when the application's own database credentials are used directly (ADR 0012, 0016).
 --
---   recipe.formula            insert-only, audited: one formula per product, strength and batch size in units, for a
+--   formulary.formula            insert-only, audited: one formula per product, strength and batch size in units, for a
 --                             product of the ERP product master (FORMULA.MANAGE)
---   recipe.formula_version    insert-only, audited: versions 1, 2, ... of a formula, each with the author's reason
---   recipe.formula_line       insert-only, audited: the per-unit composition of a version (mg per unit; a processing aid
+--   formulary.formula_version    insert-only, audited: versions 1, 2, ... of a formula, each with the author's reason
+--   formulary.formula_line       insert-only, audited: the per-unit composition of a version (mg per unit; a processing aid
 --                             in kg per batch) with the batch quantity in kg the database computed from it and the batch
 --                             size (per unit x units x (1 + overage %) x salt factor / 10^6), never typed. Every material
 --                             is in the ERP material master; overage and salt factor only on a PER_UNIT ACTIVE line;
 --                             potency adjustment only on an ACTIVE line; at most one compensating excipient
---   recipe.formula_approval   insert-only, audited: the FORMULA_APPROVED signature of a version, by a person other than
+--   formulary.formula_approval   insert-only, audited: the FORMULA_APPROVED signature of a version, by a person other than
 --                             its author, of the formula's latest version only, once
---   recipe.mbr_formula_pin    insert-only, audited: the formula version an MBR version's composition was taken from, once
+--   formulary.mbr_formula_pin    insert-only, audited: the formula version an MBR version's composition was taken from, once
 --                             per MBR version, while it is a DRAFT; the MBR's product and strength are the formula's, its
 --                             reference batch size is the formula's theoretical batch mass and its BOM lines of the
 --                             formula's materials carry exactly the computed quantities (recipe.formula_mbr_problem)
@@ -23,7 +23,12 @@
 -- role reads no formula table directly (it holds no SELECT on them).
 -- MBR approval: recipe.guard_registered_ranges_kept (0130, latest) is replaced to refuse also an MBR version whose
 -- pinned formula version is not APPROVED, or whose content no longer carries the formula's composition.
--- Messages: EBMR-FRM-001 to EBMR-FRM-019.
+-- The registers live in their own schema, formulary, on which the application role has no USAGE: no table of the
+-- composition is readable by it at all (DI-13); every function stays in schema recipe.
+-- Messages: EBMR-FRM-001 to EBMR-FRM-020.
+
+create schema if not exists formulary authorization ebmr_owner;
+revoke all on schema formulary from public;
 
 set local role ebmr_owner;
 
@@ -65,7 +70,7 @@ select kernel.set_actor_context(null);
 -- Registers
 -- ---------------------------------------------------------------------------------------------
 
-create table recipe.formula (
+create table formulary.formula (
   id                  uuid primary key default gen_random_uuid(),
   product_code        text not null check (btrim(product_code) <> '' and length(product_code) <= 64),
   strength            text not null check (btrim(strength) <> '' and length(strength) <= 64),
@@ -77,9 +82,9 @@ create table recipe.formula (
   unique (product_code, strength, batch_size_units)
 );
 
-create table recipe.formula_version (
+create table formulary.formula_version (
   id                  uuid primary key default gen_random_uuid(),
-  formula_id          uuid not null references recipe.formula (id),
+  formula_id          uuid not null references formulary.formula (id),
   version_number      integer not null check (version_number >= 1),
   change_reason       text not null check (btrim(change_reason) <> '' and length(change_reason) <= 2000),
   authored_by_person  uuid not null,
@@ -89,8 +94,8 @@ create table recipe.formula_version (
   unique (formula_id, version_number)
 );
 
-create table recipe.formula_line (
-  version_id          uuid not null references recipe.formula_version (id),
+create table formulary.formula_line (
+  version_id          uuid not null references formulary.formula_version (id),
   line_id             text not null check (line_id ~ '^[A-Za-z][A-Za-z0-9_-]{0,31}$'),
   ordinal             integer not null check (ordinal >= 1),
   material_code       text not null check (material_code ~ '^[A-Z0-9][A-Z0-9/._-]{0,39}$'),
@@ -110,8 +115,8 @@ create table recipe.formula_line (
   check (not compensating or role = 'EXCIPIENT')
 );
 
-create table recipe.formula_approval (
-  version_id          uuid primary key references recipe.formula_version (id),
+create table formulary.formula_approval (
+  version_id          uuid primary key references formulary.formula_version (id),
   signature_id        uuid not null unique,
   approved_by_person  uuid not null,
   approved_by_account uuid not null,
@@ -119,9 +124,9 @@ create table recipe.formula_approval (
   correlation_id      uuid not null
 );
 
-create table recipe.mbr_formula_pin (
+create table formulary.mbr_formula_pin (
   mbr_version_id      uuid primary key references recipe.mbr_version (id),
-  formula_version_id  uuid not null references recipe.formula_version (id),
+  formula_version_id  uuid not null references formulary.formula_version (id),
   pinned_by_person    uuid not null,
   pinned_by_account   uuid not null,
   pinned_at           timestamptz not null default clock_timestamp(),
@@ -132,7 +137,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['recipe.formula', 'recipe.formula_version', 'recipe.formula_line', 'recipe.formula_approval', 'recipe.mbr_formula_pin'] loop
+  foreach t in array array['formulary.formula', 'formulary.formula_version', 'formulary.formula_line', 'formulary.formula_approval', 'formulary.mbr_formula_pin'] loop
     execute format('revoke all on %s from public', t);
     execute format('create trigger aa_insert_only before update or delete on %s for each row execute function kernel.reject_mutation()', t);
     execute format('create trigger aa_no_truncate before truncate on %s for each statement execute function kernel.reject_mutation()', t);
@@ -140,16 +145,16 @@ begin
 end
 $$;
 
-select platform.enforce_db_time('recipe.formula', array['created_at']);
-select platform.enforce_db_time('recipe.formula_version', array['authored_at']);
-select platform.enforce_db_time('recipe.formula_approval', array['approved_at']);
-select platform.enforce_db_time('recipe.mbr_formula_pin', array['pinned_at']);
+select platform.enforce_db_time('formulary.formula', array['created_at']);
+select platform.enforce_db_time('formulary.formula_version', array['authored_at']);
+select platform.enforce_db_time('formulary.formula_approval', array['approved_at']);
+select platform.enforce_db_time('formulary.mbr_formula_pin', array['pinned_at']);
 
-select kernel.register_audited_table('recipe.formula', 'formula', 'id', true);
-select kernel.register_audited_table('recipe.formula_version', 'formula', 'formula_id', true);
-select kernel.register_audited_table('recipe.formula_line', 'formula_version', 'version_id', true);
-select kernel.register_audited_table('recipe.formula_approval', 'formula_version', 'version_id', true);
-select kernel.register_audited_table('recipe.mbr_formula_pin', 'mbr_version', 'mbr_version_id', true);
+select kernel.register_audited_table('formulary.formula', 'formula', 'id', true);
+select kernel.register_audited_table('formulary.formula_version', 'formula', 'formula_id', true);
+select kernel.register_audited_table('formulary.formula_line', 'formula_version', 'version_id', true);
+select kernel.register_audited_table('formulary.formula_approval', 'formula_version', 'version_id', true);
+select kernel.register_audited_table('formulary.mbr_formula_pin', 'mbr_version', 'mbr_version_id', true);
 
 -- ---------------------------------------------------------------------------------------------
 -- Helpers
@@ -166,11 +171,11 @@ $$;
 create function recipe.formula_version_state(p_version uuid) returns text
 language sql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
   select case
-           when not exists (select 1 from recipe.formula_approval a where a.version_id = v.id) then 'DRAFT'
-           when exists (select 1 from recipe.formula_version w join recipe.formula_approval a on a.version_id = w.id
+           when not exists (select 1 from formulary.formula_approval a where a.version_id = v.id) then 'DRAFT'
+           when exists (select 1 from formulary.formula_version w join formulary.formula_approval a on a.version_id = w.id
                          where w.formula_id = v.formula_id and w.version_number > v.version_number) then 'SUPERSEDED'
            else 'APPROVED' end
-    from recipe.formula_version v where v.id = p_version
+    from formulary.formula_version v where v.id = p_version
 $$;
 
 -- DI-13: whether the actor holds FORMULA.READ in the product's scope now (the evaluation is stored, INV-26).
@@ -193,13 +198,13 @@ language sql stable security definer set search_path = pg_catalog, recipe, pg_te
            'overagePercent', trim_scale(l.overage_percent)::text, 'saltFactor', trim_scale(l.salt_factor)::text,
            'potencyAdjusted', l.potency_adjusted, 'compensating', l.compensating,
            'batchQuantity', trim_scale(l.batch_quantity_kg)::text, 'batchUnit', 'kg') order by l.ordinal), '[]'::jsonb)
-    from recipe.formula_line l where l.version_id = p_version
+    from formulary.formula_line l where l.version_id = p_version
 $$;
 
 -- The theoretical batch mass (kg) of a version: its PER_UNIT lines other than processing aids.
 create function recipe.formula_batch_mass(p_version uuid) returns numeric
 language sql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
-  select coalesce(sum(l.batch_quantity_kg), 0) from recipe.formula_line l where l.version_id = p_version and l.basis = 'PER_UNIT' and l.role <> 'PROCESSING_AID'
+  select coalesce(sum(l.batch_quantity_kg), 0) from formulary.formula_line l where l.version_id = p_version and l.basis = 'PER_UNIT' and l.role <> 'PROCESSING_AID'
 $$;
 
 -- ---------------------------------------------------------------------------------------------
@@ -222,7 +227,7 @@ begin
     perform recipe.formula_fail('EBMR-FRM-002', format('Product %s %s is not in the ERP product master; a formula is recorded only for a known product (D-S6-3)',
                                                       coalesce(p ->> 'productCode', 'NULL'), coalesce(p ->> 'strength', 'NULL')));
   end if;
-  insert into recipe.formula (id, product_code, strength, batch_size_units, created_by_person, created_by_account, correlation_id)
+  insert into formulary.formula (id, product_code, strength, batch_size_units, created_by_person, created_by_account, correlation_id)
   values (v_id, p ->> 'productCode', p ->> 'strength', (p ->> 'batchSizeUnits')::numeric, (v_actor ->> 'person_id')::uuid,
           (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid);
   return v_id;
@@ -236,7 +241,7 @@ create function recipe.formula_add_version(p_formula uuid, p jsonb) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, site, pg_temp as $$
 declare
   v_actor  jsonb := iam.assert_validated_actor();
-  f        recipe.formula;
+  f        formulary.formula;
   v_id     uuid := gen_random_uuid();
   v_n      integer;
   l        jsonb;
@@ -249,7 +254,7 @@ declare
   v_dec    text := '^(0|[1-9][0-9]{0,11})(\.[0-9]{1,9})?$';
 begin
   perform iam.assert_not_administrator();
-  select * into f from recipe.formula where id = p_formula for update;
+  select * into f from formulary.formula where id = p_formula for update;
   if f.id is null then
     perform recipe.formula_fail('EBMR-FRM-003', format('There is no formula %s', p_formula));
   end if;
@@ -260,11 +265,11 @@ begin
   if jsonb_typeof(p -> 'lines') is distinct from 'array' or jsonb_array_length(p -> 'lines') = 0 or jsonb_array_length(p -> 'lines') > 60 then
     perform recipe.formula_fail('EBMR-FRM-005', 'A formula version lists 1 to 60 lines (D-S6-3)');
   end if;
-  select coalesce(max(version_number), 0) into v_n from recipe.formula_version where formula_id = f.id;
-  if v_n > 0 and recipe.formula_version_state((select id from recipe.formula_version where formula_id = f.id and version_number = v_n)) = 'DRAFT' then
+  select coalesce(max(version_number), 0) into v_n from formulary.formula_version where formula_id = f.id;
+  if v_n > 0 and recipe.formula_version_state((select id from formulary.formula_version where formula_id = f.id and version_number = v_n)) = 'DRAFT' then
     perform recipe.formula_fail('EBMR-FRM-006', format('Version %s of this formula is still a draft; a new version follows an approved one', v_n));
   end if;
-  insert into recipe.formula_version (id, formula_id, version_number, change_reason, authored_by_person, authored_by_account, correlation_id)
+  insert into formulary.formula_version (id, formula_id, version_number, change_reason, authored_by_person, authored_by_account, correlation_id)
   values (v_id, f.id, v_n + 1, btrim(p ->> 'changeReason'), (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid);
   for l in select * from jsonb_array_elements(p -> 'lines') loop
     v_ord := v_ord + 1;
@@ -290,7 +295,7 @@ begin
                  when 'PER_UNIT' then v_qty * f.batch_size_units * (100 + coalesce(v_over, 0)) / 100 * coalesce(v_salt, 1) / 1000000
                  else v_qty end;
     begin
-      insert into recipe.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, overage_percent, salt_factor,
+      insert into formulary.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, overage_percent, salt_factor,
                                        potency_adjusted, compensating, batch_quantity_kg)
       values (v_id, l ->> 'lineId', v_ord, m.material_code, m.material_name, l ->> 'role', l ->> 'basis', v_qty, v_over, v_salt,
               (l ->> 'potencyAdjusted')::boolean, (l ->> 'compensating')::boolean, v_batch);
@@ -298,11 +303,11 @@ begin
       perform recipe.formula_fail('EBMR-FRM-010', format('Line %s is not a valid formula line: a line id once, a material once, overage and salt factor only on a per-unit active, potency adjustment only on an active, compensation only on an excipient (D-S6-3)', v_ord));
     end;
   end loop;
-  if (select count(*) from recipe.formula_line where version_id = v_id and compensating) > 1 then
+  if (select count(*) from formulary.formula_line where version_id = v_id and compensating) > 1 then
     perform recipe.formula_fail('EBMR-FRM-011', 'A formula has at most one compensating excipient (TB-01)');
   end if;
-  if exists (select 1 from recipe.formula_line where version_id = v_id and potency_adjusted)
-     <> exists (select 1 from recipe.formula_line where version_id = v_id and compensating) then
+  if exists (select 1 from formulary.formula_line where version_id = v_id and potency_adjusted)
+     <> exists (select 1 from formulary.formula_line where version_id = v_id and compensating) then
     perform recipe.formula_fail('EBMR-FRM-011', 'A potency-adjusted active needs its compensating excipient, and a compensating excipient an adjusted active (TB-01)');
   end if;
   return v_id;
@@ -314,16 +319,16 @@ create function recipe.formula_approve(p_version uuid, p_signature uuid) returns
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, esig, pg_temp as $$
 declare
   v_actor jsonb := iam.assert_validated_actor();
-  v       recipe.formula_version;
-  f       recipe.formula;
+  v       formulary.formula_version;
+  f       formulary.formula;
   v_sig   jsonb;
 begin
   perform iam.assert_not_administrator();
-  select * into v from recipe.formula_version where id = p_version;
+  select * into v from formulary.formula_version where id = p_version;
   if v.id is null then
     perform recipe.formula_fail('EBMR-FRM-003', format('There is no formula version %s', p_version));
   end if;
-  select * into f from recipe.formula where id = v.formula_id for update;
+  select * into f from formulary.formula where id = v.formula_id for update;
   perform iam.require_permission('FORMULA.APPROVE', jsonb_build_object('product', f.product_code));
   v_sig := esig.assert_signature(p_signature, 'FORMULA_APPROVED', 'formula_version', p_version::text);
   if (v_sig ->> 'signer_person') is distinct from (v_actor ->> 'person_id') then
@@ -332,13 +337,13 @@ begin
   if v.authored_by_person = (v_actor ->> 'person_id')::uuid then
     perform recipe.formula_fail('EBMR-FRM-013', 'A formula version is approved by another person than its author (DI-35, two-person rule)');
   end if;
-  if exists (select 1 from recipe.formula_approval a where a.version_id = v.id) then
+  if exists (select 1 from formulary.formula_approval a where a.version_id = v.id) then
     perform recipe.formula_fail('EBMR-FRM-014', format('Version %s of this formula is approved already', v.version_number));
   end if;
-  if exists (select 1 from recipe.formula_version w where w.formula_id = v.formula_id and w.version_number > v.version_number) then
+  if exists (select 1 from formulary.formula_version w where w.formula_id = v.formula_id and w.version_number > v.version_number) then
     perform recipe.formula_fail('EBMR-FRM-014', format('Version %s is not the latest version of this formula', v.version_number));
   end if;
-  insert into recipe.formula_approval (version_id, signature_id, approved_by_person, approved_by_account, correlation_id)
+  insert into formulary.formula_approval (version_id, signature_id, approved_by_person, approved_by_account, correlation_id)
   values (v.id, p_signature, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid);
 end
 $$;
@@ -347,17 +352,17 @@ $$;
 create function recipe.formula_version_content(p_id text) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
-  v recipe.formula_version;
-  f recipe.formula;
+  v formulary.formula_version;
+  f formulary.formula;
 begin
   if p_id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
     return jsonb_build_object('exists', false);
   end if;
-  select * into v from recipe.formula_version where id = p_id::uuid;
+  select * into v from formulary.formula_version where id = p_id::uuid;
   if v.id is null then
     return jsonb_build_object('exists', false);
   end if;
-  select * into f from recipe.formula where id = v.formula_id;
+  select * into f from formulary.formula where id = v.formula_id;
   return jsonb_build_object(
     'exists', true, 'content_version', 1, 'state', recipe.formula_version_state(v.id), 'entered_by', jsonb_build_array(v.authored_by_person),
     'scope', jsonb_build_object('product', f.product_code),
@@ -375,15 +380,17 @@ select esig.register_content_provider('formula_version', 'recipe.formula_version
 -- ---------------------------------------------------------------------------------------------
 
 -- The formulas with their versions' states; the composition of each version only for a reader holding FORMULA.READ.
+-- Owner-only (the server reads for the session through tab.formula_read, tablets 1041, with recipe.formula_listing).
 create function recipe.formula_read(p_formula uuid default null) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, site, pg_temp as $$
 declare
-  f      recipe.formula;
+  f      formulary.formula;
   v_out  jsonb := '[]'::jsonb;
   v_read boolean;
 begin
+  perform iam.assert_not_administrator();
   perform iam.assert_validated_actor();
-  for f in select * from recipe.formula where p_formula is null or id = p_formula order by product_code, strength, batch_size_units loop
+  for f in select * from formulary.formula where p_formula is null or id = p_formula order by product_code, strength, batch_size_units loop
     v_read := recipe.formula_reader(f.product_code);
     v_out := v_out || jsonb_build_object(
       'formulaId', f.id, 'productCode', f.product_code, 'strength', f.strength, 'batchSizeUnits', f.batch_size_units::text,
@@ -395,7 +402,7 @@ begin
           'approvedBy', a.approved_by_person, 'approvedByAccount', a.approved_by_account,
           'approvedUs', (extract(epoch from a.approved_at) * 1000000)::numeric(20, 0)::text,
           'lines', case when v_read then recipe.formula_lines_json(v.id) end) order by v.version_number)
-        from recipe.formula_version v left join recipe.formula_approval a on a.version_id = v.id where v.formula_id = f.id), '[]'::jsonb));
+        from formulary.formula_version v left join formulary.formula_approval a on a.version_id = v.id where v.formula_id = f.id), '[]'::jsonb));
   end loop;
   if p_formula is not null and jsonb_array_length(v_out) = 0 then
     perform recipe.formula_fail('EBMR-FRM-003', format('There is no formula %s', p_formula));
@@ -409,15 +416,16 @@ $$;
 create function recipe.formula_choice(p_product text, p_strength text, p_units numeric) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
 declare
-  f recipe.formula;
-  v recipe.formula_version;
+  f formulary.formula;
+  v formulary.formula_version;
 begin
+  perform iam.assert_not_administrator();
   perform iam.require_permission('FORMULA.READ', jsonb_build_object('product', p_product));
-  select * into f from recipe.formula where product_code = p_product and strength = p_strength and batch_size_units = p_units;
+  select * into f from formulary.formula where product_code = p_product and strength = p_strength and batch_size_units = p_units;
   if f.id is null then
     perform recipe.formula_fail('EBMR-FRM-015', format('No formula of %s %s for %s units is recorded in the library', p_product, p_strength, p_units));
   end if;
-  select w.* into v from recipe.formula_version w where w.formula_id = f.id and recipe.formula_version_state(w.id) = 'APPROVED';
+  select w.* into v from formulary.formula_version w where w.formula_id = f.id and recipe.formula_version_state(w.id) = 'APPROVED';
   if v.id is null then
     perform recipe.formula_fail('EBMR-FRM-016', format('The formula of %s %s for %s units has no approved version (D-S6-3)', p_product, p_strength, p_units));
   end if;
@@ -431,14 +439,15 @@ $$;
 create function recipe.formula_version_for_mbr(p_version uuid) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
 declare
-  v recipe.formula_version;
-  f recipe.formula;
+  v formulary.formula_version;
+  f formulary.formula;
 begin
-  select * into v from recipe.formula_version where id = p_version;
+  perform iam.assert_not_administrator();
+  select * into v from formulary.formula_version where id = p_version;
   if v.id is null then
     perform recipe.formula_fail('EBMR-FRM-003', format('There is no formula version %s', p_version));
   end if;
-  select * into f from recipe.formula where id = v.formula_id;
+  select * into f from formulary.formula where id = v.formula_id;
   perform iam.require_permission('FORMULA.READ', jsonb_build_object('product', f.product_code));
   if recipe.formula_version_state(v.id) <> 'APPROVED' then
     perform recipe.formula_fail('EBMR-FRM-016', format('Formula version %s is %s; an MBR takes its composition only from an approved version (D-S6-3)',
@@ -459,18 +468,18 @@ create function recipe.formula_mbr_problem(p_mbr uuid, p_formula uuid) returns t
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
   c        jsonb := (recipe.current_content(p_mbr)).content;
-  v        recipe.formula_version;
-  f        recipe.formula;
+  v        formulary.formula_version;
+  f        formulary.formula;
   v_ref    jsonb;
   v_mass   numeric;
   v_lines  jsonb := '{}'::jsonb;
   b        jsonb;
   v_code   text;
   v_kg     numeric;
-  l        recipe.formula_line;
+  l        formulary.formula_line;
 begin
-  select * into v from recipe.formula_version where id = p_formula;
-  select * into f from recipe.formula where id = v.formula_id;
+  select * into v from formulary.formula_version where id = p_formula;
+  select * into f from formulary.formula where id = v.formula_id;
   if c is null or v.id is null then
     return 'the MBR version or the formula version does not exist';
   end if;
@@ -486,7 +495,7 @@ begin
   end if;
   for b in select * from jsonb_array_elements(coalesce(c -> 'bom', '[]'::jsonb)) loop
     select r ->> 'code' into v_code from jsonb_array_elements(coalesce(c -> 'references', '[]'::jsonb)) r where r ->> 'id' = b ->> 'material' limit 1;
-    select * into l from recipe.formula_line x where x.version_id = v.id and x.material_code = v_code;
+    select * into l from formulary.formula_line x where x.version_id = v.id and x.material_code = v_code;
     if l.version_id is null then
       if b ->> 'role' in ('ACTIVE', 'EXCIPIENT', 'PROCESSING_AID') then
         return format('BOM line %s (%s) is not a line of the formula', b ->> 'id', coalesce(v_code, b ->> 'material'));
@@ -500,7 +509,7 @@ begin
     end if;
     v_lines := v_lines || jsonb_build_object(l.line_id, true);
   end loop;
-  for l in select * from recipe.formula_line x where x.version_id = v.id order by x.ordinal loop
+  for l in select * from formulary.formula_line x where x.version_id = v.id order by x.ordinal loop
     if not v_lines ? l.line_id then
       return format('formula line %s (%s) is not in the BOM', l.line_id, l.material_code);
     end if;
@@ -524,14 +533,14 @@ begin
   if v_state is distinct from 'DRAFT' then
     perform recipe.formula_fail('EBMR-FRM-017', format('An MBR version takes a formula while it is a DRAFT; this one is %s (PR-06)', coalesce(v_state, 'unknown')));
   end if;
-  if exists (select 1 from recipe.mbr_formula_pin where mbr_version_id = p_mbr) then
+  if exists (select 1 from formulary.mbr_formula_pin where mbr_version_id = p_mbr) then
     perform recipe.formula_fail('EBMR-FRM-018', 'This MBR version has its formula already; another formula version is a new MBR version (PR-06)');
   end if;
   v_p := recipe.formula_mbr_problem(p_mbr, p_formula);
   if v_p is not null then
     perform recipe.formula_fail('EBMR-FRM-019', format('The MBR does not carry the formula''s composition: %s (INV-25)', v_p));
   end if;
-  insert into recipe.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id)
+  insert into formulary.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id)
   values (p_mbr, p_formula, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid);
 end
 $$;
@@ -539,13 +548,14 @@ $$;
 -- The formula version an MBR version pins, if any (no composition: anyone who reads the MBR may know it is pinned).
 create function recipe.mbr_formula_of(p_mbr uuid) returns uuid
 language sql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
-  select formula_version_id from recipe.mbr_formula_pin where mbr_version_id = p_mbr
+  select formula_version_id from formulary.mbr_formula_pin where mbr_version_id = p_mbr
 $$;
 
 -- DI-13: the composition of an MBR version (its BOM) for a reader holding FORMULA.READ in its product's scope.
 create function recipe.mbr_composition(p_mbr uuid) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
 begin
+  perform iam.assert_not_administrator();
   perform iam.require_permission('FORMULA.READ', recipe.version_scope(p_mbr));
   return jsonb_build_object('bom', (recipe.current_content(p_mbr)).content -> 'bom', 'formulaVersionId', recipe.mbr_formula_of(p_mbr));
 end
@@ -612,7 +622,7 @@ revoke all on function recipe.formula_fail(text, text), recipe.formula_version_s
                        recipe.formula_choice(text, text, numeric), recipe.formula_version_for_mbr(uuid), recipe.formula_mbr_problem(uuid, uuid),
                        recipe.formula_pin_mbr(uuid, uuid), recipe.mbr_formula_of(uuid), recipe.mbr_composition(uuid) from public;
 grant execute on function recipe.formula_version_state(uuid), recipe.formula_create(jsonb), recipe.formula_add_version(uuid, jsonb),
-                          recipe.formula_approve(uuid, uuid), recipe.formula_read(uuid), recipe.formula_choice(text, text, numeric),
+                          recipe.formula_approve(uuid, uuid), recipe.formula_choice(text, text, numeric),
                           recipe.formula_version_for_mbr(uuid), recipe.formula_pin_mbr(uuid, uuid), recipe.mbr_formula_of(uuid),
                           recipe.mbr_composition(uuid) to ebmr_app;
 

@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type FormulaLineInput } from '@ebmr/api-contract';
 import { terminalOf } from '@ebmr/test-kit';
 import { withCommand } from '@ebmr/kernel';
-import { actorOfBrowser, refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
+import { actorOfBrowser, refusalOf, sessionOfBrowser, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
 
@@ -100,8 +100,8 @@ describe('formulation library (slice 6a)', () => {
     const other = await newFormula('50000');
     expect(await asApp(steward, 'steward', 'select recipe.formula_add_version($1, $2::jsonb)', [other, JSON.stringify({ changeReason: 'per batch', lines: [{ ...LINES[1], basis: 'PER_BATCH', quantity: '9.4' }] })])).toMatch(/EBMR-FRM-009/);
     // Bypass: the application role writes no formula line itself.
-    expect(await asApp(steward, 'steward', "insert into recipe.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, potency_adjusted, compensating, batch_quantity_kg) values ($1, 'x', 9, 'MAT-MCC', 'x', 'EXCIPIENT', 'PER_UNIT', 1, false, false, 99)", [v.versionId])).toMatch(/permission denied/);
-    expect(await asApp(steward, 'steward', 'update recipe.formula_line set batch_quantity_kg = 1 where version_id = $1', [v.versionId])).toMatch(/permission denied/);
+    expect(await asApp(steward, 'steward', "insert into formulary.formula_line (version_id, line_id, ordinal, material_code, material_name, role, basis, quantity, potency_adjusted, compensating, batch_quantity_kg) values ($1, 'x', 9, 'MAT-MCC', 'x', 'EXCIPIENT', 'PER_UNIT', 1, false, false, 99)", [v.versionId])).toMatch(/permission denied/);
+    expect(await asApp(steward, 'steward', 'update formulary.formula_line set batch_quantity_kg = 1 where version_id = $1', [v.versionId])).toMatch(/permission denied/);
   }, 120_000);
 
   it('a formula version approved by its author is refused; a second person approves it through the ceremony, and changed content signs nothing', async () => {
@@ -119,7 +119,7 @@ describe('formulation library (slice 6a)', () => {
     expect(after.versions[0]).toMatchObject({ state: 'APPROVED', approvedBy: { loginName: 'meera.iyer' } });
     expect(after.formula.approvedVersion).toBe(1);
     // Bypass: the author's own signature handed to the database directly is refused there too, and nobody writes an approval row.
-    expect(await asApp(steward, 'steward', "insert into recipe.formula_approval (version_id, signature_id, approved_by_person, approved_by_account, correlation_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [v.versionId])).toMatch(/permission denied/);
+    expect(await asApp(steward, 'steward', "insert into formulary.formula_approval (version_id, signature_id, approved_by_person, approved_by_account, correlation_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [v.versionId])).toMatch(/permission denied/);
   }, 120_000);
 
   it('[DI-13] a user without FORMULA.READ cannot open a formula or the composition of an MBR, by route or in the database', async () => {
@@ -154,11 +154,12 @@ describe('formulation library (slice 6a)', () => {
     expect(await asApp(regulatory, 'regulatory', 'select recipe.formula_choice($1, $2, 100000)', [PRODUCT.code, PRODUCT.strength])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
     expect(await asApp(regulatory, 'regulatory', 'select recipe.mbr_composition($1)', [family.versionId])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
     expect(await asApp(regulatory, 'regulatory', 'select recipe.formula_version_for_mbr($1)', [versionId])).toMatch(/EBMR-IAM-040.*FORMULA\.READ/);
-    expect(await asApp(regulatory, 'regulatory', "select r -> 0 -> 'versions' -> 0 -> 'lines' as l from recipe.formula_read($1) r", [formulaId])).toBeNull();
-    const { rows } = await withCommand(gmp.db.app, await actorOfBrowser(gmp, regulatory, 'regulatory'), (c) => c.query<{ l: unknown }>("select recipe.formula_read($1) -> 0 -> 'versions' -> 0 -> 'lines' as l", [formulaId]));
+    // The session's read (no command, tablets 1041) serves the identity only to a reader without FORMULA.READ.
+    const { rows } = await gmp.db.app.query<{ l: unknown }>("select tab.formula_read($1, $2) -> 0 -> 'versions' -> 0 -> 'lines' as l", [(await sessionOfBrowser(gmp, regulatory)).tokenHash, formulaId]);
     expect(rows[0]?.l).toBeNull();
-    expect(await asApp(regulatory, 'regulatory', 'select * from recipe.formula_line', [])).toMatch(/permission denied/);
-    expect(await asApp(author, 'author', 'select * from recipe.formula_line', [])).toMatch(/permission denied/);
+    expect(await asApp(regulatory, 'regulatory', 'select recipe.formula_read($1)', [formulaId])).toMatch(/permission denied/);
+    expect(await asApp(regulatory, 'regulatory', 'select * from formulary.formula_line', [])).toMatch(/permission denied/);
+    expect(await asApp(author, 'author', 'select * from formulary.formula_line', [])).toMatch(/permission denied/);
   }, 180_000);
 
   it('"Choose a product" refuses a DRAFT formula version, a version of another product and a caller without FORMULA.READ', async () => {
@@ -192,14 +193,14 @@ describe('formulation library (slice 6a)', () => {
     // A DRAFT pinned (only the owner can write a pin directly; the application role cannot): the approval guard refuses it.
     const draft = valueOf(await steward.call(md.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'Second', lines: LINES } })).versionId;
     expect(await asApp(author, 'author', 'select recipe.formula_pin_mbr($1, $2)', [family.versionId, draft])).toMatch(/EBMR-FRM-016|EBMR-FRM-018/);
-    expect(await asApp(author, 'author', "insert into recipe.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [family.versionId, draft])).toMatch(/permission denied/);
+    expect(await asApp(author, 'author', "insert into formulary.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [family.versionId, draft])).toMatch(/permission denied/);
     const second = valueOf(await author.call(routes.designer.createFamily, {
       body: { templateId: 'dc-mini', familyCode: `PCM-Q-${formulaId.slice(0, 6)}`, product: P, batchSizes: [{ quantity: '30.000', unit: 'kg' }], markets: ['IN'] },
     }));
     // The owner's forged pin (superuser connection, in the author's session so the audit trail records it).
     await withCommand(gmp.db.admin, await actorOfBrowser(gmp, author, 'author'), (c) =>
       c.query(
-        "insert into recipe.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
+        "insert into formulary.mbr_formula_pin (mbr_version_id, formula_version_id, pinned_by_person, pinned_by_account, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
         [second.versionId, draft],
       ),
     );

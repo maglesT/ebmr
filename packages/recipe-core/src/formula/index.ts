@@ -92,8 +92,6 @@ export const approveFormulaVersion = async (db: Db, versionId: string, signature
   await one(db, 'select recipe.formula_approve($1, $2)::text as r', [versionId, signatureId]);
 };
 
-/** The formulas (or one), with the composition only for a reader holding FORMULA.READ (in a command: the evaluation is stored). */
-export const readFormulas = (db: Db, formulaId?: string): Promise<FormulaRead[]> => one(db, 'select recipe.formula_read($1) as r', [formulaId ?? null]);
 
 export const formulaChoice = (db: Db, product: string, strength: string, units: string): Promise<FormulaChoice> =>
   one(db, 'select recipe.formula_choice($1, $2, $3::numeric) as r', [product, strength, units]);

@@ -12,10 +12,10 @@ set local role ebmr_owner;
 create function recipe.formula_listing(p_formula uuid, p_readable boolean) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
-  f     recipe.formula;
+  f     formulary.formula;
   v_out jsonb := '[]'::jsonb;
 begin
-  for f in select * from recipe.formula where p_formula is null or id = p_formula order by product_code, strength, batch_size_units loop
+  for f in select * from formulary.formula where p_formula is null or id = p_formula order by product_code, strength, batch_size_units loop
     v_out := v_out || jsonb_build_object(
       'formulaId', f.id, 'productCode', f.product_code, 'strength', f.strength, 'batchSizeUnits', f.batch_size_units::text,
       'compositionReadable', coalesce(p_readable, false),
@@ -26,7 +26,7 @@ begin
           'approvedBy', a.approved_by_person, 'approvedByAccount', a.approved_by_account,
           'approvedUs', (extract(epoch from a.approved_at) * 1000000)::numeric(20, 0)::text,
           'lines', case when coalesce(p_readable, false) then recipe.formula_lines_json(v.id) end) order by v.version_number)
-        from recipe.formula_version v left join recipe.formula_approval a on a.version_id = v.id where v.formula_id = f.id), '[]'::jsonb));
+        from formulary.formula_version v left join formulary.formula_approval a on a.version_id = v.id where v.formula_id = f.id), '[]'::jsonb));
   end loop;
   if p_formula is not null and jsonb_array_length(v_out) = 0 then
     perform recipe.formula_fail('EBMR-FRM-003', format('There is no formula %s', p_formula));
@@ -39,14 +39,14 @@ $$;
 create function recipe.formula_choice_of(p_product text, p_strength text, p_units numeric) returns jsonb
 language plpgsql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
 declare
-  f recipe.formula;
-  v recipe.formula_version;
+  f formulary.formula;
+  v formulary.formula_version;
 begin
-  select * into f from recipe.formula where product_code = p_product and strength = p_strength and batch_size_units = p_units;
+  select * into f from formulary.formula where product_code = p_product and strength = p_strength and batch_size_units = p_units;
   if f.id is null then
     perform recipe.formula_fail('EBMR-FRM-015', format('No formula of %s %s for %s units is recorded in the library', p_product, p_strength, p_units));
   end if;
-  select w.* into v from recipe.formula_version w where w.formula_id = f.id and recipe.formula_version_state(w.id) = 'APPROVED';
+  select w.* into v from formulary.formula_version w where w.formula_id = f.id and recipe.formula_version_state(w.id) = 'APPROVED';
   if v.id is null then
     perform recipe.formula_fail('EBMR-FRM-016', format('The formula of %s %s for %s units has no approved version (D-S6-3)', p_product, p_strength, p_units));
   end if;
