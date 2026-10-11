@@ -217,6 +217,26 @@ describe('paths (b) void and (c) invalidation; repeats (DI-29, INV-41)', () => {
     run.refused({ type: 'VOID_ATTEMPT', actor: OP1, step: 't', item: 'h', reason: 'wrong', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } }, 'ENG-VOID-RESULT');
   });
 
+  it('[DI-29][DI-24][INV-41] voids repeat while no valid result exists (an invalidated one is none); an invalidation is approved by another person, never a system, and its investigation is recorded trimmed', () => {
+    const run = Run.issue(define(ipc()));
+    run.start('t');
+    const voidCmd = () => ({ type: 'VOID_ATTEMPT' as const, actor: OP1, step: 't', item: 'h', reason: 'sample dropped', approval: { approver: QA2, signature: sig('VOID_AUTHORISED', QA2) } });
+    run.ok(voidCmd());
+    run.ok(voidCmd());
+    run.record('t', 'h', n('130'));
+    const result = Object.values(run.state.points).find((p) => p.kind === 'VALUE')?.id ?? '';
+    const inval = (actor: Actor, approver: Actor, investigationRef?: string) =>
+      ({ type: 'INVALIDATE_RESULT' as const, actor, point: result, ...(investigationRef === undefined ? {} : { investigationRef }), assignableCause: 'Tester jaw misaligned', reason: 'bad sample', approval: { approver, signature: sig('INVALIDATION_APPROVED', approver) } }) as never;
+    run.refused(inval(QA1, QA1, 'OOS-4'), 'ENG-SEGREGATION');
+    run.refused(inval(OP1, { id: 'SYS-QA', kind: 'SYSTEM', roles: ['QA'] }, 'OOS-4'), 'ENG-SEGREGATION');
+    run.refused(inval(OP1, QA1), 'ENG-INVALIDATE-INVESTIGATION');
+    run.ok(inval(OP1, QA1, ' OOS-4 '));
+    expect(run.state.points[result]?.invalidation).toMatchObject({ investigationRef: 'OOS-4', approvedBy: 'QA1' });
+    expect(run.exceptions('RESULT_INVALIDATED')[0]?.title).toMatch(/with investigation OOS-4 \(assignable cause/);
+    run.ok(voidCmd());
+    expect(Object.values(run.state.points).map((p) => `${p.attempt}:${p.kind}:${p.status}`)).toEqual(['1:ABORTED:VALID', '2:ABORTED:VALID', '3:VALUE:INVALIDATED', '4:ABORTED:VALID']);
+  });
+
   it('[DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible', () => {
     const run = Run.issue(define(ipc()));
     run.start('t');
