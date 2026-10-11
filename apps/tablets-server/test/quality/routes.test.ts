@@ -53,4 +53,15 @@ describe('quality routes (GMP)', () => {
     // A wrong key is refused, and a person's credentials never write the ERP stub.
     expect((await browser.call(quality.erpImport, { body: { ...creds, serviceKey: `${creds.serviceKey}x`, catalogue: erpCatalogue({ orders: 0 }) } })).ok).toBe(false);
   });
+
+  it('the reprocessing registers are listed read-only (requests, authorisations, reservable residue), and the server describes what a signable action signs', async () => {
+    const qa = await gmp.asPersona('qaInvestigator');
+    expect(valueOf(await qa.call(quality.reprocessingRequests)).requests).toEqual(expect.any(Array));
+    expect(valueOf(await qa.call(quality.reprocessingAuthorisations, { query: {} })).authorisations).toEqual(expect.any(Array));
+    expect(valueOf(await qa.call(quality.residues, { query: {} })).containers).toEqual(expect.any(Array));
+    const batchId = '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e';
+    const issuer = await gmp.asPersona('issuer');
+    const d = valueOf(await issuer.call(routes.esig.describe, { body: { action: { kind: 'GMP_BATCH_ISSUE', batchId, reason: { code: 'PLAN', text: 'Plan' }, variants: {}, inputs: {} } } }));
+    expect(d).toEqual({ kind: 'GMP_BATCH_ISSUE', aggregateType: 'batch_issue', aggregateId: batchId, meaning: 'ISSUED', expectedState: 'PLANNED' });
+  });
 });

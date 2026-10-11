@@ -460,6 +460,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return work.signed;
       },
 
+      // Phase 3 slice 6: what an action signs, as the handler computes it (the browser never derives it).
+      describe: async ({ body, requireSession }) => {
+        requireSession();
+        const handler = handlerFor(app, body.action.kind);
+        const d = handler.describeNow ? await handler.describeNow(app.pools.app, body.action) : handler.describe(body.action);
+        return { kind: body.action.kind, aggregateType: d.aggregateType, aggregateId: d.aggregateId, meaning: d.meaning === '' ? null : d.meaning, expectedState: d.expectedState ?? null };
+      },
+
       // DI-17, DI-36, DI-50 (tablets 0410, review F34): only when the session's role may read the record.
       signatures: async ({ query, requireSession }) => {
         const s = requireSession();
