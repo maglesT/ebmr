@@ -557,8 +557,10 @@ export const TARGETS: Target[] = [
                 'recipe.execution_row_context_check', 'recipe.execution_state_records_check',
                 'recipe.execution_status_equipment_check', 'plant.batch_facts', 'plant.batch_scope',
                 'recipe.batch_product', 'recipe.packaging_parent_problem', 'recipe.packaging_link_guard',
-                'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue'],
-    tests: [r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts')],
+                'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue',
+                // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
+                'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check'],
+    tests: [r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: material lots and LIMS: status, release route, reservation and consumption, identity, destruction,
@@ -581,8 +583,10 @@ export const TARGETS: Target[] = [
                 'site.lot_test_state', 'site.lot_test_result_content', 'site.record_lot_test_result',
                 'site.approve_lot_test_result', 'site.link_lot_test_oos', 'site.lot_dates_problem', 'site.reserve_lot',
                 'site.lot_retest_at', 'site.record_lot_retest', 'site.lot_test_failure_resolved',
-                'site.lot_lims_release_problem', 'site.record_signed_lot_retest', 'site.lot_retest_content'],
-    tests: [site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts')],
+                'site.lot_lims_release_problem', 'site.record_signed_lot_retest', 'site.lot_retest_content',
+                // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
+                'site.lot_signed_decision', 'site.lot_event_meaning', 'site.propose_lot_decision', 'site.revoke_batch_reservations', 'recipe.claim_consumption', 'recipe.consumption_entries_record', 'recipe.consumption_named_check', 'recipe.batch_end_reservations', 'tab.g07_consumption_pairs'],
+    tests: [site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts'), site('lots/exit-review.test.ts'), s('blocks/dispensing/tb-01-db.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: deviations: raise, link, investigate, conclude, close; QA signature; evidence documents;
@@ -605,8 +609,10 @@ export const TARGETS: Target[] = [
     group: 'erp-interfaces',
     functions: ['recipe.erp_order_problem', 'recipe.open_erp_order_for', 'site.erp_receive_product',
                 'site.product_master_of', 'site.receive_lot', 'site.erp_receive_material', 'site.erp_material_current',
-                'site.material_master_of', 'site.erp_receive_order', 'site.erp_order_of'],
-    tests: [site('mutation/erp-interfaces.test.ts'), site('quality/interfaces.test.ts'), site('lots/lots.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/gmp-issue.test.ts')],
+                'site.material_master_of', 'site.erp_receive_order', 'site.erp_order_of',
+                // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
+                'site.erp_effect_if_unchanged', 'site.erp_master_state', 'site.erp_master_content', 'site.confirm_erp_master', 'site.erp_product_effective'],
+    tests: [site('mutation/erp-interfaces.test.ts'), site('quality/interfaces.test.ts'), site('lots/lots.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/gmp-issue.test.ts'), site('lots/exit-review.test.ts'), site('quality/reprocessing.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: reprocessing: residue sources, authorisation, source additions, whole-batch requests, recovered
