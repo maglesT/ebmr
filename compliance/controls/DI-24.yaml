@@ -130,9 +130,9 @@ tests:
   - "tools/e2e/specs/floor-tablets/void.spec.ts > [DI-24] the step screen offers void with a reason and never delete @kiosk"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
-    deferred:
-      phase: 3
-      reason: "The database refuses a removal without a reason and keeps the original (kernel audit-trail tests), and the engine voids an attempt only with a reason and QA approval (recipe-core engine corrections); no screen or route offers to delete or void a batch entry yet: the correction, void and invalidation paths of execution come in Phase 3 (build outline 11)."
+    tests:
+      - "apps/tablets-server/test/execution/gmp-batch-routes.test.ts > GMP batch routes (slice 6a, D-S6-1) > [DI-24] no route deletes a batch entry: a DELETE answers 404 and a void needs a reason"
+      - "tools/e2e/specs/floor-tablets/void.spec.ts > [DI-24] the step screen offers void with a reason and never delete @kiosk"
   - clause: "Correct a value. The original is visible in the record,"
     tests:
       - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [DI-24][DI-33][INV-03] a correction keeps the original, recalculates dependents keeping the old result, and sends signed steps back for re-verification"

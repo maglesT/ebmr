@@ -70,7 +70,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   retest, ERP stub with the BOM match at GMP issue (site-services 0730 to 0753, recipe-core 0600 to 0603, tablets 1000 to
   1002); TB-08 additions and G-24@2, whole-batch reprocessing with a new batch number linked to its parents (INV-33),
   the expiry cap (recipe-core 0620 to 0625, tablets 1020 to 1022). Merged (PR #16). Slice 6 plan:
-  `docs/build-plan/phase-3/slice-6-plan.md`, built on `phase-3/slice-6`; then the Phase 3 exit (decision 0009). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
+  `docs/build-plan/phase-3/slice-6-plan.md`, built on `phase-3/slice-6`: screens (shop floor for TB-01..24, G-06, G-21,
+  G-24@2; planning; master data with the formulation library and "Choose a product"; plant; quality), the GMP batch,
+  planning, master-data, plant and quality routes with every signed act over HTTP, devices and GMP seeds, and GB-T-01
+  matching its expected outputs exactly. compliance/phase.yaml is 3; the trace passes at phase 3. Next: the Phase 3 exit
+  (decision 0009: mutation testing, one Opus review pass, the final full run). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 - Slice 6c (`phase-3/slice-6c`, in progress): catalog-test clauses for the 16 Phase 3 exit controls; DI-04 clause 2,
   PR-01 clause 2 and the DI-33 reprocessing scope tested; simulators for every process kind, packaging-line kinds in the

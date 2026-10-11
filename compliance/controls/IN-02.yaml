@@ -56,9 +56,8 @@ tests:
   - "apps/tablets-server/test/quality/routes.test.ts > signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [IN-02] a deviation classified MINOR without a rationale is refused by the route and by the database"
 clauses:
   - clause: "classify a deviation as minor without a rationale; saving is refused."
-    deferred:
-      phase: 3
-      reason: "Phase 2 records no deviation classification (a deviation is linked by its number only). The rationale gate is in place where Phase 2 classifies risk: a parameter classified non-critical, or a risk-based reduction, without a risk class and rationale is refused (recipe-core validator content). Deviation classification comes with deviation-lite in Phase 3 (build outline 11)."
+    tests:
+      - "apps/tablets-server/test/quality/routes.test.ts > signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [IN-02] a deviation classified MINOR without a rationale is refused by the route and by the database"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
