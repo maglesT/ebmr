@@ -350,3 +350,24 @@ Backlog:
   passes; an anhydrous molar mass is not checked against the base.
 - Residuals (lower risk, listed not tested): simulator nominal entries, refusal texts, route wiring and views, thin
   TypeScript wrappers over SQL (covered by the SQL stream).
+
+## Phase 3 exit, SQL mutation (Opus, 11 October 2026)
+
+14,544 mutants in 60 groups. At or above 90 %: every Phase 2 group (99 to 100, involvement 95.7, weighing 96.9) and the
+Phase 3 groups for signed content, evidence, formulas, plant equipment, ERP interfaces, deviations, entry references,
+output containers, TB-01 dispensing and platform scope. Kill tests cover the core: holds and release gates (press
+output, blister, bottle line, release for packing, bulk issue), forged GMP issue and planning, TB-01 rounding and FEFO,
+IPC and AQL verdicts, G-21 counts, reprocessing limits and signers, approver roles and signed retests. 195 equivalent
+mutants recorded with reasons. No critical or high defect.
+
+Below 90 % (residuals for the owner, Phase 4 exit or deployment validation per decision 0008): reprocessing 85.6,
+lots and LIMS 80.9, tablets core checks 75.2, blister 75.0, coating 70.6, G-21 68.8, forming 67.6, bottle 65.4,
+compression 65.3, printing and serialisation 60.6, tablets IPC 58.4, process devices 56.9, granulation 55.7; GMP batch
+issue and change paths re-running with new kill tests. Most survivors are in the database twins of the engine's entry
+and close checks (the engine validates first; the database re-checks against tampering). Not twins, and to be covered
+first in Phase 4: G-07 consumption pairing, lot-material entry checks, tooling register commands, detector
+challenges, the print, serialisation and process-device gateway checks, the due-time functions (IPC, leak, packing
+line), the held-granulation check, G-24@2 and the exception-register sync guards.
+
+Low: `recipe.reprocessing_start_problem` is never called since recipe-core 0625 (drop it); `batch_record_identity_guard`
+and a SITE-165 branch of `consume_reservation` can never fire (an earlier check refuses first).
