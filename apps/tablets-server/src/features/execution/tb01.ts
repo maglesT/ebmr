@@ -113,15 +113,18 @@ const PLACEHOLDER = '00000000-0000-4000-8000-000000000000';
 /**
  * INV-13, INV-14 (GMP): consumes the entry's net from the batch's open reservation of the lot, once the engine is known
  * to accept the entry as it will be sent (the same command with a placeholder consumption id, run on a copy of the
- * state): an entry the engine refuses is recorded as refused and consumes nothing.
+ * state): an entry the engine refuses is recorded as refused and consumes nothing. `named`: the entry names the
+ * consumption (TB-01); a G-07@1 weighing has no member for it (its schema is fixed), and the database pairs it with the
+ * consumption of its transaction instead (tablets 1093).
  */
 export async function tb01Consumption(
   ctx: IntentContext,
   target: { step: string; context: flow.Frame[] },
   entry: JsonRecord & { kind: string },
   lot: LotFacts,
+  named = true,
 ): Promise<{ id: string } | undefined> {
-  const dry: engine.Command = { type: 'RECORD_ENTRY', commandId: ctx.commandId, actor: ctx.actor, expectedVersion: ctx.expectedVersion, step: target.step, context: target.context, entry: { ...entry, consumption: PLACEHOLDER } };
+  const dry: engine.Command = { type: 'RECORD_ENTRY', commandId: ctx.commandId, actor: ctx.actor, expectedVersion: ctx.expectedVersion, step: target.step, context: target.context, entry: named ? { ...entry, consumption: PLACEHOLDER } : entry };
   const r = engine.step(ctx.def, ctx.state, dry, { nowUs: await dbNowUs(ctx.client) });
   if (!r.accepted) return undefined;
   const net = blocks.netOf(String(entry['gross']), String(entry['tare']));

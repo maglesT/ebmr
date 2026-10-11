@@ -469,9 +469,11 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       };
       // GMP: the dispensed net is consumed from the batch's reservation of the lot in this command (INV-13, INV-14),
       // once the engine is known to accept the entry (a refused entry is recorded and must consume nothing).
-      const consumption = tb01 && target && installation === 'GMP' && ctx.useReadings ? await tb01Consumption(ctx, target, entry, lot) : undefined;
+      // A G-07 weighing of a lot is consumed the same way (the database pairs it with its consumption, tablets 1093).
+      const g07 = target !== undefined && ctx.def.steps.get(target.step)?.block?.type === 'G-07';
+      const consumption = (tb01 || g07) && target && installation === 'GMP' && ctx.useReadings ? await tb01Consumption(ctx, target, entry, lot, tb01) : undefined;
       return {
-        entry: consumption ? { ...entry, consumption: consumption.id } : entry,
+        entry: consumption && tb01 ? { ...entry, consumption: consumption.id } : entry,
         ...(w.occurredAt ? { occurredAt: w.occurredAt } : {}),
         evidence: { ...w.evidence, lot: { code: lot.lotCode, material: lot.materialCode, status: lot.status } },
       };
