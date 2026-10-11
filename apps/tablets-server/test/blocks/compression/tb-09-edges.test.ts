@@ -83,7 +83,7 @@ describe('TB-09 return', () => {
     ]);
     expect(w.rec(inspect('S1', 'AFTER')).refused).toBe('Set S1 was inspected after this use already (TB09-INSPECTED-TWICE; IN-36)');
     expect(w.before()).toEqual(['Inspect set S2 after use before the step closes (TB09-AFTER-CHECK-MISSING; IN-36, INV-24)']);
-    w.rec(inspect('S2', 'AFTER'));
+    expect(w.rec(inspect('S2', 'AFTER'))).toStrictEqual({ data: { set: 'S2', inspectionId: U(1), when: 'AFTER', result: 'PASS', inspectedBy: 'OP1' } });
     expect(w.before()).toEqual([]);
     expect(new World({ part: 'RETURN' }).before()).toEqual(['p@ has returned no tooling set (TB09-NOT-RETURNED; IN-36)']);
   });

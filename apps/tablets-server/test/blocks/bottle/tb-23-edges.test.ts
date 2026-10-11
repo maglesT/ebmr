@@ -107,6 +107,9 @@ describe('packaging-line helpers', () => {
       'The challenge interval of Y is not a whole number of microseconds',
     ]);
     expect(deviceConfigProblems(me, { devices: [{ id: 'X', kind: 'VISION', every: { value: '1', unit: 'h' } }] }, 'D')).toEqual([]);
+    expect(deviceConfigProblems(me, { devices: [{ id: 'X', kind: 'VISION' }, { id: 'Z', kind: 'VISION' }, { id: 'X', kind: 'READER' }, { id: 'Z', kind: 'READER' }, { id: 'X', kind: 'READER' }] }, 'D').map((x) => [x.message, x.controls])).toEqual([
+      ['b names device X, Z twice', ['IN-22']],
+    ]);
     expect(deviceConfig({ devices: 'x' })).toEqual({ devices: [] });
     expect(deviceStream('SEALDET')).toBe('D.SEALDET');
     expect([big('12'), big('012'), big(3), big('x')]).toEqual([12n, 0n, 0n, 0n]);
