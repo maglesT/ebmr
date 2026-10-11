@@ -7,6 +7,8 @@
  *
  * Controls: PR-19, PR-04, DI-33; invariant INV-25.
  */
+import { randomUUID } from 'node:crypto';
+import type { PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startServer, type TestServer } from '../support/harness.ts';
 
@@ -125,5 +127,115 @@ describe('tab.tb01_calculation', () => {
     expect((await calc(cfg({}, {}, comp('25', '25')), [lot('L1', '100')])).data?.excipient?.target).toBe('25.000');
     expect((await calc(cfg({}, {}, comp('25.001', '30')), [lot('L1', '100')])).problem).toMatch(/outside its approved range/);
     expect((await calc(cfg({}, {}, comp('20', '24.999')), [lot('L1', '100')])).problem).toMatch(/outside its approved range/);
+  });
+});
+
+describe('the lot TB-01 proposes and the facts it reads (tablets 1000)', () => {
+  /**
+   * Lots of material MAT-F at SITE-1 (and one at SITE-2) and a planned batch for India at SITE-1, written by the
+   * superuser with session_replication_role = replica in a transaction that is always rolled back: what is under test
+   * is how the readers choose among them.
+   */
+  async function withLots<T>(work: (c: PoolClient, ids: Record<string, string>) => Promise<T>): Promise<T> {
+    const c = await gmp.db.admin.connect();
+    const ids: Record<string, string> = {};
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      ids['B'] =
+        (
+          await c.query<{ id: string }>(
+            `insert into recipe.stub_batch (batch_number, family_id, markets, site, line, batch_size, created_by_person, created_by_account)
+             values ('B-FEFO-1', gen_random_uuid(), '{IN}', 'SITE-1', 'L1', 'BS', gen_random_uuid(), gen_random_uuid()) returning id`,
+          )
+        ).rows[0]?.id ?? '';
+      ids['B2'] =
+        (
+          await c.query<{ id: string }>(
+            `insert into recipe.stub_batch (batch_number, family_id, markets, site, line, batch_size, created_by_person, created_by_account)
+             values ('B-FEFO-2', gen_random_uuid(), '{IN}', 'SITE-1', 'L1', 'BS', gen_random_uuid(), gen_random_uuid()) returning id`,
+          )
+        ).rows[0]?.id ?? '';
+      const lot = async (code: string, opts: { site?: string; expires: string; retest?: string; state?: string; identity?: string[]; material?: string }) => {
+        const id =
+          (
+            await c.query<{ id: string }>(
+              `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, retest_at, expires_at,
+                                              received_by_person, received_by_account, correlation_id)
+               values (gen_random_uuid(), $1, $2, $3, 'Paracetamol', 'API', 10, 'kg', $4, $5, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id`,
+              [opts.site ?? 'SITE-1', code, opts.material ?? 'MAT-F', opts.retest ?? null, opts.expires],
+            )
+          ).rows[0]?.id ?? '';
+        await c.query(
+          "insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, $2, 2)",
+          [id, opts.state ?? 'RELEASED'],
+        );
+        for (const r of opts.identity ?? ['PASS']) {
+          await c.query(
+            "insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, $2, 'STP-ID', 'AR-1', gen_random_uuid(), gen_random_uuid())",
+            [id, r],
+          );
+        }
+        ids[code] = id;
+        return id;
+      };
+      const reserve = (lotId: string, batch: string) =>
+        c.query(
+          `insert into site.lot_reservation (lot_id, batch_id, batch_number, edition, quantity, unit, expires_at, lot_state_version, reserved_by_person, reserved_by_account)
+           values ($1, $2, 'B-X', 'TABLETS', 10, 'kg', clock_timestamp() + interval '1 day', 2, gen_random_uuid(), gen_random_uuid())`,
+          [lotId, batch],
+        );
+      await lot('L-EXCL', { expires: '2027-01-01T00:00:00Z' });
+      await lot('L-ELSEWHERE', { site: 'SITE-2', expires: '2027-02-01T00:00:00Z' });
+      await lot('L-EXPIRED', { expires: '2026-01-01T00:00:00Z' });
+      await lot('L-RETEST', { expires: '2027-03-01T00:00:00Z', retest: '2026-01-01T00:00:00Z' });
+      await lot('L-QUAR', { expires: '2027-04-01T00:00:00Z', state: 'QUARANTINE' });
+      await lot('L-FAILED', { expires: '2027-05-01T00:00:00Z', identity: ['PASS', 'FAIL'] });
+      await lot('L-UNTESTED', { expires: '2027-05-15T00:00:00Z', identity: [] });
+      await reserve(await lot('L-TAKEN', { expires: '2027-06-01T00:00:00Z' }), randomUUID());
+      await reserve(await lot('L-OWN', { expires: '2027-07-01T00:00:00Z', retest: '2027-06-15T00:00:00Z' }), ids['B'] ?? '');
+      await lot('L-OK', { expires: '2028-01-01T00:00:00Z' });
+      await lot('L-OTHERMAT', { expires: '2026-12-01T00:00:00Z', material: 'MAT-G' });
+      return await work(c, ids);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  }
+  const first = async (c: PoolClient, batch: string, exclude: string[], now: string): Promise<string | null | undefined> =>
+    (await c.query<{ r: string | null }>("select tab.tb01_first_expiring($1, 'MAT-F', $2, $3::timestamptz) as r", [batch, exclude, now])).rows[0]?.r;
+
+  it('[PR-18][IN-24][INV-13] FEFO: the first-expiring lot of the material at the batch\'s site, released, within its dates, identity-tested, and available or reserved for this batch', async () => {
+    await withLots(async (c, ids) => {
+      const b = ids['B'] ?? '';
+      const now = '2026-06-01T00:00:00Z';
+      expect(await first(c, b, [], now)).toBe('L-EXCL');
+      expect(await first(c, b, ['L-EXCL'], now)).toBe('L-OWN');
+      // At the very instant of its retest the lot is no longer proposed; nor at the instant of its expiry.
+      expect(await first(c, b, ['L-EXCL'], '2027-06-15T00:00:00Z')).toBe('L-OK');
+      expect(await first(c, b, ['L-EXCL', 'L-OWN'], '2027-01-01T00:00:00Z')).toBe('L-OK');
+      // Another batch has no reservation on L-OWN: it is not available to it.
+      expect(await first(c, ids['B2'] ?? '', ['L-EXCL'], now)).toBe('L-OK');
+    });
+  });
+
+  it('[IN-24][PR-18] the facts of a lot: found by its code (at the batch\'s site when a batch is named), identity-tested only with a passing and no failing result', async () => {
+    await withLots(async (c, ids) => {
+      const facts = async (code: string, batch: string | null) =>
+        (await c.query<{ r: Json | null }>('select tab.lot_facts($1, $2) as r', [code, batch])).rows[0]?.r;
+      expect(await facts('L-OK', null)).toMatchObject({ lotCode: 'L-OK', status: 'RELEASED', identityTested: true });
+      expect(await facts('L-FAILED', null)).toMatchObject({ identityTested: false });
+      expect(await facts('L-UNTESTED', null)).toMatchObject({ identityTested: false });
+      expect(await facts('L-QUAR', null)).toMatchObject({ status: 'QUARANTINE' });
+      expect(await facts('NO-SUCH-LOT', null)).toBeNull();
+      // The same code at two sites: without a batch the code names no one lot; with the batch, its site's lot.
+      await c.query(
+        `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+         values (gen_random_uuid(), 'SITE-2', 'L-OK', 'MAT-F', 'Paracetamol', 'API', 1, 'kg', '2030-01-01', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      );
+      expect(await facts('L-OK', null)).toBeNull();
+      expect(await facts('L-OK', ids['B'] ?? '')).toMatchObject({ lotCode: 'L-OK', identityTested: true, expiresAtUs: String(Date.UTC(2028, 0, 1) * 1000) });
+      expect(await facts('L-FAILED', ids['B'] ?? '')).toMatchObject({ identityTested: false });
+    });
   });
 });
