@@ -108,7 +108,12 @@ describe('an attempt is voided with a reason, never deleted (DI-24 screen)', () 
     const view = { ...withAttempt, blockEntries: [] };
     const act = example('batches-propose-act');
     const ceremony = fakeCeremony({ status: 'SIGNED', manifestation: example('manifestation'), result: null });
-    const ui = renderFloor(stepPath(view.step.stepKey), { installation: 'GMP', fixtures: gmpStep(view), ceremony });
+    const described: unknown[] = [];
+    const describe = ({ body }: { body: unknown }) => {
+      described.push(body);
+      return { kind: 'ACT_APPROVAL', aggregateType: 'batch_act', aggregateId: act.actId, meaning: 'VOID_AUTHORISED', expectedState: null };
+    };
+    const ui = renderFloor(stepPath(view.step.stepKey), { installation: 'GMP', fixtures: { ...gmpStep(view), 'esig.describe': describe }, ceremony });
     await screen.findByTestId('step-card');
     expect(screen.queryByRole('button', { name: /delete/i })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Void an attempt (with a reason)' }));
@@ -123,6 +128,8 @@ describe('an attempt is voided with a reason, never deleted (DI-24 screen)', () 
     const proposed = ui.requests.find((r) => r.method === 'POST' && r.path === `/api/batches/${RUN_ID}/acts`);
     expect(proposed?.body?.['intent']).toMatchObject({ type: 'VOID_ATTEMPT', stepKey: view.step.stepKey, reason: 'Typed into the wrong field' });
     await userEvent.click(await within(dialog).findByRole('button', { name: 'QA: approve the void' }));
+    // What QA signs is the server's description of the approval (esig.describe), never derived in the browser.
+    expect(described).toEqual([{ action: { kind: 'ACT_APPROVAL', batchId: act.batchId, actId: act.actId } }]);
     expect(ceremony.sign).toHaveBeenCalledWith(expect.objectContaining({ aggregateType: 'batch_act', aggregateId: act.actId, meaning: act.meaning, action: { kind: 'ACT_APPROVAL', batchId: act.batchId, actId: act.actId } }));
     await userEvent.click(await within(dialog).findByRole('button', { name: 'Send' }));
     await waitFor(() => expect(ui.commands()).toHaveLength(1));

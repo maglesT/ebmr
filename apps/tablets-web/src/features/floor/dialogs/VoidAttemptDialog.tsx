@@ -19,7 +19,7 @@ import { isGmpFloor } from '../family.ts';
 import { useSessionChange } from '../session.tsx';
 import { st } from '../text.ts';
 import { CommandBody, CommandDialog } from './CommandDialog.tsx';
-import { subjectOf } from '../../../api/signables.ts';
+import { describeSignable } from '../../../api/signables.ts';
 
 /** Recorded attempts of the step that can be named in a void (valid ones only). */
 export function voidableAttempts(view: StepScreenView): { item: string; point: string; label: string }[] {
@@ -76,8 +76,12 @@ function VoidAttemptForm({ onClose, view }: { onClose: () => void; view: StepScr
   const approve = async () => {
     if (!act || !base) return;
     const action = { kind: 'ACT_APPROVAL' as const, batchId: act.batchId, actId: act.actId };
-    const subject = subjectOf(action, { meaning: act.meaning });
-    const o = await ceremony.sign({ ...subject, action, title: st('void.signTitle', { item: chosen?.label ?? base.item, reason: base.reason }) });
+    const described = await describeSignable(action);
+    if (!described.ok) {
+      setError(described.error);
+      return;
+    }
+    const o = await ceremony.sign({ ...described.subject, action, title: st('void.signTitle', { item: chosen?.label ?? base.item, reason: base.reason }) });
     if (o.status === 'SIGNED') setApproved(true);
     if (o.status === 'REFUSED') setError({ kind: 'REFUSAL', status: 409, envelope: o.refusal } as CallErr);
   };

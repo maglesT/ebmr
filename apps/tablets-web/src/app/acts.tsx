@@ -1,7 +1,7 @@
 /**
  * Office acts of the Phase 3 slice 6 screens (planning, master data, plant, quality): a plain command (one POST, its
  * refusal shown with the server's own words) and a signed act through C1's ceremony (the signable action, its aggregate
- * and meaning from api/signables.ts). After either, the reads the act may have changed are read again; nothing is
+ * and meaning as the server describes them, api/signables.ts). After either, the reads the act may have changed are read again; nothing is
  * updated optimistically and the server's answer is what the screen shows.
  */
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,11 +9,9 @@ import { useCallback, useState, type ReactNode } from 'react';
 import type { AnyRoute, CallError, CallInput, RouteResponse, SignableAction } from '@ebmr/api-contract';
 import { Banner, Button } from '@ebmr/ui-kit';
 import { api } from '../api/client.ts';
-import { subjectOf, type SubjectFacts } from '../api/signables.ts';
+import { describeSignable } from '../api/signables.ts';
 import { useSignatureCeremony } from './ports.tsx';
 import { RefusalMessage } from './refusal.tsx';
-
-type S6Signable = Parameters<typeof subjectOf>[0];
 
 /** Reads every query whose key starts with one of `ids` again (route ids). */
 export function useRefresh(ids: readonly string[]): () => Promise<void> {
@@ -60,7 +58,7 @@ export function useCommand<R extends AnyRoute>(route: R, refresh: readonly strin
 export type SignedOutcome = 'SIGNED' | 'CANCELLED' | 'REFUSED' | 'NOT_CONFIRMED';
 
 export interface SignedAct {
-  sign: (action: S6Signable, title: string, facts?: SubjectFacts) => Promise<SignedOutcome>;
+  sign: (action: SignableAction, title: string) => Promise<SignedOutcome>;
   busy: boolean;
   error: CallError | null;
   outcome: SignedOutcome | null;
@@ -73,12 +71,19 @@ export function useSignedAct(refresh: readonly string[] = []): SignedAct {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CallError | null>(null);
   const [outcome, setOutcome] = useState<SignedOutcome | null>(null);
-  const sign = async (action: S6Signable, title: string, facts: SubjectFacts = {}): Promise<SignedOutcome> => {
+  const sign = async (action: SignableAction, title: string): Promise<SignedOutcome> => {
     setBusy(true);
     setError(null);
     setOutcome(null);
     try {
-      const o = await ceremony.sign({ ...subjectOf(action, facts), action: action as SignableAction, title });
+      // What is signed (aggregate, meaning) is the server's, for this action as sent (esig.describe).
+      const described = await describeSignable(action);
+      if (!described.ok) {
+        setError(described.error);
+        setOutcome('REFUSED');
+        return 'REFUSED';
+      }
+      const o = await ceremony.sign({ ...described.subject, action, title });
       if (o.status === 'REFUSED') setError({ kind: 'REFUSAL', status: 409, envelope: o.refusal });
       if (o.status !== 'CANCELLED') await reread();
       setOutcome(o.status);
