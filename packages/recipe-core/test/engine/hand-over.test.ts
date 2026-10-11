@@ -128,6 +128,26 @@ describe('hand-over of a step in progress (L-07)', () => {
     expect(run.exceptions('STEP_HANDED_OVER')).toHaveLength(2);
   });
 
+  it('[PR-14][DI-17] the incoming performer and the QA approver are persons, never a system, and the incoming one has a name (mutation follow-up)', () => {
+    const run = started();
+    run.refused(handOver({ incoming: { id: 'SYS-OP', kind: 'SYSTEM', roles: ['PRODUCTION_OPERATOR', 'OPERATOR'] } }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ incoming: { ...OP2, id: ' ' } }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ incoming: { ...OP2, id: 7 as unknown as string } }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ incoming: undefined as unknown as Actor }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ incoming: { ...OP1, roles: ['PRODUCTION_OPERATOR', 'OPERATOR'] } }), 'ENG-HANDOVER-PERSON');
+    run.refused(handOver({ approval: { approver: { id: 'SYS-QA', kind: 'SYSTEM', roles: ['QA'] }, signature: sig('HANDOVER_APPROVED', 'SYS-QA') } }), 'ENG-SEGREGATION');
+    expect(run.status('w')).toBe('IN_PROGRESS');
+  });
+
+  it('[PR-14][DI-34] once taken over, a step is handed over by any performer still on it, not only by the last incoming one (mutation follow-up)', () => {
+    const run = started();
+    run.record('w', 'b', kg('2.00'), { who: QAOP });
+    run.ok(handOver());
+    run.ok({ type: 'TAKE_OVER_STEP', actor: OP2, step: 'w' });
+    run.ok(handOver({ outgoing: QAOP.id, incoming: OP3, reason: 'QAOP called away' }));
+    expect(run.inst('w')?.handOvers?.map((h) => [h.outgoing, h.incoming])).toEqual([[OP1.id, OP2.id], [QAOP.id, OP3.id]]);
+  });
+
   it('[PR-14][DI-34] a step whose incoming performer does not come is handed over again, from that person, so it is never frozen (review finding 1)', () => {
     const run = started();
     run.ok(handOver());
