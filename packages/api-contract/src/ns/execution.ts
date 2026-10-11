@@ -11,6 +11,7 @@
 import { z } from 'zod';
 import { DataValueWire, DecimalString, Empty, Instant, IntegerString, PersonRef, RunVersion, SignableRef, Uuid, Watermark, withAttribution } from '../common.ts';
 import { ClientIntent, StepKey } from '../intents.ts';
+import { BlockEntryFormView } from '../tablet-entries.ts';
 import { defineRoute } from '../route.ts';
 import { ScaleStatusView } from './devices.ts';
 import { ManifestationView } from './esig.ts';
@@ -224,6 +225,11 @@ export const StepScreenView = z.strictObject({
   fields: z.array(FieldView),
   entries: z.array(EntryView),
   entryForms: z.array(EntryFormView),
+  /**
+   * Phase 3 slice 6: the entry kinds of the step's block the browser sends as a BLOCK_ENTRY (tablet blocks, G-06@1,
+   * G-21@1, G-24@2; the typed kinds excluded), each with the block's own schema; empty for other blocks.
+   */
+  blockEntries: z.array(BlockEntryFormView),
   exceptions: z.array(ExceptionView),
   signatures: z.array(ManifestationView),
   actions: z.array(ActionView),

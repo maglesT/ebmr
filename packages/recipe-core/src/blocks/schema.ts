@@ -6,14 +6,23 @@
  */
 import { isDecimalLiteral, compareDecimal } from '../flow/decimal.ts';
 
+/**
+ * A member the server fills (Phase 3 slice 6, D-S6-2): a fact read from the database or a device, never asked of a person;
+ * the browser's block entry form leaves it out and the server refuses or overwrites a value a client sends for it. Like
+ * `default`, it describes the block version and is not part of describeSchema (the registry fingerprint is unchanged).
+ */
+interface ServerFilled {
+  readonly serverFilled?: boolean;
+}
+
 export type FieldSchema =
-  | { readonly type: 'string'; readonly description: string; readonly enum?: readonly string[]; readonly pattern?: RegExp; readonly optional?: boolean }
-  | { readonly type: 'decimal'; readonly description: string; readonly min?: string; readonly minExclusive?: boolean; readonly optional?: boolean }
-  | { readonly type: 'integer'; readonly description: string; readonly min?: number; readonly max?: number; readonly optional?: boolean }
+  | ({ readonly type: 'string'; readonly description: string; readonly enum?: readonly string[]; readonly pattern?: RegExp; readonly optional?: boolean } & ServerFilled)
+  | ({ readonly type: 'decimal'; readonly description: string; readonly min?: string; readonly minExclusive?: boolean; readonly optional?: boolean } & ServerFilled)
+  | ({ readonly type: 'integer'; readonly description: string; readonly min?: number; readonly max?: number; readonly optional?: boolean } & ServerFilled)
   | BooleanSchema
   | ObjectSchema
-  | { readonly type: 'array'; readonly description: string; readonly items: FieldSchema; readonly minItems?: number; readonly maxItems?: number; readonly optional?: boolean }
-  | { readonly type: 'record'; readonly description: string; readonly values: FieldSchema; readonly optional?: boolean };
+  | ({ readonly type: 'array'; readonly description: string; readonly items: FieldSchema; readonly minItems?: number; readonly maxItems?: number; readonly optional?: boolean } & ServerFilled)
+  | ({ readonly type: 'record'; readonly description: string; readonly values: FieldSchema; readonly optional?: boolean } & ServerFilled);
 
 /**
  * A yes/no member. An optional one says what an absent member means (review F52; PR-02, PR-03): `default` when it is
@@ -23,7 +32,7 @@ export type FieldSchema =
  * and does not change it, so it is not part of the plain-text rendering (describeSchema) that the registry
  * fingerprint covers: batches issued before it still run (ADR 0010).
  */
-export interface BooleanSchema {
+export interface BooleanSchema extends ServerFilled {
   readonly type: 'boolean';
   readonly description: string;
   readonly optional?: boolean;
@@ -31,7 +40,7 @@ export interface BooleanSchema {
   readonly defaultText?: string;
 }
 
-export interface ObjectSchema {
+export interface ObjectSchema extends ServerFilled {
   readonly type: 'object';
   readonly description: string;
   readonly fields: Readonly<Record<string, FieldSchema>>;

@@ -68,3 +68,49 @@ export type TabletEntryKind = z.infer<typeof TabletEntryKind>;
 
 /** Kinds with a typed ClientEntry variant of their own (server-resolved lots and readings): refused as a BLOCK_ENTRY. */
 export const TYPED_ENTRY_KINDS: readonly TabletEntryKind[] = ['CONTAINER_WEIGHING', 'POTENCY_CALCULATION'];
+
+/**
+ * A block's entry schema as JSON (recipe-core blocks/schema.ts FieldSchema, with a pattern as its source text), so the
+ * browser renders the entry form from the engine's own definition. A member marked `serverFilled` is a fact the server
+ * reads (database or device) and the form never asks for: the server refuses or overwrites a value sent for it.
+ */
+export type BlockFieldSchemaWire =
+  | { type: 'string'; description: string; enum?: string[] | undefined; pattern?: string | undefined; optional?: boolean | undefined; serverFilled?: boolean | undefined }
+  | { type: 'decimal'; description: string; min?: string | undefined; minExclusive?: boolean | undefined; optional?: boolean | undefined; serverFilled?: boolean | undefined }
+  | { type: 'integer'; description: string; min?: number | undefined; max?: number | undefined; optional?: boolean | undefined; serverFilled?: boolean | undefined }
+  | { type: 'boolean'; description: string; optional?: boolean | undefined; default?: boolean | undefined; defaultText?: string | undefined; serverFilled?: boolean | undefined }
+  | BlockObjectSchemaWire
+  | { type: 'array'; description: string; items: BlockFieldSchemaWire; minItems?: number | undefined; maxItems?: number | undefined; optional?: boolean | undefined; serverFilled?: boolean | undefined }
+  | { type: 'record'; description: string; values: BlockFieldSchemaWire; optional?: boolean | undefined; serverFilled?: boolean | undefined };
+export interface BlockObjectSchemaWire {
+  type: 'object';
+  description: string;
+  fields: Record<string, BlockFieldSchemaWire>;
+  optional?: boolean | undefined;
+  serverFilled?: boolean | undefined;
+}
+
+const flags = { optional: z.boolean().optional(), serverFilled: z.boolean().optional() };
+export const BlockObjectSchemaWire: z.ZodType<BlockObjectSchemaWire> = z.lazy(() =>
+  z.strictObject({ type: z.literal('object'), description: z.string(), fields: z.record(z.string(), BlockFieldSchemaWire), ...flags }),
+);
+export const BlockFieldSchemaWire: z.ZodType<BlockFieldSchemaWire> = z.lazy(() =>
+  z.union([
+    z.strictObject({ type: z.literal('string'), description: z.string(), enum: z.array(z.string()).optional(), pattern: z.string().optional(), ...flags }),
+    z.strictObject({ type: z.literal('decimal'), description: z.string(), min: z.string().optional(), minExclusive: z.boolean().optional(), ...flags }),
+    z.strictObject({ type: z.literal('integer'), description: z.string(), min: z.number().int().optional(), max: z.number().int().optional(), ...flags }),
+    z.strictObject({ type: z.literal('boolean'), description: z.string(), default: z.boolean().optional(), defaultText: z.string().optional(), ...flags }),
+    BlockObjectSchemaWire,
+    z.strictObject({ type: z.literal('array'), description: z.string(), items: BlockFieldSchemaWire, minItems: z.number().int().optional(), maxItems: z.number().int().optional(), ...flags }),
+    z.strictObject({ type: z.literal('record'), description: z.string(), values: BlockFieldSchemaWire, ...flags }),
+  ]),
+);
+
+/** One entry kind a step offers as a BLOCK_ENTRY, with the block's own schema (Phase 3 slice 6). */
+export const BlockEntryFormView = z.strictObject({
+  kind: TabletEntryKind,
+  title: z.string(),
+  description: z.string(),
+  schema: BlockObjectSchemaWire,
+});
+export type BlockEntryFormView = z.infer<typeof BlockEntryFormView>;

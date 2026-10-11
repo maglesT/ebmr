@@ -11,6 +11,7 @@
  *    the command itself evaluates authority).
  * Instants carry the site-time text the server formats; the browser never formats GMP time.
  */
+import { blockEntryForms } from './block-entries.ts';
 import { sandbox } from '@ebmr/kernel';
 import { Dec } from '@ebmr/expr';
 import { blocks, engine, flow } from '@ebmr/recipe-core';
@@ -866,6 +867,7 @@ export async function stepScreen(ctx: ViewContext, stepKey: string): Promise<Ste
     fields: fieldsOf(ctx, stepDef, inst, stepKey),
     entries: entriesOf(ctx, stepKey),
     entryForms: entryFormsOf(def, stepDef),
+    blockEntries: blockEntryForms(stepDef.block),
     exceptions: exceptions.map((e) => shownException(ctx, e)),
     signatures: inst ? await signaturesOf(ctx.db, 'batch_step', aggregateId) : [],
     actions: actionViews(stepActions(ctx, inst, stepKey), shopFloor, whoOf(ctx), ctx.permissions, { ...extras, say: sayFor(ctx.run.def, ctx.rows) }),

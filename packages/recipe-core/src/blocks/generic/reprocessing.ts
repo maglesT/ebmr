@@ -42,6 +42,7 @@ export type AdditionCase = (typeof ADDITION_CASES)[number];
 /** The facts of a source container as the database reads them (recipe.source_container_facts); never typed. */
 export const SOURCE_FACTS_SCHEMA: ObjectSchema = {
   type: 'object',
+  serverFilled: true,
   description: 'The source container as the database reads it at the moment of use (filled by the server, checked again by the database)',
   fields: {
     container: { type: 'string', pattern: UUID_PATTERN, description: 'Output container id' },
@@ -266,7 +267,7 @@ export const G24V2: BlockVersion = {
           container: { type: 'string', pattern: UUID_PATTERN, description: 'The source output container' },
           quantity: { type: 'object', description: 'Net quantity taken, in the container unit', fields: { value: { type: 'decimal', min: '0', minExclusive: true, description: 'Decimal written as text' }, unit: { type: 'string', enum: ['kg', 'g', 'units'], description: 'Unit' } } },
           authorisation: { type: 'string', pattern: UUID_PATTERN, description: "The quality unit's signed authorisation of this use" },
-          authorisedBy: { type: 'string', pattern: UUID_PATTERN, optional: true, description: 'Its signer, read from the database (filled by the server)' },
+          authorisedBy: { type: 'string', pattern: UUID_PATTERN, optional: true, serverFilled: true, description: 'Its signer, read from the database (filled by the server)' },
           source: SOURCE_FACTS_SCHEMA,
         },
       },
