@@ -1,9 +1,10 @@
 /**
  * Reads of the quality screens (Phase 3 slice 6a): deviation-lite records by state, kind or batch; the QC extra-testing
- * decision of a batch; the ERP stub's orders and current masters as received; the material lots of the site. Read-only;
+ * decision of a batch; the ERP stub's orders, the masters in effect and the versions waiting for QA's confirmation; the
+ * material lots of the site. Read-only;
  * every write is a database command (index.ts) and every signed act a signable action (signables.ts).
  */
-import type { DeviationView, ErpOrderView, ExtraTestingView, LotSummaryView } from '@ebmr/api-contract';
+import type { DeviationView, ErpOrderView, ErpPendingView, ExtraTestingView, LotSummaryView } from '@ebmr/api-contract';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { usOf } from '../common/people.ts';
@@ -54,8 +55,11 @@ export async function erpOrders(app: AppContext, db: Db): Promise<ErpOrderView[]
 
 export async function erpProducts(db: Db) {
   const { rows } = await db.query<{ product_code: string; strength: string; product_name: string; reprocessing_permitted: boolean | null; beta_lactam: boolean; shelf_life_months: number; erp_reference: string }>(
-    `select distinct on (p.product_code, p.strength) p.product_code, p.strength, p.product_name, p.reprocessing_permitted, p.beta_lactam, p.shelf_life_months, p.erp_reference
-       from site.erp_product p order by p.product_code, p.strength, p.received_at desc, p.id desc`,
+    // The versions in effect (site-services 0802): a version waiting for QA's confirmation is listed by erpPending.
+    `select * from (select distinct on (x.master_key) p.product_code, p.strength, p.product_name, p.reprocessing_permitted, p.beta_lactam, p.shelf_life_months, p.erp_reference
+                      from site.erp_master_effect x join site.erp_product p on p.id = x.version_id
+                     where x.master_kind = 'PRODUCT' order by x.master_key, x.effective_at desc, x.id desc) e
+      order by e.product_code, e.strength`,
   );
   return rows.map((r) => ({
     productCode: r.product_code,
@@ -70,8 +74,10 @@ export async function erpProducts(db: Db) {
 
 export async function erpMaterials(db: Db) {
   const { rows } = await db.query<{ material_code: string; material_name: string; material_kind: 'API' | 'EXCIPIENT' | 'PRIMARY_PACKAGING' | 'PRINTED_PACKAGING' | 'INTERMEDIATE' | 'FINISHED'; unit: string; max_retest_months: number | null; erp_reference: string }>(
-    `select distinct on (m.material_code) m.material_code, m.material_name, m.material_kind, m.unit, m.max_retest_months, m.erp_reference
-       from site.erp_material m order by m.material_code, m.received_at desc, m.id desc`,
+    // The versions in effect (site-services 0802): a version waiting for QA's confirmation is listed by erpPending.
+    `select distinct on (x.master_key) m.material_code, m.material_name, m.material_kind, m.unit, m.max_retest_months, m.erp_reference
+       from site.erp_master_effect x join site.erp_material m on m.id = x.version_id
+      where x.master_kind = 'MATERIAL' order by x.master_key, x.effective_at desc, x.id desc`,
   );
   return rows.map((r) => ({
     materialCode: r.material_code,
@@ -80,6 +86,22 @@ export async function erpMaterials(db: Db) {
     unit: r.unit,
     ...(r.max_retest_months !== null ? { maxRetestMonths: r.max_retest_months } : {}),
     erpReference: r.erp_reference,
+  }));
+}
+
+/** The received master versions not yet in effect, with the values in effect beside them (site-services 0802). */
+export async function erpPending(app: AppContext, db: Db): Promise<ErpPendingView[]> {
+  const { rows } = await db.query<{ v: Omit<ErpPendingView, 'receivedAt'> & { receivedAt: string }; us: string }>(
+    `select x.v, ${usOf("(x.v ->> 'receivedAt')::timestamptz")} as us from jsonb_array_elements(site.erp_master_pending()) x(v)`,
+  );
+  return rows.map(({ v, us }) => ({
+    masterKind: v.masterKind,
+    key: v.key,
+    versionId: v.versionId,
+    erpReference: v.erpReference,
+    receivedAt: app.formatInstant(us),
+    values: v.values,
+    inEffect: v.inEffect,
   }));
 }
 

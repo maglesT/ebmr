@@ -5,13 +5,17 @@
  * quantity.
  */
 import { expect, signIn, test } from '../../fixtures/index.ts';
-import { importErp, officeSign } from '../../fixtures/slice6.ts';
+import { confirmErp, importErp, officeSign } from '../../fixtures/slice6.ts';
 
 test('master data: a formula is written, approved by a second person, and chosen in the designer @office', async ({ e2e, officePage, persona, api, evidence }, testInfo) => {
   const steward = persona('GMP', 'steward');
   const approver = persona('GMP', 'approver');
   const author = persona('GMP', 'author');
   const erp = await importErp(api('GMP'), e2e.seeds.GMP, `ff${testInfo.parallelIndex}${Date.now() % 100000}`);
+  // QA confirms the new codes: a new master is in effect only then (site-services 0802, exit review HIGH-1).
+  const qaMaster = await officePage('GMP', 'PC-QA-01');
+  await signIn.office(qaMaster, persona('GMP', 'approver'));
+  await confirmErp(qaMaster, e2e, persona('GMP', 'approver'), erp);
   const base = e2e.url('GMP');
 
   const page = await officePage('GMP', 'PC-QA-01');

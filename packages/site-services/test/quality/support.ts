@@ -9,6 +9,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { withCommand, type ActorContext } from '../../../kernel/src/db/command.ts';
 import { seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { confirmErpMaster, erpMasterAggregateId, type ErpMasterKind } from '../../src/index.ts';
 import { signerActor, signFor, type TestDatabase } from '../helpers.ts';
 
 type CommandClient = Parameters<Parameters<typeof withCommand>[2]>[0];
@@ -24,6 +25,11 @@ export interface QualityCast {
   admin: SeededActor;
   erp: SeededActor;
   warehouse: SeededActor;
+  /** QA confirming ERP master changes (ERP_MASTER_CONFIRMED, site services 0802), and a second one. */
+  qaMaster: SeededActor;
+  qaMaster2: SeededActor;
+  /** A service identity holding INTERFACE.WRITE (SERVICE_ACCOUNT): not the ERP. */
+  service: SeededActor;
 }
 
 export async function seedQualityCast(db: TestDatabase): Promise<QualityCast> {
@@ -38,6 +44,9 @@ export async function seedQualityCast(db: TestDatabase): Promise<QualityCast> {
     admin: await signerActor(db, 'SYSTEM_ADMINISTRATOR'),
     erp: await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' }),
     warehouse: await signerActor(db, 'WAREHOUSE_LABELLING'),
+    qaMaster: await signerActor(db, 'QA_MBR_APPROVER'),
+    qaMaster2: await signerActor(db, 'QA_MBR_APPROVER'),
+    service: await seedServiceActor(db, { roleCode: 'SERVICE_ACCOUNT', name: 'Backup service' }),
   };
 }
 
@@ -113,13 +122,24 @@ export class QualityWorld {
     return { id, number, site, productCode, strength };
   }
 
-  /** Posts a material master version as the ERP interface (the latest version wins). */
+  /** Posts a material master version as the ERP interface; QA confirms it when it does not take effect on its own (site services 0802). */
   async material(materialCode: string, materialKind = 'EXCIPIENT', unit = 'kg', maxRetestMonths: number | null = 24, materialName = `Material ${materialCode}`): Promise<void> {
-    await this.run(this.cast.erp, (c) =>
-      c.query('select site.erp_receive_material($1::jsonb)', [
-        JSON.stringify({ materialCode, materialName, materialKind, unit, ...(maxRetestMonths ? { maxRetestMonths } : {}), erpReference: `ERP-${materialCode}` }),
-      ]),
-    );
+    const id = await this.sql<string>(this.cast.erp, 'select site.erp_receive_material($1::jsonb) as r', [
+      JSON.stringify({ materialCode, materialName, materialKind, unit, ...(maxRetestMonths ? { maxRetestMonths } : {}), erpReference: `ERP-${materialCode}` }),
+    ]);
+    if ((await this.masterState('MATERIAL', id)) === 'PENDING') await this.confirm('MATERIAL', id);
+  }
+
+  /** PENDING, EFFECTIVE or SUPERSEDED (site services 0802). */
+  async masterState(kind: ErpMasterKind, versionId: string): Promise<string> {
+    return (await this.db.app.query<{ s: string }>('select site.erp_master_state($1, $2) as s', [kind, versionId])).rows[0]?.s ?? '';
+  }
+
+  /** QA's ERP_MASTER_CONFIRMED signature on the version, and the confirmation (site services 0802). */
+  async confirm(kind: ErpMasterKind, versionId: string, signer: SeededActor = this.cast.qaMaster): Promise<string> {
+    const sig = await this.sign(signer, { type: 'erp_master', id: erpMasterAggregateId(kind, versionId) }, 'ERP_MASTER_CONFIRMED', 'PENDING');
+    await this.run(signer, (c) => confirmErpMaster(c, kind, versionId, sig));
+    return sig;
   }
 
   /** A lot received in QUARANTINE at SITE-1 (the material master posted first). */

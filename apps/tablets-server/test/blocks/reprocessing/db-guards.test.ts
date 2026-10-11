@@ -134,8 +134,8 @@ beforeAll(async () => {
   runs.O = new RunDriver(sbx, await importAndIssue(sbx, issuer, writePackage(sbx, reprocessingDbMbr({ code: 'PCM650', strength: '650 mg' }))), browsers);
   for (const d of Object.values(runs)) d.beforeTap = advance;
   qa = personaIn(sbx, 'qa1').personId;
-  // The ERP product master of the test product (5a's register, arranged): 24 months' shelf life.
-  await asSetup(sbx, "insert into site.erp_product (product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, correlation_id) values ('PCM500', '500 mg', 'Paracetamol tablets', true, false, 24, 'TEST-ERP-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())");
+  // The ERP product master of the test product (5a's register, arranged, in effect as site-services 0802 reads it): 24 months' shelf life.
+  await asSetup(sbx, "with p as (insert into site.erp_product (product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, correlation_id) values ('PCM500', '500 mg', 'Paracetamol tablets', true, false, 24, 'TEST-ERP-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id, product_code, strength) insert into site.erp_master_effect (master_kind, master_key, version_id, basis, person_id, account_id) select 'PRODUCT', p.product_code || '|' || p.strength, p.id, 'RELEASE_BASELINE', gen_random_uuid(), gen_random_uuid() from p");
   op1 = personaIn(sbx, 'operator1').personId;
   sResidue = await residue(runs.S);
   tResidue = await residue(runs.T);

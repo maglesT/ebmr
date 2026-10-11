@@ -32,7 +32,7 @@ import { recordContentForSigning } from '../../../src/features/esig/content.ts';
 import { engineActor, engineRoles } from '../../../src/features/execution/roles.ts';
 import { runContext } from '../../../src/features/execution/runs.ts';
 import { actorOfBrowser, personaIn, startSigningServer } from '../../esig/support.ts';
-import { appendAs, engineResult, messageOf } from '../../execution/db-guards-support.ts';
+import { actorOf as actorOfRun, appendAs, engineResult, messageOf, prepareSignature } from '../../execution/db-guards-support.ts';
 import { asPersonaInRole, dcMini, refusalOf, RunDriver, valueOf, type ExecServer } from '../../execution/support.ts';
 
 type Json = Record<string, unknown>;
@@ -441,5 +441,56 @@ describe('G-07 on the GMP installation (slice 6d: every dispensed lot is consume
     expect(await attempt(1, null)).toMatch(/consumed no such quantity of that lot.*G07-CONSUMPTION.*EBMR-TAB-391/s);
     expect(await attempt(2, '0.020')).toMatch(/G07-CONSUMPTION.*EBMR-TAB-391/s);
     expect(await attempt(3, '0.010')).toBe('ok');
+  });
+});
+
+describe('consumption into a running batch only, named by an entry of its command; reservations end with the batch (exit review HIGH-4; recipe-core 0700)', () => {
+  const quantityOf = async (code: string): Promise<string> => (await gmp.db.admin.query<{ q: string }>('select site.lot_quantity($1)::text as q', [lotIds.get(code)])).rows[0]?.q ?? '';
+
+  it('[INV-13][INV-14] past the server, a GMP consumption that no entry of its command names is refused when the command commits; the lot keeps its stock', async () => {
+    const b2 = await issued();
+    await prepareBatch(b2);
+    const before = await quantityOf('L26-0301');
+    const browser = (await dispenser(b2.batchId)).browser('operator1');
+    const orphan = await messageOf(
+      withCommand(gmp.db.app, await actorOfRun(gmp, browser, 'operator1'), async (c) => {
+        const res = (await c.query<{ r: Json }>('select tab.tb01_reservation_for($1::uuid, $2, $3::numeric, $4) as r', [b2.batchId, 'L26-0301', '0.500', 'kg'])).rows[0]?.r ?? {};
+        await c.query('select recipe.consume_lot($1::uuid, $2::uuid, $3, $4::numeric, $5) as r', [b2.batchId, res['reservationId'], 'MAT-MCC', '0.500', 'kg']);
+      }),
+    );
+    expect(orphan).toMatch(/EBMR-RCP-433/);
+    expect(await quantityOf('L26-0301')).toBe(before);
+  });
+
+  it('[INV-13][INV-14] a batch cancelled before it started revokes its open reservations (BATCH_ENDED), and nothing is consumed into it afterwards', async () => {
+    const b3 = await issued();
+    await prepareBatch(b3);
+    const reservations = async (): Promise<string[]> =>
+      (await gmp.db.admin.query<{ k: string | null }>(
+        'select x.kind as k from site.lot_reservation r left join site.lot_reservation_revocation x on x.reservation_id = r.id where r.batch_id = $1 order by r.id',
+        [b3.batchId],
+      )).rows.map((r) => r.k ?? 'OPEN');
+    expect(await reservations()).toEqual(['OPEN', 'OPEN', 'OPEN', 'OPEN']);
+    const supervisor = await gmp.asPersona('supervisor1');
+    const version = (await gmp.db.admin.query<{ v: string }>("select state ->> 'version' as v from recipe.execution_state where batch_id = $1", [b3.batchId])).rows[0]?.v;
+    const pending = await prepareSignature(gmp, supervisor, 'supervisor1', 'batch_record', `${b3.batchId}:record@${version}`, 'BATCH_CANCELLED');
+    await withCommand(gmp.db.app, await pending.actor(), async (c) => {
+      const signatureId = await pending.sign(c);
+      const run = await runContext(gmp.db.admin, b3.batchId);
+      const tx = await execution.ExecutionTx.open(c, run.def, b3.batchId);
+      const roles = await engineRoles(c);
+      const actor = engineActor(personaIn(gmp, 'supervisor1').personId, roles);
+      const r = await tx.command({ type: 'CANCEL_BATCH', commandId: randomUUID(), actor, reason: 'The order was withdrawn by planning', signature: { id: signatureId, meaning: 'BATCH_CANCELLED', signer: actor.id } }, roles);
+      if (!r.accepted) throw new Error(`SETUP: the cancel was refused: ${JSON.stringify(r.refusal)}`);
+    });
+    expect(await reservations()).toEqual(['BATCH_ENDED', 'BATCH_ENDED', 'BATCH_ENDED', 'BATCH_ENDED']);
+    const browser = (await dispenser(b3.batchId)).browser('operator1');
+    const late = await messageOf(
+      withCommand(gmp.db.app, await actorOfRun(gmp, browser, 'operator1'), async (c) => {
+        const res = (await c.query<{ id: string }>('select id::text from site.lot_reservation where batch_id = $1 and lot_id = $2', [b3.batchId, lotIds.get('L26-0301')])).rows[0]?.id;
+        await c.query('select recipe.consume_lot($1::uuid, $2::uuid, $3, $4::numeric, $5) as r', [b3.batchId, res, 'MAT-MCC', '0.500', 'kg']);
+      }),
+    );
+    expect(late).toMatch(/EBMR-RCP-432/);
   });
 });

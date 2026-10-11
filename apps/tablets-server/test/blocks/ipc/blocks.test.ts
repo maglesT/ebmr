@@ -10,7 +10,7 @@ import { Dec } from '@ebmr/expr';
 import { IPC_BLOCK_VERSIONS, TB11, TB12, TB13, TB14, TB15 } from '../../../src/blocks/ipc/index.ts';
 import { bandOf, statistics, acceptanceValue } from '../../../src/blocks/ipc/calc.ts';
 import { NOT_APPLICABLE, RULE_SETS, resolveRuleSets, ruleSetProblem, shared, uncoveredMarkets, utcDate, type UniformityParams } from '../../../src/blocks/ipc/rule-sets.ts';
-import { overdue } from '../../../src/blocks/tb-11.ts';
+import { counterOf, overdue } from '../../../src/blocks/tb-11.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../../../src/features/edition-blocks.ts';
 import { blockMbr, definitionCodes, defineFor, fixturePhase, MIN, OP1, Run, runGolden, sig, T0, VER1 } from '../granulation/support.ts';
 import { engine } from '@ebmr/recipe-core/pure';
@@ -439,6 +439,24 @@ describe('TB-11 periodic IPC scheduler', () => {
     expect(rec(run, group('L', '5000.0', { counter: 15001 })).accepted).toBe(true);
     expect(lastData(run, 'WEIGHT_CHECK')['missed']).toEqual([{ stream: 'L', test: 'WEIGHT', by: 'COUNT' }]);
     expect(types(run)).toEqual(['IPC_CHECK_MISSED']);
+  });
+
+  it('[DI-28][PR-29] the press counter is compared as an exact integer up to the largest safe integer, and a counter above 2^53 is refused, never rounded (exit review MEDIUM)', () => {
+    const top = Number.MAX_SAFE_INTEGER;
+    expect([counterOf(top), counterOf(2 ** 53), counterOf('9007199254740993'), counterOf(1.5)]).toEqual([9007199254740991n, undefined, undefined, undefined]);
+    const cfg = { ...base, streams: [{ id: 'L' }], plan: [{ test: 'WEIGHT', every: { value: '25', unit: 'min' }, everyCount: 10000, qrmRef: 'QRM-IPC-07' }] };
+    const run = runOf(TB11, cfg);
+    run.entry('p', { kind: 'RUN_START', press: 'TEST-PRESS-01', counter: top - 20000 });
+    run.entry('p', sweep('L'));
+    run.advance(1n * MIN);
+    // One below the start, at the top of the range: a Number comparison there is exact only by luck of the range.
+    expect(rec(run, group('L', '5000.0', { counter: top - 20001 })).refusal?.code).toBe('TB11-COUNTER-BACK');
+    // 2^53 + 1 has no exact JavaScript number: the schema refuses it before any comparison.
+    const beyond = rec(run, group('L', '5000.0', { counter: 2 ** 53 + 1 }));
+    expect(beyond.accepted).toBe(false);
+    expect(beyond.refusal?.code).not.toBe('TB11-COUNTER-BACK');
+    expect(rec(run, group('L', '5000.0', { counter: top })).accepted).toBe(true);
+    expect(lastData(run, 'WEIGHT_CHECK')['missed']).toEqual([{ stream: 'L', test: 'WEIGHT', by: 'COUNT' }]);
   });
 
   it('[PR-29][IN-35][INV-41] the step closes only after the run ended, with an end-of-run check of every stream and the sweeps done; a failing check raises IPC_CHECK_FAILED for its stream', () => {

@@ -112,7 +112,7 @@ const KIND_TEST: Record<string, (typeof TESTS)[number]> = {
 interface PlanItem {
   test: (typeof TESTS)[number];
   every: bigint;
-  everyCount?: number;
+  everyCount?: bigint;
 }
 
 function planOf(config: Readonly<Record<string, unknown>>): PlanItem[] {
@@ -120,7 +120,7 @@ function planOf(config: Readonly<Record<string, unknown>>): PlanItem[] {
   return plan.filter(isRecord).map((p) => ({
     test: p['test'] as (typeof TESTS)[number],
     every: durationUs(p['every']) ?? 0n,
-    ...(typeof p['everyCount'] === 'number' ? { everyCount: p['everyCount'] } : {}),
+    ...(counterOf(p['everyCount']) !== undefined ? { everyCount: counterOf(p['everyCount']) as bigint } : {}),
   }));
 }
 
@@ -208,18 +208,28 @@ export function overdue(entries: readonly EntryRecord[], config: Readonly<Record
   return out;
 }
 
+/**
+ * A press counter or count interval as an exact integer (CLAUDE.md: no JavaScript number for GMP values). The schema
+ * takes whole numbers within the safe-integer range only (recipe-core blocks/schema.ts), so anything else is no counter.
+ */
+export function counterOf(v: unknown): bigint | undefined {
+  return typeof v === 'number' && Number.isSafeInteger(v) ? BigInt(v) : undefined;
+}
+
 /** The highest press counter the run has recorded (RUN_START and every check that gave one). */
-function lastCounter(entries: readonly EntryRecord[]): number | undefined {
-  let c: number | undefined;
-  for (const e of entries) if (typeof e.data['counter'] === 'number') c = c === undefined || e.data['counter'] > c ? e.data['counter'] : c;
+function lastCounter(entries: readonly EntryRecord[]): bigint | undefined {
+  let c: bigint | undefined;
+  for (const e of entries) {
+    const v = counterOf(e.data['counter']);
+    if (v !== undefined && (c === undefined || v > c)) c = v;
+  }
   return c;
 }
 
 /** The counter of the slot's last check (or the run's start). */
-function slotCounter(entries: readonly EntryRecord[], stream: string, test: Test): number | undefined {
-  const last = [...entries].reverse().find((e) => checkTest(e) === test && e.data['stream'] === stream && typeof e.data['counter'] === 'number');
-  const v = last?.data['counter'] ?? entries.find((e) => e.kind === 'RUN_START')?.data['counter'];
-  return typeof v === 'number' ? v : undefined;
+function slotCounter(entries: readonly EntryRecord[], stream: string, test: Test): bigint | undefined {
+  const last = [...entries].reverse().find((e) => checkTest(e) === test && e.data['stream'] === stream && counterOf(e.data['counter']) !== undefined);
+  return counterOf(last?.data['counter'] ?? entries.find((e) => e.kind === 'RUN_START')?.data['counter']);
 }
 
 function missedException(view: HandlerView, missed: readonly Missed[]): ExceptionDraft {
@@ -335,9 +345,10 @@ function accept(view: HandlerView, entry: Entry): EntryResult {
       if (!isTest) return refuse('TB11-ENTRY', `${entry.kind} is not an entry of an IPC scheduler step`, ['PR-29']);
       const test = KIND_TEST[entry.kind];
       if (test && !planOf(view.config).some((p) => p.test === test)) return refuse('TB11-NOT-PLANNED', `${test.toLowerCase()} is not in the test plan of ${view.stepKey}`, ['PR-29', 'PR-07']);
-      if (entry['counter'] !== undefined) {
+      const counter = counterOf(entry['counter']);
+      if (counter !== undefined) {
         const last = lastCounter(entries);
-        if (last !== undefined && Number(entry['counter']) < last) return refuse('TB11-COUNTER-BACK', `The press counter reads ${Number(entry['counter'])}, below the ${last} already recorded`, ['DI-28', 'PR-29']);
+        if (last !== undefined && counter < last) return refuse('TB11-COUNTER-BACK', `The press counter reads ${counter}, below the ${last} already recorded`, ['DI-28', 'PR-29']);
       }
       const plan = test ? planOf(view.config).find((p) => p.test === test) : undefined;
       const counts = checkTest({ kind: entry.kind, data: entry }) !== undefined;
@@ -347,9 +358,9 @@ function accept(view: HandlerView, entry: Entry): EntryResult {
       t = r.t;
       data = r.t.data;
       const slotTest = counts ? (test ?? 'SWEEP') : undefined;
-      if (slotTest && plan?.everyCount !== undefined && typeof entry['counter'] === 'number') {
+      if (slotTest && plan?.everyCount !== undefined && counter !== undefined) {
         const prev = slotCounter(entries, String(entry['stream']), slotTest);
-        if (prev !== undefined && entry['counter'] - prev > plan.everyCount && !missed.some((m) => m.stream === entry['stream'] && m.test === slotTest)) {
+        if (prev !== undefined && counter - prev > plan.everyCount && !missed.some((m) => m.stream === entry['stream'] && m.test === slotTest)) {
           missed.push({ stream: String(entry['stream']), test: slotTest, by: 'COUNT' });
         }
       }
