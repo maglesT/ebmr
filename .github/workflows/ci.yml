@@ -71,11 +71,46 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
+  # The golden batches (Phase 3 slice 6c, D-S6-6): their PostgreSQL runs under libfaketime on its own cluster, so a
+  # batch of many hours runs in minutes; the test moves the offset file forward only, and nothing in the GMP code reads
+  # a test clock. The other jobs never preload libfaketime; their golden tests do not run (runIf EBMR_FAKETIME_FILE).
+  golden:
+    name: Golden batches (libfaketime cluster)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5433/postgres
+      EBMR_FAKETIME_FILE: /var/lib/postgresql/faketime-golden/offset
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start a PostgreSQL 16 cluster under libfaketime
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q faketime
+          sudo pg_createcluster 16 golden --port 5433 --locale C.UTF-8
+          sudo install -d -m 0777 /var/lib/postgresql/faketime-golden
+          echo '+0s' | sudo tee "$EBMR_FAKETIME_FILE" > /dev/null
+          sudo chmod 0666 "$EBMR_FAKETIME_FILE"
+          printf "LD_PRELOAD = '%s'\nFAKETIME_TIMESTAMP_FILE = '%s'\nFAKETIME_NO_CACHE = '1'\nDONT_FAKE_MONOTONIC = '1'\n" \
+            "$(ls /usr/lib/x86_64-linux-gnu/faketime/libfaketimeMT.so.1)" "$EBMR_FAKETIME_FILE" | sudo tee -a /etc/postgresql/16/golden/environment
+          sudo pg_ctlcluster 16 golden start
+          until pg_isready -h localhost -p 5433; do sleep 1; done
+          sudo -u postgres psql -p 5433 -v ON_ERROR_STOP=1 -c "create role ebmr_dev superuser login password 'ebmr_dev'"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # One file at a time: the clock file is shared, and GB-T-01 (slice 6d) freezes it while the clock test reads it as
+      # an offset. GB-T-01 runs about 20 minutes.
+      - run: pnpm vitest run apps/tablets-server/test/golden --reporter=default --no-file-parallelism
+
   # Keeps the name of the single Phase 2 job, so a required status check still finds it; it passes only when the
   # static checks and every test shard passed and the trace accepts the merged report.
   report:
     name: Typecheck, lint, boundaries, register, web build, tests, traceability
-    needs: [checks, tests]
+    needs: [checks, tests, golden]
     # Runs when a shard failed (to merge and summarise what did run) but not when the run was cancelled, for example by
     # a newer push to the same branch: there is nothing to report then.
     if: ${{ !cancelled() }}
@@ -110,8 +145,8 @@ jobs:
               if (t.status === "failed") console.log(`FAILED ${f.name.replace(process.cwd() + "/", "")} > ${t.fullName}\n  ${(t.failureMessages || []).join("\n").split("\n").slice(0, 12).join("\n  ")}`);
             console.log(`${r.numFailedTests} failed, ${r.numPassedTests} passed, ${r.numTotalTests} total`);
           '
-      - name: The static checks and every shard passed
-        run: test "${{ needs.checks.result }}" = success && test "${{ needs.tests.result }}" = success
+      - name: The static checks, every shard and the golden batches passed
+        run: test "${{ needs.checks.result }}" = success && test "${{ needs.tests.result }}" = success && test "${{ needs.golden.result }}" = success
       # The Vitest report alone: listed end-to-end tests are checked against a run in the traceability job below.
       - run: pnpm trace
       - name: OpenAPI document of the frozen contract

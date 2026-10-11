@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { DecimalString, Empty, Instant, PersonRef, Uuid, Watermark } from '../common.ts';
 import { defineRoute } from '../route.ts';
+import { FormulaChoiceView } from './master-data.ts';
 
 /** MBR content as JSON (flow.parseMbr checks it on both sides; the contract does not repeat the model). */
 export const MbrContentWire = z.looseObject({ format: z.string(), formatVersion: z.number().int() });
@@ -188,6 +189,13 @@ export const designer = {
       product: ProductRef,
       batchSizes: z.array(z.strictObject({ quantity: DecimalString, unit: z.string().min(1) })).min(1),
       markets: z.array(z.string().min(2)).min(1),
+      /**
+       * Phase 3 slice 6 ("Choose a product", decision 0006): an APPROVED formula version of the product and strength
+       * (FORMULA.READ). The server writes the template's BOM quantities from it (computed, INV-25) and the database pins
+       * the version to the MBR, checking the product, the reference batch size (the formula's theoretical batch mass) and
+       * every quantity.
+       */
+      formulaVersionId: Uuid.optional(),
     }),
     response: VersionView,
   }),
@@ -298,5 +306,21 @@ export const designer = {
     mutating: false,
     summary: 'Reference documents (DMS stand-in) with version and hash',
     response: z.strictObject({ documents: z.array(ReferenceDocumentView) }),
+  }),
+  formulaChoice: defineRoute({
+    id: 'designer.formulaChoice',
+    method: 'GET',
+    path: '/api/designer/formula-choice',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: '"Choose a product": the approved formula version of a product, strength and batch size, with its bill of materials and computed quantities (FORMULA.READ)',
+    query: z.strictObject({
+      product: z.string().min(1).max(64),
+      strength: z.string().min(1).max(64),
+      /** Units (tablets) per batch. */
+      batchSize: z.string().regex(/^[1-9][0-9]{0,11}$/),
+    }),
+    response: FormulaChoiceView,
   }),
 } as const;

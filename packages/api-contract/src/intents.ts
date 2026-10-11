@@ -14,6 +14,10 @@
 import { z } from 'zod';
 import type { engine } from '@ebmr/recipe-core/pure';
 import { DataValueWire, DecimalString, Uuid } from './common.ts';
+import { TabletEntryKind } from './tablet-entries.ts';
+
+/** An act proposed for approval on a batch (aggregate batch_act, recipe-core 0470). */
+export const ActId = z.string().regex(/^[0-9a-f-]{36}:act@[0-9]{1,10}:[0-9a-f]{64}$/, 'an act id: <batch>:act@<state version>:<hash>');
 
 /** A step instance: `<phase or hold point id>@<context key>` as the engine names it (e.g. `p-blend@` or `p-dry@R=2/L=3`). */
 export const StepKey = z.string().min(2).max(512).regex(/@/, 'a step key names the step and its context: <step>@<context>');
@@ -34,6 +38,22 @@ export type ClientDataSource = z.infer<typeof ClientDataSource>;
  * balance after checking that it is a scale of the step's room and that none of them is online (review finding P50).
  */
 const ManualWeighing = z.strictObject({ tare: DecimalString, gross: DecimalString, unit: z.string().min(1), deviceCode: z.string().min(1).max(64).optional() });
+
+/**
+ * A member of a BLOCK_ENTRY's data, as the block's own schema takes it (recipe-core blocks/schema.ts): text (decimals as
+ * decimal text, never numbers), a yes/no, a whole number, or a list or object of these. The engine validates it against
+ * the block version's entry schema; the database's guards decide the rest.
+ */
+export type BlockFieldWire = string | boolean | number | BlockFieldWire[] | { [key: string]: BlockFieldWire };
+export const BlockFieldWire: z.ZodType<BlockFieldWire> = z.lazy(() =>
+  z.union([
+    z.string().max(4000),
+    z.boolean(),
+    z.number().int().safe(),
+    z.array(BlockFieldWire).max(500),
+    z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/), BlockFieldWire),
+  ]),
+);
 
 /**
  * Block entries as the browser may send them, one variant per entry kind of the template's blocks.
@@ -85,6 +105,13 @@ export const ClientEntry = z.discriminatedUnion('kind', [
     grossReadingId: Uuid.optional(),
     manual: ManualWeighing.optional(),
   }),
+  // Phase 3 slice 6 (D-S6-2): any entry of a tablet block, G-06@1, G-21@1 or G-24@2 by its kind; the server hands
+  // {kind: entryKind, ...data} to the engine (no actor, source or time from the browser: `kind` is the entry kind's own).
+  z.strictObject({
+    kind: z.literal('BLOCK_ENTRY'),
+    entryKind: TabletEntryKind,
+    data: z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,63}$/).refine((k) => k !== 'kind', 'kind is the entry kind'), BlockFieldWire),
+  }),
 ]);
 export type ClientEntry = z.infer<typeof ClientEntry>;
 export type ClientEntryKind = ClientEntry['kind'];
@@ -111,6 +138,32 @@ export const ClientIntent = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ATTACH_DEVIATION'), exception: z.string().min(1), deviationRef: z.string().min(1).max(128) }),
   z.strictObject({ type: z.literal('HOLD_BATCH'), holdType: z.enum(['SUPERVISOR', 'QA']), reason: z.string().min(1).max(2000) }),
   z.strictObject({ type: z.literal('RELEASE_HOLD'), hold: z.string().min(1), reason: z.string().min(1).max(2000) }),
+  // Phase 3 slice 6 (DI-24, DI-29): the void of an attempt that has no result yet, with the person's own reason; the
+  // QA approval (S28) is QA's VOID_AUTHORISED signature on the act proposed first (POST /api/batches/:batchId/acts),
+  // named by `approvalActId`. Nothing deletes an entry: there is no delete route.
+  z.strictObject({
+    type: z.literal('VOID_ATTEMPT'),
+    stepKey: StepKey,
+    item: z.string().min(1).max(128),
+    reason: z.string().trim().min(1).max(2000),
+    /** An existing data point of the item (refused when it holds a result). */
+    point: z.string().min(1).max(128).optional(),
+    approvalActId: ActId.optional(),
+  }),
+  // Phase 3 slice 6d (GB-T-01, INV-19): the end of an iteration of a bounded loop (the LOD re-dry, continued coating), named
+  // by a step instance of the iteration; the engine evaluates the loop's exit condition on the recorded end point and
+  // decides EXIT, CONTINUE or EXHAUSTED (never the person).
+  z.strictObject({ type: z.literal('COMPLETE_LOOP_ITERATION'), stepKey: StepKey }),
+  // Phase 3 slice 6d (GB-T-01, DI-34, PR-13): the person's choice at an operator-choice branch (the optional extra
+  // granulating fluid), with the reason; `context` is the iteration or sub-lot the choice is made in, as a step key's
+  // context ('R-GRAN=1'; empty outside them). The engine checks the decision mode, the roles and that the choice is due.
+  z.strictObject({
+    type: z.literal('CHOOSE_ALTERNATIVE'),
+    construct: z.string().min(1).max(128),
+    context: z.string().max(512).optional(),
+    branch: z.string().min(1).max(128),
+    reason: z.string().trim().min(1).max(2000),
+  }),
 ]);
 export type ClientIntent = z.infer<typeof ClientIntent>;
 
@@ -153,12 +206,13 @@ export const ENGINE_COMMAND_CLASSES = {
   SIGN_OFF_STAGE: 'CLIENT_SIGNED',
   DISPOSITION_EXCEPTION: 'CLIENT_SIGNED',
   // A2: loop, alternative and replicate intents; corrections, voids, invalidations; skip, abort, cancel.
-  CHOOSE_ALTERNATIVE: 'LATER',
+  CHOOSE_ALTERNATIVE: 'CLIENT_PLAIN',
   CHOOSE_REPLICATE_COUNT: 'LATER',
-  COMPLETE_LOOP_ITERATION: 'LATER',
+  COMPLETE_LOOP_ITERATION: 'CLIENT_PLAIN',
   REQUEST_SKIP: 'LATER',
   CORRECT_ENTRY: 'LATER',
-  VOID_ATTEMPT: 'LATER',
+  // Phase 3 slice 6: the void of an attempt, with its reason and the QA approval of the proposed act.
+  VOID_ATTEMPT: 'CLIENT_PLAIN',
   INVALIDATE_RESULT: 'LATER',
   ABORT_BATCH: 'LATER',
   CANCEL_BATCH: 'LATER',

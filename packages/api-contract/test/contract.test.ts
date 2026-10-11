@@ -27,7 +27,8 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { EXAMPLES, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { EXAMPLES, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
 
@@ -150,6 +151,21 @@ describe('client intents refuse browser-supplied facts (J1-3, J2-8)', () => {
   });
 });
 
+describe('block entries (slice 6, D-S6-2)', () => {
+  it('a BLOCK_ENTRY names a kind of the closed list and carries the block\'s own fields; no kind, actor or decimal number in its data', () => {
+    const kinds = [...new Set(Object.values(TABLET_ENTRY_KINDS_BY_BLOCK).flat())].sort();
+    expect([...TabletEntryKind.options].sort()).toEqual(kinds);
+    for (const k of TYPED_ENTRY_KINDS) expect(kinds).toContain(k);
+    const shipper = { kind: 'BLOCK_ENTRY', entryKind: 'SHIPPER', data: { sscc: '389012340000000012', packs: '48', part: false } };
+    expect(ok(ClientEntry, shipper)).toBe(true);
+    expect(ok(ClientEntry, { ...shipper, entryKind: 'NOT_A_KIND' })).toBe(false);
+    expect(ok(ClientEntry, { ...shipper, data: { ...shipper.data, kind: 'RECONCILIATION' } })).toBe(false);
+    expect(ok(ClientEntry, { ...shipper, data: { mass: 12.5 } })).toBe(false);
+    expect(ok(ClientEntry, { ...shipper, actor: { id: 'x' } })).toBe(false);
+    expect(ok(ClientEntry, { ...shipper, data: { pieces: [{ code: 'FE-08', detected: true }], count: 3 } })).toBe(true);
+  });
+});
+
 describe('decimals travel as text (wire rules)', () => {
   it('DecimalString refuses JSON numbers, exponents and malformed text', () => {
     for (const good of ['0', '12.503', '-0.5', '100', '0.000', '-12']) expect(ok(DecimalString, good), good).toBe(true);
@@ -189,7 +205,13 @@ describe('route table', () => {
 
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
-    expect(fresh.map((r) => r.id).sort()).toEqual(['esig.createChallenge', 'execution.command', 'execution.importPackage', 'execution.issue', 'execution.planBatch']);
+    expect(fresh.map((r) => r.id).sort()).toEqual([
+      'batches.command', 'batches.issueSscc', 'batches.proposeAct', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
+      'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'plant.completeCleaning',
+      'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
+      'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
+      'quality.registerEvidenceDocument',
+    ]);
     for (const r of fresh) {
       expect(r.auth, r.id).toBe('SESSION');
       expect(r.mutating, r.id).toBe(true);
@@ -197,15 +219,36 @@ describe('route table', () => {
     }
   });
 
-  it('[DI-05][INV-18] designer routes and the GMP batch plan are GMP only, test packages and test batches sandbox only; running batches, devices and the rest serve both', () => {
+  it('[DI-05][INV-18] designer routes and the GMP batch plan are GMP only, test packages and running test batches sandbox only (GMP batches run under batches, D-S6-1); work queue, lots, devices and the rest serve both', () => {
     for (const r of Object.values(routes.designer)) expect(r.installation, r.id).toBe('GMP');
     expect(routes.execution.planBatch.installation).toBe('GMP');
     for (const r of [routes.execution.testPackages, routes.execution.importPackage, routes.execution.issueForm, routes.execution.issue]) expect(r.installation, r.id).toBe('SANDBOX');
-    const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue'];
+    const testRuns = [routes.execution.runs, routes.execution.run, routes.execution.step, routes.execution.timeline, routes.execution.verifyReplay, routes.execution.command];
+    for (const r of testRuns) expect(r.installation, r.id).toBe('SANDBOX');
+    for (const r of Object.values(routes.batches)) expect(r.installation, r.id).toBe('GMP');
+    const installationBound: readonly string[] = ['execution.planBatch', 'execution.testPackages', 'execution.importPackage', 'execution.issueForm', 'execution.issue', ...testRuns.map((r) => r.id)];
     for (const r of Object.values(routes.execution).filter((x) => !installationBound.includes(x.id))) expect(r.installation, r.id).toBe('ANY');
     for (const r of [...Object.values(routes.devices), ...Object.values(routes.meta), ...Object.values(routes.session), ...Object.values(routes.access), ...Object.values(routes.esig), ...Object.values(routes.audit)]) {
       expect(r.installation, r.id).toBe('ANY');
     }
+  });
+
+  it('[DI-05] the slice 6 namespaces (GMP batches, planning, master data, plant) and the new quality routes are GMP only, each with an example', () => {
+    const slice6 = allRoutes({ batches: routes.batches, planning: routes.planning, masterData: routes.masterData, plant: routes.plant });
+    for (const r of slice6) expect(r.installation, r.id).toBe('GMP');
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of SLICE_6_ROUTE_IDS) {
+      expect(exampled.has(id), `${id} has an example`).toBe(true);
+      expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
+    }
+  });
+
+  it('[DI-24] no route of the contract deletes anything, and the void of an attempt carries the person\'s reason', () => {
+    expect(all.filter((r) => r.method === 'DELETE').map((r) => r.id)).toEqual([]);
+    const v = { type: 'VOID_ATTEMPT', stepKey: 'p-blend@', item: 'blendTime' };
+    expect(ok(ClientIntent, { ...v, reason: 'The timer was stopped before the blend ended' })).toBe(true);
+    expect(ok(ClientIntent, v)).toBe(false);
+    expect(ok(ClientIntent, { ...v, reason: '   ' })).toBe(false);
   });
 
   it('[DI-22] the audit namespace is read-only (no edit, disable or purge route)', () => {

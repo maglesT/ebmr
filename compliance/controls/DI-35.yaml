@@ -246,6 +246,7 @@ tests:
   - "packages/recipe-core/test/engine/flow.test.ts > sequencing (DI-34) > [DI-34][DI-35] an abort needs every checklist item confirmed and exactly two approvals; the QA reviewer approves as QA"
   - "apps/tablets-server/test/execution/gmp-batch.test.ts > GMP batches on the GMP installation (slice 2b) > [DI-35][INV-10] the issue needs the issuer's own reason and every header input; a refused dry run signs nothing and leaves the batch planned"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the ISSUED signature (DI-35, INV-10) > [DI-35][INV-10] a GMP batch is issued only under the issuer's own valid ISSUED signature on its issue content: none, another person's, or one of another batch is refused"
+  - "packages/site-services/test/quality/lims.test.ts > retest (PR-18) > [PR-18][DI-35] a retest is recorded only under QC's own LOT_RETEST_APPROVED signature: the unsigned writer is not callable by the application role, a call without a signature is refused, and the signed retest is recorded"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

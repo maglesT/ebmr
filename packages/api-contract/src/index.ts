@@ -16,7 +16,7 @@ export * from './routes.ts';
 export * from './vocab/roles.ts';
 export { MetaView } from './ns/meta.ts';
 export { ChangeSecretRequest, DemoDeviceView, DeviceClass, DeviceNonceRequest, DeviceView, LoginMethod, LoginRequest, SessionView } from './ns/session.ts';
-export { ChallengeView, ManifestationView, SignableContentView, SignatureComponent, SignatureCredentials, SignOutcomeView } from './ns/esig.ts';
+export { ChallengeView, ManifestationView, SignableContentView, SignableDescriptorView, SignatureComponent, SignatureCredentials, SignOutcomeView } from './ns/esig.ts';
 export { AuditChainView, AuditEventView, ChainVerificationView } from './ns/audit.ts';
 export {
   EvidenceView,
@@ -63,4 +63,39 @@ export {
   WorkQueueItem,
 } from './ns/execution.ts';
 export { LiveReadingEvent, ReadingView, ScaleStatusView } from './ns/devices.ts';
-export { DeviationView, ErpCatalogue, ErpImportView, LotResultView } from './ns/quality.ts';
+export {
+  DeviationView,
+  ErpCatalogue,
+  ErpImportView,
+  ErpOrderView,
+  EvidenceDocumentView,
+  ExtraTestingView,
+  LotResultView,
+  LotSummaryView,
+  ReprocessingAuthorisationView,
+  ReprocessingRequestView,
+  ResidueContainerView,
+} from './ns/quality.ts';
+export * from './tablet-entries.ts';
+export { AdditionSourceView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
+export { PlanningOrderView } from './ns/planning.ts';
+export {
+  FormulaChoiceView,
+  FormulaLineInput,
+  FormulaLineRole,
+  FormulaLineView,
+  FormulaSummaryView,
+  FormulaVersionView,
+  FormulaView,
+} from './ns/master-data.ts';
+export {
+  AreaView,
+  CleaningView,
+  ClearanceView,
+  DetectorView,
+  EquipmentClassView,
+  EquipmentView,
+  PendingVerificationView,
+  TestPieceView,
+  ToolingSetView,
+} from './ns/plant.ts';

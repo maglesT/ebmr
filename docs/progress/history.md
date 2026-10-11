@@ -2369,3 +2369,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   permission, new PROCESSING number linked to its parents, INV-33), the expiry cap including whole-batch parents.
   Quick review: three high and five core medium, all fixed with regression tests; the rest to the backlog. Full suite
   (4,894 of 4,896; one test fixture and the register fixed), lint, typecheck, E2E (23) green locally.
+- 2026-10-11: PHASE 3 SLICE 6 (branch phase-3/slice-6, builders on slice-6a to 6d). 6a: the contract, GMP batch routes
+  (sandbox routes are SANDBOX-only), signed quality, lot, reprocessing, plant and void acts over HTTP with
+  `esig/describe`, the formulation library in its own schema (FORMULA.READ with product scope, two-person approval,
+  "Choose a product" writing the BOM from the formula and pinning it). 6b: screens for the shop floor (every tablet
+  block, G-06, G-21, G-24@2), planning, master data, plant and quality, and six browser specs. 6c: trace clauses for the
+  exit controls, gap tests, simulators for nine process kinds, GMP personas and seeds with released lots, the golden
+  clock. 6d: GB-T-01 end to end over HTTP, matching expected.json exactly; seven defects found and fixed. Quick review:
+  three high and five core medium, all fixed with regression tests. phase.yaml raised to 3. Full suite (4,982 passed,
+  17 skipped), register sync, trace at phase 3 (110 of 241 controls), E2E (29) green locally.

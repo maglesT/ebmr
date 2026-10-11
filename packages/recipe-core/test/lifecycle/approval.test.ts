@@ -431,6 +431,27 @@ describe('verification before submission (DI-04, PR-02)', () => {
     expect((await lc.evidenceStatus(db.app, v.versionId)).missing).toEqual(['a passing sandbox test run on this exact content (SANDBOX_RUN)']);
   });
 
+  it('[IN-13][INV-34] approve an MBR with one intermediate lacking a hold time: approval is refused (the validator fails on the stored content, naming the intermediate, and the version stays DRAFT)', async () => {
+    const content = uniqueContent('tablet-granulation-compression');
+    const bad = clone(content);
+    const wet = bad.intermediates.find((i) => i.id === 'I-WET');
+    if (!wet) throw new Error('fixture changed: no intermediate I-WET');
+    delete wet.holdTime;
+    const v = await w.newVersion(bad);
+    await w.prepare(v.versionId, bad, { evidence: 'none' });
+    const s = await w.state(v.versionId);
+    const refused = await w.run(w.cast.author, (c) => lc.validateAndStartVerification(c, v.versionId, s.version, realPort));
+    expect(refused.evidence.result).toBe('FAIL');
+    expect(refused.transition).toBeUndefined();
+    expect(realPort.validate(bad).findings.filter((f) => f.severity === 'ERROR').map((f) => f.message)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Intermediate "Wet mass" \(I-WET\) has no hold time/)]),
+    );
+    expect((await w.state(v.versionId)).state).toBe('DRAFT');
+    // Neither verification nor the approval chain can follow: the database refuses both.
+    await expect(w.startVerification(v.versionId)).rejects.toThrow(/validator_passed/);
+    await expect(w.submit(v.versionId)).rejects.toThrow();
+  });
+
   it('[DI-04] try to make a new MBR version effective without a verification record: it is blocked', async () => {
     const content = uniqueContent();
     const v = await w.newVersion(content);

@@ -58,6 +58,11 @@ export interface ServerOptions {
   logStream?: Writable;
   /** Changes the copy before the server starts (e.g. a site policy the server reads at start-up). */
   beforeStart?: (db: DatabaseHandle, seed: SiteSeed) => Promise<void>;
+  /**
+   * An installation prepared by the set-up CLI (its own database, seeded with the feature seeds) to run on instead of a
+   * copy of the template (the golden batches); dropped at close like a copy.
+   */
+  prepared?: { database: string; seed: SiteSeed };
 }
 
 export interface TestBrowser {
@@ -107,10 +112,10 @@ export function cookieHeader(jar: Map<string, string>): string {
 
 export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions = {}): Promise<TestServer> {
   const templates = inject('serverTemplates');
-  const t = kind === 'GMP' ? templates.gmp : templates.sandbox;
+  const t = opts.prepared ? { template: '', seed: opts.prepared.seed } : kind === 'GMP' ? templates.gmp : templates.sandbox;
   const suffix = uniqueSuffix();
-  const database = kind === 'GMP' ? `ebmr_t_${suffix}${opts.demoMarker ? '_demo' : ''}` : `ebmr_sandbox_t${suffix}${opts.demoMarker ? '_demo' : ''}`;
-  await copyDatabase(t.template, database);
+  const database = opts.prepared?.database ?? (kind === 'GMP' ? `ebmr_t_${suffix}${opts.demoMarker ? '_demo' : ''}` : `ebmr_sandbox_t${suffix}${opts.demoMarker ? '_demo' : ''}`);
+  if (!opts.prepared) await copyDatabase(t.template, database);
   if (opts.demoMarker) await asAdmin(database, (c) => c.query("select tab.mark_demo_installation('server test')"));
   const db = openDatabase(database, kind);
   const env = parseConfig(

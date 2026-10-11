@@ -78,6 +78,8 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-18][IN-23][IN-24] a quarantined lot, a lot past its retest date, an expired lot and the wrong material are hard-blocked in the calculation and at the balance, with no override; without an identity result a batch for the US is refused"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-18] a lot dispensed with the dispenser's FEFO reason raises FEFO_OVERRIDE for the rotation report; a blank reason is refused"
   - "packages/site-services/test/quality/lims.test.ts > retest (PR-18) > [PR-18][IN-24] a lot past retest is usable again only after an approved passing retest, never past expiry or the master's interval, never approved by its recorder"
+  - "packages/site-services/test/quality/lims.test.ts > retest (PR-18) > [PR-18][DI-35] a retest is recorded only under QC's own LOT_RETEST_APPROVED signature: the unsigned writer is not callable by the application role, a call without a signature is refused, and the signed retest is recorded"
+  - "packages/site-services/test/quality/lims.test.ts > retest (PR-18) > [PR-18][DI-37] the retest signature binds the new instant and the results, and records one retest only: another instant, other results or a second use are refused as the application role"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

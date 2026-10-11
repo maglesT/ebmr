@@ -102,6 +102,33 @@ describe('limit tiers at execution (PR-08)', () => {
     run.start('next');
   });
 
+  it('[IN-15][PR-31][PR-49] an out-of-limit stage yield: the yield step is blocked and the next step waits until a deviation is linked; "no impact" is refused and the disposition needs a comment', () => {
+    const yieldLimits: LimitSpec = { unit: '%', ranges: [range('INTERNAL_ACTION', '95.0', '101.0')] };
+    const def = define(
+      mbrWith(seq('ops', phase('in', { records: ['charged'] }), phase('out', { records: ['good'] }), phase('y', { block: { type: 'G-20', version: '1' }, computes: ['yld'], yieldCheckpoint: 'Y1' }), phase('next')), {
+        parameters: [param('charged'), param('good')],
+        calculations: [{ id: 'yld', name: 'Yield', expression: 'yield(good, charged)', output: { valueType: 'DECIMAL', unit: '%', semanticTag: 'yield' }, criticality: 'CRITICAL', riskClass: 'HIGH' }],
+        yieldCheckpoints: [{ id: 'Y1', name: 'Stage yield', kind: 'YIELD', theoretical: 'charged', result: 'yld', basis: 'AS_IS', limits: yieldLimits }],
+      }),
+    );
+    const run = Run.issue(def);
+    done(run, 'in', { charged: '100.0' });
+    done(run, 'out', { good: '94.0' });
+    run.start('y');
+    const ex = run.exceptions('YIELD_OUT_OF_LIMITS')[0];
+    expect(ex?.deviationRequired).toBe(true);
+    run.refused({ type: 'SIGN_PERFORMED', actor: OP1, step: 'y', signature: sig('PERFORMED', OP1) }, 'ENG-BLOCKED');
+    run.refused({ type: 'DISPOSITION_EXCEPTION', actor: QA1, exception: ex?.id ?? '', outcome: 'NO_IMPACT', justification: 'looks fine', signature: sig('EXCEPTION_DISPOSITIONED', QA1) }, 'ENG-DEVIATION-REQUIRED');
+    run.refused({ type: 'DISPOSITION_EXCEPTION', actor: QA1, exception: ex?.id ?? '', outcome: 'DEVIATION_RAISED', justification: 'Yield below limit', signature: sig('EXCEPTION_DISPOSITIONED', QA1) }, 'ENG-DEVIATION-REQUIRED');
+    run.refused({ type: 'ATTACH_DEVIATION', actor: SUP1, exception: ex?.id ?? '', deviationRef: '  ' }, 'ENG-REASON');
+    run.ok({ type: 'ATTACH_DEVIATION', actor: SUP1, exception: ex?.id ?? '', deviationRef: 'DEV-15' });
+    run.refused({ type: 'DISPOSITION_EXCEPTION', actor: QA1, exception: ex?.id ?? '', outcome: 'DEVIATION_RAISED', justification: ' ', signature: sig('EXCEPTION_DISPOSITIONED', QA1) }, 'ENG-REASON');
+    run.ok({ type: 'DISPOSITION_EXCEPTION', actor: QA1, exception: ex?.id ?? '', outcome: 'DEVIATION_RAISED', justification: 'Yield 94.0 % below 95.0 %: investigated under DEV-15', signature: sig('EXCEPTION_DISPOSITIONED', QA1) });
+    run.perform('y');
+    run.verify('y');
+    run.start('next');
+  });
+
   it('[DI-26] every engine exception type maps to a review-by-exception category of the mandatory set', () => {
     const categories = new Set(['OUT_OF_LIMIT', 'DEVIATION_OR_OVERRIDE', 'FORCED_SKIPPED_NA', 'POST_ENTRY_CHANGE', 'REPEAT_OR_ABORTED', 'LATE_ENTRY', 'MANUAL_ENTRY', 'INTERFACE_FALLBACK', 'TIME_LIMIT', 'FLOW', 'TIME_SYNC']);
     for (const r of ENGINE_EXCEPTION_RULES) {

@@ -167,6 +167,10 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > tab.bind_session: which kernel session a cookie is bound to (tablets 0001, 0480) > [DI-13][DI-38] a session that has ended, or that does not exist, is never bound (EBMR-TAB-010) and nothing is written"
   - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > tab.bind_session: which kernel session a cookie is bound to (tablets 0001, 0480) > [DI-13][DI-38] only a session opened in the last 10 seconds is bound (EBMR-TAB-011); one opened 11 seconds ago is not, and nothing is written"
   - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > signing out and ending a withdrawn session act on the one token given (tablets 0001, 0400) > [DI-13][DI-38] tab.unbind_session unbinds that cookie only, once; the other session stays bound"
+  - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] a user without FORMULA.READ cannot open a formula or the composition of an MBR, by route or in the database"
+  - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] the e-signature preview of a formula version, or of an MBR version pinning one, is refused to a session without FORMULA.READ, even on a shop-floor kiosk"
+  - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] FORMULA.READ is judged in the grant's product scope: an MBR author granted for one product reads that product's composition only"
+  - "tools/e2e/specs/master-data/composition.spec.ts > [DI-13] an operator cannot open the composition @office"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:
@@ -176,9 +180,8 @@ clauses:
     tests:
       - "packages/kernel/test/continuity/hardening.test.ts > [DI-13] USB storage on a kiosk is blocked: an attestation that finds USB mass storage enabled fails and blocks enrolment"
   - clause: "A user without formula permission cannot open the composition."
-    deferred:
-      phase: 3
-      reason: "No permission to read a composition exists yet: every role that may open the designer reads an MBR's bill of materials. Formula confidentiality comes with the company formulation library and the master-data screens in Phase 3 (decision 0006); recorded for the owner in docs/decisions/phase-2-open-questions.md (F14.3)."
+    tests:
+      - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] a user without FORMULA.READ cannot open a formula or the composition of an MBR, by route or in the database"
   - clause: "For a sampled signature, the evidence package can be produced."
     tests:
       - "packages/kernel/test/esig/integrity.test.ts > [DI-13] for a sampled signature the evidence package can be produced: identity verification, authentication event, manifestation, audit trail and seal"

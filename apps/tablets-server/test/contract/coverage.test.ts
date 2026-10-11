@@ -26,6 +26,9 @@ const EXAMPLE_PARAMS: Record<string, string> = {
   chainKey: 'batch:x',
   deviationId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   lotId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  batchId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  formulaId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  id: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
 };
 
 function samplePath(route: AnyRoute): string {
@@ -53,8 +56,8 @@ describe('contract coverage', () => {
       const res = await gmp.app.inject({ method: route.method, url: samplePath(route), headers: { origin: gmp.config.publicOrigin, 'sec-fetch-site': 'same-origin' } });
       expect(res.statusCode, route.id).toBe(404);
     }
-    // The routes of a running batch and of the scales serve both installations (each its own batches and gateways).
-    expect(gmp.built.ctx.boundRoutes.has(routes.execution.command.id)).toBe(true);
+    // GMP batches run under /api/batches/* (D-S6-1); the scales serve both installations (each its own gateways).
+    expect(gmp.built.ctx.boundRoutes.has(routes.batches.command.id)).toBe(true);
     expect(gmp.built.ctx.boundRoutes.has(routes.devices.scales.id)).toBe(true);
   });
 

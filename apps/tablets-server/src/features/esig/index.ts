@@ -437,7 +437,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
                 const result: SignWork = { refused };
                 return result as unknown as commands.JsonValue;
               }
-              const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState: d.expectedState ?? null }, sealKey);
+              const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action) : null);
+              const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState }, sealKey);
               const applied = await handler.apply(client, ctx, body.action, { signatureId: sig.signatureId, meaning: ch.meaning, signer: ch.signerPerson });
               const result: SignWork = { signed: { manifestation: manifestationView(sig.manifestation, ch.signerPerson, true), result: applied } };
               return result as unknown as commands.JsonValue;
@@ -458,6 +459,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         }
         if ('refused' in work) throw new HttpRefusal(work.refused.status, work.refused.refusal);
         return work.signed;
+      },
+
+      // Phase 3 slice 6: what an action signs, as the handler computes it (the browser never derives it).
+      describe: async ({ body, requireSession }) => {
+        requireSession();
+        const handler = handlerFor(app, body.action.kind);
+        const d = handler.describeNow ? await handler.describeNow(app.pools.app, body.action) : handler.describe(body.action);
+        return { kind: body.action.kind, aggregateType: d.aggregateType, aggregateId: d.aggregateId, meaning: d.meaning === '' ? null : d.meaning, expectedState: d.expectedState ?? null };
       },
 
       // DI-17, DI-36, DI-50 (tablets 0410, review F34): only when the session's role may read the record.

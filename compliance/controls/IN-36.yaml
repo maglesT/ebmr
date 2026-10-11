@@ -56,6 +56,15 @@ tests:
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [IN-36] review 3d: the yield is judged exactly against its limits, never on its rounded display value (94.996 % is below a 95.00 % minimum although it shows as 95.00)"
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [IN-36][INV-24][PR-29] TB-06 mill screen (TB-02's rule): granules only through a screen checked intact before use; an after-use check that finds it damaged names exactly the granules milled through it since its last intact check (a forged list is refused) and holds the compactor's containers since then; the screen is never checked again at a TB-02 step of the batch either"
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [IN-36] TB-06 fines recycle and yield: fines are recycled only within the MBR's percentage of the pre-blend fed (a forged engine is refused), the yield is the database's own (C-09), after the run, and the step closes only with its end-of-run ribbon check, every screen checked after use and the yield"
+clauses:
+  - clause: "omit the after-use sieve check; the step cannot be closed."
+    tests:
+      - "apps/tablets-server/test/blocks/granulation/blocks.test.ts > TB-02 sifting and milling > [IN-36][INV-24] a pass only through a screen checked intact before use; the approved aperture only; the step never closes without the after-use check (IN-36 catalogue test); a damaged screen is never used again"
+      - "apps/tablets-server/test/blocks/granulation/db-guards.test.ts > the granulation blocks in the database (tablets 0850, 0851) > [IN-36][INV-24][PR-23] TB-02: a material pass only through a screen checked intact before use, a screen only with its approved aperture; an after-use check that finds the screen damaged holds exactly the passes since its last intact check, with the exception that waits for a deviation; a damaged screen is never checked or used again; the step never closes without the after-use check"
+  - clause: "Use an FBD bag from another product without a wash record; blocked."
+    tests:
+      - "apps/tablets-server/test/blocks/granulation/blocks.test.ts > TB-05 drying with the LOD loop > [IN-36][PR-27] a filter bag last used for another product is refused without its wash record (IN-36 catalogue test); a product-dedicated bag where the MBR asks for one; drying only after the bag check; the step closes only with the bag checked after use"
+      - "apps/tablets-server/test/blocks/granulation/db-guards.test.ts > the granulation blocks in the database (tablets 0850, 0851) > [IN-36][PR-27] TB-05: a filter bag last used for another product is refused without its wash record (IN-36 catalogue test), drying starts only after the bag check, the drying time is measured; the drying loop never runs beyond its maximum iterations"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -60,6 +60,17 @@ tests:
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [IN-35][PR-29][DI-32] TB-16 layer checks: after the first-off the run starts; a layer-only sample is judged against the layer's own limits by the database (a forged pass is refused) and a failing one holds every container of the press since that layer's last passing check; the full tablets pass on their own stream; a check on an instrument without a use, readings never claimed, or a press that discharges its streams apart are refused"
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [IN-35][PR-29] TB-16 closes only after the run ended with the sweep and an end-of-run check of every planned test of every layer (read on the run's state)"
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [IN-35][PR-29] TB-16 missed checks at database time, layer by layer: the sweeper alarms every layer's overdue check and holds the press's containers for that layer's stream; the next entry must list them all with IPC_CHECK_MISSED"
+  - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [IN-35] catalogue test as written: on a 16-station press the start check (station sweep) cannot be recorded with 15 results; with all 16 it passes"
+  - "apps/tablets-server/test/blocks/coating/db-guards.test.ts > the coating and finishing blocks in the database (tablets 0910 to 0912) > [PR-29][IN-35][IN-37] TB-18: cores under hold are never coated: the pan load is refused while a compression output container of the batch is held (EBMR-TAB-390, TB18-HELD-CORES); once QA has decided on it the load is stored (GB-T-01 residual)"
+clauses:
+  - clause: "run 45 minutes without an IPC entry; the alarm fires at 30 minutes."
+    tests:
+      - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [IN-35][PR-29][DI-28] catalogue test: run 45 minutes without an IPC entry; the check is missed at 30 minutes (25 min interval + 5 min grace, at the entry's time), and the next entry lists it and raises IPC_CHECK_MISSED, which waits for a deviation"
+      - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29][DI-28] TB-11 missed check at database time: the overdue checks are read at an instant (catalogue test: the alarm fires once the interval and grace have passed), recorded once as an alarm by the server sweeper job without any operator entry, and the next entry must list them with IPC_CHECK_MISSED, the database recording MISSED for each stream and holding its containers"
+  - clause: "On a 16-station press the start check cannot be signed with 15 results."
+    tests:
+      - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [IN-35] catalogue test as written: on a 16-station press the start check (station sweep) cannot be recorded with 15 results; with all 16 it passes"
+      - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [IN-35] catalogue test: on a 4-station press the station sweep cannot be recorded with 3 results; every station once"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

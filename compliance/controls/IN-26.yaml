@@ -40,6 +40,14 @@ tests:
   - "packages/recipe-core/test/containers/containers.test.ts > press codes are plant equipment; a check and an open never race (recipe-core 0540) > [INV-12][IN-26] review backlog #8: a container being opened while a failing check is recorded is held (the check waits for the open); the hold reads the state it acts on under lock"
   - "apps/tablets-server/test/blocks/forming/blocks.test.ts > TB-16 bilayer compression > [PR-21][IN-26] each layer's hopper is charged by scan with its own blend: another hopper (a swap) or another blend is refused; every charge needs a second person; the run cannot start while a layer is uncharged"
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [PR-21][IN-26][PR-23] TB-16 hopper charges: each layer's hopper takes a container of its own blend by the person's scan (a container of the other layer's blend, a swapped hopper, another person's or a reused charge are refused by the database); each charge needs a second person; the run cannot start with a layer uncharged, nor before the press's first-off approval"
+clauses:
+  - clause: "schedule a highly potent product in a positive-pressure cubicle; blocked."
+    tests:
+      - "packages/recipe-core/test/plant/area.test.ts > room eligibility (IN-26 (b)(c), PR-25) > [IN-26] schedule a highly potent product in a positive-pressure cubicle: blocked; a negative-pressure room accepts it"
+      - "packages/recipe-core/test/plant/area.test.ts > the verifier signs the recorded finding (S23, S24) > [IN-26] the product a start is checked against is the batch's own: a batch of a highly potent product cannot be started in a positive-pressure room under any name"
+  - clause: "Charge granules from a container labelled for another batch; the scan is refused."
+    tests:
+      - "packages/recipe-core/test/containers/containers.test.ts > held containers are never merged, charged or packed > [IN-26] the charge scan of a container labelled for another batch is refused, and an unknown label too"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

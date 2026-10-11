@@ -251,3 +251,58 @@ Backlog (medium and low):
   accepted as an assay source.
 - Whole-batch parents are checked by execution status (EXECUTION_COMPLETE or ABORTED) only; a REJECTED disposition
   check waits for the Phase 4 disposition model.
+
+## Slice 6c open items (builder report, 11 October 2026)
+
+- TB-20 NO-PLAN through deviation-lite needs a TB-20@2 (block data schemas are fixed per version); Phase 4.
+- A packaging family's identity has no pack type, so two pack types of one product at the same pack size cannot both
+  exist (recipe-core 0110); Phase 4 with the release model.
+- The GMP sweeper does not run: its identity is TEST-only; a GMP service identity for the sweeper is needed before any
+  GMP demo that relies on missed-check holds (Phase 4).
+- `db-guards-free-text-shown` failed once under load and passed alone (suspected chance match of '2409' in generated
+  text); root cause to find before the Phase 3 exit run.
+- IN-17 "release is blocked" and IN-39 "both departments notified" re-deferred to Phase 4 (D-S6-10).
+
+## Slice 6 quick review (11 October 2026)
+
+Three high findings, fixed in this slice with regression tests: the formula composition was readable through the
+e-signature content route by a role without FORMULA.READ (DI-13), also for a pinned MBR's BOM; the signed lot retest
+did not bind its date and results, could reuse one signature, and the unsigned writer stayed granted to the app role;
+FRESH_ON_SHARED (INV-40) was missing on lot receipt, evidence registration, formula creation and plant definitions.
+Core mediums fixed: nested server-filled members, the product scope of formula reads, the lot REJECT meaning from
+ON_HOLD, the MBR pin guard as the app role, a permission check on planning orders.
+
+Open items from the builders (slice 6a and 6b):
+- The success paths of the reprocessing acts and of an approved void are tested in the database but not over HTTP
+  (GMP residue data needed); the refusals are tested over HTTP.
+- No routes for the plant product list, a planned batch, or cleanings in progress (the screens accept a scanned id).
+- The DI-24 browser test serves the step's reads from the contract example; the session and the no-delete check are
+  the real server's.
+- Display-only role hiding in the web (`app/roles.ts`); the server decides every act.
+- A duplicate formula (same product, strength and batch size) answers 500 instead of a plain refusal (low).
+- Default (6a review fix): REGULATORY_SIGNER holds FORMULA.READ, so the regulatory signer can read the MBR content it
+  confirms.
+
+## Slice 6d GB-T-01 (builder report, 11 October 2026)
+
+GB-T-01 runs end to end over HTTP and matches `expected.json` exactly (16 golden tests: a source batch, then the happy
+and exception-rich variants to "release for packing"; every worksheet quantity and yield; the 9.1 sample-data
+negatives). Seven defects found by the run were fixed with tests (base-stated formula for TB-01, MBR transition
+signing, G-09@2 instrument use, G-09@2/G-10@2/G-23@1 entries and loop/alternative intents over HTTP, hardness alias and
+pressure units, TB-01 hydrate checks, golden CI job one file at a time).
+
+Open for the owner:
+- A drying-loop LOD reading that made the loop repeat (4.1 %) is not a failing result (loop readings are excluded by
+  design), so its correction to 3.0 % without evidence was accepted in the database. CORRECT_ENTRY is not on HTTP in
+  Phase 3, so it cannot happen today. Should a loop reading that did not meet the endpoint count as failing for the
+  correction-evidence rule?
+
+Residuals (Phase 4 unless noted):
+- No HTTP routes yet for the change record, verification evidence, market authorisation, the batch-number rule,
+  reservations, equipment uses, containers, tooling, the reprocessing proposal and container release; GB-T-01's driver
+  does these through the database as the right persona.
+- Press and coater readings cannot reach entries over HTTP, so they are keyed by hand (the manual-entry alerts appear
+  in the happy variant); the device-to-entry path is Phase 4.
+- Fixed in slice 6: a TB-18 pan load is refused while a compression container of the batch is on hold (tablets
+  1092); a GMP G-07 weighing consumes its lot, and a row without it is refused (tablets 1093).
+- Low: a TB-08 refusal repeats its code; a refusal says "test run" on GMP.

@@ -5,6 +5,19 @@
  */
 import { FAULTS, type ProcessModelState } from './model.ts';
 
+/** Plain names of the simulated equipment (slice 6c: every process kind). */
+const EQUIPMENT_NAMES: Record<ProcessModelState['equipment'], string> = {
+  PRESS: 'Tablet press',
+  COATER: 'Film coater',
+  GRANULATOR: 'High-shear granulator',
+  DRYER: 'Fluid-bed dryer',
+  BLENDER: 'Blender',
+  ROLLER_COMPACTOR: 'Roller compactor',
+  BLISTER_MACHINE: 'Blister machine',
+  BOTTLE_LINE: 'Bottle line',
+  CARTONER: 'Cartoner',
+};
+
 const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function button(action: string, label: string, fields: Record<string, string> = {}): string {
@@ -15,7 +28,7 @@ function button(action: string, label: string, fields: Record<string, string> = 
 }
 
 export function consoleHtml(state: ProcessModelState, problem: string | null = null): string {
-  const name = state.equipment === 'PRESS' ? 'Tablet press' : 'Film coater';
+  const name = EQUIPMENT_NAMES[state.equipment];
   const rows = state.values
     .map((v) => {
       const sp = state.setpoints.find((s) => s.tag === v.tag);

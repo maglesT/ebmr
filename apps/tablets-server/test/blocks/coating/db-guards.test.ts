@@ -151,7 +151,7 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     await expect(sbx.db.admin.query("delete from recipe.block_data_schema where block_type = 'TB-20'")).rejects.toThrow(/EBMR-AUDIT-004/);
   });
 
-  it('[IN-37][PR-29][PR-45] TB-19: printed tablets wait for the QC approval: a printed container cannot be charged until the hold point after printing is released; a passing print check of the printer is the only PASS that vouches for them; the printer is a plant unit; in a batch that also runs a TB-11 scheduler', async () => {
+  it('[IN-37][PR-29][PR-45] TB-19: printed tablets wait for the QC approval: a printed container cannot be charged until the hold point after printing is released; a passing print check of the printer is the only PASS that vouches for them; the printer is a plant unit; in a batch that also runs a TB-11 scheduler; a container opened on the printer before its set-up waits too (review 3d #4)', async () => {
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb19b@' });
     const setup = (printer: string, extra: Json = {}): Entry => ({ kind: 'PRINT_SETUP', printer, inkLot: 'TEST-INK-117', inkEdibleGrade: true, otherProductsPrinting: false, ...extra });
     expect(await verdict('p-tb19b', setup('TEST-NO-SUCH-PRINTER'))).toBe('EBMR-EXE-270 TB19-PRINTER');
@@ -159,6 +159,9 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await verdict('p-tb19b', inedible, { tamper: laxEntry('p-tb19b', { ...strip(inedible), setUpBy: me }) })).toBe('EBMR-EXE-270 TB19-INK');
     const together = setup(printerB, { otherProductsPrinting: true });
     expect(await verdict('p-tb19b', together, { tamper: laxEntry('p-tb19b', { ...strip(together), inkEdibleGrade: true, setUpBy: me }) })).toBe('EBMR-EXE-270 TB19-SEGREGATION');
+    // Review 3d #4: a container opened on the printer before its printing set-up is gated as well (the gate keys on the
+    // set-up's printer when the container is charged, not when it was opened).
+    const early = await container('PRINTING', printerB);
     expect(await verdict('p-tb19b', setup(printerB))).toBe('ok');
     const printed = await container('PRINTING', printerB);
     const check = { kind: 'PRINT_CHECK', examined: '50', legible: true, contentMatches: true, defects: {} };
@@ -171,9 +174,11 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await codeOf(asOp('select plant.record_ipc_check($1, $2, null, $3, $4) as r', [d.runId, printerB, 'PASS', 'TB11:p-tb11@:EN-1']))).toMatch(/^EBMR-TAB-3(02|11)$/);
     // IN-37 catalogue test: the printed container cannot be charged or packed before the QC approval.
     expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', printed.label, 'PACK']))).toBe('EBMR-TAB-310');
+    expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', early.label, 'PACK']))).toBe('EBMR-TAB-310');
     await performAndVerify('p-tb19b@');
     await d.signed('qa1', { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-PRINT-B@', disposition: 'APPROVED' });
     expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', printed.label, 'PACK']))).toBe('ok');
+    expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', early.label, 'PACK']))).toBe('ok');
     // The MBR keeps the gate: without the hold point after printing every row of the batch is refused.
     const c = await content();
     const noGate = JSON.parse(JSON.stringify(c).replace('"kind":"holdPoint","id":"H-PRINT"', '"kind":"holdPoint","id":"H-PRINT","x":1').replace(/"role":"QA","dispositions":\["APPROVED","NOT_APPROVED"\]/, '"role":"QA_REVIEWER","dispositions":["APPROVED","NOT_APPROVED"]')) as Json;
@@ -198,6 +203,27 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await sql('select tab.coating_close_problem($1, $2, $3) as r', [c, old, closed])).toMatch(/TB19-LAST-CHECK/);
   });
 
+  it('[PR-29][IN-35][IN-37] TB-18: cores under hold are never coated: the pan load is refused while a compression output container of the batch is held (EBMR-TAB-390, TB18-HELD-CORES); once QA has decided on it the load is stored (GB-T-01 residual)', async () => {
+    const press = (await cleanUnit(sbx, d.runId)).code;
+    const held = await container('COMPRESSION', press);
+    await asOp('select plant.record_ipc_check($1, $2, null, $3, $4) as r', [d.runId, press, 'FAIL', 'TEST-WEIGHT-FAIL']);
+    expect(await stateOfContainer(held.id)).toBe('HELD');
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'cores@' });
+    // Written as the application role straight to the store (the engine accepts it: it knows no plant containers).
+    const load = { kind: 'PAN_LOAD', quantity: { value: '60.000', unit: 'kg' } };
+    const refused = await rec.message('cores', load);
+    expect(refused).toMatch(/EBMR-TAB-390/);
+    expect(refused).toContain(held.label);
+    expect(Object.values((await stateOf(sbx, d.runId)).entries).filter((e) => e['kind'] === 'PAN_LOAD')).toEqual([]);
+    // QA rejects the held container: no container of the compression output is on hold any more.
+    const version = await sql<string>("select version::text as r from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [held.id]);
+    advance();
+    const qa = await actorOfBrowser(sbx, d.browser('qa1'), 'qa1', { reasonCode: 'IPC_FAILED', reasonText: 'Held cores rejected after the failed weight check' });
+    await withCommand(sbx.db.app, qa, (c) => c.query('select plant.reject_container($1, $2::bigint) as r', [held.id, version]));
+    expect(await stateOfContainer(held.id)).toBe('REJECTED');
+    expect(await sql<string[]>('select tab.held_compression_containers($1) as r', [d.runId])).toEqual([]);
+  });
+
   it('[IN-37][PR-08][PR-29][DI-29][INV-25][DI-34] TB-18: the cores and the core mean are the block\'s; a coating suspension only of this batch, within its use-by at the row\'s time and never beyond what was prepared; the parameter log and the weight gain computed by the database; the gain above its maximum only with the exception for QA; computed items never typed; the loop bounded', async () => {
     // Suspensions: a film coat that expires in 3 s, one for an hour, and a binder.
     for (const s of ['p-tb03f', 'p-tb03c', 'p-tb03b']) await d.ok('operator1', { type: 'START_STEP', stepKey: `${s}@` });
@@ -206,7 +232,8 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     }
     const prep = async (s: string) => lastEntry(sbx, d.runId, `${s}@`, 'PREPARED');
     // Cores.
-    await d.ok('operator1', { type: 'START_STEP', stepKey: 'cores@' });
+    // Started by the test above (the held cores); started here when this test runs alone.
+    if ((await stateOf(sbx, d.runId)).steps['cores@']?.['status'] !== 'IN_PROGRESS') await d.ok('operator1', { type: 'START_STEP', stepKey: 'cores@' });
     const room = { kind: 'ROOM_CHECK', filteredAir: true, temperature: '26.0', humidity: '45' };
     expect(await verdict('cores', room, { tamper: laxEntry('cores', { ...strip(room), withinLimits: true, checkedBy: me }) })).toMatch(/^EBMR-EXE-270 .*withinLimits/s);
     const noAir = { ...room, filteredAir: false, temperature: '24.0' };

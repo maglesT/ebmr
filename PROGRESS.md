@@ -69,9 +69,29 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   5b reprocessing and recovery), built on `phase-3/slice-5`: deviation-lite, LIMS-lite with second-person approval and
   retest, ERP stub with the BOM match at GMP issue (site-services 0730 to 0753, recipe-core 0600 to 0603, tablets 1000 to
   1002); TB-08 additions and G-24@2, whole-batch reprocessing with a new batch number linked to its parents (INV-33),
-  the expiry cap (recipe-core 0620 to 0625, tablets 1020 to 1022). Next: slice 6 (screens, demo seeds and devices,
-  GB-T-01), then the Phase 3 exit (decision 0009). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
+  the expiry cap (recipe-core 0620 to 0625, tablets 1020 to 1022). Merged (PR #16). Slice 6 plan:
+  `docs/build-plan/phase-3/slice-6-plan.md`, built on `phase-3/slice-6`: screens (shop floor for TB-01..24, G-06, G-21,
+  G-24@2; planning; master data with the formulation library and "Choose a product"; plant; quality), the GMP batch,
+  planning, master-data, plant and quality routes with every signed act over HTTP, devices and GMP seeds, and GB-T-01
+  matching its expected outputs exactly. compliance/phase.yaml is 3; the trace passes at phase 3. Next: the Phase 3 exit
+  (decision 0009: mutation testing, one Opus review pass, the final full run). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
+- Slice 6c (`phase-3/slice-6c`, in progress): catalog-test clauses for the 16 Phase 3 exit controls; DI-04 clause 2,
+  PR-01 clause 2 and the DI-33 reprocessing scope tested; simulators for every process kind, packaging-line kinds in the
+  database (tablets 1060), instruments on the scale protocol, a demo gateway with press, coater, printer and line
+  devices; the GMP demo seed (shop-floor personas, the site gateway's identity, ERP catalogue, GB-T-01 lots tested and
+  released); the GB-T-01 worksheet and expected quantities; the golden CI job under libfaketime. **For the owner
+  (D-S6-10), re-deferred with reasons in the register:** IN-17 "release is blocked" and IN-39 "both departments are
+  notified" to Phase 4 (batch release and notification delivery are Phase 4). Open: TB20-NO-PLAN through deviation-lite
+  needs a TB-20@2 (block data schemas are fixed per version); a packaging family's identity holds no pack type (two pack
+  types of one product at one pack size cannot both exist; recipe-core 0110, for the planner).
+- Slice 6d (`phase-3/slice-6d`): the GB-T-01 golden batch. Template `gb-t-01.mbr.json`, approved through the routes
+  (MBR_TRANSITION signable, tablets 1090); a source batch and the happy and exception-rich variants driven over HTTP to
+  the release for packing on a frozen libfaketime clock; outputs equal `expected.json` (worksheet quantities; states,
+  exceptions, genealogy, signature counts and true-copy hashes from the first reviewed run). Fixes: formula on the base
+  for a base-stated TB-01 (recipe-core 0690), G-09@2 instrument uses (0691), loop iteration and operator choice as client
+  intents, hardness units in DATA-UNITS, TB-01 hydrate checks (tablets 1091); held compression cores are never coated
+  (tablets 1092); a GMP G-07 weighing consumes its lot (tablets 1093). Residuals in `test/golden/gb-t-01/README.md`.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 

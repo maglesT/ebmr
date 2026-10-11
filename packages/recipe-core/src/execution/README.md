@@ -1162,6 +1162,12 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   no package hash in the evidence, replayed identically, with no invariant violation; a dry run signs nothing; TEST- lots
   refused on GMP and real lots absent from the sandbox; test-package routes absent on GMP and GMP planning absent in the
   sandbox (DI-05, INV-18).
+- `gmp-batch-routes.test.ts` (Phase 3 slice 6a; D-S6-1, D-S6-2): a GMP batch under `/api/batches/*` and a test batch
+  under `/api/test-runs/*` only (404 on the other installation); no delete route, a void with the person's reason and
+  QA's approval of the act proposed (DI-24); a BLOCK_ENTRY of each tablet block reaching the engine; the entry-kind enum
+  equal to the block registry; every new route parsed with its contract schema.
+- `block-entries.test.ts` (Phase 3 slice 6a; D-S6-2): the BLOCK_ENTRY forms with the block's own schema as JSON; the
+  members the blocks mark serverFilled exactly those the server fills, refused when a client names one (DI-31, DI-32).
 - `db-guards-hand-over.test.ts` (Phase 3 slice 2; sql 0461-0463): the hand-over of a step in progress recorded with
   a supervisor's signature and QA's approval and registered as STEP_HANDED_OVER, refused forged (without the approval,
   from a person not on the step, approved by the incoming performer, without its exception, with another reason); the

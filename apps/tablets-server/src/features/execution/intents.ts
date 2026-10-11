@@ -33,10 +33,11 @@
 import type pg from 'pg';
 import { sandbox } from '@ebmr/kernel';
 import { engine, type flow } from '@ebmr/recipe-core';
-import type { ClientDataSource, ClientEntry, ClientIntent, DataValueWire, Refusal, SignedIntent } from '@ebmr/api-contract';
+import { type ClientDataSource, type ClientEntry, type ClientIntent, type DataValueWire, type Refusal, type SignedIntent } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import type { ClaimedReading } from '../../platform/ports.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
+import { resolveBlockEntry } from './block-entries.ts';
 import { lotForEngine, resolveLot } from './lots.ts';
 import { tb01Consumption, tb01FefoCheck, tb01Lots } from './tb01.ts';
 
@@ -431,7 +432,7 @@ export function labelBatch(code: string): string {
   return i > 0 ? code.slice(0, i) : code;
 }
 
-async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry, target?: { step: string; context: flow.Frame[] }): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
+async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEntry, target?: { step: string; context: flow.Frame[] }, stepKey = ''): Promise<{ entry: JsonRecord & { kind: string }; occurredAt?: engine.OccurredAt; evidence: JsonRecord }> {
   const tb01 = target !== undefined && ctx.def.steps.get(target.step)?.block?.type === 'TB-01';
   switch (e.kind) {
     case 'POTENCY_CALCULATION': {
@@ -468,9 +469,11 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       };
       // GMP: the dispensed net is consumed from the batch's reservation of the lot in this command (INV-13, INV-14),
       // once the engine is known to accept the entry (a refused entry is recorded and must consume nothing).
-      const consumption = tb01 && target && installation === 'GMP' && ctx.useReadings ? await tb01Consumption(ctx, target, entry, lot) : undefined;
+      // A G-07 weighing of a lot is consumed the same way (the database pairs it with its consumption, tablets 1093).
+      const g07 = target !== undefined && ctx.def.steps.get(target.step)?.block?.type === 'G-07';
+      const consumption = (tb01 || g07) && target && installation === 'GMP' && ctx.useReadings ? await tb01Consumption(ctx, target, entry, lot, tb01) : undefined;
       return {
-        entry: consumption ? { ...entry, consumption: consumption.id } : entry,
+        entry: consumption && tb01 ? { ...entry, consumption: consumption.id } : entry,
         ...(w.occurredAt ? { occurredAt: w.occurredAt } : {}),
         evidence: { ...w.evidence, lot: { code: lot.lotCode, material: lot.materialCode, status: lot.status } },
       };
@@ -497,7 +500,35 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       return { entry: { kind: 'EQUIPMENT_STATUS', equipmentRef: e.equipmentRef, labelId: e.labelId, answers: e.answers.map((a) => ({ id: a.id, answer: a.answer })) }, evidence: {} };
     case 'ACKNOWLEDGE':
       return { entry: { kind: 'ACKNOWLEDGE', mode: e.mode }, evidence: {} };
+    case 'BLOCK_ENTRY': {
+      // D-S6-2: the block's own entry schema (engine) and the database's guards decide; the server refuses the members
+      // it fills and fills those it reads from the database (block-entries.ts).
+      const block = target ? ctx.def.steps.get(target.step)?.block : undefined;
+      const entry = await resolveBlockEntry({ client: ctx.client, batchId: ctx.state.header.batchId, stepKey, block }, e.entryKind, e.data);
+      return { entry, evidence: {} };
+    }
   }
+}
+
+/**
+ * The approval of an act proposed on batch `batchId` (aggregate batch_act): the latest valid signature of `meaning` on it,
+ * with the engine roles of the role its signer signed in. Refused when there is none (nothing is written).
+ */
+export async function actApproval(client: pg.PoolClient, batchId: string, actId: string, meaning: string): Promise<engine.Approval> {
+  if (!actId.startsWith(`${batchId}:act@`)) {
+    throw refuse('EBMR-API-ACT-OTHER-BATCH', 'The approval named belongs to another batch. Nothing was saved.', `Act ${actId} was not proposed on this batch.`, ['DI-24', 'DI-29'], ['Ask for the approval on this batch.']);
+  }
+  const { rows } = await client.query<{ signature_id: string; signer_person: string; manifestation: Record<string, unknown>; valid: boolean }>(
+    'select * from tab.signatures_of($1, $2)',
+    ['batch_act', actId],
+  );
+  const sig = [...rows].reverse().find((r) => r.valid && (r.manifestation['meaning_code'] ?? r.manifestation['meaning']) === meaning);
+  if (!sig) {
+    throw refuse('EBMR-API-ACT-NOT-APPROVED', `The act has no ${meaning} approval yet. Nothing was saved.`, `A void needs QA's approval of the act as proposed (S28).`, ['DI-24', 'DI-29'], ['Ask QA to approve the act, then send it again.']);
+  }
+  const role = typeof sig.manifestation['role_code'] === 'string' ? sig.manifestation['role_code'] : '';
+  const { rows: map } = await client.query<{ engine_role: string }>('select engine_role from tab.engine_role_map where kernel_role = $1 order by engine_role', [role]);
+  return { approver: { id: sig.signer_person, kind: 'PERSON', roles: map.map((m) => m.engine_role) }, signature: { id: sig.signature_id, meaning, signer: sig.signer_person } };
 }
 
 /** The engine command of a plain client intent (claims readings and reads lots in the command's transaction). */
@@ -520,7 +551,7 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
     }
     case 'RECORD_ENTRY': {
       const t = stepTarget(ctx.state, intent.stepKey);
-      const r = await resolveEntry(ctx, roomOfStep(ctx, t.step), intent.entry, t);
+      const r = await resolveEntry(ctx, roomOfStep(ctx, t.step), intent.entry, t, intent.stepKey);
       return { command: { ...base, type: 'RECORD_ENTRY', step: t.step, context: t.context, entry: r.entry, ...(r.occurredAt ? { occurredAt: r.occurredAt } : {}) }, evidence: r.evidence };
     }
     case 'RAISE_EXCEPTION': {
@@ -533,6 +564,40 @@ export async function resolveClientIntent(ctx: IntentContext, intent: ClientInte
       return { command: { ...base, type: 'HOLD_BATCH', holdType: intent.holdType, reason: intent.reason }, evidence: {} };
     case 'RELEASE_HOLD':
       return { command: { ...base, type: 'RELEASE_HOLD', hold: intent.hold, reason: intent.reason }, evidence: {} };
+    case 'COMPLETE_LOOP_ITERATION': {
+      // INV-19 (Phase 3 slice 6d): the iteration of the innermost loop the step instance runs in; the engine decides the
+      // outcome from the exit condition (ENG-LOOP-CONTEXT when the step runs in no loop).
+      const t = stepTarget(ctx.state, intent.stepKey);
+      roomOfStep(ctx, t.step);
+      const last = t.context[t.context.length - 1];
+      return { command: { ...base, type: 'COMPLETE_LOOP_ITERATION', construct: last?.construct ?? '', context: t.context }, evidence: {} };
+    }
+    case 'CHOOSE_ALTERNATIVE': {
+      // DI-34, PR-13 (Phase 3 slice 6d): the context is read with the step-key grammar; the engine decides the rest.
+      const context = intent.context ? parseStepKey(`${intent.construct}@${intent.context}`).context : [];
+      return { command: { ...base, type: 'CHOOSE_ALTERNATIVE', construct: intent.construct, context, branch: intent.branch, reason: intent.reason }, evidence: {} };
+    }
+    case 'VOID_ATTEMPT': {
+      // DI-24, DI-29: a void keeps the attempt and carries the person's own reason; QA's approval (S28) is QA's
+      // VOID_AUTHORISED signature on the act proposed first (POST /api/batches/:batchId/acts). The engine and the
+      // database decide (EBMR-EXE-051, 052, 171, ESIG-070); the server only reads the approval's signature.
+      const t = stepTarget(ctx.state, intent.stepKey);
+      roomOfStep(ctx, t.step);
+      const approval = intent.approvalActId ? await actApproval(ctx.client, ctx.state.header.batchId, intent.approvalActId, 'VOID_AUTHORISED') : undefined;
+      return {
+        command: {
+          ...base,
+          type: 'VOID_ATTEMPT',
+          step: t.step,
+          context: t.context,
+          item: intent.item,
+          reason: intent.reason,
+          ...(intent.point !== undefined ? { point: intent.point } : {}),
+          ...(approval ? { approval } : {}),
+        },
+        evidence: {},
+      };
+    }
   }
 }
 

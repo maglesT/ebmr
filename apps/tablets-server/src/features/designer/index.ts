@@ -21,12 +21,13 @@
  * database requires MBR.AUTHOR for each), take one of the validation slots and have a rate per session, all before
  * any analysis runs (review P18).
  * Every write runs as one idempotent command under the session's actor; the database checks permissions
- * (MBR.AUTHOR in the product scope) and refuses administrators (DI-17, DI-18). A2 registers MBR_TRANSITION.
+ * (MBR.AUTHOR in the product scope) and refuses administrators (DI-17, DI-18). MBR_TRANSITION is registered in
+ * signables.ts (Phase 3 slice 6d).
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
 import { sandbox } from '@ebmr/kernel';
 import { routes } from '@ebmr/api-contract';
-import { lifecycle } from '@ebmr/recipe-core';
+import { formula, lifecycle } from '@ebmr/recipe-core';
 import { flow } from '@ebmr/recipe-core/pure';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
@@ -35,8 +36,11 @@ import { refusal, type HttpRefusal } from '../../platform/http/refusal.ts';
 import { siteToday } from './adapters/expressions.ts';
 import { marketSetProblem } from './adapters/market-minima.ts';
 import { contentFromTemplate, FamilyInputError, KNOWN_MARKETS } from './family.ts';
+import { compositionGate, withFormulaBom } from './formula-choice.ts';
 import { DESIGNER_GUIDANCE } from './guidance.ts';
 import { slotPool } from './limits.ts';
+
+export { registerSignableActions } from './signables.ts';
 import {
   buildTestPackage,
   discardStaged,
@@ -356,6 +360,17 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
   }));
 
   bindRoutes(scope, app, routes.designer, {
+    // Phase 3 slice 6a-0: "Choose a product" arrives with slice 6a.
+    // "Choose a product" (decision 0006): the approved formula's BOM with its computed quantities (FORMULA.READ, DI-13).
+    formulaChoice: async (ctx) => {
+      const s = ctx.requireSession();
+      const q = ctx.query;
+      // The session's read (tablets 1041): FORMULA.READ by its role, no command (a shop-floor terminal needs no tap).
+      const { rows } = await pool.query<{ r: formula.FormulaChoice }>('select tab.formula_choice($1, $2, $3, $4::numeric) as r', [s.tokenHash, q.product, q.strength, q.batchSize]);
+      const c = rows[0]?.r;
+      if (!c) throw new Error('no formula choice was read');
+      return { formulaId: c.formulaId, versionId: c.versionId, versionNumber: c.versionNumber, productCode: c.productCode, strength: c.strength, batchSizeUnits: c.batchSizeUnits, bom: c.lines };
+    },
     templates: () => Promise.resolve({ templates: templateViews }),
 
     families: async () => ({ families: await familyViews(pool, app) }),
@@ -390,8 +405,13 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       const { result } = await uniqueViolationAsConflict(
         () =>
           withIdempotentActorCommand(pool, actor, requireKey(ctx), ctx.requestHash, async (c) => {
-            const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(content));
-            const v = await lifecycle.createVersion(c, familyId, content, `Created from template ${template.templateId}`);
+            // "Choose a product" (decision 0006): the BOM quantities from the approved formula version (FORMULA.READ in the
+            // database), and the pin, which the database checks against the content (EBMR-FRM-019, INV-25).
+            const chosen = body.formulaVersionId ? await formula.formulaVersionForMbr(c, body.formulaVersionId) : null;
+            const withBom = chosen ? withFormulaBom(content, chosen) : content;
+            const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(withBom));
+            const v = await lifecycle.createVersion(c, familyId, withBom, `Created from template ${template.templateId}${chosen ? ` with formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)}` : ''}`);
+            if (chosen) await formula.pinFormula(c, v.versionId, chosen.versionId);
             return { versionId: v.versionId };
           }),
         `An MBR family ${body.familyCode} or one for the same product, strength and batch sizes`,
@@ -399,7 +419,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
       return versionView(pool, app, result.versionId);
     },
 
-    version: (ctx) => versionView(pool, app, ctx.params.versionId),
+    version: async (ctx) => {
+      // DI-13: an MBR whose composition comes from the formulation library opens only for a reader holding FORMULA.READ.
+      await compositionGate(pool, ctx.requireSession().tokenHash, ctx.params.versionId);
+      return versionView(pool, app, ctx.params.versionId);
+    },
 
     async saveContent(ctx) {
       const id = ctx.params.versionId;

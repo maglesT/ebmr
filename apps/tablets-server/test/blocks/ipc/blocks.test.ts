@@ -378,6 +378,14 @@ describe('TB-11 periodic IPC scheduler', () => {
     expect(lastData(run, 'STATION_SWEEP')['result']).toBe('PASS');
   });
 
+  it('[IN-35] catalogue test as written: on a 16-station press the start check (station sweep) cannot be recorded with 15 results; with all 16 it passes', () => {
+    const run = runOf(TB11, { ...base, sweep: { ...base.sweep, stations: 16 } });
+    run.entry('p', { kind: 'RUN_START', press: 'TEST-PRESS-01' });
+    expect(rec(run, sweep('L', 15)).refusal?.code).toBe('TB11-SWEEP-INCOMPLETE');
+    expect(rec(run, sweep('L', 16)).accepted).toBe(true);
+    expect(lastData(run, 'STATION_SWEEP')['result']).toBe('PASS');
+  });
+
   it('[IN-35][PR-29][DI-28] catalogue test: run 45 minutes without an IPC entry; the check is missed at 30 minutes (25 min interval + 5 min grace, at the entry\'s time), and the next entry lists it and raises IPC_CHECK_MISSED, which waits for a deviation', () => {
     const run = runOf(TB11, base);
     run.entry('p', { kind: 'RUN_START', press: 'TEST-PRESS-01' });

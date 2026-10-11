@@ -32,9 +32,12 @@ afterAll(async () => {
 });
 
 describe('templates, families and versions', () => {
-  it('lists the dc-mini template with its product, markets and 14 steps', async () => {
+  it('lists the dc-mini template with its product, markets and 14 steps, and the GB-T-01 template (slice 6d)', async () => {
     const r = valueOf(await author.call(routes.designer.templates));
-    expect(r.templates).toEqual([expect.objectContaining({ templateId: 'dc-mini', product: { code: 'PCM500', name: 'Paracetamol tablets', strength: '500 mg' }, markets: ['IN'], steps: 14 })]);
+    expect(r.templates).toEqual([
+      expect.objectContaining({ templateId: 'dc-mini', product: { code: 'PCM500', name: 'Paracetamol tablets', strength: '500 mg' }, markets: ['IN'], steps: 14 }),
+      expect.objectContaining({ templateId: 'gb-t-01', product: { code: 'GBT01-250', name: 'Exemplazine tablets', strength: '250 mg' }, markets: ['IN'] }),
+    ]);
   });
 
   it('[PR-01] the template lists its approved batch sizes, the reference size first, in the shape createFamily takes (lead TODO T6)', async () => {
@@ -44,6 +47,7 @@ describe('templates, families and versions', () => {
         { quantity: '60.000', unit: 'kg' },
         { quantity: '30.000', unit: 'kg' },
       ],
+      [{ quantity: '81.659', unit: 'kg' }],
     ]);
     // Sent back unchanged, they create a family whose content keeps the template's size ids and its bill of materials.
     const v = await createFamily(author, { familyCode: 'PCM500-TEMPLATE-SIZES', product: { code: 'PCM500-TS', name: 'Paracetamol tablets', strength: '500 mg' }, batchSizes: r.templates[0]?.batchSizes ?? [] });
