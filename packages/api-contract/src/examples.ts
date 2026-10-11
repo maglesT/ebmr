@@ -160,6 +160,14 @@ export const EXAMPLES = {
   'quality-erp-orders': { schema: r.quality.erpOrders.response, data: s6.quality.erpOrders, routeId: r.quality.erpOrders.id },
   'quality-erp-products': { schema: r.quality.erpProducts.response, data: s6.quality.erpProducts, routeId: r.quality.erpProducts.id },
   'quality-erp-materials': { schema: r.quality.erpMaterials.response, data: s6.quality.erpMaterials, routeId: r.quality.erpMaterials.id },
+  'batches-issue-bulk': {
+    schema: r.batches.issueBulk.response,
+    data: {
+      batchId: '5d2c0b7e-8f1a-4c3d-9e4f-0a1b2c3d4e5f', parentBatchId: '6e3d1c8f-9a2b-4d4e-8f5a-1b2c3d4e5f60',
+      containers: [{ label: 'OC-G2600001-1001', containerId: '7f4e2d9a-0b3c-4e5f-9a6b-2c3d4e5f6071', quantity: '25.500', unit: 'kg' }],
+    },
+    routeId: r.batches.issueBulk.id,
+  },
   'quality-erp-pending': {
     schema: r.quality.erpPending.response,
     data: {

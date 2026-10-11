@@ -11,6 +11,7 @@ import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
+import * as containers from '../../src/containers/index.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
@@ -205,5 +206,97 @@ describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
     expect(await codeOf(plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize, parentBatch: cancelled }))).toBe('EBMR-EXE-198');
     // Bypass: the application role cannot link a number itself.
     await expect(db.app.query('insert into recipe.batch_allocation_link (batch_id, allocation_id, batch_number, person_id, account_id, correlation_id) values ($1, $2, $3, $1, $1, $1)', [randomUUID(), wrongParent, 'X'])).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe('bulk issued to a packaging order only after the release for packing (exit review HIGH-3; recipe-core 0701)', () => {
+  /** Superuser arrangement with triggers off (the processing batch's containers and its stored state). */
+  async function arrange(sql: string, params: unknown[]): Promise<void> {
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query(sql, params);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+  }
+
+  /** An output container of `batch` in `state`, closed with `net` kg (arranged: the container commands are proven in 0420 to 0422). */
+  async function container(batch: string, state: string, net = '25.000'): Promise<string> {
+    const id = randomUUID();
+    const [b] = await q<{ n: string; p: string; s: string }>("select batch_number as n, (recipe.batch_product(id) ->> 'code') as p, (recipe.batch_product(id) ->> 'strength') as s from recipe.batch_execution where id = $1", [batch]);
+    const label = `OC-${b?.n ?? 'X'}-${String(1000 + Math.floor(Math.random() * 8999))}`;
+    await arrange(
+      `with c as (insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account)
+                  values ($1, $2, $3, $4, $5, $6, 'COMPRESSION', 'kg', $1, $1) returning id),
+            x as (insert into plant.container_close (container_id, net_quantity, person_id, account_id) select id, $7::numeric, id, id from c returning container_id)
+       insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version)
+       select 'output_container', container_id, 'output_container', 1, $8, 3 from x`,
+      [id, label, batch, b?.n, b?.p, b?.s, net, state],
+    );
+    return label;
+  }
+
+  /** The processing batch's stored state with an H-PACK instance in `status` (arranged as the engine stores a hold point). */
+  async function hPack(batch: string, approved: boolean): Promise<void> {
+    const inst = {
+      key: 'H-PACK@', step: 'H-PACK', status: approved ? 'COMPLETED' : 'READY',
+      ...(approved ? { disposition: { value: 'APPROVED', positive: true }, signatures: [{ id: randomUUID(), meaning: 'QA_HOLD_POINT', role: 'HOLD_POINT', valid: true }] } : { signatures: [] }),
+    };
+    await arrange("update recipe.execution_state set state = jsonb_set(state, '{steps,H-PACK@}', $2::jsonb) where batch_id = $1", [batch, JSON.stringify(inst)]);
+  }
+
+  async function orderOf(): Promise<{ parent: string; order: string; other: string }> {
+    const proc = await master('tablet-granulation-compression');
+    const pack = await master('tablet-blister-packaging', proc.product);
+    const parent = randomUUID();
+    await plan(parent, { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'] });
+    await issue(parent, 'tablet-granulation-compression');
+    const order = randomUUID();
+    await plan(order, { familyId: pack.familyId, batchSize: SIZE['tablet-blister-packaging'], parentBatch: parent });
+    await issue(order, 'tablet-blister-packaging');
+    const other = randomUUID();
+    await plan(other, { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'] });
+    await issue(other, 'tablet-granulation-compression');
+    return { parent, order, other };
+  }
+
+  it('[INV-27][IN-18] bulk is issued to a packaging order only once QA released its processing batch for packing (H-PACK): refused while the batch has not reached it or it waits, issued with each container\'s net quantity once it is approved', async () => {
+    const operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Bulk Operator' });
+    const { parent, order } = await orderOf();
+    const label = await container(parent, 'RELEASED_BY_QA', '25.500');
+    const bulk = (labels: string[]) => w.run(operator, (c) => containers.issuePackagingBulk(c, order, labels));
+    expect(await codeOf(bulk([label]))).toBe('EBMR-PKG-002');
+    await hPack(parent, false);
+    const waiting = await bulk([label]).catch((e: Error) => e.message);
+    expect(waiting).toMatch(/EBMR-PKG-002 .*has not signed its release for packing \(H-PACK\)/);
+    expect((await q<{ c: boolean }>('select recipe.packaging_bulk_charged($1) as c', [order]))[0]?.c).toBe(false);
+    await hPack(parent, true);
+    expect(await bulk([label])).toEqual({ batchId: order, parentBatchId: parent, containers: [expect.objectContaining({ label, quantity: '25.500', unit: 'kg' })] });
+    expect((await q<{ c: boolean }>('select recipe.packaging_bulk_charged($1) as c', [order]))[0]?.c).toBe(true);
+    expect(await q('select purpose, stage from plant.container_charge where batch_id = $1', [order])).toEqual([{ purpose: 'PACK', stage: 'PACKAGING' }]);
+  });
+
+  it('[IN-26][INV-27] only the usable containers of the batch packed: a HELD or REJECTED container, one of another batch, or one issued already is refused, all or nothing; a processing batch takes no bulk; the application role writes no issue', async () => {
+    const operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Bulk Operator 2' });
+    const { parent, order, other } = await orderOf();
+    await hPack(parent, true);
+    const good = await container(parent, 'RELEASED_BY_QA');
+    const held = await container(parent, 'HELD');
+    const rejected = await container(parent, 'REJECTED');
+    const foreign = await container(other, 'RELEASED_BY_QA');
+    const bulk = (b: string, labels: string[]) => w.run(operator, (c) => containers.issuePackagingBulk(c, b, labels)).catch((e: Error) => e.message);
+    expect(await bulk(order, [good, held])).toMatch(/EBMR-PKG-005 container .* is HELD/);
+    expect(await bulk(order, [rejected])).toMatch(/EBMR-PKG-005 container .* is REJECTED/);
+    expect(await bulk(order, [foreign])).toMatch(/EBMR-PKG-004/);
+    expect(await bulk(order, [good, good])).toMatch(/EBMR-PKG-003/);
+    expect(await bulk(other, [foreign])).toMatch(/EBMR-PKG-001 .*no packaging order/);
+    // All or nothing: the refused issue above left the good container free.
+    expect((await q<{ n: string }>('select count(*)::text as n from recipe.packaging_bulk_issue where order_batch_id = $1', [order]))[0]?.n).toBe('0');
+    await bulk(order, [good]);
+    expect(await bulk(order, [good])).toMatch(/EBMR-PKG-005 .*already charged or packed/);
+    expect(await codeOf(db.app.query("insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), 1, 'kg', $1, $1)", [order, parent]))).toMatch(/permission denied/);
   });
 });
