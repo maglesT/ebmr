@@ -96,6 +96,20 @@ async function seedLot(ctx: FeatureSeedContext, lot: SeedMaterialLot): Promise<s
   return lotId;
 }
 
+/**
+ * The QA MBR approver confirms every master version the ERP posted that is not in effect on its own (site-services
+ * 0802: a new code, or a changed controlled value), each with its own ERP_MASTER_CONFIRMED signature.
+ */
+async function confirmErpMasters(ctx: FeatureSeedContext): Promise<void> {
+  const pool = ctx.pools.app;
+  const { rows } = await pool.query<{ v: { masterKind: 'PRODUCT' | 'MATERIAL'; versionId: string } }>('select x.v from jsonb_array_elements(site.erp_master_pending()) x(v)');
+  ctx.log(`confirming ${rows.length} ERP master versions (QA, ERP_MASTER_CONFIRMED)`);
+  for (const { v } of rows) {
+    const sig = await ctx.signAs('approver', { type: 'erp_master', id: `${v.masterKind}/${v.versionId}` }, 'ERP_MASTER_CONFIRMED', 'PENDING');
+    await inCommand(pool, await ctx.actorFor('approver'), (c) => c.query('select site.confirm_erp_master($1, $2, $3)', [v.masterKind, v.versionId, sig]));
+  }
+}
+
 export async function seedGmp(ctx: FeatureSeedContext): Promise<void> {
   if (ctx.installation !== 'GMP') return;
   const catalogue = demoErpCatalogue();
@@ -105,6 +119,7 @@ export async function seedGmp(ctx: FeatureSeedContext): Promise<void> {
     for (const m of catalogue.materials) await c.query('select site.erp_receive_material($1::jsonb)', [JSON.stringify(m)]);
     for (const o of catalogue.orders) await c.query('select site.erp_receive_order($1::jsonb)', [JSON.stringify(o)]);
   });
+  await confirmErpMasters(ctx);
   ctx.log(`receiving, testing and releasing ${GBT01_LOTS.length} GB-T-01 lots`);
   for (const lot of GBT01_LOTS) await seedLot(ctx, lot);
 }

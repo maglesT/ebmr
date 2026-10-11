@@ -101,9 +101,38 @@ export interface ErpProduct {
   erpReference: string;
 }
 
-/** The ERP interface posts a product master version (INTERFACE.WRITE). */
+/**
+ * The ERP interface posts a product master version (ERP.MASTER_WRITE, sql/0802). It takes effect at once only when the
+ * version in effect has the same reprocessing permission and shelf life; otherwise, and for a new product, once QA
+ * confirms it (confirmErpMaster).
+ */
 export function erpReceiveProduct(client: Queryable, p: ErpProduct): Promise<string> {
   return one(client, 'select site.erp_receive_product($1::jsonb) as r', [JSON.stringify(p)]);
+}
+
+export type ErpMasterKind = 'PRODUCT' | 'MATERIAL';
+
+/** The aggregate QA signs (ERP_MASTER_CONFIRMED) to confirm a received master version (sql/0802). */
+export const erpMasterAggregateId = (kind: ErpMasterKind, versionId: string): string => `${kind}/${versionId}`;
+
+/** QA confirms a received master version with its ERP_MASTER_CONFIRMED signature (ERP.MASTER_CONFIRM; sql/0802). */
+export async function confirmErpMaster(client: Queryable, kind: ErpMasterKind, versionId: string, signatureId: string): Promise<void> {
+  await client.query('select site.confirm_erp_master($1, $2, $3)', [kind, versionId, signatureId]);
+}
+
+export interface ErpMasterPending {
+  masterKind: ErpMasterKind;
+  key: string;
+  versionId: string;
+  erpReference: string;
+  receivedAt: string;
+  values: Record<string, unknown>;
+  inEffect: Record<string, unknown> | null;
+}
+
+/** The latest received master versions not yet in effect, with the values in effect beside them (sql/0802). */
+export function erpMasterPending(client: Queryable): Promise<ErpMasterPending[]> {
+  return one(client, 'select site.erp_master_pending() as r', []);
 }
 
 export interface ProductMaster {

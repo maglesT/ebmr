@@ -42,6 +42,14 @@ export const SsccView = z.strictObject({
 });
 export type SsccView = z.infer<typeof SsccView>;
 
+/** Bulk issued to a packaging order from its processing batch's usable containers (recipe-core 0701, exit review HIGH-3). */
+export const BulkIssueView = z.strictObject({
+  batchId: Uuid,
+  parentBatchId: Uuid,
+  containers: z.array(z.strictObject({ label: z.string(), containerId: Uuid, quantity: DecimalString, unit: z.enum(['kg', 'g', 'units']) })),
+});
+export type BulkIssueView = z.infer<typeof BulkIssueView>;
+
 export const SsccRegisterView = z.strictObject({
   batchId: Uuid,
   batchNumber: z.string(),
@@ -200,6 +208,19 @@ export const batches = {
     params: stepParams,
     body: withAttribution({}),
     response: SsccView,
+  }),
+  issueBulk: defineRoute({
+    id: 'batches.issueBulk',
+    method: 'POST',
+    path: '/api/batches/:batchId/bulk',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Issue the processing batch\'s usable containers (scanned labels) to the packaging order that packs it, once QA released it for packing (H-PACK); a packing step starts only then',
+    params: batchParams,
+    body: withAttribution({ labels: z.array(z.string().trim().min(1).max(64)).min(1).max(200) }),
+    response: BulkIssueView,
   }),
   additionSources: defineRoute({
     id: 'batches.additionSources',

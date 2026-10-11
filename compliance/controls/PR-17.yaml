@@ -50,6 +50,8 @@ implemented_by:
 tests:
   - "packages/site-services/test/quality/lims.test.ts > receipt from the material master (PR-17) > [PR-17][IN-24] receipt takes kind, name and unit from the master; an unknown material is refused; a purchased material cannot arrive as INTERMEDIATE; only the ERP interface writes the master"
   - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [PR-49][PR-17] a QA person raises and investigates a deviation-lite record with a generated reference; the ERP interface imports its catalogue and nobody else can"
+  - "packages/site-services/test/quality/interfaces.test.ts > ERP product master > [DI-17][PR-17][IN-24] masters and orders come from the ERP interface only: an identity holding INTERFACE.WRITE (SERVICE_ACCOUNT) is refused for a product, a material and an order"
+  - "packages/site-services/test/quality/interfaces.test.ts > ERP product master > [IN-24][PR-17] a material's kind and maximum retest interval change only once QA confirms; a new material, even one posted INTERMEDIATE, cannot be received until then"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

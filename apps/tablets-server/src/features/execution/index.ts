@@ -18,7 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { routes, type ClientIntent, type CommandResultView, type ProposedActView, type Refusal, type ReplayReportView, type RunSummaryView, type SsccView } from '@ebmr/api-contract';
 import type { z } from 'zod';
 import { sandbox, type commands } from '@ebmr/kernel';
-import { engine, execution } from '@ebmr/recipe-core';
+import { containers, engine, execution } from '@ebmr/recipe-core';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type pg from 'pg';
 import type { ActorContext } from '@ebmr/kernel';
@@ -299,6 +299,14 @@ function gmpBatchHandlers(app: AppContext): Handlers<typeof routes.batches> {
       const view = (await ssccRegister(app, pool, params.batchId)).ssccs.find((x) => x.sscc === out.result);
       if (!view) throw new Error('the issued SSCC was not found');
       return view;
+    },
+    // Exit review HIGH-3 (recipe-core 0701): the database decides (packaging order, release for packing, usable containers).
+    issueBulk: async ({ params, body, requireSession, actor, idempotencyKey, requestHash }) => {
+      requireSession();
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (client) =>
+        containers.issuePackagingBulk(client, params.batchId, body.labels),
+      );
+      return out.result;
     },
     additionSources: async ({ params, requireSession }) => {
       requireSession();

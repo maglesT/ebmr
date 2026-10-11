@@ -16,7 +16,9 @@
  *    MATERIAL_LOT_STATUS_DECIDED) of a material lot, as the lot's state machine names them;
  *  - REPROCESSING_ACT: RESERVE_RESIDUE (RESIDUE_RESERVED), AUTHORISE_ADDITION and AUTHORISE_REQUEST
  *    (REPROCESSING_AUTHORISED);
- *  - MASTER_DATA_APPROVE: a formula version (FORMULA_APPROVED, by a person other than its author);
+ *  - MASTER_DATA_APPROVE: a formula version (FORMULA_APPROVED, by a person other than its author); a received ERP
+ *    product or material master version that changes a controlled value, or names a new code (ERP_MASTER_CONFIRMED by
+ *    QA, never the ERP interface's own person; site-services 0802);
  *  - ACT_APPROVAL: the approval of an act proposed on a GMP batch (recipe.propose_act), with the act's own meaning
  *    (VOID_AUTHORISED for a void), by another person than the requester;
  *  - PLANT_VERIFY: CLEANING and REPAIR (LOGBOOK_DOUBLE_CHECKED), CLEARANCE (the clearance verification meaning of
@@ -90,7 +92,8 @@ export const SignableAction = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     kind: z.literal('MASTER_DATA_APPROVE'),
-    masterKind: z.literal('FORMULA'),
+    /** A formula version (FORMULA_APPROVED), or a received ERP product or material master version (ERP_MASTER_CONFIRMED). */
+    masterKind: z.enum(['FORMULA', 'ERP_PRODUCT', 'ERP_MATERIAL']),
     versionId: Uuid,
   }),
   z.strictObject({

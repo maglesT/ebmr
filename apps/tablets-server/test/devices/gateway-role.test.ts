@@ -132,6 +132,23 @@ const notGatewayRole = (role: string): RegExp =>
   );
 
 describe('the site gateway acts only in its own role (DI-17, INV-20)', () => {
+  it('[DI-17][PR-47][IN-24] the gateway identity (SITE_GATEWAY: INTERFACE.WRITE) writes no ERP master data or order: a product permitting reprocessing, a material posted INTERMEDIATE and an order are refused, and nothing is stored (exit review HIGH-1; site-services 0802)', async () => {
+    const tag = randomUUID().slice(0, 6).toUpperCase();
+    const writes: [string, Record<string, unknown>][] = [
+      ['select site.erp_receive_product($1::jsonb)', { productCode: `GW${tag}`, strength: '500 mg', productName: 'x', reprocessingPermitted: true, betaLactam: false, shelfLifeMonths: 120, erpReference: 'GW' }],
+      ['select site.erp_receive_material($1::jsonb)', { materialCode: `GW${tag}`, materialName: 'x', materialKind: 'INTERMEDIATE', unit: 'kg', erpReference: 'GW' }],
+      ['select site.erp_receive_order($1::jsonb)', { orderNo: `GW${tag}`, siteCode: 'SITE-1', productCode: `GW${tag}`, strength: '500 mg', batchSize: '1', batchSizeUnit: 'kg', bom: [{ materialCode: `GW${tag}`, quantity: '1', unit: 'kg' }], erpReference: 'GW' }],
+    ];
+    for (const [sql, p] of writes) {
+      await expect(withCommand(server.db.app, await sessionActor(), (c) => c.query(sql, [JSON.stringify(p)]))).rejects.toThrow(/EBMR-IAM-\d{3}.*ERP\.MASTER_WRITE/s);
+    }
+    const { rows } = await server.db.admin.query<{ n: string }>(
+      "select ((select count(*) from site.erp_product where product_code = $1) + (select count(*) from site.erp_material where material_code = $1) + (select count(*) from site.erp_production_order where order_no = $1))::text as n",
+      [`GW${tag}`],
+    );
+    expect(rows[0]?.n).toBe('0');
+  });
+
   it('[DI-17][INV-20] the gateway identity holds SITE_GATEWAY alone, and the listener sends its readings and heartbeats in it: each stored reading records that role', async () => {
     expect(await sessionRoles()).toEqual(['SITE_GATEWAY']);
     expect((await sessionActor()).roleCode).toBe('SITE_GATEWAY');

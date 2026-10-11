@@ -15,7 +15,7 @@ import { actorOfBrowser, personaIn, refusalOf, tapFor, valueOf } from '../esig/s
 import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
 import { actorOf, gmpLifecycleWorld, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 import { reason } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
-import { signAction } from '../support/signed-acts.ts';
+import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 
 let w: GmpBatchWorld;
 let gmp: TestServer;
@@ -61,6 +61,31 @@ describe('quality routes (GMP)', () => {
     expect(rows[0]?.n).toBe('2');
     // A wrong key is refused, and a person's credentials never write the ERP stub.
     expect((await browser.call(quality.erpImport, { body: { ...creds, serviceKey: `${creds.serviceKey}x`, catalogue: erpCatalogue({ orders: 0 }) } })).ok).toBe(false);
+  });
+
+  it('[PR-47][IN-24] a new or changed ERP master waits for QA: listed as pending beside the values in effect, confirmed by the QA MBR approver\'s signature over HTTP (MASTER_DATA_APPROVE), never by the QA investigator; the masters in effect list it afterwards (exit review HIGH-1)', async () => {
+    const erp = gmp.seed.services.find((s) => s.key === 'erpInterface');
+    if (!erp) throw new Error('no ERP interface in the GMP seed');
+    const creds = { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminalOf(gmp.seed, erp.terminal).fingerprint };
+    const qa = await gmp.asPersona('qaInvestigator');
+    const code = `MAT-H1-${randomUUID().slice(0, 6).toUpperCase()}`;
+    const material = { materialCode: code, materialName: 'Exit review excipient', materialKind: 'EXCIPIENT' as const, unit: 'kg', maxRetestMonths: 24, erpReference: `SAP-${code}` };
+    valueOf(await gmp.browser().call(quality.erpImport, { body: { ...creds, catalogue: { products: [], materials: [material], orders: [] } } }));
+    const pendingOf = async () => valueOf(await qa.call(quality.erpPending)).pending.filter((p) => p.key === code);
+    const [p] = await pendingOf();
+    expect(p).toMatchObject({ masterKind: 'MATERIAL', values: { materialKind: 'EXCIPIENT', maxRetestMonths: 24 }, inEffect: null });
+    expect(valueOf(await qa.call(quality.erpMaterials)).materials.map((m) => m.materialCode)).not.toContain(code);
+    const action = { kind: 'MASTER_DATA_APPROVE' as const, masterKind: 'ERP_MATERIAL' as const, versionId: p?.versionId ?? '' };
+    expect(valueOf(await qa.call(routes.esig.describe, { body: { action } }))).toMatchObject({ aggregateType: 'erp_master', aggregateId: `MATERIAL/${p?.versionId}`, meaning: 'ERP_MASTER_CONFIRMED' });
+    expect((await signAction(gmp, qa, 'qaInvestigator', action)).ok).toBe(false);
+    expect(await confirmErpPending(gmp)).toBeGreaterThanOrEqual(1);
+    expect(await pendingOf()).toEqual([]);
+    expect(valueOf(await qa.call(quality.erpMaterials)).materials.find((m) => m.materialCode === code)).toMatchObject({ materialKind: 'EXCIPIENT' });
+    // The ERP makes it an intermediate: pending again, and the material stays an excipient until QA confirms.
+    valueOf(await gmp.browser().call(quality.erpImport, { body: { ...creds, catalogue: { products: [], materials: [{ ...material, materialKind: 'INTERMEDIATE', erpReference: `SAP-${code}/2` }], orders: [] } } }));
+    const [again] = await pendingOf();
+    expect([again?.values['materialKind'], again?.inEffect?.['materialKind']]).toEqual(['INTERMEDIATE', 'EXCIPIENT']);
+    expect(valueOf(await qa.call(quality.erpMaterials)).materials.find((m) => m.materialCode === code)).toMatchObject({ materialKind: 'EXCIPIENT' });
   });
 
   it('the reprocessing registers are listed read-only (requests, authorisations, reservable residue), and the server describes what a signable action signs', async () => {
@@ -145,6 +170,7 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     const creds = { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminalOf(gmp.seed, erp.terminal).fingerprint };
     const material = { materialCode: 'MAT-S6', materialName: 'Slice 6 excipient', materialKind: 'EXCIPIENT' as const, unit: 'kg', maxRetestMonths: 24, erpReference: 'SAP-MAT-S6' };
     valueOf(await gmp.browser().call(quality.erpImport, { body: { ...creds, catalogue: { products: [], materials: [material], orders: [] } } }));
+    await confirmErpPending(gmp);
     const warehouse = await loginOf(gmp, await grantedPerson(gmp, 'WAREHOUSE_LABELLING', 'Ramesh Iyer (warehouse)'));
     const receive = async (lotCode: string) =>
       valueOf(await warehouse.call(quality.receiveLot, {
@@ -201,6 +227,8 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     // the server names it, and the status meaning is refused. The hold itself is QA's signed decision in the database.
     const world = await gmpLifecycleWorld(gmp);
     const qaHold = await actorOf(gmp, 'qaApprover2');
+    // The decision is proposed first, so the signed content names it (site-services 0800).
+    await world.run(qaHold, (c) => c.query("select site.propose_lot_decision($1, 'HOLD')", [lot.lotId]));
     const holdSig = await world.sign(qaHold, 'material_lot', lot.lotId, 'MATERIAL_LOT_STATUS_DECIDED', 'RELEASED');
     const lotVersion = (await gmp.db.admin.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId])).rows[0]?.v;
     await world.run(qaHold, (c) => c.query("select site.change_lot_status($1, 'HOLD', $2::bigint, $3)", [lot.lotId, lotVersion, holdSig]), reason('Customer complaint on the supplier lot under investigation'));

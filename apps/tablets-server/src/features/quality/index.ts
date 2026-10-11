@@ -19,7 +19,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
-import { deviationIds, erpMaterials, erpOrders, erpProducts, extraTesting, lots } from './reads.ts';
+import { deviationIds, erpMaterials, erpOrders, erpPending, erpProducts, extraTesting, lots } from './reads.ts';
 import { reprocessingAuthorisations, reprocessingRequests, residueContainers } from './reprocessing.ts';
 import { lotDecisionHandler, qualityActHandler, reprocessingActHandler } from './signables.ts';
 
@@ -203,6 +203,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       erpMaterials: async ({ requireSession }) => {
         requireSession();
         return { materials: await erpMaterials(pool) };
+      },
+      erpPending: async ({ requireSession }) => {
+        requireSession();
+        return { pending: await erpPending(app, pool) };
       },
       lots: async ({ query, requireSession }) => {
         requireSession();

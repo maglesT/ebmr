@@ -123,9 +123,12 @@ describe('whole-batch reprocessing (recipe-core 0624)', () => {
     // The product master: unknown, then received without the permission (D-S5-5 default false), then permitting.
     expect(await plan(req)).toMatch(/does not permit reprocessing.*\[EBMR-RPR-052\]/);
     const product = { productCode: PRODUCT, strength: STRENGTH, productName: 'Paracetamol tablets', betaLactam: false, shelfLifeMonths: 24, erpReference: unique('ERP-') };
-    await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product));
+    await w.confirm('PRODUCT', await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product)));
     expect(await plan(req)).toMatch(/does not permit reprocessing.*\[EBMR-RPR-052\]/);
-    await w.run(w.cast.erp, (c) => erpReceiveProduct(c, { ...product, reprocessingPermitted: true, erpReference: unique('ERP-') }));
+    // The permission takes effect only once QA confirms it (site services 0802, exit review HIGH-1).
+    const permitting = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, { ...product, reprocessingPermitted: true, erpReference: unique('ERP-') }));
+    expect(await plan(req)).toMatch(/does not permit reprocessing.*\[EBMR-RPR-052\]/);
+    await w.confirm('PRODUCT', permitting);
     // Every check of the request passes: the plan reaches 5a's GMP issue (this fixture master has no effective version).
     expect(await plan(req)).toMatch(/EBMR-EXE-192/);
     // An investigation not concluded, or not linked to every parent.

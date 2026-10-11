@@ -154,6 +154,7 @@ tests:
   - "apps/tablets-server/test/devices/gateway-key-order.test.ts > D16: a key of small order enrolled before tablets 0702 is never trusted > [DI-32][DI-30][DI-28] an upload wait \"signed\" under it without a private key is refused (EBMR-DEV-055), nothing stored"
   - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [IN-35][PR-29][DI-28] catalogue test: run 45 minutes without an IPC entry; the check is missed at 30 minutes (25 min interval + 5 min grace, at the entry's time), and the next entry lists it and raises IPC_CHECK_MISSED, which waits for a deviation"
   - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29][DI-28] TB-11 missed check at database time: the overdue checks are read at an instant (catalogue test: the alarm fires once the interval and grace have passed), recorded once as an alarm by the server sweeper job without any operator entry, and the next entry must list them with IPC_CHECK_MISSED, the database recording MISSED for each stream and holding its containers"
+  - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [DI-28][PR-29] the press counter is compared as an exact integer up to the largest safe integer, and a counter above 2^53 is refused, never rounded (exit review MEDIUM)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

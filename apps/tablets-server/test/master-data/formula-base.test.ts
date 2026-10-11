@@ -13,7 +13,7 @@ import { flow, lifecycle } from '@ebmr/recipe-core';
 import { GBT01_MATERIALS, GBT01_PRODUCT } from '../../src/features/execution/seed-gb-t-01.ts';
 import { actorOfBrowser, refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
-import { signAction } from '../support/signed-acts.ts';
+import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 import { GBT01_FORMULA_LINES } from '../golden/gb-t-01/world.ts';
 
 let gmp: TestServer;
@@ -30,6 +30,7 @@ beforeAll(async () => {
   if (!erp) throw new Error('no ERP interface in the GMP seed');
   const creds = { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminalOf(gmp.seed, erp.terminal).fingerprint };
   valueOf(await gmp.browser().call(routes.quality.erpImport, { body: { ...creds, catalogue: { products: [GBT01_PRODUCT], materials: GBT01_MATERIALS, orders: [] } } }));
+  await confirmErpPending(gmp);
   const formulaId = valueOf(await steward.call(routes.masterData.createFormula, { body: { productCode: GBT01_PRODUCT.productCode, strength: GBT01_PRODUCT.strength, batchSizeUnits: '200000' } })).formulaId;
   versionId = valueOf(await steward.call(routes.masterData.addFormulaVersion, { params: { formulaId }, body: { changeReason: 'GB-T-01', lines: GBT01_FORMULA_LINES } })).versionId;
   const signed = await signAction(gmp, approver, 'approver', { kind: 'MASTER_DATA_APPROVE', masterKind: 'FORMULA', versionId });
