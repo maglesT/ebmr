@@ -6,7 +6,7 @@
  * 0871, 0872).
  */
 import { z } from 'zod';
-import { DecimalString, Instant, PersonRef, Uuid } from '../common.ts';
+import { DecimalString, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
 const Code = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,31}$/);
@@ -268,8 +268,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Start the cleaning of a unit or an area',
-    body: z.strictObject({ target: z.enum(['EQUIPMENT', 'AREA']), code: Code, level: z.enum(['MINOR', 'MAJOR']), method: z.enum(['MANUAL', 'CIP']).optional() }),
+    body: withAttribution({ target: z.enum(['EQUIPMENT', 'AREA']), code: Code, level: z.enum(['MINOR', 'MAJOR']), method: z.enum(['MANUAL', 'CIP']).optional() }),
     response: CleaningView,
   }),
   completeCleaning: defineRoute({
@@ -279,9 +280,10 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Complete a cleaning (a CIP cycle names its reference); a second person verifies it (PLANT_VERIFY)',
     params: z.strictObject({ id: Uuid }),
-    body: z.strictObject({ cycleReference: z.string().trim().min(1).max(128).optional() }),
+    body: withAttribution({ cycleReference: z.string().trim().min(1).max(128).optional() }),
     response: CleaningView,
   }),
   recordClearance: defineRoute({
@@ -291,8 +293,9 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Record a line or room clearance and its finding for the next batch; a second person verifies it (PLANT_VERIFY)',
-    body: z.strictObject({
+    body: withAttribution({
       areaCode: Code,
       type: z.enum(['PRODUCT_CHANGE', 'CAMPAIGN', 'PACKAGING_ORDER']),
       batchId: Uuid,
@@ -309,12 +312,19 @@ export const plant = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'Record an equipment logbook event, or the repair of the unit\'s open failure (verified by a second person, PLANT_VERIFY)',
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Record an equipment logbook event (EVENT with its kind), or the repair of the unit\'s open failure (REPAIR with its work-order reference; verified by a second person, PLANT_VERIFY)',
     params: z.strictObject({ code: Code }),
-    body: z.discriminatedUnion('event', [
-      z.strictObject({ event: z.literal('EVENT'), kind: EquipmentEventKind, detail: z.string().trim().min(1).max(2000), reference: z.string().trim().min(1).max(128).optional() }),
-      z.strictObject({ event: z.literal('REPAIR'), detail: z.string().trim().min(1).max(2000), reference: z.string().trim().min(1).max(128) }),
-    ]),
+    body: withAttribution({
+      event: z.enum(['EVENT', 'REPAIR']),
+      /** EVENT only. */
+      kind: EquipmentEventKind.optional(),
+      detail: z.string().trim().min(1).max(2000),
+      /** Required for a REPAIR (the work order). */
+      reference: z.string().trim().min(1).max(128).optional(),
+      /** A FAILURE_SIGNALLED from a step names the batch (number) it was signalled in (IN-25 (d)). */
+      batchNumber: z.string().trim().min(1).max(64).optional(),
+    }),
     response: z.strictObject({ id: Uuid, equipmentCode: z.string(), recorded: z.enum([...EquipmentEventKind.options, 'REPAIR_RECORDED']) }),
   }),
   pendingVerifications: defineRoute({

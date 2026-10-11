@@ -54,6 +54,11 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
    */
   describeNow?(db: pg.Pool | pg.PoolClient, action: A): Promise<{ aggregateType: string; aggregateId: string; meaning: string; expectedState?: string }>;
   /**
+   * Phase 3 slice 6: the record's state the signature expects, read inside the sign command, for a handler whose
+   * describe() names none (a signed act whose rule is the database's; the content version and hash bind what was seen).
+   */
+  expectedStateNow?(client: pg.PoolClient, action: A): Promise<string | null>;
+  /**
    * The signer's own reason the sign command carries, both halves, for an action whose change needs one (the kernel
    * refuses such a change without it, EBMR-AUDIT-002): taken from the action the person sent, never written by the
    * system (DI-22, DI-24). Absent: the command carries no reason.

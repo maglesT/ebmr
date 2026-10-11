@@ -133,6 +133,14 @@ describe('formulation library (slice 6a)', () => {
     const choice = await regulatory.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } });
     expect(refusalOf(choice)?.code).toBe('EBMR-IAM-040');
     expect(valueOf(await author.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } })).bom).toHaveLength(3);
+    // On a shop-floor kiosk the read needs no badge tap (it is no command): an operator without FORMULA.READ is refused
+    // for that (EBMR-IAM-040) or shown the identity only, never asked to tap.
+    const kiosk = await gmp.asPersona('operator1');
+    const onKiosk = valueOf(await kiosk.call(md.formula, { params: { formulaId } }));
+    expect(onKiosk.compositionReadable).toBe(false);
+    expect(onKiosk.versions.map((v) => v.lines)).toEqual([null]);
+    expect(valueOf(await kiosk.call(md.formulas)).formulas.map((f) => f.formulaId)).toContain(formulaId);
+    expect(refusalOf(await kiosk.call(routes.designer.formulaChoice, { query: { product: PRODUCT.code, strength: PRODUCT.strength, batchSize: '100000' } }))?.code).toBe('EBMR-IAM-040');
 
     // The MBR taken from it: the author opens it; the regulatory signer does not.
     const family = valueOf(await author.call(routes.designer.createFamily, {
