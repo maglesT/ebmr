@@ -23,7 +23,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ResolvedSession } from '../../platform/auth/session.ts';
 import type { AppContext } from '../../platform/context.ts';
 import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
-import { bindRoutes } from '../../platform/http/bind.ts';
+import { bindRoutes, bindStubRoutes } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { gmpIssueHandler, planGmpBatch } from './gmp-issue.ts';
@@ -114,6 +114,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
   const sweeper = startSweeper(app, scope.log);
   if (sweeper) scope.addHook('onClose', async () => sweeper.stop());
 
+  // Phase 3 slice 6 (D-S6-1): the GMP batch family; handlers arrive with slice 6a.
+  bindStubRoutes(scope, app, routes.batches, 'Phase 3 slice 6a');
   bindRoutes(scope, app, routes.execution, {
     testPackages: async ({ requireSession }) => {
       requireSession();

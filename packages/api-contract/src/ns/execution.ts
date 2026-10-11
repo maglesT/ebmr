@@ -36,6 +36,8 @@ export const ActionName = z.enum([
   'HOLD_BATCH',
   'RELEASE_HOLD',
   'COMPLETE_LOOP_ITERATION',
+  /** Phase 3 slice 6: void an attempt without a result, with a reason and QA's approval (never a delete). */
+  'VOID_ATTEMPT',
 ]);
 export const ActionView = z.strictObject({
   action: ActionName,
