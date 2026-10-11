@@ -75,7 +75,7 @@ describe('the numbering of the signed text: only a procedure the engine numbers 
       unknownKindWithBranches: op(seq('ops', phase('a'), { kind: 'chapter', id: 'ch', branches: [{ id: 'b1', name: 'B1', body: phase('b') }] } as unknown as FlowNode)),
     };
     const { rows } = await db.admin.query<{ k: string; bad: boolean; numbered: string[] }>(
-      `select k, recipe.flow_numbering(v) ? 'bad' as bad, array(select jsonb_object_keys(coalesce(recipe.flow_numbering(v) -> 'ids', '{}')) order by 1) as numbered
+      `select k, recipe.flow_numbering(v) ? 'bad' as bad, array(select jsonb_object_keys(coalesce(recipe.flow_numbering(v) -> 'ids', '{}')) as id order by id collate "C") as numbered
          from jsonb_each($1::jsonb) e (k, v) order by k`,
       [JSON.stringify(cases)],
     );
