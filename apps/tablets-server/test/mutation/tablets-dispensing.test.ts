@@ -250,6 +250,46 @@ describe('the lot TB-01 proposes and the facts it reads (tablets 1000)', () => {
   });
 });
 
+describe('a TB-01 step closes within its tolerance or with the held exception (tablets 0843)', () => {
+  const NODE = { kind: 'phase', id: 'P-DISP', block: { type: 'TB-01', version: '1' }, config: { tolerancePercent: { active: '1', excipient: '2' } } };
+  const content = (node: Json = NODE): Json => ({ procedure: { kind: 'sequence', id: 'root', children: [node] } });
+  const HELD = { type: 'DISPENSE_OUT_OF_TOLERANCE', source: { stepKey: 'K' }, severity: 'ACTION', deviationRequired: true, block: { until: 'DEVIATION', downstream: { steps: [] } } };
+  const weighing = (line: string, net: string, unit = 'kg'): Json => ({ stepKey: 'K', kind: 'CONTAINER_WEIGHING', data: { bomLine: line, net, unit } });
+  /** The close problem of step K with the active line L1 (target 10 kg, 1 %) and excipient line L2 (target 5 kg, 2 %). */
+  const close = async (o: { l1?: string; l1Unit?: string; l2?: string; results?: Json[]; exceptions?: Record<string, Json>; node?: Json }): Promise<string | null> => {
+    const calc = { stepKey: 'K', kind: 'POTENCY_CALCULATION', recordedSeq: 1, data: { active: { bomLine: 'L1', unit: 'kg' }, results: o.results ?? [{ target: '6' }, { target: '4' }], excipient: { bomLine: 'L2', target: '5' } } };
+    const steps = (status: string) => ({ K: { step: 'P-DISP', status } });
+    const p_new = { steps: steps('COMPLETED'), entries: { 'EN-1': calc, 'EN-2': weighing('L1', o.l1 ?? '10', o.l1Unit), 'EN-3': weighing('L2', o.l2 ?? '5') }, exceptions: o.exceptions ?? {} };
+    return one<string | null>('select tab.tb01_close_problem($1::jsonb, $2::jsonb, $3::jsonb) as r', [JSON.stringify(content(o.node)), JSON.stringify({ steps: steps('IN_PROGRESS') }), JSON.stringify(p_new)]);
+  };
+
+  it('[PR-19][INV-25] each line within its tolerance of its target, the edge included; outside it, or without a target or tolerance, only with DISPENSE_OUT_OF_TOLERANCE raised and holding', async () => {
+    expect(await close({})).toBeNull();
+    expect(await close({ l1: '10.1', l2: '5.1' })).toBeNull();
+    expect(await close({ l1: '9900', l1Unit: 'g' })).toBeNull();
+    const out = /closes TB-01 step K with .* no DISPENSE_OUT_OF_TOLERANCE raised \(PR-19\)/;
+    expect(await close({ l1: '10.11' })).toMatch(out);
+    expect(await close({ l2: '4.89' })).toMatch(out);
+    expect(await close({ results: [] })).toMatch(out);
+    expect(await close({ node: { ...NODE, config: { tolerancePercent: { excipient: '2' } } } })).toMatch(out);
+    expect(await close({ l1: '10.11', exceptions: { 'EX-1': HELD } })).toBeNull();
+    // An exception that does not hold the steps after it until a deviation is linked does not stand for it.
+    expect(await close({ l1: '10.11', exceptions: { 'EX-1': { ...HELD, deviationRequired: false } } })).toMatch(out);
+  });
+
+  it('[PR-19][PR-18] an exception is raised newly against the earlier row, of its type, step and severity, and held when asked', async () => {
+    const raised = (old: Json | null, ex: Json, held = true) =>
+      one<boolean>("select tab.tb01_raised($1::jsonb, $2::jsonb, 'K', 'DISPENSE_OUT_OF_TOLERANCE', 'ACTION', $3) as r", [old === null ? null : JSON.stringify(old), JSON.stringify({ exceptions: { 'EX-1': ex } }), held]);
+    expect(await raised(null, HELD)).toBe(true);
+    expect(await raised({}, HELD)).toBe(true);
+    expect(await raised({ exceptions: { 'EX-1': HELD } }, HELD)).toBe(false);
+    expect(await raised(null, { ...HELD, deviationRequired: false })).toBe(false);
+    expect(await raised(null, { ...HELD, block: { until: 'DISPOSITION', downstream: {} } })).toBe(false);
+    expect(await raised(null, { ...HELD, block: { until: 'DEVIATION', downstream: [] } })).toBe(false);
+    expect(await raised(null, { ...HELD, deviationRequired: false, block: {} }, false)).toBe(true);
+  });
+});
+
 describe('FEFO in the sandbox: the registered test lots (tablets 1000)', () => {
   let sbx: TestServer;
   beforeAll(async () => {
