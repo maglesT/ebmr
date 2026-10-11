@@ -214,6 +214,16 @@ describe('the lot TB-01 proposes and the facts it reads (tablets 1000)', () => {
       // At the very instant of its retest the lot is no longer proposed; nor at the instant of its expiry.
       expect(await first(c, b, ['L-EXCL'], '2027-06-15T00:00:00Z')).toBe('L-OK');
       expect(await first(c, b, ['L-EXCL', 'L-OWN'], '2027-01-01T00:00:00Z')).toBe('L-OK');
+      expect(await first(c, b, [], '2027-01-01T00:00:00Z')).toBe('L-OWN');
+      expect(await first(c, b, [], '2026-12-31T23:59:59.999999Z')).toBe('L-EXCL');
+      // The batch's open reservation of a lot with at least the quantity left (10 kg reserved), in the lot's unit.
+      const reservation = async (value: string, unit: string): Promise<{ quantity: string; unit: string } | null> =>
+        (await c.query<{ r: { quantity: string; unit: string } | null }>('select tab.tb01_reservation_for($1, $2, $3::numeric, $4) as r', [b, 'L-OWN', value, unit])).rows[0]?.r ?? null;
+      expect(await reservation('10', 'kg')).toMatchObject({ quantity: '10', unit: 'kg' });
+      expect(await reservation('10000', 'g')).toMatchObject({ unit: 'kg' });
+      expect(await reservation('10.001', 'kg')).toBeNull();
+      expect(await reservation('0', 'kg')).toBeNull();
+      expect(await reservation('-1', 'kg')).toBeNull();
       // Another batch has no reservation on L-OWN: it is not available to it.
       expect(await first(c, ids['B2'] ?? '', ['L-EXCL'], now)).toBe('L-OK');
     });
@@ -237,5 +247,58 @@ describe('the lot TB-01 proposes and the facts it reads (tablets 1000)', () => {
       expect(await facts('L-OK', ids['B'] ?? '')).toMatchObject({ lotCode: 'L-OK', identityTested: true, expiresAtUs: String(Date.UTC(2028, 0, 1) * 1000) });
       expect(await facts('L-FAILED', ids['B'] ?? '')).toMatchObject({ identityTested: false });
     });
+  });
+});
+
+describe('FEFO in the sandbox: the registered test lots (tablets 1000)', () => {
+  let sbx: TestServer;
+  beforeAll(async () => {
+    sbx = await startServer('SANDBOX');
+  }, 180_000);
+  afterAll(async () => {
+    await sbx?.close();
+  });
+
+  it('[PR-18][IN-24] a released test lot within its dates (its expiry and retest instants excluded), identity-tested unless every market of the batch is India or the markets are unknown', async () => {
+    const c = await sbx.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      const batch = async (markets: string[]): Promise<string> =>
+        (
+          await c.query<{ id: string }>(
+            `insert into recipe.stub_batch (batch_number, family_id, markets, site, line, batch_size, created_by_person, created_by_account)
+             values ($1, gen_random_uuid(), $2, 'SITE-1', 'L1', 'BS', gen_random_uuid(), gen_random_uuid()) returning id`,
+            [`TEST-FEFO-${randomUUID().slice(0, 6)}`, markets],
+          )
+        ).rows[0]?.id ?? '';
+      const lot = (code: string, status: string, expires: string | null, retest: string | null, tested: boolean) =>
+        c.query(
+          `insert into tab.sandbox_lot (lot_code, material_code, material_name, status, expires_at, retest_at, identity_tested, registered_by_person, registered_by_account, correlation_id)
+           values ($1, 'MAT-S', 'Paracetamol', $2, $3, $4, $5, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+          [code, status, expires, retest, tested],
+        );
+      await lot('TEST-S-QUAR', 'QUARANTINE', '2026-07-01T00:00:00Z', null, true);
+      await lot('TEST-S-UNTESTED', 'RELEASED', '2026-08-01T00:00:00Z', null, false);
+      await lot('TEST-S-RETEST', 'RELEASED', '2026-09-01T00:00:00Z', '2026-06-15T00:00:00Z', true);
+      await lot('TEST-S-OK', 'RELEASED', '2027-01-01T00:00:00Z', null, true);
+      const first = async (b: string, now: string, exclude: string[] = []): Promise<string | null | undefined> =>
+        (await c.query<{ r: string | null }>("select tab.tb01_first_expiring($1, 'MAT-S', $2, $3::timestamptz) as r", [b, exclude, now])).rows[0]?.r;
+      const india = await batch(['IN']);
+      const exportBatch = await batch(['IN', 'US']);
+      const now = '2026-06-01T00:00:00Z';
+      // Not the quarantined lot; the untested lot only for India alone or unknown markets.
+      expect(await first(india, now)).toBe('TEST-S-UNTESTED');
+      expect(await first(randomUUID(), now)).toBe('TEST-S-UNTESTED');
+      expect(await first(exportBatch, now)).toBe('TEST-S-RETEST');
+      // The retest instant and the expiry instant themselves are outside the lot's dates.
+      expect(await first(exportBatch, '2026-06-15T00:00:00Z')).toBe('TEST-S-OK');
+      expect(await first(exportBatch, '2026-06-14T23:59:59.999999Z')).toBe('TEST-S-RETEST');
+      expect(await first(india, '2026-08-01T00:00:00Z', ['TEST-S-RETEST'])).toBe('TEST-S-OK');
+      expect(await first(india, '2026-07-31T23:59:59.999999Z', ['TEST-S-RETEST'])).toBe('TEST-S-UNTESTED');
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
   });
 });
