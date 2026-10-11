@@ -11,17 +11,22 @@ import { valueOf } from '../../fixtures/test-package.ts';
 test('quality: a deviation is raised, linked, investigated and concluded @office', async ({ e2e, officePage, persona, api, evidence }, testInfo) => {
   const qa = persona('GMP', 'qaInvestigator');
   const qa2 = persona('GMP', 'qaApprover2');
+  // Receiving a lot is the warehouse's (MATERIAL.HANDLE).
+  const stores = persona('GMP', 'stores');
   const tag = `qf${testInfo.parallelIndex}${Date.now() % 100000}`;
   const erp = await importErp(api('GMP'), e2e.seeds.GMP, tag);
   const base = e2e.url('GMP');
 
-  const page = await officePage('GMP', 'PC-QA-01');
-  await signIn.office(page, qa);
-  const qaApi = await signedInApi(page, e2e);
+  const warehouse = await officePage('GMP', 'PC-QA-01');
+  await signIn.office(warehouse, stores);
+  const storesApi = await signedInApi(warehouse, e2e);
   const lot = valueOf(
     'receive a lot',
-    await qaApi.call(routes.quality.receiveLot, { body: { materialCode: erp.materials.api, lotCode: `L-${tag.toUpperCase()}`, supplier: 'E2E supplier', supplierLot: 'S-1', quantity: '25.000', expiresAt: '2028-06-30T23:59:59+05:30' } }),
+    await storesApi.call(routes.quality.receiveLot, { body: { materialCode: erp.materials.api, lotCode: `L-${tag.toUpperCase()}`, supplier: 'E2E supplier', supplierLot: 'S-1', quantity: '25.000', expiresAt: '2028-06-30T23:59:59+05:30' } }),
   );
+  await warehouse.context().close();
+  const page = await officePage('GMP', 'PC-QA-01');
+  await signIn.office(page, qa);
   const title = `Granulation end point late ${tag}`;
 
   await evidence.step('Raise the deviation', 'The record is OPEN with the reference the database gave', async () => {

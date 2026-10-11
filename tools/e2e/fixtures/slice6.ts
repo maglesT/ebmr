@@ -3,7 +3,7 @@
  *  - `gmpKiosk(browser, e2e, terminal)`: a kiosk-size page on a GMP shared terminal (the `kioskPage` fixture opens
  *    sandbox terminals only);
  *  - `officeSign(page, title, persona)`: the office ceremony (review, then user ID and password) for a request titled
- *    `title`, ending when the dialog closes;
+ *    `title`, ending when the signed dialog is closed;
  *  - `signedInApi(page, e2e)`: the typed client over a signed-in GMP page (its session, CSRF token and origin);
  *  - `importErp(api, seed, tag)`: an ERP catalogue for this worker (one product, its materials and one order) through
  *    the ERP interface's own call, unique per tag, so specs do not depend on each other.
@@ -30,6 +30,9 @@ export async function officeSign(page: Page, title: string | RegExp, who: Seeded
   await form.getByLabel('User ID').fill(who.loginName);
   await form.getByLabel('Password').fill(who.password);
   await form.getByRole('button', { name: 'Sign', exact: true }).click();
+  // The dialog shows the manifestation it signed; closing it hands the outcome back to the screen.
+  await expect(dialog.getByText('Signed.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toHaveCount(0);
 }
 
