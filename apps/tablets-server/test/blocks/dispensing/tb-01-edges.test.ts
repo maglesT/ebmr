@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { blocks, type engine, type flow } from '@ebmr/recipe-core/pure';
 import { mbrWith, phase } from '../../../../../packages/recipe-core/test/flow/support.ts';
 import { define, Run, sig, T0 } from '../../../../../packages/recipe-core/test/engine/support.ts';
-import { TB01, tb01Config } from '../../../src/blocks/tb-01.ts';
+import { calculationData, potencyInput, TB01, tb01Config } from '../../../src/blocks/tb-01.ts';
 import { tabletsBlockCatalog, tabletsBlockRegistry } from '../../../src/features/edition-blocks.ts';
 
 type Json = Record<string, unknown>;
@@ -298,5 +298,56 @@ describe('TB-01 at PERFORMED', () => {
       ['BOM-API: 10.101 kg dispensed is outside 1 % of its target 10 kg; it cannot be confirmed without this exception and a deviation', 'ACTION', ['PR-19', 'PR-08']],
     ]);
     expect(go('10.000', '19.899').map((x) => x[0])).toEqual(['BOM-MCC: 19.899 kg dispensed is outside 0.5 % of its target 20 kg; it cannot be confirmed without this exception and a deviation']);
+  });
+});
+
+describe('TB-01 potency input and stored calculation (mutation follow-up)', () => {
+  it('[PR-19][DI-33] the potency input takes the BOM standard, the form, each lot\'s stated results only and the excipient only when configured and in the BOM', () => {
+    const c = tb01Config(baseConfig);
+    const m = mbr();
+    const input = potencyInput(c, m, [
+      { assay: { basis: 'ANHYDROUS_WATER', assay: '99.2', water: '4.6', lod: 7, solvents: '0.1' } },
+      { assay: { basis: 'AS_IS', assay: '98' }, baseEquivalent: 'Y' },
+    ]);
+    expect(input).toStrictEqual({
+      standardQuantity: '8.000',
+      standardIs: 'BASE',
+      form: { molarMassForm: '1155.36', molarMassBase: '558.64', baseMoieties: 2 },
+      overagePercent: '0',
+      lots: [{ assay: { basis: 'ANHYDROUS_WATER', assay: '99.2', water: '4.6', solvents: '0.1' } }, { assay: { basis: 'AS_IS', assay: '98' }, baseEquivalent: 'Y' }],
+      excipient: { standard: '20.000', min: '18.000', max: '22.000' },
+      readability: c.readability,
+    });
+    expect(potencyInput(c, m, [{ assay: { basis: 'AS_IS', assay: '98', lod: '1' } }]).lots).toStrictEqual([{ assay: { basis: 'AS_IS', assay: '98', lod: '1' } }]);
+    expect(potencyInput(c, { ...m, bom: [] }, []).standardQuantity).toBe('0');
+    expect(potencyInput(c, { ...m, bom: m.bom.filter((b) => b.id !== 'BOM-MCC') }, [])).not.toHaveProperty('excipient');
+    const { excipient: _e, ...noExc } = c;
+    void _e;
+    expect(potencyInput(noExc, m, [])).not.toHaveProperty('excipient');
+    const { form: _f, ...noForm } = c.active;
+    void _f;
+    expect(potencyInput({ ...c, active: noForm }, m, [])).not.toHaveProperty('form');
+  });
+
+  it('[PR-19][DI-33] the stored calculation keeps the lots as sent, the results by lot, the active standard and the excipient only when both are there', () => {
+    const c = tb01Config(baseConfig);
+    const m = mbr();
+    const r = { factor: 'F', standard: 'S', lots: [{ share: '1' }], excipient: { target: 'E' }, total: 'T', adjustmentPercent: 'A' } as never;
+    const d = calculationData(c, m, [{ lot: { id: 'L1' }, assay: { assay: '99' } }], r);
+    expect(d).toMatchObject({
+      lots: [{ lot: { id: 'L1' }, assay: { assay: '99' } }],
+      results: [{ lot: 'L1', share: '1' }],
+      active: { bomLine: 'BOM-API', standardQuantity: '8.000', unit: 'kg', standardIs: 'BASE', overagePercent: '0', factor: 'F', standard: 'S' },
+      excipient: { bomLine: 'BOM-MCC', target: 'E' },
+      total: 'T',
+      adjustmentPercent: 'A',
+    });
+    expect((d['lots'] as Json[])[0]).toStrictEqual({ lot: { id: 'L1' }, assay: { assay: '99' } });
+    expect((calculationData(c, m, [{ lot: { id: 'L1' }, assay: {}, baseEquivalent: 'B' }], r)['lots'] as Json[])[0]).toStrictEqual({ lot: { id: 'L1' }, assay: {}, baseEquivalent: 'B' });
+    expect(calculationData(c, m, [], { ...(r as object), excipient: undefined } as never)['excipient']).toBeNull();
+    const { excipient: _e, ...noExc } = c;
+    void _e;
+    expect(calculationData(noExc, m, [], r)['excipient']).toBeNull();
+    expect(calculationData(c, { ...m, bom: [] }, [], r)['active']).toMatchObject({ standardQuantity: null, unit: null });
   });
 });
