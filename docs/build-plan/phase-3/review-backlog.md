@@ -323,3 +323,12 @@ Backlog (medium):
 - The GMP sweeper does not run (already listed): missed-check holds on GMP depend on the next manual entry.
 - Performance: each `recipe.execution_state` change runs about 50 triggers, many re-parsing the MBR JSON (GB-T-01 takes
   about 20 minutes); measure before the Phase 4 golden batches.
+
+Exit fixes (branch phase-3/exit-fix): ERP master writes need ERP.MASTER_WRITE (ERP_INTERFACE only) and safety-relevant
+changes (new code, shelf life, reprocessing permission, material kind, retest interval, beta-lactam) take effect only
+after a QA-signed ERP_MASTER_CONFIRMED; lot decisions are proposed first and the signature binds the event; a packaging
+order needs a bulk issue of usable containers after H-PACK before TB-21, TB-23 or TB-24 entries on GMP; consumption
+needs an ISSUED or IN_PROGRESS batch and an entry of the same command, and reservations are revoked at batch end.
+Residuals: no screen for the bulk issue and no HTTP route to plan a packaging order (Phase 4); packing steps inside a
+GMP processing batch are refused (stricter default); over HTTP a lot decision is still RELEASE or REJECT only, and
+HOLD, UNHOLD, RETURN and RECALL need the propose step on that path when they are exposed (Phase 4).
