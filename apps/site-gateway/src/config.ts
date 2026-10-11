@@ -3,31 +3,42 @@
  * gateway code (its registered SERVER device), installation kind, listen address, uplink (the server's gateway
  * listener), the DEMO-ONLY Ed25519 key file, the service keys file (its SERVICE_KEY login), the journal
  * directory, and the instruments with driver, address, expected serial (I4), resolution, unit and room; optionally
- * the process equipment (Phase 3 slice 3a: presses and coaters behind the ebmr.sim-process.v1 driver) with its
+ * the process equipment (Phase 3 slice 3a: presses and coaters; slice 6c: every process kind, behind the ebmr.sim-process.v1 driver) with its
  * polling, staleness and setpoint polling periods; optionally the line printers (Phase 3 slice 4a, ebmr.sim-printer.v1)
  * with their polling, staleness and print-job polling periods.
  */
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { DeviceSerial, EQUIPMENT_KINDS } from '@ebmr/integration-sdk/process';
-import { DecimalText, DeviceCode, InstallationKind, SERIAL_PATTERN, UNIT_PATTERN, ed25519PrivateKey, ed25519PublicKey } from '@ebmr/integration-sdk/scale';
+import { DecimalText, DeviceCode, INSTRUMENT_KINDS, InstallationKind, SERIAL_PATTERN, UNIT_PATTERN, ed25519PrivateKey, ed25519PublicKey, instrumentUnitProblem } from '@ebmr/integration-sdk/scale';
 import type { KeyObject } from 'node:crypto';
 
 const HostPort = z.string().regex(/^[^:]+:\d+$/, 'host:port');
 
-export const DeviceConfig = z.object({
-  code: DeviceCode,
-  driver: z.literal('mt-sics'),
-  host: z.string().min(1),
-  port: z.number().int().min(1).max(65535),
-  expectedSerial: z.string().regex(SERIAL_PATTERN),
-  resolution: DecimalText,
-  unit: z.string().regex(UNIT_PATTERN),
-  room: z.string().nullable().optional(),
-});
+/**
+ * An instrument on the scale protocol: a balance, or since slice 6c (D-S6-8) an IPC or packaging instrument
+ * (moisture analyser, hardness tester, friabilator, disintegration tester, leak tester, checkweigher) reporting in a
+ * unit of its kind (default BALANCE).
+ */
+export const DeviceConfig = z
+  .object({
+    code: DeviceCode,
+    driver: z.literal('mt-sics'),
+    instrument: z.enum(INSTRUMENT_KINDS).optional(),
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65535),
+    expectedSerial: z.string().regex(SERIAL_PATTERN),
+    resolution: DecimalText,
+    unit: z.string().regex(UNIT_PATTERN),
+    room: z.string().nullable().optional(),
+  })
+  .superRefine((d, ctx) => {
+    const problem = instrumentUnitProblem(d.instrument ?? 'BALANCE', d.unit);
+    if (problem) ctx.addIssue({ code: 'custom', path: ['unit'], message: `${d.code}: ${problem}` });
+  });
 export type DeviceConfig = z.infer<typeof DeviceConfig>;
 
-/** A press or coater (Phase 3 slice 3a, G-06): the serial and kind its hello must report (DI-20). */
+/** Process equipment (Phase 3 slice 3a, G-06; every kind since slice 6c): the serial and kind its hello must report (DI-20). */
 export const ProcessDeviceConfig = z.object({
   code: DeviceCode,
   driver: z.literal('process-sim'),

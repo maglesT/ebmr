@@ -4,16 +4,17 @@
  * the TB-04, TB-05 and TB-07 blocks run on (Phase 3 slice 3b: high-shear granulator, fluid-bed dryer, blender; no
  * simulator speaks them yet, the gateway forwards their readings like the press's), of the roller compactor of TB-06 and
  * the layer settings of a bilayer press of TB-16 (Phase 3 slice 3d; no simulator speaks them yet either), and of the
- * blister machine of TB-21 (Phase 3 slice 4b: forming and sealing; no simulator speaks them yet either).
+ * blister machine of TB-21 (Phase 3 slice 4b: forming and sealing; no simulator speaks them yet either), and of the
+ * bottle line of TB-23 and the cartoner of TB-24 (Phase 3 slice 6c, D-S6-8). Since slice 6c a simulator speaks every
+ * kind (EQUIPMENT_KINDS); the fluid-bed dryer keeps its released kind name DRYER.
  *
  * Each tag has its engineering unit, the number of fraction digits its values carry on the wire (a value with more
  * is refused, never rounded), whether it is a counter (whole and never negative) and whether the equipment takes a
  * setpoint for it (downloaded by the server and read back by the gateway).
  */
 
-/** The kinds the process simulators and the gateway's simulator driver speak (slice 3a). */
-export const EQUIPMENT_KINDS = ['PRESS', 'COATER'] as const;
-export type EquipmentKind = (typeof EQUIPMENT_KINDS)[number];
+/** The tablet press and the film coater (slice 3a). */
+export const COMPRESSION_COATING_EQUIPMENT_KINDS = ['PRESS', 'COATER'] as const;
 
 /** Granulation-side process equipment (slice 3b): high-shear granulator, fluid-bed dryer, blender. */
 export const GRANULATION_EQUIPMENT_KINDS = ['GRANULATOR', 'DRYER', 'BLENDER'] as const;
@@ -27,9 +28,26 @@ export type FormingEquipmentKind = (typeof FORMING_EQUIPMENT_KINDS)[number];
 export const BLISTER_EQUIPMENT_KINDS = ['BLISTER_MACHINE'] as const;
 export type BlisterEquipmentKind = (typeof BLISTER_EQUIPMENT_KINDS)[number];
 
+/** Packaging-line process equipment (slice 6c, D-S6-8): the bottle line of TB-23 and the cartoner of TB-24. */
+export const PACKAGING_LINE_EQUIPMENT_KINDS = ['BOTTLE_LINE', 'CARTONER'] as const;
+export type PackagingLineEquipmentKind = (typeof PACKAGING_LINE_EQUIPMENT_KINDS)[number];
+
 /** Every kind of process equipment whose readings the server takes (tab.process_tag, tab.process_device). */
-export const PROCESS_EQUIPMENT_KINDS = [...EQUIPMENT_KINDS, ...GRANULATION_EQUIPMENT_KINDS, ...FORMING_EQUIPMENT_KINDS, ...BLISTER_EQUIPMENT_KINDS] as const;
+export const PROCESS_EQUIPMENT_KINDS = [
+  ...COMPRESSION_COATING_EQUIPMENT_KINDS,
+  ...GRANULATION_EQUIPMENT_KINDS,
+  ...FORMING_EQUIPMENT_KINDS,
+  ...BLISTER_EQUIPMENT_KINDS,
+  ...PACKAGING_LINE_EQUIPMENT_KINDS,
+] as const;
 export type ProcessEquipmentKind = (typeof PROCESS_EQUIPMENT_KINDS)[number];
+
+/**
+ * The kinds the process simulators and the gateway's simulator driver speak: since slice 6c (D-S6-8) every kind of
+ * process equipment (slice 3a: the press and the coater only).
+ */
+export const EQUIPMENT_KINDS = PROCESS_EQUIPMENT_KINDS;
+export type EquipmentKind = ProcessEquipmentKind;
 
 export interface TagSpec {
   readonly tag: string;
@@ -123,17 +141,32 @@ export const BLISTER_TAGS = [
   spec('blister.cycles', 'BLISTER_MACHINE', 'count', 0, false, true),
 ] as const satisfies readonly TagSpec[];
 
+/**
+ * Slice 6c (TB-23, TB-24; D-S6-8): the bottle line's and the cartoner's run values (tablets 1060 ships the same rows in
+ * tab.process_tag). The checks of the packs (count, torque, seal, weight) stay the blocks' own entries.
+ */
+export const PACKAGING_LINE_TAGS = [
+  spec('bottle.speed_bpm', 'BOTTLE_LINE', '/min', 0, true),
+  spec('bottle.induction_power_pct', 'BOTTLE_LINE', '%', 1, true),
+  spec('bottle.count', 'BOTTLE_LINE', 'count', 0, false, true),
+  spec('bottle.reject_count', 'BOTTLE_LINE', 'count', 0, false, true),
+  spec('cartoner.speed_cpm', 'CARTONER', '/min', 0, true),
+  spec('cartoner.count', 'CARTONER', 'count', 0, false, true),
+  spec('cartoner.reject_count', 'CARTONER', 'count', 0, false, true),
+] as const satisfies readonly TagSpec[];
+
 export type PressTag = (typeof PRESS_TAGS)[number]['tag'];
 export type CoaterTag = (typeof COATER_TAGS)[number]['tag'];
 export type GranulationTag = (typeof GRANULATION_TAGS)[number]['tag'];
 export type FormingTag = (typeof ROLLER_COMPACTOR_TAGS)[number]['tag'] | (typeof BILAYER_PRESS_TAGS)[number]['tag'];
 export type BlisterTag = (typeof BLISTER_TAGS)[number]['tag'];
-export type ProcessTag = PressTag | CoaterTag | GranulationTag | FormingTag | BlisterTag;
+export type PackagingLineTag = (typeof PACKAGING_LINE_TAGS)[number]['tag'];
+export type ProcessTag = PressTag | CoaterTag | GranulationTag | FormingTag | BlisterTag | PackagingLineTag;
 
 /** Slice 3d: the tags of the forming blocks TB-06 and TB-16. */
 export const FORMING_TAGS: readonly TagSpec[] = [...ROLLER_COMPACTOR_TAGS, ...BILAYER_PRESS_TAGS];
 
-export const PROCESS_TAGS: readonly TagSpec[] = [...PRESS_TAGS, ...COATER_TAGS, ...GRANULATION_TAGS, ...FORMING_TAGS, ...BLISTER_TAGS];
+export const PROCESS_TAGS: readonly TagSpec[] = [...PRESS_TAGS, ...COATER_TAGS, ...GRANULATION_TAGS, ...FORMING_TAGS, ...BLISTER_TAGS, ...PACKAGING_LINE_TAGS];
 export const PROCESS_TAG_NAMES = PROCESS_TAGS.map((t) => t.tag) as readonly ProcessTag[];
 
 const BY_TAG = new Map(PROCESS_TAGS.map((t) => [t.tag, t]));
@@ -143,9 +176,12 @@ export function tagSpec(tag: string): TagSpec | null {
   return BY_TAG.get(tag) ?? null;
 }
 
-/** The tags of one kind of equipment. */
+/**
+ * The tags a simulator of one kind of equipment speaks: its kind's tags, except that the press keeps the tags of
+ * slice 3a (the bilayer layer settings are another press's).
+ */
 export function tagsOf(kind: EquipmentKind): readonly TagSpec[] {
-  return kind === 'PRESS' ? PRESS_TAGS : COATER_TAGS;
+  return kind === 'PRESS' ? PRESS_TAGS : processTagsOf(kind);
 }
 
 /** The tags of any kind of process equipment (the simulators use tagsOf). */
