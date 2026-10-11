@@ -303,5 +303,6 @@ Residuals (Phase 4 unless noted):
   does these through the database as the right persona.
 - Press and coater readings cannot reach entries over HTTP, so they are keyed by hand (the manual-entry alerts appear
   in the happy variant); the device-to-entry path is Phase 4.
-- G-07 consumes no lot on GMP; coating does not check for held compression containers (medium, core: to fix in the
-  Phase 3 exit work); a TB-08 refusal repeats its code; a refusal says "test run" on GMP.
+- Fixed in slice 6: a TB-18 pan load is refused while a compression container of the batch is on hold (tablets
+  1092); a GMP G-07 weighing consumes its lot, and a row without it is refused (tablets 1093).
+- Low: a TB-08 refusal repeats its code; a refusal says "test run" on GMP.
