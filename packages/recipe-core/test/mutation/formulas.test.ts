@@ -31,11 +31,12 @@ beforeAll(async () => {
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Sara Steward' });
   approver = await seedActor(db, { roleCode: 'QA_MBR_APPROVER', legalName: 'Anil Approver' });
   erp = await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' });
-  await run(db, erp, async (c) => {
-    for (const [code, kind] of [['F-API', 'API'], ['F-MCC', 'EXCIPIENT'], ['F-MGS', 'EXCIPIENT'], ['F-AID', 'EXCIPIENT']] as const) {
-      await c.query('select site.erp_receive_material($1::jsonb)', [JSON.stringify({ materialCode: code, materialName: code, materialKind: kind, unit: 'kg', erpReference: `ERP-${code}` })]);
-    }
-  });
+  for (const [code, kind] of [['F-API', 'API'], ['F-MCC', 'EXCIPIENT'], ['F-MGS', 'EXCIPIENT'], ['F-AID', 'EXCIPIENT']] as const) {
+    const id = await run(db, erp, (c) =>
+      one<string>(c, 'select site.erp_receive_material($1::jsonb) as r', [JSON.stringify({ materialCode: code, materialName: code, materialKind: kind, unit: 'kg', erpReference: `ERP-${code}` })]),
+    );
+    await effective('MATERIAL', id);
+  }
 }, 300_000);
 afterAll(async () => {
   await db.drop();
@@ -52,10 +53,23 @@ async function refusal(p: Promise<unknown>): Promise<string> {
 
 async function product(): Promise<string> {
   const code = `FP${tag()}`;
-  await run(db, erp, (c) =>
-    c.query('select site.erp_receive_product($1::jsonb)', [JSON.stringify({ productCode: code, strength: STRENGTH, productName: `Product ${code}`, betaLactam: false, shelfLifeMonths: 36, erpReference: `ERP-${code}` })]),
+  const id = await run(db, erp, (c) =>
+    one<string>(c, 'select site.erp_receive_product($1::jsonb) as r', [
+      JSON.stringify({ productCode: code, strength: STRENGTH, productName: `Product ${code}`, betaLactam: false, shelfLifeMonths: 36, erpReference: `ERP-${code}` }),
+    ]),
   );
+  await effective('PRODUCT', id);
   return code;
+}
+
+/** QA's signed confirmation of an ERP master version that does not take effect on its own (site services 0802). */
+async function effective(kind: 'PRODUCT' | 'MATERIAL', id: string): Promise<void> {
+  const state = (await db.app.query<{ s: string }>('select site.erp_master_state($1, $2) as s', [kind, id])).rows[0]?.s;
+  if (state !== 'PENDING') return;
+  const ch = await challengeFor(db, approver, `${kind}/${id}`, { meaning: 'ERP_MASTER_CONFIRMED', aggregateType: 'erp_master' });
+  const ev = await signatureAuth(db, approver, approver, ch.challengeId);
+  const sig = (await signWith(db, approver, ch.challengeId, ev, { expectedState: 'PENDING' })).signatureId;
+  await run(db, approver, (c) => c.query('select site.confirm_erp_master($1, $2, $3)', [kind, id, sig]));
 }
 
 /** `work` as the superuser inside a command of `actor`, always rolled back. */
