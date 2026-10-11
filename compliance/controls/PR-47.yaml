@@ -42,6 +42,7 @@ implemented_by:
     - "recipe-core 0620: G-24@1 SOURCE_ADDITION refused on GMP (EBMR-RPR-001)"
     - "recipe-core 0624: whole-batch reprocessing planned only on a QCU-signed request citing a concluded deviation-lite investigation and a stored risk evaluation, product master permitting, not authorised by the issuer (EBMR-RPR-052, 053); recipe.reprocessing_release_problem reports a missing QC decision on additional testing"
 tests:
+  - "packages/site-services/test/quality/interfaces.test.ts > ERP product master > [PR-47][IN-38] a change of the beta-lactam flag (it drives the isolation of the packing line) takes effect only once QA confirms it (site-services 0803)"
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-47] G-24 Reprocessing / rework gate: A recovery addition of 1.0 kg from an in-date batch of the same product, authorised beforehand; QC is flagged to decide on extra testing"
   - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19] recovered material cannot be added without prior authorisation citing an investigation and a risk evaluation"
   - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19][DI-33] only the same product, within the MBR age, percentage and source-batch limits; chained recovery is blocked; QC must decide on extra testing"

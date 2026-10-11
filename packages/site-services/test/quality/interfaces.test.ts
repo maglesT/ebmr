@@ -101,6 +101,17 @@ describe('ERP product master', () => {
     expect(await refusal(db.app.query("insert into site.erp_master_effect (master_kind, master_key, version_id, basis, person_id, account_id) values ('PRODUCT', 'AMOX-250|250 mg', $1, 'UNCHANGED', gen_random_uuid(), gen_random_uuid())", [v3]))).toMatch(/permission denied/);
   });
 
+  it('[PR-47][IN-38] a change of the beta-lactam flag (it drives the isolation of the packing line) takes effect only once QA confirms it (site-services 0803)', async () => {
+    const code = unique('PRD-');
+    await w.confirm('PRODUCT', await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productCode: code }))));
+    expect(await masterOf(code)).toMatchObject({ betaLactam: true });
+    const v2 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productCode: code, betaLactam: false, erpReference: 'ERP-BL-2' })));
+    expect(await w.masterState('PRODUCT', v2)).toBe('PENDING');
+    expect(await masterOf(code)).toMatchObject({ betaLactam: true });
+    await w.confirm('PRODUCT', v2);
+    expect(await masterOf(code)).toMatchObject({ betaLactam: false });
+  });
+
   it('[PR-47][DI-35] the confirmation is a second person\'s: never the ERP interface\'s own person, only with ERP.MASTER_CONFIRM, by the person who signed, of the latest version only, once', async () => {
     const code = unique('PRD-');
     const v1 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productCode: code })));
