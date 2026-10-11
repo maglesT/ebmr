@@ -41,6 +41,11 @@ tests:
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [IN-22][PR-37] a TB-23 device challenge is G-21's: a failed one is stored only with CHALLENGE_FAILED that stops the step for QA, holds the line's output since the device's last passing challenge, needs a second person, and no output is counted until a passing one"
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-22] samples never return to good output, and packs of an unusual event re-enter only after the event's exception carries the investigation and QA's disposition: before that, or naming another deviation, the database refuses the re-entry"
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-22] review 4b: a missed periodic line check and a missed device challenge of a running bottle line are recorded by the server sweeper at database time with the MISSED hold of the line's containers, without any entry; the next check raises LINE_CHECK_MISSED"
+clauses:
+  - clause: "close a packaging order with coded cartons unaccounted for; closure demands a destruction entry."
+    tests:
+      - "apps/tablets-server/test/blocks/packaging/completion.test.ts > G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [PR-40][IN-22][INV-32] the destruction step of the coded surplus closes only when it destroyed exactly the coded quantity the reconciliation counts; coded material is never returned to stores, not even through a forged engine"
+      - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-42][INV-32][IN-17][PR-39][PR-40][IN-22] serial pools and reports are the L3 system's as recorded; the release gate and the step close fail closed until the pool closes with zero unexplained; the reconciliation always runs, outside its limits only with its exception; coded surplus is destroyed, never returned"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

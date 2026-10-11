@@ -8,8 +8,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import pg from 'pg';
-import { ADMIN_URL, dropDatabase, type SiteSeed } from '@ebmr/test-kit';
+import type pg from 'pg';
+import { ADMIN_URL, dropDatabase, endPool, openPool, type SiteSeed } from '@ebmr/test-kit';
 import { setupInstallation } from '../../src/cli/setup.ts';
 import { GBT01_LOTS } from '../../src/features/execution/seed-gb-t-01.ts';
 
@@ -22,11 +22,11 @@ beforeAll(async () => {
   seed = await setupInstallation({ installation: 'GMP', database, keysDir: join(dir, 'keys'), exchangeDir: join(dir, 'exchange'), personaSets: 1, recreate: true, log: () => undefined });
   const url = new URL(ADMIN_URL);
   url.pathname = `/${database}`;
-  pool = new pg.Pool({ connectionString: url.toString(), max: 2 });
+  pool = openPool({ connectionString: url.toString(), max: 2 });
 }, 900_000);
 
 afterAll(async () => {
-  await pool?.end();
+  if (pool) await endPool(pool);
   await dropDatabase(database);
   rmSync(dir, { recursive: true, force: true });
 });

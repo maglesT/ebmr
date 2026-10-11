@@ -49,6 +49,14 @@ tests:
   - "packages/recipe-core/test/plant/status-blocks.test.ts > G-09@2: the equipment use an entry names is the plant record (recipe-core 0521, EBMR-EXE-210) > [INV-12][PR-23][IN-25] an EQUIPMENT_USE entry stands only on an open use of its unit for this batch, started by the person recording it; any other use is refused with the reason"
   - "packages/recipe-core/test/plant/status-blocks.test.ts > review backlog #9: a utility feed status older than its feed age does not count (recipe-core 0522) > [IN-25] an OK status observed longer ago than the class feed age (default 15 minutes) leaves the utility unusable; the age is configured by master data and the latest setting counts"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 balance and stock rules in the database > [IN-25][PR-19] a weighing on a balance with no instrument use for the batch is refused by the database"
+clauses:
+  - clause: "use a balance with calibration past due; the weighing step is blocked."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] a balance with calibration past due is blocked; a calibration that does not cover the planned end is blocked too"
+      - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 balance and stock rules in the database > [IN-25][PR-19] a weighing on a balance with no instrument use for the batch is refused by the database"
+  - clause: "Wait past a press's clean-hold time; the next batch cannot use it."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23] wait past a press's clean-hold: the next batch cannot use it until it is cleaned again"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

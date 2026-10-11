@@ -150,6 +150,7 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > TB-01 on the GMP installation (site lots, reservations, consumption) > [INV-13][INV-14][PR-18][PR-20] the dispensed net is consumed from the batch's reservation in the same command and the entry names that consumption; the hand-keyed weighing needs a second person"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-19][DI-33][PR-20] the configuration is refused when a hydrate molar mass meets a water-corrected assay, when the step is not performed by the designated dispenser or not checked by a second person, or an overage has no registration reference"
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-20][DI-30] a weighing keyed by hand (scale offline) flags the entry, raises MANUAL_ENTRY_FALLBACK and switches the step to two-person mode: the dispenser cannot check their own dispensing"
+  - "apps/site-gateway/test/device-config.test.ts > gateway device configuration (slice 6c, D-S6-8) > [DI-31][PR-20] the IPC and packaging instruments are accepted on the scale protocol in a unit of their kind; another unit is refused, naming the device"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

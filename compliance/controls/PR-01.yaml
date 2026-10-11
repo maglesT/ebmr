@@ -42,15 +42,15 @@ tests:
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > the approved batch sizes of a family (PR-01) > [PR-01] every batch size is exactly {id, quantity: {value, unit}} with a positive decimal value; anything else is refused (EBMR-RCP-011) and no family is written"
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > the approved batch sizes of a family (PR-01) > [PR-01] batch-size ids are unique within a family (EBMR-RCP-011); well-formed sizes are stored ordered by id"
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > a content revision belongs to its family and carries its own hash (DI-04, PR-01, INV-28) > [PR-01][INV-28] content that does not belong to the family is refused (EBMR-RCP-023), each reason named, and nothing is saved"
+  - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [PR-01] a packaging order for a pack type with no approved packaging master is refused: the pack type's master only drafted, approved but not authorised for the market, or not listing the pack size; a processing master never plans a packaging order; the approved and authorised one plans"
 clauses:
   - clause: "Creating a batch at a size that no approved master lists is refused."
     tests:
       - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-01][IN-13] a batch can only be issued at a batch size the MBR lists; there is no free scaling"
       - "apps/tablets-server/test/designer/routes.test.ts > templates, families and versions > [PR-01] content whose batch sizes differ from the family is not saved (the approved set is fixed per family)"
   - clause: "A packaging order for a pack type with no approved packaging master is refused."
-    deferred:
-      phase: 3
-      reason: "No packaging master keyed by product, pack size and pack type exists yet: an MBR family of record kind PACKAGING is keyed by batch sizes (recipe-core 0110). Packaging orders and their masters come with blister packaging (G-21) in the Tablets edition, Phase 3 (build outline 11)."
+    tests:
+      - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [PR-01] a packaging order for a pack type with no approved packaging master is refused: the pack type's master only drafted, approved but not authorised for the market, or not listing the pack size; a processing master never plans a packaging order; the approved and authorised one plans"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
