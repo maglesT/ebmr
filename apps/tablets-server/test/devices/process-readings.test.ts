@@ -16,6 +16,7 @@ import { codeOf, appendAs, engineResult } from '../execution/db-guards-support.t
 import { dcMiniVariant, importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../execution/support.ts';
 import { adminActor, enrol, fakeGateway, type FakeGateway } from './support.ts';
 import { pressInUse } from '../blocks/compression/plant-support.ts';
+import { PROCESS_TAGS } from '@ebmr/integration-sdk/process';
 
 let sbx: ExecServer;
 let gw: FakeGateway;
@@ -252,6 +253,33 @@ describe('process readings over the gateway uplink (tablets 0820)', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]?.data).toMatchObject({ recipe: 'RCP-COMP', recipeVersion: '4', matches: false });
     expect(rows[0]?.ex).toEqual([{ type: 'RECIPE_MISMATCH', severity: 'ACTION', status: 'OPEN' }]);
+  });
+
+  it('[DI-31] slice 6c (D-S6-8): the database takes the tags of every process kind exactly as the integration SDK names them; a bottle line is bound and sends its counter; a tag of another kind is refused whole', async () => {
+    const { rows } = await sbx.db.admin.query<{ tag: string; equipment_kind: string; unit: string; scale: number; counter: boolean; setpoint: boolean }>(
+      'select tag, equipment_kind, unit, scale, counter, setpoint from tab.process_tag order by tag',
+    );
+    expect(rows).toEqual(
+      [...PROCESS_TAGS].sort((a, b) => (a.tag < b.tag ? -1 : 1)).map((t) => ({ tag: t.tag, equipment_kind: t.equipment, unit: t.unit, scale: t.scale, counter: t.counter, setpoint: t.setpoint })),
+    );
+    const site = (await sbx.db.admin.query<{ s: string }>("select site_code as s from iam.device where code = 'TEST-BAL-01'")).rows[0]?.s ?? null;
+    const code = 'TEST-BOTTLE-01';
+    const serial = 'BOTTLE-LINE-0001';
+    await identity.withGuardedCommand(sbx.db.app, await adminActor(sbx), async (c) => {
+      await c.query('select iam.register_device($1, $2, $3, $4, $5, $6, $7)', [code, 'INSTRUMENT', site, 'DISP-1', null, createHash('sha256').update(`${code}:${randomUUID()}`).digest('hex'), 'Bottle line (simulated) behind the site gateway']);
+      await c.query('select tab.bind_process_device($1, $2, $3, $4)', [chainId, code, serial, 'BOTTLE_LINE']);
+    });
+    // The bottle line's own sequence (the press's is untouched).
+    let bottleSeq = 0;
+    const bottle = (tag: string, value: string, unit: string) => {
+      bottleSeq += 1;
+      return { deviceSerial: serial, tag, value, unit, quality: 'GOOD', sourceTime: '1790584618000000', sequence: String(bottleSeq), kind: 'ACTUAL' };
+    };
+    expect((await gw.post('/gw/v1/process-readings', { sessionId: RUN_SESSION, readings: [bottle('bottle.count', '120', 'count')] })).status).toBe(200);
+    const taken = await sbx.db.app.query<{ tag: string; value: string }>('select tag, value from tab.process_reading where serial = $1', [serial]);
+    expect(taken.rows).toEqual([{ tag: 'bottle.count', value: '120' }]);
+    expect((await gw.post('/gw/v1/process-readings', { sessionId: RUN_SESSION, readings: [bottle('cartoner.count', '5', 'count')] })).status).not.toBe(200);
+    expect((await sbx.db.app.query('select 1 from tab.process_reading where serial = $1', [serial])).rows).toHaveLength(1);
   });
 
   it('[DI-31][PR-14] interface loss is read from readings that stop arriving: a step is lost while unbound or when its device sent nothing for longer than the configured age (database time)', async () => {

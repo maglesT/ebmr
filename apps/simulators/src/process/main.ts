@@ -7,7 +7,7 @@
  *     EBMR_SIM_SEED=42 node --import tsx apps/simulators/src/process/main.ts
  *
  * Defaults: PRESS on 127.0.0.1:4011 (console 4012, serial PRESS-0001); COATER on 127.0.0.1:4021 (console 4022, serial
- * COATER-0001); any other kind on 127.0.0.1:4031 (console 4032, serial <KIND>-0001). EBMR_SIM_RUNNING=1 starts the
+ * COATER-0001); any other kind on 127.0.0.1:4041 (console 4042, serial <KIND>-0001). EBMR_SIM_RUNNING=1 starts the
  * equipment running. It binds loopback addresses only unless told
  * otherwise, and stops on SIGTERM or SIGINT.
  */
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   const env = process.env;
   const equipment = (env['EBMR_SIM_EQUIPMENT'] ?? 'PRESS') as EquipmentKind;
   if (!(EQUIPMENT_KINDS as readonly string[]).includes(equipment)) throw new Error(`EBMR_SIM_EQUIPMENT must be one of ${EQUIPMENT_KINDS.join(', ')}`);
-  const port = equipment === 'PRESS' ? 4011 : equipment === 'COATER' ? 4021 : 4031;
+  const port = equipment === 'PRESS' ? 4011 : equipment === 'COATER' ? 4021 : 4041;
   const seed = Number(env['EBMR_SIM_SEED'] ?? '42');
   if (!Number.isInteger(seed)) throw new Error('EBMR_SIM_SEED must be an integer');
   const sim = await startProcessSimulator({
