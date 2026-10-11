@@ -92,3 +92,32 @@ describe('the register row of an exception record (DI-26)', () => {
     });
   });
 });
+
+describe('recipe.check_approver_roles (recipe-core 0462): an approval is signed in the role the command asks', () => {
+  /** The refusal for `refs` of a command of `type`; '' when none. The signatures named here hold no engine role. */
+  const check = async (type: string, refs: unknown[]): Promise<string> => {
+    try {
+      await db.admin.query('select recipe.check_approver_roles($1, $2::jsonb)', [type, JSON.stringify(refs)]);
+      return '';
+    } catch (e) {
+      return e instanceof Error ? e.message : String(e);
+    }
+  };
+  const sig = (part: string) => ({ part, signer: 'Test Signer', ref: { id: randomUUID() } });
+
+  it('[PR-14][DI-17][DI-35] a hand-over is signed by a production supervisor and approved by the quality unit', async () => {
+    expect(await check('HAND_OVER_STEP', [sig('signature')])).toMatch(/The hand-over is signed by Test Signer, who held no engine role when signing; a hand-over is signed by a production supervisor .*\[EBMR-EXE-171\]/);
+    expect(await check('HAND_OVER_STEP', [sig('approval')])).toMatch(/The approval of this HAND_OVER_STEP is signed by Test Signer, who held no engine role when signing; it is approved only by QA or QA_REVIEWER/);
+  });
+
+  it('[PR-13][DI-35] an abort is approved by the head of production and by QA; a correction by a supervisor or QA; a command the release does not check takes no approval', async () => {
+    expect(await check('ABORT_BATCH', [sig('approval')])).toMatch(/The abort approval signed by Test Signer is neither the head of production's nor QA's .*\[EBMR-EXE-171\]/);
+    expect(await check('ABORT_BATCH', [])).toMatch(/An abort is approved by the head of production and by QA, two different persons .*\[EBMR-EXE-171\]/);
+    expect(await check('CORRECT_ENTRY', [sig('approval')])).toMatch(/it is approved only by PRODUCTION_SUPERVISOR or HEAD_OF_PRODUCTION or QA, as S25 and S28 ask/);
+    expect(await check('VOID_ATTEMPT', [sig('approval')])).toMatch(/it is approved only by QA, as S25/);
+    expect(await check('START_STEP', [sig('approval')])).toMatch(/START_STEP carries an approval this release does not check .*\[EBMR-EXE-171\]/);
+    // Without approvals or signatures there is nothing to check, except for an abort.
+    expect(await check('CORRECT_ENTRY', [])).toBe('');
+    expect(await check('HAND_OVER_STEP', [])).toBe('');
+  });
+});
