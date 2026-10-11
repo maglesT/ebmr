@@ -279,3 +279,6 @@ Open items from the builders (slice 6a and 6b):
 - The DI-24 browser test serves the step's reads from the contract example; the session and the no-delete check are
   the real server's.
 - Display-only role hiding in the web (`app/roles.ts`); the server decides every act.
+- A duplicate formula (same product, strength and batch size) answers 500 instead of a plain refusal (low).
+- Default (6a review fix): REGULATORY_SIGNER holds FORMULA.READ, so the regulatory signer can read the MBR content it
+  confirms.
