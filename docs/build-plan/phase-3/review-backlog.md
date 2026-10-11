@@ -251,3 +251,14 @@ Backlog (medium and low):
   accepted as an assay source.
 - Whole-batch parents are checked by execution status (EXECUTION_COMPLETE or ABORTED) only; a REJECTED disposition
   check waits for the Phase 4 disposition model.
+
+## Slice 6c open items (builder report, 11 October 2026)
+
+- TB-20 NO-PLAN through deviation-lite needs a TB-20@2 (block data schemas are fixed per version); Phase 4.
+- A packaging family's identity has no pack type, so two pack types of one product at the same pack size cannot both
+  exist (recipe-core 0110); Phase 4 with the release model.
+- The GMP sweeper does not run: its identity is TEST-only; a GMP service identity for the sweeper is needed before any
+  GMP demo that relies on missed-check holds (Phase 4).
+- `db-guards-free-text-shown` failed once under load and passed alone (suspected chance match of '2409' in generated
+  text); root cause to find before the Phase 3 exit run.
+- IN-17 "release is blocked" and IN-39 "both departments notified" re-deferred to Phase 4 (D-S6-10).
