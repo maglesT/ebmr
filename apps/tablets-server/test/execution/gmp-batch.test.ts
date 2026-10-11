@@ -18,7 +18,7 @@ import { sha256Hex } from '@ebmr/expr';
 import { engine, execution, flow } from '@ebmr/recipe-core';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
 import { openPersonaSession, openServiceSession } from '@ebmr/test-kit';
-import { esig, withCommand } from '@ebmr/kernel';
+import { esig, toDbContext, withCommand } from '@ebmr/kernel';
 import { cmd, signatureAuth } from '../../../../packages/kernel/test/esig/helpers.ts';
 import type { SeededActor } from '../../../../packages/kernel/test/identity/seed.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
@@ -285,6 +285,36 @@ describe('GMP batches on the GMP installation (slice 2b)', () => {
     expect(await status()).toBe('PLANNED');
     expect(await issueAs()).toBe('ok');
     expect(await status()).toBe('ISSUED');
+
+    // Past every command, as the owner in the issuer's command (rolled back): the issued record is never updated; a GMP
+    // record without its control recipe is never inserted; a number is linked only to a planned batch not yet pinned.
+    const owner = async (text: string, params: unknown[]): Promise<string> => {
+      const c = await gmp.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext({ ...(await cmd(world.db, issuer)), ...reason('a write past the commands') }))]);
+        return await messageOf(c.query(text, params));
+      } finally {
+        await c.query('rollback');
+        c.release();
+      }
+    };
+    expect(await owner('update recipe.batch_execution set issue_signature_id = gen_random_uuid() where id = $1', [plan.batchId])).toMatch(/EBMR-AUDIT-004 recipe.batch_execution is insert-only/);
+    expect(
+      await owner(
+        `insert into recipe.batch_execution (id, batch_number, content_hash, installation, purpose, engine_version, registry_fingerprint, policy, policy_hash, issue_request,
+                                             market_set, batch_size, site_code, site_zone, issued_at_us, issued_by_person, issued_by_account, correlation_id)
+         values (gen_random_uuid(), 'G2600001', repeat('a', 64), 'GMP', 'GMP_BATCH', '1', repeat('c', 64), '{}', repeat('d', 64), '{}', '{IN}', $1, $2, 'Asia/Kolkata', 0,
+                 gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+        [BATCH_SIZE, SITE],
+      ),
+    ).toMatch(/GMP batch G2600001 cannot be recorded: .*\[EBMR-EXE-19\d\]/);
+    expect(
+      await owner(
+        'insert into recipe.batch_allocation_link (batch_id, allocation_id, batch_number, person_id, account_id, correlation_id) values ($1, gen_random_uuid(), $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())',
+        [plan.batchId, 'G2600002'],
+      ),
+    ).toMatch(/linked to a planned batch before it is pinned, once .*\[EBMR-EXE-191\]/);
   }, 300_000);
 
   it('[INV-01][INV-27][IN-18] a GMP batch is planned with its id and an existing MBR family, and a batch number only from an allocation of the register', async () => {

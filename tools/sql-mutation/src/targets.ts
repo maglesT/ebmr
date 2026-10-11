@@ -560,7 +560,9 @@ export const TARGETS: Target[] = [
                 'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue',
                 // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
                 'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check'],
-    tests: [r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts')],
+    tests: [r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
+            // The row checks 0502 replaced (recipe-core 0338, 0339, 0345): their Phase 2 tests.
+            s('execution/db-guards-row-context.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-row-shape.test.ts'), s('execution/signed-content-hold-point.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: material lots and LIMS: status, release route, reservation and consumption, identity, destruction,
