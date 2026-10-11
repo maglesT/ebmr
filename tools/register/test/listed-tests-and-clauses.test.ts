@@ -404,9 +404,20 @@ describe('a listed test that skips itself at run time (review F15, round 3)', ()
   });
 });
 
+/**
+ * PR-01 as it stood until slice 6c tested its packaging clause: clause 2 deferred to phase 3 (the example the review F14
+ * tests were written on; the register itself now names its tests).
+ */
+const PR01_PACKAGING_DEFERRED = 'No packaging master keyed by product, pack size and pack type exists yet: an MBR family of record kind PACKAGING is keyed by batch sizes (recipe-core 0110).';
+function pr01Deferred(): ControlRecord {
+  const pr01 = control('PR-01');
+  const [first, second] = pr01.clauses ?? [];
+  return { ...pr01, tests: pr01.tests.filter((t) => !(second?.tests ?? []).includes(t)), clauses: [first ?? { clause: '' }, { clause: second?.clause ?? '', deferred: { phase: 3, reason: PR01_PACKAGING_DEFERRED } }] };
+}
+
 describe('catalog-test clauses (review F14)', () => {
   it('[meta] the clauses of a control are its catalog test word for word; a deferral comes after the target phase; a control with a deferred part stays SPECIFIED', () => {
-    const pr01 = control('PR-01');
+    const pr01 = pr01Deferred();
     const clauses = pr01.clauses ?? [];
     expect(clauseErrors(pr01)).toEqual([]);
     expect(clauseErrors({ ...pr01, clauses: clauses.slice(0, 1) }).join()).toContain('word for word');
@@ -419,7 +430,7 @@ describe('catalog-test clauses (review F14)', () => {
   });
 
   it('[meta] one passing test that carries the tag is no longer proof: a due control fails on a clause with no passing test and no deferral (review F14)', () => {
-    const pr01 = control('PR-01');
+    const pr01 = pr01Deferred();
     const [first, second] = pr01.clauses ?? [];
     const batchSize = first?.tests?.[0] ?? '';
     // Only PR-01 is in this register, so the results carry no other control's tag.
@@ -454,22 +465,26 @@ describe('catalog-test clauses (review F14)', () => {
       for (const k of c.clauses ?? []) expect(k.deferred ? k.deferred.phase > 2 : (k.tests?.length ?? 0) > 0, `${c.id}: ${k.clause}`).toBe(true);
     }
     const deferredTo = (id: string, part: string): number | undefined => control(id).clauses?.find((k) => k.clause.includes(part))?.deferred?.phase;
-    expect(deferredTo('PR-01', 'packaging order')).toBe(3);
+    const testedBy = (id: string, part: string): number => control(id).clauses?.find((k) => k.clause.includes(part))?.tests?.length ?? 0;
     expect(deferredTo('DI-34', 'disposition before review')).toBe(4);
     expect(deferredTo('PR-08', 'release screen')).toBe(4);
-    expect(deferredTo('DI-04', 'PLC')).toBe(3);
     expect(deferredTo('PR-07', 'Three deviations')).toBe(4);
-    expect(control('DI-33').deferred_scope?.find((d) => /reprocessing/i.test(d.scope))?.phase).toBe(3);
+    // The three deferred to phase 3 are tested since slice 6c: PR-01's packaging order, DI-04's PLC recipe version and
+    // DI-33's reprocessing scope (its tests carry the tag; no scope stays deferred).
+    expect(testedBy('PR-01', 'packaging order')).toBeGreaterThan(0);
+    expect(testedBy('DI-04', 'PLC')).toBeGreaterThan(0);
+    expect(control('DI-33').deferred_scope?.find((d) => /reprocessing/i.test(d.scope))).toBeUndefined();
   });
 
   it('[meta] the matrix prints each control\'s build status and each clause with its state, and the scope deferred beyond the catalog test (review F14)', () => {
-    const controls = loadControls().filter((c) => ['PR-01', 'DI-33'].includes(c.id));
+    const di33 = control('DI-33');
+    const controls = [pr01Deferred(), { ...di33, deferred_scope: [{ scope: 'Reprocessing and recovery, as the behaviour describes them', phase: 3, reason: 'Executed in the Tablets edition, Phase 3.' }] }];
     const report = buildTrace(controls, controls.flatMap((c) => c.tests.map((t) => result(t))), 2);
     const file = join(mkdtempSync(join(tmpdir(), 'ebmr-matrix-')), 'm.md');
     writeMatrix(report, 2, file);
     const md = readFileSync(file, 'utf8');
     expect(md).toMatch(/^\| PR-01 \| Master record scope and keying \| tablets, injectables \| 2 \| PENDING \| SPECIFIED \| \d+ \| 1 tested, 1 deferred \|$/m);
-    expect(md).toContain('| PR-01 | 2. A packaging order for a pack type with no approved packaging master is refused. | DEFERRED to phase 3 | phase 3: No packaging master');
+    expect(md).toContain(`| PR-01 | 2. A packaging order for a pack type with no approved packaging master is refused. | DEFERRED to phase 3 | phase 3: ${PR01_PACKAGING_DEFERRED}`);
     expect(md).toMatch(/\| PR-01 \| 1\. Creating a batch at a size that no approved master lists is refused\. \| TESTED \| 2 of 2 listed tests passed \|/);
     expect(md).toMatch(/\| DI-33 \| Reprocessing and recovery[^|]*\| 3 \|/);
     expect(md).toMatch(/^\| DI-33 \| Calculations and reprocessing \|.*\| SPECIFIED \| \d+ \| 2 tested; 1 scope deferred \|$/m);

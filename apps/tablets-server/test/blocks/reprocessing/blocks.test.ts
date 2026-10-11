@@ -43,7 +43,7 @@ function refusalOf(p: flow.PhaseNode, entry: Json & { kind: string }, actor = OP
 }
 
 describe('TB-08@1 rework or recovered-material addition', () => {
-  it('[DI-10][DI-34] is registered in the Tablets edition with every execution part of the contract; its golden fixture runs: the net added is computed into the item the yield reads (C-07) and QC is flagged to decide on extra testing', () => {
+  it('[DI-10][DI-34][DI-33] is registered in the Tablets edition with every execution part of the contract; its golden fixture runs: the net added is computed into the item the yield reads (C-07) and QC is flagged to decide on extra testing', () => {
     const reg = tabletsBlockRegistry();
     expect(reg.get('TB-08', '1')).toBe(TB08);
     const report = reg.report().find((r) => r.type === 'TB-08');
@@ -114,7 +114,7 @@ describe('TB-08@1 rework or recovered-material addition', () => {
     expect(definitionCodes(blockMbr(TB08, noCase))).toEqual(expect.arrayContaining(['TB08-NO-CASE']));
   });
 
-  it('[INV-25] the computed net is exact decimal text in the item unit', () => {
+  it('[INV-25][DI-33] the computed net is exact decimal text in the item unit', () => {
     expect(massText('25', 'g', 'kg')).toBe('0.025');
     expect(massText('0.250', 'kg', 'kg')).toBe('0.25');
     expect(massText('0.25', 'kg', 'g')).toBe('250');

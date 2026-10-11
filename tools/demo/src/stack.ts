@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { generateServiceKey, type SiteSeed } from '@ebmr/test-kit';
-import { EXCHANGE_DIR, GATEWAY_MAIN, REPO_ROOT, SERVER_MAIN, SERVER_SETUP, SIMULATOR_MAIN, WEB_DIST, type StackPorts } from './paths.ts';
+import { DEMO_DEVICES, EXCHANGE_DIR, GATEWAY_MAIN, PRINTER_SIMULATOR_MAIN, PROCESS_SIMULATOR_MAIN, REPO_ROOT, SERVER_MAIN, SERVER_SETUP, SIMULATOR_MAIN, WEB_DIST, type StackPorts } from './paths.ts';
 import { entryExists, runNode, spawnNode, waitForHttp, type RunningProcess } from './processes.ts';
 
 export interface Databases {
@@ -82,6 +82,11 @@ export interface StartStackOptions {
   logLevel?: string;
   /** Extra environment for both servers. */
   env?: Record<string, string>;
+  /**
+   * Slice 6c (D-S6-8): also start the process and printer simulators of DEMO_DEVICES and name them in the gateway's
+   * configuration (`pnpm demo`; the E2E stack runs the scale alone).
+   */
+  demoDevices?: boolean;
 }
 
 export interface RunningStack {
@@ -144,6 +149,16 @@ async function waitForGatewayReady(url: string, timeoutMs: number, gw: RunningPr
   return last;
 }
 
+/** The process equipment and line printers of DEMO_DEVICES in the gateway's configuration (slice 6c, D-S6-8). */
+export function demoDeviceConfig(): { processDevices: object[]; printers: object[] } {
+  return {
+    processDevices: DEMO_DEVICES.filter((d) => d.kind !== 'PRINTER').map((d) => ({
+      code: d.code, driver: 'process-sim', equipment: d.kind, host: '127.0.0.1', port: d.tcp, expectedSerial: d.serial,
+    })),
+    printers: DEMO_DEVICES.filter((d) => d.kind === 'PRINTER').map((d) => ({ code: d.code, driver: 'printer-sim', host: '127.0.0.1', port: d.tcp, expectedSerial: d.serial })),
+  };
+}
+
 /** The gateway's configuration (module C5 reads it through EBMR_GW_CONFIG). */
 export function writeGatewayConfig(opts: StartStackOptions): string {
   const file = join(opts.keysDir, 'gateway-config.json');
@@ -157,6 +172,7 @@ export function writeGatewayConfig(opts: StartStackOptions): string {
     serviceKeysFile: join(opts.keysDir, 'sandbox-service-keys.json'),
     journalDir: join(opts.keysDir, '..', 'gateway-journal'),
     devices: [{ code: 'TEST-BAL-01', driver: 'mt-sics', host: '127.0.0.1', port: opts.ports.simulatorTcp, expectedSerial: 'SIM-0001', resolution: '0.001', unit: 'kg', room: 'DISP-1' }],
+    ...(opts.demoDevices === true ? demoDeviceConfig() : {}),
   };
   writeFileSync(file, `${JSON.stringify(config, null, 2)}\n`);
   return file;
@@ -187,6 +203,13 @@ export async function startStack(opts: StartStackOptions): Promise<RunningStack>
       });
       processes.push(sim);
     } else missing.push('scale simulator (apps/simulators/src/scale/main.ts, module C5)');
+    if (opts.demoDevices === true) {
+      for (const d of DEMO_DEVICES) {
+        const env: Record<string, string> = { EBMR_SIM_TCP: `127.0.0.1:${String(d.tcp)}`, EBMR_SIM_HTTP: `127.0.0.1:${String(d.http)}`, EBMR_SIM_SERIAL: d.serial, EBMR_SIM_SEED: '42' };
+        if (d.kind !== 'PRINTER') env['EBMR_SIM_EQUIPMENT'] = d.kind;
+        processes.push(spawnNode({ name: d.code.toLowerCase(), entry: d.kind === 'PRINTER' ? PRINTER_SIMULATOR_MAIN : PROCESS_SIMULATOR_MAIN, env, echo: opts.echo ?? true }));
+      }
+    }
     if (entryExists(GATEWAY_MAIN)) {
       gw = spawnNode({ name: 'gw', entry: GATEWAY_MAIN, env: { EBMR_GW_CONFIG: writeGatewayConfig(opts) }, echo: opts.echo ?? true });
       processes.push(gw);

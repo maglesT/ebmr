@@ -193,15 +193,16 @@ tests:
   - "packages/kernel/test/mutation/sandbox-and-import.test.ts > D14: the reason a test package's header is refused names the side that differs and its value (recipe-core 0384 recipe.package_header_problem) > [DI-04][DI-37] a family code or product that is not the content's is named on the side that differs, the package's or the stored one, and a family code that is not text is named with its JSON type; the honest header has none"
   - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-04][PR-14] the equipment running another recipe or version than the MBR names raises RECIPE_MISMATCH, which stops the step until QA decides; a configured step cannot be performed before the recipe is checked"
   - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-31][DI-04] the configuration: duplicate tags, inverted limits and a configured step without an equipment recipe are errors; config {} defines as before"
+  - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-04][PR-14] the equipment reports another recipe version than the MBR names: the RECIPE_CHECK is stored only with matches false and RECIPE_MISMATCH, which stops the step for QA; a forged match or a dropped exception is refused by the database"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:
       - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] try to make a new MBR version effective without a verification record: it is blocked"
       - "packages/recipe-core/test/lifecycle/approval.test.ts > [DI-04] evidence is bound to the exact content hash: an edit voids it, and evidence for other content fails"
   - clause: "Run a batch whose PLC reports a different recipe version from the MBR. It is flagged as an exception."
-    deferred:
-      phase: 3
-      reason: "Phase 2 has no PLC or recipe-version interface; execution with equipment interfaces comes in the Tablets edition, Phase 3 (recipe-core lifecycle README, Later phases; build outline 11)."
+    tests:
+      - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-04][PR-14] the equipment running another recipe or version than the MBR names raises RECIPE_MISMATCH, which stops the step until QA decides; a configured step cannot be performed before the recipe is checked"
+      - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-04][PR-14] the equipment reports another recipe version than the MBR names: the RECIPE_CHECK is stored only with matches false and RECIPE_MISMATCH, which stops the step for QA; a forged match or a dropped exception is refused by the database"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

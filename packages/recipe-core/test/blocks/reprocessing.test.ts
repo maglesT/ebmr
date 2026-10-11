@@ -25,7 +25,7 @@ const add = (extra: Json = {}, s: Json = {}): Json & { kind: string } => ({
 });
 
 describe('G-24@2 reprocessing and recovery gate on the database facts', () => {
-  it('[PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused', () => {
+  it('[PR-47][IN-19][DI-33] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused', () => {
     const run = Run.issue(define(recovery()));
     run.start('x');
     const code = (e: Json & { kind: string }, actor = OP1) => run.exec({ type: 'RECORD_ENTRY', actor, step: 'x', entry: e }).refusal?.code;

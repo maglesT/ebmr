@@ -151,7 +151,7 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     await expect(sbx.db.admin.query("delete from recipe.block_data_schema where block_type = 'TB-20'")).rejects.toThrow(/EBMR-AUDIT-004/);
   });
 
-  it('[IN-37][PR-29][PR-45] TB-19: printed tablets wait for the QC approval: a printed container cannot be charged until the hold point after printing is released; a passing print check of the printer is the only PASS that vouches for them; the printer is a plant unit; in a batch that also runs a TB-11 scheduler', async () => {
+  it('[IN-37][PR-29][PR-45] TB-19: printed tablets wait for the QC approval: a printed container cannot be charged until the hold point after printing is released; a passing print check of the printer is the only PASS that vouches for them; the printer is a plant unit; in a batch that also runs a TB-11 scheduler; a container opened on the printer before its set-up waits too (review 3d #4)', async () => {
     await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb19b@' });
     const setup = (printer: string, extra: Json = {}): Entry => ({ kind: 'PRINT_SETUP', printer, inkLot: 'TEST-INK-117', inkEdibleGrade: true, otherProductsPrinting: false, ...extra });
     expect(await verdict('p-tb19b', setup('TEST-NO-SUCH-PRINTER'))).toBe('EBMR-EXE-270 TB19-PRINTER');
@@ -159,6 +159,9 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await verdict('p-tb19b', inedible, { tamper: laxEntry('p-tb19b', { ...strip(inedible), setUpBy: me }) })).toBe('EBMR-EXE-270 TB19-INK');
     const together = setup(printerB, { otherProductsPrinting: true });
     expect(await verdict('p-tb19b', together, { tamper: laxEntry('p-tb19b', { ...strip(together), inkEdibleGrade: true, setUpBy: me }) })).toBe('EBMR-EXE-270 TB19-SEGREGATION');
+    // Review 3d #4: a container opened on the printer before its printing set-up is gated as well (the gate keys on the
+    // set-up's printer when the container is charged, not when it was opened).
+    const early = await container('PRINTING', printerB);
     expect(await verdict('p-tb19b', setup(printerB))).toBe('ok');
     const printed = await container('PRINTING', printerB);
     const check = { kind: 'PRINT_CHECK', examined: '50', legible: true, contentMatches: true, defects: {} };
@@ -171,9 +174,11 @@ describe('the coating and finishing blocks in the database (tablets 0910 to 0912
     expect(await codeOf(asOp('select plant.record_ipc_check($1, $2, null, $3, $4) as r', [d.runId, printerB, 'PASS', 'TB11:p-tb11@:EN-1']))).toMatch(/^EBMR-TAB-3(02|11)$/);
     // IN-37 catalogue test: the printed container cannot be charged or packed before the QC approval.
     expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', printed.label, 'PACK']))).toBe('EBMR-TAB-310');
+    expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', early.label, 'PACK']))).toBe('EBMR-TAB-310');
     await performAndVerify('p-tb19b@');
     await d.signed('qa1', { type: 'DISPOSITION_HOLD_POINT', stepKey: 'H-PRINT-B@', disposition: 'APPROVED' });
     expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', printed.label, 'PACK']))).toBe('ok');
+    expect(await codeOf(asOp('select plant.charge_container($1, $2, $3, $4) as r', [d.runId, 'PACKING', early.label, 'PACK']))).toBe('ok');
     // The MBR keeps the gate: without the hold point after printing every row of the batch is refused.
     const c = await content();
     const noGate = JSON.parse(JSON.stringify(c).replace('"kind":"holdPoint","id":"H-PRINT"', '"kind":"holdPoint","id":"H-PRINT","x":1').replace(/"role":"QA","dispositions":\["APPROVED","NOT_APPROVED"\]/, '"role":"QA_REVIEWER","dispositions":["APPROVED","NOT_APPROVED"]')) as Json;
