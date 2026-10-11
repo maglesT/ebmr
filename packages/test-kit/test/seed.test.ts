@@ -112,7 +112,7 @@ describe('test-kit installations', () => {
       'Arvind Rao:QA_REVIEWER', 'Shalini Kapoor:AUTHORISED_PERSON',
       // Slice 6c (backlog 3b): the GMP shop floor.
       'Arjun Das:OPERATOR', 'Kavya Reddy:VERIFIER', 'Sanjay Kulkarni:SHIFT_SUPERVISOR', 'Fatima Sheikh:QA_SHOP_FLOOR', 'Manoj Pillai:WAREHOUSE_LABELLING',
-      'Lakshmi Iyengar:HEAD_OF_PRODUCTION',
+      'Ravi Shetty:MAINTENANCE_TECHNICIAN', 'Anita Desai:MAINTENANCE_TECHNICIAN', 'Lakshmi Iyengar:HEAD_OF_PRODUCTION',
     ]);
     expect(new Set(gmpSeed.personas.map((p) => p.badgeUid).filter(Boolean)).size).toBe(gmpSeed.personas.filter((p) => p.badgeUid).length);
     // The GMP installation's service identities, each INTEGRATION in its own role only (DI-17): the ERP interface

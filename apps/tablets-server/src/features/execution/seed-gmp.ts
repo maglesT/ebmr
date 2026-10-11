@@ -55,7 +55,7 @@ async function inCommand<T>(pool: pg.Pool, actor: ActorContext, work: (c: pg.Poo
 /** Receives, tests, approves and releases one lot; returns its id. */
 async function seedLot(ctx: FeatureSeedContext, lot: SeedMaterialLot): Promise<string> {
   const pool = ctx.pools.app;
-  const received = await inCommand(pool, await ctx.actorFor('warehouse1'), async (c) =>
+  const received = await inCommand(pool, await ctx.actorFor('stores'), async (c) =>
     (await c.query<{ r: { lot_id: string } }>('select site.receive_lot($1::jsonb) as r', [
       JSON.stringify({ lotCode: lot.lotCode, materialCode: lot.materialCode, quantity: lot.quantity, expiresAt: lot.expiresAt, ...(lot.retestAt ? { retestAt: lot.retestAt } : {}) }),
     ])).rows[0]?.r,
