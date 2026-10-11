@@ -186,6 +186,22 @@ export type ResidueContainerView = z.infer<typeof ResidueContainerView>;
 const ErpProductView = ErpCatalogue.shape.products.element;
 const ErpMaterialView = ErpCatalogue.shape.materials.element;
 
+/**
+ * A received ERP master version not yet in effect (site-services 0802): a new code, or a change of a controlled value
+ * (a product's reprocessing permission or shelf life, a material's kind or maximum retest interval) waiting for QA's
+ * ERP_MASTER_CONFIRMED signature (signable action MASTER_DATA_APPROVE). `inEffect` is null for a new code.
+ */
+export const ErpPendingView = z.strictObject({
+  masterKind: z.enum(['PRODUCT', 'MATERIAL']),
+  key: z.string(),
+  versionId: Uuid,
+  erpReference: z.string(),
+  receivedAt: Instant,
+  values: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
+  inEffect: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).nullable(),
+});
+export type ErpPendingView = z.infer<typeof ErpPendingView>;
+
 export const quality = {
   raiseDeviation: defineRoute({
     id: 'quality.raiseDeviation',
@@ -368,6 +384,16 @@ export const quality = {
     mutating: false,
     summary: 'The material master as the ERP stub sent it (current entries)',
     response: z.strictObject({ materials: z.array(ErpMaterialView) }),
+  }),
+  erpPending: defineRoute({
+    id: 'quality.erpPending',
+    method: 'GET',
+    path: '/api/quality/erp/pending',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The received ERP master versions not yet in effect, waiting for QA to confirm them (site-services 0802)',
+    response: z.strictObject({ pending: z.array(ErpPendingView) }),
   }),
   lots: defineRoute({
     id: 'quality.lots',

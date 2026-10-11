@@ -21,14 +21,28 @@ const bare = <T extends object>(body: T): Omit<T, 'attribution'> => withoutAttri
 
 type MasterDataApprove = Extract<SignableAction, { kind: 'MASTER_DATA_APPROVE' }>;
 
+/** A received ERP master version is confirmed over aggregate erp_master:<PRODUCT|MATERIAL>/<version> (site-services 0802). */
+const ERP_KIND = { ERP_PRODUCT: 'PRODUCT', ERP_MATERIAL: 'MATERIAL' } as const;
+
+/**
+ * MASTER_DATA_APPROVE: a formula version (FORMULA_APPROVED, recipe-core 0640), or a received ERP product or material
+ * master version (ERP_MASTER_CONFIRMED by QA, site.confirm_erp_master, site-services 0802). The database decides.
+ */
 export function formulaApproveHandler(app: AppContext): SignableActionHandler<MasterDataApprove> {
   return dbActHandler<MasterDataApprove>(app, {
     kind: 'MASTER_DATA_APPROVE',
-    aggregateTypes: ['formula_version'],
-    target: (a) => ({ aggregateType: 'formula_version', aggregateId: a.versionId, meaning: 'FORMULA_APPROVED', expectedState: 'DRAFT' }),
+    aggregateTypes: ['formula_version', 'erp_master'],
+    target: (a) =>
+      a.masterKind === 'FORMULA'
+        ? { aggregateType: 'formula_version', aggregateId: a.versionId, meaning: 'FORMULA_APPROVED', expectedState: 'DRAFT' }
+        : { aggregateType: 'erp_master', aggregateId: `${ERP_KIND[a.masterKind]}/${a.versionId}`, meaning: 'ERP_MASTER_CONFIRMED', expectedState: 'PENDING' },
     async apply(client, _ctx, a, signatureId) {
-      await formula.approveFormulaVersion(client, a.versionId, signatureId);
-      return { versionId: a.versionId, state: 'APPROVED' };
+      if (a.masterKind === 'FORMULA') {
+        await formula.approveFormulaVersion(client, a.versionId, signatureId);
+        return { versionId: a.versionId, state: 'APPROVED' };
+      }
+      await client.query('select site.confirm_erp_master($1, $2, $3)', [ERP_KIND[a.masterKind], a.versionId, signatureId]);
+      return { versionId: a.versionId, state: 'EFFECTIVE' };
     },
   });
 }
