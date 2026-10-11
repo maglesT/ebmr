@@ -326,6 +326,56 @@ describe('the limits of a reprocessing or recovery addition (recipe-core 0622, r
     expect(await under('ok', { 'EN-1': entry('add@', 'ADDITION', A.id, { value: '0.1', unit: 'kg' }, auths['ok']) })).toMatch(/TB08-AUTHORISATION-USED/);
   });
 
+  it('[PR-47][IN-19] the facts of a source: none for a container not closed; residue reserved and closed, or released by QA; no case once charged or poured into another', async () => {
+    const C = await batch('EXECUTION_COMPLETE');
+    await w.fixture('update recipe.batch_execution set issued_at_us = 123456 where id = $1', [C.id]);
+    const state = async (id: string, s: string) =>
+      w.fixture("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('output_container', $1, 'X', 1, $2, 1)", [id, s]);
+    const open = await container(C, true);
+    await state(open, 'OPEN');
+    expect(await db.admin.query<{ r: Json | null }>('select recipe.source_container_facts($1, $2) as r', [open, R.id]).then((q) => q.rows[0]?.r)).toBeNull();
+    const reserved = await source(C);
+    expect(await factsOf(reserved)).toMatchObject({ case: 'REPROCESSING_ADDITION', sourceBatchId: C.id, manufacturedAtUs: '123456', remaining: '0.4' });
+    const released = await container(C);
+    await state(released, 'RELEASED_BY_QA');
+    expect(await factsOf(released)).toMatchObject({ case: 'RECOVERY' });
+    const charged = await source(C);
+    await w.fixture("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id) values ($1, $2, 'BLENDING', 'CHARGE', 'x', gen_random_uuid(), gen_random_uuid())", [charged, R.id]);
+    expect(await factsOf(charged)).not.toHaveProperty('case');
+    const poured = await source(C);
+    const into = await source(C);
+    await w.fixture('insert into plant.container_merge (source_id, target_id, person_id, account_id) values ($1, $2, gen_random_uuid(), gen_random_uuid())', [poured, into]);
+    expect(await factsOf(poured)).not.toHaveProperty('case');
+    expect(await factsOf(into)).toMatchObject({ case: 'REPROCESSING_ADDITION' });
+  });
+
+  it('[PR-47] only a closed output container that was never charged, packed or merged is reserved as residue', async () => {
+    const C = await batch('EXECUTION_COMPLETE');
+    const reserve = (id: string) => refusal(w.sql(qcu, 'select recipe.reserve_residue($1, $2) as r', [id, randomUUID()]));
+    const state = async (id: string, s: string) =>
+      w.fixture("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('output_container', $1, 'X', 1, $2, 1)", [id, s]);
+    const closed = async (): Promise<string> => {
+      const id = await container(C);
+      await state(id, 'CLOSED');
+      return id;
+    };
+    expect(await reserve(randomUUID())).toMatch(/is not an output container of this site .*\[EBMR-RPR-010\]/);
+    const open = await container(C, true);
+    await state(open, 'OPEN');
+    expect(await reserve(open)).toMatch(/is OPEN: only a closed reject container is reserved .*\[EBMR-RPR-010\]/);
+    const used = /was charged, packed or merged; it is no residue to reserve .*\[EBMR-RPR-010\]/;
+    const charged = await closed();
+    await w.fixture("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id) values ($1, $2, 'BLENDING', 'CHARGE', 'x', gen_random_uuid(), gen_random_uuid())", [charged, R.id]);
+    expect(await reserve(charged)).toMatch(used);
+    const source1 = await closed();
+    const target1 = await closed();
+    await w.fixture('insert into plant.container_merge (source_id, target_id, person_id, account_id) values ($1, $2, gen_random_uuid(), gen_random_uuid())', [source1, target1]);
+    expect(await reserve(source1)).toMatch(used);
+    expect(await reserve(target1)).toMatch(used);
+    // A clean closed container reaches the edition's residue rule (recipe-core marks no residue of its own).
+    expect(await reserve(await closed())).toMatch(/is not reusable residue: no block of this edition marks reusable residue .*\[EBMR-RPR-010\]/);
+  });
+
   it('[PR-47] a recovery step starts on a signed STEP authorisation of this batch, step and case, by another person than its signer, once per authorisation', async () => {
     const c = await db.admin.connect();
     try {
