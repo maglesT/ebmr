@@ -8,7 +8,9 @@
 -- (recipe.reprocessing_authorisation, 0621), given by someone other than the person who starts the step.
 --
 --   * recipe.entry_block_problem (CREATE OR REPLACE from recipe-core 0580, the latest): unchanged but for its last rule,
---     the start-data requirement of a G-24 step, which now applies to G-24 version 1 only.
+--     the start-data requirement of a G-24 step, which now applies to G-24 version 1 only, and a branch for the ADDITION
+--     entry of G-24@2: it holds exactly what the block builds from its command (container, net, source facts, the
+--     step's case, the authorisation and its signer, the person) and leaves its step needing the second person.
 --
 -- CREATE OR REPLACE keeps the owner (ebmr_owner) and the privileges (none for PUBLIC). Applied as a new migration because
 -- applied migrations are checksummed and never edited.
@@ -232,6 +234,15 @@ begin
           return format('stores %s, which brings the source batches of its step above the MBR''s %s (G24-TOO-MANY-SOURCES)', v_what, v_rp ->> 'maxSourceBatches');
         end if;
         v_want := c || jsonb_build_object('case', v_rp -> 'case');
+      when 'ADDITION' then
+        -- G-24@2 (0623): what blocks/generic/reprocessing.ts builds; the facts and the rules are 0622's, read at the row's time.
+        if v_node -> 'block' ->> 'type' = 'G-24' then
+          v_want := jsonb_strip_nulls(jsonb_build_object('container', c -> 'container',
+                                                         'net', jsonb_build_object('value', c -> 'quantity' -> 'value', 'unit', c -> 'quantity' -> 'unit'),
+                                                         'source', c -> 'source', 'case', v_rp -> 'case', 'authorisation', c -> 'authorisation',
+                                                         'authorisedBy', c -> 'authorisedBy', 'addedBy', v_by));
+          v_verify := true;
+        end if;
       when 'ATTACHMENT' then
         v_want := jsonb_build_object('sha256', c -> 'sha256', 'mediaType', c -> 'mediaType', 'description', c -> 'description',
                                      'paperOriginal', coalesce((c -> 'paperOriginal') = 'true'::jsonb, false), 'attachedBy', v_by);
