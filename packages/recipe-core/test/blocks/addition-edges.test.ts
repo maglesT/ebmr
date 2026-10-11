@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { Dec } from '@ebmr/expr';
-import { additionProblems, cumulativeNet, G24_ADDITION_CODES, sourceOf, type AdditionInput, type SourceFacts } from '../../src/blocks/generic/reprocessing.ts';
+import { additionProblems, cumulativeNet, G24_ADDITION_CODES, G24V2, qcDecisionOnPerform, sourceOf, type AdditionInput, type SourceFacts } from '../../src/blocks/generic/reprocessing.ts';
 import type { HandlerView } from '../../src/blocks/contract.ts';
 
 type Json = Record<string, unknown>;
@@ -35,6 +35,7 @@ function view(over: { rp?: Json | null; prior?: Json[]; size?: Json | null } = {
   const prior = over.prior ?? [];
   return {
     phase: { id: 'p', reprocessing: rp },
+    stepKey: 'p@',
     batch: { batchId: 'B0', productCode: 'P' },
     mbr: { header: { product: { strength: '10 mg' }, batchSizes: over.size === null ? [] : [{ quantity: over.size ?? { value: '100', unit: 'kg' } }] } },
     nowUs: NOW,
@@ -105,5 +106,40 @@ describe('addition rules', () => {
     expect(sourceOf({ source: null })).toBeUndefined();
     expect(sourceOf({ source: 'C1' })).toBeUndefined();
     expect(sourceOf({})).toBeUndefined();
+  });
+});
+
+describe('G-24@2 reprocessing step (mutation follow-up)', () => {
+  type R = { ok: boolean; data?: Json; problems?: { code: string; message: string }[]; verificationRequired?: boolean };
+  const accept = (v: HandlerView, e: Json & { kind: string }) => (G24V2.handler?.acceptEntry as (v: HandlerView, e: Json) => R)(v, e);
+  const perform = (v: HandlerView) => (G24V2.handler?.onPerform as (v: HandlerView) => { exceptions: Json[] })(v).exceptions.map((x) => x['type']);
+  const add = (over: Json = {}) => ({ kind: 'ADDITION', container: 'C1', quantity: { value: '5', unit: 'kg' }, authorisation: 'AUTH-1', authorisedBy: 'QA1', source: SRC, ...over });
+
+  it('[PR-47][IN-19] only additions; each needs its per-use authorisation (an empty one is none); an accepted addition is stored with its case and needs a second person', () => {
+    expect(accept(view(), { kind: 'OTHER' }).problems?.map((p) => p.message)).toEqual(['OTHER is not an entry of a reprocessing step (G24-ENTRY; PR-47)']);
+    expect(accept(view(), add({ authorisation: '' })).problems?.map((p) => p.code)).toEqual(['G24-NOT-AUTHORISED']);
+    expect(accept(view(), add({ authorisedBy: '' })).problems?.map((p) => p.code)).toEqual(['G24-NOT-AUTHORISED']);
+    expect(accept(view(), add({ authorisedBy: 7 })).problems?.map((p) => p.code)).toEqual(['G24-NOT-AUTHORISED']);
+    expect(accept(view(), add())).toStrictEqual({ ok: true, data: { container: 'C1', net: { value: '5', unit: 'kg' }, source: SRC, case: 'RECOVERY', authorisation: 'AUTH-1', authorisedBy: 'QA1', addedBy: 'OP1' }, verificationRequired: true });
+    expect(accept(view(), add({ source: undefined })).problems?.map((p) => p.code)).toEqual(['G24-AD-HOC']);
+  });
+
+  it('[PR-47][IN-19] the release-blocking QC decision: always after whole-batch reprocessing, after an addition only when one was made', () => {
+    expect(perform(view())).toEqual([]);
+    expect(perform(view({ prior: [prior({ value: '1', unit: 'kg' })] }))).toEqual(['QC_ADDITIONAL_TESTING_DECISION']);
+    expect(perform(view({ rp: { case: 'WHOLE_BATCH_REPROCESSING' } }))).toEqual(['QC_ADDITIONAL_TESTING_DECISION']);
+    expect(perform(view({ rp: null }))).toEqual([]);
+    expect(qcDecisionOnPerform(view(), true).exceptions[0]).toEqual({
+      type: 'QC_ADDITIONAL_TESTING_DECISION',
+      title: 'p@ added reprocessed or recovered material: QC must record a decision on additional testing before release',
+      controls: ['PR-47', 'IN-19'],
+      severity: 'ALERT',
+      category: 'DEVIATION_OR_OVERRIDE',
+      blocks: 'NONE',
+      releaseBlocking: true,
+    });
+    const check = (reprocessing: unknown) => G24V2.checkConfig?.({ id: 'p', ...(reprocessing ? { reprocessing } : {}) } as never, {}, {} as never);
+    expect(check(undefined)).toEqual([{ code: 'G24-NO-CASE', severity: 'ERROR', message: 'Reprocessing step p declares no case (whole-batch reprocessing, reprocessing addition, recovery)', controls: ['PR-47', 'IN-19'] }]);
+    expect(check({ case: 'RECOVERY' })).toEqual([]);
   });
 });
