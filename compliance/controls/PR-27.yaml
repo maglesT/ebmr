@@ -48,6 +48,13 @@ tests:
   - "apps/tablets-server/test/blocks/compression/blocks.test.ts > TB-09 tooling custody > [PR-27][IN-36] an issue step names the approved tooling specification of the product"
   - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [INV-24][IN-36][PR-27][PR-22] the tooling register: a set is issued only for its own product, after a passing inspection before use with every checklist item, never twice at once; the strokes of a use come from the press counter; a set at or past its stroke limit may not compress and is never issued again; nobody writes the register directly"
   - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [IN-36][INV-24][PR-27] TB-09 issue: an inspection entry is the register's row of this person with its result; an issue only on the passing inspection the step recorded, of a set matching the MBR's approved tooling specification; a forged engine is refused"
+  - "apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts > TB-09 return > [PR-27][IN-36] the issue part names the approved specification; the configuration as read"
+  - "apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts > TB-05 filter bag > [IN-36][PR-27] before use the bag states its history: new, or the product last dried (another product only with its wash record); never both; a damaged bag is replaced"
+  - "apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts > TB-05 filter bag > [IN-36][PR-27] where the MBR asks for dedicated bags, the bag is dedicated to this product (its history then optional)"
+  - "apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts > TB-05 filter bag > [IN-36][PR-27] after use: the same bag, once, naming only what was found; damaged holds with its title"
+  - "apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts > TB-05 drying and the LOD sample > [IN-36][PR-27][PR-29] PERFORMED: dried, sampled, and the bag checked after use (fluid bed only)"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [IN-26][PR-27] a unit or room has one open campaign; a campaign elsewhere does not block it; a campaign is closed once"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-26][PR-27] a campaign check reads the open campaign of this product on this unit or room, and the MAJOR cleaning and batches of that unit or room only"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -128,6 +128,9 @@ tests:
   - "packages/api-contract/test/contract.test.ts > route table > [DI-24] no route of the contract deletes anything, and the void of an attempt carries the person's reason"
   - "apps/tablets-server/test/execution/gmp-batch-routes.test.ts > GMP batch routes (slice 6a, D-S6-1) > [DI-24] no route deletes a batch entry: a DELETE answers 404 and a void needs a reason"
   - "tools/e2e/specs/floor-tablets/void.spec.ts > [DI-24] the step screen offers void with a reason and never delete @kiosk"
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24][INV-41] voids repeat while no valid result exists (an invalidated one is none); an invalidation is approved by another person, never a system, and its investigation is recorded trimmed"
+  - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] a result of another item of the step does not stop a void of this one (mutation follow-up)"
+  - "packages/site-services/test/mutation/deviations.test.ts > the signed content and the subject resolver (site services 0730) > [DI-24] a record's content version counts its own links, events, findings and conclusion"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
     tests:

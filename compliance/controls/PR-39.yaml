@@ -35,6 +35,8 @@ tests:
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-33][PR-36][PR-37][PR-39][PR-42][IN-17][IN-22][INV-32] G-21 Printed materials, coding, challenges, serialisation: Cartons issued by manual count (two persons) from a released lot with the master artwork and reconciled with 12 unexplained against a limit of 0 (release-blocking exception); the printer's first print approved; the vision system challenged at start and end; a serial pool reconciled with zero unexplained"
   - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-39][IN-17][INV-32] the reconciliation is computed from what was issued, judged against the item's limits (absolute or percent), raises a release-blocking exception that waits for a deviation when outside, runs once per item and always: the step is not performed without it"
   - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-39][INV-32] a packaging master without reconciliation limits, without artwork for a market, coding without a destruction step, or challenging without a plant unit cannot be defined"
+  - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 reconciliation > [INV-32][IN-17][PR-39] unexplained = issued - accounted, at the finest scale; inside both limits (equal allowed) or a release-blocking exception"
+  - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -42,6 +42,8 @@ tests:
   - "packages/site-services/test/quality/deviation.test.ts > the reference check site.deviation_ref_problem (D-S2-2) > [IN-20][DI-24] an invalidation citing an unknown, cancelled, unlinked, not concluded or not assignable reference is refused; the concluded OOS with an assignable cause is accepted"
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [PR-19][IN-20] lot release is refused while a release result is unapproved or an approved failure is unresolved; only a confirmed laboratory error with an approved passing replacement resolves it"
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result"
+  - "packages/site-services/test/mutation/deviations.test.ts > each step refused on its own (site services 0730, 0753) > [IN-20][PR-49] an unknown record, an unknown subject kind, an investigation started twice, a finding while OPEN or with a short cause, a close before the conclusion"
+  - "packages/site-services/test/mutation/lots-and-lims.test.ts > LIMS: results and their approval (site services 0740) > [IN-20] an OOS link: an unknown result is refused as unknown; a result is linked to its OOS record once"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

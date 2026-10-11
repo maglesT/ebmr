@@ -149,6 +149,10 @@ tests:
   - "packages/site-services/test/quality/deviation.test.ts > raising and linking > [PR-49] the administrator cannot raise a record, and a person without DEVIATION.RAISE cannot either"
   - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [PR-49][PR-17] a QA person raises and investigates a deviation-lite record with a generated reference; the ERP interface imports its catalogue and nobody else can"
   - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [IN-15][PR-31][PR-49] an out-of-limit stage yield: the yield step is blocked and the next step waits until a deviation is linked; \"no impact\" is refused and the disposition needs a comment"
+  - "packages/site-services/test/mutation/deviations.test.ts > a record is raised rule by rule (site services 0730) > [PR-49] the details, the kind, the classification with a rationale of at least 10 characters, and a title"
+  - "packages/site-services/test/mutation/deviations.test.ts > a record is raised rule by rule (site services 0730) > [PR-49] the reference serial counts the site's own records of the year"
+  - "packages/site-services/test/mutation/deviations.test.ts > each step refused on its own (site services 0730, 0753) > [IN-20][PR-49] an unknown record, an unknown subject kind, an investigation started twice, a finding while OPEN or with a short cause, a close before the conclusion"
+  - "packages/site-services/test/mutation/deviations.test.ts > the signed content and the subject resolver (site services 0730) > [PR-49] a subject resolver takes (text, uuid) and returns jsonb; what it answers counts only as an object with a batch and a site"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -51,7 +51,13 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
     await link.getByRole('radio', { name: new RegExp(`^${lot.lotCode}`) }).locator('xpath=ancestor::label[1]').click();
     await link.getByRole('button', { name: 'Link it' }).click();
     await expect(page.getByTestId('deviation-links')).toContainText(lot.lotCode);
-    await page.getByRole('button', { name: 'Start the investigation' }).click();
+    // The page re-reads the record after the link; click only once the investigation button is ready, and wait for the
+    // server's answer to that click, so a click on a button being re-rendered is not lost.
+    const start = page.getByRole('button', { name: 'Start the investigation' });
+    await expect(start).toBeEnabled();
+    const started = page.waitForResponse((r) => r.request().method() === 'POST' && /\/api\/quality\/deviations\/[^/]+\/investigation$/.test(new URL(r.url()).pathname));
+    await start.click();
+    expect((await started).ok()).toBe(true);
     await expect(page.getByTestId('deviation-state')).toContainText('UNDER_INVESTIGATION');
   }, page);
 

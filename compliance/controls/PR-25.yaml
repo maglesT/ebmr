@@ -32,6 +32,9 @@ tests:
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-25] G-11 Environmental condition check: Relative humidity above the alert limit: register item plus an excursion that notifies production and QA"
   - "packages/recipe-core/test/blocks/process.test.ts > G-11 environmental condition check > [IN-39][PR-25] a pressure difference below its action limit stops the step, links a deviation and notifies production and QA"
   - "packages/recipe-core/test/plant/area.test.ts > room eligibility (IN-26 (b)(c), PR-25) > [IN-26][PR-25] starting product Y in a room occupied by product X is blocked unless the room is segregated with a recorded risk justification"
+  - "apps/tablets-server/test/blocks/coating/tb-18-edges.test.ts > TB-18 cores > [IN-37][PR-25] the room is judged against each limit the MBR sets (ends allowed), with filtered air, once"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > the row guards hold for owner-level writes > [INV-15][IN-26][PR-25] an occupancy of a room: concurrent batches only in a segregated room; an exclusive one follows the latest occupancy, which has ended"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][PR-25] a plain room in use refuses another batch of its own product as in use, naming the batch in it, whatever other rooms hold"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

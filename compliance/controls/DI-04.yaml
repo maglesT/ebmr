@@ -196,6 +196,9 @@ tests:
   - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-04][PR-14] the equipment reports another recipe version than the MBR names: the RECIPE_CHECK is stored only with matches false and RECIPE_MISMATCH, which stops the step for QA; a forged match or a dropped exception is refused by the database"
   - "apps/tablets-server/test/designer/template-gb-t-01.test.ts > the gb-t-01 template against the real adapters > [PR-03][DI-04] passes every validator gate with no finding, and defines as a GMP batch with the tablets blocks"
   - "apps/tablets-server/test/designer/template-gb-t-01.test.ts > the gb-t-01 template against the real adapters > [DI-04][INV-19] simulates with full coverage; every golden case (the hand worksheet) matches its calculation"
+  - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 values > [DI-04][PR-14] the recipe check against the MBR's recipe and version; a mismatch stops the step until QA decides"
+  - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 PERFORMED and definition > [DI-31][DI-04] PERFORMED needs a usable matching read-back of every setpoint, the recipe checked and a usable value of every collected tag"
+  - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 PERFORMED and definition > [DI-31][DI-04] the definition: each tag once, ordered limits (equal allowed), a recipe when the interface is configured"
 clauses:
   - clause: "Try to make a new MBR version Effective without a verification record. It is blocked."
     tests:

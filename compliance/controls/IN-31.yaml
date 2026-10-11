@@ -20,6 +20,7 @@ tests:
   - "packages/kernel/test/review/f23.test.ts > F23: a PACK scope resolves a PER_DESTINATION key only for its own destination > [IN-52][IN-31][INV-28] an India-domestic pack cannot be resolved under the US label rule by naming destination US"
   - "apps/tablets-server/test/blocks/packaging/completion.test.ts > G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [IN-31] an MRP a person gives is checked by a second person before a print job carries it, and its giver, though holding the rights to check and release, neither checks nor releases"
   - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-36][IN-31][PR-35][IN-16][PR-42] a print job carries only the record's data, bound to the packaging order and artwork set the line runs; the gateway's echo must equal it or the load is refused; the first print is approved by another person than the one who released the job; a batch-data change voids the job and holds the output since the last good check (L-29)"
+  - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-42][IN-31] GTIN check digits, the configuration as read"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -1168,6 +1168,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   equal to the block registry; every new route parsed with its contract schema.
 - `block-entries.test.ts` (Phase 3 slice 6a; D-S6-2): the BLOCK_ENTRY forms with the block's own schema as JSON; the
   members the blocks mark serverFilled exactly those the server fills, refused when a client names one (DI-31, DI-32).
+- `block-entries-edges.test.ts` (Phase 3 exit, TypeScript mutation): the edges of the server-filled member checks of
+  BLOCK_ENTRY: values of a shape the engine's schema decides, the refusal codes and help, and the reads the server makes
+  (DI-31, DI-32).
 - `db-guards-hand-over.test.ts` (Phase 3 slice 2; sql 0461-0463): the hand-over of a step in progress recorded with
   a supervisor's signature and QA's approval and registered as STEP_HANDED_OVER, refused forged (without the approval,
   from a person not on the step, approved by the incoming performer, without its exception, with another reason); the

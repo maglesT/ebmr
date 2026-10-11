@@ -155,6 +155,10 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [IN-35][PR-29][DI-28] catalogue test: run 45 minutes without an IPC entry; the check is missed at 30 minutes (25 min interval + 5 min grace, at the entry's time), and the next entry lists it and raises IPC_CHECK_MISSED, which waits for a deviation"
   - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29][DI-28] TB-11 missed check at database time: the overdue checks are read at an instant (catalogue test: the alarm fires once the interval and grace have passed), recorded once as an alarm by the server sweeper job without any operator entry, and the next entry must list them with IPC_CHECK_MISSED, the database recording MISSED for each stream and holding its containers"
   - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-11 periodic IPC scheduler > [DI-28][PR-29] the press counter is compared as an exact integer up to the largest safe integer, and a counter above 2^53 is refused, never rounded (exit review MEDIUM)"
+  - "apps/tablets-server/test/blocks/ipc/common-edges.test.ts > IPC test entries > [DI-28] the sample is taken neither after it is recorded nor before the step's first entry (equal instants allowed); lateness counts from the sampling, beyond the late-entry time"
+  - "apps/tablets-server/test/blocks/ipc/common-edges.test.ts > IPC test entries > [DI-32][DI-28][PR-29][IN-35] capture and verdict exceptions: keyed by hand, late, failed (holding output, waiting for a deviation) and alert, each naming its stream"
+  - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 when a slot falls due > [IN-35][PR-29][DI-28] a running stoppage suspends a slot due at or after its start, not one due before it"
+  - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 entries > [PR-29][PR-07][DI-28] a check is of a planned test, gives the press counter when its interval is by count, and the counter never goes back (equal allowed)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

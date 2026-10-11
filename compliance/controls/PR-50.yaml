@@ -38,6 +38,9 @@ tests:
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] a conclusion signed before a new finding is refused: the new finding supersedes it"
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] a cancellation is by QA other than the initiator, with a reason, while OPEN or UNDER_INVESTIGATION only"
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] the QA person who recorded the investigation's finding neither concludes nor closes the record"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 inspection and sorting > [PR-50][PR-46] a foreign tablet found is critical: QA decides, release is blocked, a deviation is required; a zero count is not a finding"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 definition checks > [PR-46][PR-50][PR-29] the catalogue (each code once; a foreign tablet critical), the AQL, the vision recipe, residue only with a recovery step"
+  - "packages/site-services/test/mutation/deviations.test.ts > each step refused on its own (site services 0730, 0753) > [PR-50][DI-35] a QA act is recorded by the person who signed it: a QA person outside the record cannot present another's signature"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

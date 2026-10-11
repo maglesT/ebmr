@@ -343,6 +343,12 @@ tests:
   - "apps/tablets-server/test/execution/gmp-batch-routes.test.ts > GMP batch routes (slice 6a, D-S6-1) > [DI-17] the planning read is the batch issuer's: a session whose role holds no BATCH.ISSUE is refused, by route and in the database"
   - "apps/tablets-server/test/devices/gateway-role.test.ts > the site gateway acts only in its own role (DI-17, INV-20) > [DI-17][PR-47][IN-24] the gateway identity (SITE_GATEWAY: INTERFACE.WRITE) writes no ERP master data or order: a product permitting reprocessing, a material posted INTERMEDIATE and an order are refused, and nothing is stored (exit review HIGH-1; site-services 0802)"
   - "packages/site-services/test/quality/interfaces.test.ts > ERP product master > [DI-17][PR-17][IN-24] masters and orders come from the ERP interface only: an identity holding INTERFACE.WRITE (SERVICE_ACCOUNT) is refused for a product, a material and an order"
+  - "packages/kernel/test/mutation/platform-scope.test.ts > platform hooks (kernel 1150) > [DI-17][DI-18] a hook of an unknown name is refused as unknown, whatever function it names"
+  - "packages/recipe-core/test/engine/hand-over.test.ts > hand-over of a step in progress (L-07) > [PR-14][DI-17] the incoming performer and the QA approver are persons, never a system, and the incoming one has a name (mutation follow-up)"
+  - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > recipe.check_approver_roles (recipe-core 0462): an approval is signed in the role the command asks > [PR-14][DI-17][DI-35] a hand-over is signed by a production supervisor and approved by the quality unit"
+  - "packages/recipe-core/test/mutation/output-containers.test.ts > each refusal with its own code > [DI-17] a disposition is checked against the product of the container disposed of"
+  - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17][IN-26] a unit: the product of the use this transaction starts or ends, of that unit only"
+  - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17] an output container: its own product; another permission, a malformed or missing identifier: nothing"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

@@ -52,6 +52,15 @@ tests:
   - "apps/tablets-server/test/quality/routes.test.ts > quality routes (GMP) > [PR-49][PR-17] a QA person raises and investigates a deviation-lite record with a generated reference; the ERP interface imports its catalogue and nobody else can"
   - "packages/site-services/test/quality/interfaces.test.ts > ERP product master > [DI-17][PR-17][IN-24] masters and orders come from the ERP interface only: an identity holding INTERFACE.WRITE (SERVICE_ACCOUNT) is refused for a product, a material and an order"
   - "packages/site-services/test/quality/interfaces.test.ts > ERP product master > [IN-24][PR-17] a material's kind and maximum retest interval change only once QA confirms; a new material, even one posted INTERMEDIATE, cannot be received until then"
+  - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the batch size of an ERP order (recipe-core 0602) > [PR-04][PR-17] the order is for the approved size: an unknown size, another quantity or unit, or a size whose value is not a decimal is refused"
+  - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the batch size of an ERP order (recipe-core 0602) > [PR-04][PR-17] the MBR states its reference size: none, not a decimal, zero, or in another unit than the batch size is refused"
+  - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the open order offered for a family, site and size (recipe-core 0602) > [PR-04][PR-17] the oldest open order of the family's product, strength, site, unit and size, in its latest version, not yet planned"
+  - "packages/site-services/test/mutation/erp-interfaces.test.ts > the material master (site services 0750) > [PR-17] a master row is an object; a maximum retest interval, when given, is whole months"
+  - "packages/site-services/test/mutation/erp-interfaces.test.ts > the material master (site services 0750) > [PR-17] the master of a material is its latest version, never another material's"
+  - "packages/site-services/test/mutation/erp-interfaces.test.ts > a lot receipt (site services 0750) > [PR-17][PR-18][INV-13] each refusal on its own: no details, an unknown material, a kind, name or unit the master does not hold, a quantity that is not a decimal, no or a past expiry"
+  - "packages/site-services/test/mutation/erp-interfaces.test.ts > a lot receipt (site services 0750) > [PR-17][IN-24] a material is one kind at a site: a receipt of a material whose lots are of another kind, or that has a vendor route while no longer an excipient, is refused"
+  - "packages/site-services/test/mutation/erp-interfaces.test.ts > the product master and production orders (site services 0732, 0751) > [PR-17] a product master row is an object with a whole-month shelf life and a boolean beta-lactam flag"
+  - "packages/site-services/test/mutation/erp-interfaces.test.ts > the product master and production orders (site services 0732, 0751) > [PR-17] a production order names a decimal batch size and a BOM of at least one line, each line exactly {materialCode, quantity, unit}, each material once"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

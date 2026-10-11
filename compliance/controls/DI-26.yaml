@@ -90,6 +90,8 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-exception-register.test.ts > the exception register (recipe-core 0440) > [DI-26][INV-41][INV-03] QA review: a query is answered by another person, QA accepts only a dispositioned exception and only from outside the work, an escalation names its deviation, a concluded review takes no more acts, and no review closes an exception"
   - "apps/tablets-server/test/execution/db-guards-exception-register.test.ts > the exception register (recipe-core 0440) > [DI-26][INV-41] bypass: the application role cannot write the register, and a register the state left behind the triggers' back stops the next row"
   - "apps/tablets-server/test/execution/db-guards-hand-over.test.ts > HAND_OVER_STEP: signed by a supervisor and approved by QA, neither of them a performer, with a reason > [PR-14][DI-24][DI-26][DI-35] the honest hand-over is recorded and registered; without QA's approval, from a person not on the step, approved by the incoming performer, without its exception or with another reason than given, it is refused"
+  - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > the register row of an exception record (DI-26) > [DI-26][INV-41] a record that is not an object, or names an unknown review category, is refused with EXE-160"
+  - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > the register row of an exception record (DI-26) > [DI-26][PR-13] the row records the flags the record carries, false where it carries none"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

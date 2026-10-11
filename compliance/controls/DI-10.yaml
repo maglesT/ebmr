@@ -77,6 +77,18 @@ tests:
   - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > the packaging-line block versions (contract) > [DI-10][DI-34] TB-23@1 and TB-24@1 are registered in the tablets registry with every execution part of the block contract and are significant steps of the edition catalogue; their CHALLENGE entry is G-21@1's own"
   - "apps/tablets-server/test/blocks/reprocessing/blocks.test.ts > TB-08@1 rework or recovered-material addition > [DI-10][DI-34][DI-33] is registered in the Tablets edition with every execution part of the contract; its golden fixture runs: the net added is computed into the item the yield reads (C-07) and QC is flagged to decide on extra testing"
   - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-34][DI-10] the generic block versions are registered: G-01..G-20 (G-09@1 and G-10@1 sandbox only, G-09@2 and G-10@2 from site services, G-06 since slice 3a), G-21 since slice 4a, G-22..G-24, G-24@2 since slice 5b"
+  - "apps/tablets-server/test/blocks/coating/calc-edges.test.ts > coating calculations at their edges > [PR-29][DI-10] an AQL plan exists only for a letter of the table; the first column (0.010) is a column of it"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 AQL > [PR-29][DI-10] the plan of the scheme: letter by lot size and level, each class at its accept number (equal accepts), critical at zero, the sample capped at the lot"
+  - "apps/tablets-server/test/blocks/ipc/common-edges.test.ts > IPC rule-set refusals > [IN-34][DI-10] no set, or a batch market no set covers, is refused naming the market; sets with different procedures are refused naming the members"
+  - "apps/tablets-server/test/blocks/ipc/rule-sets-edges.test.ts > rule sets > [DI-10] the UTC date of an instant, before and after 1970, at day boundaries, leap days and century years"
+  - "apps/tablets-server/test/blocks/ipc/rule-sets-edges.test.ts > rule sets > [DI-10][IN-34] a code binds from its effective date (inclusive) to its end date (exclusive), in its latest version, sorted by code; no tablet type binds nothing"
+  - "apps/tablets-server/test/blocks/ipc/rule-sets-edges.test.ts > rule sets > [DI-10] an end date is exclusive: the set no longer binds on it"
+  - "apps/tablets-server/test/blocks/ipc/rule-sets-edges.test.ts > rule sets > [DI-10][IN-34] a market is covered by a set or by a not-applicable record effective on the date; procedures must agree; recorded references resolve to shipped versions only"
+  - "apps/tablets-server/test/blocks/ipc/tb-12-edges.test.ts > TB-12 weight configuration checks > [IN-34][DI-10] a compendial mode needs a rule set for every market; in-house individual limits are never looser than the band at the target (equal allowed)"
+  - "apps/tablets-server/test/blocks/ipc/tb-12-edges.test.ts > TB-12 weight checks > [IN-34][DI-10] subdivision (e) is refused for every batch while India (in every market set) has neither a rule set nor a not-applicable record for it"
+  - "apps/tablets-server/test/blocks/ipc/tb-14-edges.test.ts > TB-14 friability runs > [IN-35][DI-10] definition checks: a rule set covers the tablet type for every market; an in-house limit is never looser (equal allowed)"
+  - "apps/tablets-server/test/blocks/ipc/tb-15-edges.test.ts > TB-15 starting a run > [PR-29][DI-10] no rule set for the tablet type, or no time limit for the stage, refuses the start"
+  - "apps/tablets-server/test/blocks/ipc/tb-15-edges.test.ts > TB-15 the step and its definition > [PR-29][DI-10] definition checks: a covering rule set, a time limit for the stage, an acid stage only for gastro-resistant tablets, a time limit in whole microseconds"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
