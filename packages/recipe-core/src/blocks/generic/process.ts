@@ -1,11 +1,12 @@
 /**
  * Generic process blocks, version 1 (outline 6.6; tablets spec K-12, K-15, K-24): G-12 sampling, G-15
- * timer, hold time and transfer, G-24 reprocessing / rework gate.
+ * timer, hold time and transfer, G-24 reprocessing / rework gate (version 2, on the database's facts: reprocessing.ts).
  */
 import { Dec } from '@ebmr/expr';
 import { durationToMicros } from '../../flow/decimal.ts';
 import type { BlockVersion, ExceptionDraft, HandlerProblem, HandlerView } from '../contract.ts';
 import { convert, micros, problem, QUANTITY_SCHEMA, SKIPPABLE } from './common.ts';
+import { G24V2 } from './reprocessing.ts';
 
 // ---------------------------------------------------------------------------------------------
 // G-12 Sampling
@@ -267,4 +268,4 @@ export const G24: BlockVersion = {
   tests: ['packages/recipe-core/test/blocks/golden.test.ts', 'packages/recipe-core/test/blocks/process.test.ts'],
 };
 
-export const PROCESS_BLOCKS: readonly BlockVersion[] = [G12, G15, G24];
+export const PROCESS_BLOCKS: readonly BlockVersion[] = [G12, G15, G24, G24V2];

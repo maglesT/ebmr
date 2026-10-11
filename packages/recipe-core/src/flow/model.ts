@@ -25,7 +25,8 @@ export interface Quantity {
 }
 
 export type Edition = 'tablets' | 'injectables';
-export type RecordKind = 'PROCESSING' | 'PACKAGING';
+/** REPROCESSING: a whole-batch reprocessing master (outline 5.2.9 case 1; D-S5-6), issued as a processing batch linked to its parents. */
+export type RecordKind = 'PROCESSING' | 'PACKAGING' | 'REPROCESSING';
 
 export interface MbrHeader {
   /** MBR family code (product x strength x batch size x line). Versions live in the MBR life cycle, not here. */
