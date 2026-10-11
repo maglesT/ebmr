@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { routes, TABLET_ENTRY_KINDS_BY_BLOCK, type AdditionSourceView, type StepScreenView } from '@ebmr/api-contract';
 import { Button, StatusChip } from '@ebmr/ui-kit';
 import { useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../api/client.ts';
+import { useCommand } from '../../../app/acts.tsx';
 import { queryKey, useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
@@ -174,19 +174,14 @@ export function SsccRegister({ view }: RendererProps) {
   const gmp = isGmpFloor();
   const qc = useQueryClient();
   const q = useApiQuery(routes.batches.sscc, { params: { batchId: view.run.runId } }, { enabled: gmp });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<Parameters<typeof RefusalMessage>[0]['error'] | null>(null);
+  // Issuing an SSCC is the person's own act: a fresh badge tap on a shared terminal (FRESH_ON_SHARED).
+  const cmd = useCommand(routes.batches.issueSscc, [], 'issuing an SSCC');
   if (!gmp) return null;
+  const busy = cmd.busy;
+  const error = cmd.error;
   const issue = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const r = await api.call(routes.batches.issueSscc, { params: { batchId: view.run.runId, stepKey: view.step.stepKey }, body: {} });
-      if (!r.ok) setError(r.error);
-      await qc.invalidateQueries({ queryKey: queryKey(routes.batches.sscc, { params: { batchId: view.run.runId } }) });
-    } finally {
-      setBusy(false);
-    }
+    await cmd.run({ params: { batchId: view.run.runId, stepKey: view.step.stepKey }, body: {} });
+    await qc.invalidateQueries({ queryKey: queryKey(routes.batches.sscc, { params: { batchId: view.run.runId } }) });
   };
   return (
     <section className={wcls('section')} aria-label="SSCC register" data-testid="sscc-register">

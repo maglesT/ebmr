@@ -6,11 +6,12 @@
  */
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState, type ReactNode } from 'react';
-import type { AnyRoute, CallError, CallInput, RouteResponse, SignableAction } from '@ebmr/api-contract';
+import { buildPath, routes, type AnyRoute, type Attribution, type CallError, type CallInput, type RouteResponse, type SignableAction } from '@ebmr/api-contract';
 import { Banner, Button } from '@ebmr/ui-kit';
 import { api } from '../api/client.ts';
+import { useApiQuery } from '../api/hooks.ts';
 import { describeSignable } from '../api/signables.ts';
-import { useSignatureCeremony } from './ports.tsx';
+import { useBadgeTap, useSignatureCeremony } from './ports.tsx';
 import { RefusalMessage } from './refusal.tsx';
 
 /** Reads every query whose key starts with one of `ids` again (route ids). */
@@ -29,9 +30,16 @@ export interface Command<R extends AnyRoute> {
   clear: () => void;
 }
 
-/** One plain command; the reads named in `refresh` are read again after it (refused or not). */
-export function useCommand<R extends AnyRoute>(route: R, refresh: readonly string[] = []): Command<R> {
+/**
+ * One plain command; the reads named in `refresh` are read again after it (refused or not). On a shared terminal (the
+ * session's attribution is TAP or TAP_PIN) a route marked FRESH_ON_SHARED is sent with a fresh badge tap of the person
+ * signed in (INV-40), as the floor's entries are; a cancelled tap sends nothing.
+ */
+export function useCommand<R extends AnyRoute>(route: R, refresh: readonly string[] = [], tapReason = 'this act'): Command<R> {
   const reread = useRefresh(refresh);
+  const tap = useBadgeTap();
+  const session = useApiQuery(routes.session.get, {}, { staleTime: 60_000 });
+  const shared = session.data !== undefined && session.data.attribution !== 'NONE';
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<CallError | null>(null);
   const [done, setDone] = useState<RouteResponse<R> | null>(null);
@@ -40,7 +48,13 @@ export function useCommand<R extends AnyRoute>(route: R, refresh: readonly strin
     setError(null);
     setDone(null);
     try {
-      const r = await api.call(route, input);
+      let attribution: Attribution | null = null;
+      if (route.attribution === 'FRESH_ON_SHARED' && shared) {
+        const { params, body } = input as { params?: Record<string, unknown>; body?: Record<string, unknown> };
+        attribution = await tap.requestTap(tapReason, { method: route.method, path: buildPath(route.path, params ?? {}), body: { ...(body ?? {}) } });
+        if (!attribution) return null;
+      }
+      const r = await api.call(route, attribution ? ({ ...input, attribution }) : input);
       await reread();
       if (!r.ok) {
         setError(r.error);

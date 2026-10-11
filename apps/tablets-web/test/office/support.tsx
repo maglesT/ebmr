@@ -12,7 +12,7 @@ import { EXAMPLES, example } from '@ebmr/api-contract/examples';
 import { apiState, setTransport } from '../../src/api/client.ts';
 import { fixturesFromExamples } from '../../src/api/examples.ts';
 import { createFixtureFetch, type FixtureMap } from '../../src/api/fixture-fetch.ts';
-import { CeremonyPortProvider, type SignatureCeremonyPort } from '../../src/app/ports.tsx';
+import { BadgeTapPortProvider, CeremonyPortProvider, type BadgeTapPort, type SignatureCeremonyPort } from '../../src/app/ports.tsx';
 import * as designer from '../../src/features/designer/index.tsx';
 import * as masterData from '../../src/features/master-data/index.tsx';
 import * as planning from '../../src/features/planning/index.tsx';
@@ -43,6 +43,21 @@ export interface OfficeOptions {
   fixtures?: FixtureMap;
   role?: string;
   ceremony?: ReturnType<typeof signedCeremony>;
+  /** The session's attribution: TAP models a shared kiosk (default NONE, an office PC). */
+  attribution?: 'NONE' | 'TAP';
+}
+
+export const TAPPED = { method: 'BADGE_TAP' as const, badgeUid: 'TEST-BADGE-1', proof: { spki: 'AAAA', nonce: 'nonce-0123456789abcdef', sig: 'AAAA' } };
+
+export function fakeTap() {
+  return {
+    requestTap: vi.fn((reason: string, request: { method: string; path: string; body: Record<string, unknown> }) => {
+      void reason;
+      void request;
+      return Promise.resolve(TAPPED);
+    }),
+    offerSwitch: vi.fn(() => Promise.resolve(false)),
+  } satisfies BadgeTapPort;
 }
 
 /** The descriptor the server would give for any action (tests that check it give their own). */
@@ -54,7 +69,7 @@ const describeAny = ({ body }: { body: unknown }) => {
 export function renderOffice(path: string, opts: OfficeOptions = {}) {
   apiState.installation = 'GMP';
   const requests: Recorded[] = [];
-  const session = { ...(EXAMPLES['session-office'].data as SessionView), ...(opts.role ? { role: opts.role, roles: [opts.role] } : {}) };
+  const session = { ...(EXAMPLES['session-office'].data as SessionView), ...(opts.role ? { role: opts.role, roles: [opts.role] } : {}), ...(opts.attribution ? { attribution: opts.attribution } : {}) };
   const fixtures = createFixtureFetch({ ...fixturesFromExamples('GMP'), 'esig.describe': describeAny, 'session.get': session, ...(opts.fixtures ?? {}) }, { installation: 'GMP' });
   const transport: FetchLike = async (url, init) => {
     const u = new URL(url, 'http://fixture.local');
@@ -67,13 +82,16 @@ export function renderOffice(path: string, opts: OfficeOptions = {}) {
   const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...designer.routes(root)]);
   const router = createRouter({ routeTree: tree, history: createMemoryHistory({ initialEntries: [path] }) });
   const ceremony = opts.ceremony ?? signedCeremony();
+  const tap = fakeTap();
   const utils = render(
     <QueryClientProvider client={qc}>
       <CeremonyPortProvider value={ceremony}>
-        <RouterProvider router={router} />
+        <BadgeTapPortProvider value={tap}>
+          <RouterProvider router={router} />
+        </BadgeTapPortProvider>
       </CeremonyPortProvider>
     </QueryClientProvider>,
   );
   const posts = (path: string) => requests.filter((r) => r.method === 'POST' && r.path === path);
-  return { ...utils, requests, ceremony, posts };
+  return { ...utils, requests, ceremony, tap, posts };
 }

@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { routes, type ClientIntent, type ProposedActView, type StepScreenView } from '@ebmr/api-contract';
 import { Banner, Button, Field, floor } from '@ebmr/ui-kit';
-import { api } from '../../../api/client.ts';
+import { useCommand } from '../../../app/acts.tsx';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { useSignatureCeremony } from '../../../app/ports.tsx';
 import { wcls } from '../classes.ts';
@@ -66,15 +66,16 @@ function VoidAttemptForm({ onClose, view }: { onClose: () => void; view: StepScr
   const base = chosen && reasonGiven ? { type: 'VOID_ATTEMPT' as const, stepKey: view.step.stepKey, item: chosen.item, point: chosen.point, reason: reason.trim() } : null;
   const intent: ClientIntent | null = base ? (gmp ? (act && approved ? { ...base, approvalActId: act.actId } : null) : base) : null;
 
+  // The proposal is the person's own act: a fresh badge tap on a shared terminal (FRESH_ON_SHARED).
+  const proposal = useCommand(routes.batches.proposeAct, [], st('void.tap'));
   const propose = async () => {
     if (!base) return;
     setBusy(true);
     setError(null);
     try {
       const { type, stepKey, item, point, reason: why } = base;
-      const r = await api.call(routes.batches.proposeAct, { params: { batchId: view.run.runId }, body: { intent: { type, stepKey, item, point, reason: why } } });
-      if (r.ok) setAct(r.value);
-      else setError(r.error);
+      const r = await proposal.run({ params: { batchId: view.run.runId }, body: { intent: { type, stepKey, item, point, reason: why } } });
+      if (r) setAct(r);
     } finally {
       setBusy(false);
     }
@@ -121,6 +122,7 @@ function VoidAttemptForm({ onClose, view }: { onClose: () => void; view: StepScr
         </div>
       ) : null}
       {error ? <RefusalMessage error={error} /> : null}
+      {proposal.error ? <RefusalMessage error={proposal.error} /> : null}
     </CommandBody>
   );
 }

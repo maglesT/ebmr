@@ -122,11 +122,15 @@ function RetestForm({ lot, results }: { lot: LotSummaryView; results: LotResultV
 function LotDecision({ lot }: { lot: LotSummaryView }) {
   const [decision, setDecision] = useState<'RELEASE' | 'REJECT' | null>(null);
   const [route, setRoute] = useState<'IDENTITY_TESTED' | 'VENDOR_HISTORY' | null>(null);
+  const [code, setCode] = useState('');
+  const [text, setText] = useState('');
   const signed = useSignedAct(LOT_READS);
-  const ready = decision === 'REJECT' || (decision === 'RELEASE' && route !== null);
+  // A rejection carries the person's own reason, both halves (DI-22).
+  const reason = code.trim() && text.trim() ? { code: code.trim(), text: text.trim() } : null;
+  const ready = (decision === 'REJECT' && reason !== null) || (decision === 'RELEASE' && route !== null);
   const sign = () => {
     if (decision === 'RELEASE' && route) return signed.sign({ kind: 'LOT_DECISION', lotId: lot.lotId, decision: 'RELEASE', route }, `Release lot ${lot.lotCode} (${lot.material.name}), route ${route}`);
-    if (decision === 'REJECT') return signed.sign({ kind: 'LOT_DECISION', lotId: lot.lotId, decision: 'REJECT' }, `Reject lot ${lot.lotCode} (${lot.material.name})`);
+    if (decision === 'REJECT' && reason) return signed.sign({ kind: 'LOT_DECISION', lotId: lot.lotId, decision: 'REJECT', reason }, `Reject lot ${lot.lotCode} (${lot.material.name}): ${reason.text}`);
     return undefined;
   };
   return (
@@ -150,6 +154,12 @@ function LotDecision({ lot }: { lot: LotSummaryView }) {
           value={route}
           onChange={(v) => setRoute(v === 'VENDOR_HISTORY' ? 'VENDOR_HISTORY' : 'IDENTITY_TESTED')}
         />
+      ) : null}
+      {decision === 'REJECT' ? (
+        <>
+          <Field name="rejectCode" label="Reason code" value={code} onChange={setCode} />
+          <Field name="rejectText" label="Reason for the rejection" value={text} onChange={setText} />
+        </>
       ) : null}
       <ActButton label="Sign the decision" onPress={sign} disabled={!ready || signed.busy} />
       <ActResult error={signed.error} outcome={signed.outcome} />

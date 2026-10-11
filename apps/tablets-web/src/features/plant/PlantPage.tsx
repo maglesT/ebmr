@@ -4,7 +4,7 @@
  * person's signature (PLANT_VERIFY) through the ceremony; the database refuses the person who recorded the act.
  */
 import { useState } from 'react';
-import { routes, type CallInput, type RouteResponse } from '@ebmr/api-contract';
+import { routes, type RouteResponse } from '@ebmr/api-contract';
 import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
@@ -87,7 +87,7 @@ function PendingItem({ item, verifier }: { item: PendingVerificationView; verifi
 function CompleteCleaning({ started }: { started: CleaningView[] }) {
   const [id, setId] = useState('');
   const [cycle, setCycle] = useState('');
-  const cmd = useCommand(routes.plant.completeCleaning, PENDING);
+  const cmd = useCommand(routes.plant.completeCleaning, PENDING, 'completing a cleaning');
   const chosen = id.trim();
   return (
     <div data-testid="complete-cleaning">
@@ -139,14 +139,17 @@ function EquipmentEventForm() {
   const [code, setCode] = useState('');
   const [event, setEvent] = useState<'EVENT' | 'REPAIR' | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
-  const cmd = useCommand(routes.plant.equipmentEvent, PENDING);
+  const cmd = useCommand(routes.plant.equipmentEvent, PENDING, 'an equipment logbook entry');
   const v = (k: string) => (values[k] ?? '').trim();
-  const body =
-    event === 'REPAIR'
-      ? { event: 'REPAIR' as const, detail: v('detail'), reference: v('reference') }
-      : event === 'EVENT'
-        ? { event: 'EVENT' as const, kind: v('kind') as (typeof EVENT_KINDS)[number], detail: v('detail'), ...(v('reference') ? { reference: v('reference') } : {}) }
-        : null;
+  const body = event
+    ? {
+        event,
+        ...(event === 'EVENT' && v('kind') ? { kind: v('kind') as (typeof EVENT_KINDS)[number] } : {}),
+        detail: v('detail'),
+        ...(v('reference') ? { reference: v('reference') } : {}),
+        ...(v('batchNumber') ? { batchNumber: v('batchNumber') } : {}),
+      }
+    : null;
   const parsed = body ? routes.plant.equipmentEvent.body?.safeParse(body) : undefined;
   const set = (k: string) => (x: string) => setValues((s) => ({ ...s, [k]: x }));
   return (
@@ -164,11 +167,12 @@ function EquipmentEventForm() {
       {event === 'EVENT' ? <FieldInput field={{ name: 'kind', label: 'Event', kind: 'choice', options: EVENT_KINDS }} value={values['kind'] ?? ''} onChange={set('kind')} /> : null}
       <Field name="detail" label="Detail" value={values['detail'] ?? ''} onChange={set('detail')} />
       <Field name="reference" label={event === 'REPAIR' ? 'Work order reference' : 'Reference (optional)'} value={values['reference'] ?? ''} onChange={set('reference')} />
+      {event === 'EVENT' && values['kind'] === 'FAILURE_SIGNALLED' ? <Field name="batchNumber" label="Batch it was signalled in" value={values['batchNumber'] ?? ''} onChange={set('batchNumber')} /> : null}
       <ActButton
         label="Record in the logbook"
         onPress={async () => {
           if (parsed?.success && code.trim()) {
-            const r = await cmd.run({ params: { code: code.trim() }, body: parsed.data } as CallInput<typeof routes.plant.equipmentEvent>);
+            const r = await cmd.run({ params: { code: code.trim() }, body: parsed.data });
             if (r) setValues({});
           }
         }}

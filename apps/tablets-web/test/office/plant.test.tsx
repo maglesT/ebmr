@@ -21,11 +21,24 @@ describe('plant', () => {
     await userEvent.click(within(section).getByRole('button', { name: 'Start the cleaning' }));
     await waitFor(() => expect(ui.posts('/api/plant/cleanings')).toHaveLength(1));
     expect(ui.posts('/api/plant/cleanings')[0]?.body).toEqual({ target: 'EQUIPMENT', code: 'RMG-01', level: 'MAJOR' });
+    expect(ui.tap.requestTap).not.toHaveBeenCalled();
     const started = example('plant-start-cleaning');
     const complete = within(section).getByTestId('complete-cleaning');
     await userEvent.click(await within(complete).findByRole('radio', { name: /^RMG-01|^[A-Z0-9-]+ \(/ }));
     await userEvent.click(within(complete).getByRole('button', { name: 'Complete the cleaning' }));
     await waitFor(() => expect(ui.posts(`/api/plant/cleanings/${started.cleaningId}/complete`)).toHaveLength(1));
+  });
+
+  it('on a shared kiosk the cleaning is sent with a fresh badge tap over exactly the request (INV-40); an office PC asks none', async () => {
+    const ui = renderOffice('/plant', { role: 'MAINTENANCE_TECHNICIAN', attribution: 'TAP' });
+    const section = await screen.findByTestId('cleaning');
+    await userEvent.click(within(section).getByRole('radio', { name: 'AREA' }));
+    await userEvent.type(within(section).getByRole('textbox', { name: 'Equipment or area code' }), 'GRAN-1');
+    await userEvent.click(within(section).getByRole('radio', { name: 'MINOR' }));
+    await userEvent.click(within(section).getByRole('button', { name: 'Start the cleaning' }));
+    await waitFor(() => expect(ui.posts('/api/plant/cleanings')).toHaveLength(1));
+    expect(ui.tap.requestTap.mock.calls[0]?.[1]).toEqual({ method: 'POST', path: '/api/plant/cleanings', body: { target: 'AREA', code: 'GRAN-1', level: 'MINOR' } });
+    expect(ui.posts('/api/plant/cleanings')[0]?.body).toMatchObject({ target: 'AREA', code: 'GRAN-1', level: 'MINOR', attribution: { method: 'BADGE_TAP' } });
   });
 
   it('a second person verifies a completed cleaning through the ceremony (PLANT_VERIFY); an operator is not offered it', async () => {
