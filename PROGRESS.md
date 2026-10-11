@@ -69,8 +69,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   5b reprocessing and recovery), built on `phase-3/slice-5`: deviation-lite, LIMS-lite with second-person approval and
   retest, ERP stub with the BOM match at GMP issue (site-services 0730 to 0753, recipe-core 0600 to 0603, tablets 1000 to
   1002); TB-08 additions and G-24@2, whole-batch reprocessing with a new batch number linked to its parents (INV-33),
-  the expiry cap (recipe-core 0620 to 0625, tablets 1020 to 1022). Next: slice 6 (screens, demo seeds and devices,
-  GB-T-01), then the Phase 3 exit (decision 0009). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
+  the expiry cap (recipe-core 0620 to 0625, tablets 1020 to 1022). Merged (PR #16). Slice 6 plan:
+  `docs/build-plan/phase-3/slice-6-plan.md`, built on `phase-3/slice-6`; then the Phase 3 exit (decision 0009). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
