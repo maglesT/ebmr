@@ -174,3 +174,48 @@ describe('TB-22 definition checks', () => {
     expect(P({ ...CFG, tracks: undefined })).toEqual([]);
   });
 });
+
+describe('TB-22 schedule details (mutation follow-up)', () => {
+  it('[IN-38][PR-29] the run start is found wherever it stands; only the track\'s own tests count; a trigger at the instant of the test does not make it due', () => {
+    expect(due([e('EVENT', 0n, { event: 'X' }), e('RUN_START', 5n)])).toBe('5m');
+    expect(due([START, e('EVENT', 2n, { track: 'T1', event: 'X' })])).toBe('0m');
+    expect(due([START, e('LEAK_TEST', 2n, { track: 'T2', event: 'REEL_CHANGE' }), e('LEAK_TEST', 1n, { track: 'T1' })])).toBe('31m');
+    expect(due([START, e('LEAK_TEST', 1n, { track: 'T1' }), e('EVENT', 1n, { event: 'REEL_CHANGE' })])).toBe('31m');
+  });
+
+  it('[IN-38][PR-29] by count: from the track\'s latest test with a counter (else the run start), a difference not a sum, once per track even when also late; a start without counter starts the count at the first test', () => {
+    const w = new World({ ...CFG, everyCount: '1000' });
+    w.rec({ kind: 'RUN_START', machine: 'M', counter: 0 });
+    expect(w.rec(test('T1', { counter: 400 })).data).not.toHaveProperty('missed');
+    expect(w.rec(test('T1', { counter: 900 })).data).not.toHaveProperty('missed');
+    expect(w.rec(test('T1', { counter: 1850 })).data).not.toHaveProperty('missed');
+    expect(w.rec(test('T2', { counter: 1850 })).data?.['missed']).toEqual([{ stream: 'T2', test: 'LEAK', by: 'COUNT' }]);
+    w.now = T + 40n * MIN;
+    const late = w.rec(test('T1', { counter: 5000 }));
+    expect(late.data?.['missed']).toEqual([
+      { stream: 'T1', test: 'LEAK', by: 'TIME', dueUs: (T + 30n * MIN).toString() },
+      { stream: 'T2', test: 'LEAK', by: 'TIME', dueUs: (T + 30n * MIN).toString() },
+    ]);
+    const bare = new World({ ...CFG, everyCount: '1000' });
+    bare.rec({ kind: 'RUN_START', machine: 'M' });
+    expect(bare.rec(test('T1', { counter: 5000 })).data).not.toHaveProperty('missed');
+    const timeOnly = new World();
+    timeOnly.rec({ kind: 'RUN_START', machine: 'M', counter: 0 });
+    timeOnly.rec(test('T1', { counter: 10 }));
+    expect(timeOnly.rec(test('T1', { counter: 99_999 })).data).not.toHaveProperty('missed');
+  });
+
+  it('[IN-38][PR-29] method ranges read only decimal text; PERFORMED names the very track without an end-of-run test', () => {
+    const w = new World({ ...CFG, vacuum: { min: 60, max: '80' } });
+    w.rec({ kind: 'RUN_START', machine: 'M' });
+    expect(w.rec(test('T1', { vacuum: '50' })).data?.['result']).toBe('PASS');
+    const h = new World({ ...CFG, hold: { min: '30', max: 60 } });
+    h.rec({ kind: 'RUN_START', machine: 'M' });
+    expect(h.rec(test('T1', { holdSeconds: '600' })).data?.['result']).toBe('PASS');
+    const p = new World();
+    p.rec({ kind: 'RUN_START', machine: 'M' });
+    p.rec({ kind: 'RUN_END' });
+    p.rec(test('T1'));
+    expect(p.before()).toEqual(['Track T2 of p@ has no end-of-run leak test (TB22-END-TEST; PR-29, IN-38)']);
+  });
+});
