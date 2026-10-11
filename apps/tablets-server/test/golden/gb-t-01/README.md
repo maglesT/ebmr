@@ -60,8 +60,23 @@ The (A + B)/T yield is shown beside the good-output yield (outline 9.1, sample d
   legacy alias kg/cm² (as kgf/kp) accepted with a DATA-UNITS warning, kg/cm2 and kPa refused (DATA-UNITS errors); a
   trihydrate label on the anhydrous molar mass flagged (TB01-HYDRATE-MASS); the addition step without its declared case
   refused; an addition without the QC unit's approval refused; the (A + B)/T yield recorded beside A/T (compYieldAB,
-  compYield); a correction of the failing LOD to a passing value without objective evidence refused by the engine; the
-  MBR approval refused before its check, to its author, and on a stale revision.
+  compYield); an operator choosing the supervisor's extra-IPA branch refused (EBMR-IAM-040); ending a loop iteration
+  from a step outside any loop refused (ENG-UNKNOWN-CONSTRUCT); the MBR approval refused before its check
+  (EBMR-ESIG-039), to its author (ESIG_PREVIEW_NOT_ALLOWED) and on a stale revision (DESIGNER_STALE). A correction of
+  the LOD of 4.1 % to 3.0 % without evidence is recorded as **accepted**: see the review below.
+
+## Review of the first run (slice 6d)
+
+Every worksheet quantity and yield matched on both variants; the states, exception counts, genealogy, signature
+counts (happy 131, exception-rich 136) and hashes in `expected.json` are this run's. Findings for the owner:
+
+- **Correction of an out-of-limits loop endpoint (INV-41, DI-24).** The LOD of 4.1 % that made the drying loop iterate is
+  a loop-endpoint reading in progress; the engine does not mark it failed (by design: the signing content shows
+  `failed: null` for loop endpoints), so the fail-to-pass rule (engine ENG-CORRECT-FAIL-TO-PASS, database guard [175])
+  does not apply and a QA-approved correction to 3.0 % without evidence is accepted. CORRECT_ENTRY has no HTTP intent in
+  Phase 3, so this is not reachable today; the failing weight IPC is a block entry, which is never corrected at all.
+  Whether an endpoint reading outside its limits counts as failing for corrections is the owner's decision.
+- The refusal TB08-NOT-AUTHORISED states its code and controls twice in its "why" text.
 
 ## How the run is driven
 

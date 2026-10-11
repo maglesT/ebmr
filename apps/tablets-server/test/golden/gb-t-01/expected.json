@@ -22,7 +22,152 @@
   "coating": { "targetWeightGainPercent": "3.0", "coatSolidsTheoretical": "2.428", "coatedTablets": "83.290", "weightGainPercent": "2.93" },
   "inspection": { "accepted": "83.110", "rejectsDestroyed": "0.180", "destructionWitnessed": true },
   "fromTheRun": {
-    "states": "batch, step, stage and container states: written from the design of the variants before the run (README.md, Variants)",
-    "normalisedTrueCopySha256": null
+    "note": "Recorded from the first reviewed run (Phase 3 slice 6d, README.md \"Review of the first run\"); the quantities above are the worksheet's and are never changed to make a run pass",
+    "master": {
+      "approval": {
+        "approveBeforeCheck": "409 EBMR-ESIG-039",
+        "approveByAuthor": "403 ESIG_PREVIEW_NOT_ALLOWED",
+        "approveStale": "409 DESIGNER_STALE"
+      },
+      "negatives": {
+        "hardnessAlias": [
+          "DATA-UNITS WARNING"
+        ],
+        "hardnessPressure": [
+          "DATA-UNITS ERROR"
+        ],
+        "hardnessKpa": [
+          "DATA-UNITS ERROR"
+        ],
+        "trihydrate": [
+          "TB01-HYDRATE-MASS ERROR"
+        ],
+        "additionWithoutCase": [
+          "GMP-REPROCESSING ERROR",
+          "TB08-NO-CASE ERROR"
+        ]
+      }
+    },
+    "happy": {
+      "states": {
+        "batch": "EXECUTION_COMPLETE",
+        "stages": {
+          "S-BLEND@": "SIGNED_OFF",
+          "S-COAT@": "SIGNED_OFF",
+          "S-COMP@": "SIGNED_OFF",
+          "S-DISP@": "SIGNED_OFF",
+          "S-GRAN@": "SIGNED_OFF",
+          "S-INSP@": "SIGNED_OFF"
+        },
+        "containers": {
+          "BLENDING/-/01": "CLOSED",
+          "INSPECTION/-/01": "CLOSED",
+          "COMPRESSION/L/01": "CLOSED",
+          "COMPRESSION/L/02": "CLOSED",
+          "COMPRESSION/L/03": "CLOSED",
+          "COMPRESSION/R/01": "CLOSED",
+          "COMPRESSION/R/02": "CLOSED",
+          "COMPRESSION/R/03": "CLOSED"
+        },
+        "notCompleted": [
+          "p-ipa-extra@R-GRAN=1 NOT_APPLICABLE",
+          "p-ipa-extra@R-GRAN=2 NOT_APPLICABLE",
+          "p-rework-none@ NOT_APPLICABLE"
+        ]
+      },
+      "exceptions": {
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT": 8,
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT": 17,
+        "PROCESS_MANUAL_FALLBACK ALERT NO_IMPACT": 20,
+        "QC_ADDITIONAL_TESTING_DECISION ALERT NO_IMPACT": 1
+      },
+      "consumptions": [
+        "GBT-API-001 54.529 kg",
+        "GBT-CCS-001 2.4 kg",
+        "GBT-FCS-001 2.45 kg",
+        "GBT-IPA-001 2.4 kg",
+        "GBT-LAC-001 14 kg",
+        "GBT-MCC-001 7.131 kg",
+        "GBT-MGS-001 0.8 kg",
+        "GBT-PVP-001 2.4 kg",
+        "GBT-SIO-001 0.4 kg"
+      ],
+      "containers": [
+        "BLENDING/- 82.31",
+        "COMPRESSION/L 13.49",
+        "COMPRESSION/L 13.49",
+        "COMPRESSION/L 13.48",
+        "COMPRESSION/R 13.49",
+        "COMPRESSION/R 13.49",
+        "COMPRESSION/R 13.48",
+        "INSPECTION/- 0.18"
+      ],
+      "signatures": 131,
+      "notes": {},
+      "normalisedTrueCopySha256": "e392f4c0b48d941f12e26c3da44717c15ace0f4009bd36daaaa18aef8e8cb95d"
+    },
+    "exceptionRich": {
+      "states": {
+        "batch": "EXECUTION_COMPLETE",
+        "stages": {
+          "S-BLEND@": "SIGNED_OFF",
+          "S-COAT@": "SIGNED_OFF",
+          "S-COMP@": "SIGNED_OFF",
+          "S-DISP@": "SIGNED_OFF",
+          "S-GRAN@": "SIGNED_OFF",
+          "S-INSP@": "SIGNED_OFF"
+        },
+        "containers": {
+          "BLENDING/-/01": "CLOSED",
+          "INSPECTION/-/01": "CLOSED",
+          "COMPRESSION/L/01": "CLOSED",
+          "COMPRESSION/L/02": "CLOSED",
+          "COMPRESSION/L/03": "CLOSED",
+          "COMPRESSION/R/01": "CLOSED",
+          "COMPRESSION/R/02": "RELEASED_BY_QA",
+          "COMPRESSION/R/03": "CLOSED"
+        },
+        "notCompleted": [
+          "p-ipa-extra@R-GRAN=1 NOT_APPLICABLE",
+          "p-rework-none@ NOT_APPLICABLE"
+        ]
+      },
+      "exceptions": {
+        "IPC_CHECK_FAILED ACTION DEVIATION_RAISED +deviation": 1,
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT": 8,
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT": 17,
+        "PROCESS_MANUAL_FALLBACK ALERT NO_IMPACT": 20,
+        "QC_ADDITIONAL_TESTING_DECISION ALERT NO_IMPACT": 1
+      },
+      "consumptions": [
+        "GBT-API-001 54.529 kg",
+        "GBT-CCS-001 2.4 kg",
+        "GBT-FCS-001 2.45 kg",
+        "GBT-IPA-001 2.4 kg",
+        "GBT-LAC-001 14 kg",
+        "GBT-MCC-001 7.131 kg",
+        "GBT-MGS-001 0.8 kg",
+        "GBT-PVP-001 2.4 kg",
+        "GBT-SIO-001 0.4 kg"
+      ],
+      "containers": [
+        "BLENDING/- 82.31",
+        "COMPRESSION/L 13.49",
+        "COMPRESSION/L 13.49",
+        "COMPRESSION/L 13.48",
+        "COMPRESSION/R 13.49",
+        "COMPRESSION/R 13.49",
+        "COMPRESSION/R 13.48",
+        "INSPECTION/- 0.18"
+      ],
+      "signatures": 136,
+      "notes": {
+        "correctionWithoutEvidence": "accepted",
+        "loopOutsideLoop": "ENG-UNKNOWN-CONSTRUCT",
+        "choiceByOperator": "EBMR-IAM-040",
+        "additionWithoutApproval": "TB08-NOT-AUTHORISED"
+      },
+      "normalisedTrueCopySha256": "118bc85e583cb4a7207b4c5da733ab20502d1565bea71cc0f039d366cc2acbaf"
+    }
   }
 }

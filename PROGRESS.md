@@ -81,6 +81,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   notified" to Phase 4 (batch release and notification delivery are Phase 4). Open: TB20-NO-PLAN through deviation-lite
   needs a TB-20@2 (block data schemas are fixed per version); a packaging family's identity holds no pack type (two pack
   types of one product at one pack size cannot both exist; recipe-core 0110, for the planner).
+- Slice 6d (`phase-3/slice-6d`): the GB-T-01 golden batch. Template `gb-t-01.mbr.json`, approved through the routes
+  (MBR_TRANSITION signable, tablets 1090); a source batch and the happy and exception-rich variants driven over HTTP to
+  the release for packing on a frozen libfaketime clock; outputs equal `expected.json` (worksheet quantities; states,
+  exceptions, genealogy, signature counts and true-copy hashes from the first reviewed run). Fixes: formula on the base
+  for a base-stated TB-01 (recipe-core 0690), G-09@2 instrument uses (0691), loop iteration and operator choice as client
+  intents, hardness units in DATA-UNITS, TB-01 hydrate checks (tablets 1091). Residuals in `test/golden/gb-t-01/README.md`.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 

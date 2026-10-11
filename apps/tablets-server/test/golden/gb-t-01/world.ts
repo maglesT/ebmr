@@ -90,12 +90,22 @@ export async function asPersona<T>(server: TestServer, b: TestBrowser, key: stri
  * A signature of an office persona on an aggregate no signable action covers in Phase 3 (the market authorisation): the
  * kernel's ceremony in the persona's own session, its password at its home terminal, sealed with the installation's key.
  */
-export async function signDirect(server: TestServer, seed: SiteSeed, key: string, aggregateType: string, aggregateId: string, meaning: string, expectedState: string | null): Promise<string> {
+export async function signDirect(
+  server: TestServer,
+  seed: SiteSeed,
+  key: string,
+  aggregateType: string,
+  aggregateId: string,
+  meaning: string,
+  expectedState: string | null,
+  /** A personal (office) terminal to sign at instead of the persona's home terminal (a kiosk persona's office PC). */
+  terminalCode?: string,
+): Promise<string> {
   const sealKey = server.built.ctx.sealKey;
   if (!sealKey) throw new Error('the GMP server has no seal key');
   const p = personaOf(seed, key);
-  const t = terminalOf(seed, p.homeTerminal);
-  const actor = { ...(await openPersonaSession(server.db, seed, key)), correlationId: randomUUID() };
+  const t = terminalOf(seed, terminalCode ?? p.homeTerminal);
+  const actor = { ...(await openPersonaSession(server.db, seed, key, terminalCode)), correlationId: randomUUID() };
   const content = await recordContentForSigning(server.db.app, aggregateType, aggregateId);
   const challenge = await withCommand(server.db.app, actor, (c) =>
     esig.createChallenge(c, { aggregateType, aggregateId, contentVersion: content.contentVersion ?? '1', meaning, clientContentHash: content.contentHash ?? '' }),

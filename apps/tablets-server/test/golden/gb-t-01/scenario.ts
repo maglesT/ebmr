@@ -169,7 +169,7 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
   // instrument reading error). QA releases the held container (OUTPUT_CONTAINER_RELEASED: no signable action covers it
   // in Phase 3, so the kernel's ceremony is used directly, a residual) before the approval for coating.
   for (const c of held) {
-    const sig = await signDirect(w.server, w.seed, 'qa1', 'output_container', c.id, 'OUTPUT_CONTAINER_RELEASED', 'HELD');
+    const sig = await signDirect(w.server, w.seed, 'qa1', 'output_container', c.id, 'OUTPUT_CONTAINER_RELEASED', 'HELD', 'PC-QA-01');
     const v = (await w.server.db.app.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [c.id])).rows[0]?.v;
     await dbAs(w, g.b('qa1'), 'qa1', 'select plant.release_container($1, $2::bigint, $3) as r', [c.id, v, sig], { reasonCode: 'IPC_INVESTIGATED', reasonText: `Deviation ${dev.ref}: retained sample re-weighed within limits` });
   }

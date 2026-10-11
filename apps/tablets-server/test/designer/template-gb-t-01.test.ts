@@ -5,7 +5,7 @@
  * (test/golden/gb-t-01/README.md), each matching the calculation.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { flow, simulator, validator } from '@ebmr/recipe-core/pure';
+import { simulator, validator, type flow } from '@ebmr/recipe-core/pure';
 import { define } from '../../../../packages/recipe-core/test/engine/support.ts';
 import { loadValidationContext } from '../../src/features/designer/adapters/expressions.ts';
 import { TEMPLATES } from '../../src/features/designer/templates/index.ts';

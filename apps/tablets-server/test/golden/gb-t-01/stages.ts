@@ -83,7 +83,7 @@ export async function blending(g: GoldenBatch, plan: BlendingPlan): Promise<{ bl
   if (a && plan.tryUnapproved) {
     await g.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-rework@' });
     const r = await g.d.command('operator1', entry('p-rework@', 'ADDITION', { container: a.container, gross: a.gross, tare: a.tare, unit: 'kg' }));
-    g.notes['additionWithoutApproval'] = r.ok ? 'ok' : r.error.kind === 'REFUSAL' ? r.error.envelope.refusal : r.error.kind;
+    g.notes['additionWithoutApproval'] = r.ok ? 'ok' : r.error.kind === 'REFUSAL' ? r.error.envelope.refusal.code : r.error.kind;
     await g.d.ok('operator1', entry('p-rework@', 'ADDITION', { container: a.container, gross: a.gross, tare: a.tare, unit: 'kg', authorisation: a.authorisation }));
     await g.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-rework@' });
     await g.signed('verifier1', { type: 'VERIFY', stepKey: 'p-rework@', meaning: 'VERIFIED' });
