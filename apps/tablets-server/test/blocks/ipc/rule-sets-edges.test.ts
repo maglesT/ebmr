@@ -12,7 +12,7 @@ const DAY = 86_400_000_000n;
 const base = RULE_SETS.find((r) => r.code === 'IP-FRIABILITY') as RuleSet;
 const added: RuleSet[] = [];
 const add = (r: Partial<RuleSet>): void => {
-  const row = { ...base, ...r } as RuleSet;
+  const row = { ...base, ...r };
   (RULE_SETS as RuleSet[]).push(row);
   added.push(row);
 };

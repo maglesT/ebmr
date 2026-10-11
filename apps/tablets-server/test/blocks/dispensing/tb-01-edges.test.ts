@@ -5,7 +5,8 @@
  * mutation run (decision 0009).
  */
 import { describe, expect, it } from 'vitest';
-import { blocks, type engine, type flow } from '@ebmr/recipe-core/pure';
+import type { blocks} from '@ebmr/recipe-core/pure';
+import { type engine, type flow } from '@ebmr/recipe-core/pure';
 import { mbrWith, phase } from '../../../../../packages/recipe-core/test/flow/support.ts';
 import { define, Run, sig, T0 } from '../../../../../packages/recipe-core/test/engine/support.ts';
 import { calculationData, potencyInput, TB01, tb01Config } from '../../../src/blocks/tb-01.ts';
@@ -231,7 +232,7 @@ describe('TB-01 weighings', () => {
   });
 
   it('[PR-19][PR-13][DI-30] a BOM line the step does not consume, or consumes as neither the active nor the excipient, is refused; only metric masses are mass units here (mutation follow-up)', () => {
-    const lac: flow.BomLine = { id: 'BOM-LAC', material: 'MAT-LAC', role: 'EXCIPIENT', quantity: { value: '1.000', unit: 'kg' } } as flow.BomLine;
+    const lac: flow.BomLine = { id: 'BOM-LAC', material: 'MAT-LAC', role: 'EXCIPIENT', quantity: { value: '1.000', unit: 'kg' } };
     const l = lot('AR-LAC-1', 'MAT-LAC');
     const notConsumed = started(mbr(baseConfig, {}, { bom: [...BOM, lac] }));
     notConsumed.entry('p', calc(), [], DISP1);

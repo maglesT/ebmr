@@ -20,14 +20,14 @@ class World {
     return { config: this.config, stepKey: 'p@', nowUs: 0n, entries: (kind?: string) => this.entries.filter((x) => kind === undefined || x.kind === kind), actor: { id: 'OP1' } } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[] } {
-    const accept = TB09.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
+    const accept = TB09.handler?.acceptEntry?.bind(TB09.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: 0n });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}) };
   }
   before(): string[] {
-    return (TB09.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message);
+    return (TB09.handler?.beforePerform?.bind(TB09.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message);
   }
 }
 const inspect = (set: string, when: string, result = 'PASS') => ({ kind: 'TOOLING_INSPECTED', set, inspectionId: U(1), when, result });
@@ -89,7 +89,7 @@ describe('TB-09 return', () => {
   });
 
   it('[PR-27][IN-36] the issue part names the approved specification; the configuration as read', () => {
-    const P = (config: Json) => (TB09.checkConfig as (p: flow.PhaseNode, c: Json) => { code: string; message: string; controls: readonly string[] }[])({ id: 'p' } as flow.PhaseNode, config).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
+    const P = (config: Json) => (TB09.checkConfig as unknown as (p: flow.PhaseNode, c: Json) => { code: string; message: string; controls: readonly string[] }[])({ id: 'p' } as flow.PhaseNode, config).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
     expect(P({ part: 'ISSUE' })).toEqual(['TB09-NO-SPECIFICATION [PR-27,IN-36] Tooling issue step p names no approved tooling specification']);
     expect(P({ part: 'ISSUE', specification: SPEC })).toEqual([]);
     expect(P({ part: 'RETURN' })).toEqual([]);

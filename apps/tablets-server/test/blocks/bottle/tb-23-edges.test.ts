@@ -38,7 +38,7 @@ class World {
     this.entries.push({ id: `E${this.entries.length + 1}`, kind, data, recordedAt: this.now, recordedSeq: this.entries.length + 1 });
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[] } {
-    const accept = TB23.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
+    const accept = TB23.handler?.acceptEntry?.bind(TB23.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.push(entry.kind, r.data ?? {});
@@ -91,7 +91,7 @@ describe('packaging-line helpers', () => {
   });
 
   it('[IN-22][PR-37] the line\'s unit is the step\'s own; devices are named once with whole-microsecond intervals; small helpers', () => {
-    const p = (id: string, type: string, unit?: string) => phase(id, { block: { type, version: '1' }, config: unit === undefined ? {} : ({ unit } as never) });
+    const p = (id: string, type: string, unit?: string) => phase(id, { block: { type, version: '1' }, config: unit === undefined ? {} : ({ unit }) });
     const m = mbrWithChildren([p('a', 'G-21', 'U1'), p('b', 'TB-23', 'U2'), p('c', 'TB-24', 'U3'), p('d', 'TB-23', 'U1')]);
     const me = phasesOf(m, 'TB-23')[0] as flow.PhaseNode;
     expect(phasesOf(m, 'TB-23').map((x) => x.id)).toEqual(['b', 'd']);
@@ -181,7 +181,7 @@ describe('TB-23 bottle line', () => {
   });
 
   it('[PR-37][PR-38][IN-17] PERFORMED: every stream checked and passing, the good output, no bright stock left unlabelled', () => {
-    const before = (w: World) => (TB23.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message).filter((m) => m.includes('TB23-'));
+    const before = (w: World) => (TB23.handler?.beforePerform?.bind(TB23.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message).filter((m) => m.includes('TB23-'));
     const w = new World({ ...CFG, devices: [] });
     expect(before(w)).toEqual([
       'p@ has no count check (TB23-NO-CHECK; PR-37, IN-22)',
@@ -210,7 +210,7 @@ describe('TB-23 definition checks', () => {
     const p = phase('p', { block: { type: 'TB-23', version: '1' }, config: config as never });
     const m = mbrWithChildren([...others, p]);
     const mm = { ...m, header: { ...m.header, predicates: { ...m.header.predicates, ...predicates } } } as flow.MbrContent;
-    const check = TB23.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const check = TB23.checkConfig?.bind(TB23) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return check(p, config, mm).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
   };
   it('[IN-17][INV-32][PR-37][PR-41] the label step and item, the interval, the torque ranges, and a tamper-evident check for US OTC retail', () => {
@@ -224,10 +224,10 @@ describe('TB-23 definition checks', () => {
     expect(P({ ...CFG, torque: {} })).toEqual(['TB23-TORQUE [PR-37] The application torque limits of p are not a range', 'TB23-TORQUE [PR-37] The removal torque limits of p are not a range']);
     expect(P(CFG, undefined, { usOtcRetail: true })).toEqual(['TB23-TAMPER-EVIDENT [PR-41] A tamper-evident check is required: the MBR is for US OTC retail packs and no packaging step checks the tamper-evident feature']);
     expect(P({ ...CFG, tamperEvident: true }, undefined, { usOtcRetail: true })).toEqual([]);
-    expect(P(CFG, [lbl([{ id: 'ROLL-LABEL' }]), phase('sec', { block: { type: 'TB-24', version: '1' }, config: { atd: {} } as never })], { usOtcRetail: true })).toEqual([]);
-    expect(P(CFG, [lbl([{ id: 'ROLL-LABEL' }]), phase('sec', { block: { type: 'TB-24', version: '1' }, config: {} as never })], { usOtcRetail: true })[0]).toMatch(/^TB23-TAMPER-EVIDENT/);
+    expect(P(CFG, [lbl([{ id: 'ROLL-LABEL' }]), phase('sec', { block: { type: 'TB-24', version: '1' }, config: { atd: {} } })], { usOtcRetail: true })).toEqual([]);
+    expect(P(CFG, [lbl([{ id: 'ROLL-LABEL' }]), phase('sec', { block: { type: 'TB-24', version: '1' }, config: {} })], { usOtcRetail: true })[0]).toMatch(/^TB23-TAMPER-EVIDENT/);
     // Only the first TB-23 step reports the missing tamper-evident check.
-    expect(P(CFG, [lbl([{ id: 'ROLL-LABEL' }]), phase('first', { block: { type: 'TB-23', version: '1' }, config: { unit: 'OTHER' } as never })], { usOtcRetail: true })).toEqual([]);
+    expect(P(CFG, [lbl([{ id: 'ROLL-LABEL' }]), phase('first', { block: { type: 'TB-23', version: '1' }, config: { unit: 'OTHER' } })], { usOtcRetail: true })).toEqual([]);
     expect(P({ ...CFG, unit: undefined })).toEqual(['TB23-UNIT [IN-22,PR-37] p names no plant unit of its line']);
     expect(P({ ...CFG, devices: [{ id: 'A', kind: 'VISION' }, { id: 'A', kind: 'VISION' }] })).toEqual(['TB23-DEVICE [IN-22] p names device A twice']);
     expect(labelStepProblem(mbrWithChildren([lbl([{ id: 'ROLL-LABEL' }])]), CFG)).toBeUndefined();

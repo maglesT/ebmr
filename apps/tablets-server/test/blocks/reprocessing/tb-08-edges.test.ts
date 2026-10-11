@@ -22,7 +22,7 @@ const add = (extra: Json = {}, src: Json = {}): Json & { kind: string } => ({
   kind: 'ADDITION', container: '00000000-0000-4000-8000-0000000000a8', gross: '0.525', tare: '0.500', unit: 'kg', authorisation: AUTH, authorisedBy: QA, source: source(src), ...extra,
 });
 const P = (p: flow.PhaseNode, mbr: flow.MbrContent = blockMbr(TB08, p)): string[] => {
-  const check = TB08.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+  const check = TB08.checkConfig?.bind(TB08) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
   return check(p, p.config as Json, mbr).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
 };
 const refusal = (p: flow.PhaseNode, entry: Json & { kind: string }): string | undefined => {
@@ -43,7 +43,7 @@ describe('TB-08 definition checks', () => {
     ]);
     expect(P(fixturePhase(TB08, { config: { ageFrom: 'NEVER' } }))).toEqual(['TB08-AGE-FROM [IN-19] Addition step p says from which instant the age of the source is counted']);
     const prior = { authorisationRef: 'A', riskEvaluationRef: 'R' };
-    const recovery = { ...(p.reprocessing as object), case: 'RECOVERY' } as flow.PhaseNode['reprocessing'];
+    const recovery = { ...(p.reprocessing as object), case: 'RECOVERY' } as NonNullable<flow.PhaseNode['reprocessing']>;
     const auth = 'TB08-AUTHORISATION [PR-47] Per-use authorisation is always on for a reprocessing addition, and off for a recovery only when p carries its prior authorisation and risk evaluation';
     expect(P(fixturePhase(TB08, { config: { perUseAuthorisation: false, priorAuthorisation: prior } }))).toEqual([auth]);
     expect(P(fixturePhase(TB08, { reprocessing: recovery, config: { perUseAuthorisation: false } }))).toEqual([auth]);
@@ -61,12 +61,11 @@ describe('TB-08 definition checks', () => {
   });
 
   it('[PR-47][INV-25] the added item is a single decimal in kg or g the step records; the pre-treatment is a TB-02 step of the MBR', () => {
-    const p = fixturePhase(TB08);
     const item = 'TB08-ADDED-ITEM [PR-47,INV-25] The added-material item reworkAdded of p is a single decimal in kg or g that the step records';
     const withParam = (param: Json, phaseExtra: Partial<flow.PhaseNode> = {}) => {
       const q = fixturePhase(TB08, phaseExtra);
       const m = blockMbr(TB08, q);
-      return P(q, { ...m, parameters: m.parameters.map((x) => (x.id === 'reworkAdded' ? ({ ...x, ...param } as typeof x) : x)) });
+      return P(q, { ...m, parameters: m.parameters.map((x) => (x.id === 'reworkAdded' ? ({ ...x, ...param }) : x)) });
     };
     expect(withParam({ unit: 'g' })).toEqual([]);
     expect(withParam({ unit: 'mg' })).toEqual([item]);
@@ -96,7 +95,7 @@ describe('TB-08 additions', () => {
     const anyStage = fixturePhase(TB08);
     (anyStage.config as Json)['sourceStages'] = undefined;
     expect(refusal(anyStage, add({}, { stage: 'BLENDING' }))).toBeUndefined();
-    const accept = TB08.handler?.acceptEntry as (v: unknown, e: Json & { kind: string }) => { problems?: { message: string }[] };
+    const accept = TB08.handler?.acceptEntry?.bind(TB08.handler) as unknown as (v: unknown, e: Json & { kind: string }) => { problems?: { message: string }[] };
     expect(accept({}, { kind: 'OTHER' }).problems?.map((x) => x.message)).toEqual(['OTHER is not an entry of a rework or recovery addition step (TB08-ENTRY; PR-47)']);
   });
 
@@ -131,7 +130,7 @@ describe('TB-08 additions', () => {
   });
 
   it('[PR-47][INV-25] per-use authorisation and mass conversion at their edges', () => {
-    expect(perUseRequired({ reprocessing: undefined }, { perUseAuthorisation: false, priorAuthorisation: {} })).toBe(true);
+    expect(perUseRequired({}, { perUseAuthorisation: false, priorAuthorisation: {} })).toBe(true);
     expect(perUseRequired({ reprocessing: { case: 'RECOVERY' } as never }, { perUseAuthorisation: true, priorAuthorisation: {} })).toBe(true);
     expect(perUseRequired({ reprocessing: { case: 'RECOVERY' } as never }, { perUseAuthorisation: false, priorAuthorisation: 'x' })).toBe(true);
     expect(massText('25.50', 'g', 'g')).toBe('25.5');

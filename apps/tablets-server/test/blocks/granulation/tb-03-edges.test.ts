@@ -22,7 +22,7 @@ class World {
     return { phase: { id: 'p' }, config: this.config, stepKey: 'p@', nowUs: NOW, entries: (kind?: string) => this.entries.filter((x) => kind === undefined || x.kind === kind), actor: { id: 'OP1' } } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[] } {
-    const accept = TB03.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
+    const accept = TB03.handler?.acceptEntry?.bind(TB03.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: NOW });
@@ -60,12 +60,12 @@ describe('TB-03 solutions', () => {
   });
 
   it('[IN-36][PR-30] PERFORMED needs the preparation; the MBR gives a positive use-by in whole microseconds', () => {
-    const before = (w: World) => (TB03.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message);
+    const before = (w: World) => (TB03.handler?.beforePerform?.bind(TB03.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message);
     const w = new World();
     expect(before(w)).toEqual(['p@ has no preparation yet (TB03-NOT-PREPARED; IN-36)']);
     w.rec({ kind: 'PREPARED', quantity: kg('1'), appearance: 'COMPLIES' });
     expect(before(w)).toEqual([]);
-    const P = (config: Json) => (TB03.checkConfig as (p: flow.PhaseNode, c: Json) => { code: string; message: string }[])({ id: 'p' } as flow.PhaseNode, config).map((x) => `${x.code}: ${x.message}`);
+    const P = (config: Json) => (TB03.checkConfig as unknown as (p: flow.PhaseNode, c: Json) => { code: string; message: string }[])({ id: 'p' } as flow.PhaseNode, config).map((x) => `${x.code}: ${x.message}`);
     const msg = 'TB03-USE-BY: Solution step p needs a positive use-by, a whole number of microseconds (from hold-time data)';
     expect(P(CFG)).toEqual([]);
     expect(P({ ...CFG, useBy: { value: '0', unit: 'h' } })).toEqual([msg]);

@@ -9,11 +9,11 @@ import type { blocks, flow } from '@ebmr/recipe-core/pure';
 import { leakDue, leakOverdue, SINGLE_TRACK, TB22, tracksOf } from '../../../src/blocks/tb-22.ts';
 
 type Json = Record<string, unknown>;
-type E = { id: string; kind: string; data: Json; recordedAt: bigint };
+type E = { id: string; kind: string; data: Json; recordedAt: bigint; stepKey: string; enteredBy: string; recordedSeq: number };
 const T = 1_800_000_000_000_000n;
 const MIN = 60_000_000n;
 const CFG = (TB22.goldenFixture as blocks.BlockGoldenFixture).phase.config as Json;
-const e = (kind: string, atMin: bigint, data: Json = {}, plus = 0n): E => ({ id: `${kind}${atMin}`, kind, data, recordedAt: T + atMin * MIN + plus });
+const e = (kind: string, atMin: bigint, data: Json = {}, plus = 0n): E => ({ id: `${kind}${atMin}`, kind, data, recordedAt: T + atMin * MIN + plus, stepKey: 'p@', enteredBy: 'OP1', recordedSeq: 0 });
 const due = (entries: E[], track = 'T1', cfg: Json = CFG) => {
   const d = leakDue(entries, cfg, track);
   return d === undefined ? 'none' : `${String((d - T) / MIN)}m${(d - T) % MIN === 0n ? '' : `+${String((d - T) % MIN)}`}`;
@@ -66,14 +66,14 @@ class World {
     return { config: this.config, stepKey: 'p@', nowUs: this.now, entries: (kind?: string) => this.entries.filter((x) => kind === undefined || x.kind === kind), actor: { id: 'OP1' } } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[]; verificationRequired?: boolean } {
-    const accept = TB22.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
+    const accept = TB22.handler?.acceptEntry?.bind(TB22.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
-    this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now });
+    this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now, stepKey: 'p@', enteredBy: 'OP1', recordedSeq: this.entries.length + 1 });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}), ...(r.verificationRequired ? { verificationRequired: true } : {}) };
   }
   before(): string[] {
-    return (TB22.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message);
+    return (TB22.handler?.beforePerform?.bind(TB22.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message);
   }
 }
 const test = (track: string, extra: Json = {}) => ({ kind: 'LEAK_TEST', track, tested: '10', vacuum: '70', holdSeconds: '45', leaking: '0', ...extra });
@@ -154,7 +154,7 @@ describe('TB-22 entries', () => {
 
 describe('TB-22 definition checks', () => {
   const P = (config: Json): string[] => {
-    const check = TB22.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const check = TB22.checkConfig?.bind(TB22) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return check({ id: 'p' } as flow.PhaseNode, config, {} as flow.MbrContent).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
   };
   it('[PR-29][IN-38][PR-07] a positive interval and grace, a QRM reference, ordered method ranges with both ends, each track once and none LINE', () => {

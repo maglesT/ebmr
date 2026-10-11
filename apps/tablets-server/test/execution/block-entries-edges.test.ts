@@ -44,7 +44,7 @@ const refusalOf = async (p: Promise<unknown>): Promise<HttpRefusal> => {
   throw new Error('not refused');
 };
 
-const withEntries = (base: blocks.BlockVersion, entries: Record<string, blocks.ObjectSchema>): blocks.BlockVersion => ({ ...base, dataSchema: { ...base.dataSchema, entries } }) as blocks.BlockVersion;
+const withEntries = (base: blocks.BlockVersion, entries: Record<string, blocks.ObjectSchema>): blocks.BlockVersion => ({ ...base, dataSchema: { ...base.dataSchema, entries } });
 
 const nested: blocks.ObjectSchema = {
   type: 'object',
@@ -145,7 +145,7 @@ describe('server-filled members: the reads the server makes', () => {
     const none = recordingClient({});
     const base = { client: none.client, batchId: BATCH, stepKey: 'p@' };
     expect(await resolveBlockEntry({ ...base, block: undefined }, 'ADDITION', { container: CONTAINER, authorisation: AUTH })).toStrictEqual({ container: CONTAINER, authorisation: AUTH, kind: 'ADDITION' });
-    expect(await resolveBlockEntry({ ...base, block: { ...blockOf('G-24@2'), dataSchema: undefined } as blocks.BlockVersion }, 'ADDITION', { container: CONTAINER })).toStrictEqual({ container: CONTAINER, kind: 'ADDITION' });
+    expect(await resolveBlockEntry({ ...base, block: { ...blockOf('G-24@2'), dataSchema: undefined } as unknown as blocks.BlockVersion }, 'ADDITION', { container: CONTAINER })).toStrictEqual({ container: CONTAINER, kind: 'ADDITION' });
     // ADDITION without a server-filled source; another kind marking source and authorisedBy; FIRST_PRINT without job.
     const plain: blocks.ObjectSchema = { type: 'object', description: 'p', fields: { container: { type: 'string', description: 'c' }, authorisation: { type: 'string', description: 'a', optional: true }, device: { type: 'string', description: 'd', optional: true } } };
     const marked: blocks.ObjectSchema = { ...plain, fields: { ...plain.fields, source: { type: 'object', description: 's', serverFilled: true, optional: true, fields: {} }, authorisedBy: { type: 'string', description: 'b', serverFilled: true, optional: true }, job: { type: 'string', description: 'j', serverFilled: true, optional: true } } };
@@ -204,7 +204,7 @@ describe('BLOCK_ENTRY forms as JSON', () => {
     const forms = blockEntryForms(blockOf('G-21@1'));
     expect(forms.map((f) => f.title)).toEqual(['Issue', 'Reconciliation', 'First print', 'Challenge', 'Serial pool', 'Serial reconciliation']);
     expect(blockEntryForms(undefined)).toEqual([]);
-    expect(blockEntryForms({ ...blockOf('G-21@1'), version: '99' } as blocks.BlockVersion)).toEqual([]);
-    expect(blockEntryForms({ ...blockOf('G-21@1'), dataSchema: undefined } as blocks.BlockVersion)).toEqual([]);
+    expect(blockEntryForms({ ...blockOf('G-21@1'), version: '99' })).toEqual([]);
+    expect(blockEntryForms({ ...blockOf('G-21@1'), dataSchema: undefined } as unknown as blocks.BlockVersion)).toEqual([]);
   });
 });

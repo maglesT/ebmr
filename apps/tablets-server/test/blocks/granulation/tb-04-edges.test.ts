@@ -43,7 +43,7 @@ class World {
     return id;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[]; verificationRequired?: boolean } {
-    const accept = TB04.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
+    const accept = TB04.handler?.acceptEntry?.bind(TB04.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now });
@@ -116,7 +116,7 @@ describe('TB-04 binder and extra fluid', () => {
     expect(w.rec({ kind: 'BINDER_ADDITION', preparation: 'EN-1', quantity: { value: '1', unit: 'g' } }).refused).toBe('Binder is added in kg (TB04-BINDER-UNIT; IN-36, PR-29)');
     expect(new World().rec({ kind: 'BINDER_ADDITION', preparation: 'EN-1' }).refused).toBe('Binder is added in one unit (TB04-BINDER-UNIT; IN-36, PR-29)');
     expect(new World().rec({ kind: 'BINDER_ADDITION', preparation: 'EN-1', quantity: { value: '1', unit: 'L' } }).data).toStrictEqual({ preparation: 'EN-1', quantity: { value: '1', unit: 'L' }, addedBy: 'OP1' });
-    const onPerform = (x: World) => (TB04.handler?.onPerform as (v: blocks.HandlerView) => { exceptions?: Json[] })(x.view());
+    const onPerform = (x: World) => (TB04.handler?.onPerform?.bind(TB04.handler) as unknown as (v: blocks.HandlerView) => { exceptions?: Json[] })(x.view());
     expect(onPerform(w).exceptions?.map((x) => x['title'])).toEqual(["The binder added at p@ totals 0 kg, outside the MBR's range of 10 to 12 kg: the steps after it wait for a deviation"]);
     w.rec({ kind: 'BINDER_ADDITION', preparation: 'EN-1', quantity: kg('6') });
     w.rec({ kind: 'BINDER_ADDITION', preparation: 'EN-1', quantity: kg('4') });
@@ -147,18 +147,18 @@ describe('TB-04 binder and extra fluid', () => {
   });
 
   it('[IN-36][INV-25] PERFORMED needs the end point and the extra fluid of an extra-fluid branch; the end-point item is computed from it', () => {
-    const before = (x: World) => (TB04.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(x.view()).map((p) => p.message).filter((m) => m.includes('TB04-'));
+    const before = (x: World) => (TB04.handler?.beforePerform?.bind(TB04.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(x.view()).map((p) => p.message).filter((m) => m.includes('TB04-'));
     const w = new World({ ...CFG, extraFluid: { max: { value: '2', unit: 'L' }, roles: ['QA'] } }, ['QA']);
     expect(before(w)).toEqual(['Record the end point of p@ first (TB04-NO-ENDPOINT; IN-36, PR-29)', 'p@ is the extra-fluid branch and records no extra fluid (TB04-NO-EXTRA; IN-36)']);
     w.rec({ kind: 'END_POINT', actual: w.actual('granulator.power_kW', '4.2') });
     w.rec({ kind: 'EXTRA_FLUID', quantity: { value: '1', unit: 'L' } });
     expect(before(w)).toEqual([]);
-    const compute = TB04.handler?.computeItems as (v: blocks.HandlerView) => Json[];
+    const compute = TB04.handler?.computeItems?.bind(TB04.handler) as unknown as (v: blocks.HandlerView) => Json[];
     expect(compute(w.view())).toEqual([{ item: 'endPower', value: { kind: 'DECIMAL', value: '4.2', unit: 'kW' }, entries: ['E2'] }]);
     expect(compute(new World().view())).toEqual([]);
     expect(compute(new World({ ...CFG, endPoint: { ...(CFG['endPoint'] as Json), item: undefined } }).view())).toEqual([]);
-    expect((TB04.handler?.computedItems as (p: flow.PhaseNode) => string[])(fixturePhase(TB04))).toEqual(['endPower']);
-    expect((TB04.handler?.computedItems as (p: flow.PhaseNode) => string[])(fixturePhase(TB04, { config: { endPoint: { criterion: 'TIME' } } as never }))).toEqual([]);
+    expect((TB04.handler?.computedItems?.bind(TB04.handler) as unknown as (p: flow.PhaseNode) => string[])(fixturePhase(TB04))).toEqual(['endPower']);
+    expect((TB04.handler?.computedItems?.bind(TB04.handler) as unknown as (p: flow.PhaseNode) => string[])(fixturePhase(TB04, { config: { endPoint: { criterion: 'TIME' } } }))).toEqual([]);
   });
 });
 
@@ -166,7 +166,7 @@ describe('TB-04 definition checks', () => {
   const P = (config: Json, extra: Partial<flow.PhaseNode> = {}, mbrOf?: (p: flow.PhaseNode) => flow.MbrContent) => {
     const p = fixturePhase(TB04, { ...extra, config: config as never });
     const m = mbrOf ? mbrOf(p) : blockMbr(TB04, p);
-    const chk = TB04.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const chk = TB04.checkConfig?.bind(TB04) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return chk(p, p.config as Json, m).filter((x) => x.code.startsWith('TB04')).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
   };
   it('[IN-36][DI-31][INV-25] an end point or extra fluid; a value end point on a collected tag with an ordered range and no time; a time end point with a time and no tag or range; its item a single decimal in its unit', () => {
@@ -195,8 +195,8 @@ describe('TB-04 definition checks', () => {
     const item = (over: Json, ep: Json = {}, records = ['endPower']) => {
       const p = fixturePhase(TB04, { records, config: { ...CFG, endPoint: { ...(CFG['endPoint'] as Json), ...ep } } as never });
       const m = blockMbr(TB04, p);
-      const mm = { ...m, parameters: m.parameters.map((x) => (x.id === 'endPower' ? ({ ...x, ...over } as typeof x) : x)) };
-      const chk = TB04.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string }[];
+      const mm = { ...m, parameters: m.parameters.map((x) => (x.id === 'endPower' ? ({ ...x, ...over }) : x)) };
+      const chk = TB04.checkConfig?.bind(TB04) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string }[];
       return chk(p, p.config as Json, mm).filter((x) => x.code === 'TB04-ENDPOINT-ITEM').map((x) => x.message);
     };
     expect(item({})).toEqual([]);

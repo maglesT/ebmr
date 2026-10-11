@@ -36,14 +36,14 @@ class World {
     } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: { type: string; title: string; until?: string; qaOnly?: boolean }[]; verificationRequired?: boolean } {
-    const accept = TB18.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: never[]; verificationRequired?: boolean };
+    const accept = TB18.handler?.acceptEntry?.bind(TB18.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: never[]; verificationRequired?: boolean };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}), ...(r.verificationRequired ? { verificationRequired: true } : {}) };
   }
   before(): string[] {
-    return ((TB18.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(this.view())).map((p) => p.message);
+    return ((TB18.handler?.beforePerform?.bind(TB18.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(this.view())).map((p) => p.message);
   }
 }
 const room = (t: string, h: string) => ({ kind: 'ROOM_CHECK', filteredAir: true, temperature: t, humidity: h });
@@ -101,14 +101,14 @@ describe('TB-18 cores', () => {
     w.rec(load('60'));
     w.rec({ kind: 'CORE_SAMPLE', instrument: 'B', weighing: 'GROUP', count: '20', total: '5000', unit: 'mg' });
     expect(w.before()).toEqual([]);
-    const compute = TB18.handler?.computeItems as (v: blocks.HandlerView) => { item: string; value: Json; entries: string[] }[];
+    const compute = TB18.handler?.computeItems?.bind(TB18.handler) as unknown as (v: blocks.HandlerView) => { item: string; value: Json; entries: string[] }[];
     expect(compute(w.view())).toEqual([{ item: 'coreMean', value: { kind: 'DECIMAL', value: '250.000000', unit: 'mg' }, entries: ['E3'] }]);
     expect(compute(new World(CORES).view())).toEqual([]);
     expect(compute(new World({ ...CORES, coreItem: undefined }).view())).toEqual([]);
-    const items = TB18.handler?.computedItems as (p: flow.PhaseNode) => string[];
+    const items = TB18.handler?.computedItems?.bind(TB18.handler) as unknown as (p: flow.PhaseNode) => string[];
     expect(items(fixturePhase(TB18))).toEqual(['coreMean']);
     expect(items(fixturePhase(TB18, { config: { coreItem: undefined } as never }))).toEqual([]);
-    expect(items(fixturePhase(TB18, { config: coatingConfig() as never }))).toEqual(['gain']);
+    expect(items(fixturePhase(TB18, { config: coatingConfig() }))).toEqual(['gain']);
     expect(items(fixturePhase(TB18, { config: { ...coatingConfig(), gainItem: undefined } as never }))).toEqual([]);
   });
 });
@@ -216,9 +216,9 @@ describe('TB-18 coating', () => {
 
 describe('TB-18 definition checks', () => {
   const P = (mbr: flow.MbrContent, id = 'p'): string[] => {
-    const check = TB18.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string }[];
+    const check = TB18.checkConfig?.bind(TB18) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string }[];
     const find = (n: flow.FlowNode): flow.PhaseNode | undefined =>
-      n.kind === 'phase' ? (n.id === id ? n : undefined) : n.kind === 'loop' ? find(n.body) : 'children' in n ? n.children.map(find).find(Boolean) : 'body' in n ? find(n.body as flow.FlowNode) : undefined;
+      n.kind === 'phase' ? (n.id === id ? n : undefined) : n.kind === 'loop' ? find(n.body) : 'children' in n ? n.children.map(find).find(Boolean) : 'body' in n ? find(n.body) : undefined;
     const p = find(mbr.procedure.body) as flow.PhaseNode;
     return check(p, p.config as Json, mbr).filter((x) => x.code.startsWith('TB18')).map((x) => `${x.code}: ${x.message}`);
   };
@@ -234,7 +234,7 @@ describe('TB-18 definition checks', () => {
     expect(P(blockMbr(TB18, fixturePhase(TB18, { records: [] })))).toEqual([coreItem]);
     const withParam = (over: Json) => {
       const m = blockMbr(TB18);
-      return P({ ...m, parameters: m.parameters.map((x) => ({ ...x, ...over }) as typeof x) });
+      return P({ ...m, parameters: m.parameters.map((x) => ({ ...x, ...over })) });
     };
     expect(withParam({ precision: { kind: 'DECIMALS', digits: 5 } })).toEqual([coreItem]);
     expect(withParam({ precision: { kind: 'SIGNIFICANT', digits: 6 } })).toEqual([coreItem]);
@@ -262,7 +262,7 @@ describe('TB-18 definition checks', () => {
     expect(P(coatingMbr({ config: { gainItem: 'nope' } }))).toContain('TB18-GAIN-ITEM: Coating step p records the weight gain as a decimal process end point in % (gainItem, 4 decimals or more)');
     const gainMbr = (over: Json, config: Json = {}) => {
       const m = coatingMbr({ config: config as never });
-      return P({ ...m, parameters: m.parameters.map((x) => (x.id === 'gain' ? ({ ...x, ...over } as typeof x) : x)) });
+      return P({ ...m, parameters: m.parameters.map((x) => (x.id === 'gain' ? ({ ...x, ...over }) : x)) });
     };
     expect(gainMbr({ role: 'PROCESS_PARAMETER' })).toEqual(['TB18-GAIN-ITEM: Coating step p records the weight gain as a decimal process end point in % (gainItem, 4 decimals or more)']);
     const lowOnly = { limits: { unit: '%', ranges: [{ tier: 'VALIDATED', low: { value: '2.5', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'VR' } }] } };
@@ -289,7 +289,7 @@ describe('TB-18 definition checks', () => {
     const patch = (over: Partial<flow.PhaseNode>, config: Json = {}): flow.MbrContent => {
       const m = coatingMbr({ config: config as never });
       const map = (n: flow.FlowNode): flow.FlowNode =>
-        n.kind === 'phase' ? (n.id === 'p' ? { ...n, ...over } : n) : n.kind === 'loop' ? { ...n, body: map(n.body) } : 'children' in n ? ({ ...n, children: n.children.map(map) } as flow.FlowNode) : 'body' in n ? ({ ...n, body: map(n.body as flow.FlowNode) } as flow.FlowNode) : n;
+        n.kind === 'phase' ? (n.id === 'p' ? { ...n, ...over } : n) : n.kind === 'loop' ? { ...n, body: map(n.body) } : 'children' in n ? ({ ...n, children: n.children.map(map) }) : 'body' in n ? ({ ...n, body: map(n.body) }) : n;
       return { ...m, procedure: { ...m.procedure, body: map(m.procedure.body) } };
     };
     expect(P(patch({ reads: [] }))).toEqual(['TB18-CORE-ITEM: Coating step p reads the core mean weight (coreItem) the cores step records']);
@@ -300,13 +300,13 @@ describe('TB-18 definition checks', () => {
     const range = (low?: string, high?: string) => ({ tier: 'VALIDATED', ...(low ? { low: { value: low, inclusive: true } } : {}), ...(high ? { high: { value: high, inclusive: true } } : {}), rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS', source: { kind: 'VALIDATION_REPORT', ref: 'VR' } });
     expect(gainMbr({ limits: { unit: '%', ranges: [range('2.5'), range(undefined, '3.5')] } })).toEqual([]);
     expect(gainMbr({ limits: { unit: '%', ranges: [range(undefined, '3.6'), range('2.5', '3.5')] } }, { coatingType: 'FC_F', minGain: '2.5' })).toEqual([]);
-    expect(P(coatingMbr({ config: { maxGain: 3.5 as never } }))).toEqual(['TB18-MAX-GAIN: Coating step p sets the maximum weight gain']);
-    expect(P(coatingMbr({ config: { logInterval: { value: '5' } as never } }))).toEqual(['TB18-LOG-INTERVAL: The parameter log interval of p is a positive whole number of microseconds']);
+    expect(P(coatingMbr({ config: { maxGain: 3.5 } }))).toEqual(['TB18-MAX-GAIN: Coating step p sets the maximum weight gain']);
+    expect(P(coatingMbr({ config: { logInterval: { value: '5' } } }))).toEqual(['TB18-LOG-INTERVAL: The parameter log interval of p is a positive whole number of microseconds']);
     const dup = coatingMbr({ config: { actuals: [...COATER_ACTUALS, COATER_ACTUALS[0]] as never } });
     const findP = (n: flow.FlowNode): flow.PhaseNode | undefined =>
-      n.kind === 'phase' ? (n.id === 'p' ? n : undefined) : 'children' in n ? n.children.map(findP).find(Boolean) : 'body' in n ? findP(n.body as flow.FlowNode) : undefined;
+      n.kind === 'phase' ? (n.id === 'p' ? n : undefined) : 'children' in n ? n.children.map(findP).find(Boolean) : 'body' in n ? findP(n.body) : undefined;
     const p = findP(dup.procedure.body) as flow.PhaseNode;
-    expect((TB18.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string }[])(p, p.config as Json, dup).map((x) => x.code)).toContain('G06-DUPLICATE-TAG');
+    expect((TB18.checkConfig?.bind(TB18) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string }[])(p, p.config as Json, dup).map((x) => x.code)).toContain('G06-DUPLICATE-TAG');
     const m = coatingMbr();
     expect(gainLoopOf(m, 'p', 'gain')?.id).toBe('L-COAT');
     expect(gainLoopOf(m, 'p', 'other')).toBeUndefined();

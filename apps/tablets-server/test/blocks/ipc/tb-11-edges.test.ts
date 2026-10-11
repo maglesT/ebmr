@@ -10,11 +10,11 @@ import type { blocks, flow } from '@ebmr/recipe-core/pure';
 import { checkTest, DEFAULT_RESTART_US, dueOf, overdue, slotsOf, TB11 } from '../../../src/blocks/tb-11.ts';
 
 type Json = Record<string, unknown>;
-type E = { id: string; kind: string; data: Json; recordedAt: bigint };
+type E = { id: string; kind: string; data: Json; recordedAt: bigint; stepKey: string; enteredBy: string; recordedSeq: number };
 const T = 1_800_000_000_000_000n;
 const MIN = 60_000_000n;
 const at = (m: bigint, extra = 0n) => T + m * MIN + extra;
-const e = (kind: string, atUs: bigint, data: Json = {}): E => ({ id: `${kind}@${atUs}`, kind, data, recordedAt: atUs });
+const e = (kind: string, atUs: bigint, data: Json = {}): E => ({ id: `${kind}@${atUs}`, kind, data, recordedAt: atUs, stepKey: 'p@', enteredBy: 'OP1', recordedSeq: 0 });
 const cfg: Json = {
   streams: [{ id: 'L' }, { id: 'R' }],
   plan: [
@@ -133,10 +133,10 @@ class World {
     } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: { type: string; title: string; item?: string }[] } {
-    const accept = TB11.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: { type: string; title: string; item?: string }[] };
+    const accept = TB11.handler?.acceptEntry?.bind(TB11.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: { type: string; title: string; item?: string }[] };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
-    this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now });
+    this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now, stepKey: 'p@', enteredBy: 'OP1', recordedSeq: this.entries.length + 1 });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}) };
   }
 }
@@ -266,7 +266,7 @@ describe('TB-11 entries', () => {
   });
 
   it('[INV-41][PR-29] PERFORMED waits while a disintegration run of the step is still running (mutation follow-up)', () => {
-    const before = TB11.handler?.beforePerform as (v: blocks.HandlerView) => { code: string }[];
+    const before = TB11.handler?.beforePerform?.bind(TB11.handler) as unknown as (v: blocks.HandlerView) => { code: string }[];
     const w = new World({ streams: [{ id: 'L' }], process: 'OTHER', plan: [{ test: 'DISINTEGRATION', every: { value: '60', unit: 'min' }, qrmRef: 'Q' }], grace: { value: '5', unit: 'min' }, disintegration: { tabletType: 'UNCOATED' } });
     w.rec({ kind: 'RUN_START', press: 'P-1' });
     w.rec({ kind: 'RUN_END' });
@@ -279,7 +279,7 @@ describe('TB-11 entries', () => {
   });
 
   it('[PR-29][IN-35][INV-41] PERFORMED waits for the run\'s end, each stream\'s sweep, an end-of-run check of every planned slot, and every compendial stage', () => {
-    const before = TB11.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[];
+    const before = TB11.handler?.beforePerform?.bind(TB11.handler) as unknown as (v: blocks.HandlerView) => { message: string }[];
     const w = new World({ ...runCfg, plan: [{ test: 'WEIGHT', every: { value: '25', unit: 'min' }, qrmRef: 'Q' }] });
     w.rec({ kind: 'RUN_START', press: 'P-1' });
     expect(before(w.view()).map((p) => p.message)).toEqual(['The run of p@ has not ended (TB11-RUNNING; PR-29, IN-35)']);
@@ -305,7 +305,7 @@ describe('TB-11 entries', () => {
 
 describe('TB-11 definition checks', () => {
   const P = (config: Json): string[] => {
-    const check = TB11.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const check = TB11.checkConfig?.bind(TB11) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return check({ id: 'p' } as flow.PhaseNode, config, { header: { marketSet: ['IN'] } } as flow.MbrContent).map((p) => `${p.code} [${p.controls.join(',')}] ${p.message}`);
   };
   const ok: Json = { ...runCfg, plan: [{ test: 'WEIGHT', every: { value: '25', unit: 'min' }, qrmRef: 'Q' }] };

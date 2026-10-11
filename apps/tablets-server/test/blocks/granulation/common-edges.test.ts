@@ -67,7 +67,7 @@ describe('G-06 inside a TB block', () => {
       parameter: () => undefined,
     } as unknown as blocks.HandlerView;
     expect(processBeforePerform(view).map((x) => x.code)).toEqual(expect.arrayContaining(['G06-RECIPE-UNCHECKED']));
-    const nominal = processNominalEntries({ phase: p, config: p.config, mbr: blockMbr(TB06, p), frames: [], containers: [], target: () => undefined, nowUs: 1n } as never);
+    const nominal = processNominalEntries({ phase: p, config: p.config, mbr: blockMbr(TB06, p), frames: [], containers: [], target: () => undefined, nowUs: 1n });
     expect(nominal.map((e) => e.kind)).toContain('ACTUAL');
   });
 

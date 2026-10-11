@@ -48,7 +48,7 @@ class World {
     } as unknown as HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[]; verificationRequired?: boolean } {
-    const r = (G21.handler?.acceptEntry as (v: HandlerView, e: Json) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean })(this.view(), entry);
+    const r = (G21.handler?.acceptEntry as unknown as (v: HandlerView, e: Json) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean })(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}), ...(r.verificationRequired ? { verificationRequired: true } : {}) };
@@ -177,7 +177,7 @@ describe('G-21 first print and challenges', () => {
     expect(both.exceptions).toEqual([
       { type: 'CHALLENGE_MISSED', title: 'CAM at p@ was not challenged within its interval: the step stops and the output since the last good challenge is held until QA decides', controls: ['IN-22', 'PR-37'], severity: 'ACTION', category: 'DEVIATION_OR_OVERRIDE', blocks: 'STEP_AND_DOWNSTREAM', until: 'DISPOSITION', item: 'CAM' },
       { type: 'CHALLENGE_FAILED', title: 'The challenge of CAM at p@ failed: the step stops and the output since the last good challenge is held until QA decides', controls: ['IN-22', 'PR-37'], severity: 'ACTION', category: 'DEVIATION_OR_OVERRIDE', blocks: 'STEP_AND_DOWNSTREAM', until: 'DISPOSITION', item: 'CAM' },
-    ].map((x) => expect.objectContaining(x)));
+    ].map((x) => expect.objectContaining(x) as unknown));
     expect(w.rec(ch('CAM', { event: ev, at: at(31n) })).data?.['missed']).toBe(true);
     expect(w.rec(ch('CAM', { event: ev, at: at(61n) })).data?.['missed']).toBe(false);
   });

@@ -56,7 +56,7 @@ describe('addition rules', () => {
     expect(codes(view({ rp: { ...RP, case: 'REWORK' } }))).toEqual(['G24-NO-ADDITION']);
     expect(codes(view({ rp: { ...RP, case: 'REPROCESSING_ADDITION' } }), {}, { case: 'REPROCESSING_ADDITION' })).toEqual([]);
     expect(codes(view(), {}, null)).toEqual(['G24-AD-HOC']);
-    expect(msgs(view(), {}, { case: undefined })).toEqual(['Container C1 is not conforming material released by QA (G24-SOURCE-STATUS; PR-47, IN-19)']);
+    expect(msgs(view(), {}, { case: undefined } as never)).toEqual(['Container C1 is not conforming material released by QA (G24-SOURCE-STATUS; PR-47, IN-19)']);
     expect(msgs(view({ rp: { ...RP, case: 'REPROCESSING_ADDITION' } }), {}, { case: 'RECOVERY' })).toEqual(['Container C1 is not reject material the quality unit reserved for reprocessing (G24-SOURCE-STATUS; PR-47, IN-19)']);
     expect(codes(view(), {}, { sourceBatchId: 'B0' })).toEqual(['G24-OWN-BATCH']);
     expect(codes(view(), {}, { product: 'Q' })).toEqual(['G24-OTHER-PRODUCT']);
@@ -112,7 +112,7 @@ describe('addition rules', () => {
 describe('G-24@2 reprocessing step (mutation follow-up)', () => {
   type R = { ok: boolean; data?: Json; problems?: { code: string; message: string }[]; verificationRequired?: boolean };
   const accept = (v: HandlerView, e: Json & { kind: string }) => (G24V2.handler?.acceptEntry as (v: HandlerView, e: Json) => R)(v, e);
-  const perform = (v: HandlerView) => (G24V2.handler?.onPerform as (v: HandlerView) => { exceptions: Json[] })(v).exceptions.map((x) => x['type']);
+  const perform = (v: HandlerView) => (G24V2.handler?.onPerform as unknown as (v: HandlerView) => { exceptions: Json[] })(v).exceptions.map((x) => x['type']);
   const add = (over: Json = {}) => ({ kind: 'ADDITION', container: 'C1', quantity: { value: '5', unit: 'kg' }, authorisation: 'AUTH-1', authorisedBy: 'QA1', source: SRC, ...over });
 
   it('[PR-47][IN-19] only additions; each needs its per-use authorisation (an empty one is none); an accepted addition is stored with its case and needs a second person', () => {

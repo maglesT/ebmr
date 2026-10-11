@@ -30,7 +30,7 @@ class World {
     } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[]; verificationRequired?: boolean } {
-    const accept = TB20.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
+    const accept = TB20.handler?.acceptEntry?.bind(TB20.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now });
@@ -177,7 +177,7 @@ describe('TB-20 AQL', () => {
   });
 
   it('[PR-46][PR-29] PERFORMED needs the inspection ended, the sort result and the AQL result', () => {
-    const before = (w: World) => (TB20.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message);
+    const before = (w: World) => (TB20.handler?.beforePerform?.bind(TB20.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message);
     const w = new World();
     expect(before(w)).toEqual(['p@ has not finished its inspection (TB20-NOT-SORTED; PR-46)', 'p@ has no sort result (TB20-NO-SORT; PR-46, IN-35)', 'p@ has no AQL result (TB20-NO-AQL; PR-29)']);
     w.sorted();
@@ -191,7 +191,7 @@ describe('TB-20 definition checks', () => {
   const P = (config: Json, after: flow.FlowNode[] = [DESTROY], extra: flow.FlowNode[] = []): string[] => {
     const p = fixturePhase(TB20, { config: config as never });
     const m = mbrWithChildren([...extra, p, ...after, phase('after')]);
-    const check = TB20.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const check = TB20.checkConfig?.bind(TB20) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return check(p, p.config as Json, m).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
   };
   it('[PR-46][PR-50][PR-29] the catalogue (each code once; a foreign tablet critical), the AQL, the vision recipe, residue only with a recovery step', () => {

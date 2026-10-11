@@ -36,7 +36,7 @@ class World {
     } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[]; verificationRequired?: boolean } {
-    const accept = TB24.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
+    const accept = TB24.handler?.acceptEntry?.bind(TB24.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now, recordedSeq: this.entries.length + 1 });
@@ -154,7 +154,7 @@ describe('TB-24 packs, shippers and the reconciliation', () => {
   });
 
   it('[PR-37][PR-41][IN-17] PERFORMED: the ATD stream, an in-run and a passing end-of-run examination, and the reconciliation', () => {
-    const before = (w: World) => (TB24.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message).filter((m) => m.includes('TB24-'));
+    const before = (w: World) => (TB24.handler?.beforePerform?.bind(TB24.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(w.view()).map((p) => p.message).filter((m) => m.includes('TB24-'));
     const w = new World({ ...CFG, devices: [] });
     expect(before(w)).toEqual([
       'p@ has no anti-tampering check (TB24-NO-CHECK; PR-41, PR-37)',
@@ -178,7 +178,7 @@ describe('TB-24 definition checks', () => {
     const p = phase('p', { block: { type: 'TB-24', version: '1' }, config: config as never });
     const m = mbrWithChildren([...(opts.others ?? [prt]), p]);
     const mm = { ...m, header: { ...m.header, marketSet: opts.markets ?? ['IN'], predicates: { ...m.header.predicates, ...(opts.otc ? { usOtcRetail: true } : {}) } } } as flow.MbrContent;
-    const check = TB24.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const check = TB24.checkConfig?.bind(TB24) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return check(p, config, mm).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
   };
   it('[IN-17][PR-41][PR-42][PR-37] the printed-material step, the ATD for the EU and for US OTC retail, whole-microsecond intervals', () => {
@@ -190,8 +190,8 @@ describe('TB-24 definition checks', () => {
     expect(P(noAtd, { markets: ['IN', 'EU'] })).toEqual(['TB24-ATD-REQUIRED [PR-42,PR-41] p packs for the EU and checks no anti-tampering device']);
     expect(P(CFG, { markets: ['IN', 'EU'] })).toEqual([]);
     expect(P(noAtd, { otc: true })).toEqual(['TB24-ATD-REQUIRED [PR-41] p packs for US OTC retail and no packaging step checks the tamper-evident feature']);
-    expect(P(noAtd, { otc: true, others: [prt, phase('btl', { block: { type: 'TB-23', version: '1' }, config: { tamperEvident: true } as never })] })).toEqual([]);
-    expect(P(noAtd, { otc: true, others: [prt, phase('btl', { block: { type: 'TB-23', version: '1' }, config: { tamperEvident: false } as never })] })).toHaveLength(1);
+    expect(P(noAtd, { otc: true, others: [prt, phase('btl', { block: { type: 'TB-23', version: '1' }, config: { tamperEvident: true } })] })).toEqual([]);
+    expect(P(noAtd, { otc: true, others: [prt, phase('btl', { block: { type: 'TB-23', version: '1' }, config: { tamperEvident: false } })] })).toHaveLength(1);
     expect(P(CFG, { otc: true })).toEqual([]);
     expect(P({ ...CFG, atd: {} })).toEqual(['TB24-INTERVAL [PR-41] The anti-tampering check interval of p is not a whole number of microseconds']);
     expect(P({ ...CFG, examination: {} })).toEqual(['TB24-INTERVAL [PR-37] The in-run examination interval of p is not a whole number of microseconds']);

@@ -101,9 +101,9 @@ describe('TB-14 friability runs', () => {
   });
 
   it('[IN-35][PR-29] the step: an entry of another kind is refused, PERFORMED needs a run and no repeats pending', () => {
-    const accept = TB14.handler?.acceptEntry as (v: blocks.HandlerView, e: Json & { kind: string }) => { ok: boolean; problems?: { message: string }[] };
+    const accept = TB14.handler?.acceptEntry?.bind(TB14.handler) as unknown as (v: blocks.HandlerView, e: Json & { kind: string }) => { ok: boolean; problems?: { message: string }[] };
     expect(accept(view(), { kind: 'OTHER' }).problems?.map((p) => p.message)).toEqual(['OTHER is not an entry of a friability step (TB14-ENTRY; PR-29)']);
-    const before = TB14.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[];
+    const before = TB14.handler?.beforePerform?.bind(TB14.handler) as unknown as (v: blocks.HandlerView) => { message: string }[];
     expect(before(view()).map((p) => p.message)).toEqual(['p@ has no friability run (TB14-NO-RUN; PR-29, IN-35)']);
     const entries: E[] = [];
     record(entries, run({ doubtful: true }));

@@ -23,14 +23,14 @@ class World {
     return { phase: { id: 'p', block: { type: 'TB-21', version: '1' }, equipment: [] }, config: this.config, stepKey: 'p@', nowUs: 0n, entries: (kind?: string) => this.entries.filter((x) => kind === undefined || x.kind === kind), actor: { id: 'OP1' } } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[]; verificationRequired?: boolean } {
-    const accept = TB21.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
+    const accept = TB21.handler?.acceptEntry?.bind(TB21.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: 0n });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}), ...(r.verificationRequired ? { verificationRequired: true } : {}) };
   }
   before(): string[] {
-    return (TB21.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message).filter((m) => m.includes('TB21-'));
+    return (TB21.handler?.beforePerform?.bind(TB21.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message).filter((m) => m.includes('TB21-'));
   }
 }
 const reels = [{ role: 'FORMING_FILM', material: 'PVC-250', lot: 'L1' }, { role: 'LIDDING_FOIL', material: 'ALU-20', lot: 'L2' }];
@@ -158,7 +158,7 @@ describe('TB-21 definition checks', () => {
   const g21 = (items: Json[]) => phase('pr', { block: { type: 'G-21', version: '1' }, config: { items } as never });
   const P = (config: Json, extra: Partial<flow.PhaseNode> = {}, others: flow.FlowNode[] = []): string[] => {
     const p = fixturePhase(TB21, { ...extra, config: config as never });
-    const check = TB21.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const check = TB21.checkConfig?.bind(TB21) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return check(p, p.config as Json, mbrWithChildren([...others, p, phase('after')])).filter((x) => x.code.startsWith('TB21')).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
   };
   const W = 'Blister step p';

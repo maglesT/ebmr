@@ -112,7 +112,9 @@ describe('TB-01 C-01 to C-04 at their limits', () => {
     if (!zero.ok) throw new Error(zero.message);
     expect(zero.result.excipient).toEqual({ standard: '0.469', calculated: '0.000177', target: '0.000' });
     expect(refusal({ ...atorvastatin, excipient: { standard: '0.468', min: '0', max: '1' } })).toBe('TB01-EXCIPIENT-NEGATIVE: the compensating excipient would be -0.001, below zero');
-    const none = potencyTargets({ ...atorvastatin, excipient: undefined });
+    const { excipient: _noExcipient, ...withoutExcipient } = atorvastatin;
+    void _noExcipient;
+    const none = potencyTargets(withoutExcipient);
     if (!none.ok) throw new Error(none.message);
     expect(none.result.excipient).toBeNull();
     expect(none.result.total).toEqual({ standard: '8.272662', target: '8.742' });

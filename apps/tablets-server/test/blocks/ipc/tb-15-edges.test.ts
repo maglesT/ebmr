@@ -199,9 +199,9 @@ describe('TB-15 runs per stream (TB-11 streams; mutation follow-up)', () => {
 
 describe('TB-15 the step and its definition', () => {
   it('[IN-35][PR-29][INV-41] an entry of another kind is refused; PERFORMED needs a run and nothing pending', () => {
-    const accept = TB15.handler?.acceptEntry as (v: blocks.HandlerView, e: Json & { kind: string }) => { problems?: { message: string }[] };
+    const accept = TB15.handler?.acceptEntry?.bind(TB15.handler) as unknown as (v: blocks.HandlerView, e: Json & { kind: string }) => { problems?: { message: string }[] };
     expect(accept(new World().view(), { kind: 'OTHER' }).problems?.map((p) => p.message)).toEqual(['OTHER is not an entry of a disintegration step (TB15-ENTRY; PR-29)']);
-    const before = TB15.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[];
+    const before = TB15.handler?.beforePerform?.bind(TB15.handler) as unknown as (v: blocks.HandlerView) => { message: string }[];
     const w = new World();
     expect(before(w.view()).map((p) => p.message)).toEqual(['p@ has no disintegration run (TB15-NO-RUN; PR-29, IN-35)']);
     w.rec(start());
@@ -224,7 +224,7 @@ describe('TB-15 the step and its definition', () => {
   });
 
   it('[DI-34] the nominal path: one main run for most types; the gastro-resistant run starts with its acid stage', () => {
-    const kinds = (cfg: Json, stream?: string) => dtNominal(cfg, stream).map((e) => `${e.kind}${e['stage'] ? `:${String(e['stage'])}` : ''}${e['stream'] ? `@${String(e['stream'])}` : ''}`);
+    const kinds = (cfg: Json, stream?: string) => dtNominal(cfg, stream).map((e) => `${e.kind}${e['stage'] ? `:${String(e['stage'] as string)}` : ''}${e['stream'] ? `@${String(e['stream'] as string)}` : ''}`);
     expect(kinds({ tabletType: 'UNCOATED' })).toEqual(['DT_START:MAIN', 'DT_END']);
     expect(kinds({ tabletType: 'GASTRO_RESISTANT' })).toEqual(['DT_START:ACID']);
     expect(kinds({ tabletType: 'UNCOATED' }, 'S1')).toEqual(['DT_START:MAIN@S1', 'DT_END']);

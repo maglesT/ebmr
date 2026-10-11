@@ -21,14 +21,14 @@ class World {
     return { phase: { id: 'p', block: { type: 'TB-10', version: '1' } }, config: this.config, stepKey: 'p@', nowUs: 0n, entries: (kind?: string) => this.entries.filter((x) => kind === undefined || x.kind === kind), actor: { id: 'OP1' } } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[]; verificationRequired?: boolean } {
-    const accept = TB10.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
+    const accept = TB10.handler?.acceptEntry?.bind(TB10.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[]; verificationRequired?: boolean };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: 0n });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}), ...(r.verificationRequired ? { verificationRequired: true } : {}) };
   }
   before(): string[] {
-    return (TB10.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message).filter((m) => m.includes('TB10-'));
+    return (TB10.handler?.beforePerform?.bind(TB10.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(this.view()).map((p) => p.message).filter((m) => m.includes('TB10-'));
   }
 }
 const setup = { kind: 'PRESS_SETUP', press: 'PRESS-01', useId: U(1), issueId: U(2) };
@@ -105,7 +105,7 @@ describe('TB-10 set-up', () => {
   it('[PR-08][PR-22][PR-23] definition checks: a press used, each setting range once and ordered (equal allowed)', () => {
     const P = (config: Json, extra: Partial<flow.PhaseNode> = {}) => {
       const p = fixturePhase(TB10, { ...extra, config: config as never });
-      const check = TB10.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+      const check = TB10.checkConfig?.bind(TB10) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
       return check(p, p.config as Json, blockMbr(TB10, p)).filter((x) => x.code.startsWith('TB10')).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
     };
     expect(P({})).toEqual([]);

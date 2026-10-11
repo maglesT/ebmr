@@ -34,14 +34,14 @@ class World {
     } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[] } {
-    const accept = TB06.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
+    const accept = TB06.handler?.acceptEntry?.bind(TB06.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now, recordedSeq: this.entries.length + 1 });
     return { data: r.data ?? {}, ...(r.exceptions ? { exceptions: r.exceptions } : {}) };
   }
   before(): string[] {
-    return (TB06.handler?.beforePerform as (v: blocks.HandlerView) => { code: string }[])(this.view()).map((p) => p.code);
+    return (TB06.handler?.beforePerform?.bind(TB06.handler) as unknown as (v: blocks.HandlerView) => { code: string }[])(this.view()).map((p) => p.code);
   }
 }
 const screen = (when: string, result = 'INTACT', extra: Json = {}) => ({ kind: 'SCREEN_CHECK', screen: 'RS-15', aperture: AP, when, result, ...extra });
@@ -337,7 +337,7 @@ describe('TB-06 PERFORMED and definition', () => {
     ]);
     expect(nominal.filter((e) => e['kind'] === 'SCREEN_CHECK').map((e) => e['when'])).toEqual(['BEFORE', 'AFTER']);
     const half = { ...CFG, ribbon: { ...(CFG['ribbon'] as Json), thickness: { action: { min: '2' } }, solidFraction: { action: { max: '70' } } }, screens: [] };
-    const n2 = TB06.simulatorModel?.nominalEntries?.({ phase: PHASE, config: half, mbr: blockMbr(TB06, PHASE), frames: [], containers: [], target: () => undefined, nowUs: 1n } as never) as Json[];
+    const n2 = TB06.simulatorModel?.nominalEntries?.({ phase: PHASE, config: half, mbr: blockMbr(TB06, PHASE), frames: [], containers: [], target: () => undefined, nowUs: 1n }) as Json[];
     expect(n2.find((e) => e['kind'] === 'RIBBON_CHECK')).toEqual({ kind: 'RIBBON_CHECK', thickness: '2', solidFraction: '70', appearance: 'COMPLIES' });
     expect(n2.some((e) => e['kind'] === 'SCREEN_CHECK' || e['kind'] === 'GRANULE_OUTPUT')).toBe(false);
   });

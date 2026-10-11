@@ -35,7 +35,9 @@ const view = (o: { type?: string; config?: Record<string, unknown>; entries?: { 
     actor: { id: 'OP1' },
   }) as unknown as blocks.HandlerView;
 const messages = (r: { ok: false; problems: { code: string; message: string; controls: readonly string[] }[] } | { ok: true } | undefined) =>
-  r && !r.ok ? r.problems.map((p) => [p.code, p.message, p.controls]) : r;
+  (r && !r.ok ? r.problems.map((p) => [p.code, p.message, p.controls]) : r) as (string | readonly string[])[][] | undefined;
+/** commonOf with a loosely typed entry (the tests send partial entries on purpose). */
+const common = (v: Parameters<typeof commonOf>[0], e: Record<string, unknown>, n: number, code: string) => commonOf(v, e as never, n, code);
 
 describe('IPC limits read from a configuration', () => {
   it('[IN-35][PR-08] bounds keep only text ends; tiers need action bounds; percent tiers need an action percentage', () => {
@@ -104,13 +106,13 @@ describe('IPC test entries', () => {
   const scheduler = (o: Parameters<typeof view>[0] = {}) => view({ type: 'TB-11', config: { streams: [{ id: 'S1' }, { id: 'S2' }, 'bad'] }, ...o });
 
   it('[PR-29][IN-35] a TB-11 entry names one of its streams; a test block entry names no stream or counter', () => {
-    expect(messages(commonOf(scheduler(), { capture: 'MANUAL' }, 1, 'TB12'))).toEqual([['TB12-STREAM', 'A check at p@ names one of its streams (S1, S2, ) (TB12-STREAM; PR-29, IN-35)', ['PR-29', 'IN-35']]]);
-    expect(messages(commonOf(scheduler(), { capture: 'MANUAL', stream: 'S3' }, 1, 'TB12'))?.[0]?.[0]).toBe('TB12-STREAM');
-    expect(messages(commonOf(view({ type: 'TB-11', config: {} }), { capture: 'MANUAL', stream: 'S1' }, 1, 'TB12'))?.[0]?.[1]).toBe('A check at p@ names one of its streams () (TB12-STREAM; PR-29, IN-35)');
-    const ok = commonOf(scheduler(), { capture: 'MANUAL', stream: 'S2', counter: '7', instrument: 'I-1' }, 1, 'TB12');
+    expect(messages(common(scheduler(), { capture: 'MANUAL' }, 1, 'TB12'))).toEqual([['TB12-STREAM', 'A check at p@ names one of its streams (S1, S2, ) (TB12-STREAM; PR-29, IN-35)', ['PR-29', 'IN-35']]]);
+    expect(messages(common(scheduler(), { capture: 'MANUAL', stream: 'S3' }, 1, 'TB12'))?.[0]?.[0]).toBe('TB12-STREAM');
+    expect(messages(common(view({ type: 'TB-11', config: {} }), { capture: 'MANUAL', stream: 'S1' }, 1, 'TB12'))?.[0]?.[1]).toBe('A check at p@ names one of its streams () (TB12-STREAM; PR-29, IN-35)');
+    const ok = common(scheduler(), { capture: 'MANUAL', stream: 'S2', counter: '7', instrument: 'I-1' }, 1, 'TB12');
     expect(ok).toStrictEqual({ ok: true, common: { base: { instrument: 'I-1', capture: 'MANUAL', sampledAtUs: NOW.toString(), stream: 'S2', counter: '7', late: false, recordedBy: 'OP1' }, manual: true, late: false } });
-    expect(messages(commonOf(view(), { capture: 'MANUAL', stream: 'S1' }, 1, 'TB12'))).toEqual([['TB12-STREAM', 'p@ is not a TB-11 scheduler step: its checks name no stream or counter (TB12-STREAM; PR-29)', ['PR-29']]]);
-    expect(messages(commonOf(view(), { capture: 'MANUAL', counter: '1' }, 1, 'TB12'))?.[0]?.[0]).toBe('TB12-STREAM');
+    expect(messages(common(view(), { capture: 'MANUAL', stream: 'S1' }, 1, 'TB12'))).toEqual([['TB12-STREAM', 'p@ is not a TB-11 scheduler step: its checks name no stream or counter (TB12-STREAM; PR-29)', ['PR-29']]]);
+    expect(messages(common(view(), { capture: 'MANUAL', counter: '1' }, 1, 'TB12'))?.[0]?.[0]).toBe('TB12-STREAM');
     expect(testConfig(scheduler({ config: { weight: { mode: 'GROUP' } } }), 'weight')).toEqual({ mode: 'GROUP' });
     expect(testConfig(scheduler({ config: { weight: 'x' } }), 'weight')).toEqual({});
     expect(testConfig(view({ config: { mode: 'GROUP' } }), 'weight')).toEqual({ mode: 'GROUP' });
@@ -118,14 +120,14 @@ describe('IPC test entries', () => {
 
   it('[DI-28] the sample is taken neither after it is recorded nor before the step\'s first entry (equal instants allowed); lateness counts from the sampling, beyond the late-entry time', () => {
     const v = view({ entries: [{ recordedAt: NOW - 100n }] });
-    expect(messages(commonOf(v, { capture: 'MANUAL', sampledAtUs: (NOW + 1n).toString() }, 1, 'TB12'))).toEqual([['TB12-SAMPLED-LATER', 'The sample of p@ cannot be taken after it is recorded (TB12-SAMPLED-LATER; DI-28)', ['DI-28']]]);
-    expect(messages(commonOf(v, { capture: 'MANUAL', sampledAtUs: (NOW - 101n).toString() }, 1, 'TB12'))).toEqual([['TB12-SAMPLED-EARLY', "The sample of p@ cannot be taken before the step's first entry (TB12-SAMPLED-EARLY; DI-28)", ['DI-28']]]);
-    expect(commonOf(v, { capture: 'MANUAL', sampledAtUs: (NOW - 100n).toString() }, 1, 'TB12').ok).toBe(true);
-    expect(commonOf(v, { capture: 'MANUAL', sampledAtUs: NOW.toString() }, 1, 'TB12').ok).toBe(true);
+    expect(messages(common(v, { capture: 'MANUAL', sampledAtUs: (NOW + 1n).toString() }, 1, 'TB12'))).toEqual([['TB12-SAMPLED-LATER', 'The sample of p@ cannot be taken after it is recorded (TB12-SAMPLED-LATER; DI-28)', ['DI-28']]]);
+    expect(messages(common(v, { capture: 'MANUAL', sampledAtUs: (NOW - 101n).toString() }, 1, 'TB12'))).toEqual([['TB12-SAMPLED-EARLY', "The sample of p@ cannot be taken before the step's first entry (TB12-SAMPLED-EARLY; DI-28)", ['DI-28']]]);
+    expect(common(v, { capture: 'MANUAL', sampledAtUs: (NOW - 100n).toString() }, 1, 'TB12').ok).toBe(true);
+    expect(common(v, { capture: 'MANUAL', sampledAtUs: NOW.toString() }, 1, 'TB12').ok).toBe(true);
     // Before any entry, an earlier sample is the step's first fact (not refused).
-    expect(commonOf(view(), { capture: 'MANUAL', sampledAtUs: (NOW - 5n).toString() }, 1, 'TB12').ok).toBe(true);
+    expect(common(view(), { capture: 'MANUAL', sampledAtUs: (NOW - 5n).toString() }, 1, 'TB12').ok).toBe(true);
     const late = (sampled: bigint, config: Record<string, unknown> = {}) => {
-      const r = commonOf(view({ config }), { capture: 'MANUAL', sampledAtUs: sampled.toString() }, 1, 'TB12');
+      const r = common(view({ config }), { capture: 'MANUAL', sampledAtUs: sampled.toString() }, 1, 'TB12');
       return r.ok ? r.common.late : undefined;
     };
     expect(late(NOW - DEFAULT_LATE_ENTRY_US)).toBe(false);
@@ -135,10 +137,10 @@ describe('IPC test entries', () => {
   });
 
   it('[DI-32][DI-31] an instrument entry names exactly one reading per value, in order; a keyed entry names none', () => {
-    expect(messages(commonOf(view(), { capture: 'DEVICE', readings: ['a'] }, 2, 'TB12'))).toEqual([['TB12-READINGS', 'A check captured from the instrument names one claimed reading per value (2), in order (TB12-READINGS; DI-32, DI-31)', ['DI-32', 'DI-31']]]);
-    expect(messages(commonOf(view(), { capture: 'DEVICE' }, 1, 'TB12'))?.[0]?.[0]).toBe('TB12-READINGS');
-    expect(messages(commonOf(view(), { capture: 'MANUAL', readings: [] }, 1, 'TB12'))).toEqual([['TB12-READINGS', 'A check keyed by hand names no instrument readings (TB12-READINGS; DI-32)', ['DI-32']]]);
-    const ok = commonOf(view(), { capture: 'DEVICE', readings: ['a', 'b'], instrument: 'I' }, 2, 'TB12');
+    expect(messages(common(view(), { capture: 'DEVICE', readings: ['a'] }, 2, 'TB12'))).toEqual([['TB12-READINGS', 'A check captured from the instrument names one claimed reading per value (2), in order (TB12-READINGS; DI-32, DI-31)', ['DI-32', 'DI-31']]]);
+    expect(messages(common(view(), { capture: 'DEVICE' }, 1, 'TB12'))?.[0]?.[0]).toBe('TB12-READINGS');
+    expect(messages(common(view(), { capture: 'MANUAL', readings: [] }, 1, 'TB12'))).toEqual([['TB12-READINGS', 'A check keyed by hand names no instrument readings (TB12-READINGS; DI-32)', ['DI-32']]]);
+    const ok = common(view(), { capture: 'DEVICE', readings: ['a', 'b'], instrument: 'I' }, 2, 'TB12');
     expect(ok).toStrictEqual({ ok: true, common: { base: { instrument: 'I', capture: 'DEVICE', readings: ['a', 'b'], sampledAtUs: NOW.toString(), late: false, recordedBy: 'OP1' }, manual: false, late: false } });
   });
 

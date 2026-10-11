@@ -145,7 +145,7 @@ describe('data gates', () => {
     expect(sev(hard('kg/cm2', { semanticTag: 'breaking_force' }))).toEqual(['ERROR']);
     expect(found(m(hard('N', { semanticTag: 'breaking_force', limits: lim('kg') })), 'DATA-UNITS')).toEqual(['ERROR: The limits of "Hardness" (h) are not in a force unit (kg) (DATA-UNITS; PR-08, PR-03)']);
     expect(found(m(hard('kg/cm2', { semanticTag: 'breaking_force', limits: lim('kg') })), 'DATA-UNITS').filter((x) => x.includes('not in a force unit'))).toEqual([]);
-    expect(found(m(hard('kg/cm2', { valueType: 'INTEGER' } as Partial<Parameter>)), 'DATA-UNITS')).toEqual([]);
+    expect(found(m(hard('kg/cm2', { valueType: 'INTEGER' } as unknown as Partial<Parameter>)), 'DATA-UNITS')).toEqual([]);
     expect(sev(hard('mm', { limits: lim('kg') }))).toEqual(['ERROR']);
     expect(sev(hard('kg', { semanticTag: 'mass', limits: lim('g') }))).toEqual([]);
   });

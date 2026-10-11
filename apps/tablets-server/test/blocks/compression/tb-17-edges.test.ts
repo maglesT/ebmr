@@ -60,7 +60,7 @@ describe('TB-17 devices and challenges', () => {
     expect(refusal(run, { kind: 'DEDUSTING', deDuster: 'DD-01', inUse: true })).toBe('DD-01 is not the de-duster the MBR names (TB17-DEDUSTER; IN-35) (TB17-DEDUSTER; IN-35)');
     run.entry('p', { kind: 'REJECT_COUNT', device: 'SETUP', count: '7', disposition: 'DESTRUCTION' });
     expect(last(run, 'REJECT_COUNT')).toStrictEqual({ device: 'SETUP', count: '7', disposition: 'DESTRUCTION', recordedBy: OP1.id });
-    const dd = run2(fixturePhase(TB17).config as Json);
+    const dd = run2(fixturePhase(TB17).config);
     dd.entry('p', { kind: 'REJECT_COUNT', device: 'DEDUSTER', count: '2', disposition: 'DESTRUCTION' });
     dd.entry('p', { kind: 'DEDUSTING', deDuster: 'DD-01', inUse: false });
     expect(last(dd, 'DEDUSTING')).toStrictEqual({ deDuster: 'DD-01', inUse: false, recordedBy: OP1.id });
@@ -72,7 +72,7 @@ describe('TB-17 devices and challenges', () => {
   });
 
   it('[IN-36][IN-35] PERFORMED needs, for each device, a passing END challenge and its rejects; a failing END does not count', () => {
-    const run = run2({ metalDetector: (fixturePhase(TB17).config as Json)['metalDetector'] as never, rejectGate: GATE });
+    const run = run2({ metalDetector: (fixturePhase(TB17).config as Json)['metalDetector'], rejectGate: GATE });
     run.entry('p', challenge('START'));
     run.entry('p', challenge('START', true, 'REJECT_GATE'));
     run.entry('p', { kind: 'REJECT_COUNT', device: 'METAL_DETECTOR', count: '1', disposition: 'DESTRUCTION' });
@@ -88,7 +88,7 @@ describe('TB-17 devices and challenges', () => {
 
   it('[IN-36][IN-35] definition checks: a device, and the metal detector\'s test pieces, each with a decimal size', () => {
     const P = (config: Json): string[] => {
-      const check = TB17.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string }[];
+      const check = TB17.checkConfig?.bind(TB17) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string }[];
       const p = fixturePhase(TB17, { config: config as never });
       return check(p, p.config as Json, blockMbr(TB17, p)).filter((x) => x.code.startsWith('TB17')).map((x) => `${x.code}: ${x.message}`);
     };
@@ -102,7 +102,7 @@ describe('TB-17 devices and challenges', () => {
   });
 
   it('[DI-34] the nominal path challenges each device at START and END around its rejects, then the de-duster in use', () => {
-    const p = fixturePhase(TB17, { config: { rejectGate: GATE } as never });
+    const p = fixturePhase(TB17, { config: { rejectGate: GATE } });
     const m = blockMbr(TB17, p);
     const entries = TB17.simulatorModel?.nominalEntries({ phase: p, config: p.config, mbr: m, frames: [], containers: [], target: () => undefined }) ?? [];
     const own = entries.filter((x) => ['CHALLENGE', 'REJECT_COUNT', 'DEDUSTING'].includes(x.kind));

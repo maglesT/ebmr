@@ -70,9 +70,9 @@ describe('TB-13 physical checks', () => {
   });
 
   it('[IN-35][PR-29] the step refuses other entries and needs a check before PERFORMED', () => {
-    const accept = TB13.handler?.acceptEntry as (v: blocks.HandlerView, e: Json & { kind: string }) => { problems?: { message: string }[] };
+    const accept = TB13.handler?.acceptEntry?.bind(TB13.handler) as unknown as (v: blocks.HandlerView, e: Json & { kind: string }) => { problems?: { message: string }[] };
     expect(accept(view(cfg), { kind: 'OTHER' }).problems?.map((p) => p.message)).toEqual(['OTHER is not an entry of a physical check step (TB13-ENTRY; PR-29)']);
-    const before = TB13.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[];
+    const before = TB13.handler?.beforePerform?.bind(TB13.handler) as unknown as (v: blocks.HandlerView) => { message: string }[];
     expect(before(view(cfg)).map((p) => p.message)).toEqual(['p@ has no physical check (TB13-NO-CHECK; PR-29, IN-35)']);
     expect(before(view(cfg, [{ kind: 'PHYSICAL_CHECK' }]))).toEqual([]);
   });

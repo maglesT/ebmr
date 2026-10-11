@@ -34,7 +34,7 @@ class World {
     } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[] } {
-    const accept = TB07.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
+    const accept = TB07.handler?.acceptEntry?.bind(TB07.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now, recordedSeq: this.entries.length + 1 });
@@ -111,8 +111,8 @@ describe('TB-07 times', () => {
   });
 
   it('[INV-25][PR-08] the time items are computed from the end entries, never typed', () => {
-    const items = (w: World) => (TB07.handler?.computeItems as (v: blocks.HandlerView) => Json[])(w.view());
-    expect(TB07.handler?.computedItems?.(PHASE)).toEqual(['blendTime', 'lubeTime']);
+    const items = (w: World) => (TB07.handler?.computeItems?.bind(TB07.handler) as unknown as (v: blocks.HandlerView) => Json[])(w.view());
+    expect(TB07.handler?.computedItems?.(PHASE, {} as never)).toEqual(['blendTime', 'lubeTime']);
     expect(items(new World())).toEqual([]);
     const w = blended();
     const ends = w.entries.filter((e) => e.kind.endsWith('_END')).map((e) => e.id);
@@ -120,7 +120,7 @@ describe('TB-07 times', () => {
       { item: 'blendTime', value: { kind: 'DECIMAL', value: '600.000000', unit: 's' }, entries: [ends[0]] },
       { item: 'lubeTime', value: { kind: 'DECIMAL', value: '180.000000', unit: 's' }, entries: [ends[1]] },
     ]);
-    expect(TB07.handler?.computedItems?.({ ...PHASE, config: { blendTime: { max: { value: '1', unit: 's' } } } } as never)).toEqual([]);
+    expect(TB07.handler?.computedItems?.({ ...PHASE, config: { blendTime: { max: { value: '1', unit: 's' } } } }, {} as never)).toEqual([]);
   });
 });
 
@@ -157,7 +157,7 @@ describe('TB-07 blend uniformity', () => {
     expect(buPlanOf({ bu: { unitDose: mg('1'), replicates: '2', resultsItem: 'BU' } })).toEqual({ locations: [], replicates: 1, unitDose: mg('1'), resultsItem: 'BU' });
     expect(buPlanOf({ bu: { locations: ['A'] } })).toBeUndefined();
     expect(buPlanOf({ bu: 'x' })).toBeUndefined();
-    const perform = (w: World) => (TB07.handler?.onPerform as (v: blocks.HandlerView) => { exceptions?: Json[] })(w.view());
+    const perform = (w: World) => (TB07.handler?.onPerform?.bind(TB07.handler) as unknown as (v: blocks.HandlerView) => { exceptions?: Json[] })(w.view());
     const cfg = { ...CFG, bu: { locations: ['A', 'B'], replicates: 2, unitDose: mg('250') } };
     const w = blended(cfg);
     w.rec(sample('A', 1, mg('300')));
@@ -172,7 +172,7 @@ describe('TB-07 blend uniformity', () => {
   });
 
   it('[IN-36] PERFORMED needs the main blend and, when the MBR lubricates, the lubrication finished', () => {
-    const before = (w: World) => (TB07.handler?.beforePerform as (v: blocks.HandlerView) => { code: string; message: string }[])(w.view()).filter((p) => p.code.startsWith('TB07')).map((p) => p.message);
+    const before = (w: World) => (TB07.handler?.beforePerform?.bind(TB07.handler) as unknown as (v: blocks.HandlerView) => { code: string; message: string }[])(w.view()).filter((p) => p.code.startsWith('TB07')).map((p) => p.message);
     const w = new World();
     expect(before(w)).toEqual(['p@ has not finished its main blend (TB07-NOT-BLENDED; IN-36)', 'p@ has not finished its lubrication (TB07-NOT-LUBRICATED; IN-36)']);
     w.rec({ kind: 'BLEND_START' });

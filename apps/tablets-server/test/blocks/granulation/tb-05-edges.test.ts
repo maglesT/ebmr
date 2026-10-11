@@ -31,7 +31,7 @@ class World {
     } as unknown as blocks.HandlerView;
   }
   rec(entry: Json & { kind: string }): { refused?: string; data?: Json; exceptions?: Json[] } {
-    const accept = TB05.handler?.acceptEntry as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
+    const accept = TB05.handler?.acceptEntry?.bind(TB05.handler) as unknown as (v: blocks.HandlerView, x: Json & { kind: string }) => { ok: boolean; data?: Json; problems?: { message: string }[]; exceptions?: Json[] };
     const r = accept(this.view(), entry);
     if (!r.ok) return { refused: (r.problems ?? []).map((p) => p.message).join(' | ') };
     this.entries.push({ id: `E${this.entries.length + 1}`, kind: entry.kind, data: r.data ?? {}, recordedAt: this.now });
@@ -101,7 +101,7 @@ describe('TB-05 drying and the LOD sample', () => {
   });
 
   it('[IN-36][PR-27][PR-29] PERFORMED: dried, sampled, and the bag checked after use (fluid bed only)', () => {
-    const before = (x: World) => (TB05.handler?.beforePerform as (v: blocks.HandlerView) => { message: string }[])(x.view()).map((p) => p.message).filter((m) => m.includes('TB05-'));
+    const before = (x: World) => (TB05.handler?.beforePerform?.bind(TB05.handler) as unknown as (v: blocks.HandlerView) => { message: string }[])(x.view()).map((p) => p.message).filter((m) => m.includes('TB05-'));
     const w = new World();
     expect(before(w)).toEqual(['p@ has not finished drying (TB05-NOT-DRIED; IN-36)', 'p@ has no LOD sample (TB05-NO-SAMPLE; IN-36, PR-29)', 'Check the filter bag of p@ after use (TB05-BAG-AFTER-MISSING; IN-36, PR-27)']);
     expect(before(new World({ ...CFG, dryer: 'TRAY' }))).toEqual(['p@ has not finished drying (TB05-NOT-DRIED; IN-36)', 'p@ has no LOD sample (TB05-NO-SAMPLE; IN-36, PR-29)']);
@@ -116,9 +116,9 @@ describe('TB-05 drying and the LOD sample', () => {
 
 describe('TB-05 definition checks', () => {
   const P = (mbr: flow.MbrContent): string[] => {
-    const find = (n: flow.FlowNode): flow.PhaseNode | undefined => (n.kind === 'phase' ? (n.id === 'p' ? n : undefined) : 'children' in n ? n.children.map(find).find(Boolean) : 'body' in n && n.body ? find(n.body as flow.FlowNode) : undefined);
+    const find = (n: flow.FlowNode): flow.PhaseNode | undefined => (n.kind === 'phase' ? (n.id === 'p' ? n : undefined) : 'children' in n ? n.children.map(find).find(Boolean) : 'body' in n && n.body ? find(n.body) : undefined);
     const p = find(mbr.procedure.body) as flow.PhaseNode;
-    const chk = TB05.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+    const chk = TB05.checkConfig?.bind(TB05) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
     return chk(p, p.config as Json, mbr).filter((x) => x.code.startsWith('TB05')).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
   };
   const withLoop = (max: number, config: Json = CFG, records = ['lod']) => {
@@ -132,7 +132,7 @@ describe('TB-05 definition checks', () => {
     expect(P(withLoop(3, CFG, []))).toEqual([lodItem]);
     const param = (over: Json) => {
       const m = withLoop(3);
-      return P({ ...m, parameters: m.parameters.map((x) => (x.id === 'lod' ? ({ ...x, ...over } as typeof x) : x)) });
+      return P({ ...m, parameters: m.parameters.map((x) => (x.id === 'lod' ? ({ ...x, ...over }) : x)) });
     };
     expect(param({ valueType: 'INTEGER' })).toEqual([lodItem]);
     expect(param({ role: 'PROCESS_PARAMETER' })).toEqual([lodItem]);

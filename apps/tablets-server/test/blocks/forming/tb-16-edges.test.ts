@@ -24,7 +24,7 @@ const P = (config: Json, extra: Partial<flow.PhaseNode> = {}, others: flow.FlowN
   const p = fixturePhase(TB16, { ...extra, config: config as never });
   const m = blockMbr(TB16, p, others);
   const mm = withSetup ? m : { ...m, procedure: JSON.parse(JSON.stringify(m.procedure).replaceAll('"TB-10"', '"G-07"')) as flow.MbrContent['procedure'] };
-  const check = TB16.checkConfig as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
+  const check = TB16.checkConfig?.bind(TB16) as unknown as (p: flow.PhaseNode, c: Json, m: flow.MbrContent) => { code: string; message: string; controls: readonly string[] }[];
   return check(p, p.config as Json, mm).filter((x) => x.code.startsWith('TB16')).map((x) => `${x.code} [${x.controls.join(',')}] ${x.message}`);
 };
 const W = 'Bilayer compression step p';
@@ -56,7 +56,7 @@ describe('TB-16 definition checks', () => {
     expect(P({ ...cfg, layers: [l1, { ...t, plan: [(t['plan'] as Json[])[1]] }] })).toContain(sep);
     expect(P({ ...cfg, layers: [l1, { ...t, plan: [(t['plan'] as Json[])[0]] }] })).toContain(sep);
     expect(P({ ...cfg, layers: [l1, { ...t, physical: undefined }] })).toContain(sep);
-    const scheduler = phase('ipc', { block: { type: 'TB-11', version: '1' }, config: { process: 'OTHER', streams: [{ id: 'T' }, 'x'], plan: [], grace: { value: '5', unit: 'min' } } as never });
+    const scheduler = phase('ipc', { block: { type: 'TB-11', version: '1' }, config: { process: 'OTHER', streams: [{ id: 'T' }, 'x'], plan: [], grace: { value: '5', unit: 'min' } } });
     expect(P(cfg, {}, [scheduler])).toContain(`TB16-STREAM-CLASH [PR-29] ${W}: layer stream T is also a stream of an IPC scheduler step; a passing check of one would vouch for the other`);
   });
 

@@ -29,15 +29,15 @@ describe('abort approvals', () => {
     const SYS_QA: Actor = { id: 'SYS-QA', kind: 'SYSTEM', roles: ['QA'] };
     const SYS_HEAD: Actor = { id: 'SYS-HEAD', kind: 'SYSTEM', roles: ['HEAD_OF_PRODUCTION'] };
     for (const approvers of [[QA1, QA_B], [HEAD1, SUP1], [BOTH, BOTH], [HEAD1, SYS_QA], [SYS_HEAD, QA1], [HEAD1]]) {
-      started().refused(abort(approvers) as never, 'ENG-ABORT-APPROVALS');
+      started().refused(abort(approvers), 'ENG-ABORT-APPROVALS');
     }
-    started().refused(abort([HEAD1, QA1], HEAD1) as never, 'ENG-ABORT-APPROVALS');
-    started().refused(abort([HEAD1, QA1], QA1) as never, 'ENG-ABORT-APPROVALS');
+    started().refused(abort([HEAD1, QA1], HEAD1), 'ENG-ABORT-APPROVALS');
+    started().refused(abort([HEAD1, QA1], QA1), 'ENG-ABORT-APPROVALS');
     const both = started();
-    both.ok(abort([BOTH, QA1]) as never);
+    both.ok(abort([BOTH, QA1]));
     expect(both.state.abort?.approvals).toEqual(['BOTH1', 'QA1']);
     const reversed = started();
-    reversed.ok(abort([QA1, BOTH]) as never);
+    reversed.ok(abort([QA1, BOTH]));
     expect(reversed.state.abort?.approvals).toEqual(['BOTH1', 'QA1']);
   });
 });
@@ -56,7 +56,7 @@ describe('what an approval signs', () => {
     expect(key).toMatch(/^act@7:[0-9a-f]{16,}$/);
     expect(approvedActKey(S, { ...skip, approval: ap(HEAD1), commandId: 'c2' } as Command)).toBe(key);
     expect(approvedActKey(S, { ...skip, step: 'p1' } as Command)).not.toBe(key);
-    expect(approvedActKey(S, { ...skip, actor: HEAD1 } as Command)).not.toBe(key);
+    expect(approvedActKey(S, { ...skip, actor: HEAD1 })).not.toBe(key);
     expect(approvedActKey({ version: 8 }, skip)).not.toBe(key);
     expect(batchRecordKey(S)).toBe('record@7');
     expect([BATCH_ACT_AGGREGATE, BATCH_RECORD_AGGREGATE]).toEqual(['batch_act', 'batch_record']);
