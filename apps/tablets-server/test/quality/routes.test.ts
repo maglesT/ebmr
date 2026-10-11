@@ -83,7 +83,8 @@ describe('quality routes (GMP)', () => {
     expect(valueOf(await qa.call(quality.erpMaterials)).materials.find((m) => m.materialCode === code)).toMatchObject({ materialKind: 'EXCIPIENT' });
     // The ERP makes it an intermediate: pending again, and the material stays an excipient until QA confirms.
     valueOf(await gmp.browser().call(quality.erpImport, { body: { ...creds, catalogue: { products: [], materials: [{ ...material, materialKind: 'INTERMEDIATE', erpReference: `SAP-${code}/2` }], orders: [] } } }));
-    expect(await pendingOf()).toEqual([expect.objectContaining({ values: expect.objectContaining({ materialKind: 'INTERMEDIATE' }), inEffect: expect.objectContaining({ materialKind: 'EXCIPIENT' }) })]);
+    const [again] = await pendingOf();
+    expect([again?.values['materialKind'], again?.inEffect?.['materialKind']]).toEqual(['INTERMEDIATE', 'EXCIPIENT']);
     expect(valueOf(await qa.call(quality.erpMaterials)).materials.find((m) => m.materialCode === code)).toMatchObject({ materialKind: 'EXCIPIENT' });
   });
 

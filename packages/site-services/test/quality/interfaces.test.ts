@@ -82,9 +82,8 @@ describe('ERP product master', () => {
     // D-S5-5 and the IN-19 cap: reprocessing permitted and a longer shelf life wait for QA; the values in effect apply meanwhile.
     const v3 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ reprocessingPermitted: true, shelfLifeMonths: 36, erpReference: 'ERP-MAT-000123/3' })));
     expect(await masterOf()).toEqual({ reprocessingPermitted: false, betaLactam: true, shelfLifeMonths: 24 });
-    expect(await w.run(w.cast.qa, (c) => erpMasterPending(c))).toEqual(
-      expect.arrayContaining([expect.objectContaining({ masterKind: 'PRODUCT', versionId: v3, values: expect.objectContaining({ shelfLifeMonths: 36 }), inEffect: expect.objectContaining({ shelfLifeMonths: 24 }) })]),
-    );
+    const pending = (await w.run(w.cast.qa, (c) => erpMasterPending(c))).find((p) => p.versionId === v3);
+    expect([pending?.masterKind, pending?.values['shelfLifeMonths'], pending?.inEffect?.['shelfLifeMonths']]).toEqual(['PRODUCT', 36, 24]);
     await w.confirm('PRODUCT', v3);
     expect(await masterOf()).toEqual({ reprocessingPermitted: true, betaLactam: true, shelfLifeMonths: 36 });
     expect(await masterOf('AMOX-250', '500 mg')).toBeNull();

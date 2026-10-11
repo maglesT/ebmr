@@ -16,7 +16,7 @@ import { useOffered } from '../../app/roles.ts';
 
 const REFRESH = [routes.quality.erpPending.id, routes.quality.erpProducts.id, routes.quality.erpMaterials.id];
 
-const show = (v: unknown): string => (v === null || v === undefined ? '-' : String(v));
+const show = (v: string | number | boolean | null | undefined): string => (v === null || v === undefined ? '-' : String(v));
 
 /** The values a pending version changes, as "name: in effect -> received" (all of them for a new code). */
 export function changesOf(p: ErpPendingView): string[] {
