@@ -325,4 +325,101 @@ describe('the limits of a reprocessing or recovery addition (recipe-core 0622, r
     for (const key of ['unsigned', 'batch', 'step', 'container', 'case', 'scope']) expect(await under(key)).toMatch(/no signed authorisation of this use .*TB08-NOT-AUTHORISED/);
     expect(await under('ok', { 'EN-1': entry('add@', 'ADDITION', A.id, { value: '0.1', unit: 'kg' }, auths['ok']) })).toMatch(/TB08-AUTHORISATION-USED/);
   });
+
+  it('[PR-47] a recovery step starts on a signed STEP authorisation of this batch, step and case, by another person than its signer, once per authorisation', async () => {
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      const take = async (b: string, starter: string, key = 'rec@1'): Promise<string | null> =>
+        (await c.query<{ r: string | null }>("select recipe.reprocessing_start_take($1, 'rec', 'RECOVERY', $2, $3) as r", [b, starter, key])).rows[0]?.r ?? null;
+      const starter = randomUUID();
+      // Authorisations that are not this one: unsigned, of another batch, step, case or scope.
+      const B = (await batch()).id;
+      await authorisation(B, 'rec', null, 'RECOVERY', false);
+      await authorisation(R.id, 'rec', null, 'RECOVERY');
+      await authorisation(B, 'addr', null, 'RECOVERY');
+      await authorisation(B, 'rec', null, 'REPROCESSING_ADDITION');
+      await authorisation(B, 'rec', S1, 'RECOVERY');
+      expect(await take(B, starter)).toMatch(/without the quality unit's signed authorisation .*G24-NOT-AUTHORISED/);
+      // Signed by the starter only.
+      const S = (await batch()).id;
+      const own = await authorisation(S, 'rec', null, 'RECOVERY');
+      await c.query('update recipe.reprocessing_authorisation_signature set signer_person = $2 where authorisation_id = $1', [own, starter]);
+      expect(await take(S, starter)).toMatch(/authorised only by the person who starts it .*G24-SELF-AUTHORISED/);
+      // Two signed authorisations: two starts, each taking its own; a third is refused.
+      const T = (await batch()).id;
+      const a1 = await authorisation(T, 'rec', null, 'RECOVERY');
+      const a2 = await authorisation(T, 'rec', null, 'RECOVERY');
+      expect(await take(T, starter, 'rec@1')).toBeNull();
+      expect(await take(T, starter, 'rec@2')).toBeNull();
+      expect((await c.query<{ a: string }>('select authorisation_id::text as a from recipe.reprocessing_step_start where batch_id = $1 order by step_key', [T])).rows.map((r) => r.a).sort()).toEqual([a1, a2].sort());
+      expect(await take(T, starter, 'rec@3')).toMatch(/each signed authorisation of the step allows one start, and every one was used .*G24-AUTHORISATION-USED/);
+      // The starter's own authorisation is never the one taken.
+      const U = (await batch()).id;
+      const mine = await authorisation(U, 'rec', null, 'RECOVERY');
+      await c.query('update recipe.reprocessing_authorisation_signature set signer_person = $2 where authorisation_id = $1', [mine, starter]);
+      const theirs = await authorisation(U, 'rec', null, 'RECOVERY');
+      expect(await take(U, starter)).toBeNull();
+      expect((await c.query<{ a: string }>('select authorisation_id::text as a from recipe.reprocessing_step_start where batch_id = $1', [U])).rows.map((r) => r.a)).toEqual([theirs]);
+      expect(await take(U, starter, 'rec@2')).toMatch(/G24-AUTHORISATION-USED/);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  });
+});
+
+describe('the checks of a whole-batch request at planning (recipe-core 0625, recipe.reprocessing_request_problem)', () => {
+  let family: string;
+  beforeAll(async () => {
+    family = randomUUID();
+    await w.fixture(
+      `insert into recipe.mbr_family (id, code, title, edition, record_kind, product_code, product_name, strength, dosage_form, batch_sizes, created_by_person, created_by_account)
+       values ($1, $2, 'Reprocessing master', 'tablets', 'REPROCESSING', $3, 'Paracetamol tablets', $4, 'Uncoated tablet', '[{"id": "BS-1", "quantity": {"value": "100", "unit": "kg"}}]', gen_random_uuid(), gen_random_uuid())`,
+      [family, unique('FAM-'), PRODUCT, STRENGTH],
+    );
+    // The product master permits reprocessing, in effect (arranged as site services 0802 reads it).
+    await w.fixture(
+      `with p as (insert into site.erp_product (product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, correlation_id)
+                  values ($1, $2, 'Paracetamol tablets', true, false, 24, $3, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id, product_code, strength)
+       insert into site.erp_master_effect (master_kind, master_key, version_id, basis, person_id, account_id)
+       select 'PRODUCT', p.product_code || '|' || p.strength, p.id, 'RELEASE_BASELINE', gen_random_uuid(), gen_random_uuid() from p`,
+      [PRODUCT, STRENGTH, unique('ERP-')],
+    );
+  });
+  /** A request for `parents` at SITE-1, signed by the QCU (fixtures). */
+  async function signedRequest(parents: string[]): Promise<string> {
+    const id = randomUUID();
+    await w.fixture(
+      `insert into recipe.reprocessing_request (id, family_id, site_code, parent_batch_ids, investigation_ref, risk_evaluation_id, proposed_by_person, proposed_by_account, correlation_id)
+       values ($1, $2, 'SITE-1', $3::uuid[], 'DEV-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      [id, family, parents],
+    );
+    await w.fixture('insert into recipe.reprocessing_request_signature (request_id, signature_id, signer_person, recorded_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
+    return id;
+  }
+  const problem = async (req: string, fam = family, site = 'SITE-1'): Promise<string | null> =>
+    (await db.admin.query<{ r: string | null }>('select recipe.reprocessing_request_problem($1, $2, $3, gen_random_uuid()) as r', [req, fam, site])).rows[0]?.r ?? null;
+
+  it('[PR-47][IN-18] the request is for this master and this site', async () => {
+    const req = await signedRequest([(await batch('EXECUTION_COMPLETE')).id]);
+    // Past these checks, the investigation is what answers (DEV-1 is no deviation).
+    expect(await problem(req)).toMatch(/the investigation DEV-1 does not stand for parent/);
+    expect(await problem(req, randomUUID())).toBe('the request is for another reprocessing master or site');
+    expect(await problem(req, family, 'SITE-2')).toBe('the request is for another reprocessing master or site');
+  });
+
+  it('[INV-33][IN-18] each parent is an issued GMP batch of the product and strength, at the site', async () => {
+    expect(await problem(await signedRequest([randomUUID()]))).toMatch(/^parent .* is no issued GMP batch$/);
+    const strength = await batch('EXECUTION_COMPLETE');
+    await w.fixture(
+      "update recipe.control_recipe set snapshot = jsonb_set(snapshot, '{mbr,content,header,product,strength}', '\"650 mg\"') where batch_id = $1",
+      [strength.id],
+    );
+    expect(await problem(await signedRequest([strength.id]))).toMatch(/^parent .* is not of .* at site SITE-1$/);
+    const elsewhere = await batch('EXECUTION_COMPLETE');
+    await w.fixture("update recipe.stub_batch set site = 'SITE-2' where id = $1", [elsewhere.id]);
+    expect(await problem(await signedRequest([elsewhere.id]))).toMatch(/^parent .* is not of .* at site SITE-1$/);
+  });
 });
