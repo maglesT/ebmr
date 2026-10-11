@@ -793,7 +793,7 @@ export const TARGETS: Target[] = [
   {
     group: 'platform-scope',
     functions: ['platform.register_hook', 'platform.scope_of', 'iam.platform_authority', 'plant.transition_scope'],
-    tests: [k('platform/scope-hook.test.ts'), k('platform/state-machine.test.ts'), k('esig/platform-hook.test.ts'), k('integration/authorization.test.ts'), r('plant/equipment.test.ts')],
+    tests: [k('platform/scope-hook.test.ts'), k('platform/state-machine.test.ts'), k('esig/platform-hook.test.ts'), k('integration/authorization.test.ts'), r('plant/equipment.test.ts'), r('containers/containers.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: recipe-core checks the Tablets edition redefines (tablets 0843, 0844, 0845, 0852, 0874, 1021): the
