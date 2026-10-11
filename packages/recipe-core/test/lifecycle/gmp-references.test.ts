@@ -31,6 +31,7 @@ let supervisor: SeededActor;
 let qa: SeededActor;
 let qa2: SeededActor;
 let qaReviewer: SeededActor;
+let qcu: SeededActor;
 let erp: SeededActor;
 const dir = tempDir('gmp-references');
 const ledger = tempLedger('gmp-references', dir.path);
@@ -44,6 +45,7 @@ beforeAll(async () => {
   qa = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Qamar Investigator' });
   qa2 = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Quentin Approver' });
   qaReviewer = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Rhea Reviewer' });
+  qcu = await seedActor(db, { roleCode: 'AUTHORISED_PERSON', legalName: 'Uma Authoriser' });
   erp = await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' });
 }, 300_000);
 
@@ -76,15 +78,15 @@ function without(content: unknown, types: readonly string[]): unknown {
 }
 
 /** An effective master for India at SITE-1/L1/BS-200K with a numbering rule. */
-async function effective(): Promise<{ familyId: string; content: MbrContent }> {
+async function effective(given?: MbrContent, rule = true): Promise<{ familyId: string; content: MbrContent }> {
   const m = uniqueContent(FIXTURE);
   m.header.product = { ...m.header.product, code: m.header.product.code.toUpperCase() };
-  const content = without(m, ['G-09', 'G-10']) as MbrContent;
+  const content = given ?? (without(m, ['G-09', 'G-10']) as MbrContent);
   const v = await w.approvedVersion(content);
   const auth: lc.MarketAuthorisationDefinition = { versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, 'L1', BS)], regulatoryBasis: 'IN: registration on file' };
   await w.authorise(auth);
   const product = content.header.product.code;
-  await w.run(steward, (c) =>
+  if (rule) await w.run(steward, (c) =>
     c.query('select site.define_batch_number_rule($1::jsonb)', [
       JSON.stringify({ rule_code: `G-${randomUUID().slice(0, 8).toUpperCase()}`, site_code: SITE, product_code: product, batch_kind: 'PROCESSING', format: 'G{YY}{SEQ:5}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' }),
     ]),
@@ -100,12 +102,12 @@ function plan(batchId: string, familyId: string, erpOrder: string): Promise<exec
 }
 
 /** An effective master and an issued GMP batch of it. */
-async function issuedBatch(): Promise<{ batchId: string; content: MbrContent }> {
-  const { familyId, content } = await effective();
+async function issuedBatch(given?: { familyId: string; content: MbrContent }, planWith?: (batchId: string, erpOrder: string) => Promise<unknown>): Promise<{ batchId: string; content: MbrContent }> {
+  const { familyId, content } = given ?? (await effective());
   const v = { familyId };
   const batchId = randomUUID();
   const erpOrder = await gmpOrderFor(db, erp, content, BS);
-  await plan(batchId, v.familyId, erpOrder);
+  await (planWith ? planWith(batchId, erpOrder) : plan(batchId, v.familyId, erpOrder));
   const signatureId = await w.sign(w.cast.issuer, 'batch_issue', batchId, 'ISSUED', 'PLANNED');
   await w.run(
     w.cast.issuer,
@@ -275,5 +277,65 @@ describe('the ERP order at GMP issue (outline 5.2.2; D-S5-4)', () => {
     expect(await codeOf(db.app.query("insert into recipe.batch_erp_order (batch_id, order_id, order_no) values (gen_random_uuid(), gen_random_uuid(), 'X')"))).toMatch(/permission denied/);
     expect(await codeOf(db.app.query("update site.erp_production_order set bom = '[]'"))).toMatch(/permission denied/);
     expect(await codeOf(withCommand(db.app, { ...w.cast.issuer, correlationId: randomUUID() }, (c) => c.query('select site.erp_receive_order($1::jsonb)', [JSON.stringify({ orderNo: 'PO-X', siteCode: SITE, productCode: 'P', strength: '1', batchSize: '1', batchSizeUnit: 'kg', bom: bom, erpReference: 'E' })])))).toBe('EBMR-IAM-040');
+  });
+});
+
+describe('a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 0603)', () => {
+  it('[INV-33][IN-18] a reprocessing batch of a REPROCESSING master is planned, signed and issued end to end with a PROCESSING number from the register, linked to its parents', async () => {
+    // The parents: two issued GMP batches of one processing master.
+    const parentMaster = await effective();
+    const parents = [await issuedBatch(parentMaster), await issuedBatch(parentMaster)];
+    // The reprocessing master: the same product and strength, record kind REPROCESSING (the numbering rule is the product's).
+    const rc = structuredClone(parentMaster.content) as MbrContent;
+    (rc.header as { recordKind: string }).recordKind = 'REPROCESSING';
+    rc.header.family = `${rc.header.family}-RP`.slice(0, 60);
+    rc.header.title = `${rc.header.title} (reprocessing)`;
+    const master = await effective(rc, false);
+    const product = rc.header.product;
+    // The investigation, concluded by QA and linked to both parents; the stored risk evaluation; the product's permission.
+    const inv = await deviation('INVESTIGATION');
+    for (const p of parents) await w.run(operator, (c) => c.query("select site.link_deviation($1, 'BATCH', $2)", [inv.deviationId, p.batchId]));
+    await conclude(inv, true);
+    const risk = await w.run(operator, async (c) =>
+      (await c.query<{ r: string }>('select site.register_evidence_document($1::jsonb) as r', [
+        JSON.stringify({ sha256: createHash('sha256').update(`risk ${randomUUID()}`).digest('hex'), mediaType: 'application/pdf', sizeBytes: '4096', storageKey: `evidence/${randomUUID()}.pdf`, title: 'Risk evaluation' }),
+      ])).rows[0]!.r,
+    );
+    await withCommand(db.app, { ...erp, correlationId: randomUUID() }, (c) =>
+      c.query('select site.erp_receive_product($1::jsonb)', [
+        JSON.stringify({ productCode: product.code, strength: product.strength, productName: product.name, reprocessingPermitted: true, betaLactam: false, shelfLifeMonths: 24, erpReference: 'ERP-RP' }),
+      ]),
+    );
+    // The request, authorised by the quality-control unit (another person than the issuer).
+    const req = await w.run(w.cast.issuer, async (c) =>
+      (await c.query<{ r: { id: string } }>('select recipe.propose_reprocessing_request($1, $2, $3::uuid[], $4, $5) as r', [master.familyId, SITE, parents.map((p) => p.batchId), inv.ref, risk])).rows[0]!.r.id,
+    );
+    const sig = await signFor(db, qcu, { type: 'reprocessing_request', id: req }, 'REPROCESSING_AUTHORISED', 'PROPOSED');
+    await w.run(qcu, (c) => c.query('select recipe.authorise_reprocessing_request($1, $2)', [req, sig]));
+
+    // Planned through prepare_reprocessing_issue (5a's GMP issue with its ERP order), signed ISSUED and issued.
+    let planned: Record<string, unknown> = {};
+    const child = await issuedBatch(master, async (batchId, erpOrder) => {
+      planned = await withProtectedNumbers(db.app, await cmd(db, w.cast.issuer), ledger, async (c) =>
+        (await c.query<{ r: Record<string, unknown> }>('select recipe.prepare_reprocessing_issue($1, $2::jsonb) as r', [
+          batchId, JSON.stringify({ familyId: master.familyId, markets: ['IN'], site: SITE, line: 'L1', batchSize: BS, erpOrder, reprocessingRequest: req }),
+        ])).rows[0]!.r,
+      );
+    });
+    const { rows } = await db.admin.query<{ batch_kind: string; batch_number: string; state: string | null }>(
+      `select a.batch_kind, a.batch_number, b.installation as state from recipe.batch_allocation_link l join site.batch_number_allocation a on a.id = l.allocation_id
+         join recipe.batch_execution b on b.id = l.batch_id where l.batch_id = $1`,
+      [child.batchId],
+    );
+    expect(rows[0]?.batch_kind).toBe('PROCESSING');
+    expect(rows[0]?.state).toBe('GMP');
+    expect(planned['batch_number']).toBe(rows[0]?.batch_number);
+    const parentNumbers = (await db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = any($1::uuid[])', [parents.map((p) => p.batchId)])).rows.map((r) => r.n);
+    expect(parentNumbers).not.toContain(rows[0]?.batch_number);
+    const links = await db.app.query<{ parent_batch_id: string }>('select parent_batch_id from recipe.batch_parent_link where child_batch_id = $1 order by parent_batch_id', [child.batchId]);
+    expect(links.rows.map((r) => r.parent_batch_id)).toEqual(parents.map((p) => p.batchId).sort());
+    expect((await db.app.query<{ b: string | null }>('select recipe.batch_reprocessing_basis($1) as b', [child.batchId])).rows[0]?.b).toBe('WHOLE_BATCH');
+    // The register's batch kinds stay PROCESSING and PACKAGING: the mapping is the batch side's.
+    expect((await db.admin.query<{ k: string | null }>("select recipe.register_batch_kind('REPROCESSING') as k")).rows[0]?.k).toBe('PROCESSING');
   });
 });
