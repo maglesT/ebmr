@@ -11,10 +11,13 @@ import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
-import { bindRoutes } from '../../platform/http/bind.ts';
+import { bindRoutes, withoutAttribution } from '../../platform/http/bind.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { compact, peopleOf, personRef } from '../common/people.ts';
 import { dbActHandler } from '../esig/db-acts.ts';
+
+/** The body without its badge-tap attribution (a FRESH_ON_SHARED route's, INV-40): the database gets the command's own members. */
+const bare = <T extends object>(body: T): Omit<T, 'attribution'> => withoutAttribution(body) as unknown as Omit<T, 'attribution'>;
 
 type MasterDataApprove = Extract<SignableAction, { kind: 'MASTER_DATA_APPROVE' }>;
 
@@ -95,7 +98,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     createFormula: async ({ body, requireSession, actor, idempotencyKey, requestHash }) => {
       const s = requireSession();
-      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => formula.createFormula(c, body));
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => formula.createFormula(c, bare(body)));
       return (await one(s.tokenHash, out.result)).summary;
     },
     formula: async ({ params, requireSession }) => {

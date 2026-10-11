@@ -9,10 +9,11 @@
  *                LOT_RESULT_APPROVE   lot_test_result <id>        QC_RESULT_APPROVED       site.approve_lot_test_result
  *                QC_EXTRA_TESTING_DECISION  qc_extra_testing <batch>/<decision>/<tests>   QC_EXTRA_TESTING_DECIDED
  *                                                                                           site.record_qc_extra_testing_decision
- *                LOT_RETEST           material_lot <id>           LOT_RETEST_APPROVED      site.record_signed_lot_retest
+ *                LOT_RETEST           lot_retest <lot>/<instant>/<results>   LOT_RETEST_APPROVED
+ *                                                                                           site.record_signed_lot_retest
+ *                                     (site-services 0762: the signed content binds the new instant and the results)
  *   LOT_DECISION RELEASE              material_lot <id>           MATERIAL_LOT_RELEASED    site.change_lot_status
- *                REJECT               material_lot <id>           MATERIAL_LOT_REJECTED from QUARANTINE, else
- *                                                                 MATERIAL_LOT_STATUS_DECIDED (the lot's machine)
+ *                REJECT               material_lot <id>           MATERIAL_LOT_REJECTED from every state (the lot's machine)
  *   REPROCESSING_ACT RESERVE_RESIDUE  output_container <id>       RESIDUE_RESERVED         recipe.reserve_residue
  *                AUTHORISE_ADDITION   reprocessing_authorisation  REPROCESSING_AUTHORISED  recipe.authorise_reprocessing
  *                AUTHORISE_REQUEST    reprocessing_request        REPROCESSING_AUTHORISED  recipe.authorise_reprocessing_request
@@ -38,12 +39,32 @@ const QUALITY: Readonly<Record<QualityAct['act'], { aggregateType: string; meani
   DEVIATION_CLOSE: { aggregateType: 'deviation', meaning: 'DEVIATION_CLOSED', uses: [] },
   LOT_RESULT_APPROVE: { aggregateType: 'lot_test_result', meaning: 'QC_RESULT_APPROVED', uses: [] },
   QC_EXTRA_TESTING_DECISION: { aggregateType: 'qc_extra_testing', meaning: 'QC_EXTRA_TESTING_DECIDED', uses: ['decision', 'tests'] },
-  LOT_RETEST: { aggregateType: 'material_lot', meaning: 'LOT_RETEST_APPROVED', uses: ['retestAt', 'results'] },
+  LOT_RETEST: { aggregateType: 'lot_retest', meaning: 'LOT_RETEST_APPROVED', uses: ['retestAt', 'results'] },
 };
+
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+const UUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+/** The instant as site.utc_text (0700) writes it: UTC, microseconds. */
+function utcMicro(at: string): string {
+  const d = new Date(at);
+  return Number.isNaN(d.getTime()) ? at : d.toISOString().replace(/\.(\d{3})Z$/, '.$1000Z');
+}
+
+/** As site.lot_retest_aggregate_id (0762): the lot, the new retest instant, the result ids distinct and sorted joined by '+'. */
+export function lotRetestAggregateId(lotId: string, retestAt: string, results: readonly string[]): string {
+  const ids = [...new Set(results.map((r) => r.toLowerCase()))].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return `${lotId}/${utcMicro(retestAt)}/${ids.join('+')}`;
+}
 
 function qualityTarget(a: QualityAct): ActTarget {
   const q = QUALITY[a.act];
-  const id = a.act === 'QC_EXTRA_TESTING_DECISION' ? extraTestingAggregateId(a.subjectId, a.input.decision ?? '', a.input.tests ?? []) : a.subjectId;
+  const id =
+    a.act === 'QC_EXTRA_TESTING_DECISION'
+      ? extraTestingAggregateId(a.subjectId, a.input.decision ?? '', a.input.tests ?? [])
+      : a.act === 'LOT_RETEST'
+        ? lotRetestAggregateId(a.subjectId, a.input.retestAt ?? '', a.input.results ?? [])
+        : a.subjectId;
   return { aggregateType: q.aggregateType, aggregateId: id, meaning: q.meaning };
 }
 
@@ -65,14 +86,40 @@ function inputRefusal(a: QualityAct): DryRunOutcome | null {
 export function qualityActHandler(app: AppContext): SignableActionHandler<QualityAct> {
   return dbActHandler<QualityAct>(app, {
     kind: 'QUALITY_ACT',
-    aggregateTypes: ['deviation', 'lot_test_result', 'qc_extra_testing'],
+    aggregateTypes: ['deviation', 'lot_test_result', 'qc_extra_testing', 'lot_retest'],
     target: qualityTarget,
     async targetNow(db, a) {
+      if (a.act === 'LOT_RETEST') {
+        // The database names the aggregate (its instant text and id order); a malformed input is refused by precheck or apply.
+        const { rows } = await db
+          .query<{ id: string | null }>('select site.lot_retest_aggregate_id($1::uuid, $2::timestamptz, $3::uuid[]) as id', [a.subjectId, a.input.retestAt ?? null, a.input.results ?? []])
+          .catch(() => ({ rows: [] as { id: string | null }[] }));
+        return { ...qualityTarget(a), aggregateId: rows[0]?.id ?? qualityTarget(a).aggregateId };
+      }
       if (a.act !== 'QC_EXTRA_TESTING_DECISION') return qualityTarget(a);
       const { rows } = await db.query<{ id: string | null }>('select site.qc_extra_testing_aggregate_id($1, $2, $3::text[]) as id', [a.subjectId, a.input.decision ?? '', a.input.tests ?? []]);
       return { ...qualityTarget(a), aggregateId: rows[0]?.id ?? qualityTarget(a).aggregateId };
     },
-    precheck: (_c, _ctx, a) => Promise.resolve(inputRefusal(a)),
+    async precheck(client, _ctx, a) {
+      const refusal = inputRefusal(a);
+      if (refusal || a.act !== 'LOT_RETEST') return refusal;
+      // The signed aggregate names the instant and the results exactly as the database does (0762), or nothing is signed.
+      const at = a.input.retestAt ?? '';
+      const ids = a.input.results ?? [];
+      const wellFormed = ISO_INSTANT.test(at) && UUID.test(a.subjectId) && ids.every((r) => UUID.test(r));
+      const rows = wellFormed
+        ? (await client.query<{ id: string }>('select site.lot_retest_aggregate_id($1::uuid, $2::timestamptz, $3::uuid[]) as id', [a.subjectId, at, ids])).rows
+        : [];
+      if (rows[0]?.id === lotRetestAggregateId(a.subjectId, at, ids)) return null;
+      return refusedOutcome(
+        422,
+        'EBMR-API-ACT-INPUT',
+        'The retest does not name its instant and results plainly. Nothing was signed.',
+        'The new retest date is an instant with its zone (for example 2027-06-30T00:00:00Z) and each result is the id of a lot test result.',
+        ['DI-37'],
+        ['Reload the screen and sign again.'],
+      );
+    },
     async apply(client, _ctx, a, signatureId) {
       switch (a.act) {
         case 'DEVIATION_CONCLUDE':
@@ -104,19 +151,18 @@ async function lotState(db: pg.Pool | pg.PoolClient, lotId: string): Promise<{ s
   return rows[0] ?? null;
 }
 
-const lotMeaning = (a: LotDecision, state: string | null): string =>
-  a.decision === 'RELEASE' ? 'MATERIAL_LOT_RELEASED' : state === null ? '' : state === 'QUARANTINE' ? 'MATERIAL_LOT_REJECTED' : 'MATERIAL_LOT_STATUS_DECIDED';
+/** The lot's machine (site-services 0711): a release is MATERIAL_LOT_RELEASED, a rejection MATERIAL_LOT_REJECTED from every state. */
+const lotMeaning = (a: LotDecision): string => (a.decision === 'RELEASE' ? 'MATERIAL_LOT_RELEASED' : 'MATERIAL_LOT_REJECTED');
 
 export function lotDecisionHandler(app: AppContext): SignableActionHandler<LotDecision> {
   return dbActHandler<LotDecision>(app, {
     kind: 'LOT_DECISION',
     aggregateTypes: ['material_lot'],
     reasonOf: (a) => (a.reason ? { reasonCode: a.reason.code, reasonText: a.reason.text } : undefined),
-    // A rejection's meaning depends on the lot's state: '' here (the challenge names it), read now by targetNow.
-    target: (a) => ({ aggregateType: 'material_lot', aggregateId: a.lotId, meaning: lotMeaning(a, null) }),
+    target: (a) => ({ aggregateType: 'material_lot', aggregateId: a.lotId, meaning: lotMeaning(a) }),
     async targetNow(db, a) {
       const s = await lotState(db, a.lotId);
-      return { aggregateType: 'material_lot', aggregateId: a.lotId, meaning: lotMeaning(a, s?.state ?? null), ...(s ? { expectedState: s.state } : {}) };
+      return { aggregateType: 'material_lot', aggregateId: a.lotId, meaning: lotMeaning(a), ...(s ? { expectedState: s.state } : {}) };
     },
     async precheck(client, ctx, a) {
       if ((a.decision === 'RELEASE') !== (a.route !== undefined)) {
@@ -124,8 +170,8 @@ export function lotDecisionHandler(app: AppContext): SignableActionHandler<LotDe
       }
       const s = await lotState(client, a.lotId);
       const meaning = (ctx as { meaning?: string }).meaning;
-      if (s && meaning !== undefined && meaning !== '' && meaning !== lotMeaning(a, s.state)) {
-        return refusedOutcome(422, 'EBMR-API-LOT-MEANING', `This decision is signed ${lotMeaning(a, s.state)}, not ${meaning}. Nothing was signed.`, `The lot is ${s.state}.`, ['DI-35'], ['Reload the lot and sign again.']);
+      if (s && meaning !== undefined && meaning !== '' && meaning !== lotMeaning(a)) {
+        return refusedOutcome(422, 'EBMR-API-LOT-MEANING', `This decision is signed ${lotMeaning(a)}, not ${meaning}. Nothing was signed.`, `The lot is ${s.state}.`, ['DI-35'], ['Reload the lot and sign again.']);
       }
       return null;
     },

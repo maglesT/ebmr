@@ -53,7 +53,8 @@ class GmpWorld extends World {
   }
 }
 
-async function actorOf(server: TestServer, key: string): Promise<SeededActor> {
+/** A seed persona as a kernel actor in its own session (for the database calls the routes do not make). */
+export async function actorOf(server: TestServer, key: string): Promise<SeededActor> {
   const p = personaIn(server, key);
   const s = await openPersonaSession(server.db, server.seed, key);
   return { ...s, seed: { loginName: p.loginName, password: p.password, deviceFingerprint: s.fingerprint, deviceClass: 'PERSONAL', grantId: '', identityVerificationId: '' } };
@@ -89,10 +90,11 @@ export interface GmpBatchWorld {
   close(): Promise<void>;
 }
 
-export async function startGmpBatchWorld(content: flow.MbrContent = gmpContent()): Promise<GmpBatchWorld> {
-  const ledgerDir = mkdtempSync(join(tmpdir(), 'ebmr-gmp-ledger-'));
-  const server = await startSigningServer('GMP', { stub: false, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } });
-  const gmp: ExecServer = Object.assign(server, { exchangeDir: ledgerDir });
+/**
+ * The MBR life cycle on a GMP server, as the application role in the seed personas' own sessions (author, checker, QA
+ * approver, regulatory signer, issuer), with real signatures sealed by the server's key.
+ */
+export async function gmpLifecycleWorld(gmp: TestServer): Promise<World> {
   const db: TestDatabase = { name: gmp.database, admin: gmp.db.admin, app: gmp.db.app, drop: () => Promise.resolve() };
   const key = gmp.built.ctx.sealKey;
   if (!key) throw new Error('the GMP server has no seal key');
@@ -102,7 +104,14 @@ export async function startGmpBatchWorld(content: flow.MbrContent = gmpContent()
   const regulatory = await actorOf(gmp, 'regulatory');
   const issuerActor = await actorOf(gmp, 'issuer');
   const cast: Cast = { author, coAuthor: author, checker, checker2: checker, qa, qa2: qa, regulatory, issuer: issuerActor };
-  const world = new GmpWorld(db, cast, key);
+  return new GmpWorld(db, cast, key);
+}
+
+export async function startGmpBatchWorld(content: flow.MbrContent = gmpContent()): Promise<GmpBatchWorld> {
+  const ledgerDir = mkdtempSync(join(tmpdir(), 'ebmr-gmp-ledger-'));
+  const server = await startSigningServer('GMP', { stub: false, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } });
+  const gmp: ExecServer = Object.assign(server, { exchangeDir: ledgerDir });
+  const world = await gmpLifecycleWorld(gmp);
   const v = await world.approvedVersion(content);
   await world.authorise({ versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, BATCH_SIZE)], regulatoryBasis: 'IN: registration on file' });
   const steward = await actorOf(gmp, 'steward');

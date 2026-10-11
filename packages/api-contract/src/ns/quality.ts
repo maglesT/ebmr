@@ -9,7 +9,7 @@
  * stub's masters and orders as read, and the material lots (list and receipt; kind, name and unit from the master).
  */
 import { z } from 'zod';
-import { Base64Text, DecimalString, Instant, IntegerString, PersonRef, Uuid } from '../common.ts';
+import { Base64Text, DecimalString, Instant, IntegerString, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
 const DeviationKind = z.enum(['DEVIATION', 'OOS', 'INVESTIGATION']);
@@ -318,8 +318,9 @@ export const quality = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Store a document (investigation report, certificate) and register it; its SHA-256 and size are computed by the server',
-    body: z.strictObject({
+    body: withAttribution({
       title: z.string().trim().min(1).max(200),
       mediaType: z.enum(['application/pdf', 'image/png', 'image/jpeg', 'image/tiff', 'text/plain', 'text/csv', 'application/json', 'application/xml']),
       /** The document's bytes, base64 (at most about 4 MB of content). */
@@ -386,8 +387,9 @@ export const quality = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Receive a lot of a material of the ERP material master into quarantine (kind, name and unit from the master)',
-    body: z.strictObject({
+    body: withAttribution({
       materialCode: Code,
       lotCode: Code,
       supplier: z.string().trim().min(1).max(200),

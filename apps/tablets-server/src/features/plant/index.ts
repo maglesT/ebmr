@@ -12,11 +12,14 @@ import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
-import { bindRoutes } from '../../platform/http/bind.ts';
+import { bindRoutes, withoutAttribution } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { compact, peopleOf, personRef, usOf } from '../common/people.ts';
 import { dbActHandler } from '../esig/db-acts.ts';
+
+/** The body without its badge-tap attribution (a FRESH_ON_SHARED route's, INV-40): the database gets the command's own members. */
+const bare = <T extends object>(body: T): Omit<T, 'attribution'> => withoutAttribution(body) as unknown as Omit<T, 'attribution'>;
 
 type Db = Pick<pg.Pool, 'query'>;
 type PlantVerify = Extract<SignableAction, { kind: 'PLANT_VERIFY' }>;
@@ -173,7 +176,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineArea: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, (c) => plant.defineArea(c, compact(ctx.body) as plant.AreaDefinition));
+      await write(ctx, (c) => plant.defineArea(c, compact(bare(ctx.body)) as plant.AreaDefinition));
       return one(await areas(pool, ctx.body.code), 'area');
     },
     equipmentClasses: async ({ requireSession }) => {
@@ -182,7 +185,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineEquipmentClass: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, (c) => plant.defineEquipmentClass(c, compact(ctx.body) as plant.EquipmentClassDefinition));
+      await write(ctx, (c) => plant.defineEquipmentClass(c, compact(bare(ctx.body)) as plant.EquipmentClassDefinition));
       return one(await classes(pool, ctx.body.code), 'equipment class');
     },
     equipment: async ({ requireSession }) => {
@@ -191,7 +194,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineEquipment: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, (c) => plant.defineEquipment(c, compact(ctx.body) as plant.EquipmentDefinition));
+      await write(ctx, (c) => plant.defineEquipment(c, compact(bare(ctx.body)) as plant.EquipmentDefinition));
       return one(await equipment(pool, { code: ctx.body.code }), 'equipment');
     },
     toolingSets: async ({ requireSession }) => {
@@ -200,7 +203,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineToolingSet: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, async (c) => (await c.query<{ r: string }>('select tab.define_tooling_set($1::jsonb)::text as r', [JSON.stringify(ctx.body)])).rows[0]?.r ?? '');
+      await write(ctx, async (c) => (await c.query<{ r: string }>('select tab.define_tooling_set($1::jsonb)::text as r', [JSON.stringify(bare(ctx.body))])).rows[0]?.r ?? '');
       return one(await toolingSets(pool, ctx.body.code), 'tooling set');
     },
     detectors: async ({ requireSession }) => {
@@ -209,7 +212,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineDetector: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, async (c) => (await c.query<{ r: string }>('select tab.define_detector($1::jsonb)::text as r', [JSON.stringify(ctx.body)])).rows[0]?.r ?? '');
+      await write(ctx, async (c) => (await c.query<{ r: string }>('select tab.define_detector($1::jsonb)::text as r', [JSON.stringify(bare(ctx.body))])).rows[0]?.r ?? '');
       return one(await detectors(pool, ctx.body.code), 'detector');
     },
     testPieces: async ({ requireSession }) => {
@@ -218,7 +221,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     defineTestPiece: async (ctx) => {
       ctx.requireSession();
-      await write(ctx, async (c) => (await c.query<{ r: string }>('select tab.define_test_piece($1::jsonb)::text as r', [JSON.stringify(ctx.body)])).rows[0]?.r ?? '');
+      await write(ctx, async (c) => (await c.query<{ r: string }>('select tab.define_test_piece($1::jsonb)::text as r', [JSON.stringify(bare(ctx.body))])).rows[0]?.r ?? '');
       return one(await testPieces(app, pool, ctx.body.code), 'test piece');
     },
     utilities: async ({ requireSession }) => {
@@ -231,7 +234,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       if (cls && cls.kind !== 'UTILITY') {
         throw refusal(422, { code: 'EBMR-API-NOT-UTILITY', kind: 'INVALID_INPUT', whatHappened: 'This class is not a utility class.', why: `${cls.code} is a ${cls.kind} class.`, whatYouCanDo: ['Choose a UTILITY class.'] });
       }
-      await write(ctx, (c) => plant.defineEquipment(c, compact(ctx.body) as plant.EquipmentDefinition));
+      await write(ctx, (c) => plant.defineEquipment(c, compact(bare(ctx.body)) as plant.EquipmentDefinition));
       return one(await equipment(pool, { code: ctx.body.code }), 'utility');
     },
     startCleaning: async (ctx) => {

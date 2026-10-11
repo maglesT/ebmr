@@ -1,11 +1,14 @@
 /**
  * LIMS-lite, the material master at receipt, the lot release rule and retest (Phase 3 slice 5a steps 3 and 4; site
  * services 0740, 0750, 0752; slice 5 plan D-S5-3, D-S5-4; backlog slice 1 #5 and #7). Proven as the application role,
- * with its bypass attempts.
+ * with its bypass attempts. Since 0760 and 0761 a retest is recorded only under QC's own LOT_RETEST_APPROVED signature.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, signFor, type TestDatabase } from '../helpers.ts';
-import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { randomUUID } from 'node:crypto';
+import { esig, identity, withCommand } from '@ebmr/kernel';
+import { ensureSealKey, testSealKey } from '../../../kernel/test/esig/helpers.ts';
+import { seedAuthn, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { QualityWorld, refusal, seedQualityCast, unique } from './support.ts';
 
 let db: TestDatabase;
@@ -31,6 +34,48 @@ async function approve(resultId: string, by: SeededActor = w.cast.qcHead): Promi
   await w.sql(by, 'select site.approve_lot_test_result($1, $2)', [resultId, sig]);
 }
 const state = async (resultId: string): Promise<string> => (await db.app.query<{ s: string }>('select site.lot_test_state($1) as s', [resultId])).rows[0]?.s ?? '';
+
+/** The aggregate a retest decision is signed under (0762): the lot, the new instant and the results. */
+async function retestAggregate(lotId: string, at: string, ids: string[]): Promise<string> {
+  return (await db.app.query<{ id: string }>('select site.lot_retest_aggregate_id($1, $2::timestamptz, $3::uuid[]) as id', [lotId, at, ids])).rows[0]?.id ?? '';
+}
+
+/**
+ * QC's retest decision: the person's LOT_RETEST_APPROVED signature on the retest decision (aggregate lot_retest: the lot,
+ * the new instant and the results, 0762) and the signed writer in one command, as the server's signing command runs them,
+ * so a refused decision keeps no signature either. `record` records another decision with that signature (a bypass
+ * attempt); `reuse` records with an earlier signature instead of signing.
+ */
+async function signedRetest(
+  lotId: string,
+  at: string,
+  ids: string[],
+  by: SeededActor = w.cast.qcHead,
+  opts: { record?: { at: string; ids: string[] }; reuse?: string } = {},
+): Promise<{ retestId: string | undefined; signatureId: string }> {
+  await ensureSealKey(db);
+  const rec = opts.record ?? { at, ids };
+  if (opts.reuse !== undefined) {
+    const reused = opts.reuse;
+    return withCommand(db.app, { ...by, correlationId: randomUUID() }, async (c) => {
+      const { rows } = await c.query<{ r: string }>('select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], $4)::text as r', [lotId, rec.at, rec.ids, reused]);
+      return { retestId: rows[0]?.r, signatureId: reused };
+    });
+  }
+  const aggregateId = await retestAggregate(lotId, at, ids);
+  const content = await esig.contentForSigning(db.app, 'lot_retest', aggregateId);
+  const challenge = await withCommand(db.app, { ...by, correlationId: randomUUID() }, (c) =>
+    esig.createChallenge(c, { aggregateType: 'lot_retest', aggregateId, contentVersion: content.contentVersion ?? '1', meaning: 'LOT_RETEST_APPROVED', clientContentHash: content.contentHash ?? '' }),
+  );
+  const ev = await identity.authenticate(seedAuthn(db), {
+    method: 'PASSWORD', identifier: by.seed.loginName, secret: by.seed.password, deviceFingerprint: by.seed.deviceFingerprint, purpose: 'SIGNATURE', challengeId: challenge.challengeId,
+  });
+  return withCommand(db.app, { ...by, correlationId: randomUUID(), authEventId: ev.authEventId }, async (c) => {
+    const sig = await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: 'OPEN' }, testSealKey);
+    const { rows } = await c.query<{ r: string }>('select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], $4)::text as r', [lotId, rec.at, rec.ids, sig.signatureId]);
+    return { retestId: rows[0]?.r, signatureId: sig.signatureId };
+  });
+}
 
 /** Releases a lot on the identity-tested route (identity result, MATERIAL_LOT_RELEASED by the head of QC). */
 async function release(lotId: string, signer: SeededActor = w.cast.qcHead2): Promise<void> {
@@ -162,15 +207,14 @@ describe('retest (PR-18)', () => {
     const usage = async () => (await db.app.query<{ usage_status: string }>('select usage_status from site.material_lot_usage where lot_id = $1', [lot.lotId])).rows[0]?.usage_status;
     expect(await usage()).toBe('RETEST_DUE');
 
-    const retest = (at: string, ids: string[], by: SeededActor = w.cast.qcHead) =>
-      w.sql(by, "select site.record_lot_retest($1, $2::timestamptz, $3::uuid[])", [lot.lotId, at, ids]);
+    const retest = (at: string, ids: string[], by: SeededActor = w.cast.qcHead) => signedRetest(lot.lotId, at, ids, by);
     const inMonths = async (m: number): Promise<string> =>
       (await db.admin.query<{ t: string }>("select (clock_timestamp() + make_interval(months => $1))::text as t", [m])).rows[0]?.t ?? '';
     const r = await result(lot.lotId, assay('99.8', 'RETEST'));
     expect(await refusal(retest(await inMonths(6), [r.resultId]))).toMatch(/EBMR-SITE-182/);
     expect(await refusal(approve(r.resultId, w.cast.analyst))).not.toBe('');
     await approve(r.resultId);
-    expect(await refusal(retest(await inMonths(6), [r.resultId], w.cast.analyst))).toMatch(/EBMR-IAM/);
+    expect(await refusal(retest(await inMonths(6), [r.resultId], w.cast.analyst))).toMatch(/EBMR-(IAM|ESIG)/);
     expect(await refusal(retest(await inMonths(13), [r.resultId]))).toMatch(/EBMR-SITE-185 .* at most 12 months/);
     expect(await refusal(retest('2031-01-01T00:00:00Z', [r.resultId]))).toMatch(/EBMR-SITE-185/);
     const failing = await result(lot.lotId, assay('97.0', 'RETEST'));
@@ -190,6 +234,52 @@ describe('retest (PR-18)', () => {
     const r2 = await result(old.lotId, assay('99.9', 'RETEST'));
     await approve(r2.resultId);
     await w.fixture("update site.material_lot set retest_at = clock_timestamp() - interval '2 days', expires_at = clock_timestamp() - interval '1 day' where id = $1", [old.lotId]);
-    expect(await refusal(w.sql(w.cast.qcHead, "select site.record_lot_retest($1, clock_timestamp() + interval '1 month', $2::uuid[])", [old.lotId, [r2.resultId]]))).toMatch(/EBMR-SITE-181 .* expired/);
+    const inAMonth = (await db.admin.query<{ t: string }>("select (clock_timestamp() + interval '1 month')::text as t")).rows[0]?.t ?? '';
+    expect(await refusal(signedRetest(old.lotId, inAMonth, [r2.resultId]))).toMatch(/EBMR-SITE-181 .* expired/);
+  });
+
+  it('[PR-18][DI-35] a retest is recorded only under QC\'s own LOT_RETEST_APPROVED signature: the unsigned writer is not callable by the application role, a call without a signature is refused, and the signed retest is recorded', async () => {
+    const lot = await w.lot({ materialKind: 'EXCIPIENT', retestAt: '2029-01-01T00:00:00Z', maxRetestMonths: 12 });
+    const r = await result(lot.lotId, assay('99.6', 'RETEST'));
+    await approve(r.resultId);
+    const at = (await db.admin.query<{ t: string }>("select (clock_timestamp() + interval '6 months')::text as t")).rows[0]?.t ?? '';
+    // Bypass attempts as the application role, in QC's own session: the unsigned writer, and the signed one without a signature.
+    expect(await refusal(w.sql(w.cast.qcHead, 'select site.record_lot_retest($1, $2::timestamptz, $3::uuid[])', [lot.lotId, at, [r.resultId]]))).toMatch(/permission denied/);
+    expect(await refusal(w.sql(w.cast.qcHead, 'select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], null)', [lot.lotId, at, [r.resultId]]))).toMatch(/EBMR-SITE-190/);
+    expect((await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n).toBe('0');
+    await signedRetest(lot.lotId, at, [r.resultId]);
+    expect((await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n).toBe('1');
+  });
+
+  it('[PR-18][DI-37] the retest signature binds the new instant and the results, and records one retest only: another instant, other results or a second use are refused as the application role', async () => {
+    const lot = await w.lot({ materialKind: 'EXCIPIENT', retestAt: '2029-01-01T00:00:00Z', maxRetestMonths: 12 });
+    const r = await result(lot.lotId, assay('99.7', 'RETEST'));
+    await approve(r.resultId);
+    const r2 = await result(lot.lotId, assay('99.5', 'RETEST'));
+    await approve(r2.resultId);
+    const inMonths = async (m: number): Promise<string> =>
+      (await db.admin.query<{ t: string }>('select (clock_timestamp() + make_interval(months => $1))::text as t', [m])).rows[0]?.t ?? '';
+    const at6 = await inMonths(6);
+    const at9 = await inMonths(9);
+    const count = async (): Promise<string | undefined> =>
+      (await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n;
+    // What is signed names the decision: the content shows the new instant and each result, OPEN until recorded.
+    const content = await esig.contentForSigning(db.app, 'lot_retest', await retestAggregate(lot.lotId, at6, [r.resultId]));
+    expect(content.exists).toBe(true);
+    expect(content.state).toBe('OPEN');
+    // A signature for 6 months on result r does not record 9 months, nor 6 months on other results.
+    expect(await refusal(signedRetest(lot.lotId, at6, [r.resultId], w.cast.qcHead, { record: { at: at9, ids: [r.resultId] } }))).toMatch(/EBMR-ESIG/);
+    expect(await refusal(signedRetest(lot.lotId, at6, [r.resultId], w.cast.qcHead, { record: { at: at6, ids: [r.resultId, r2.resultId] } }))).toMatch(/EBMR-ESIG/);
+    expect(await count()).toBe('0');
+    const first = await signedRetest(lot.lotId, at6, [r.resultId]);
+    expect(await count()).toBe('1');
+    expect((await esig.contentForSigning(db.app, 'lot_retest', await retestAggregate(lot.lotId, at6, [r.resultId]))).state).toBe('DECIDED');
+    // Used once: the same signature does not record the same decision again (its content is now DECIDED, so the signature
+    // no longer matches it; the register of signed retests refuses a second use as well), nor another one.
+    expect(await refusal(signedRetest(lot.lotId, at6, [r.resultId], w.cast.qcHead, { reuse: first.signatureId }))).toMatch(/EBMR-ESIG-070 .*CONTENT_MISMATCH|EBMR-SITE-191/);
+    expect(await refusal(signedRetest(lot.lotId, at9, [r.resultId], w.cast.qcHead, { reuse: first.signatureId }))).toMatch(/EBMR-ESIG/);
+    expect(await count()).toBe('1');
+    // The register of signed retests is not writable by the application role.
+    expect(await refusal(db.app.query('insert into site.lot_retest_signature (retest_id, lot_id, signature_id, signer_person) values (gen_random_uuid(), $1, gen_random_uuid(), gen_random_uuid())', [lot.lotId]))).toMatch(/permission denied/);
   });
 });
