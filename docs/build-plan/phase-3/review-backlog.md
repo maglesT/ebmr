@@ -282,3 +282,26 @@ Open items from the builders (slice 6a and 6b):
 - A duplicate formula (same product, strength and batch size) answers 500 instead of a plain refusal (low).
 - Default (6a review fix): REGULATORY_SIGNER holds FORMULA.READ, so the regulatory signer can read the MBR content it
   confirms.
+
+## Slice 6d GB-T-01 (builder report, 11 October 2026)
+
+GB-T-01 runs end to end over HTTP and matches `expected.json` exactly (16 golden tests: a source batch, then the happy
+and exception-rich variants to "release for packing"; every worksheet quantity and yield; the 9.1 sample-data
+negatives). Seven defects found by the run were fixed with tests (base-stated formula for TB-01, MBR transition
+signing, G-09@2 instrument use, G-09@2/G-10@2/G-23@1 entries and loop/alternative intents over HTTP, hardness alias and
+pressure units, TB-01 hydrate checks, golden CI job one file at a time).
+
+Open for the owner:
+- A drying-loop LOD reading that made the loop repeat (4.1 %) is not a failing result (loop readings are excluded by
+  design), so its correction to 3.0 % without evidence was accepted in the database. CORRECT_ENTRY is not on HTTP in
+  Phase 3, so it cannot happen today. Should a loop reading that did not meet the endpoint count as failing for the
+  correction-evidence rule?
+
+Residuals (Phase 4 unless noted):
+- No HTTP routes yet for the change record, verification evidence, market authorisation, the batch-number rule,
+  reservations, equipment uses, containers, tooling, the reprocessing proposal and container release; GB-T-01's driver
+  does these through the database as the right persona.
+- Press and coater readings cannot reach entries over HTTP, so they are keyed by hand (the manual-entry alerts appear
+  in the happy variant); the device-to-entry path is Phase 4.
+- G-07 consumes no lot on GMP; coating does not check for held compression containers (medium, core: to fix in the
+  Phase 3 exit work); a TB-08 refusal repeats its code; a refusal says "test run" on GMP.
