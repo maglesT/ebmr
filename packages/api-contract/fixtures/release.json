@@ -957,5 +957,386 @@
         ]
       }
     ]
+  },
+  "suspended": {
+    "lots": [
+      {
+        "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "lotCode": "P26-0001",
+        "productCode": "GBT01",
+        "batchNumber": "P26-0001",
+        "manufacturerState": "RELEASE_SUSPENDED",
+        "suspendedMarkets": [
+          "IN",
+          "US"
+        ],
+        "openTask": true,
+        "since": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  },
+  "afterRelease": {
+    "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+    "lotCode": "P26-0001",
+    "productCode": "GBT01",
+    "batchNumber": "P26-0001",
+    "manufacturerState": "RELEASE_SUSPENDED",
+    "markets": [
+      {
+        "market": "IN",
+        "state": "RELEASE_SUSPENDED",
+        "priorState": "RELEASED",
+        "signable": {
+          "reconfirm": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/IN/RECONFIRM/1",
+          "recall": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/IN/RECALL/1",
+          "rejectAfterRelease": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/IN/REJECT_AFTER_RELEASE/1"
+        },
+        "gates": {
+          "reconfirm": {
+            "ready": false,
+            "problems": [
+              "deviation DEV-2026-0031 is UNDER_INVESTIGATION: a cause is resolved once its deviation is closed (D-5-4)"
+            ]
+          },
+          "recall": {
+            "ready": true,
+            "problems": []
+          },
+          "rejectAfterRelease": {
+            "ready": true,
+            "problems": []
+          }
+        }
+      },
+      {
+        "market": "US",
+        "state": "RELEASE_SUSPENDED",
+        "priorState": "RELEASED",
+        "signable": {
+          "reconfirm": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/US/RECONFIRM/1",
+          "recall": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/US/RECALL/1",
+          "rejectAfterRelease": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/US/REJECT_AFTER_RELEASE/1"
+        },
+        "gates": {
+          "reconfirm": {
+            "ready": false,
+            "problems": [
+              "deviation DEV-2026-0031 is UNDER_INVESTIGATION: a cause is resolved once its deviation is closed (D-5-4)"
+            ]
+          },
+          "recall": {
+            "ready": true,
+            "problems": []
+          },
+          "rejectAfterRelease": {
+            "ready": true,
+            "problems": []
+          }
+        }
+      }
+    ],
+    "causes": [
+      {
+        "suspensionId": "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e01",
+        "market": "IN",
+        "causeKind": "DEVIATION",
+        "causeRef": "7d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f02",
+        "label": "deviation DEV-2026-0031 linked to lot API-2026-0042, upstream of the lot (PR-57)",
+        "via": {
+          "kind": "LOT",
+          "id": "8e6f7a8b-9c0d-4e1f-8a3b-4c5d6e7f8a03"
+        },
+        "priorState": "RELEASED",
+        "suspendedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "covered": false,
+        "problem": "deviation DEV-2026-0031 is UNDER_INVESTIGATION: a cause is resolved once its deviation is closed (D-5-4)"
+      },
+      {
+        "suspensionId": "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e0f",
+        "market": "US",
+        "causeKind": "DEVIATION",
+        "causeRef": "7d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f02",
+        "label": "deviation DEV-2026-0031 linked to lot API-2026-0042, upstream of the lot (PR-57)",
+        "via": {
+          "kind": "LOT",
+          "id": "8e6f7a8b-9c0d-4e1f-8a3b-4c5d6e7f8a03"
+        },
+        "priorState": "RELEASED",
+        "suspendedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "covered": false,
+        "problem": "deviation DEV-2026-0031 is UNDER_INVESTIGATION: a cause is resolved once its deviation is closed (D-5-4)"
+      }
+    ],
+    "decisions": [],
+    "tasks": [
+      {
+        "taskId": "9f7a8b9c-0d1e-4f2a-9b4c-5d6e7f8a9b04",
+        "kind": "RECALL_ASSESSMENT",
+        "ownerRole": "AUTHORISED_PERSON",
+        "status": "OPEN",
+        "openedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "closedAt": null
+      }
+    ],
+    "stockBlocks": [
+      {
+        "requestId": "0a8b9c0d-1e2f-4a3b-8c5d-6e7f8a9b0c05",
+        "kind": "BLOCK",
+        "causeKey": "DEVIATION/7d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f02",
+        "requestedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "deliveredAt": {
+          "us": "1791300060000000",
+          "text": "06-OCT-2026 14:51:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "downstream": [],
+    "disposal": null,
+    "disposalGate": {
+      "ready": false,
+      "problems": [
+        "lot P26-0001 is RELEASE_SUSPENDED for IN: a disposal follows a rejection (REJECTED or REJECTED_AFTER_RELEASE, PR-46)"
+      ]
+    }
+  },
+  "afterReleaseDisposed": {
+    "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+    "lotCode": "P26-0001",
+    "productCode": "GBT01",
+    "batchNumber": "P26-0001",
+    "manufacturerState": "REJECTED_AFTER_RELEASE",
+    "markets": [
+      {
+        "market": "IN",
+        "state": "REJECTED_AFTER_RELEASE",
+        "priorState": null,
+        "signable": {
+          "reconfirm": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/IN/RECONFIRM/2",
+          "recall": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/IN/RECALL/2",
+          "rejectAfterRelease": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/IN/REJECT_AFTER_RELEASE/2"
+        },
+        "gates": {
+          "reconfirm": {
+            "ready": false,
+            "problems": [
+              "the market is REJECTED_AFTER_RELEASE (terminal, D-5-5)"
+            ]
+          },
+          "recall": {
+            "ready": false,
+            "problems": [
+              "the market is REJECTED_AFTER_RELEASE (terminal, D-5-5)"
+            ]
+          },
+          "rejectAfterRelease": {
+            "ready": false,
+            "problems": [
+              "the market is REJECTED_AFTER_RELEASE (terminal, D-5-5)"
+            ]
+          }
+        }
+      },
+      {
+        "market": "US",
+        "state": "REJECTED_AFTER_RELEASE",
+        "priorState": null,
+        "signable": {
+          "reconfirm": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/US/RECONFIRM/2",
+          "recall": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/US/RECALL/2",
+          "rejectAfterRelease": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/US/REJECT_AFTER_RELEASE/2"
+        },
+        "gates": {
+          "reconfirm": {
+            "ready": false,
+            "problems": [
+              "the market is REJECTED_AFTER_RELEASE (terminal, D-5-5)"
+            ]
+          },
+          "recall": {
+            "ready": false,
+            "problems": [
+              "the market is REJECTED_AFTER_RELEASE (terminal, D-5-5)"
+            ]
+          },
+          "rejectAfterRelease": {
+            "ready": false,
+            "problems": [
+              "the market is REJECTED_AFTER_RELEASE (terminal, D-5-5)"
+            ]
+          }
+        }
+      }
+    ],
+    "causes": [
+      {
+        "suspensionId": "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e01",
+        "market": "IN",
+        "causeKind": "DEVIATION",
+        "causeRef": "7d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f02",
+        "label": "deviation DEV-2026-0031 linked to lot API-2026-0042, upstream of the lot (PR-57)",
+        "via": {
+          "kind": "LOT",
+          "id": "8e6f7a8b-9c0d-4e1f-8a3b-4c5d6e7f8a03"
+        },
+        "priorState": "RELEASED",
+        "suspendedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "covered": true,
+        "problem": "deviation DEV-2026-0031 is UNDER_INVESTIGATION: a cause is resolved once its deviation is closed (D-5-4)"
+      },
+      {
+        "suspensionId": "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e0f",
+        "market": "US",
+        "causeKind": "DEVIATION",
+        "causeRef": "7d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f02",
+        "label": "deviation DEV-2026-0031 linked to lot API-2026-0042, upstream of the lot (PR-57)",
+        "via": {
+          "kind": "LOT",
+          "id": "8e6f7a8b-9c0d-4e1f-8a3b-4c5d6e7f8a03"
+        },
+        "priorState": "RELEASED",
+        "suspendedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "covered": true,
+        "problem": "deviation DEV-2026-0031 is UNDER_INVESTIGATION: a cause is resolved once its deviation is closed (D-5-4)"
+      }
+    ],
+    "decisions": [
+      {
+        "decisionId": "1b9c0d1e-2f3a-4b4c-9d6e-7f8a9b0c1d06",
+        "market": "IN",
+        "act": "REJECT_AFTER_RELEASE",
+        "toState": "REJECTED_AFTER_RELEASE",
+        "by": {
+          "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e90",
+          "legalName": "Anita Rao",
+          "loginName": "ap",
+          "role": "AUTHORISED_PERSON"
+        },
+        "at": {
+          "us": "1791400000000000",
+          "text": "07-OCT-2026 18:36:40 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "2c0d1e2f-3a4b-4c5d-8e7f-8a9b0c1d2e07",
+        "text": "Contaminated API lot confirmed by the investigation",
+        "epoch": null,
+        "suspensionIds": [
+          "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e01"
+        ]
+      },
+      {
+        "decisionId": "1b9c0d1e-2f3a-4b4c-9d6e-7f8a9b0c1d0f",
+        "market": "US",
+        "act": "REJECT_AFTER_RELEASE",
+        "toState": "REJECTED_AFTER_RELEASE",
+        "by": {
+          "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e90",
+          "legalName": "Anita Rao",
+          "loginName": "ap",
+          "role": "AUTHORISED_PERSON"
+        },
+        "at": {
+          "us": "1791400000000000",
+          "text": "07-OCT-2026 18:36:40 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "3d1e2f3a-4b5c-4d6e-9f8a-9b0c1d2e3f08",
+        "text": "Contaminated API lot confirmed by the investigation",
+        "epoch": null,
+        "suspensionIds": [
+          "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e0f"
+        ]
+      }
+    ],
+    "tasks": [
+      {
+        "taskId": "9f7a8b9c-0d1e-4f2a-9b4c-5d6e7f8a9b04",
+        "kind": "RECALL_ASSESSMENT",
+        "ownerRole": "AUTHORISED_PERSON",
+        "status": "CLOSED",
+        "openedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "closedAt": {
+          "us": "1791400000000000",
+          "text": "07-OCT-2026 18:36:40 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "stockBlocks": [
+      {
+        "requestId": "0a8b9c0d-1e2f-4a3b-8c5d-6e7f8a9b0c05",
+        "kind": "BLOCK",
+        "causeKey": "DEVIATION/7d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f02",
+        "requestedAt": {
+          "us": "1791300000000000",
+          "text": "06-OCT-2026 14:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "deliveredAt": {
+          "us": "1791300060000000",
+          "text": "06-OCT-2026 14:51:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "downstream": [],
+    "disposal": {
+      "disposalId": "4e2f3a4b-5c6d-4e7f-8a9b-0c1d2e3f4a09",
+      "route": "WITNESSED_DESTRUCTION",
+      "state": "RECORDED",
+      "quantity": "1000",
+      "unit": "units",
+      "returnTo": null,
+      "reference": "DR-2026-0007",
+      "reprocessingRef": null,
+      "text": "Incinerated by the licensed contractor",
+      "aggregateId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae",
+      "performedBy": {
+        "personId": "4a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c91",
+        "legalName": "Wasim Khan",
+        "loginName": "qa.release",
+        "role": "QA_REVIEWER"
+      },
+      "performedAt": {
+        "us": "1791500000000000",
+        "text": "08-OCT-2026 22:23:20 +05:30 (Asia/Kolkata)"
+      },
+      "signatureId": "5f3a4b5c-6d7e-4f8a-9b0c-1d2e3f4a5b10",
+      "witnessedBy": {
+        "personId": "5b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d92",
+        "legalName": "Meera Iyer",
+        "loginName": "qa.floor",
+        "role": "QA_SHOP_FLOOR"
+      },
+      "witnessedAt": {
+        "us": "1791500060000000",
+        "text": "08-OCT-2026 22:24:20 +05:30 (Asia/Kolkata)"
+      },
+      "witnessSignatureId": "6a4b5c6d-7e8f-4a9b-8c1d-2e3f4a5b6c11"
+    },
+    "disposalGate": {
+      "ready": false,
+      "problems": [
+        "lot P26-0001 has its disposal already (once per lot, D-5-6)"
+      ]
+    }
   }
 }

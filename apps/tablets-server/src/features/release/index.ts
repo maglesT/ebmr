@@ -10,6 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
+import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { euImporters, grelView, lotMarkets, lotRelease, marketAddView, releaseQueue } from './reads.ts';
 import { batchMarketActHandler, releaseActHandler } from './signables.ts';
@@ -83,6 +84,15 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     importers: async ({ requireSession }) => {
       requireSession();
       return { importers: await euImporters(pool) };
+    },
+    // Slice 5a (contract first): the after-release reads arrive with the database acts.
+    suspended: ({ requireSession }) => {
+      requireSession();
+      throw refusal(501, { code: 'NOT_IMPLEMENTED', kind: 'NOT_ALLOWED', whatHappened: 'The after-release views arrive with slice 5a.' });
+    },
+    afterRelease: ({ requireSession }) => {
+      requireSession();
+      throw refusal(501, { code: 'NOT_IMPLEMENTED', kind: 'NOT_ALLOWED', whatHappened: 'The after-release views arrive with slice 5a.' });
     },
   });
   return Promise.resolve();
