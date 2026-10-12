@@ -295,7 +295,9 @@ Open for the owner:
 - A drying-loop LOD reading that made the loop repeat (4.1 %) is not a failing result (loop readings are excluded by
   design), so its correction to 3.0 % without evidence was accepted in the database. CORRECT_ENTRY is not on HTTP in
   Phase 3, so it cannot happen today. Should a loop reading that did not meet the endpoint count as failing for the
-  correction-evidence rule?
+  correction-evidence rule? Phase 4 slice 1a took the default (yes, stricter: D-1a-6, recipe-core 0716): such a
+  correction needs a stored evidence document and QA approval whatever the new value; CORRECT_ENTRY is on HTTP now.
+  The owner may still change it.
 
 Residuals (Phase 4 unless noted):
 - No HTTP routes yet for the change record, verification evidence, market authorisation, the batch-number rule,
