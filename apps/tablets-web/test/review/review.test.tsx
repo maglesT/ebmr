@@ -153,16 +153,17 @@ describe('exception register', () => {
     });
   });
 
-  it('accepts non-critical items together with one justification; a critical item is never offered in the group', async () => {
-    const ui = renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'review.register': { ...register, items: register.items.map((i) => (i.exceptionId === 'EX-3' ? { ...i, reviewStatus: 'OPEN' } : i)) } } });
-    const group = await screen.findByTestId('grouped-acceptance');
-    expect(within(group).queryByRole('checkbox', { name: /EX-3/ })).toBeNull();
-    const accept = within(group).getByRole('button', { name: /^Accept the/ });
+  it('accepts the non-critical items of one linked deviation together with one justification; a critical item or an item without a deviation is never offered', async () => {
+    const items = [...register.items.map((i) => (i.exceptionId === 'EX-3' ? { ...i, reviewStatus: 'OPEN' as const } : i)), { ...register.items[0]!, exceptionId: 'EX-4', group: null, deviationRef: null }];
+    const ui = renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'review.register': { ...register, items } } });
+    const group = await screen.findByTestId('group-DEV-SITE-1-2026-00012');
+    expect(within(screen.getByTestId('grouped-acceptance')).queryByRole('checkbox', { name: /EX-3/ })).toBeNull();
+    expect(within(screen.getByTestId('grouped-acceptance')).queryByRole('checkbox', { name: /EX-4/ })).toBeNull();
     await userEvent.click(within(group).getByRole('checkbox', { name: /EX-1/ }));
-    await userEvent.type(within(group).getByRole('textbox', { name: 'Justification for the group' }), 'Both covered by DEV-SITE-1-2026-00012, concluded');
-    expect(accept.hasAttribute('disabled')).toBe(true);
+    await userEvent.type(within(group).getByRole('textbox', { name: 'Justification for the items of DEV-SITE-1-2026-00012' }), 'Both covered by DEV-SITE-1-2026-00012, concluded');
+    expect(within(group).getByRole('button', { name: /^Accept the 1 items/ }).hasAttribute('disabled')).toBe(true);
     await userEvent.click(within(group).getByRole('checkbox', { name: /EX-2/ }));
-    await userEvent.click(within(group).getByRole('button', { name: 'Accept the 2 items chosen' }));
+    await userEvent.click(within(group).getByRole('button', { name: 'Accept the 2 items of DEV-SITE-1-2026-00012' }));
     await waitFor(() => expect(ui.ceremony.sign).toHaveBeenCalledTimes(1));
     expect(ui.ceremony.sign.mock.calls[0]?.[0].action).toEqual({
       kind: 'REVIEW_ACT',

@@ -16,7 +16,8 @@
  *  3. the dispensing booth DISP-1 and the press PRESS-01 in the plant lists (steward), DISP-1 cleaned and verified
  *     (technicians), cleared and verified at the kiosk, occupied for the stage; the first step (line clearance) is run:
  *     started, its occupancy entry, two alerts and one action exception raised by the operator, PERFORMED and VERIFIED;
- *     QA dispositions the exceptions NO_IMPACT;
+ *     QA raises two deviation-lite records (one for the two alerts, one for the action exception), the supervisor
+ *     attaches them, and QA on the floor dispositions each exception DEVIATION_RAISED;
  *  4. an output container of the batch at COMPRESSION on PRESS-01 is opened by the operator and left OPEN, and a failed
  *     in-process check on the press puts a hold on it (it is HELD once closed);
  *  5. DEMO SHORTCUT, never a GMP code path: the record's execution status is set to EXECUTION_COMPLETE by a superuser
@@ -329,26 +330,25 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
   const checkView = value(await verifier.api.call(routes.batches.step, { params: { batchId, stepKey } }), 'the step');
   const check = checkView.actions.find((a) => a.action === 'VERIFY' || a.action === 'WITNESS');
   if (check) await signed(verifier, { type: 'VERIFY', stepKey, meaning: 'VERIFIED' }, { aggregateType: 'batch_step', aggregateId: `${batchId}:${stepKey}`, meaning: check.meaning ?? 'VERIFIED' }, 'VERIFIED');
+  // Each exception gets a deviation-lite record linked to the batch and attached by the supervisor (QA, who
+  // dispositions, has entered nothing in the record: INV-03): one for the two booth alerts (so review may accept them
+  // together, PR-52) and one for the action exception; QA then dispositions each DEVIATION_RAISED.
+  const investigator = await browserOf('qaInvestigator');
+  const supervisor = await browserOf('supervisor1', 'KIOSK-DISP-1');
+  const deviation = async (title: string, rationale: string) => {
+    const dev = value(await investigator.api.call(routes.quality.raiseDeviation, { body: { kind: 'DEVIATION', title: `${title} (batch ${planned.batchNumber})`, classification: 'MINOR', riskRationale: rationale } }), 'the deviation');
+    value(await investigator.api.call(routes.quality.linkDeviation, { params: { deviationId: dev.deviationId }, body: { subjectKind: 'BATCH', subjectId: batchId } }), 'the deviation link');
+    return dev.ref;
+  };
+  const booth = await deviation('Booth DISP-1 found not ready at line clearance', 'Both findings corrected at the booth before any material was handled; no product exposure.');
+  const hepa = await deviation('HEPA certificate past its date at DISP-1', 'Filter integrity re-certified before any material was handled; no product exposure.');
   const run = value(await qa.api.call(routes.batches.batch, { params: { batchId } }), 'the batch');
   for (const e of run.exceptions.filter((x) => x.status === 'OPEN')) {
-    let outcome: 'NO_IMPACT' | 'DEVIATION_RAISED' = 'NO_IMPACT';
-    let justification = 'Checked on the floor at the time; the condition was corrected before any material was handled, no impact on the batch.';
-    if (e.severity !== 'ALERT') {
-      const investigator = await browserOf('qaInvestigator');
-      const dev = value(
-        await investigator.api.call(routes.quality.raiseDeviation, {
-          body: { kind: 'DEVIATION', title: `HEPA certificate past its date at DISP-1 (batch ${planned.batchNumber})`, classification: 'MINOR', riskRationale: 'Filter integrity re-certified before any material was handled; no product exposure.' },
-        }),
-        'the deviation',
-      );
-      value(await investigator.api.call(routes.quality.linkDeviation, { params: { deviationId: dev.deviationId }, body: { subjectKind: 'BATCH', subjectId: batchId } }), 'the deviation link');
-      // The supervisor attaches it (QA, who dispositions, has entered nothing in the record: INV-03).
-      await command(await browserOf('supervisor1', 'KIOSK-DISP-1'), { type: 'ATTACH_DEVIATION', exception: e.exceptionId, deviationRef: dev.ref }, 'the deviation attached to the exception');
-      outcome = 'DEVIATION_RAISED';
-      justification = `Deviation ${dev.ref} raised and linked; the investigation decides the impact.`;
-    }
-    const preview = `EXCEPTION_DISPOSITIONED|${Buffer.from(JSON.stringify({ outcome, justification }), 'utf8').toString('base64url')}`;
-    await signed(qa, { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome, justification }, { aggregateType: 'batch_exception', aggregateId: `${batchId}:${e.exceptionId}`, meaning: 'EXCEPTION_DISPOSITIONED', intent: preview }, `the disposition of ${e.exceptionId}`);
+    const ref = e.severity === 'ALERT' ? booth : hepa;
+    await command(supervisor, { type: 'ATTACH_DEVIATION', exception: e.exceptionId, deviationRef: ref }, `the deviation attached to ${e.exceptionId}`);
+    const justification = `Deviation ${ref} raised and linked; the investigation decides the impact.`;
+    const preview = `EXCEPTION_DISPOSITIONED|${Buffer.from(JSON.stringify({ outcome: 'DEVIATION_RAISED', justification }), 'utf8').toString('base64url')}`;
+    await signed(qa, { type: 'DISPOSITION_EXCEPTION', exception: e.exceptionId, outcome: 'DEVIATION_RAISED', justification }, { aggregateType: 'batch_exception', aggregateId: `${batchId}:${e.exceptionId}`, meaning: 'EXCEPTION_DISPOSITIONED', intent: preview }, `the disposition of ${e.exceptionId}`);
   }
 
   // 4. An output container on the press, left open, and a failed in-process check that holds it.

@@ -44,9 +44,13 @@ describe('the review batch of the set-up CLI (demo seed)', () => {
     const qa = await server.asPersona('qaInvestigator');
     const register = valueOf(await qa.call(routes.review.register, { params: { batchId: batch.batchId }, body: {} }));
     expect(register.items).toHaveLength(3);
-    // Every exception was dispositioned on the floor: the alerts NO_IMPACT, the action exception with its deviation.
-    expect(register.items.map((i) => i.engineDisposition?.outcome).sort()).toEqual(['DEVIATION_RAISED', 'NO_IMPACT', 'NO_IMPACT']);
-    expect(register.items.find((i) => i.engineDisposition?.outcome === 'DEVIATION_RAISED')?.deviationRef).toMatch(/^DEV-/);
+    // Every exception was dispositioned on the floor with its deviation: the two alerts share one (review may accept them
+    // together), the action exception has its own.
+    expect(register.items.map((i) => i.engineDisposition?.outcome)).toEqual(['DEVIATION_RAISED', 'DEVIATION_RAISED', 'DEVIATION_RAISED']);
+    const groups = register.items.map((i) => i.group);
+    expect(groups[0]).toMatch(/^DEV-/);
+    expect(groups[1]).toBe(groups[0]);
+    expect(groups[2]).not.toBe(groups[0]);
   }, 120_000);
 
   it('lists the open output container on PRESS-01 with its pending hold', async () => {

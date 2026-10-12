@@ -223,19 +223,32 @@ function Disposition({ batchId, batchNumber, item, onChanged }: { batchId: strin
 
 function GroupedAcceptance({ batchId, batchNumber, items, onChanged }: { batchId: string; batchNumber: string; items: readonly ReviewItemView[]; onChanged: () => Promise<void> }) {
   const qa = useOffered('QA');
+  // Items are accepted together only when they share one linked deviation (their group), never a critical item or an
+  // item of a paused step (PR-52, PR-07); the database refuses anything else in its own words.
+  const eligible = items.filter((i) => !i.critical && !i.pausedStep && needsQa(i) && i.group !== null);
+  const groups = [...new Set(eligible.map((i) => i.group ?? ''))].map((g) => ({ group: g, items: eligible.filter((i) => i.group === g) })).filter((g) => g.items.length >= 2);
+  if (!qa || groups.length === 0) return null;
+  return (
+    <Section title="Accept non-critical items together" testId="grouped-acceptance">
+      <p>Items that share one linked deviation may be accepted together with one justification; critical items are dispositioned one by one.</p>
+      {groups.map((g) => (
+        <GroupBox key={g.group} batchId={batchId} batchNumber={batchNumber} group={g.group} items={g.items} onChanged={onChanged} />
+      ))}
+    </Section>
+  );
+}
+
+function GroupBox({ batchId, batchNumber, group, items, onChanged }: { batchId: string; batchNumber: string; group: string; items: readonly ReviewItemView[]; onChanged: () => Promise<void> }) {
   const [chosen, setChosen] = useState<readonly string[]>([]);
   const [justification, setJustification] = useState('');
   const signed = useSignedAct(REVIEW_READS);
-  // Critical items and items of a paused step are never accepted in a group (PR-52, PR-07).
-  const eligible = items.filter((i) => !i.critical && !i.pausedStep && needsQa(i));
-  if (!qa || eligible.length < 2) return null;
-  const picked = eligible.filter((i) => chosen.includes(i.exceptionId)).map((i) => i.exceptionId);
+  const picked = items.filter((i) => chosen.includes(i.exceptionId)).map((i) => i.exceptionId);
   const j = justification.trim();
   const toggle = (id: string) => setChosen((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   const sign = async () => {
     const o = await signed.sign(
       { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId, input: { items: picked, disposition: 'ACCEPT', justification: j } },
-      `Accept ${picked.length} non-critical items of batch ${batchNumber} together (${picked.join(', ')}): ${j}`,
+      `Accept ${picked.length} non-critical items of batch ${batchNumber} together (${picked.join(', ')}; deviation ${group}): ${j}`,
     );
     if (o !== 'CANCELLED') {
       setChosen([]);
@@ -243,20 +256,18 @@ function GroupedAcceptance({ batchId, batchNumber, items, onChanged }: { batchId
     }
   };
   return (
-    <Section title="Accept non-critical items together" testId="grouped-acceptance">
-      <p>One justification for every item chosen; critical items are dispositioned one by one.</p>
+    <div data-testid={`group-${group}`}>
       <fieldset>
-        <legend>Items to accept</legend>
-        {eligible.map((i) => (
+        <legend>Items of deviation {group}</legend>
+        {items.map((i) => (
           <label key={i.exceptionId} style={{ display: 'block' }}>
             <input type="checkbox" checked={chosen.includes(i.exceptionId)} onChange={() => toggle(i.exceptionId)} /> {i.exceptionId} {i.title}
-            {i.group ? ` (group ${i.group})` : ''}
           </label>
         ))}
       </fieldset>
-      <Field name="groupJustification" label="Justification for the group" value={justification} onChange={setJustification} />
-      <ActButton label={`Accept the ${picked.length} items chosen`} onPress={sign} disabled={picked.length < 2 || j === '' || signed.busy} />
+      <Field name={`groupJustification-${group}`} label={`Justification for the items of ${group}`} value={justification} onChange={setJustification} />
+      <ActButton label={`Accept the ${picked.length} items of ${group}`} onPress={sign} disabled={picked.length < 2 || j === '' || signed.busy} />
       <ActResult error={signed.error} outcome={signed.outcome} />
-    </Section>
+    </div>
   );
 }
