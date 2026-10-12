@@ -17,3 +17,11 @@ Backlog:
   has no test yet; add it with the slice 1c screens or in slice 2.
 - Note: recipe-core 0719 sets `check_function_bodies = off` because it names a table that recipe-core 0740 creates;
   apply order is by file number within a source, so 0719's functions are only called after 0740 exists.
+
+## Slice 2b open items (builder report, 12 October 2026)
+
+- For slice 3 (G-REL): wire `site.extra_testing_problem`, `site.lot_sample_problem`, `tab.finished_lot_of` and the
+  release of a finished lot out of QUARANTINE into the release evaluator.
+- Residuals: MBR IPC limits are not part of the pharmacopoeia-edition review; API retention "one year after the last
+  product lot containing it" and the US annual visual examination of reserve samples are not built; return to stock
+  and the chemical-recovery act of returned goods wait for the release model and reprocessing.
