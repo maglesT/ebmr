@@ -81,6 +81,10 @@ describe('ERP product master', () => {
     expect(await masterOf()).toEqual({ reprocessingPermitted: false, betaLactam: true, shelfLifeMonths: 24 });
     const pending = (await w.run(w.cast.qa, (c) => erpMasterPending(c))).find((p) => p.versionId === v3);
     expect([pending?.masterKind, pending?.values['shelfLifeMonths'], pending?.inEffect?.['shelfLifeMonths']]).toEqual(['PRODUCT', 36, 24]);
+    // Phase 4 slice 6a (PR-43): a changed shelf life takes effect only on its recorded stability basis.
+    await w.sql(w.cast.qcHead, 'select site.record_shelf_life_basis($1::jsonb) as r', [
+      JSON.stringify({ productCode: 'AMOX-250', strength: '250 mg', shelfLifeMonths: 36, stabilityReference: 'STAB-AMOX-250-36M', tentative: false }),
+    ]);
     await w.confirm('PRODUCT', v3);
     expect(await masterOf()).toEqual({ reprocessingPermitted: true, betaLactam: true, shelfLifeMonths: 36 });
     expect(await masterOf('AMOX-250', '500 mg')).toBeNull();

@@ -489,6 +489,38 @@ below; each builder ticks them off there.
     is reconciled (used, transcribed and verified, or voided) before EXECUTION_COMPLETE.
   - **D-6-7** The PQR extract reconciles batch, deviation and change-record counts (CAPA as recorded on deviations; no
     separate CAPA register yet, a residual); a mismatch fails the extract; AP signs it off.
+- **Slice 6a build record (builder 6a; site-services 0885, 0886; recipe-core 0890 to 0895; defaults, owner may change):**
+  - **D-6a-1** An export permission's destination is a market code of the release model (US, EU) or a country code; IN
+    never needs one. Per-country EU destinations wait for a shipping-destination model.
+  - **D-6a-2** A licence may have no end date (kept in force by its retention fee). A loan licence counts only while its
+    host manufacturing licence at the same site counts; when a loan licence names the product, the batch is recorded under
+    it with both numbers (recipe.batch_licence_basis, written by a trigger in the issue transaction). Choosing the party at
+    planning and the contract giver's read-only access (IN-30 catalog test, second half) are residuals.
+  - **D-6a-3** Expiry (D-6-3) is the last day of the month before the month in which manufacture date plus shelf life
+    falls (recipe.expiry_month_end), so the label month never runs past the shelf life; the shelf life is the product
+    master version in effect at the batch's issue (recipe.batch_shelf_life; PR-43 "applies only to batches made after").
+    recipe.source_batch_expiry keeps its first-of-month shape. Residual for the lead (needs a tablets migration): the G-21
+    print data and tab.post_finished_lot still read recipe.source_batch_expiry (the month is right; the finished lot
+    expires at the end of the expiry month's first day) and should read recipe.batch_expiry.
+  - **D-6a-4** A product master version that changes the shelf life takes effect only on a recorded stability basis
+    (trigger on site.erp_master_effect, EBMR-IND-031); the first shelf life of a new product comes with its registration
+    and is not checked. The basis (study reference, tentative flag) is recorded by the head of QC or QA without its own
+    signature: QA's ERP_MASTER_CONFIRMED signature over the change is the approval.
+  - **D-6a-5** IN-27: hazard class per product from its risk assessment and rooms or lines dedicated per class; the GMP
+    issue refuses a hazardous product on a line not dedicated to its class. The step-start room and equipment check, the
+    breathing-air status at step start and the designer's inserted PPE and decontamination steps are residuals.
+  - **D-6a-6** IN-31: the database computes the batch-variable India-domestic particulars and the H2 stub payload (layout
+    H2-STUB-1, status U, key V first); the fixed particulars belong to the approved artwork template. Residuals (tablets):
+    the template-approval check of IN-31 (b) and binding the print job's data to recipe.h2_payload; the integration-sdk's
+    h2CodeContent has no V key yet.
+  - **D-6a-7** IN-18 "deferred clauses": no written list was found; completion here is the register export with the use
+    of every number (ISSUED with its licence, PLANNED, CANCELLED, VOIDED with the reason, UNUSED) and the strength.
+  - **D-6a-8** A licence suspended or lapsed after issue keeps G-REL item 6 green for batches issued under it (D-6-1);
+    raising the deviation for running batches is not automated (residual).
+  - **D-6a-9** Signing names: builder 6c's tablets 1198 must add manufacturing_licence (LICENCE_APPROVED) and
+    export_permission (EXPORT_PERMISSION_APPROVED) to tab.kernel_signing_meanings and give both a read class QA may
+    preview. Until then the INDIA_ACT ceremony test skips itself, the e2e approval step is skipped and says so, and the test
+    worlds read that content through the superuser as the set-up tool does.
 
 ### Slice 7: trace, golden batches, residual kill tests (then the Phase 4 exit)
 - **7a, trace** (`compliance/**`): `clauses` for all 95 phase-4 controls and the Phase 3 deferrals; a clause the

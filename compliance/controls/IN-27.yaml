@@ -15,7 +15,9 @@ sources: Schedule M Part III (general; 2.1-2.3 risk assessment including OELs; 4
 behaviour: Product master data carries a hazard class set from a documented risk assessment (which stages fall under Part III). The class restricts rooms, lines and equipment to contained ones and inserts mandatory PPE, containment-check and decontamination/de-gowning steps into the MBR; the executed checks are recorded. Where breathing air is used, the room master data records the 100% back-up with automatic changeover and its status is checked at step start.
 catalog_test: classify a product as cytotoxic; the MBR designer adds PPE and decontamination steps and offers only contained areas.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/india/india-routes.test.ts > the record side over HTTP (Phase 4 slice 6a) > [PR-43][IN-27] the head of QC records a stability basis; QA records a hazard class; an operator records neither"
+  - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
