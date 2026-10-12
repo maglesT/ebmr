@@ -62,6 +62,15 @@ export interface GmpBatch {
   strength: string;
 }
 
+const specTest = (testCode: string, method: string, limits: Record<string, string>, required: boolean) => ({
+  testCode, methodReference: method, unit: '%', ...limits, required, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '0.010', sampleUnit: 'kg',
+});
+/** The fixtures' specification tests: ASSAY 98.0 to 102.0 % (required), WATER at most 0.5 % (not required). */
+export const SPEC_TESTS: Record<string, unknown>[] = [
+  specTest('ASSAY', 'STP-AS-01', { lowerLimit: '98.0', upperLimit: '102.0' }, true),
+  specTest('WATER', 'STP-KF-01', { upperLimit: '0.5' }, false),
+];
+
 export class QualityWorld {
   constructor(
     readonly db: TestDatabase,
@@ -147,10 +156,26 @@ export class QualityWorld {
     const materialCode = over.materialCode ?? unique('M');
     const lotCode = unique('L');
     await this.material(materialCode, over.materialKind ?? 'EXCIPIENT', 'kg', over.maxRetestMonths === undefined ? 24 : over.maxRetestMonths);
+    await this.specification(materialCode);
     const r = await this.sql<{ lot_id: string }>(this.cast.warehouse, 'select site.receive_lot($1::jsonb) as r', [
       JSON.stringify({ lotCode, materialCode, quantity: over.quantity ?? '5', expiresAt: over.expiresAt ?? '2030-01-01T00:00:00Z', ...(over.retestAt ? { retestAt: over.retestAt } : {}) }),
     ]);
     return { lotId: r.lot_id, lotCode, materialCode };
+  }
+
+  /**
+   * An approved specification of the material unless one is in effect (site services 0840): `tests`, by default ASSAY
+   * 98.0 to 102.0 % (required) and WATER at most 0.5 % (not required), drafted by the analyst, approved by the head of QC.
+   */
+  async specification(materialCode: string, tests: Record<string, unknown>[] = SPEC_TESTS, site = 'SITE-1'): Promise<string> {
+    const { rows } = await this.db.app.query<{ id: string | null }>('select site.specification_in_effect($1, $2) as id', [site, materialCode]);
+    if (rows[0]?.id && tests === SPEC_TESTS) return rows[0].id;
+    const draft = await this.sql<{ specificationId: string }>(this.cast.analyst, 'select site.draft_specification($1::jsonb) as r', [
+      JSON.stringify({ materialCode, title: `Specification of ${materialCode}`, monographReference: 'IP monograph (test)', tests }),
+    ]);
+    const sig = await this.sign(this.cast.qcHead, { type: 'specification', id: draft.specificationId }, 'SPECIFICATION_APPROVED', 'DRAFT');
+    await this.sql(this.cast.qcHead, 'select site.approve_specification($1, $2)', [draft.specificationId, sig]);
+    return draft.specificationId;
   }
 
   /** An output container of batch `b` (what the resolver reads for a CONTAINER). */

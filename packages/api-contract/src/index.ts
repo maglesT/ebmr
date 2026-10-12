@@ -112,4 +112,6 @@ export {
   ReviewSummaryView,
 } from './ns/review.ts';
 export { ContainerHoldView, ContainerState, ContainerView } from './ns/containers.ts';
+export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
+export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';
