@@ -126,3 +126,18 @@ validator should require it); `recipe.release_lots` and `release_lot_facts` are 
   seed has no US QCU or EU QP persona (4c, demo).
 - Residuals: market-add items for stricter step keys, label rules, retention and the injectables items; the identity item
   has no test with consumed lots (golden batch, slice 7); the message acknowledgement is not signed by the server.
+
+## Slice 4a and 4b open items (builder reports, 12 October 2026)
+
+- `recipe.suspend_release` is a stub until slice 5, which calls `recipe.cascade_market_dispositions`.
+- No route registers EU importers or QPs (database acts only); the screens and seed add what the demo needs.
+- Market-add evaluation does not yet cover stricter per-step keys, label rules, retention and the Injectables items.
+- The DI-39 acknowledgement is not signed by the server.
+- The QP package is stored in full in an audited row, so its size grows the audit trail (measure with the
+  performance baseline).
+- Defaults: D-4a-1 (one authentication per challenge for the two-row release), D-4a-3 (controlled release from the
+  master's dosage form; release-rate test per active), D-4a-8 (EU certification not gated on the QP package);
+  D-4b-3 (a CERTIFIED EU lot may ship to the named importer outside quarantine; before certification it ships only in
+  quarantine), D-4b-4 (post-entry change list from UPDATE events; the CoA from the lot's current results).
+- Kernel fix in 4b: true copies of insert-only tables without an `id` column now match each row to its own INSERT
+  event (records true-copy verifier).
