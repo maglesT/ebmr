@@ -2,7 +2,8 @@
  * Feature `review` (Phase 4 slice 1, GMP): production approval, the exception register in QA review, the audit-trail
  * review, reopening, the abort checklist and translations (contract ns/review.ts; recipe-core 0710 to 0716). Every rule
  * is the database's: each route runs the person's own command through the review definers, and the signed acts are the
- * signable actions REVIEW_ACT and CORRECTION_APPROVAL (signables.ts).
+ * signable action REVIEW_ACT (signables.ts; CORRECTION_APPROVAL, also there, is registered by execution on both
+ * installations).
  */
 import { routes } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
@@ -12,12 +13,11 @@ import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { usOf } from '../common/people.ts';
 import { auditTrailReport, batchReview, itemDetail, reviewItems, reviewQueue } from './reads.ts';
-import { correctionApprovalHandler, reviewActHandler } from './signables.ts';
+import { reviewActHandler } from './signables.ts';
 
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
   if (app.installation !== 'GMP') return;
   registry.register(reviewActHandler(app));
-  registry.register(correctionApprovalHandler(app));
 }
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {

@@ -474,6 +474,9 @@ describe('reopening (outline 5.2.2; corrections after the production approval go
     const cycle = `${b.batchId}/1`;
     expect(await codeOf(w.sign(head, 'batch_review_reopen', cycle, 'REVIEW_REOPENED', 'PRODUCTION_APPROVED'))).toMatch(/EBMR-IAM|EBMR-ESIG/);
     const reopen = await w.sign(qaReviewer2, 'batch_review_reopen', cycle, 'REVIEW_REOPENED', 'PRODUCTION_APPROVED');
+    // Signatures taken in cycle 1 that a later cycle must not accept.
+    const staleReopen = await w.sign(qaReviewer, 'batch_review_reopen', cycle, 'REVIEW_REOPENED', 'PRODUCTION_APPROVED');
+    const staleApproval = await w.sign(head2, 'batch_review', b.batchId, 'PRODUCTION_APPROVED', 'PRODUCTION_APPROVED');
     expect(await codeOf(w.run(qaReviewer2, (c) => c.query('select recipe.reopen_review($1, $2, $3)', [b.batchId, reopen, '  '])))).toBe('EBMR-REV-030');
     await w.run(qaReviewer2, (c) => c.query('select recipe.reopen_review($1, $2, $3)', [b.batchId, reopen, 'A keying error in the label count is to be corrected']));
     expect(await valid(approval)).toBe(false);
@@ -481,9 +484,17 @@ describe('reopening (outline 5.2.2; corrections after the production approval go
     expect(await valid(reopen)).toBe(true);
     expect(await state(b)).toBe('EXECUTION_COMPLETE');
     expect((await db.app.query<{ c: number }>('select recipe.batch_review_cycle($1) as c', [b.batchId])).rows[0]!.c).toBe(2);
-    expect((await run(operator, b, { type: 'RAISE_EXCEPTION', description: 'Found later', severity: 'ALERT' })).accepted).toBe(true);
     // A second reopen of the same cycle is refused: the record is not in review.
     expect((await problems(b, 'REOPEN')).join(' ')).toMatch(/only a record in review/);
+    // A signature taken in cycle 1 is refused in cycle 2: the approval's signed content named cycle 1, and the reopen
+    // signed the reopening of cycle 1, not of cycle 2.
+    expect(await valid(staleApproval)).toBe(false);
+    expect(await codeOf(w.run(head2, (c) => c.query('select recipe.record_production_approval($1, $2)', [b.batchId, staleApproval])))).toBe('EBMR-REV-005');
+    await approve(b);
+    expect(await codeOf(w.run(qaReviewer, (c) => c.query('select recipe.reopen_review($1, $2, $3)', [b.batchId, staleReopen, 'A second correction'])))).toBe('EBMR-REV-005');
+    const again = await w.sign(qaReviewer, 'batch_review_reopen', `${b.batchId}/2`, 'REVIEW_REOPENED', 'PRODUCTION_APPROVED');
+    await w.run(qaReviewer, (c) => c.query('select recipe.reopen_review($1, $2, $3)', [b.batchId, again, 'A second correction']));
+    expect((await run(operator, b, { type: 'RAISE_EXCEPTION', description: 'Found later', severity: 'ALERT' })).accepted).toBe(true);
   });
 });
 
