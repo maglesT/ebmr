@@ -248,14 +248,15 @@ below; each builder ticks them off there.
   IN-39 clause 2 (both departments notified) through the notification centre.
 
 ### Slice 4: market dispositions, EU QP package, market add and removal, shipping
-- **4a, dispositions** (recipe-core 0810 to 0839): US NOT_READY -> READY -> RELEASED or REJECTED by the QCU role;
+- **4a, dispositions** (recipe-core 0820 to 0849 and tablets 1180 to 1189, after slice 3's 0810 to 0812 and 1179;
+  4a alone re-creates `tab.kernel_signing_meanings` in 1189): US NOT_READY -> READY -> RELEASED or REJECTED by the QCU role;
   when the AP also holds the QCU permission one ceremony writes two signature rows (D-P4-5); EU
   AWAITING_QP_CERTIFICATION -> CERTIFIED or REJECTED_BY_QP; intake of a structured signed certification with
   acknowledgement (DI-39), transcribed fallback verified by a second person (DI-30); in-system QP register behind the
   switch (PR-55); INV-39 (manufacturer RELEASED at that instant; cascade in the same transaction); INELIGIBLE;
   market-add evaluation (MET, UNMET_RECOVERABLE, UNMET_FINAL) and removal with a linked deviation, "removed after
   failure" flag (3.3.3, INV-43); packaging orders only for markets in the set; PR-54, PR-56.
-- **4b, package and shipping** (kernel 1160 to 1169, site-services 0860 to 0869, `packages/kernel/src/records/**`
+- **4b, package and shipping** (kernel 1160 to 1169, site-services 0870 to 0879 (0860 and 0861 were used by slice 3), `packages/kernel/src/records/**`
   QP part only): EU QP batch package as a signed true-copy bundle (processing and packaging records, audit-trail
   review, post-entry change list, deviations with per-market assessments, release and checklist, CoA); read-only,
   time-boxed QP account scoped to one lot; ERP stub shipping interlock (INV-42, IN-05 (a)): no shipment without a
