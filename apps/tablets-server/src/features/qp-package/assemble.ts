@@ -27,7 +27,7 @@ export interface LotFacts {
   batches: string[];
 }
 
-export async function lotFacts(db: Db, lotId: string): Promise<LotFacts | null> {
+export async function lotFacts(db: Db | pg.PoolClient, lotId: string): Promise<LotFacts | null> {
   const { rows } = await db.query<{ lot_code: string; product_code: string; strength: string; markets: string[] | null; mfr: string | null; batches: string[] | null }>(
     `select l.lot_code, f.product_code, f.strength, recipe.market_set('LOT', f.lot_id) as markets, recipe.manufacturer_release_state(f.lot_id) as mfr,
             recipe.release_batches(f.lot_id)::text[] as batches

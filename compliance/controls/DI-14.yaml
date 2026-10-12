@@ -252,7 +252,10 @@ tests:
   - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14] QA grants a QP account read access to the issued packages of one lot until a time; the QP reads the package and each read is logged"
   - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14] the access is granted only to a read-only personal account holding the QP role, for an issued package, by someone else, and for at most the maximum window"
   - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14] a QP account is scoped to one lot: a second lot is refused while the first access is live, and another lot's package is never readable"
-  - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14] the access ends at its time, and a QP account that gains a write permission reads nothing"
+  - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14] the access ends at its time, and no other role is granted to a QP account while its access is live"
+  - "apps/tablets-server/test/release/qp-shipping-routes.test.ts > the QP role closes every other route, whatever role the session chose (review 4b-1) > [DI-14] an account holding EU_QP_READER and another read-only role reaches only the QP package routes in either role"
+  - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14] a QP account holds EU_QP_READER as its only role: an account that also holds another role, even a read-only one, gets no access"
+  - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14][DI-41] no package of a lot is served or opened to a QP while its release is suspended or its EU market removed"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

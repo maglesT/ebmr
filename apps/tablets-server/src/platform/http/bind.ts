@@ -333,7 +333,9 @@ export async function admitSession(app: AppContext, routeId: string, session: Re
       whatYouCanDo: ['Unlock it with your own credentials, or sign in as another person.'],
     });
   }
-  if (session.roleCode === QP_READER_ROLE && !ALLOWED_FOR_QP_READER.has(routeId)) {
+  // Review 4b-1: any session of an account holding the QP role, whatever role it chose (the database keeps that role the
+  // account's only one while a QP access is live).
+  if ((session.roleCode === QP_READER_ROLE || session.roles.includes(QP_READER_ROLE)) && !ALLOWED_FOR_QP_READER.has(routeId)) {
     throw refusal(403, {
       code: 'QP_READER_SCOPE',
       kind: 'NOT_ALLOWED',

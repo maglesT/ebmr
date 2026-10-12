@@ -7,13 +7,13 @@
  * read permissions only; every read logged).
  */
 import { routes, type LotQpView, type QpAccessView, type QpPackageView, type QpSectionView, type SignableAction } from '@ebmr/api-contract';
-import { commands, records, type ActorContext } from '@ebmr/kernel';
+import { commands, records, toDbContext, type ActorContext } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { refusal } from '../../platform/http/refusal.ts';
+import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
 import { dbActHandler } from '../esig/db-acts.ts';
@@ -112,6 +112,24 @@ async function asReader<T>(pool: pg.Pool, who: ActorContext, work: (c: pg.PoolCl
   }
 }
 
+/** One read-only REPEATABLE READ command of the actor: every query sees one snapshot. */
+async function inSnapshot<T>(pool: pg.Pool, who: ActorContext, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('begin isolation level repeatable read');
+    await client.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(who))]);
+    const result = await work(client);
+    await client.query('commit');
+    return result;
+  } catch (error) {
+    await client.query('rollback');
+    if (error instanceof HttpRefusal) throw error;
+    throw commands.asKernelError(error);
+  } finally {
+    client.release();
+  }
+}
+
 async function one<T>(list: Promise<T[]>, what: string): Promise<T> {
   const x = (await list)[0];
   if (!x) throw new Error(`${what} was not found after it was recorded`);
@@ -131,13 +149,18 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return lotView(app, pool, params.lotId);
     },
     assemble: async ({ params, actor, idempotencyKey, requestHash }) => {
-      const f = await lotFacts(pool, params.lotId);
-      if (!f) throw noLot(params.lotId);
-      const problems = assembleProblems(f);
-      if (problems.length > 0) {
-        throw refusal(409, { code: 'EBMR-API-QP-PACKAGE', kind: 'NOT_ALLOWED', whatHappened: 'The QP batch package cannot be assembled now. Nothing was recorded.', why: problems.join('; '), controls: ['DI-41'], whatYouCanDo: ['Assemble it after the manufacturer release, for a lot with EU in its market set.'] });
-      }
-      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => (await registerPackage(c, f, await buildPackageParts(c, f))).packageId);
+      // Review 4b-3: the facts and every section from one snapshot (REPEATABLE READ, the assembling person's command);
+      // the registration that follows is checked again by the database (records.register_qp_package).
+      const built = await inSnapshot(pool, actor(), async (c) => {
+        const f = await lotFacts(c, params.lotId);
+        if (!f) throw noLot(params.lotId);
+        const problems = assembleProblems(f);
+        if (problems.length > 0) {
+          throw refusal(409, { code: 'EBMR-API-QP-PACKAGE', kind: 'NOT_ALLOWED', whatHappened: 'The QP batch package cannot be assembled now. Nothing was recorded.', why: problems.join('; '), controls: ['DI-41'], whatYouCanDo: ['Assemble it after the manufacturer release, for a lot with EU in its market set.'] });
+        }
+        return { f, parts: await buildPackageParts(c, f) };
+      });
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => (await registerPackage(c, built.f, built.parts)).packageId);
       return one(packages(app, pool, 'p.id::text', out.result), 'the package');
     },
     grantAccess: async ({ params, body, actor, idempotencyKey, requestHash }) => {

@@ -37,6 +37,8 @@ tests:
   - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] a true copy of an insert-only table without an id column verifies row by row, and a row left out or altered is reported"
   - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] the register is written only by the definers: the application role and a person without the permission are refused"
   - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41][DI-35] QA issues the package with a TRUE_COPY_VERIFIED signature of this package, made by the person who records it, once"
+  - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14][DI-41] no package of a lot is served or opened to a QP while its release is suspended or its EU market removed"
+  - "packages/kernel/test/records/qp-package.test.ts > package sections belong to the lot (review 4b-2) > [DI-41] a true copy of another lot's record, or of a subject no module answers for, is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

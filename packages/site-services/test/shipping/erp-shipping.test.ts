@@ -12,7 +12,8 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { withCommand } from '../../../kernel/src/db/command.ts';
+import { toDbContext, withCommand } from '../../../kernel/src/db/command.ts';
+import { raiseIncident } from '../../../kernel/src/records/incidents.ts';
 import { createTestDatabase, type TestDatabase } from '../helpers.ts';
 import { QualityWorld, refusal, seedQualityCast, unique } from '../quality/support.ts';
 
@@ -198,5 +199,29 @@ describe('ERP shipping interlock (INV-42, IN-05 (a))', () => {
     expect(await refusal(w.sql(w.cast.erp, 'select site.erp_record_shipment($1::jsonb) as r', [JSON.stringify({ ...body({ lotId: lot, market: 'IN' }), quantity: 5 })]))).toMatch(/EBMR-SHP-001/);
     // The shipment rows are insert-only.
     expect(await refusal(db.app.query("update site.erp_shipment set market = 'US' where lot_id = $1", [lot]))).toMatch(/permission denied/);
+  });
+
+  it('[INV-42] the interlock takes the release acts\' locks: an incident linked to the lot after its release, committing while the ERP ships, is seen and refuses the shipment', async () => {
+    const lot = await finishedLot(['IN']);
+    await released(lot);
+    const c = await db.app.connect();
+    try {
+      await c.query('begin');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext({ ...w.cast.qa, correlationId: randomUUID() }))]);
+      await raiseIncident(c, { source: 'OTHER', type: 'MARKET_COMPLAINT', severity: 'MAJOR', title: 'Complaint on the released lot', links: [{ aggregateType: 'material_lot', aggregateId: lot }] });
+      // The shipment starts while the incident is not committed: it waits on the lot's blocker epoch.
+      let settled = false;
+      const shipping = refusal(ship({ lotId: lot, market: 'IN' })).finally(() => {
+        settled = true;
+      });
+      await new Promise((r) => setTimeout(r, 1_000));
+      expect(settled).toBe(false);
+      await c.query('commit');
+      expect(await shipping).toMatch(/EBMR-SHP-002 .*incident .* was opened after the release: an open post-release link/);
+    } finally {
+      c.release();
+    }
+    const { rows } = await db.app.query<{ n: number }>('select count(*)::int as n from site.erp_shipment where lot_id = $1', [lot]);
+    expect(rows[0]?.n).toBe(0);
   });
 });

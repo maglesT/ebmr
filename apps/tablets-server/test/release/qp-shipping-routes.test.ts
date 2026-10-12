@@ -14,8 +14,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
-import { records, withCommand } from '@ebmr/kernel';
-import { terminalOf } from '@ebmr/test-kit';
+import { identity, records, withCommand } from '@ebmr/kernel';
+import { passwordActor, terminalOf } from '@ebmr/test-kit';
 import { refusalOf, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { actorOf, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
@@ -117,6 +117,24 @@ describe('the EU QP batch package over HTTP (DI-41, DI-14)', () => {
     expect(JSON.stringify(refusalOf(await qp.call(routes.qpPackage.readerFile, { params: { packageId: randomUUID() } })))).toMatch(/EBMR-REC-090|is open to this account/);
     expect(valueOf(await qa.call(routes.qpPackage.revokeAccess, { params: { accessId: access.accessId }, body: { reason: 'Lot certified' } }))).toMatchObject({ state: 'REVOKED', reads: 1 });
     expect(JSON.stringify(refusalOf(await qp.call(routes.qpPackage.readerFile, { params: { packageId: pkg.packageId } })))).toMatch(/EBMR-REC-090|is open to this account/);
+  });
+});
+
+describe('the QP role closes every other route, whatever role the session chose (review 4b-1)', () => {
+  it('[DI-14] an account holding EU_QP_READER and another read-only role reaches only the QP package routes in either role', async () => {
+    const person = await grantedPerson(w.gmp, 'EU_QP_READER', 'Dr. Two Roles');
+    const admin = await passwordActor(w.gmp.db, w.gmp.seed.bootstrap.admin, w.gmp.seed.bootstrap.admin.fingerprint);
+    const owner = await passwordActor(w.gmp.db, w.gmp.seed.bootstrap.owner, w.gmp.seed.bootstrap.owner.fingerprint);
+    const why = { reasonCode: 'TEST_SETUP', reasonText: 'second role for the QP scope test' };
+    const grant = await withCommand(w.gmp.db.app, { ...admin, ...why, correlationId: randomUUID() }, (c) =>
+      identity.requestRoleGrant(c, { accountId: person.accountId, roleCode: 'AUDITOR_READONLY', reason: 'test: auditor too' }));
+    await withCommand(w.gmp.db.app, { ...owner, ...why, correlationId: randomUUID() }, (c) => identity.decideRoleGrant(c, grant, true, 'test'));
+    for (const role of ['AUDITOR_READONLY', 'EU_QP_READER']) {
+      const b = await loginOf(w.gmp, person);
+      valueOf(await b.call(routes.session.chooseRole, { body: { roleCode: role } }));
+      expect(refusalOf(await b.call(routes.release.queue, { query: {} })), role).toMatchObject({ status: 403, code: 'QP_READER_SCOPE' });
+      expect(refusalOf(await b.call(routes.erpShipping.lot, { params: { lotId } })), role).toMatchObject({ status: 403, code: 'QP_READER_SCOPE' });
+    }
   });
 });
 

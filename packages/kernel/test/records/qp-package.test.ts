@@ -47,6 +47,21 @@ beforeAll(async () => {
     create table stub_qp.event (batch_id uuid not null, seq integer not null, value text not null, primary key (batch_id, seq));
     grant select, insert on stub_qp.event to ebmr_app;
     select kernel.register_audited_table('stub_qp.event', 'qp_stub_events', 'batch_id', true);
+    -- The QP subject provider of this file's test lots (kernel 1162): the chains a lot's package may copy, and whether
+    -- its package is served (the edition's provider is site services 0871).
+    create table stub_qp.subject (subject_id text primary key, open boolean not null default true, problem text);
+    create table stub_qp.subject_chain (subject_id text not null, chain_key text not null, primary key (subject_id, chain_key));
+    create function stub_qp.subject_of(p_id text) returns jsonb language sql stable security definer set search_path = pg_catalog, pg_temp as $f$
+      select case when s.subject_id is null then '{"exists": false}'::jsonb
+                  else jsonb_build_object('exists', true, 'open', s.open, 'problem', s.problem,
+                                          'chains', coalesce((select jsonb_agg(c.chain_key) from stub_qp.subject_chain c where c.subject_id = p_id), '[]'::jsonb)) end
+        from (select p_id as k) x left join stub_qp.subject s on s.subject_id = x.k
+    $f$;
+    select kernel.set_actor_context(jsonb_build_object('person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+      'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM', 'site_zone', 'UTC',
+      'correlation_id', gen_random_uuid(), 'legal_name', 'test module', 'reason_code', 'SOFTWARE_RELEASE', 'reason_text', 'test QP subject provider'));
+    select records.register_qp_subject_provider('qp_test_lot', 'stub_qp.subject_of(text)');
+    select kernel.set_actor_context(null);
     reset role;
   `);
   operator = await seedActor(db, { roleCode: 'OPERATOR' });
@@ -91,10 +106,17 @@ async function dbNow(): Promise<string> {
   return rows[0]?.t ?? '';
 }
 
+/** The provider lets `lot`'s package copy these batches' chains. */
+async function allow(lot: string, ...batches: string[]): Promise<void> {
+  await db.admin.query("insert into stub_qp.subject (subject_id) values ($1) on conflict do nothing", [lot]);
+  for (const b of batches) await db.admin.query('insert into stub_qp.subject_chain (subject_id, chain_key) values ($1, $2) on conflict do nothing', [lot, `qp_stub_batch:${b}`]);
+}
+
 async function assembled(lot: string = randomUUID()): Promise<{ lot: string; pkg: QpPackage }> {
   const [processing, packaging] = await Promise.all([recordedBatch(), recordedBatch()]);
+  await allow(lot, processing, packaging);
   const pkg = assembleQpPackage({
-    subject: { type: 'material_lot', id: lot, label: `Lot ${lot.slice(0, 8)}` },
+    subject: { type: 'qp_test_lot', id: lot, label: `Lot ${lot.slice(0, 8)}` },
     generatedAt: await dbNow(),
     bundles: [
       { name: 'processing-record', role: 'PROCESSING_RECORD', title: 'Processing record', bundle: await copyOf(processing) },
@@ -120,7 +142,7 @@ async function validTo(interval: string): Promise<string> {
 
 /** Registers a hand-made package through the definer (the server's word for the hash and the parts). */
 const registerRaw = (actor: ActorContext, lot: string, manifest: string, sha: string, content: string) =>
-  run(actor, (c) => c.query('select records.register_qp_package($1, $2, $3, $4, $5)', ['material_lot', lot, manifest, sha, content]));
+  run(actor, (c) => c.query('select records.register_qp_package($1, $2, $3, $4, $5)', ['qp_test_lot', lot, manifest, sha, content]));
 
 describe('the EU QP batch package (DI-41)', () => {
   it('[DI-41] the database computes the package hash again, checks every section and every true copy, and stores the package; the copy verifies offline', async () => {
@@ -154,12 +176,14 @@ describe('the EU QP batch package (DI-41)', () => {
     // The content does not carry this manifest.
     await expectRefused(registerRaw(qa, lot, pkg.manifest, pkg.packageSha256, serializeQpPackage({ ...pkg, packageSha256: '1'.repeat(64) })), 'EBMR-REC-081');
     // A true copy never registered.
+    const [b1, b2] = [await recordedBatch(), await recordedBatch()];
+    await allow(lot, b1, b2);
     const unregistered = assembleQpPackage({
-      subject: { type: 'material_lot', id: lot, label: 'Lot' },
+      subject: { type: 'qp_test_lot', id: lot, label: 'Lot' },
       generatedAt: await dbNow(),
       bundles: [
-        { name: 'processing-record', role: 'PROCESSING_RECORD', title: 'Processing record', bundle: await copyOf(await recordedBatch(), false) },
-        { name: 'packaging-record', role: 'PACKAGING_RECORD', title: 'Packaging record', bundle: await copyOf(await recordedBatch()) },
+        { name: 'processing-record', role: 'PROCESSING_RECORD', title: 'Processing record', bundle: await copyOf(b1, false) },
+        { name: 'packaging-record', role: 'PACKAGING_RECORD', title: 'Packaging record', bundle: await copyOf(b2) },
       ],
       documents: docs(),
     });
@@ -176,7 +200,7 @@ describe('the EU QP batch package (DI-41)', () => {
       registerRaw(qa, lot, noCoaText, h(noCoaText), serializeQpPackage({ ...pkg, manifest: noCoaText, packageSha256: h(noCoaText), documents: noCoaDocs })),
       'EBMR-REC-083',
     );
-    expect(() => assembleQpPackage({ subject: { type: 'material_lot', id: lot, label: 'Lot' }, generatedAt: 'x', bundles: [], documents: [...docs(), { name: 'p', role: 'PROCESSING_RECORD', title: 'p', mediaType: 'text/plain', text: 'scan' }] })).toThrow(/EBMR-REC-083/);
+    expect(() => assembleQpPackage({ subject: { type: 'qp_test_lot', id: lot, label: 'Lot' }, generatedAt: 'x', bundles: [], documents: [...docs(), { name: 'p', role: 'PROCESSING_RECORD', title: 'p', mediaType: 'text/plain', text: 'scan' }] })).toThrow(/EBMR-REC-083/);
     // Offline: one byte changed in a bundle fails, and so does a package that is not the registered one.
     const text = serializeQpPackage(pkg);
     const tampered = text.replace('12.50', '12.60');
@@ -219,7 +243,7 @@ describe('the EU QP batch package (DI-41)', () => {
   it('[DI-41] the register is written only by the definers: the application role and a person without the permission are refused', async () => {
     const { lot, pkg } = await assembled();
     await expectPermissionDenied(
-      db.app.query("insert into records.qp_package (kind, subject_type, subject_id, subject_label, manifest, package_sha256, content, content_sha256, content_bytes, sections, true_copy_ids, assembled_by_person, assembled_by_account, correlation_id) values ('EU_QP_BATCH_PACKAGE', 'material_lot', $1, 'x', '{}', $2, '{}', $2, 2, '[]', '{}', $3, $3, $3)", [lot, '0'.repeat(64), randomUUID()]),
+      db.app.query("insert into records.qp_package (kind, subject_type, subject_id, subject_label, manifest, package_sha256, content, content_sha256, content_bytes, sections, true_copy_ids, assembled_by_person, assembled_by_account, correlation_id) values ('EU_QP_BATCH_PACKAGE', 'qp_test_lot', $1, 'x', '{}', $2, '{}', $2, 2, '[]', '{}', $3, $3, $3)", [lot, '0'.repeat(64), randomUUID()]),
     );
     await expectRefused(run(operator, (c) => registerQpPackage(c, pkg)), 'EBMR-IAM-040');
     await expectRefused(run(qp, (c) => registerQpPackage(c, pkg)), 'EBMR-IAM-040');
@@ -276,7 +300,7 @@ describe('the QP account: read-only, time-boxed, one lot (DI-14, DI-17)', () => 
     await expectRefused(validTo('1 day').then((v) => run(operator, (c) => grantQpAccess(c, { packageId: id, accountId: qp.accountId, validTo: v, reason: 'r' }))), 'EBMR-IAM-040');
     await expectRefused(validTo('1 day').then((v) => run(qp, (c) => grantQpAccess(c, { packageId: id, accountId: qp.accountId, validTo: v, reason: 'r' }))), 'EBMR-IAM-040');
     await expectPermissionDenied(
-      db.app.query("insert into records.qp_access (subject_type, subject_id, account_id, person_id, valid_from, valid_to, reason, granted_by_person, granted_by_account, correlation_id) values ('material_lot', 'x', $1, $2, now(), now() + interval '1 day', 'r', $3, $3, $3)", [qp.accountId, qp.personId, randomUUID()]),
+      db.app.query("insert into records.qp_access (subject_type, subject_id, account_id, person_id, valid_from, valid_to, reason, granted_by_person, granted_by_account, correlation_id) values ('qp_test_lot', 'x', $1, $2, now(), now() + interval '1 day', 'r', $3, $3, $3)", [qp.accountId, qp.personId, randomUUID()]),
     );
   });
 
@@ -290,13 +314,16 @@ describe('the QP account: read-only, time-boxed, one lot (DI-14, DI-17)', () => 
     // A later package of the same lot is covered by the same access.
     const again2 = await issued(first.lot);
     expect((await run(qpB, (c) => readQpPackage(c, again2.id))).packageSha256).toBe(again2.pkg.packageSha256);
+    // Only the latest issued package of the lot is served (review 4b-3).
+    await expectRefused(run(qpB, (c) => readQpPackage(c, first.id)), 'EBMR-REC-090', /replaced by a later issued package/);
+    expect((await run(qpB, (c) => qpReaderPackages(c))).map((x) => x.packageId)).toEqual([again2.id]);
     await run(qa, (c) => revokeQpAccess(c, access, 'switch to the next lot'));
     await validTo('2 days').then((v) => run(qa, (c) => grantQpAccess(c, { packageId: second.id, accountId: qpB.accountId, validTo: v, reason: 'TA-002' })));
-    await expectRefused(run(qpB, (c) => readQpPackage(c, first.id)), 'EBMR-REC-090');
+    await expectRefused(run(qpB, (c) => readQpPackage(c, again2.id)), 'EBMR-REC-090');
     expect((await run(qpB, (c) => readQpPackage(c, second.id))).packageId).toBe(second.id);
   });
 
-  it('[DI-14] the access ends at its time, and a QP account that gains a write permission reads nothing', async () => {
+  it('[DI-14] the access ends at its time, and no other role is granted to a QP account while its access is live', async () => {
     const qpC = await seedActor(db, { roleCode: 'EU_QP_READER', acknowledgeEsig: false });
     const p = await issued();
     await validTo('1.5 seconds').then((v) => run(qa, (c) => grantQpAccess(c, { packageId: p.id, accountId: qpC.accountId, validTo: v, reason: 'short window' })));
@@ -307,7 +334,52 @@ describe('the QP account: read-only, time-boxed, one lot (DI-14, DI-17)', () => 
 
     const qpD = await seedActor(db, { roleCode: 'EU_QP_READER', acknowledgeEsig: false });
     await validTo('1 day').then((v) => run(qa, (c) => grantQpAccess(c, { packageId: p.id, accountId: qpD.accountId, validTo: v, reason: 'TA-003' })));
-    await inSecondRole(db, qpD, 'OPERATOR');
-    await expectRefused(run(qpD, (c) => readQpPackage(c, p.id)), 'EBMR-REC-090');
+    // While the access is live, no other role is requested for the account (review 4b-1).
+    await expectRefused(inSecondRole(db, qpD, 'AUDITOR_READONLY'), 'EBMR-REC-092');
+    await expectRefused(inSecondRole(db, qpD, 'OPERATOR'), 'EBMR-REC-092');
+    expect((await run(qpD, (c) => readQpPackage(c, p.id))).packageId).toBe(p.id);
+  });
+
+  it('[DI-14] a QP account holds EU_QP_READER as its only role: an account that also holds another role, even a read-only one, gets no access', async () => {
+    const qpE = await seedActor(db, { roleCode: 'EU_QP_READER', acknowledgeEsig: false });
+    await inSecondRole(db, qpE, 'AUDITOR_READONLY');
+    const p = await issued();
+    await expectRefused(validTo('1 day').then((v) => run(qa, (c) => grantQpAccess(c, { packageId: p.id, accountId: qpE.accountId, validTo: v, reason: 'TA-004' }))), 'EBMR-REC-087', /only role/);
+  });
+
+  it('[DI-14][DI-41] no package of a lot is served or opened to a QP while its release is suspended or its EU market removed', async () => {
+    const qpF = await seedActor(db, { roleCode: 'EU_QP_READER', acknowledgeEsig: false });
+    const p = await issued();
+    await validTo('1 day').then((v) => run(qa, (c) => grantQpAccess(c, { packageId: p.id, accountId: qpF.accountId, validTo: v, reason: 'TA-005' })));
+    expect((await run(qpF, (c) => readQpPackage(c, p.id))).packageId).toBe(p.id);
+    await db.admin.query("update stub_qp.subject set open = false, problem = 'the manufacturer release of the lot is RELEASE_SUSPENDED' where subject_id = $1", [p.lot]);
+    await expectRefused(run(qpF, (c) => readQpPackage(c, p.id)), 'EBMR-REC-091', /RELEASE_SUSPENDED/);
+    expect(await run(qpF, (c) => qpReaderPackages(c))).toEqual([]);
+    const qpG = await seedActor(db, { roleCode: 'EU_QP_READER', acknowledgeEsig: false });
+    await expectRefused(validTo('1 day').then((v) => run(qa, (c) => grantQpAccess(c, { packageId: p.id, accountId: qpG.accountId, validTo: v, reason: 'TA-006' }))), 'EBMR-REC-091');
+  });
+});
+
+describe('package sections belong to the lot (review 4b-2)', () => {
+  it('[DI-41] a true copy of another lot\'s record, or of a subject no module answers for, is refused', async () => {
+    const mine = await assembled();
+    const other = await assembled();
+    const foreign = assembleQpPackage({
+      subject: { type: 'qp_test_lot', id: mine.lot, label: 'Lot mine' },
+      generatedAt: await dbNow(),
+      bundles: [
+        { name: 'processing-record', role: 'PROCESSING_RECORD', title: 'Processing record', bundle: JSON.parse(other.pkg.bundles['processing-record'] ?? '{}') as TrueCopyBundle },
+        { name: 'packaging-record', role: 'PACKAGING_RECORD', title: 'Packaging record', bundle: JSON.parse(mine.pkg.bundles['packaging-record'] ?? '{}') as TrueCopyBundle },
+      ],
+      documents: docs(),
+    });
+    await expectRefused(run(qa, (c) => registerQpPackage(c, foreign)), 'EBMR-REC-093', /no record of Lot mine/);
+    const stray = assembleQpPackage({ subject: { type: 'unknown_kind', id: mine.lot, label: 'Lot' }, generatedAt: await dbNow(),
+      bundles: [
+        { name: 'processing-record', role: 'PROCESSING_RECORD', title: 'p', bundle: JSON.parse(mine.pkg.bundles['processing-record'] ?? '{}') as TrueCopyBundle },
+        { name: 'packaging-record', role: 'PACKAGING_RECORD', title: 'p', bundle: JSON.parse(mine.pkg.bundles['packaging-record'] ?? '{}') as TrueCopyBundle },
+      ], documents: docs() });
+    await expectRefused(run(qa, (c) => registerQpPackage(c, stray)), 'EBMR-REC-093');
+    await run(qa, (c) => registerQpPackage(c, mine.pkg));
   });
 });
