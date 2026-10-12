@@ -186,3 +186,16 @@ export {
 export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';
+export {
+  ArchiveBatchSummary,
+  ArchiveBatchView,
+  ContingencyFormState,
+  ContingencyFormView,
+  DisposalAnswerView,
+  ExportFileView,
+  ExportView,
+  FormsView,
+  RetentionView,
+  TrueCopyPdfView,
+  VerificationView,
+} from './ns/archive.ts';

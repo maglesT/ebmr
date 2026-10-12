@@ -61,6 +61,9 @@
  * Phase 4 slice 5b (recipe-core 0870 to 0889; ns/records-lock.ts):
  *  - RECORD_LOCK_ACT AMENDMENT_OPEN   record_lock <batch>/<n>/OPEN/<DEVIATION|CHANGE_RECORD>/<id>  AMENDMENT_OPENED (QA)
  *                    AMENDMENT_CLOSE  record_lock <batch>/<n>/CLOSE                                 AMENDMENT_CLOSED (QA)
+ * Phase 4 slice 6b (kernel 1170, 1171; ns/archive.ts):
+ *  - ARCHIVE_ACT CERTIFY_EXPORT  evidence_export <export id>     EVIDENCE_EXPORT_CERTIFIED (QA), state ASSEMBLED
+ *                SIGN_FORMS      form_reconciliation <batch id>  FORMS_RECONCILED (QA), state RECONCILED
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -321,6 +324,13 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.enum(['AMENDMENT_OPEN', 'AMENDMENT_CLOSE']),
     batchId: Uuid,
     input: RecordLockActInput,
+  }),
+  z.strictObject({
+    kind: z.literal('ARCHIVE_ACT'),
+    /** Phase 4 slice 6b: QA certifies an evidence export (IN-11) or signs the reconciliation of a batch's paper forms (DI-43). */
+    act: z.enum(['CERTIFY_EXPORT', 'SIGN_FORMS']),
+    /** The export (CERTIFY_EXPORT) or the batch (SIGN_FORMS). */
+    subjectId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
