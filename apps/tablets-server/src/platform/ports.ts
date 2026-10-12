@@ -64,6 +64,11 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
    * system (DI-22, DI-24). Absent: the command carries no reason.
    */
   reasonOf?(action: A): { reasonCode: string; reasonText: string } | undefined;
+  /**
+   * Phase 4 slice 3a: the delegation the signer cites (a named delegate of the AP), from the action the person sent; the
+   * kernel checks it at signing (EBMR-ESIG-041) and the act's database command again when it records. Absent: none.
+   */
+  delegationOf?(action: A): string | undefined;
   /** GET /api/esig/content: the exact text to sign (a pure preview for engine actions). */
   previewContent(ctx: SignableContext, query: { aggregateType: string; aggregateId: string; intent: string }): Promise<SignableContentView>;
   /** Inside the challenge command: prepare the record at database time (PREPARE row when it changed). */
