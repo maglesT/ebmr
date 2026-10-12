@@ -27,6 +27,8 @@ export interface DbActSpec<A extends SignableAction> {
   targetNow?(db: pg.Pool | pg.PoolClient, action: A): Promise<ActTarget>;
   /** The person's own reason the signing command carries, when the act's record change needs one (EBMR-AUDIT-002). */
   reasonOf?(action: A): { reasonCode: string; reasonText: string } | undefined;
+  /** The delegation the signer cites, when the act allows one (Phase 4 slice 3a). */
+  delegationOf?(action: A): string | undefined;
   /** Checks the server makes before anything is signed (the database checks them again). */
   precheck?(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<DryRunOutcome | null>;
   /** The database command, with the signature just made. */
@@ -43,6 +45,7 @@ export function dbActHandler<A extends SignableAction>(app: AppContext, spec: Db
     aggregateTypes: spec.aggregateTypes,
     describe: (a) => spec.target(a),
     ...(spec.reasonOf ? { reasonOf: (a: A) => (spec.reasonOf as NonNullable<typeof spec.reasonOf>)(a) } : {}),
+    ...(spec.delegationOf ? { delegationOf: (a: A) => (spec.delegationOf as NonNullable<typeof spec.delegationOf>)(a) } : {}),
     ...(spec.targetNow ? { describeNow: (db: pg.Pool | pg.PoolClient, a: A) => (spec.targetNow as NonNullable<typeof spec.targetNow>)(db, a) } : {}),
     async expectedStateNow(client, a) {
       const t = spec.target(a);

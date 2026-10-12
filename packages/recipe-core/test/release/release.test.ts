@@ -43,7 +43,7 @@ let delegate: SeededActor;
 let analyst: SeededActor;
 let qcHead: SeededActor;
 let warehouse: SeededActor;
-let admin: SeededActor;
+
 let owner: SeededActor;
 let master: { familyId: string; versionId: string; content: MbrContent };
 const dir = tempDir('release');
@@ -271,7 +271,7 @@ async function productAndSpecification(content: MbrContent): Promise<void> {
 beforeAll(async () => {
   db = await createTestDatabase();
   w = new World(db, await seedCast(db));
-  ({ admin, owner } = await seedAdministration(db));
+  ({ owner } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator', roomCode: 'DISP-01' });
   head = await seedActor(db, { roleCode: 'HEAD_OF_PRODUCTION', legalName: 'Hari Head' });
