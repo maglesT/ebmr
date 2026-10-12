@@ -100,7 +100,7 @@ below; each builder ticks them off there.
   assessment, non-empty list of other batches assessed), CLOSED; cancellation rules (L-21); insert-only links ending
   only with "assessed, not affected" (INV-46); release-blocking at once on link; document service: evidence documents
   tied to stored bytes, hash computed by the server (backlog slice 5).
-- **2b, LIMS, lots and samples** (site-services 0840 to 0859, tablets 1140 to 1149): approved specifications per
+- **2b, LIMS, lots and samples** (site-services 0840 to 0859, tablets 1150 to 1159; 1140 and 1141 were taken by slice 1a): approved specifications per
   material with pharmacopoeia edition (IN-33); limits from the specification, never typed; revising a RELEASE result
   needs an OOS link; required tests per material (a lot without results no longer passes); QC extra-testing decision
   checked against the tests actually run; finished lots created in QUARANTINE that leave only through the release model
