@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import type { HomeTile } from '../../app/feature.ts';
 import { BatchMarketsPage } from './BatchMarketsPage.tsx';
 import { LotReleasePage } from './LotReleasePage.tsx';
+import { QpReaderPage } from './QpReaderPage.tsx';
 import { ReleaseQueuePage } from './ReleaseQueuePage.tsx';
 
 export function routes(root: AnyRootRoute): AnyRoute[] {
@@ -16,10 +17,12 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/release', component: ReleaseQueuePage }),
     createRoute({ getParentRoute: () => root, path: '/release/$lotId', component: LotReleasePage }),
     createRoute({ getParentRoute: () => root, path: '/release/batches/$batchId', component: BatchMarketsPage }),
+    createRoute({ getParentRoute: () => root, path: '/qp', component: QpReaderPage }),
   ];
 }
 
 export const homeTiles: readonly HomeTile[] = [
+  { id: 'qp', title: 'QP batch packages', description: 'The EU QP\'s read-only view of the issued packages of one lot, while the access lasts.', to: '/qp', installations: ['GMP'], available: true },
   { id: 'release', title: 'Release cockpit', description: 'Finished lots, the release checklist with its evidence, and the manufacturer release.', to: '/release', installations: ['GMP'], available: true },
 ];
 
