@@ -31,6 +31,7 @@ import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/suppor
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from '../lifecycle/support.ts';
 import { investigateDeviation } from '../../../site-services/test/quality/deviation-path.ts';
+import { assessIncidentImpact, raiseIncident } from '../../../kernel/src/records/incidents.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -496,6 +497,21 @@ describe('suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to
     // An amendment cause is resolved only by its own record (5b): it fails closed until then.
     const amendment = (await db.app.query<{ id: string }>("select id from recipe.release_suspension where lot_id = $1 and cause_kind = 'RECORD_AMENDMENT'", [upstream.lotId])).rows[0]!.id;
     expect((await db.app.query<{ p: string | null }>('select recipe.suspension_cause_problem($1) as p', [amendment])).rows[0]!.p).toMatch(/not resolved/);
+  });
+});
+
+describe('suspension by a kernel incident (L-19, DI-12; D-5-1)', () => {
+  it('[L-19][DI-12] an incident linked to a released lot\'s batch suspends it; the cause is resolved once the incident is assessed for that batch', async () => {
+    const lot = await readyLot(all, ['IN']);
+    await manufacturerRelease(lot);
+    const incident = await withCommand(db.app, await cmd(db, operator), (c) =>
+      raiseIncident(c, { source: 'INTERFACE_FAILURE', type: 'BALANCE_INTERFACE_LOST', severity: 'MAJOR', title: 'Balance interface lost', links: [{ aggregateType: 'batch', aggregateId: lot.batchId }] }));
+    expect(await suspensions(lot.lotId)).toEqual([{ market: 'IN', cause_kind: 'INCIDENT', via_kind: 'BATCH', prior_state: 'RELEASED' }]);
+    expect(await marketState(lot.lotId, 'IN')).toBe('RELEASE_SUSPENDED');
+    const id = (await db.app.query<{ id: string }>('select id from recipe.release_suspension where lot_id = $1', [lot.lotId])).rows[0]!.id;
+    expect((await db.app.query<{ p: string | null }>('select recipe.suspension_cause_problem($1) as p', [id])).rows[0]!.p).toMatch(/still blocks batch/);
+    await withCommand(db.app, await cmd(db, qaReviewer3), (c) => assessIncidentImpact(c, incident, { aggregateType: 'batch', aggregateId: lot.batchId }, 'NO_IMPACT', 'The weighing was repeated on a calibrated balance'));
+    expect((await db.app.query<{ p: string | null }>('select recipe.suspension_cause_problem($1) as p', [id])).rows[0]!.p).toBeNull();
   });
 });
 
