@@ -29,6 +29,8 @@ tests:
   - "packages/recipe-core/test/lifecycle/record-lock.test.ts > bulk across packaging orders and the bulk reconciliation (PR-38, INV-21; recipe-core 0870, 0871) > [PR-38][INV-27] the bulk of one processing batch is issued across several packaging orders, each container once, never more than produced: a container issued to one order is refused to another; a forged quantity is refused for every writer; the role writes none"
   - "packages/recipe-core/test/lifecycle/record-lock.test.ts > bulk across packaging orders and the bulk reconciliation (PR-38, INV-21; recipe-core 0870, 0871) > [INV-21][PR-38] the bulk reconciliation closes only with the batch complete, every packaging order closed, no container open and a reason for the bulk left; by production approval, never an operator or an administrator; it records produced, issued and left and locks the record once"
   - "packages/recipe-core/test/lifecycle/record-lock.test.ts > the maximum hold of bright stock (PR-38; recipe-core 0871) > [PR-38] master data sets the product's maximum hold (a whole number of hours, with a reason; never an operator or an administrator); bulk past it is not issued until a deviation linked to the order is assessed by QA; no maximum set checks none; packaging start reads the same rule"
+  - "apps/tablets-web/test/records/records.test.tsx > locked records > [PR-38] the maximum hold of bright stock is listed and set as a new version with a reason"
+  - "apps/tablets-web/test/records/records.test.tsx > bulk reconciliation > [PR-38] shows produced, issued and left bulk per order and container; the close waits for the server's problems"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

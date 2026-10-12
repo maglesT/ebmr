@@ -21,6 +21,8 @@ tests:
   - "packages/recipe-core/test/release/after-release.test.ts > suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to D-5-3) > [L-19][IN-29][INV-39] a deviation linked upstream of released lots suspends every decided market of each, in the linking transaction, with the ERP block and the AP's task; a lot not yet released only gets the link"
   - "packages/recipe-core/test/release/after-release.test.ts > suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to D-5-3) > [L-19][IN-29][PR-57] a revised LIMS result suspends the lot and every released lot downstream of it through the genealogy; the suspension of 0820's interface does the same"
   - "packages/recipe-core/test/release/after-release.test.ts > re-confirmation (outline 5.2.6; L-19, INV-05, INV-35, INV-39; D-5-4) > [L-19][INV-05][INV-35][INV-39][IN-29] the AP re-confirms each market once every cause is resolved, at the evaluated epoch; the market returns to its state, the task closes and the ERP unblocks"
+  - "apps/tablets-web/test/release/after-release.test.tsx > suspended lots > [L-19][IN-29] lists each suspended lot with its suspended markets and the open recall assessment, linking to its After release tab"
+  - "apps/tablets-web/test/release/after-release.test.tsx > After release tab > [L-19][IN-29] shows the suspension per market, its causes with the database's reason, the recall assessment and the ERP stock block"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

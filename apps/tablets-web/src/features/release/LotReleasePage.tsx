@@ -10,7 +10,9 @@
  *  - the manufacturer release (with the checklist shown and the epoch the signer saw) or rejection (with the person's
  *    reason), each through esig.describe and the ceremony (RELEASE_ACT); the decision once recorded;
  *  - the notifications of the decision to production and QA (IN-39 clause 2);
- *  - slice 4: the US, EU and India tabs (MarketTabs.tsx).
+ *  - slice 4: the US, EU and India tabs (MarketTabs.tsx);
+ *  - slice 5: the "After release" tab (AfterRelease.tsx, Disposal.tsx): suspension causes, forward trace, the AP's
+ *    re-confirmation, recall and rejection after release per market, and the disposal (opened by `?tab=AFTER`).
  * Every gate, state, item status and meaning is the server's; the browser computes none of them.
  */
 import { useState } from 'react';
@@ -21,9 +23,10 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
-import { useRouteParams } from '../floor/params.ts';
+import { useRouteParams, useRouteSearch } from '../floor/params.ts';
 import { GateProblems } from '../review/parts.tsx';
 import { NotificationList } from '../notifications/NotificationList.tsx';
+import { AfterReleaseTab } from './AfterRelease.tsx';
 import { IndiaTab, MarketTab } from './MarketTabs.tsx';
 import { GrelChecklist, SinceReview } from './parts.tsx';
 import { itemWord, RELEASE_READS, releaseTone, words } from './reads.ts';
@@ -41,17 +44,19 @@ export function LotReleasePage() {
   );
 }
 
-type Tab = 'MANUFACTURER' | 'US' | 'EU' | 'IN';
+type Tab = 'MANUFACTURER' | 'US' | 'EU' | 'IN' | 'AFTER';
 
 const TABS: readonly { id: Tab; label: string }[] = [
   { id: 'MANUFACTURER', label: 'Manufacturer (market IN checklist)' },
   { id: 'US', label: 'US' },
   { id: 'EU', label: 'EU' },
   { id: 'IN', label: 'India' },
+  { id: 'AFTER', label: 'After release' },
 ];
 
 function LotRelease({ view: v }: { view: LotReleaseView }) {
-  const [tab, setTab] = useState<Tab>('MANUFACTURER');
+  const wanted = useRouteSearch()['tab'];
+  const [tab, setTab] = useState<Tab>(TABS.find((t) => t.id === wanted)?.id ?? 'MANUFACTURER');
   return (
     <>
       <p data-testid="release-state">
@@ -79,7 +84,7 @@ function LotRelease({ view: v }: { view: LotReleaseView }) {
         ))}
       </div>
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} aria-label={TABS.find((t) => t.id === tab)?.label}>
-        {tab === 'MANUFACTURER' ? <ManufacturerTab view={v} /> : tab === 'IN' ? <IndiaTab lot={v} /> : <MarketTab lot={v} market={tab} />}
+        {tab === 'MANUFACTURER' ? <ManufacturerTab view={v} /> : tab === 'IN' ? <IndiaTab lot={v} /> : tab === 'AFTER' ? <AfterReleaseTab lot={v} /> : <MarketTab lot={v} market={tab} />}
       </div>
     </>
   );

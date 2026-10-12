@@ -10,7 +10,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { releaseTone, words } from './reads.ts';
 
-const FILTERS = ['ALL', 'NOT_READY', 'READY', 'RELEASED', 'REJECTED'] as const;
+const FILTERS = ['ALL', 'NOT_READY', 'READY', 'RELEASED', 'REJECTED', 'RELEASE_SUSPENDED', 'RECALLED', 'REJECTED_AFTER_RELEASE'] as const;
 
 export function ReleaseQueuePage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('ALL');
@@ -19,6 +19,9 @@ export function ReleaseQueuePage() {
   return (
     <>
       <h1>Release cockpit</h1>
+      <p>
+        <Link to="/release/suspended">Suspended lots and recall assessments</Link>
+      </p>
       <floor.ChoiceGroup label="Show" options={FILTERS.map((f) => ({ value: f, label: f === 'ALL' ? 'All' : words(f) }))} value={filter} onChange={(v) => setFilter(FILTERS.find((f) => f === v) ?? 'ALL')} />
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
       {q.data && q.data.lots.length === 0 ? <p>No finished lot is listed.</p> : null}
