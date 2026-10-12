@@ -5,7 +5,8 @@
  *    verifies it and the acknowledgement that goes back to the sender is shown (DI-39);
  *  - the transcribed fallback (QP_INTAKE): a QA person enters the certification as received; it counts only once a
  *    second person has verified it (QP_INTAKE_VERIFY, DI-30);
- *  - the in-system certification by a registered QP, only while its switch is on (QP_CERTIFY, PR-55).
+ *  - the in-system certification by a registered QP, only while its switch is on (QP_CERTIFY, PR-55);
+ *  - the EU QP batch package: assembly, issue, the QP's time-boxed access (QpPackage.tsx).
  * Every state, gate and outcome is the server's; every signed act goes through esig.describe and the ceremony.
  */
 import { useState } from 'react';
@@ -16,6 +17,7 @@ import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../a
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { GateProblems } from '../review/parts.tsx';
+import { QpPackageSection } from './QpPackage.tsx';
 import { RELEASE_READS, words, type MarketDispositionView, type QpCertificationView } from './reads.ts';
 
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -30,6 +32,7 @@ export function EuTab({ lot, d }: { lot: LotReleaseView; d: MarketDispositionVie
   return (
     <>
       <Importer lot={lot} />
+      {d ? <QpPackageSection lot={lot} offered={qa} /> : null}
       {d ? <Certifications lot={lot} d={d} offered={qa} /> : null}
       {qa ? <MessageIntake /> : null}
       {d && qa ? <TranscribedIntake lot={lot} /> : null}
