@@ -34,6 +34,7 @@ implemented_by: {}
 tests:
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-11] a records package for 5 batches includes their audit trails, each export verifying against its registered hash"
+  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
