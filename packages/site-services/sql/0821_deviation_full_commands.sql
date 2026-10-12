@@ -30,7 +30,7 @@
 --   site.lot_test_failure_resolved              re-created from 0753: a laboratory-error conclusion counts in PENDING_CLOSURE
 --                                    (the old CONCLUDED) or CLOSED.
 --
--- Messages: EBMR-SITE-820 to 829.
+-- Messages: EBMR-SITE-820 to 829 (829: a record started before this migration has no QA classification yet).
 
 set local role ebmr_owner;
 
@@ -387,6 +387,10 @@ begin
       message = format('EBMR-SITE-827 %s has no closure basis: root-cause method, CAPA, regulatory-notification assessment and the other batches assessed (outline 5.2.5)', d.ref);
   end if;
   k := site.deviation_latest_classification(d.id);
+  if k.id is null then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-SITE-829 %s has no QA classification (its investigation started before slice 2a); QA reclassifies it first (IN-02)', d.ref);
+  end if;
   if f.root_cause_category = 'HUMAN_ERROR' and b.system_factors is null then
     raise exception using errcode = 'P0001',
       message = format('EBMR-SITE-827 %s concludes a human error; that needs the assessment of the process, procedure and system factors (PR-50)', d.ref);

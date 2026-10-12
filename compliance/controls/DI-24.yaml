@@ -133,6 +133,7 @@ tests:
   - "packages/site-services/test/mutation/deviations.test.ts > the signed content and the subject resolver (site services 0730) > [DI-24] a record's content version counts its own links, events, findings, classification and conclusion"
   - "apps/tablets-server/test/review/review-routes.test.ts > the CORRECT_ENTRY route (outline 5.2.3 path (a); S25) > [DI-24] a correction of critical data is a signed intent that names the approval it needs: without it nothing is signed; with another person's CORRECTION_APPROVAL it is recorded"
   - "packages/recipe-core/test/review/review.test.ts > the correction of a loop reading (plan open question 1, default: counts as failing) > [DI-24] a loop reading that did not meet the endpoint needs a stored evidence document and QA approval to be corrected, whatever its new value; other readings keep their rule"
+  - "packages/site-services/test/quality/deviation-full.test.ts > evidence documents tied to their stored bytes (site services 0823) > [DI-24][DI-22] the database computes the hash and size from the bytes it stores; the bytes never change; a document without matching bytes is not evidence"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
     tests:
