@@ -26,7 +26,6 @@ import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, withSecondRole, World } from '../lifecycle/support.ts';
-import { investigateDeviation } from '../../../site-services/test/quality/deviation-path.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -238,6 +237,32 @@ async function deviationOn(kind: 'DEVIATION' | 'OOS', subject: 'BATCH' | 'LOT', 
   ]);
   await w.run(operator, (c) => c.query('select site.link_deviation($1, $2, $3)', [d.deviationId, subject, id]));
   return d;
+}
+
+/**
+ * The deviation path to an open record assessed for IN (site services 0820 to 0822, as site-services' own
+ * deviation-path helper drives it): QA classifies, the owner records the finding and the impact on every link, another QA
+ * person signs the impact, the basis is recorded and a fourth person concludes (PENDING_CLOSURE: still open).
+ */
+async function concludedWithImpact(deviationId: string, impact: 'NONE' | 'POTENTIAL'): Promise<void> {
+  const q = (who: SeededActor, text: string, values: unknown[]) => w.run(who, (c) => c.query(text, values));
+  await q(qaReviewer, 'select site.start_deviation_investigation($1, $2::jsonb)', [
+    deviationId, JSON.stringify({ classification: 'MAJOR', riskRationale: 'QA classification after the first review of the facts', ownerPersonId: qaReviewer2.personId, dueDate: '2027-01-28' }),
+  ]);
+  await q(qaReviewer2, 'select site.record_deviation_finding($1, $2::jsonb)', [deviationId, JSON.stringify({ assignableCause: true, cause: 'A gasket wore out', rootCauseCategory: 'EQUIPMENT' })]);
+  const links = (await db.app.query<{ id: string }>('select id from site.deviation_link where deviation_id = $1 order by linked_at, id', [deviationId])).rows;
+  for (const l of links) {
+    await q(qaReviewer2, 'select site.record_deviation_impact($1, $2::jsonb)', [deviationId, JSON.stringify({ linkId: l.id, market: 'IN', impact, rationale: 'Assessed against the investigation findings' })]);
+  }
+  const assessed = await signFor(db, qaReviewer3, { type: 'deviation', id: deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+  await q(qaReviewer3, 'select site.assess_deviation_impact($1, $2)', [deviationId, assessed]);
+  await q(qaReviewer2, 'select site.record_deviation_closure_basis($1, $2::jsonb)', [deviationId, JSON.stringify({
+    rootCauseMethod: 'Five whys with the investigation team', capaRefs: ['CAPA-TEST-001'], notificationRequired: false,
+    notificationRationale: 'No registered detail or licence condition is affected',
+    otherBatches: [{ subjectKind: 'PRODUCT', ref: 'All other batches of the product made since the last good check', included: false, reason: 'Checks passed on them' }],
+  })]);
+  const concluded = await signFor(db, qaReviewer4, { type: 'deviation', id: deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+  await q(qaReviewer4, 'select site.conclude_deviation($1, $2)', [deviationId, concluded]);
 }
 
 async function setOpenInvestigationPath(value: 'ON' | 'OFF'): Promise<void> {
@@ -493,9 +518,7 @@ describe('deviations and open investigations (PR-53, PR-08)', () => {
     const lot = await readyLot();
     const dev = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
     // Classified, impact POTENTIAL for IN signed by QA, concluded: still open (PENDING_CLOSURE).
-    await investigateDeviation({ run: (a: SeededActor, work) => w.run(a, work), sign: (a: SeededActor, agg, m, st) => signFor(db, a, agg, m, st) }, dev.deviationId,
-      { classifier: qaReviewer, owner: qaReviewer2, assessor: qaReviewer3, concluder: qaReviewer4 },
-      { finding: { assignableCause: true, cause: 'A gasket wore out', rootCauseCategory: 'EQUIPMENT' }, impact: 'POTENTIAL' });
+    await concludedWithImpact(dev.deviationId, 'POTENTIAL');
     await deltaReview(lot.batchId);
     let g = await grel(lot.lotId);
     expect(red(g)).toEqual(['G2.DEVIATIONS']);

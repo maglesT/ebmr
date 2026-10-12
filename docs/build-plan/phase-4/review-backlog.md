@@ -51,3 +51,8 @@ Backlog:
 - Low: `tab.post_finished_lot` does not check the posted quantity against the packed counts (slice 3, with
   reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
   declared immutable but calls recipe functions.
+
+## Slice 3a (builder report, 12 October 2026)
+
+- Ticked: the slice 2b items for slice 3 (extra testing, samples, finished lot out of quarantine through the release).
+- Open: `tab.post_finished_lot` quantity against the packed counts stays with 3b's reconciliation item (group 4).
