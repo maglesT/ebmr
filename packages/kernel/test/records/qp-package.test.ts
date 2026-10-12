@@ -5,6 +5,7 @@
  * permission on the QP account, an expired or revoked access, a second lot).
  */
 import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import {
@@ -15,12 +16,13 @@ import {
   readQpPackage,
   registerQpPackage,
   revokeQpAccess,
+  trueCopyBundleFromSnapshot,
   serializeQpPackage,
   verifyQpPackageText,
   type QpDocumentInput,
   type QpPackage,
 } from '../../src/records/qp-package.ts';
-import { buildTrueCopyBundle, registerTrueCopy, type TrueCopyBundle } from '../../src/records/true-copy.ts';
+import { buildTrueCopyBundle, registerTrueCopy, verifyRecordsPart, verifyTrueCopyBundleText, serializeBundle, type AuditChainPart, type RecordsPart, type TrueCopyBundle } from '../../src/records/true-copy.ts';
 import { expectPermissionDenied, expectRefused } from '../identity/helpers.ts';
 import { seedActor, type SeededActor } from '../identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
@@ -41,6 +43,10 @@ beforeAll(async () => {
     create table stub_qp.entry (id uuid primary key default gen_random_uuid(), batch_id uuid not null, step_ref text not null, value numeric not null);
     grant select, insert on stub_qp.entry to ebmr_app;
     select kernel.register_audited_table('stub_qp.entry', 'qp_stub_batch', 'batch_id', true);
+    -- An insert-only table without an id column (as recipe.execution_event): its events are keyed by the batch.
+    create table stub_qp.event (batch_id uuid not null, seq integer not null, value text not null, primary key (batch_id, seq));
+    grant select, insert on stub_qp.event to ebmr_app;
+    select kernel.register_audited_table('stub_qp.event', 'qp_stub_events', 'batch_id', true);
     reset role;
   `);
   operator = await seedActor(db, { roleCode: 'OPERATOR' });
@@ -52,7 +58,7 @@ afterAll(async () => {
   await db.drop();
 });
 
-const run = <T>(actor: ActorContext, work: (c: import('pg').PoolClient) => Promise<T>): Promise<T> => withCommand(db.app, again(actor), work);
+const run = <T>(actor: ActorContext, work: (c: pg.PoolClient) => Promise<T>): Promise<T> => withCommand(db.app, again(actor), work);
 
 async function recordedBatch(): Promise<string> {
   const batch = randomUUID();
@@ -85,7 +91,7 @@ async function dbNow(): Promise<string> {
   return rows[0]?.t ?? '';
 }
 
-async function assembled(lot = randomUUID()): Promise<{ lot: string; pkg: QpPackage }> {
+async function assembled(lot: string = randomUUID()): Promise<{ lot: string; pkg: QpPackage }> {
   const [processing, packaging] = await Promise.all([recordedBatch(), recordedBatch()]);
   const pkg = assembleQpPackage({
     subject: { type: 'material_lot', id: lot, label: `Lot ${lot.slice(0, 8)}` },
@@ -177,6 +183,37 @@ describe('the EU QP batch package (DI-41)', () => {
     expect(tampered).not.toBe(text);
     expect(verifyQpPackageText(tampered).ok).toBe(false);
     expect(verifyQpPackageText(text, { packageSha256: '2'.repeat(64) })).toMatchObject({ ok: false, reference: 'MISMATCHED' });
+  });
+
+  it('[DI-41] a true copy read through the definer is the copy the direct builder makes, and only a person who registers true copies reads it', async () => {
+    const batch = await recordedBatch();
+    const key = `qp_stub_batch:${batch}`;
+    const direct = await buildTrueCopyBundle(db.app, { chainKey: key });
+    const viaDefiner = await run(qa, (c) => trueCopyBundleFromSnapshot(c, key));
+    for (const part of ['records.json', 'audit-chain.json']) expect(viaDefiner.parts[part], part).toBe(direct.parts[part]);
+    const report = verifyTrueCopyBundleText(serializeBundle(viaDefiner), { manifestSha256: viaDefiner.manifestSha256 });
+    expect([report.ok, report.summary.reference]).toEqual([true, 'MATCHED']);
+    await run(qa, (c) => registerTrueCopy(c, viaDefiner, 'QP package test'));
+    await expectRefused(run(operator, (c) => trueCopyBundleFromSnapshot(c, key)), 'EBMR-IAM-040');
+    await expectRefused(run(qp, (c) => trueCopyBundleFromSnapshot(c, key)), 'EBMR-IAM-040');
+    await expectPermissionDenied(db.app.query("select records.true_copy_parts($1, null)", [key]));
+  });
+
+  it('[DI-41] a true copy of an insert-only table without an id column verifies row by row, and a row left out or altered is reported', async () => {
+    const batch = randomUUID();
+    await run(operator, async (c) => {
+      for (const [seq, value] of [[1, 'started'], [2, 'weighed'], [3, 'closed']] as const) await c.query('insert into stub_qp.event (batch_id, seq, value) values ($1, $2, $3)', [batch, seq, value]);
+    });
+    const bundle = await run(qa, (c) => trueCopyBundleFromSnapshot(c, `qp_stub_events:${batch}`));
+    const text = serializeBundle(bundle);
+    const ok = verifyTrueCopyBundleText(text, { manifestSha256: bundle.manifestSha256 });
+    expect([ok.ok, ok.problems, ok.summary.rows]).toEqual([true, [], 3]);
+    const records = JSON.parse(bundle.parts['records.json'] ?? '{}') as RecordsPart;
+    records.tables[0]?.rows.splice(1, 1);
+    const short = verifyRecordsPart(records, JSON.parse(bundle.parts['audit-chain.json'] ?? '{}') as AuditChainPart);
+    expect(short.join(' ')).toMatch(/1 inserted row\(s\) of this key missing from the bundle/);
+    const altered = verifyTrueCopyBundleText(text.replace('weighed', 'weighted'));
+    expect(altered.ok).toBe(false);
   });
 
   it('[DI-41] the register is written only by the definers: the application role and a person without the permission are refused', async () => {

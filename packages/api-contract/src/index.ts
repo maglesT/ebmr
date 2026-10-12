@@ -125,6 +125,19 @@ export {
   ReleaseMarket,
 } from './ns/release.ts';
 export { NotificationDepartment, NotificationView } from './ns/notifications.ts';
+export {
+  LotQpView,
+  QpAccessView,
+  QpPackageFileView,
+  QpPackageView,
+  QpReaderPackageView,
+  QpSectionRole,
+  QpSectionView,
+  ShipmentCheckView,
+  ShipmentMarket,
+  ShipmentRequest,
+  ShipmentView,
+} from './ns/qp-shipping.ts';
 export { ContainerHoldView, ContainerState, ContainerView } from './ns/containers.ts';
 export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';

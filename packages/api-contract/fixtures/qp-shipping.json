@@ -1,0 +1,332 @@
+{
+  "lot": {
+    "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+    "assembleProblems": [],
+    "packages": [
+      {
+        "packageId": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+        "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+        "label": "Lot P2600009, PARA-500 500 mg",
+        "state": "ISSUED",
+        "packageSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "contentBytes": 309823,
+        "sections": [
+          {
+            "name": "processing-record",
+            "role": "PROCESSING_RECORD",
+            "kind": "TRUE_COPY",
+            "title": "Processing record B2600017",
+            "chainKey": "batch:3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "bytes": 182311
+          },
+          {
+            "name": "packaging-record",
+            "role": "PACKAGING_RECORD",
+            "kind": "TRUE_COPY",
+            "title": "Packaging record P2600009",
+            "chainKey": "batch:4b3c2d1e-0f9a-4b8c-9d7e-6f5a4b3c2d1e",
+            "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "bytes": 95520
+          },
+          {
+            "name": "audit-trail-review",
+            "role": "AUDIT_TRAIL_REVIEW",
+            "kind": "DOCUMENT",
+            "title": "Audit-trail review",
+            "chainKey": null,
+            "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "bytes": 4120
+          },
+          {
+            "name": "post-entry-changes",
+            "role": "POST_ENTRY_CHANGES",
+            "kind": "DOCUMENT",
+            "title": "Post-entry changes to critical data",
+            "chainKey": null,
+            "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "bytes": 1880
+          },
+          {
+            "name": "deviations",
+            "role": "DEVIATIONS",
+            "kind": "DOCUMENT",
+            "title": "Deviations and their per-market assessments",
+            "chainKey": null,
+            "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "bytes": 2210
+          },
+          {
+            "name": "release",
+            "role": "RELEASE",
+            "kind": "TRUE_COPY",
+            "title": "Manufacturer release and checklist",
+            "chainKey": "manufacturer_release:0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+            "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "bytes": 20480
+          },
+          {
+            "name": "coa",
+            "role": "COA",
+            "kind": "DOCUMENT",
+            "title": "Certificate of analysis",
+            "chainKey": null,
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "bytes": 3302
+          }
+        ],
+        "assembledBy": {
+          "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000001",
+          "legalName": "Meera Rao",
+          "loginName": "mrao",
+          "role": "QA_REVIEWER"
+        },
+        "assembledAt": {
+          "us": "1791790000000000",
+          "text": "12-OCT-2026 14:46:40 +05:30 (Asia/Kolkata)"
+        },
+        "issuedBy": {
+          "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000001",
+          "legalName": "Meera Rao",
+          "loginName": "mrao",
+          "role": "QA_REVIEWER"
+        },
+        "issuedAt": {
+          "us": "1791790300000000",
+          "text": "12-OCT-2026 14:51:40 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "9c8b7a69-5847-4362-8150-4f3e2d1c0b0a"
+      }
+    ],
+    "accesses": [
+      {
+        "accessId": "5e4d3c2b-1a09-4f8e-9d7c-6b5a49382716",
+        "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+        "qp": {
+          "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000002",
+          "legalName": "Dr. Anna Weber",
+          "loginName": "aweber",
+          "role": "EU_QP_READER"
+        },
+        "accountId": "8d7c6b5a-4938-4271-8605-f4e3d2c1b0a9",
+        "validFrom": {
+          "us": "1791790400000000",
+          "text": "12-OCT-2026 14:53:20 +05:30 (Asia/Kolkata)"
+        },
+        "validTo": {
+          "us": "1793000000000000",
+          "text": "26-OCT-2026 14:43:20 +05:30 (Asia/Kolkata)"
+        },
+        "reason": "TA-2026-01: lot for import into the EU",
+        "grantedBy": {
+          "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000001",
+          "legalName": "Meera Rao",
+          "loginName": "mrao",
+          "role": "QA_REVIEWER"
+        },
+        "state": "LIVE",
+        "reads": 1
+      }
+    ]
+  },
+  "package": {
+    "packageId": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+    "label": "Lot P2600009, PARA-500 500 mg",
+    "state": "ISSUED",
+    "packageSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "contentBytes": 309823,
+    "sections": [
+      {
+        "name": "processing-record",
+        "role": "PROCESSING_RECORD",
+        "kind": "TRUE_COPY",
+        "title": "Processing record B2600017",
+        "chainKey": "batch:3a2b1c0d-9e8f-4a7b-8c6d-5e4f3a2b1c0d",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "bytes": 182311
+      },
+      {
+        "name": "packaging-record",
+        "role": "PACKAGING_RECORD",
+        "kind": "TRUE_COPY",
+        "title": "Packaging record P2600009",
+        "chainKey": "batch:4b3c2d1e-0f9a-4b8c-9d7e-6f5a4b3c2d1e",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "bytes": 95520
+      },
+      {
+        "name": "audit-trail-review",
+        "role": "AUDIT_TRAIL_REVIEW",
+        "kind": "DOCUMENT",
+        "title": "Audit-trail review",
+        "chainKey": null,
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "bytes": 4120
+      },
+      {
+        "name": "post-entry-changes",
+        "role": "POST_ENTRY_CHANGES",
+        "kind": "DOCUMENT",
+        "title": "Post-entry changes to critical data",
+        "chainKey": null,
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "bytes": 1880
+      },
+      {
+        "name": "deviations",
+        "role": "DEVIATIONS",
+        "kind": "DOCUMENT",
+        "title": "Deviations and their per-market assessments",
+        "chainKey": null,
+        "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "bytes": 2210
+      },
+      {
+        "name": "release",
+        "role": "RELEASE",
+        "kind": "TRUE_COPY",
+        "title": "Manufacturer release and checklist",
+        "chainKey": "manufacturer_release:0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+        "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "bytes": 20480
+      },
+      {
+        "name": "coa",
+        "role": "COA",
+        "kind": "DOCUMENT",
+        "title": "Certificate of analysis",
+        "chainKey": null,
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "bytes": 3302
+      }
+    ],
+    "assembledBy": {
+      "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000001",
+      "legalName": "Meera Rao",
+      "loginName": "mrao",
+      "role": "QA_REVIEWER"
+    },
+    "assembledAt": {
+      "us": "1791790000000000",
+      "text": "12-OCT-2026 14:46:40 +05:30 (Asia/Kolkata)"
+    },
+    "issuedBy": {
+      "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000001",
+      "legalName": "Meera Rao",
+      "loginName": "mrao",
+      "role": "QA_REVIEWER"
+    },
+    "issuedAt": {
+      "us": "1791790300000000",
+      "text": "12-OCT-2026 14:51:40 +05:30 (Asia/Kolkata)"
+    },
+    "signatureId": "9c8b7a69-5847-4362-8150-4f3e2d1c0b0a"
+  },
+  "access": {
+    "accessId": "5e4d3c2b-1a09-4f8e-9d7c-6b5a49382716",
+    "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+    "qp": {
+      "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000002",
+      "legalName": "Dr. Anna Weber",
+      "loginName": "aweber",
+      "role": "EU_QP_READER"
+    },
+    "accountId": "8d7c6b5a-4938-4271-8605-f4e3d2c1b0a9",
+    "validFrom": {
+      "us": "1791790400000000",
+      "text": "12-OCT-2026 14:53:20 +05:30 (Asia/Kolkata)"
+    },
+    "validTo": {
+      "us": "1793000000000000",
+      "text": "26-OCT-2026 14:43:20 +05:30 (Asia/Kolkata)"
+    },
+    "reason": "TA-2026-01: lot for import into the EU",
+    "grantedBy": {
+      "personId": "6f1c2a8e-1111-4c1a-9a1e-0a0000000001",
+      "legalName": "Meera Rao",
+      "loginName": "mrao",
+      "role": "QA_REVIEWER"
+    },
+    "state": "LIVE",
+    "reads": 1
+  },
+  "reader": {
+    "packages": [
+      {
+        "packageId": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+        "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+        "label": "Lot P2600009, PARA-500 500 mg",
+        "packageSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "contentBytes": 309823,
+        "issuedAt": {
+          "us": "1791790300000000",
+          "text": "12-OCT-2026 14:51:40 +05:30 (Asia/Kolkata)"
+        },
+        "accessValidTo": {
+          "us": "1793000000000000",
+          "text": "26-OCT-2026 14:43:20 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  },
+  "file": {
+    "packageId": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    "packageSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "contentSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "content": "{\"format\":\"ebmr.qp-batch-package/1\"}\n"
+  },
+  "checkAllowed": {
+    "allowed": true,
+    "problems": []
+  },
+  "checkRefused": {
+    "allowed": false,
+    "problems": [
+      "consignee OTHER-01 is not the EU importer IMP-DE-01 named in the technical agreement (INV-42)",
+      "until the QP certifies it, an EU lot ships only as quarantined goods (INV-42, DI-39)"
+    ]
+  },
+  "shipment": {
+    "shipmentId": "2c1b0a99-8877-4665-9544-332211009988",
+    "shipmentNo": "SH-2026-0042",
+    "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+    "market": "EU",
+    "consigneeCode": "IMP-DE-01",
+    "consigneeName": "Importer GmbH",
+    "quantity": "12000",
+    "unit": "units",
+    "quarantine": true,
+    "manufacturerState": "RELEASED",
+    "dispositionState": "AWAITING_QP_CERTIFICATION",
+    "euImporterId": "1f2e3d4c-5b6a-4798-8a9b-0c1d2e3f4a5b",
+    "erpReference": "DN-778812",
+    "recordedAt": {
+      "us": "1791791000000000",
+      "text": "12-OCT-2026 15:03:20 +05:30 (Asia/Kolkata)"
+    }
+  },
+  "shipments": {
+    "shipments": [
+      {
+        "shipmentId": "2c1b0a99-8877-4665-9544-332211009988",
+        "shipmentNo": "SH-2026-0042",
+        "lotId": "0d6c1e7a-2b3c-4d5e-8f90-1a2b3c4d5e6f",
+        "market": "EU",
+        "consigneeCode": "IMP-DE-01",
+        "consigneeName": "Importer GmbH",
+        "quantity": "12000",
+        "unit": "units",
+        "quarantine": true,
+        "manufacturerState": "RELEASED",
+        "dispositionState": "AWAITING_QP_CERTIFICATION",
+        "euImporterId": "1f2e3d4c-5b6a-4798-8a9b-0c1d2e3f4a5b",
+        "erpReference": "DN-778812",
+        "recordedAt": {
+          "us": "1791791000000000",
+          "text": "12-OCT-2026 15:03:20 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  }
+}

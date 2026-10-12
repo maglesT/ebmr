@@ -33,7 +33,8 @@ behaviour: |-
   - A release approval sent by email or chat is not the record (DI-40).
 catalog_test: A QA reviewer, a supervisor and an admin each try to certify. All fail. The QP certifies, and the record shows name, date/time and meaning. ERP stock status changes only after certification.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][DI-39] an EU lot ships only to the importer the technical agreement names, as quarantined goods until the QP certified it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

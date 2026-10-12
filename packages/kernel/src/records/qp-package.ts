@@ -18,7 +18,18 @@
  */
 import { createHash } from 'node:crypto';
 import type pg from 'pg';
-import { verifyTrueCopyBundleText, serializeBundle, type Manifest as BundleManifest, type TrueCopyBundle } from './true-copy.ts';
+import {
+  BUNDLE_FORMAT,
+  serializeBundle,
+  verifyChainPart,
+  verifyRecordsPart,
+  verifyTrueCopyBundleText,
+  type AuditChainPart,
+  type Manifest as BundleManifest,
+  type RecordsPart,
+  type TrueCopyBundle,
+  type VerificationPart,
+} from './true-copy.ts';
 
 export const QP_PACKAGE_FORMAT = 'ebmr.qp-batch-package/1';
 export const QP_PACKAGE_KIND = 'EU_QP_BATCH_PACKAGE';
@@ -272,4 +283,69 @@ export async function readQpPackage(db: pg.Pool | pg.PoolClient, packageId: stri
   const r = rows[0]?.r;
   if (!r) throw new Error('EBMR-REC-090 no package');
   return r;
+}
+
+// ---------------------------------------------------------------------------------------------
+// True copies through the definer (kernel 1161), for editions that read the audit trail only through functions
+// ---------------------------------------------------------------------------------------------
+
+interface SnapshotJson {
+  generatedAt: string;
+  aggregateType: string;
+  aggregateId: string;
+  tables: { table: string; aggregateColumn: string; insertOnly: boolean; rows: { recordId: string; sha256: string; content: string }[] }[];
+  events: { seq: string; prevHash: string; hash: string; recordedAt: string; correlationId: string; action: string; tableName: string | null; recordId: string | null; payload: string }[];
+  head: { seq: string; hash: string } | null;
+  checkpoints: { seq: string; hash: string; eventCount: string; sealedAt: string; reason: string }[];
+  database: { seq: string; problem: string }[] | null;
+}
+
+/**
+ * The true-copy bundle of one chain from records.true_copy_snapshot (RECORD.TRUE_COPY_REGISTER; one snapshot), in
+ * exactly the form buildTrueCopyBundle gives (call inside withCommand). The JSON parts are rebuilt member by member in
+ * the builder's order (the database's jsonb sorts its keys).
+ */
+export async function trueCopyBundleFromSnapshot(db: pg.Pool | pg.PoolClient, chainKey: string): Promise<TrueCopyBundle> {
+  const { rows } = await db.query<{ s: SnapshotJson }>('select records.true_copy_snapshot($1) as s', [chainKey]);
+  const s = rows[0]?.s;
+  if (!s) throw new Error(`EBMR-REC-070 no snapshot of ${chainKey}`);
+  const records: RecordsPart = {
+    chainKey,
+    aggregateType: s.aggregateType,
+    aggregateId: s.aggregateId,
+    tables: s.tables.map((t) => ({ table: t.table, aggregateColumn: t.aggregateColumn, insertOnly: t.insertOnly, rows: t.rows.map((r) => ({ recordId: r.recordId, sha256: r.sha256, content: r.content })) })),
+  };
+  const chain: AuditChainPart = {
+    chainKey,
+    genesisPrevHash: sha256Hex(`genesis:${chainKey}`),
+    events: s.events.map((e) => ({ seq: e.seq, prevHash: e.prevHash, hash: e.hash, recordedAt: e.recordedAt, correlationId: e.correlationId, action: e.action, tableName: e.tableName, recordId: e.recordId, payload: e.payload })),
+    head: s.head ? { seq: s.head.seq, hash: s.head.hash } : null,
+    checkpoints: s.checkpoints.map((c) => ({ seq: c.seq, hash: c.hash, eventCount: c.eventCount, sealedAt: c.sealedAt, reason: c.reason })),
+  };
+  const offline = [...verifyChainPart(chain), ...verifyRecordsPart(records, chain)];
+  const verification: VerificationPart = {
+    verifiedAt: s.generatedAt,
+    database: (s.database ?? []).map((d) => ({ seq: d.seq, problem: d.problem })),
+    offline: { ok: offline.length === 0, problems: offline },
+  };
+  const parts: Record<string, string> = {
+    'records.json': JSON.stringify(records, null, 2),
+    'audit-chain.json': JSON.stringify(chain, null, 2),
+    'verification.json': JSON.stringify(verification, null, 2),
+  };
+  const manifest: BundleManifest = {
+    format: BUNDLE_FORMAT,
+    chainKey,
+    aggregateType: s.aggregateType,
+    aggregateId: s.aggregateId,
+    generatedAt: s.generatedAt,
+    head: chain.head,
+    tables: records.tables.map((t) => t.table),
+    parts: ['records.json', 'audit-chain.json', 'verification.json'].map((name) => ({ name, mediaType: 'application/json', bytes: utf8Bytes(parts[name] as string), sha256: sha256Hex(parts[name] as string) })),
+    hashAlgorithm: 'SHA-256',
+    canonicalForm: 'PostgreSQL jsonb text output, UTF-8; event hash = SHA-256(previous hash bytes || payload bytes)',
+    rendering: 'JSON only; the PDF/A-3 rendering is added in Phase 4',
+  };
+  const manifestText = JSON.stringify(manifest, null, 2);
+  return { format: BUNDLE_FORMAT, manifestSha256: sha256Hex(manifestText), manifest: manifestText, parts };
 }

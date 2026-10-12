@@ -473,6 +473,11 @@ export function verifyRecordsPart(records: RecordsPart, chain: AuditChainPart): 
   }
   for (const table of records.tables) {
     const present = new Set<string>();
+    // An insert-only table without an `id` column keys its audit events by the aggregate column, so several rows share
+    // one record id: each row is matched to its own INSERT event by its hash (slice 4b, the batch's execution events).
+    const unclaimed = new Map<string, string[]>();
+    const rowsPerRecord = new Map<string, number>();
+    for (const row of table.rows) rowsPerRecord.set(row.recordId, (rowsPerRecord.get(row.recordId) ?? 0) + 1);
     for (const row of table.rows) {
       const where = `${table.table} row ${row.recordId}`;
       present.add(row.recordId);
@@ -500,8 +505,15 @@ export function verifyRecordsPart(records: RecordsPart, chain: AuditChainPart): 
       }
       if (events.some((e) => e.action === 'DELETE')) problems.push(`${where}: the chain records this row as deleted`);
       if (table.insertOnly) {
-        const rowHash = jsonText(field(field(payloadOf(insert), 'body'), 'row_hash'));
-        if (rowHash !== row.sha256) problems.push(`${where}: row differs from the hash recorded when it was inserted`);
+        const key = `${table.table}\u0000${row.recordId}`;
+        let hashes = unclaimed.get(key);
+        if (!hashes) {
+          hashes = events.filter((e) => e.action === 'INSERT').map((e) => jsonText(field(field(payloadOf(e), 'body'), 'row_hash')) ?? '');
+          unclaimed.set(key, hashes);
+        }
+        const at = hashes.indexOf(row.sha256);
+        if (at < 0) problems.push(`${where}: row differs from the hash recorded when it was inserted`);
+        else hashes.splice(at, 1);
         if (events.some((e) => e.action === 'UPDATE')) problems.push(`${where}: insert-only row has an UPDATE event`);
       } else {
         const state = rebuildState(events);
@@ -512,7 +524,14 @@ export function verifyRecordsPart(records: RecordsPart, chain: AuditChainPart): 
     // Completeness: every row inserted in this table and never deleted must be in the bundle.
     for (const [k, events] of eventsByRecord) {
       const [tableName, recordId] = k.split('\u0000') as [string, string];
-      if (tableName !== table.table || present.has(recordId)) continue;
+      if (tableName !== table.table) continue;
+      if (present.has(recordId)) {
+        const inserts = events.filter((e) => e.action === 'INSERT').length;
+        if (table.insertOnly && inserts > (rowsPerRecord.get(recordId) ?? 0) && !events.some((e) => e.action === 'DELETE')) {
+          problems.push(`${table.table} row ${recordId}: ${inserts - (rowsPerRecord.get(recordId) ?? 0)} inserted row(s) of this key missing from the bundle (incomplete copy)`);
+        }
+        continue;
+      }
       if (events.some((e) => e.action === 'INSERT') && !events.some((e) => e.action === 'DELETE')) {
         problems.push(`${table.table} row ${recordId}: in the audit trail but missing from the bundle (incomplete copy)`);
       }
