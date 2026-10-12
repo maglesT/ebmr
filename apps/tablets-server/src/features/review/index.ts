@@ -34,11 +34,13 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     register: async ({ params, actor, idempotencyKey, requestHash }) => {
       const who = actor();
       const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
-        const { rows } = await c.query<{ us: string }>(
-          `select ${usOf('v.shown_at')} as us from recipe.review_list_view v where v.id = recipe.show_review_register($1)`,
-          [params.batchId],
-        );
-        return rows[0]?.us ?? '0';
+        // The definer is called once, on its own (a call in a WHERE clause runs once per scanned row: never on an empty
+        // table, once per row otherwise); the showing it recorded is then read by its id.
+        const id = (await c.query<{ id: string }>('select recipe.show_review_register($1) as id', [params.batchId])).rows[0]?.id;
+        const { rows } = await c.query<{ us: string }>(`select ${usOf('v.shown_at')} as us from recipe.review_list_view v where v.id = $1`, [id]);
+        const us = rows[0]?.us;
+        if (us === undefined) throw new Error('the showing of the register was not recorded');
+        return us;
       });
       const items = await reviewItems(app, pool, params.batchId, who.personId);
       const byCategory: Record<string, number> = {};
@@ -48,11 +50,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     openItem: async ({ params, actor, idempotencyKey, requestHash }) => {
       const who = actor();
       const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
-        const { rows } = await c.query<{ us: string }>(
-          `select ${usOf('v.opened_at')} as us from recipe.review_item_view v where v.id = recipe.open_review_item($1, $2)`,
-          [params.batchId, params.exceptionId],
-        );
-        return rows[0]?.us ?? '0';
+        // As for the register: the definer once, then the opening it recorded by its id.
+        const id = (await c.query<{ id: string }>('select recipe.open_review_item($1, $2) as id', [params.batchId, params.exceptionId])).rows[0]?.id;
+        const { rows } = await c.query<{ us: string }>(`select ${usOf('v.opened_at')} as us from recipe.review_item_view v where v.id = $1`, [id]);
+        const us = rows[0]?.us;
+        if (us === undefined) throw new Error('the opening of the item was not recorded');
+        return us;
       });
       return itemDetail(app, pool, params.batchId, params.exceptionId, who.personId, out.result);
     },
