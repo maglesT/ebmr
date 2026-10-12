@@ -53,7 +53,7 @@ describe('records routes over HTTP (outline 5.2.10; INV-21, PR-38)', () => {
     const after = valueOf(await head.call(routes.records.closeBulk, { params: { batchId }, body: {} }));
     expect(after).toMatchObject({ lockState: 'LOCKED', closeProblems: ['the bulk reconciliation is already closed'], closure: { closedBy: { legalName: 'Lakshmi Iyengar', role: 'HEAD_OF_PRODUCTION' }, remainingHeldReason: null } });
     const again = refusalOf(await head.call(routes.records.closeBulk, { params: { batchId }, body: {} }));
-    expect(again).toMatchObject({ code: 'EBMR-LCK-011', why: expect.stringMatching(/already closed/) });
+    expect(again).toMatchObject({ code: 'EBMR-LCK-011', why: expect.stringMatching(/already closed/) as string });
     const lock = valueOf(await qa.call(routes.records.lock, { params: { batchId } }));
     expect(lock).toMatchObject({ state: 'LOCKED', cause: 'BULK_RECONCILIATION_CLOSED', amendments: [], nextAmendmentNumber: 1, openAmendmentNumber: null, releasedLots: [] });
     expect(valueOf(await qa.call(routes.records.locks, { query: { state: 'LOCKED' } })).records.map((r) => r.batchId)).toContain(batchId);
@@ -75,7 +75,7 @@ describe('records routes over HTTP (outline 5.2.10; INV-21, PR-38)', () => {
     expect(refusalOf(await qa.call(routes.records.appendAmendmentEntry, { params: { batchId, number: '1' }, body: entry })).code).toBe('EBMR-IAM-040');
     expect(refusalOf(await head.call(routes.records.appendAmendmentEntry, { params: { batchId, number: '2' }, body: entry })).code).toBe('EBMR-LCK-040');
     const amended = valueOf(await head.call(routes.records.appendAmendmentEntry, { params: { batchId, number: '1' }, body: entry }));
-    expect(amended.entries).toEqual([expect.objectContaining({ seq: 1, kind: 'LATE_ENTRY', value: '12 min', by: expect.objectContaining({ legalName: 'Lakshmi Iyengar', role: 'HEAD_OF_PRODUCTION' }) })]);
+    expect(amended.entries).toEqual([expect.objectContaining({ seq: 1, kind: 'LATE_ENTRY', value: '12 min', by: expect.objectContaining({ legalName: 'Lakshmi Iyengar', role: 'HEAD_OF_PRODUCTION' }) as unknown })]);
 
     const close: SignableAction = { kind: 'RECORD_LOCK_ACT', act: 'AMENDMENT_CLOSE', batchId, input: { statement: 'The late entry restores the record; no product impact' } };
     expect(await describeAction(qa2, close)).toMatchObject({ aggregateId: `${batchId}/1/CLOSE`, meaning: 'AMENDMENT_CLOSED', expectedState: 'UNDER_AMENDMENT' });
