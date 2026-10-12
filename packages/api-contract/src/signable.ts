@@ -61,6 +61,8 @@
  * Phase 4 slice 5b (recipe-core 0870 to 0889; ns/records-lock.ts):
  *  - RECORD_LOCK_ACT AMENDMENT_OPEN   record_lock <batch>/<n>/OPEN/<DEVIATION|CHANGE_RECORD>/<id>  AMENDMENT_OPENED (QA)
  *                    AMENDMENT_CLOSE  record_lock <batch>/<n>/CLOSE                                 AMENDMENT_CLOSED (QA)
+ * Phase 4 slice 6c (recipe-core 0910; ns/pqr.ts):
+ *  - PQR_SIGN_OFF  pqr_extract <extract id>  PQR_SIGNED_OFF (AP, outside the reviewed batches' records), state EXTRACTED
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -321,6 +323,11 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.enum(['AMENDMENT_OPEN', 'AMENDMENT_CLOSE']),
     batchId: Uuid,
     input: RecordLockActInput,
+  }),
+  z.strictObject({
+    kind: z.literal('PQR_SIGN_OFF'),
+    /** Phase 4 slice 6c: the authorised person signs off a reproducing, reconciled PQR extract (IN-01 (b), PR-58). */
+    extractId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

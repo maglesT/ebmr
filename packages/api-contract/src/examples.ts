@@ -53,6 +53,7 @@ import rl from '../fixtures/release.json' with { type: 'json' };
 import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
+import pq from '../fixtures/pqr.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -297,10 +298,18 @@ export const EXAMPLES = {
   'records-append-amendment-entry': { schema: r.records.appendAmendmentEntry.response, data: rk.amendment, routeId: r.records.appendAmendmentEntry.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
+  // Phase 4 slice 6c: the PQR extract (IN-01, PR-58).
+  'pqr-extracts': { schema: r.pqr.extracts.response, data: { extracts: [pq.summary] }, routeId: r.pqr.extracts.id },
+  'pqr-extract': { schema: r.pqr.extract.response, data: pq.extract, routeId: r.pqr.extract.id },
+  'pqr-extract-signed-off': { schema: r.pqr.extract.response, data: pq.signedOff },
+  'pqr-run': { schema: r.pqr.run.response, data: pq.extract, routeId: r.pqr.run.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 4 slice 5b: the record-lock routes, each with an example above (checked by the contract test). */
 export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records).map((route) => route.id);
+
+/** Phase 4 slice 6c: the PQR routes, each with an example above (checked by the contract test). */
+export const PQR_ROUTE_IDS: readonly string[] = Object.values(r.pqr).map((route) => route.id);
 
 /** Phase 4 slice 4b: the QP package and ERP shipping routes, each with an example above (checked by the contract test). */
 export const QP_SHIPPING_ROUTE_IDS: readonly string[] = [...Object.values(r.qpPackage), ...Object.values(r.erpShipping)].map((route) => route.id);
