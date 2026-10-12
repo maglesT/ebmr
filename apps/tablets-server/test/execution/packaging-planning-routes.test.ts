@@ -94,7 +94,7 @@ describe('packaging orders over HTTP (Phase 4 slice 2c)', () => {
   it('[INV-27][IN-18] a packaging order is planned over HTTP from an issued processing batch: the planning read offers the packaging master with its pack type and parent batches, the plan takes the register\'s packaging number of that batch, an unknown parent is refused, and the order is issued like any batch', async () => {
     const orderNo = await postOrder(w.gmp.db.app, await openServiceSession(w.gmp.db, w.gmp.seed, 'erpInterface'), packContent, PACK_SIZE);
     const card = valueOf(await issuer.call(routes.planning.orders)).orders.find((o) => o.orderNo === orderNo);
-    expect(card?.match).toMatchObject({ familyId: packFamilyId, recordKind: 'PACKAGING', packType: 'ALU-PVC-BLISTER', parents: [expect.objectContaining({ batchId: parentId, batchNumber: parentNumber, releaseForPackingProblem: expect.stringMatching(/H-PACK/) })] });
+    expect(card?.match).toMatchObject({ familyId: packFamilyId, recordKind: 'PACKAGING', packType: 'ALU-PVC-BLISTER', parents: [expect.objectContaining({ batchId: parentId, batchNumber: parentNumber, releaseForPackingProblem: (expect.stringMatching(/H-PACK/) as unknown) })] });
     const body = { familyId: packFamilyId, markets: ['IN'], site: SITE, line: LINE, batchSize: PACK_SIZE, erpOrder: orderNo };
     expect(refusalOf(await issuer.call(routes.planning.planPackagingOrder, { body: { ...body, parentBatchId: randomUUID() } })).code).toBe('EBMR-EXE-198');
     // A processing batch's own planning route plans no packaging order (it names no parent).
@@ -119,11 +119,11 @@ describe('packaging orders over HTTP (Phase 4 slice 2c)', () => {
     expect(order).toBeDefined();
     const batchId = order?.batchId ?? '';
     const bulk = valueOf(await operator.call(routes.planning.packagingBulk, { params: { batchId } }));
-    expect(bulk).toMatchObject({ batchId, orderProblem: null, parent: { batchId: parentId, batchNumber: parentNumber, releaseForPackingProblem: expect.stringMatching(/H-PACK/) }, issued: [], containers: [] });
+    expect(bulk).toMatchObject({ batchId, orderProblem: null, parent: { batchId: parentId, batchNumber: parentNumber, releaseForPackingProblem: (expect.stringMatching(/H-PACK/) as unknown) }, issued: [], containers: [] });
     const body = { labels: [`OC-${parentNumber}-1001`] };
     const tap = await tapFor(operator, personaIn(w.gmp, 'operator1'), 'POST', `/api/batches/${batchId}/bulk`, body);
     const refused = refusalOf(await operator.call(routes.batches.issueBulk, { params: { batchId }, body, attribution: tap }));
-    expect([refused.code, refused.why]).toEqual(['EBMR-PKG-002', expect.stringMatching(/H-PACK/)]);
+    expect([refused.code, refused.why]).toEqual(['EBMR-PKG-002', (expect.stringMatching(/H-PACK/) as unknown)]);
     expect(valueOf(await operator.call(routes.planning.packagingBulk, { params: { batchId } })).issued).toEqual([]);
     expect(refusalOf(await operator.call(routes.planning.packagingBulk, { params: { batchId: randomUUID() } })).status).toBe(404);
     // The processing batch is no packaging order: its bulk read is not found either.

@@ -437,13 +437,13 @@ describe('the planning reads of packaging orders and their bulk (Phase 4 slice 2
     const card = orders.find((o) => o['orderNo'] === erpNo);
     expect(card?.['match']).toMatchObject({
       familyId: pack.familyId, recordKind: 'PACKAGING', packType: 'ALU-PVC-READ',
-      parents: expect.arrayContaining([expect.objectContaining({ batchId: parent, releaseForPackingProblem: expect.stringMatching(/H-PACK/) })]),
+      parents: expect.arrayContaining([expect.objectContaining({ batchId: parent, releaseForPackingProblem: (expect.stringMatching(/H-PACK/) as unknown) })]) as unknown,
     });
     const order = randomUUID();
     await plan(order, { familyId: pack.familyId, batchSize: SIZE['tablet-blister-packaging'], parentBatch: parent, erpOrder: erpNo });
     const read = async (): Promise<Json> => (await db.app.query<{ r: Json }>('select recipe.packaging_order_bulk($1) as r', [order])).rows[0]?.r ?? {};
     expect(await read()).toMatchObject({
-      batchId: order, status: 'PLANNED', packType: 'ALU-PVC-READ', orderProblem: expect.stringMatching(/is PLANNED: bulk is issued only to a packaging order that is issued or running/),
+      batchId: order, status: 'PLANNED', packType: 'ALU-PVC-READ', orderProblem: expect.stringMatching(/is PLANNED: bulk is issued only to a packaging order that is issued or running/) as unknown,
       parent: { batchId: parent }, issued: [], containers: [],
     });
     await issue(order, 'tablet-blister-packaging');
@@ -462,10 +462,10 @@ describe('the planning reads of packaging orders and their bulk (Phase 4 slice 2
       );
     }
     const before = await read();
-    expect(before).toMatchObject({ status: 'ISSUED', orderProblem: null, parent: { releaseForPackingProblem: expect.stringMatching(/H-PACK/) } });
+    expect(before).toMatchObject({ status: 'ISSUED', orderProblem: null, parent: { releaseForPackingProblem: (expect.stringMatching(/H-PACK/) as unknown) } });
     expect(before['containers']).toEqual([
       expect.objectContaining({ label: good, state: 'RELEASED_BY_QA', netQuantity: '25.5', unit: 'kg', issueProblem: null }),
-      expect.objectContaining({ label: held, state: 'HELD', issueProblem: expect.stringMatching(/HELD/) }),
+      expect.objectContaining({ label: held, state: 'HELD', issueProblem: (expect.stringMatching(/HELD/) as unknown) }),
     ]);
     await arrange("update recipe.execution_state set state = jsonb_set(state, '{steps,H-PACK@}', $2::jsonb) where batch_id = $1", [
       parent,
@@ -474,7 +474,7 @@ describe('the planning reads of packaging orders and their bulk (Phase 4 slice 2
     await w.run(operator, (c) => containers.issuePackagingBulk(c, order, [good]));
     const after = await read();
     expect(after).toMatchObject({ parent: { releaseForPackingProblem: null }, issued: [expect.objectContaining({ label: good, quantity: '25.5', unit: 'kg', personId: operator.personId })] });
-    expect((after['containers'] as Json[])[0]).toMatchObject({ label: good, issueProblem: expect.stringMatching(/^issued to packaging order /) });
+    expect((after['containers'] as Json[])[0]).toMatchObject({ label: good, issueProblem: (expect.stringMatching(/^issued to packaging order /) as unknown) });
     const listed = (await db.app.query<{ r: Json[] }>('select recipe.packaging_orders($1) as r', [SITE])).rows[0]?.r ?? [];
     expect(listed.find((o) => o['batchId'] === order)).toMatchObject({ parentBatchId: parent, packType: 'ALU-PVC-READ', bulkContainers: 1, releaseForPackingProblem: null });
   });

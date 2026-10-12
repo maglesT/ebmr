@@ -14,7 +14,7 @@ import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { inputValue } from '../floor/pages/IssueForm.tsx';
 
-const REFRESH = [routes.planning.orders.id, routes.batches.list.id];
+const REFRESH = [routes.planning.orders.id, routes.batches.list.id, routes.planning.packagingOrders.id];
 
 export function PlanningPage() {
   const orders = useApiQuery(routes.planning.orders);
@@ -24,7 +24,7 @@ export function PlanningPage() {
     <>
       <h1>Planning</h1>
       <p>
-        <Link to="/planning/batches">Batches and their states</Link>
+        <Link to="/planning/batches">Batches and their states</Link> · <Link to="/planning/packaging">Packaging orders and their bulk</Link>
       </p>
       {orders.isPending ? <p>Loading the orders…</p> : null}
       {orders.error ? <RefusalMessage error={orders.error.error} /> : null}
@@ -51,6 +51,7 @@ function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: s
       {order.match ? (
         <p data-testid="match">
           MBR {order.match.familyCode} version {order.match.versionNumber} (batch size {order.match.batchSizeId}; markets {order.match.markets.join(', ')})
+          {order.match.recordKind === 'PACKAGING' ? `; packaging order, pack type ${order.match.packType ?? 'not named'}` : ''}
         </p>
       ) : (
         <Banner tone="warning" title="No master record matches this order.">
@@ -58,7 +59,9 @@ function OrderCard({ order, site, canPlan }: { order: PlanningOrderView; site: s
         </Banner>
       )}
       {order.batches.length > 0 ? <p>Batches: {order.batches.map((b) => `${b.batchNumber} (${b.status})`).join(', ')}</p> : null}
-      {order.match && canPlan && !planned ? <PlanForm order={order} site={site} onPlanned={setPlanned} /> : null}
+      {order.match && canPlan && !planned ? (
+        order.match.recordKind === 'PACKAGING' ? <PackagingPlanForm order={order} site={site} onPlanned={setPlanned} /> : <PlanForm order={order} site={site} onPlanned={setPlanned} />
+      ) : null}
       {planned ? <IssueForm batch={planned} /> : null}
     </article>
   );
@@ -74,7 +77,7 @@ function PlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: 
   const chosenSite = siteCode.trim() || site || '';
   if (!match) return null;
   const go = async () => {
-    const b = await plan.run({ body: { familyId: match.familyId, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: order.batchSize } });
+    const b = await plan.run({ body: { familyId: match.familyId, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId } });
     if (b) onPlanned(b);
   };
   return (
@@ -87,6 +90,58 @@ function PlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: 
         <Field name="line" label="Line" value={line} onChange={setLine} />
       )}
       <ActButton label={`Plan a batch for ${order.orderNo}`} onPress={go} disabled={plan.busy || chosenSite === '' || line.trim() === ''} />
+      <ActResult error={plan.error} />
+    </div>
+  );
+}
+
+/**
+ * A packaging order (Phase 4 slice 2c) packs one issued processing batch of the product: the issuer picks it from the
+ * server's candidates, each shown with the database's reason it is not released for packing yet (the order can be planned
+ * and issued before; bulk is issued only after QA's release for packing). The register gives the packaging number.
+ */
+function PackagingPlanForm({ order, site, onPlanned }: { order: PlanningOrderView; site: string | null; onPlanned: (b: PlannedBatchView) => void }) {
+  const match = order.match;
+  const [siteCode, setSite] = useState('');
+  const [line, setLine] = useState('');
+  const [parent, setParent] = useState<string | null>(null);
+  const plan = useCommand(routes.planning.planPackagingOrder, REFRESH, 'planning a packaging order');
+  const areas = useApiQuery(routes.plant.areas);
+  const lines = areas.data?.areas.filter((a) => a.kind === 'LINE') ?? [];
+  const chosenSite = siteCode.trim() || site || '';
+  if (!match) return null;
+  const go = async () => {
+    if (!parent) return;
+    const b = await plan.run({ body: { familyId: match.familyId, parentBatchId: parent, markets: match.markets, site: chosenSite, line: line.trim(), batchSize: match.batchSizeId, erpOrder: order.orderNo } });
+    if (b) onPlanned(b);
+  };
+  return (
+    <div data-testid="packaging-plan-form">
+      <h3>Plan a packaging order</h3>
+      {match.parents.length === 0 ? (
+        <Banner tone="warning" title="No issued processing batch of this product can be packed.">
+          A packaging order packs an issued processing batch of the same product at this site.
+        </Banner>
+      ) : (
+        <ul aria-label="Processing batches to pack">
+          {match.parents.map((p) => (
+            <li key={p.batchId} data-testid={`parent-${p.batchNumber}`}>
+              <label>
+                <input type="radio" name={`parent-${order.orderNo}`} checked={parent === p.batchId} onChange={() => setParent(p.batchId)} /> {p.batchNumber} ({p.status}; {p.usableContainers} usable
+                containers)
+              </label>
+              {p.releaseForPackingProblem ? <p>Not released for packing yet: {p.releaseForPackingProblem}</p> : <p>Released for packing.</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <Field name="site" label="Site" value={siteCode} onChange={setSite} description={site ? `The order's site is ${site}` : 'The site code'} />
+      {lines.length > 0 ? (
+        <floor.ChoiceGroup label="Line" options={lines.map((l) => ({ value: l.code, label: `${l.code} ${l.name}` }))} value={line === '' ? null : line} onChange={setLine} />
+      ) : (
+        <Field name="line" label="Line" value={line} onChange={setLine} />
+      )}
+      <ActButton label={`Plan a packaging order for ${order.orderNo}`} onPress={go} disabled={plan.busy || parent === null || chosenSite === '' || line.trim() === ''} />
       <ActResult error={plan.error} />
     </div>
   );
