@@ -22,7 +22,7 @@ import { withCommand } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
-import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
@@ -179,15 +179,20 @@ async function bases(app: AppContext, db: Db, id?: string): Promise<ShelfLifeBas
 }
 
 async function hazards(app: AppContext, db: Db): Promise<HazardView> {
-  const p = await db.query<{ product_code: string; hazard_class: HazardView['products'][number]['hazardClass']; ref: string; us: string }>(
-    `select h.product_code, h.hazard_class, h.risk_assessment_ref as ref, ${usOf('h.recorded_at')} as us from plant.product_hazard h order by h.recorded_at desc, h.id limit 500`,
+  type State = HazardView['products'][number]['state'];
+  const p = await db.query<{ id: string; product_code: string; hazard_class: HazardView['products'][number]['hazardClass']; ref: string; us: string; state: State }>(
+    `select h.id, h.product_code, h.hazard_class, h.risk_assessment_ref as ref, ${usOf('h.recorded_at')} as us, plant.hazard_record_state(h.id) as state
+       from plant.product_hazard h order by h.recorded_at desc, h.id limit 500`,
   );
-  const a = await db.query<{ area_code: string; hazard_class: HazardView['areas'][number]['hazardClass']; dedicated: boolean; breathing_air: 'NOT_USED' | 'BACKED_UP'; justification: string; us: string }>(
-    `select d.area_code, d.hazard_class, d.dedicated, d.breathing_air, d.justification, ${usOf('d.recorded_at')} as us from plant.area_dedication d order by d.recorded_at desc, d.id limit 500`,
+  const a = await db.query<{ id: string; area_code: string; hazard_class: HazardView['areas'][number]['hazardClass']; dedicated: boolean; breathing_air: 'NOT_USED' | 'BACKED_UP'; justification: string; us: string; state: State }>(
+    `select d.id, d.area_code, d.hazard_class, d.dedicated, d.breathing_air, d.justification, ${usOf('d.recorded_at')} as us, plant.dedication_record_state(d.id) as state
+       from plant.area_dedication d order by d.recorded_at desc, d.id limit 500`,
   );
   return {
-    products: p.rows.map((r) => ({ productCode: r.product_code, hazardClass: r.hazard_class, riskAssessmentRef: r.ref, recordedAt: app.formatInstant(r.us) })),
-    areas: a.rows.map((r) => ({ areaCode: r.area_code, hazardClass: r.hazard_class, dedicated: r.dedicated, breathingAir: r.breathing_air, justification: r.justification, recordedAt: app.formatInstant(r.us) })),
+    products: p.rows.map((r) => ({ recordId: r.id, productCode: r.product_code, hazardClass: r.hazard_class, riskAssessmentRef: r.ref, recordedAt: app.formatInstant(r.us), state: r.state })),
+    areas: a.rows.map((r) => ({
+      recordId: r.id, areaCode: r.area_code, hazardClass: r.hazard_class, dedicated: r.dedicated, breathingAir: r.breathing_air, justification: r.justification, recordedAt: app.formatInstant(r.us), state: r.state,
+    })),
   };
 }
 
@@ -222,16 +227,19 @@ async function label(db: Db, batchId: string): Promise<IndiaLabelView> {
 // ---------------------------------------------------------------------------------------------
 // INDIA_ACT
 
-const ACTS: Readonly<Record<IndiaAct['act'], { aggregateType: string; meaning: string; sql: string }>> = {
-  LICENCE_APPROVE: { aggregateType: 'manufacturing_licence', meaning: 'LICENCE_APPROVED', sql: 'select site.approve_manufacturing_licence($1, $2)' },
-  EXPORT_PERMISSION_APPROVE: { aggregateType: 'export_permission', meaning: 'EXPORT_PERMISSION_APPROVED', sql: 'select site.approve_export_permission($1, $2)' },
+const ACTS: Readonly<Record<IndiaAct['act'], { aggregateType: string; meaning: string; sql: string; state: string }>> = {
+  LICENCE_APPROVE: { aggregateType: 'manufacturing_licence', meaning: 'LICENCE_APPROVED', sql: 'select site.approve_manufacturing_licence($1, $2)', state: 'DRAFT' },
+  EXPORT_PERMISSION_APPROVE: { aggregateType: 'export_permission', meaning: 'EXPORT_PERMISSION_APPROVED', sql: 'select site.approve_export_permission($1, $2)', state: 'DRAFT' },
+  // Slice 6 quick review (recipe-core 0912, IN-27): a second QA person approves a hazard classification or an area dedication.
+  HAZARD_APPROVE: { aggregateType: 'hazard_classification', meaning: 'HAZARD_CLASSIFICATION_APPROVED', sql: 'select plant.approve_product_hazard($1, $2)', state: 'RECORDED' },
+  DEDICATION_APPROVE: { aggregateType: 'area_dedication', meaning: 'AREA_DEDICATION_APPROVED', sql: 'select plant.approve_area_dedication($1, $2)', state: 'RECORDED' },
 };
 
 export function indiaActHandler(app: AppContext): SignableActionHandler<IndiaAct> {
   return dbActHandler<IndiaAct>(app, {
     kind: 'INDIA_ACT',
-    aggregateTypes: ['manufacturing_licence', 'export_permission'],
-    target: (a) => ({ aggregateType: ACTS[a.act].aggregateType, aggregateId: a.subjectId, meaning: ACTS[a.act].meaning, expectedState: 'DRAFT' }),
+    aggregateTypes: ['manufacturing_licence', 'export_permission', 'hazard_classification', 'area_dedication'],
+    target: (a) => ({ aggregateType: ACTS[a.act].aggregateType, aggregateId: a.subjectId, meaning: ACTS[a.act].meaning, expectedState: ACTS[a.act].state }),
     async apply(client, _ctx, a, signatureId) {
       await client.query(ACTS[a.act].sql, [a.subjectId, signatureId]);
       return { act: a.act, subjectId: a.subjectId };
@@ -308,9 +316,11 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         licenceNumber: rows[0]?.basis?.licenceNumber ?? null, loanLicenceNumber: rows[0]?.basis?.loanLicenceNumber ?? null, exportProblems,
       };
     },
-    allocationRegister: async ({ query, requireSession }) => {
+    allocationRegister: async ({ query, requireSession, actor }) => {
       const site = requireSession().siteCode;
-      const { rows } = await pool.query<{ r: AllocationEntryView[] }>('select recipe.allocation_register($1, $2::timestamptz, $3::timestamptz) as r', [site, query.from ?? null, query.to ?? null]);
+      // The register checks RECORD.READ for the site itself (recipe-core 0913), so it is read in the person's own command.
+      const { rows } = await withActorCommand(pool, actor(), (c) =>
+        c.query<{ r: AllocationEntryView[] }>('select recipe.allocation_register($1, $2::timestamptz, $3::timestamptz) as r', [site, query.from ?? null, query.to ?? null]));
       return { siteCode: site, entries: rows[0]?.r ?? [] };
     },
     label: async ({ params, requireSession }) => {

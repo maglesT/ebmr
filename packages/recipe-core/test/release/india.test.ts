@@ -124,6 +124,24 @@ async function finishedLot(b: string, m: Master, markets: string[]): Promise<str
 
 const sqlAs = async <T>(who: SeededActor, text: string, params: unknown[] = []): Promise<T> =>
   w.run(who, async (c) => ((await c.query(text, params)).rows[0] as { r: T } | undefined)?.r as T);
+
+/** QA (the first approver of the cast) records a product's hazard class; the record id. */
+const classify = (product: string, hazardClass: string, ref: string): Promise<string> =>
+  sqlAs<string>(w.cast.qa, 'select plant.record_product_hazard($1::jsonb) as r', [JSON.stringify({ productCode: product, hazardClass, riskAssessmentRef: ref })]);
+/** QA records a dedication (or its withdrawal) of line L1; the record id. */
+const dedicate = (dedicated: boolean, hazardClass = 'CYTOTOXIC'): Promise<string> =>
+  sqlAs<string>(w.cast.qa, 'select plant.record_area_dedication($1::jsonb) as r', [JSON.stringify({ areaCode: 'L1', hazardClass, dedicated, breathingAir: 'BACKED_UP', justification: 'Contained line, isolator and 100 % breathing-air back-up' })]);
+/** A second QA person (by default) approves a hazard record under its own signature (recipe-core 0912). */
+async function approve(type: 'hazard_classification' | 'area_dedication', id: string, who: SeededActor = w.cast.qa2): Promise<void> {
+  const meaning = type === 'hazard_classification' ? 'HAZARD_CLASSIFICATION_APPROVED' : 'AREA_DEDICATION_APPROVED';
+  const sig = await w.sign(who, type, id, meaning, 'RECORDED');
+  await w.run(who, (c) => c.query(type === 'hazard_classification' ? 'select plant.approve_product_hazard($1, $2)' : 'select plant.approve_area_dedication($1, $2)', [id, sig]));
+}
+/** Line L1 as plant master data (written as the superuser inside a command: the plant master-data route is not under test). */
+async function line(): Promise<void> {
+  await withCommand(db.admin, await cmd(db, steward), (c) =>
+    c.query("insert into plant.area (code, kind, name, segregated, negative_pressure, recorded_by) values ('L1', 'LINE', 'Line 1', false, true, gen_random_uuid()) on conflict (code) do nothing"));
+}
 const recordLicence = (p: Record<string, unknown>): Promise<string> => sqlAs(w.cast.regulatory, 'select site.record_manufacturing_licence($1::jsonb) as r', [JSON.stringify(p)]);
 async function approveLicence(id: string): Promise<void> {
   const sig = await w.sign(w.cast.qa, 'manufacturing_licence', id, 'LICENCE_APPROVED', 'DRAFT');
@@ -201,7 +219,7 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
     await issue(b);
     const { rows } = await db.app.query<{ licence_id: string; loan_licence_id: string; basis: Record<string, string> }>('select licence_id, loan_licence_id, basis from recipe.batch_licence_basis where batch_id = $1', [b]);
     expect(rows[0]).toMatchObject({ licence_id: hostId, loan_licence_id: loanId, basis: { technicalAgreement: 'TA-2026-07 rev 1', loanForm: '25A', form: '25' } });
-    const register = (await db.app.query<{ r: Record<string, unknown>[] }>('select recipe.allocation_register($1) as r', [SITE])).rows[0]!.r;
+    const register = (await w.run(w.cast.qa, (c) => c.query<{ r: Record<string, unknown>[] }>('select recipe.allocation_register($1) as r', [SITE]))).rows[0]!.r;
     const entry = register.find((e) => e['batchId'] === b)!;
     expect(entry['licenceNumber']).toBe(rows[0]!.basis['licenceNumber']);
     expect(entry['loanLicenceNumber']).toBe(rows[0]!.basis['loanLicenceNumber']);
@@ -251,26 +269,58 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
     expect(missing.problem).toMatch(/no manufacturing or loan licence recorded at its issue/);
   });
 
-  it('[IN-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator', async () => {
+  it('[IN-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each', async () => {
     const m = await effective(['IN'], true);
     expect(await messageOf(sqlAs(admin, 'select plant.record_product_hazard($1::jsonb) as r', [JSON.stringify({ productCode: m.product, hazardClass: 'CYTOTOXIC', riskAssessmentRef: 'RA-1' })]))).toMatch(/administrator|EBMR-IAM/i);
     expect(await messageOf(sqlAs(w.cast.qa, 'select plant.record_product_hazard($1::jsonb) as r', [JSON.stringify({ productCode: m.product, hazardClass: 'RADIOACTIVE', riskAssessmentRef: 'RA-1' })]))).toMatch(/EBMR-IND-035/);
-    await sqlAs(w.cast.qa, 'select plant.record_product_hazard($1::jsonb) as r', [JSON.stringify({ productCode: m.product, hazardClass: 'CYTOTOXIC', riskAssessmentRef: 'RA-ONC-2026-03 (OEB 4)' })]);
+    // A pending upgrade counts at once (fail-safe), before its approval.
+    const cyto = await classify(m.product, 'CYTOTOXIC', 'RA-ONC-2026-03 (OEB 4)');
     const b = await plan(m, ['IN']);
-    expect(await messageOf(issue(b))).toMatch(/CYTOTOXIC.*L1 is not a room or line dedicated.*EBMR-IND-042/);
-    // The line as plant master data (written as the superuser inside a command: the plant master-data route is not under test).
-    await withCommand(db.admin, await cmd(db, steward), (c) =>
-      c.query("insert into plant.area (code, kind, name, segregated, negative_pressure, recorded_by) values ('L1', 'LINE', 'Line 1', false, true, gen_random_uuid()) on conflict (code) do nothing"));
-    const dedicate = (dedicated: boolean, hazardClass = 'CYTOTOXIC') =>
-      sqlAs(w.cast.qa, 'select plant.record_area_dedication($1::jsonb) as r', [JSON.stringify({ areaCode: 'L1', hazardClass, dedicated, breathingAir: 'BACKED_UP', justification: 'Contained line, isolator and 100 % breathing-air back-up' })]);
-    await dedicate(true, 'STEROID');
+    expect(await messageOf(issue(b))).toMatch(/CYTOTOXIC.*pending approval.*L1 is not a room or line dedicated.*EBMR-IND-042/);
+    await approve('hazard_classification', cyto);
+    expect(await messageOf(issue(b))).toMatch(/CYTOTOXIC \(risk assessment RA-ONC-2026-03 \(OEB 4\)\) and L1 is not a room or line dedicated.*EBMR-IND-042/);
+    await line();
+    await approve('area_dedication', await dedicate(true, 'STEROID'));
     expect(await messageOf(issue(b))).toMatch(/EBMR-IND-042/);
-    await dedicate(true);
+    await approve('area_dedication', await dedicate(true));
     await issue(b);
+    // A withdrawal counts at once, before its approval.
     await dedicate(false);
     expect(await messageOf(issue(await plan(m, ['IN'])))).toMatch(/EBMR-IND-042/);
     expect(await messageOf(db.app.query(`insert into plant.product_hazard (product_code, hazard_class, risk_assessment_ref, recorded_by_person, recorded_by_account, correlation_id)
                                           values ('${m.product}', 'NONE', 'x', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`))).toMatch(/permission denied/);
+  });
+
+  it('[IN-27] an unsigned downgrade or dedication does not take effect; the recorder cannot approve their own record; the approved change does', async () => {
+    // After the test above, line L1's CYTOTOXIC dedication is withdrawn (pending): the line is shared.
+    const m = await effective(['IN'], true);
+    await approve('hazard_classification', await classify(m.product, 'CYTOTOXIC', 'RA-ONC-2026-04'));
+    // One QA person marks the shared line dedicated and reclassifies the product NONE: neither counts unsigned.
+    const dedication = await dedicate(true);
+    const b = await plan(m, ['IN']);
+    expect(await messageOf(issue(b))).toMatch(/CYTOTOXIC.*L1 is not a room or line dedicated.*EBMR-IND-042/);
+    const downgrade = await classify(m.product, 'NONE', 'RA-ONC-2026-05 (reassessed)');
+    expect(await messageOf(issue(b))).toMatch(/CYTOTOXIC.*EBMR-IND-042/);
+    expect((await db.app.query<{ c: string[] }>('select plant.product_hazard_classes($1) as c', [m.product])).rows[0]!.c).toEqual(['CYTOTOXIC']);
+    // The recorder's own approval is refused (by the kernel at signing, or by the command).
+    expect(await messageOf(approve('hazard_classification', downgrade, w.cast.qa))).toMatch(/EBMR-(ESIG-\d{3}|IND-062)/);
+    expect(await messageOf(approve('area_dedication', dedication, w.cast.qa))).toMatch(/EBMR-(ESIG-\d{3}|IND-062)/);
+    // The command refuses the recorder with any signature, a role without HAZARD.APPROVE, and an administrator.
+    expect(await messageOf(w.run(w.cast.qa, (c) => c.query('select plant.approve_product_hazard($1, $2)', [downgrade, randomUUID()])))).toMatch(/EBMR-IND-062/);
+    expect(await messageOf(w.run(steward, (c) => c.query('select plant.approve_product_hazard($1, $2)', [downgrade, randomUUID()])))).toMatch(/EBMR-IAM-040/);
+    expect(await messageOf(w.run(admin, (c) => c.query('select plant.approve_area_dedication($1, $2)', [dedication, randomUUID()])))).toMatch(/administrator|EBMR-IAM/i);
+    // The application role writes no approval directly.
+    expect(await messageOf(db.app.query('insert into plant.product_hazard_approval (hazard_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [downgrade]))).toMatch(/permission denied/);
+    expect(await messageOf(db.app.query('insert into plant.area_dedication_approval (dedication_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [dedication]))).toMatch(/permission denied/);
+    // The second person approves the dedication: the batch issues on the dedicated line.
+    await approve('area_dedication', dedication);
+    await issue(b);
+    // The second person approves the downgrade: the product is no longer hazardous; an older record is never approved.
+    await approve('hazard_classification', downgrade);
+    expect((await db.app.query<{ c: string[] }>('select plant.product_hazard_classes($1) as c', [m.product])).rows[0]!.c).toEqual([]);
+    const older = await classify(m.product, 'STEROID', 'RA-X');
+    await classify(m.product, 'NONE', 'RA-Y');
+    expect(await messageOf(approve('hazard_classification', older))).toMatch(/EBMR-IND-061|EBMR-ESIG-\d{3}/);
   });
 });
 
@@ -370,7 +420,7 @@ describe('the allocation register with the use of every number (recipe-core 0895
     const voided = await allocate();
     await w.run(w.cast.issuer, (c) => c.query("select site.void_batch_number($1, 'ORDER_CANCELLED', 'ERP order cancelled before issue')", [voided]));
     const unused = await allocate();
-    const register = (await db.app.query<{ r: Record<string, unknown>[] }>('select recipe.allocation_register($1) as r', [SITE])).rows[0]!.r;
+    const register = (await w.run(w.cast.qa, (c) => c.query<{ r: Record<string, unknown>[] }>('select recipe.allocation_register($1) as r', [SITE]))).rows[0]!.r;
     const of = (pred: (e: Record<string, unknown>) => boolean) => register.find(pred)!;
     const basis = (await db.app.query<{ n: string }>('select licence_number as n from recipe.batch_licence_basis where batch_id = $1', [issued])).rows[0]!.n;
     expect(of((e) => e['batchId'] === issued)).toMatchObject({ use: 'ISSUED', productCode: m.product, strength: m.strength, kind: 'PROCESSING', licenceNumber: basis });
@@ -383,7 +433,12 @@ describe('the allocation register with the use of every number (recipe-core 0895
       expect(e['batchSize']).toBeTruthy();
     }
     expect(new Set(register.map((e) => e['batchNumber'])).size).toBe(register.length);
-    const later = (await db.app.query<{ r: unknown[] }>("select recipe.allocation_register($1, '2999-01-01T00:00:00Z') as r", [SITE])).rows[0]!.r;
+    const later = (await w.run(w.cast.qa, (c) => c.query<{ r: unknown[] }>("select recipe.allocation_register($1, '2999-01-01T00:00:00Z') as r", [SITE]))).rows[0]!.r;
     expect(later).toEqual([]);
+  });
+
+  it('[IN-18][DI-17] the register is read only by a person holding RECORD.READ for the site: no actor, or the ERP interface, is refused (recipe-core 0913)', async () => {
+    expect(await messageOf(db.app.query('select recipe.allocation_register($1) as r', [SITE]))).toMatch(/EBMR-IAM|actor/i);
+    expect(await messageOf(withCommand(db.app, { ...erp, correlationId: randomUUID() }, (c) => c.query('select recipe.allocation_register($1) as r', [SITE])))).toMatch(/EBMR-IAM-040/);
   });
 });

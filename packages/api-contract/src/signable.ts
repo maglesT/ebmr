@@ -69,6 +69,8 @@
  * Phase 4 slice 6a (site services 0885; ns/india.ts):
  *  - INDIA_ACT LICENCE_APPROVE            manufacturing_licence <licence id>     LICENCE_APPROVED (QA, never the recorder)
  *              EXPORT_PERMISSION_APPROVE  export_permission <permission id>      EXPORT_PERMISSION_APPROVED (QA, never the recorder)
+ *              HAZARD_APPROVE             hazard_classification <record id>      HAZARD_CLASSIFICATION_APPROVED (QA, never the recorder)
+ *              DEDICATION_APPROVE         area_dedication <record id>            AREA_DEDICATION_APPROVED (QA, never the recorder)
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -345,8 +347,9 @@ export const SignableAction = z.discriminatedUnion('kind', [
   z.strictObject({
     /** Phase 4 slice 6a (ns/india.ts): QA's approval of a recorded licence or export permission. */
     kind: z.literal('INDIA_ACT'),
-    act: z.enum(['LICENCE_APPROVE', 'EXPORT_PERMISSION_APPROVE']),
-    /** The licence or the export permission. */
+    /** Slice 6 quick review (recipe-core 0912): a second QA person approves a hazard classification or an area dedication. */
+    act: z.enum(['LICENCE_APPROVE', 'EXPORT_PERMISSION_APPROVE', 'HAZARD_APPROVE', 'DEDICATION_APPROVE']),
+    /** The licence, the export permission, or the hazard or dedication record. */
     subjectId: Uuid,
   }),
 ]);
