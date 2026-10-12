@@ -95,6 +95,7 @@ export function familyOf(content: MbrContent, title = content.header.title): Fam
     recordKind: h.recordKind,
     product: { code: h.product.code, name: h.product.name, strength: h.product.strength, dosageForm: h.product.dosageForm },
     batchSizes: h.batchSizes.map((b) => ({ id: b.id, quantity: { value: b.quantity.value, unit: b.quantity.unit } })),
+    ...(h.recordKind === 'PACKAGING' ? { packType: h.packType ?? 'STANDARD' } : {}),
   };
 }
 

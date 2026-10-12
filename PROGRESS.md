@@ -86,6 +86,19 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   recipe-core 0740 and 0741, tablets 1110 to 1113, site-services 0810); 1c (review, register, audit-trail, container,
   device-reading and correction screens; the `--gmp-review-batch` seed; two browser flows). Quick review: two high, one
   medium-high and five core mediums fixed with tests (Phase 4 review backlog).
+- Phase 4 slice 2c (`phase-4/slice-2c`, 12 October; 2a and 2b merged in): packaging orders planned over HTTP from an
+  issued processing batch, pack type in the packaging family's identity (D-P4-13), a packaging master without TB-24
+  refused, a number allocated ahead planned only by its allocator (recipe-core 0760 to 0762; defaults D-2c-1 to D-2c-5 in
+  the plan); screens for packaging planning and the bulk issue, the full deviation record, specifications, lot events,
+  samples and returned goods; e2e: packaging order with its bulk issue (`--gmp-packaging` demo seed), deviation life
+  cycle through closure.
+- Phase 4 slice 1 merged (PR #20). Slice 2 (quality records) on `phase-4/slice-2`: the full deviation stand-in (QA
+  classification, per-market impact signed by an independent QA person, closure basis, cancellation rules, insert-only
+  links, release blocked at once on link; evidence stored as bytes), specifications with pharmacopoeia editions and
+  limits never typed, required tests, OOS-linked revisions, finished lots in quarantine, returned goods, retention
+  samples, lot events with the propose step, packaging-order planning with pack type and the bulk-issue screen.
+  Quick review: four high and two core mediums fixed. Open for the owner: D-2a-9 (CONFIRMED impact keeps release
+  blocked after closure).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and

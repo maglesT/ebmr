@@ -594,7 +594,7 @@ export const TARGETS: Target[] = [
     threshold: 90,
   },
   // ---- Phase 3: deviations: raise, link, investigate, conclude, close; QA signature; evidence documents;
-  //     extra-testing decision (site-services 0730, 0731, 0733, 0753; recipe-core 0600) ----
+  //     extra-testing decision (site-services 0730, 0731, 0733, 0753, 0820 to 0823; recipe-core 0600) ----
   {
     group: 'deviations',
     functions: ['recipe.site_subject_identity', 'site.register_subject_resolver', 'site.subject_identity',
@@ -603,8 +603,16 @@ export const TARGETS: Target[] = [
                 'site.record_deviation_finding', 'site.conclude_deviation', 'site.close_deviation',
                 'site.cancel_deviation', 'site.register_evidence_document', 'site.evidence_document_problem',
                 'site.qc_test_codes', 'site.qc_extra_testing_content', 'site.record_qc_extra_testing_decision',
-                'site.qc_extra_testing_decision_of', 'site.assert_deviation_qa_signature', 'site.deviation_ref_problem'],
-    tests: [site('mutation/deviations.test.ts'), site('quality/interfaces.test.ts'), site('quality/deviation.test.ts'), site('quality/lims.test.ts'), r('lifecycle/gmp-references.test.ts')],
+                'site.qc_extra_testing_decision_of', 'site.assert_deviation_qa_signature', 'site.deviation_ref_problem',
+                // Phase 4 slice 2a: the full deviation stand-in and the document service (site-services 0820 to 0823).
+                'site.deviation_latest_classification', 'site.deviation_latest_closure_basis', 'site.deviation_owner',
+                'site.deviation_latest_impact', 'site.deviation_impact_current', 'site.deviation_epoch_hook',
+                'site.deviation_classification_input', 'site.insert_deviation_classification', 'site.reclassify_deviation',
+                'site.record_deviation_impact', 'site.assess_deviation_impact', 'site.record_deviation_closure_basis',
+                'site.deviation_release_items', 'site.deviation_release_problem', 'site.deviation_open_for',
+                'site.guard_release_deviations', 'site.store_evidence_document', 'site.evidence_document_bytes',
+                'site.evidence_document_verified'],
+    tests: [site('mutation/deviations.test.ts'), site('quality/interfaces.test.ts'), site('quality/deviation.test.ts'), site('quality/deviation-full.test.ts'), site('quality/lims.test.ts'), r('lifecycle/gmp-references.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: ERP masters and production orders as received (site-services 0732, 0750, 0751; recipe-core 0602)

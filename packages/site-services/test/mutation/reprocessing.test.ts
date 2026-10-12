@@ -12,7 +12,7 @@
  *
  * Controls: PR-47, IN-18, IN-19; invariant INV-33.
  */
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, signerActor, type TestDatabase } from '../helpers.ts';
 import { QualityWorld, refusal, seedQualityCast, unique, type GmpBatch } from '../quality/support.ts';
@@ -613,17 +613,20 @@ describe('the reprocessing registers and what is signed (recipe-core 0621, 0622,
        values ($1, $2, 'Reprocessing master', 'tablets', 'REPROCESSING', $3, 'Paracetamol tablets', $4, 'Film-coated tablet', '[{"id": "BS-1", "quantity": {"value": "100", "unit": "kg"}}]', gen_random_uuid(), gen_random_uuid())`,
       [fam, unique('FAM-'), PRODUCT, STRENGTH],
     );
-    const evidence = async (sha: string): Promise<string> => {
+    // Documents with their stored bytes (site services 0823): the hash is the bytes' own.
+    const evidence = async (text: string): Promise<string> => {
       const id = randomUUID();
+      const bytes = Buffer.from(text);
       await w.fixture(
-        `insert into site.evidence_document (id, sha256, media_type, size_bytes, storage_key, title, site_code, uploaded_by_person, uploaded_by_account, correlation_id)
-         values ($1, $2, 'application/pdf', 1024, $3, 'Risk evaluation', 'SITE-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
-        [id, sha, `evidence/${id}.pdf`],
+        `with d as (insert into site.evidence_document (id, sha256, media_type, size_bytes, storage_key, title, site_code, uploaded_by_person, uploaded_by_account, correlation_id)
+                    values ($1, $2, 'application/pdf', $4, $3, 'Risk evaluation', 'SITE-1', gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id)
+         insert into site.evidence_document_content (document_id, bytes) select d.id, $5 from d`,
+        [id, createHash('sha256').update(bytes).digest('hex'), `evidence/${id}.pdf`, bytes.length, bytes],
       );
       return id;
     };
-    await evidence('d'.repeat(64));
-    const doc = await evidence('c'.repeat(64));
+    await evidence(`other ${randomUUID()}`);
+    const doc = await evidence(`risk ${randomUUID()}`);
     const P1 = await batch('EXECUTION_COMPLETE');
     const P2 = await batch('EXECUTION_COMPLETE');
     const req = await w.sql<{ id: string }>(issuer, 'select recipe.propose_reprocessing_request($1, $2, $3::uuid[], $4, $5) as r', [fam, 'SITE-1', [P2.id, P1.id], 'DEV-9', doc]);

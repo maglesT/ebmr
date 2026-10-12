@@ -20,6 +20,7 @@ tests:
   - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printing and challenges (K-20) > [PR-36][IN-16][IN-22] the step is performed only with each printer's first print approved by its role, each inspection device passed at start and end and not due"
   - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > packaging orders as GMP batches (D-S4-2; recipe-core 0582) > [INV-27][IN-18][IN-16] a packaging order is planned with the issued processing batch it packs: its number is the register's PACKAGING number of that batch, linked once, and it is issued like any GMP batch"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 first print and challenges > [PR-36][IN-16] the first print of a printer, approved by the MBR's role (QA by default); a system records it"
+  - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > planning a packaging order (Phase 4 slice 2c; recipe-core 0760 to 0762) > [PR-37][IN-16] a packaging order whose master has no secondary-packaging step (TB-24 for tablets) is refused and nothing is planned; an edition with no completion block plans none"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

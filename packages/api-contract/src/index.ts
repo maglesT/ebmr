@@ -77,9 +77,10 @@ export {
   ReprocessingRequestView,
   ResidueContainerView,
 } from './ns/quality.ts';
+export { DeviationClassificationInput, DeviationClosureBasisInput, DeviationDetailView, DeviationReleaseItem, DeviationState } from './ns/deviation.ts';
 export * from './tablet-entries.ts';
 export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
-export { PlanningOrderView } from './ns/planning.ts';
+export { PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {
   FormulaChoiceView,
   FormulaLineInput,
@@ -112,4 +113,6 @@ export {
   ReviewSummaryView,
 } from './ns/review.ts';
 export { ContainerHoldView, ContainerState, ContainerView } from './ns/containers.ts';
+export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
+export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';

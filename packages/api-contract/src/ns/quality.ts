@@ -11,9 +11,9 @@
 import { z } from 'zod';
 import { Base64Text, DecimalString, Instant, IntegerString, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
+import { DeviationClassificationInput, DeviationState, deviationRoutes } from './deviation.ts';
 
 const DeviationKind = z.enum(['DEVIATION', 'OOS', 'INVESTIGATION']);
-const DeviationState = z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CONCLUDED', 'CLOSED', 'CANCELLED']);
 const deviationParams = z.strictObject({ deviationId: Uuid });
 const lotParams = z.strictObject({ lotId: Uuid });
 const Code = z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/);
@@ -203,6 +203,7 @@ export const ErpPendingView = z.strictObject({
 export type ErpPendingView = z.infer<typeof ErpPendingView>;
 
 export const quality = {
+  ...deviationRoutes,
   raiseDeviation: defineRoute({
     id: 'quality.raiseDeviation',
     method: 'POST',
@@ -250,9 +251,9 @@ export const quality = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'Start the investigation of an OPEN record',
+    summary: 'Start the investigation of an OPEN record with QA\'s classification (IN-02; Phase 4 slice 2a)',
     params: deviationParams,
-    body: z.strictObject({}),
+    body: DeviationClassificationInput,
     response: DeviationView,
   }),
   recordFinding: defineRoute({
@@ -278,7 +279,7 @@ export const quality = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'Cancel an OPEN record or one UNDER_INVESTIGATION (QA other than the initiator, with the person\'s own reason)',
+    summary: 'Cancel an OPEN record (QA other than the initiator, with the person\'s own reason; L-21)',
     params: deviationParams,
     body: z.strictObject({ reason: z.string().trim().min(1).max(2000) }),
     response: DeviationView,
@@ -290,18 +291,19 @@ export const quality = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'Record a lot test result; the verdict is computed by the database from the value and the limits',
+    summary: 'Record a lot test result; the limits, unit and method are the approved specification\'s and the verdict is computed by the database (Phase 4 slice 2b)',
     params: lotParams,
     body: z.strictObject({
       testCode: Code,
-      methodReference: z.string().trim().min(1).max(128),
+      /** When sent, the specification's method and unit (the database refuses others). */
+      methodReference: z.string().trim().min(1).max(128).optional(),
       purpose: z.enum(['RELEASE', 'RETEST']),
       value: DecimalString,
-      unit: z.string().min(1).max(32),
-      lowerLimit: DecimalString.optional(),
-      upperLimit: DecimalString.optional(),
+      unit: z.string().min(1).max(32).optional(),
       revises: Uuid.optional(),
       revisionReason: z.string().trim().min(1).max(2000).optional(),
+      /** A revision of a RELEASE result cites the OOS record of the lot (IN-20; site services 0841). */
+      oosDeviationId: Uuid.optional(),
     }),
     response: LotResultView,
   }),

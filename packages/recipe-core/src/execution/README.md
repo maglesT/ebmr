@@ -1170,6 +1170,9 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   equal to the block registry; every new route parsed with its contract schema.
 - `block-entries.test.ts` (Phase 3 slice 6a; D-S6-2): the BLOCK_ENTRY forms with the block's own schema as JSON; the
   members the blocks mark serverFilled exactly those the server fills, refused when a client names one (DI-31, DI-32).
+- `packaging-planning-routes.test.ts` (Phase 4 slice 2c; recipe-core 0760-0762): a packaging order planned over HTTP from
+  an issued processing batch with its pack type, and its bulk issue refused until the processing batch is released for
+  packing (INV-27, IN-18, IN-26).
 - `block-entries-edges.test.ts` (Phase 3 exit, TypeScript mutation): the edges of the server-filled member checks of
   BLOCK_ENTRY: values of a shape the engine's schema decides, the refusal codes and help, and the reads the server makes
   (DI-31, DI-32).

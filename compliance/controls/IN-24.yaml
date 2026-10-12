@@ -68,6 +68,7 @@ tests:
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > lots: each refusal on its own (site services 0712) > [IN-24][INV-13] a destroyed lot takes no result; a destruction is recorded once"
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > lots: each refusal on its own (site services 0712) > [IN-24] a status decision is one of the decisions; a RELEASE names a known route and only a RELEASE names one"
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > lots: each refusal on its own (site services 0712) > [IN-24][DI-35] a vendor-history route: unknown, decided twice, enabled with another QA person's signature, a second one enabled, or disabled without being enabled or without a reason"
+  - "apps/tablets-server/test/quality/lims-routes.test.ts > lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused"
 clauses:
   - clause: "release an excipient lot on vendor history and try to dispense it into a batch with markets {India, US}; blocked until an identity result exists."
     tests:

@@ -1,7 +1,8 @@
 /**
  * Quality and master data at the site (Phase 3 slice 5a; slice 5 plan, defaults D-S5-1 to D-S5-9): deviation-lite,
  * the evidence-document store, the ERP product master and the QC decision on extra testing. Thin wrappers over the
- * database commands of sql/0730 to 0733: every rule is enforced there, under the application role.
+ * database commands of sql/0730 to 0733 and 0820 to 0823 (the full deviation stand-in and the document service, Phase 4
+ * slice 2a): every rule is enforced there, under the application role.
  *
  * Every function runs inside a command (the kernel's withCommand). Instants are ISO 8601 text read from the database.
  */
@@ -9,7 +10,7 @@ import type { Queryable } from '../batch-numbers/register.ts';
 
 export type DeviationKind = 'DEVIATION' | 'OOS' | 'INVESTIGATION';
 export type DeviationClassification = 'MINOR' | 'MAJOR' | 'CRITICAL';
-export type DeviationState = 'OPEN' | 'UNDER_INVESTIGATION' | 'CONCLUDED' | 'CLOSED' | 'CANCELLED';
+export type DeviationState = 'OPEN' | 'UNDER_INVESTIGATION' | 'IMPACT_ASSESSED' | 'PENDING_CLOSURE' | 'CLOSED' | 'CANCELLED';
 export type DeviationSubjectKind = 'BATCH' | 'LOT' | 'CONTAINER';
 export type DeviationRefUse = 'LINK' | 'DISPOSITION' | 'INVALIDATION' | 'REPROCESSING';
 export type RootCauseCategory = 'HUMAN_ERROR' | 'EQUIPMENT' | 'MATERIAL' | 'METHOD' | 'ENVIRONMENT' | 'PROCESS' | 'LABORATORY_ERROR' | 'NOT_DETERMINED';
@@ -42,8 +43,92 @@ export function linkDeviation(client: Queryable, deviationId: string, subjectKin
   return one(client, 'select site.link_deviation($1, $2, $3) as r', [deviationId, subjectKind, subjectId]);
 }
 
-export async function startDeviationInvestigation(client: Queryable, deviationId: string): Promise<void> {
-  await client.query('select site.start_deviation_investigation($1)', [deviationId]);
+/** QA's classification when the investigation starts (IN-02): never by the initiator; the owner investigates. */
+export interface DeviationClassificationInput {
+  classification: DeviationClassification;
+  riskRationale: string;
+  ownerPersonId: string;
+  /** YYYY-MM-DD, not in the past at the site. */
+  dueDate: string;
+  riskDocumentId?: string;
+}
+
+/** OPEN -> UNDER_INVESTIGATION with QA's classification (DEVIATION.CLASSIFY); returns the classification id. */
+export function startDeviationInvestigation(client: Queryable, deviationId: string, c: DeviationClassificationInput): Promise<string> {
+  return one(client, 'select site.start_deviation_investigation($1, $2::jsonb) as r', [deviationId, JSON.stringify(c)]);
+}
+
+export function reclassifyDeviation(client: Queryable, deviationId: string, c: DeviationClassificationInput): Promise<string> {
+  return one(client, 'select site.reclassify_deviation($1, $2::jsonb) as r', [deviationId, JSON.stringify(c)]);
+}
+
+export type DeviationMarket = 'IN' | 'US' | 'EU';
+export type DeviationImpact = 'NONE' | 'POTENTIAL' | 'CONFIRMED';
+
+export interface DeviationImpactInput {
+  linkId: string;
+  market: DeviationMarket;
+  impact: DeviationImpact;
+  rationale: string;
+}
+
+/** The impact on one linked subject for one market (DEVIATION.INVESTIGATE); returns the impact row id. */
+export function recordDeviationImpact(client: Queryable, deviationId: string, i: DeviationImpactInput): Promise<string> {
+  return one(client, 'select site.record_deviation_impact($1, $2::jsonb) as r', [deviationId, JSON.stringify(i)]);
+}
+
+/** QA's DEVIATION_IMPACT_ASSESSED signature over the impact rows (neither the initiator nor the owner). */
+export function assessDeviationImpact(client: Queryable, deviationId: string, signatureId: string): Promise<string> {
+  return one(client, 'select site.assess_deviation_impact($1, $2) as r', [deviationId, signatureId]);
+}
+
+export interface OtherBatchAssessed {
+  subjectKind: 'BATCH' | 'PRODUCT' | 'LOT';
+  ref: string;
+  included: boolean;
+  reason: string;
+}
+
+/** What PENDING_CLOSURE needs besides the finding (outline 5.2.5; PR-50, PR-51). */
+export interface DeviationClosureBasis {
+  rootCauseMethod?: string;
+  systemFactors?: { process: string; procedure: string; system: string };
+  capaRefs: string[];
+  noCapaReason?: string;
+  notificationRequired: boolean;
+  notificationRationale: string;
+  authorityReference?: string;
+  otherBatches: OtherBatchAssessed[];
+}
+
+export function recordDeviationClosureBasis(client: Queryable, deviationId: string, b: DeviationClosureBasis): Promise<string> {
+  return one(client, 'select site.record_deviation_closure_basis($1, $2::jsonb) as r', [deviationId, JSON.stringify(b)]);
+}
+
+export interface DeviationReleaseItem {
+  deviationId: string;
+  ref: string;
+  kind: DeviationKind;
+  state: DeviationState;
+  classification: DeviationClassification;
+  cancelled: boolean;
+  blocking: boolean;
+  reason: string | null;
+  cancelledBy: string | null;
+}
+
+/** The deviations linked to a subject as the release checklist lists them (outline 5.2.6 item 2; L-21). */
+export function deviationReleaseItems(client: Queryable, kind: DeviationSubjectKind, id: string, market: DeviationMarket | null): Promise<DeviationReleaseItem[]> {
+  return one(client, 'select site.deviation_release_items($1, $2, $3) as r', [kind, id, market]);
+}
+
+/** Why the subject is not released for the market by the signer (INV-46, L-21), or null. */
+export function deviationReleaseProblem(client: Queryable, kind: DeviationSubjectKind, id: string, market: DeviationMarket | null, signerPersonId: string | null): Promise<string | null> {
+  return one(client, 'select site.deviation_release_problem($1, $2, $3, $4) as r', [kind, id, market, signerPersonId]);
+}
+
+export function deviationOpenFor(client: Queryable, subjectId: string): Promise<boolean> {
+  return one(client, 'select site.deviation_open_for($1) as r', [subjectId]);
 }
 
 export function recordDeviationFinding(client: Queryable, deviationId: string, f: DeviationFinding): Promise<string> {
@@ -73,17 +158,15 @@ export function deviationRefProblem(client: Queryable, ref: string, use: Deviati
 }
 
 export interface EvidenceDocument {
-  /** SHA-256 of the bytes, 64 lower-case hex digits. */
-  sha256: string;
   mediaType: string;
-  /** Decimal string. */
-  sizeBytes: string;
-  storageKey: string;
   title: string;
+  /** The document's bytes: the database stores them and computes the SHA-256 and the size (0823). */
+  bytes: Uint8Array;
 }
 
-export function registerEvidenceDocument(client: Queryable, doc: EvidenceDocument): Promise<string> {
-  return one(client, 'select site.register_evidence_document($1::jsonb) as r', [JSON.stringify(doc)]);
+/** Stores a document with its bytes (EVIDENCE.STORE); returns the document id. */
+export function storeEvidenceDocument(client: Queryable, doc: EvidenceDocument): Promise<string> {
+  return one(client, 'select site.store_evidence_document($1::jsonb, $2) as r', [JSON.stringify({ mediaType: doc.mediaType, title: doc.title }), Buffer.from(doc.bytes)]);
 }
 
 export function evidenceDocumentProblem(client: Queryable, documentId: string, siteCode: string): Promise<string | null> {

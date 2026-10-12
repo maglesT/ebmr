@@ -100,17 +100,72 @@ below; each builder ticks them off there.
   assessment, non-empty list of other batches assessed), CLOSED; cancellation rules (L-21); insert-only links ending
   only with "assessed, not affected" (INV-46); release-blocking at once on link; document service: evidence documents
   tied to stored bytes, hash computed by the server (backlog slice 5).
-- **2b, LIMS, lots and samples** (site-services 0840 to 0859, tablets 1140 to 1149): approved specifications per
+- **2a defaults** (recorded; owner may change): D-2a-1 QA classifies when the investigation starts (DEVIATION.CLASSIFY:
+  QA shop floor, QA reviewer, AP), never the initiator; the rationale is always written; a reclassification is a new row
+  while UNDER_INVESTIGATION or IMPACT_ASSESSED; the classifier enters data in the record, so neither concludes nor closes
+  it (INV-03). D-2a-2 impact per link and market (IN, US, EU); every link needs IN before the sign-off (site services do
+  not know a batch's market set); release checks the market asked. D-2a-3 a new link or impact row takes the record back
+  to UNDER_INVESTIGATION until QA signs again; closure needs the sign-off current. D-2a-4 the closure basis: method for
+  MAJOR and CRITICAL; at least one CAPA for MAJOR, CRITICAL or a root cause not determined, otherwise the reason none is
+  needed; process, procedure and system factors for a human error; the conclusion and closure also exclude the owner
+  and the recorders of the finding and basis. D-2a-5 cancellation OPEN only (outline 5.2.5); the canceller never signs
+  the release of a linked lot or container (trigger), batch release calls `site.deviation_release_problem` with its
+  signer (slice 3). D-2a-6 release blocking at once on link for material lots (RELEASE, RELEASE_FOR_FURTHER_PROCESSING,
+  UNHOLD) and output containers linked directly; a batch link does not block a container release in process (the batch's
+  release is slice 3). D-2a-7 evidence bytes in the database (bytea, at most 16 MB, insert-only); the document row with
+  its hash is audited, the bytes are not copied into the audit trail. D-2a-8 the new tables bump the evidence epochs
+  through `site.deviation_epoch_hook`, which finds `recipe.bump_epoch` when it runs.
+  D-2a-9 (quick review, open for the owner): a link whose latest impact for the market is CONFIRMED keeps the subject
+  blocked after the record is closed; the subject is rejected, or released only through a signed QA disposition of that
+  link (a later slice). Closure ends a link assessed NONE or POTENTIAL (site-services 0824).
+- **2b, LIMS, lots and samples** (site-services 0840 to 0859, tablets 1150 to 1159; 1140 and 1141 were taken by slice 1a): approved specifications per
   material with pharmacopoeia edition (IN-33); limits from the specification, never typed; revising a RELEASE result
   needs an OOS link; required tests per material (a lot without results no longer passes); QC extra-testing decision
   checked against the tests actually run; finished lots created in QUARANTINE that leave only through the release model
   (IN-05 (a), PR-45); lot events HOLD, UNHOLD, RETURN, RECALL over HTTP with the propose step (D-P4-3); returned
   products (PR-48); reserve and retention samples (PR-44, IN-32); a reel or lot quarantined mid-run caught at the next
   entry (tablets guard, backlog 4b).
+  Built in site-services 0840 to 0843 and tablets 1150, 1151 (codes EBMR-SITE-400 to 434, EBMR-TAB-850 to 853; contract
+  namespaces `specifications` and `samples`, signable LIMS_ACT, LOT_DECISION HOLD/UNHOLD/RETURN/RECALL). Defaults taken:
+  - **D-2b-1** A specification is per site and material code; a finished product's uses its product code (its finished
+    lots carry that code). Only the approved version with the highest number is in effect; an older one is never approved.
+  - **D-2b-2** Every limit cites IP, BP, PH_EUR, USP or IN_HOUSE and an edition (in-house: the document version). The
+    edition review lists specifications only; MBR IPC limits citing an edition (recipe-core) are a residual.
+  - **D-2b-3** Every revision of a RELEASE result cites an OOS record of the lot, and a revised failing result blocks the
+    release until that record concludes a confirmed laboratory error (IN-20, as an approved failure). Extra tests QC
+    decides must be tests of the lot's specification (optional ones allowed); a later decision only adds tests.
+  - **D-2b-4** Reserve samples: several pulls may make up the reserve; the required quantity is twice the sample
+    quantities of all tests (sterility and pyrogen not left out); kept until the latest over the batch's markets of India
+    expiry + 3 months and US or EU expiry + 1 year.
+  - **D-2b-5** Starting materials keep a retention sample until their expiry + 1 year ("1 year after the last product lot
+    containing it" needs the slice 7 trace: residual); the US annual visual examination task is a residual.
+  - **D-2b-6** A finished lot is posted by the warehouse (MATERIAL.HANDLE) from a PACKAGING order in EXECUTION_COMPLETE,
+    lot code = batch number, expiry from the processing batch it packs (capped for recovered material); its quantity is
+    the count received (reconciliation with TB-24 is the release model's). Returned goods are a lot of kind RETURNED that
+    leaves quarantine only by rejection after QC's signed assessment chose destruction or chemical recovery; return to
+    stock and the chemical recovery act wait for the release model and reprocessing (residual).
 - **2c, planning and screens** (recipe-core 0760 to 0769, `apps/tablets-server/src/features/planning/**`,
   `apps/tablets-web/**`): HTTP route to plan a packaging order and the bulk-issue screen (exit residual); pack type
   in the packaging family's identity (D-P4-13); a PACKAGING order whose MBR has no TB-24 refused; prepare_gmp_issue
   allocation by another person (2b #4, low); deviation, specification, lot-event and sample screens.
+- **2c planning built (12 October; recipe-core 0760 to 0762; routes planning.packagingOrders, planPackagingOrder,
+  packagingBulk; screens /planning (packaging card), /planning/packaging, /planning/packaging/$batchId).**
+  Database-enforced: a packaging family's identity is (edition, product, strength, form, pack sizes, pack type) in the
+  insert-only, audited `recipe.mbr_family_pack` (a PACKAGING family without one fails at commit; a master's header names
+  its family's pack type); a packaging order is planned only on a master holding its edition's completion block
+  (`recipe.packaging_completion_block`, tablets TB-24; EBMR-PLN-005); a number allocated ahead is planned only by its
+  allocator (EBMR-PLN-004). Codes EBMR-PLN-001 to 005. Defaults taken (decision 0004):
+  - **D-2c-1** `recipe.mbr_family` is insert-only, so the pack type lives in its own table; a packaging definition or
+    header without one reads STANDARD; existing packaging families take their approved master's header pack type
+    (STANDARD when it names none).
+  - **D-2c-2** The completion block per edition is recipe-core data, not a tablets migration (2c has no tablets range); an
+    edition with no row plans no packaging order (fails closed until Injectables registers its own).
+  - **D-2c-3** A number allocated ahead is taken only by the person who allocated it (stricter than "any planner holding
+    BATCH_NUMBER.ALLOCATE").
+  - **D-2c-4** The planning screen now sends the matched batch-size id (it sent the order's quantity, which the database
+    refused); the packaging plan names the ERP order it was planned from.
+  - **D-2c-5** The e2e demo (set-up CLI `--gmp-packaging`) releases its second GB-T-01 batch for packing by a DEMO
+    SHORTCUT (H-PACK set APPROVED in the stored state with triggers off), as the review seed marks its batch complete.
 
 ### Slice 3: G-REL and the manufacturer release
 - **3a, release core** (recipe-core 0770 to 0809, `apps/tablets-server/src/features/release/**`): manufacturer
@@ -268,6 +323,8 @@ New permissions and meanings go in the builder's range; reuse the kernel meaning
 4. Still waiting from Phase 3: compendial and AQL values (expert), TB-19 signer (QA kept), packing steps refused in a
    GMP processing batch, formula readers (D-S6-4); SQL groups below 90 %: twins stay for deployment validation.
 5. Clauses 7a defers to 6 or 7, each with its reason, listed in PROGRESS.md before `phase.yaml` goes to 4.
+6. D-2a-9: a lot or batch whose deviation link was CONFIRMED stays blocked after closure until a signed QA disposition
+   of that link (default); the alternative is that closure ends every link.
 
 ## Tests each sub-slice must have
 

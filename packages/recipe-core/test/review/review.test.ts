@@ -578,7 +578,7 @@ describe('the correction of a loop reading (plan open question 1, default: count
     expect(await problem(correction({ approval: { approver: { id: supervisor.personId, kind: 'PERSON', roles: ['PRODUCTION_SUPERVISOR'] } } }), loop('EXHAUSTED'))).toMatch(/without the approval of QA/);
     expect(await problem(correction({ approval: qaApproval, evidence: { kind: 'PRINTOUT', sha256: sha } }), loop('CONTINUE'))).toMatch(/without a stored evidence document/);
     await w.run(operator, (c) =>
-      c.query('select site.register_evidence_document($1::jsonb)', [JSON.stringify({ sha256: sha, mediaType: 'image/png', sizeBytes: '2048', storageKey: `evidence/${randomUUID()}.png`, title: 'Moisture balance printout' })]),
+      c.query('select site.store_evidence_document($1::jsonb, $2)', [JSON.stringify({ mediaType: 'image/png', title: 'Moisture balance printout' }), Buffer.from(`moisture balance printout ${b.batchId}`)]),
     );
     expect(await problem(correction({ approval: qaApproval, evidence: { kind: 'PRINTOUT', sha256: sha } }), loop('CONTINUE'))).toBeNull();
     // The reading of the iteration that met the endpoint (EXIT) keeps the ordinary rule: no requirement without a failure.
@@ -664,12 +664,20 @@ describe('slice 1 quick review regressions (recipe-core 0719 to 0721)', () => {
                                                  identity_basis, consumed_by_person, consumed_by_account, xact_id)
                select $1, $2, b.id, b.batch_number, 'TABLETS', $3, 1, 'kg', 10, 9, b.market_set, 'IDENTITY_RESULT', $4, $4, txid_current() from recipe.batch_execution b where b.id = $5`,
         params: [lotId, resId, material, randomUUID(), b.batchId] },
+      // The material's approved specification (site services 0840): a result takes its limits from it.
+      { text: `with s as (insert into site.specification (site_code, material_code, version, title, monograph_reference, drafted_by_person, drafted_by_account, correlation_id)
+                          values ('SITE-1', $1, 1, 'Fixture API', 'IP (fixture)', $2, $2, $2) returning id),
+                    t as (insert into site.specification_test (specification_id, test_code, method_reference, unit, lower_limit, upper_limit, required, pharmacopoeia, edition,
+                                                               sample_quantity, sample_unit)
+                          select s.id, 'ASSAY', 'STP-AS-01', '%', 98.0, 102.0, true, 'IP', '2022', 0.01, 'kg' from s)
+               insert into site.specification_approval (specification_id, signature_id, approved_by_person, approved_by_account) select s.id, $3, $2, $2 from s`,
+        params: [material, randomUUID(), randomUUID()] },
     ]);
     const seen = await epoch(b);
     const sig = await w.sign(qaReviewer2, 'batch_review', b.batchId, 'QA_REVIEWED', 'PRODUCTION_APPROVED');
     const analyst = await seedActor(db, { roleCode: 'QC_ANALYST', legalName: 'Anu Analyst' });
     await w.run(analyst, (c) =>
-      c.query('select site.record_lot_test_result($1, $2::jsonb)', [lotId, JSON.stringify({ testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose: 'RELEASE', value: '91.0', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' })]),
+      c.query('select site.record_lot_test_result($1, $2::jsonb)', [lotId, JSON.stringify({ testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose: 'RELEASE', value: '91.0', unit: '%' })]),
     );
     expect(BigInt(await epoch(b))).toBeGreaterThan(BigInt(seen));
     expect(await codeOf(w.run(qaReviewer2, (c) => c.query('select recipe.record_qa_review($1, $2, $3)', [b.batchId, sig, seen])))).toMatch(/EBMR-REV-02[01]/);

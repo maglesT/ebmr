@@ -45,6 +45,8 @@ export interface SetupStackOptions {
   echo?: boolean;
   /** GMP, DEMO-ONLY: also build one batch record ready for review (set-up CLI --gmp-review-batch; Phase 4 slice 1c). */
   gmpReviewBatch?: boolean;
+  /** GMP, DEMO-ONLY: with the review batch, the packaging-order demo (set-up CLI --gmp-packaging; Phase 4 slice 2c). */
+  gmpPackaging?: boolean;
 }
 
 /** Creates (or recreates) both databases and their DEMO-ONLY credentials. */
@@ -53,7 +55,7 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   for (const d of ['to-sandbox', 'to-gmp']) mkdirSync(join(exchangeDir, d), { recursive: true });
   const gatewaySpki = ensureGatewayKey(opts.keysDir);
   const common = ['--keys-dir', opts.keysDir, '--exchange-dir', exchangeDir, '--persona-sets', String(opts.personaSets ?? 1), '--recreate'];
-  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common, ...(opts.gmpReviewBatch ? ['--gmp-review-batch'] : [])], env: {}, echo: opts.echo ?? true });
+  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common, ...(opts.gmpReviewBatch ? ['--gmp-review-batch'] : []), ...(opts.gmpPackaging ? ['--gmp-packaging'] : [])], env: {}, echo: opts.echo ?? true });
   await runNode({
     name: 'setup-sbx',
     entry: SERVER_SETUP,
@@ -125,6 +127,9 @@ function serverEnv(kind: 'GMP' | 'SANDBOX', opts: StartStackOptions, origins: { 
   } else {
     // D-P4-9: the GMP server's sweeper identity (missed-check holds and interface losses on GMP batches).
     env['EBMR_SERVICE_KEYS_FILE'] = join(opts.keysDir, 'gmp-service-keys.json');
+    // Phase 4 slice 2c: the DEMO-ONLY external ledger of protected batch numbers (the file the set-up's review seed
+    // writes), so the planning screens can plan batches and packaging orders on the demo stack.
+    env['EBMR_NUMBER_LEDGER_FILE'] = join(opts.keysDir, 'gmp-numbers.ledger.jsonl');
   }
   return env;
 }

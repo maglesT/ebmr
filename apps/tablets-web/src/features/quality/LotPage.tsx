@@ -2,7 +2,9 @@
  * One material lot (Phase 3 slice 6, LIMS-lite): its test results with the verdicts the database computed, a result
  * recorded by QC, approved by QC with a signature (QUALITY_ACT LOT_RESULT_APPROVE), an OOS record raised and linked
  * for a failing result, the retest (QUALITY_ACT LOT_RETEST from approved RETEST results), and QA's release or
- * rejection (LOT_DECISION; a release names its route). What each act signs is the server's (esig.describe).
+ * rejection (LOT_DECISION; a release names its route). What each act signs is the server's (esig.describe). Phase 4
+ * slice 2c (LotExtras.tsx, DeviationDetail.tsx): the release check on the specification and samples, the status events
+ * proposed then signed, the reserve and retention samples, and the linked deviations as the release checklist lists them.
  */
 import { useState } from 'react';
 import { routes, type LotResultView, type LotSummaryView } from '@ebmr/api-contract';
@@ -14,7 +16,9 @@ import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
+import { DeviationReleaseChecklist } from './DeviationDetail.tsx';
 import { DEVIATION_READS } from './DeviationsPage.tsx';
+import { LotEvents, LotReleaseCheck, LotSamples } from './LotExtras.tsx';
 import { LOT_READS } from './LotsPage.tsx';
 
 type CallErr = Parameters<typeof RefusalMessage>[0]['error'];
@@ -56,18 +60,18 @@ export function LotPage() {
             submitLabel="Record the result"
             fields={[
               { name: 'testCode', label: 'Test code', kind: 'text' },
-              { name: 'methodReference', label: 'Method reference', kind: 'text' },
               { name: 'purpose', label: 'Purpose', kind: 'choice', options: ['RELEASE', 'RETEST'] },
               { name: 'value', label: 'Value', kind: 'decimal' },
-              { name: 'unit', label: 'Unit', kind: 'text' },
-              { name: 'lowerLimit', label: 'Lower limit', kind: 'decimal', optional: true },
-              { name: 'upperLimit', label: 'Upper limit', kind: 'decimal', optional: true },
             ]}
           />
         ) : null}
       </Section>
       {qc && lot ? <RetestForm lot={lot} results={results.data?.results ?? []} /> : null}
       {qa && lot ? <LotDecision lot={lot} /> : null}
+      <LotReleaseCheck lotId={lotId} />
+      {qa && lot ? <LotEvents lot={lot} /> : null}
+      <LotSamples lotId={lotId} canPull={qc} canDispose={qa} />
+      <DeviationReleaseChecklist subjectKind="LOT" subjectId={lotId} />
     </>
   );
 }

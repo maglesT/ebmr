@@ -9,11 +9,15 @@
  *  - ESIG_STUB: test-only, over the kernel's esig_stub aggregate, so the ceremony is tested before C3 lands.
  * Phase 3 slice 6 (GMP): the signed acts of quality, lots, reprocessing, master data and plant over HTTP. Each handler
  * calls the existing database command, which stays the decider; the meanings are the existing ones:
- *  - QUALITY_ACT: DEVIATION_CONCLUDE (DEVIATION_CONCLUDED), DEVIATION_CLOSE (DEVIATION_CLOSED), LOT_RESULT_APPROVE
+ *  - QUALITY_ACT: DEVIATION_IMPACT_ASSESS (DEVIATION_IMPACT_ASSESSED, Phase 4 slice 2a), DEVIATION_CONCLUDE
+ *    (DEVIATION_CONCLUDED), DEVIATION_CLOSE (DEVIATION_CLOSED), LOT_RESULT_APPROVE
  *    (QC_RESULT_APPROVED), QC_EXTRA_TESTING_DECISION (QC_EXTRA_TESTING_DECIDED), LOT_RETEST (QC_RESULT_APPROVED on the
  *    retest's results' lot: the retest itself is recorded by QC from approved RETEST results);
  *  - LOT_DECISION: RELEASE (MATERIAL_LOT_RELEASED) or REJECT (MATERIAL_LOT_REJECTED from quarantine, otherwise
  *    MATERIAL_LOT_STATUS_DECIDED) of a material lot, as the lot's state machine names them;
+ *    Phase 4 slice 2b: also HOLD, UNHOLD, RETURN and RECALL (MATERIAL_LOT_STATUS_DECIDED over the proposed decision);
+ *  - LIMS_ACT (Phase 4 slice 2b): SPECIFICATION_APPROVE (SPECIFICATION_APPROVED, never by the drafter) and
+ *    RETURN_ASSESSMENT_SIGN (RETURNED_GOODS_ASSESSED, by the QC person who recorded the assessment);
  *  - REPROCESSING_ACT: RESERVE_RESIDUE (RESIDUE_RESERVED), AUTHORISE_ADDITION and AUTHORISE_REQUEST
  *    (REPROCESSING_AUTHORISED);
  *  - MASTER_DATA_APPROVE: a formula version (FORMULA_APPROVED, by a person other than its author); a received ERP
@@ -98,7 +102,7 @@ export const SignableAction = z.discriminatedUnion('kind', [
   }),
   z.strictObject({
     kind: z.literal('QUALITY_ACT'),
-    act: z.enum(['DEVIATION_CONCLUDE', 'DEVIATION_CLOSE', 'LOT_RESULT_APPROVE', 'QC_EXTRA_TESTING_DECISION', 'LOT_RETEST']),
+    act: z.enum(['DEVIATION_IMPACT_ASSESS', 'DEVIATION_CONCLUDE', 'DEVIATION_CLOSE', 'LOT_RESULT_APPROVE', 'QC_EXTRA_TESTING_DECISION', 'LOT_RETEST']),
     /** The deviation (conclude, close), the lot test result (approve), the GMP batch (extra testing) or the lot (retest). */
     subjectId: Uuid,
     input: QualityActInput,
@@ -106,11 +110,19 @@ export const SignableAction = z.discriminatedUnion('kind', [
   z.strictObject({
     kind: z.literal('LOT_DECISION'),
     lotId: Uuid,
-    decision: z.enum(['RELEASE', 'REJECT']),
+    /** Phase 4 slice 2b: HOLD, UNHOLD, RETURN and RECALL sign MATERIAL_LOT_STATUS_DECIDED over the decision QA proposed (D-P4-3). */
+    decision: z.enum(['RELEASE', 'REJECT', 'HOLD', 'UNHOLD', 'RETURN', 'RECALL']),
     /** A RELEASE names its route, and only a RELEASE does (IN-24 (c)). */
     route: z.enum(['IDENTITY_TESTED', 'VENDOR_HISTORY']).optional(),
     /** The person's own reason, both halves (a status decision such as a rejection carries one: DI-22, EBMR-AUDIT-002). */
     reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
+  }),
+  z.strictObject({
+    /** Phase 4 slice 2b (ns/specifications.ts, ns/samples.ts): a specification's approval, QC's signature of a returned-goods assessment. */
+    kind: z.literal('LIMS_ACT'),
+    act: z.enum(['SPECIFICATION_APPROVE', 'RETURN_ASSESSMENT_SIGN']),
+    /** The specification version (approve) or the returned lot (assessment). */
+    subjectId: Uuid,
   }),
   z.strictObject({
     kind: z.literal('REPROCESSING_ACT'),

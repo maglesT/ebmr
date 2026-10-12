@@ -150,16 +150,36 @@ async function deviation(kind: 'DEVIATION' | 'OOS' | 'INVESTIGATION', batchId?: 
   return d;
 }
 
+/**
+ * The full deviation path (site services 0820 to 0822), in SQL (recipe-core never imports site services): qa classifies
+ * and investigates, records the impact on each link for IN and the closure basis; qa2 signs the impact and concludes.
+ */
 async function conclude(d: { deviationId: string }, assignableCause: boolean): Promise<void> {
-  await w.run(qa, (c) => c.query('select site.start_deviation_investigation($1)', [d.deviationId]));
-  await w.run(qa, (c) =>
-    c.query('select site.record_deviation_finding($1, $2::jsonb)', [
-      d.deviationId,
-      JSON.stringify({ assignableCause, cause: 'Analyst used an expired reference standard', rootCauseCategory: assignableCause ? 'LABORATORY_ERROR' : 'NOT_DETERMINED' }),
-    ]),
-  );
-  const sig = await signFor(db, qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-  await w.run(qa2, (c) => c.query('select site.conclude_deviation($1, $2)', [d.deviationId, sig]));
+  const q = (who: SeededActor, text: string, params: unknown[]) => w.run(who, (c) => c.query(text, params));
+  const due = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
+  await q(qa, 'select site.start_deviation_investigation($1, $2::jsonb)', [
+    d.deviationId,
+    JSON.stringify({ classification: 'MAJOR', riskRationale: 'QA classification after the first review', ownerPersonId: qa.personId, dueDate: due }),
+  ]);
+  await q(qa, 'select site.record_deviation_finding($1, $2::jsonb)', [
+    d.deviationId,
+    JSON.stringify({ assignableCause, cause: 'Analyst used an expired reference standard', rootCauseCategory: assignableCause ? 'LABORATORY_ERROR' : 'NOT_DETERMINED' }),
+  ]);
+  const links = await w.run(qa, (c) => c.query<{ id: string }>('select id from site.deviation_link where deviation_id = $1', [d.deviationId]));
+  for (const l of links.rows) {
+    await q(qa, 'select site.record_deviation_impact($1, $2::jsonb)', [d.deviationId, JSON.stringify({ linkId: l.id, market: 'IN', impact: 'NONE', rationale: 'Assessed against the investigation' })]);
+  }
+  const impact = await signFor(db, qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+  await q(qa2, 'select site.assess_deviation_impact($1, $2)', [d.deviationId, impact]);
+  await q(qa, 'select site.record_deviation_closure_basis($1, $2::jsonb)', [
+    d.deviationId,
+    JSON.stringify({
+      rootCauseMethod: 'Five whys', capaRefs: ['CAPA-TEST-001'], notificationRequired: false, notificationRationale: 'No registered detail is affected',
+      otherBatches: [{ subjectKind: 'PRODUCT', ref: 'Other batches of the product', included: false, reason: 'Not tested with that standard' }],
+    }),
+  ]);
+  const sig = await signFor(db, qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+  await q(qa2, 'select site.conclude_deviation($1, $2)', [d.deviationId, sig]);
 }
 
 const exceptionIds = (state: Json): string[] => Object.keys((state['exceptions'] as Json | undefined) ?? {});
@@ -229,17 +249,58 @@ describe('GMP deviation references (D-S2-2, D-S5-2)', () => {
     const sha = createHash('sha256').update('printout of the balance').digest('hex');
     expect(await failToPass({ kind: 'PRINTOUT' })).toMatch(/^\[603\] .* names no stored evidence document/);
     expect(await failToPass({ kind: 'PRINTOUT', sha256: sha })).toMatch(/^\[603\] .* no evidence document with SHA-256 .* is stored at site SITE-1/);
-    await w.run(operator, (c) =>
-      c.query('select site.register_evidence_document($1::jsonb)', [
-        JSON.stringify({ sha256: sha, mediaType: 'image/png', sizeBytes: '2048', storageKey: `evidence/${randomUUID()}.png`, title: 'Balance printout' }),
-      ]),
-    );
+    // Stored with its bytes (site services 0823): the database computes the hash.
+    await w.run(operator, (c) => c.query('select site.store_evidence_document($1::jsonb, $2)', [JSON.stringify({ mediaType: 'image/png', title: 'Balance printout' }), Buffer.from('printout of the balance')]));
     expect(await failToPass({ kind: 'PRINTOUT', sha256: createHash('sha256').update('another').digest('hex') })).toMatch(/^\[603\]/);
     expect(await failToPass({ kind: 'PRINTOUT', sha256: sha })).toBeNull();
     // A correction that is not from fail to pass carries no document requirement.
     expect(await problem({ type: 'CORRECT_ENTRY', point: 'P1' }, { points: { P1: { failed: false } } }, { points: { P1: { supersededBy: 'P2' }, P2: { failed: false } } })).toBeNull();
     // The application role cannot call the check itself, nor write a reference past it.
     expect(await codeOf(db.app.query("select recipe.gmp_reference_problem($1, '{}', '{}', 'COMMAND', '{}', true)", [b.batchId]))).toMatch(/permission denied/);
+  });
+});
+
+describe('the evidence of a correction is a document stored with its bytes (slice 2 quick review, recipe-core 0770)', () => {
+  it('[DI-24][INV-41] a document row without stored bytes (the self-attested form of before site services 0823) is not evidence of a fail-to-pass or loop-reading correction', async () => {
+    const b = await issuedBatch();
+    const problem = async (command: Json, old: Json, next: Json = {}): Promise<string | null> =>
+      (await db.admin.query<{ p: string | null }>("select recipe.gmp_reference_problem($1, $2::jsonb, $3::jsonb, 'COMMAND', $4::jsonb, true) as p", [
+        b.batchId,
+        JSON.stringify(old),
+        JSON.stringify(next),
+        JSON.stringify(command),
+      ])).rows[0]?.p ?? null;
+    const bytes = Buffer.from(`legacy printout ${randomUUID()}`);
+    const sha = createHash('sha256').update(bytes).digest('hex');
+    // A legacy row: hash, size and key typed by the storer, no bytes (written past the commands, as before 0823).
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query(
+        `insert into site.evidence_document (site_code, sha256, media_type, size_bytes, storage_key, title, uploaded_by_person, uploaded_by_account, correlation_id)
+         values ($1, $2, 'image/png', $3, $4, 'Legacy printout', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+        [SITE, sha, bytes.length, `evidence/${randomUUID()}.png`],
+      );
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    const failToPass = () =>
+      problem({ type: 'CORRECT_ENTRY', point: 'P1', evidence: { kind: 'PRINTOUT', sha256: sha } }, { points: { P1: { failed: true } } }, { points: { P1: { failed: true, supersededBy: 'P2' }, P2: { failed: false } } });
+    const qaFloor = await seedActor(db, { roleCode: 'QA_SHOP_FLOOR', legalName: 'Farah Floor-QA', roomCode: 'DISP-01' });
+    const qaApproval = { approver: { id: qaFloor.personId, kind: 'PERSON', roles: ['QA'] } };
+    const loop = () =>
+      problem(
+        { type: 'CORRECT_ENTRY', point: 'P-LOD-1', approval: qaApproval, evidence: { kind: 'PRINTOUT', sha256: sha } },
+        { decisions: { 'L-DRY@R-DRY=1': { kind: 'LOOP', outcome: 'CONTINUE', inputs: { points: ['P-LOD-1'], derived: [] } } }, points: { 'P-LOD-1': { failed: false } } },
+      );
+    expect(await failToPass()).toMatch(/^\[603\] .* no evidence document with SHA-256 .* is stored at site SITE-1/);
+    expect(await loop()).toMatch(/^\[603\] corrects P-LOD-1, a loop reading .* without a stored evidence document/);
+    // The same bytes stored through the document service: now evidence.
+    await w.run(operator, (x) => x.query('select site.store_evidence_document($1::jsonb, $2)', [JSON.stringify({ mediaType: 'image/png', title: 'Printout' }), bytes]));
+    expect(await failToPass()).toBeNull();
+    expect(await loop()).toBeNull();
   });
 });
 
@@ -301,8 +362,9 @@ describe('a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 
     for (const p of parents) await w.run(operator, (c) => c.query("select site.link_deviation($1, 'BATCH', $2)", [inv.deviationId, p.batchId]));
     await conclude(inv, true);
     const risk = await w.run(operator, async (c) =>
-      (await c.query<{ r: string }>('select site.register_evidence_document($1::jsonb) as r', [
-        JSON.stringify({ sha256: createHash('sha256').update(`risk ${randomUUID()}`).digest('hex'), mediaType: 'application/pdf', sizeBytes: '4096', storageKey: `evidence/${randomUUID()}.pdf`, title: 'Risk evaluation' }),
+      (await c.query<{ r: string }>('select site.store_evidence_document($1::jsonb, $2) as r', [
+        JSON.stringify({ mediaType: 'application/pdf', title: 'Risk evaluation' }),
+        Buffer.from(`risk ${randomUUID()}`),
       ])).rows[0]!.r,
     );
     const productVersion = await withCommand(db.app, { ...erp, correlationId: randomUUID() }, async (c) =>

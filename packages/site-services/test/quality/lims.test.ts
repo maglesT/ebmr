@@ -10,6 +10,7 @@ import { esig, identity, withCommand } from '@ebmr/kernel';
 import { ensureSealKey, testSealKey } from '../../../kernel/test/esig/helpers.ts';
 import { seedAuthn, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { QualityWorld, refusal, seedQualityCast, unique } from './support.ts';
+import { closureBasis, dueDate, investigateDeviation, type DeviationPathDriver } from './deviation-path.ts';
 
 let db: TestDatabase;
 let w: QualityWorld;
@@ -27,7 +28,7 @@ type Json = Record<string, unknown>;
 const result = (lotId: string, p: Json, by: SeededActor = w.cast.analyst) =>
   w.sql<{ resultId: string; verdict: string }>(by, 'select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, JSON.stringify(p)]);
 const assay = (value: string, purpose: 'RELEASE' | 'RETEST' = 'RELEASE', extra: Json = {}): Json => ({
-  testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose, value, unit: '%', lowerLimit: '98.0', upperLimit: '102.0', ...extra,
+  testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose, value, unit: '%', ...extra,
 });
 async function approve(resultId: string, by: SeededActor = w.cast.qcHead): Promise<void> {
   const sig = await signFor(db, by, { type: 'lot_test_result', id: resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
@@ -78,7 +79,18 @@ async function signedRetest(
   });
 }
 
+/** An OOS record of the lot (kind OOS, linked to it), as a revision of a RELEASE result cites (site services 0841). */
+async function oosOf(lotId: string): Promise<string> {
+  const d = await w.sql<{ deviationId: string }>(w.cast.analyst, 'select site.raise_deviation($1::jsonb) as r', [
+    JSON.stringify({ kind: 'OOS', title: 'Result under investigation', classification: 'MAJOR', riskRationale: 'A release result is in doubt and is investigated' }),
+  ]);
+  await w.sql(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2)", [d.deviationId, lotId]);
+  return d.deviationId;
+}
+
 /** Releases a lot on the identity-tested route (identity result, MATERIAL_LOT_RELEASED by the head of QC). */
+const pathDriver: DeviationPathDriver<SeededActor> = { run: (a, work) => w.run(a, work), sign: (a, agg, m, st) => signFor(db, a, agg, m, st) };
+
 async function release(lotId: string, signer: SeededActor = w.cast.qcHead2): Promise<void> {
   await w.sql(w.cast.analyst, "select site.record_identity_result($1, 'PASS', 'IR-01', $2)", [lotId, unique('T')]);
   const sig = await signFor(db, signer, { type: 'material_lot', id: lotId }, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
@@ -127,12 +139,13 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     expect(await state(pass.resultId)).toBe('APPROVED');
     expect(await refusal(approve(pass.resultId, w.cast.qcHead2))).not.toBe('');
 
-    // A revision (with the person's own reason) supersedes the result and drops its approval.
+    // A revision (with the person's own reason and, for a RELEASE result, its OOS record: 0841) supersedes the result and drops its approval.
     expect(await refusal(result(lot.lotId, assay('99.5', 'RELEASE', { revises: pass.resultId })))).toMatch(/EBMR-SITE-202 .* own reason/);
-    const rev = await result(lot.lotId, assay('99.5', 'RELEASE', { revises: pass.resultId, revisionReason: 'Transcription error: the chromatogram reads 99.5' }));
+    const oos = await oosOf(lot.lotId);
+    const rev = await result(lot.lotId, assay('99.5', 'RELEASE', { revises: pass.resultId, revisionReason: 'Transcription error: the chromatogram reads 99.5', oosDeviationId: oos }));
     expect(await state(pass.resultId)).toBe('REVISED');
     expect(await state(rev.resultId)).toBe('RECORDED');
-    expect(await refusal(result(lot.lotId, assay('99.6', 'RELEASE', { revises: pass.resultId, revisionReason: 'again' })))).toMatch(/EBMR-SITE-202 .* current result/);
+    expect(await refusal(result(lot.lotId, assay('99.6', 'RELEASE', { revises: pass.resultId, revisionReason: 'again', oosDeviationId: oos })))).toMatch(/EBMR-SITE-202 .* current result/);
 
     // Bypass attempts as ebmr_app.
     for (const sql of [
@@ -149,7 +162,7 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     const r1 = await result(lot.lotId, assay('99.0'));
     expect(await refusal(release(lot.lotId))).toMatch(/not approved by QC/);
     await approve(r1.resultId);
-    const fail = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.9', unit: '%', upperLimit: '0.5' });
+    const fail = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.9', unit: '%' });
     await approve(fail.resultId);
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
 
@@ -163,18 +176,50 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
     // Concluded with an assignable cause (laboratory error): resolved.
-    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1)', [oos.deviationId]);
-    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Titrant not standardised before the run', rootCauseCategory: 'LABORATORY_ERROR' })]);
-    const sig = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, sig]);
+    // The full deviation path (site services 0820 to 0822): the lot is assessed not affected once the error is confirmed.
+    await investigateDeviation(pathDriver, oos.deviationId, { classifier: w.cast.qa, owner: w.cast.qa, assessor: w.cast.qa2, concluder: w.cast.qa2 }, {
+      finding: { assignableCause: true, cause: 'Titrant not standardised before the run', rootCauseCategory: 'LABORATORY_ERROR' },
+    });
     // A confirmed laboratory error invalidates the result, but the lot still needs an approved passing replacement.
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
-    const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%', upperLimit: '0.5' });
+    const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%' });
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless|not approved by QC/);
     await approve(replacement.resultId);
     await release(lot.lotId);
     const { rows } = await db.app.query<{ state: string }>("select state from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId]);
     expect(rows[0]?.state).toBe('RELEASED');
+  });
+
+  it('[IN-20][PR-19] an OOS record only impact-assessed is not a confirmed laboratory error: the failure stands until QA concludes it (site services 0859)', async () => {
+    const lot = await w.lot({ materialKind: 'API' });
+    await approve((await result(lot.lotId, assay('99.0'))).resultId);
+    const fail = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.9', unit: '%' });
+    await approve(fail.resultId);
+    const oos = await w.sql<{ deviationId: string }>(w.cast.analyst, 'select site.raise_deviation($1::jsonb) as r', [
+      JSON.stringify({ kind: 'OOS', title: 'Water above limit', classification: 'MAJOR', riskRationale: 'Water above specification may affect stability' }),
+    ]);
+    const link = await w.sql<string>(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2) as r", [oos.deviationId, lot.lotId]);
+    await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
+    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1, $2::jsonb)', [
+      oos.deviationId,
+      JSON.stringify({ classification: 'MAJOR', riskRationale: 'Water above specification may affect stability', ownerPersonId: w.cast.qa.personId, dueDate: dueDate() }),
+    ]);
+    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Titrant not standardised before the run', rootCauseCategory: 'LABORATORY_ERROR' })]);
+    await w.sql(w.cast.qa, 'select site.record_deviation_impact($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ linkId: link, market: 'IN', impact: 'NONE', rationale: 'The failing result is a laboratory error' })]);
+    const impact = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    await w.sql(w.cast.qa2, 'select site.assess_deviation_impact($1, $2)', [oos.deviationId, impact]);
+    expect((await db.app.query<{ s: string }>('select site.deviation_state($1) as s', [oos.deviationId])).rows[0]?.s).toBe('IMPACT_ASSESSED');
+    const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%' });
+    await approve(replacement.resultId);
+    const labError = async () => (await db.admin.query<{ r: boolean }>('select site.oos_confirmed_lab_error($1) as r', [oos.deviationId])).rows[0]?.r;
+    expect(await labError()).toBe(false);
+    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
+    // Concluded by QA (PENDING_CLOSURE): now a confirmed laboratory error, and the lot is released.
+    await w.sql(w.cast.qa, 'select site.record_deviation_closure_basis($1, $2::jsonb)', [oos.deviationId, JSON.stringify(closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'LABORATORY_ERROR' }))]);
+    const concluded = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, concluded]);
+    expect(await labError()).toBe(true);
+    await release(lot.lotId);
   });
 
   it('[IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result', async () => {
@@ -186,10 +231,10 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     ]);
     await w.sql(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2)", [oos.deviationId, lot.lotId]);
     await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
-    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1)', [oos.deviationId]);
-    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Supplier crystallisation step out of control', rootCauseCategory: 'MATERIAL' })]);
-    const sig = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, sig]);
+    await investigateDeviation(pathDriver, oos.deviationId, { classifier: w.cast.qa, owner: w.cast.qa, assessor: w.cast.qa2, concluder: w.cast.qa2 }, {
+      finding: { assignableCause: true, cause: 'Supplier crystallisation step out of control', rootCauseCategory: 'MATERIAL' },
+      impact: 'CONFIRMED',
+    });
     const again = await result(lot.lotId, assay('99.0'));
     await approve(again.resultId);
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
@@ -200,6 +245,7 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
 describe('retest (PR-18)', () => {
   it('[PR-18][IN-24] a lot past retest is usable again only after an approved passing retest, never past expiry or the master\'s interval, never approved by its recorder', async () => {
     const lot = await w.lot({ materialKind: 'EXCIPIENT', retestAt: '2029-01-01T00:00:00Z', maxRetestMonths: 12 });
+    await approve((await result(lot.lotId, assay('99.5'))).resultId);
     await release(lot.lotId);
     await w.fixture('update site.material_lot set retest_at = clock_timestamp() - interval \'1 day\' where id = $1', [lot.lotId]);
     const reserve = () =>

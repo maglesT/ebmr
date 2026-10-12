@@ -97,11 +97,17 @@ export class World {
     return rows[0]?.t ?? '';
   }
 
-  async receive(kind: MaterialKind, overrides: Partial<LotReceipt> = {}): Promise<ReceivedLot & { materialCode: string; lotCode: string }> {
+  /**
+   * Receives a lot in QUARANTINE. Unless `results` is false, the material gets an approved specification with one
+   * required ASSAY test (site services 0840) and the lot a passing, QC-approved RELEASE result of it (0841: a lot
+   * without its required results is not released).
+   */
+  async receive(kind: MaterialKind, overrides: Partial<LotReceipt> = {}, results = true): Promise<ReceivedLot & { materialCode: string; lotCode: string }> {
     const materialCode = overrides.materialCode ?? unique(`M${kind.slice(0, 3)}`);
     const lotCode = overrides.lotCode ?? unique('L');
     // The ERP's material master first (a receipt takes the kind, name and unit from it; site services 0750).
     await this.material(materialCode, overrides.materialName ?? `Material ${materialCode}`, overrides.materialKind ?? kind, overrides.unit ?? 'kg');
+    if (results) await this.specification(materialCode);
     const lot = await this.run(this.cast.warehouse, (c) =>
       receiveLot(c, {
         lotCode,
@@ -114,7 +120,33 @@ export class World {
         ...overrides,
       }),
     );
+    if (results) await this.passingResult(lot.lotId);
     return { ...lot, materialCode, lotCode };
+  }
+
+  /** An approved specification of the material (drafted by the analyst, approved by the head of QC) unless one is in effect. */
+  async specification(materialCode: string, tests: Record<string, unknown>[] = [ASSAY_TEST]): Promise<string> {
+    const { rows } = await this.db.app.query<{ id: string | null }>("select site.specification_in_effect('SITE-1', $1) as id", [materialCode]);
+    if (rows[0]?.id) return rows[0].id;
+    const draft = await this.run(this.cast.analyst, async (c) =>
+      (await c.query<{ r: { specificationId: string } }>('select site.draft_specification($1::jsonb) as r', [
+        JSON.stringify({ materialCode, title: `Specification of ${materialCode}`, monographReference: 'IP monograph (test)', tests }),
+      ])).rows[0]?.r.specificationId ?? '',
+    );
+    const sig = await signFor(this.db, this.cast.qcHead, { type: 'specification', id: draft }, 'SPECIFICATION_APPROVED', 'DRAFT');
+    await this.run(this.cast.qcHead, (c) => c.query('select site.approve_specification($1, $2)', [draft, sig]));
+    return draft;
+  }
+
+  /** A passing ASSAY RELEASE result recorded by the analyst and approved by the head of QC. */
+  async passingResult(lotId: string, testCode = 'ASSAY', value = '99.5'): Promise<string> {
+    const id = await this.run(this.cast.analyst, async (c) =>
+      (await c.query<{ r: { resultId: string } }>('select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, JSON.stringify({ testCode, purpose: 'RELEASE', value })])).rows[0]?.r
+        .resultId ?? '',
+    );
+    const sig = await signFor(this.db, this.cast.qcHead, { type: 'lot_test_result', id }, 'QC_RESULT_APPROVED', 'RECORDED');
+    await this.run(this.cast.qcHead, (c) => c.query('select site.approve_lot_test_result($1, $2)', [id, sig]));
+    return id;
   }
 
   /** Posts a material master version as the ERP interface; QA confirms it when it does not take effect on its own (site services 0802). */
@@ -220,6 +252,12 @@ export class World {
     return b;
   }
 }
+
+/** The one test of the fixtures' specifications: ASSAY 98.0 to 102.0 % by STP-AS-01 (IP 2022), 1 kg sampled. */
+export const ASSAY_TEST = {
+  testCode: 'ASSAY', methodReference: 'STP-AS-01', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', required: true, pharmacopoeia: 'IP', edition: '2022',
+  sampleQuantity: '0.010', sampleUnit: 'kg',
+};
 
 export interface Batch {
   id: string;

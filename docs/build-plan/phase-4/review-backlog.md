@@ -17,3 +17,37 @@ Backlog:
   has no test yet; add it with the slice 1c screens or in slice 2.
 - Note: recipe-core 0719 sets `check_function_bodies = off` because it names a table that recipe-core 0740 creates;
   apply order is by file number within a source, so 0719's functions are only called after 0740 exists.
+
+## Slice 2b open items (builder report, 12 October 2026)
+
+- For slice 3 (G-REL): wire `site.extra_testing_problem`, `site.lot_sample_problem`, `tab.finished_lot_of` and the
+  release of a finished lot out of QUARANTINE into the release evaluator.
+- Residuals: MBR IPC limits are not part of the pharmacopoeia-edition review; API retention "one year after the last
+  product lot containing it" and the US annual visual examination of reserve samples are not built; return to stock
+  and the chemical-recovery act of returned goods wait for the release model and reprocessing.
+
+## Slice 2c open items (builder report, 12 October 2026)
+
+- The e2e demo seed `--gmp-packaging` marks its second batch released for packing with a demo shortcut (a superuser
+  update with triggers off and a placeholder hold-point signature in the stored state). It is test data only, but it
+  must be replaced by the real H-PACK signature through the routes in slice 3 (with the release cockpit) so no demo
+  record carries a placeholder signature.
+- The deviation screens take the owner as a typed person id; the deviation contract needs person names (slice 3
+  screens).
+
+## Slice 2 quick review (12 October 2026)
+
+Fixed in slice 2 with regression tests: evidence matched by hash alone in recipe-core 0601 and 0716 (now the stored
+bytes must match, DI-24); the deviation classifier and the impact recorder excluded from concluding, closing and
+signing the impact; the demo-shortcut seeds refuse a non-demo database; a link with CONFIRMED impact keeps release
+blocked after the deviation closes (D-2a-9, open for the owner); the OOS cited on a RELEASE-result revision must be
+about that test.
+
+Backlog:
+- Medium: `packaging_master_problem` (recipe-core 0761) accepts TB-24 anywhere in the procedure, including an optional
+  branch; require it on every completing path (slice 3 or the flow validator).
+- Medium (Injectables): `recipe.packaging_completion_block` has only the Tablets row, so an Injectables packaging order
+  is refused until its edition adds one (Phase 5).
+- Low: `tab.post_finished_lot` does not check the posted quantity against the packed counts (slice 3, with
+  reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
+  declared immutable but calls recipe functions.
