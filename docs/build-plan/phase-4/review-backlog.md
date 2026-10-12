@@ -52,7 +52,6 @@ Backlog:
   reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
   declared immutable but calls recipe functions.
 
-<<<<<<< HEAD
 ## Slice 3b open items (builder report, 12 October 2026)
 
 - `since_review` is false on every Tablets edition item until slice 3a's epoch comparison feeds it.
@@ -60,12 +59,10 @@ Backlog:
 - IN-17 clause 2 stays deferred in its control file; the slice 7a mapping cites `grel-tablets-items.test.ts`.
 - Test names carry the tags [L-30] and [TB-11], which are not control files (outline rule and block ids); the register
   ignores them. Keep or retitle at the slice 7a mapping.
-=======
 ## Slice 3a (builder report, 12 October 2026)
 
 - Ticked: the slice 2b items for slice 3 (extra testing, samples, finished lot out of quarantine through the release).
 - Open: `tab.post_finished_lot` quantity against the packed counts stays with 3b's reconciliation item (group 4).
->>>>>>> origin/phase-4/slice-3a
 
 ## Slice 3a open items (builder report, 12 October 2026)
 
