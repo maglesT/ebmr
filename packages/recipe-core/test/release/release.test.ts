@@ -592,6 +592,107 @@ describe('deviations and open investigations (PR-53, PR-08)', () => {
   });
 });
 
+describe('the PR-53 justification after the slice 3 quick review (recipe-core 0783)', () => {
+  /** QA starts the investigation; the owner records the given impact for IN on the links of the named subjects only. */
+  async function underInvestigation(deviationId: string, impacts: Partial<Record<'LOT' | 'BATCH', 'NONE' | 'POTENTIAL' | 'CONFIRMED'>>): Promise<void> {
+    await w.run(qaReviewer, (c) => c.query('select site.start_deviation_investigation($1, $2::jsonb)', [
+      deviationId, JSON.stringify({ classification: 'MAJOR', riskRationale: 'QA classification after the first review of the facts', ownerPersonId: qaReviewer2.personId, dueDate: '2027-01-28' }),
+    ]));
+    await impact(deviationId, impacts);
+  }
+  async function impact(deviationId: string, impacts: Partial<Record<'LOT' | 'BATCH', 'NONE' | 'POTENTIAL' | 'CONFIRMED'>>): Promise<void> {
+    const links = (await db.app.query<{ id: string; k: 'LOT' | 'BATCH' }>('select id, subject_kind as k from site.deviation_link where deviation_id = $1 order by linked_at, id', [deviationId])).rows;
+    for (const l of links) {
+      const value = impacts[l.k];
+      if (!value) continue;
+      await w.run(qaReviewer2, (c) => c.query('select site.record_deviation_impact($1, $2::jsonb)', [deviationId, JSON.stringify({ linkId: l.id, market: 'IN', impact: value, rationale: 'Assessed against the investigation findings' })]));
+    }
+  }
+  const hashOf = async (t: string): Promise<string> => (await db.app.query<{ h: string }>("select encode(sha256(convert_to(btrim($1), 'UTF8')), 'hex') as h", [t])).rows[0]!.h;
+  async function justify(lot: Lot, deviationId: string, t: string): Promise<unknown> {
+    const sig = await signFor(db, ap, { type: 'investigation_justification', id: `${lot.lotId}/IN/${deviationId}/${await hashOf(t)}` }, 'OPEN_INVESTIGATION_JUSTIFIED', await deviationState(deviationId));
+    return w.run(ap, (c) => c.query("select recipe.justify_open_investigation($1, 'IN', $2, $3, $4)", [lot.lotId, deviationId, t, sig]));
+  }
+
+  it('[PR-53] every link of an open record is read structurally: a link to the lot not assessed for the market refuses the justification, whatever the first blocking reason says', async () => {
+    const lot = await readyLot();
+    const dev = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
+    await w.run(operator, (c) => c.query("select site.link_deviation($1, 'LOT', $2)", [dev.deviationId, lot.lotId]));
+    await underInvestigation(dev.deviationId, { BATCH: 'POTENTIAL' });
+    await setOpenInvestigationPath('ON');
+    try {
+      const refused = await messageOf(justify(lot, dev.deviationId, 'Advanced enough: the batch link is assessed POTENTIAL'));
+      expect(refused).toMatch(/EBMR-REL-043 .*its link to lot .* is not assessed for IN/);
+      expect((await db.app.query<{ p: string | null }>("select recipe.investigation_unjustifiable_for($1, 'IN', $2) as p", [lot.lotId, dev.deviationId]).catch((e: Error) => ({ rows: [{ p: e.message }] }))).rows[0]!.p).toMatch(/permission denied|not assessed/);
+      await impact(dev.deviationId, { LOT: 'POTENTIAL' });
+      await justify(lot, dev.deviationId, 'Advanced enough: every link is assessed POTENTIAL');
+      if (red(await grel(lot.lotId)).includes('G1.REVIEW_1')) await deltaReview(lot.batchId);
+      expect(red(await grel(lot.lotId))).toEqual([]);
+    } finally {
+      await setOpenInvestigationPath('OFF');
+    }
+  });
+
+  it('[PR-53] a CONFIRMED impact is never released under a justification (D-3a-10): refused at justification, and a justification made before the impact was confirmed no longer counts', async () => {
+    const confirmed = await readyLot();
+    const dev1 = await deviationOn('DEVIATION', 'BATCH', confirmed.batchId);
+    await underInvestigation(dev1.deviationId, { BATCH: 'CONFIRMED' });
+    const lot = await readyLot();
+    const dev2 = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
+    await underInvestigation(dev2.deviationId, { BATCH: 'POTENTIAL' });
+    await setOpenInvestigationPath('ON');
+    try {
+      expect(await messageOf(justify(confirmed, dev1.deviationId, 'Advanced enough despite the confirmed impact'))).toMatch(/EBMR-REL-043 .*CONFIRMED; a confirmed impact is never released under a justification/);
+      await justify(lot, dev2.deviationId, 'Advanced enough: the impact is only potential');
+      if (red(await grel(lot.lotId)).includes('G1.REVIEW_1')) await deltaReview(lot.batchId);
+      expect(red(await grel(lot.lotId))).toEqual([]);
+      await impact(dev2.deviationId, { BATCH: 'CONFIRMED' });
+      if (red(await grel(lot.lotId)).includes('G1.REVIEW_1')) await deltaReview(lot.batchId);
+      const g = await grel(lot.lotId);
+      expect(red(g)).toEqual(['G2.DEVIATIONS']);
+      expect(item(g, 'G2.DEVIATIONS').problem).toMatch(/is CONFIRMED/);
+    } finally {
+      await setOpenInvestigationPath('OFF');
+    }
+  });
+
+  it('[PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification', async () => {
+    const lot = await readyLot();
+    const dev = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
+    await underInvestigation(dev.deviationId, { BATCH: 'POTENTIAL' });
+    // A yield exception the QA reviewer escalated to the record (register rows copied by the test fixture).
+    const fx = await db.admin.connect();
+    try {
+      await fx.query('begin');
+      await fx.query('set local session_replication_role = replica');
+      await fx.query(
+        `insert into recipe.exception_register (batch_id, exception_id, row_seq, exception_type, category, severity, tier, title, raising_step_key, raising_step, raised_at, raised_at_us,
+                                                raised_by, command_person, mandatory, qa_only, deviation_required, registration_relevant, release_blocking, blocks_until, raised_record, correlation_id)
+         values ($1, 'EX-YIELD-1', 1, 'YIELD_OUT_OF_LIMITS', 'OUT_OF_LIMIT', 'ACTION', 'INTERNAL_ACTION', 'Yield below the internal limit', null, null, now(), 0,
+                 'test', gen_random_uuid(), true, false, true, false, true, null, '{}'::jsonb, gen_random_uuid())`,
+        [lot.batchId],
+      );
+      await fx.query(
+        `insert into recipe.exception_register_act (batch_id, exception_id, act, by_person, by_account, role_code, deviation_ref, note, correlation_id)
+         values ($1, 'EX-YIELD-1', 'ESCALATED', $2, $2, 'QA_REVIEWER', $3, 'escalated in QA review', gen_random_uuid())`,
+        [lot.batchId, qaReviewer2.personId, dev.ref],
+      );
+      await fx.query('commit');
+    } catch (error) {
+      await fx.query('rollback');
+      throw error;
+    } finally {
+      fx.release();
+    }
+    await setOpenInvestigationPath('ON');
+    try {
+      expect(await messageOf(justify(lot, dev.deviationId, 'Advanced enough: only the yield is in question'))).toMatch(/EBMR-REL-043 .*yield or reconciliation discrepancy/);
+    } finally {
+      await setOpenInvestigationPath('OFF');
+    }
+  });
+});
+
 describe('incidents, validation and change (DI-12, PR-09, IN-03)', () => {
   it('[DI-12] an open incident linked to the batch is shown on the disposition checklist and blocks the release until it is assessed for the batch', async () => {
     const lot = await readyLot();
