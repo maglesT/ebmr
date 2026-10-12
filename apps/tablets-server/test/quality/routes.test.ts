@@ -197,6 +197,14 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     const material = { materialCode: 'MAT-S6', materialName: 'Slice 6 excipient', materialKind: 'EXCIPIENT' as const, unit: 'kg', maxRetestMonths: 24, erpReference: 'SAP-MAT-S6' };
     valueOf(await gmp.browser().call(quality.erpImport, { body: { ...creds, catalogue: { products: [], materials: [material], orders: [] } } }));
     await confirmErpPending(gmp);
+    // The material's specification (Phase 4 slice 2b): drafted by the analyst, approved by the head of QC; results take their limits from it.
+    const spec = valueOf(await analyst.call(routes.specifications.draft, {
+      body: {
+        materialCode: 'MAT-S6', title: 'Slice 6 excipient', monographReference: 'In-house STP-S6',
+        tests: [{ testCode: 'ASSAY', methodReference: 'STP-S6-01', unit: '%', lowerLimit: '98.0', upperLimit: '102.0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '0.010', sampleUnit: 'kg' }],
+      },
+    }));
+    await signedOk(signAction(gmp, head, 'qcApprover', { kind: 'LIMS_ACT', act: 'SPECIFICATION_APPROVE', subjectId: spec.specificationId }));
     const warehouse = await loginOf(gmp, await grantedPerson(gmp, 'WAREHOUSE_LABELLING', 'Ramesh Iyer (warehouse)'));
     const receive = async (lotCode: string) =>
       valueOf(await warehouse.call(quality.receiveLot, {
@@ -209,7 +217,7 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     // A release result, approved by the head of QC (never its analyst, never on other content than shown).
     const result = valueOf(await analyst.call(quality.recordLotResult, {
       params: { lotId: lot.lotId },
-      body: { testCode: 'ASSAY', methodReference: 'STP-S6-01', purpose: 'RELEASE', value: '99.5', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
+      body: { testCode: 'ASSAY', methodReference: 'STP-S6-01', purpose: 'RELEASE', value: '99.5', unit: '%' },
     }));
     const approve = { kind: 'QUALITY_ACT' as const, act: 'LOT_RESULT_APPROVE' as const, subjectId: result.resultId, input: {} };
     expect((await signAction(gmp, analyst, 'qcAnalyst', approve)).ok).toBe(false);
@@ -220,7 +228,7 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     // The retest: an approved retest result, then QC's signed decision of the new date.
     const retestResult = valueOf(await analyst.call(quality.recordLotResult, {
       params: { lotId: lot.lotId },
-      body: { testCode: 'ASSAY', methodReference: 'STP-S6-01', purpose: 'RETEST', value: '99.1', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' },
+      body: { testCode: 'ASSAY', methodReference: 'STP-S6-01', purpose: 'RETEST', value: '99.1', unit: '%' },
     }));
     await signedOk(signAction(gmp, head, 'qcApprover', { ...approve, subjectId: retestResult.resultId }));
     const retest = { kind: 'QUALITY_ACT' as const, act: 'LOT_RETEST' as const, subjectId: lot.lotId, input: { retestAt: '2027-09-30T00:00:00+05:30', results: [retestResult.resultId] } };

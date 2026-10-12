@@ -1,7 +1,8 @@
 /**
  * DEMO-ONLY seed of the GMP installation (Phase 3 slice 6c; slice 6 plan, demo seeds): the ERP catalogue of the demo
  * site (the product and material masters and open production orders, posted as the ERP interface's service identity),
- * then the material lots of the GB-T-01 formula received into quarantine by the warehouse, tested in LIMS-lite by the QC
+ * then the approved specification of each GB-T-01 material (Phase 4 slice 2b) and the material lots of the GB-T-01 formula
+ * received into quarantine by the warehouse, tested in LIMS-lite against it by the QC
  * analyst, the results approved by a second QC person (QC_RESULT_APPROVED) and the lots released on the identity-tested
  * route (MATERIAL_LOT_RELEASED), each act through its own command and, where the database asks for one, a real
  * electronic signature of the persona. The active lot's assay is recorded from its approved LIMS results (tablets 1001).
@@ -52,6 +53,27 @@ async function inCommand<T>(pool: pg.Pool, actor: ActorContext, work: (c: pg.Poo
   return withCommand(pool, { ...actor, correlationId: globalThis.crypto.randomUUID() }, work);
 }
 
+/**
+ * The approved specification of a lot's material (Phase 4 slice 2b, site services 0840): its tests and limits are the
+ * seeded lot's, each required, citing IP 2022 (in-house methods their document version); drafted by the QC analyst and
+ * approved by the head of QC (SPECIFICATION_APPROVED). A lot's results take their limits from it.
+ */
+async function seedSpecification(ctx: FeatureSeedContext, lot: SeedMaterialLot): Promise<void> {
+  const pool = ctx.pools.app;
+  const tests = lot.results.map((t) => ({
+    testCode: t.testCode, methodReference: t.methodReference, unit: t.unit, ...(t.lowerLimit ? { lowerLimit: t.lowerLimit } : {}), ...(t.upperLimit ? { upperLimit: t.upperLimit } : {}),
+    required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '0.050', sampleUnit: 'kg',
+  }));
+  const draft = await inCommand(pool, await ctx.actorFor('qcAnalyst'), async (c) =>
+    (await c.query<{ r: { specificationId: string } }>('select site.draft_specification($1::jsonb) as r', [
+      JSON.stringify({ materialCode: lot.materialCode, title: `Specification of ${lot.materialCode}`, monographReference: `IP 2022 monograph for ${lot.materialCode}`, tests }),
+    ])).rows[0]?.r.specificationId,
+  );
+  if (!draft) throw new Error(`the specification of ${lot.materialCode} was not drafted`);
+  const sig = await ctx.signAs('qcApprover', { type: 'specification', id: draft }, 'SPECIFICATION_APPROVED', 'DRAFT');
+  await inCommand(pool, await ctx.actorFor('qcApprover'), (c) => c.query('select site.approve_specification($1, $2)', [draft, sig]));
+}
+
 /** Receives, tests, approves and releases one lot; returns its id. */
 async function seedLot(ctx: FeatureSeedContext, lot: SeedMaterialLot): Promise<string> {
   const pool = ctx.pools.app;
@@ -68,7 +90,7 @@ async function seedLot(ctx: FeatureSeedContext, lot: SeedMaterialLot): Promise<s
     const r = await inCommand(pool, analyst, async (c) =>
       (await c.query<{ r: { resultId: string; verdict: string } }>('select site.record_lot_test_result($1, $2::jsonb) as r', [
         lotId,
-        JSON.stringify({ testCode: t.testCode, methodReference: t.methodReference, purpose: 'RELEASE', value: t.value, unit: t.unit, ...(t.lowerLimit ? { lowerLimit: t.lowerLimit } : {}), ...(t.upperLimit ? { upperLimit: t.upperLimit } : {}) }),
+        JSON.stringify({ testCode: t.testCode, methodReference: t.methodReference, purpose: 'RELEASE', value: t.value, unit: t.unit }),
       ])).rows[0]?.r,
     );
     if (!r || r.verdict !== 'PASS') throw new Error(`the ${t.testCode} result of lot ${lot.lotCode} is not a passing result`);
@@ -121,5 +143,8 @@ export async function seedGmp(ctx: FeatureSeedContext): Promise<void> {
   });
   await confirmErpMasters(ctx);
   ctx.log(`receiving, testing and releasing ${GBT01_LOTS.length} GB-T-01 lots`);
-  for (const lot of GBT01_LOTS) await seedLot(ctx, lot);
+  for (const lot of GBT01_LOTS) {
+    await seedSpecification(ctx, lot);
+    await seedLot(ctx, lot);
+  }
 }

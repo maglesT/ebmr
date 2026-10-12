@@ -397,3 +397,20 @@ and a SITE-165 branch of `consume_reservation` can never fire (an earlier check 
   while its stored bytes match its hash. Residual: recipe-core 0601 and 0716 still look a correction's evidence up by
   hash in `site.evidence_document` directly, so a row stored before 0823 without bytes still matches there (call
   `site.evidence_document_verified` in a recipe-core migration of slice 2c or 3).
+
+## Ticked in Phase 4 slice 2b (12 October 2026, branch phase-4/slice-2b)
+
+- LIMS limits typed by the recorder (slice 5 review): limits, unit and method come from the approved specification in
+  effect for the lot's material, which cites the pharmacopoeia and edition of every limit (IN-33; site-services 0840,
+  0841); a revision of a RELEASE result cites the lot's OOS record, and a revised failure stands until that record
+  concludes a confirmed laboratory error (IN-20).
+- A lot with no LIMS results passed the release check (slice 5 review): every required test of the specification needs a
+  current RELEASE result judged against it (PR-45; 0841).
+- The latest QC extra-testing decision wins and nothing checks the tests were run (slice 5 review): a later decision keeps
+  every earlier test, and `site.extra_testing_problem(batch, lot)` checks the tests against the lot's approved results
+  (0841). Wiring it and `recipe.reprocessing_release_problem` into the release model stays with slice 3.
+- Lot events over HTTP with the propose step (exit review, HIGH-2 follow-up): HOLD, UNHOLD, RETURN and RECALL are
+  proposed (`POST /api/lots/:lotId/decisions`) and signed as LOT_DECISION (D-P4-3); a RECALL of a finished lot is refused
+  on that path (0842).
+- Reel quarantined mid-run (slice 4 review, low): the next person's entry of a running TB-21 run is refused while a reel
+  on the machine is not released and unexpired (tablets 1151, EBMR-TAB-853).
