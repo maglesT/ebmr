@@ -24,6 +24,7 @@ catalog_test: A PPQ-flagged batch cannot be released or certified until the vali
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/release/release.test.ts > incidents, validation and change (DI-12, PR-09, IN-03) > [PR-09] a PPQ batch waits for its validation outcome; concurrent release counts for the US only (India treated as the EU, D-P4-6); QA records the outcome once"
+  - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [IN-03][PR-09] QA signs a post-change evaluation and a PPQ outcome for the batch named, each with its own text"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -22,6 +22,12 @@ implemented_by:
     - "G-11: a value outside its action limit raises LIMIT_BREACH and ENVIRONMENT_EXCURSION, stops the step until a deviation is linked, and notifies production and QA"
 tests:
   - "packages/recipe-core/test/blocks/process.test.ts > G-11 environmental condition check > [IN-39][PR-25] a pressure difference below its action limit stops the step, links a deviation and notifies production and QA"
+  - "apps/tablets-server/test/notifications/notification-centre.test.ts > the notification centre (slice 3c, recipe-core 0810) > [IN-39] a recorded manufacturer decision notifies both departments, production and QA, naming the signature and its signer, for a release and a rejection; a signature without a recorded decision notifies nobody"
+  - "apps/tablets-server/test/notifications/notification-centre.test.ts > the notification centre (slice 3c, recipe-core 0810) > [IN-39] the application role cannot write, change or delete a notification or an acknowledgement, nor call the notifying definer"
+  - "apps/tablets-server/test/notifications/notification-centre.test.ts > the notification centre (slice 3c, recipe-core 0810) > [IN-39] QA lists its own department's notifications; the lot's list shows both departments"
+  - "apps/tablets-server/test/notifications/notification-centre.test.ts > the notification centre (slice 3c, recipe-core 0810) > [IN-39] a person of the department acknowledges once, as themselves (audited); another department's person cannot"
+  - "apps/tablets-server/test/seed/release-seed.test.ts > the release demo of the set-up CLI (demo seed) > [IN-05][IN-39] the AP rejects the NOT_READY lot over HTTP on the epoch shown; production and QA are notified and each acknowledges"
+  - "apps/tablets-web/test/release/release.test.tsx > notification centre > [IN-39] lists the department's notifications; the acknowledgement is the person's own, with a fresh badge tap on a shared terminal"
 clauses:
   - clause: "enter a differential pressure below the action limit at compression start; the step is blocked or a deviation opens"
     tests:

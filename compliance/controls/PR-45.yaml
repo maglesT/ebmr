@@ -121,6 +121,9 @@ tests:
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [PR-33][PR-45] a reel whose lot leaves RELEASED mid-run (QA hold, quarantine, recall, expiry) is caught at the run's next entry; changing the reel is the way on, and a device reading is never refused (tablets 1151)"
   - "apps/tablets-server/test/quality/lims-routes.test.ts > specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test"
   - "apps/tablets-server/test/quality/lims-routes.test.ts > finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [IN-05][PR-45] a finished lot is posted only from a packaging order whose execution is complete"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-45][IN-05] E.POSTED_QUANTITY: the posted quantity must equal the packs put into shippers"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: NA when the processing batch prints nothing; red until the QC hold point after printing is approved under a valid signature; green then"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: a library call whose element is not pinned is red (\"cannot determine\"); a printing step inlined from a pinned element needs the hold point after it in that element, under a valid signature"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

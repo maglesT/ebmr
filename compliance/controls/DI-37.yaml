@@ -339,6 +339,7 @@ tests:
   - "packages/recipe-core/test/engine/approvals-edges.test.ts > what an approval signs > [DI-37][INV-09] skip, void, invalidation, abort and hand-over approvals sign the act; a cancellation signs the record; a correction signs its point"
   - "packages/site-services/test/mutation/reprocessing.test.ts > the reprocessing registers and what is signed (recipe-core 0621, 0622, 0624, 0625) > [DI-37][PR-47] what the quality unit signs names this authorisation's batch and source container, and this request's master, parents and risk evaluation"
   - "apps/tablets-server/test/quality/lims-routes.test.ts > lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [INV-05][DI-37] since_review: false before QA reviewed the packaging record and for facts older than the review; true on an item whose facts changed after it (an exception, a container state)"
 clauses:
   - clause: "Correct a signed value. The signature shows as superseded and re-signing is required."
     tests:

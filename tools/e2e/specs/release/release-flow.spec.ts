@@ -37,7 +37,7 @@ test('release cockpit: red and green items with evidence, a signed rejection, an
   const qa = persona('GMP', 'qaInvestigator');
   const head = persona('GMP', 'head1');
 
-  const page = await officePage('GMP', 'PC-QA-01');
+  const page = await officePage('GMP', 'PC-QA-02');
   await signIn.office(page, ap);
   await evidence.step('The authorised person opens the lot from the release queue', 'The lot is listed NOT_READY; its checklist shows red and green items in the database\'s words, with links to the evidence', async () => {
     await page.goto(`${base}/release`);
@@ -88,7 +88,7 @@ test('release cockpit: red and green items with evidence, a signed rejection, an
   }, page);
 
   for (const [who, terminal, department, label] of [
-    [qa, 'PC-QA-01', 'QA', 'Quality assurance'],
+    [qa, 'PC-QA-02', 'QA', 'Quality assurance'],
     [head, 'PC-PLAN-01', 'PRODUCTION', 'Production'],
   ] as const) {
     const office = await officePage('GMP', terminal);
