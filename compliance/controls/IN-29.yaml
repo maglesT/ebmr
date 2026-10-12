@@ -16,7 +16,13 @@ sources: Schedule M Part I section 6 (complaints; pharmacovigilance) and section
 behaviour: Complaint and recall records link to batch IDs; genealogy answers within seconds "which batches used material lot X" and "which batches contain reprocessed or recovered material from batch Y"; per-batch distribution data (customer, quantity, date) supports a recall reconciliation of delivered versus recovered quantities; the AP role owns recall execution; a flag records that the licensing authority was informed of an intended recall.
 catalog_test: from a defective API lot, list every finished batch including those with recovered material from affected batches.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/release/after-release-routes.test.ts > after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-29] a deviation linked after the release suspends the lot at once; the views show the cause, the AP's task, the ERP block and the gates"
+  - "packages/recipe-core/test/release/after-release.test.ts > suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to D-5-3) > [L-19][IN-29][INV-39] a deviation linked upstream of released lots suspends every decided market of each, in the linking transaction, with the ERP block and the AP's task; a lot not yet released only gets the link"
+  - "packages/recipe-core/test/release/after-release.test.ts > suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to D-5-3) > [L-19][IN-29][PR-57] a revised LIMS result suspends the lot and every released lot downstream of it through the genealogy; the suspension of 0820's interface does the same"
+  - "packages/recipe-core/test/release/after-release.test.ts > re-confirmation (outline 5.2.6; L-19, INV-05, INV-35, INV-39; D-5-4) > [L-19][INV-05][INV-35][INV-39][IN-29] the AP re-confirms each market once every cause is resolved, at the evaluated epoch; the market returns to its state, the task closes and the ERP unblocks"
+  - "apps/tablets-web/test/release/after-release.test.tsx > suspended lots > [L-19][IN-29] lists each suspended lot with its suspended markets and the open recall assessment, linking to its After release tab"
+  - "apps/tablets-web/test/release/after-release.test.tsx > After release tab > [L-19][IN-29] shows the suspension per market, its causes with the database's reason, the recall assessment and the ERP stock block"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

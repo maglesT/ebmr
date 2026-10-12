@@ -320,6 +320,126 @@ below; each builder ticks them off there.
   for bright stock (backlog 4b, PR-38).
 - **5c, screens:** suspension and recall cockpit (forward trace from PR-57), disposal, amendment.
 
+- **Slice 5 build notes (lead, 12 October; ranges moved because slice 4 used tablets 1180 to 1189 and site-services
+  0870 to 0871):**
+  - 5a: recipe-core 0840 to 0869, site-services 0880 to 0884 (ERP stock-block outbox and its stub consumer); owns
+    `packages/api-contract/src/ns/release.ts` additions and the server routes for RECONFIRM, RECALL,
+    REJECT_AFTER_RELEASE and DISPOSAL under `/api/release/*`.
+  - 5b: recipe-core 0870 to 0889, tablets 1190 to 1199; owns a new contract file `packages/api-contract/src/ns/records-lock.ts`
+    and routes under `/api/records/*`; owns the single re-creation of `tab.kernel_signing_meanings` and
+    `tab.aggregate_read_class` (tablets 1199), covering 5a's names below as well.
+  - 5c: screens only (`apps/tablets-web/src/features/release/**`, a new `features/records/**`), e2e on a new office
+    terminal; starts on the contract examples 5a and 5b commit first.
+  - Signing names fixed up front. Aggregates: `release_suspension` (5a, RECORD class), `disposal` (5a), `record_lock` (5b).
+    Meanings: RELEASE_RECONFIRMED, RECALLED, REJECTED_AFTER_RELEASE, DISPOSAL_RECORDED, DESTRUCTION_WITNESSED (5a);
+    AMENDMENT_OPENED, AMENDMENT_CLOSED (5b).
+  - Later ranges move: 6a site-services 0885 to 0899 (was 0870 to 0889); 7b tablets 1200 to 1209 (was 1190 to 1199).
+- **Slice 5 defaults (decision 0004; owner may change):**
+  - **D-5-1** Suspension causes, each linked after the lot's first RELEASED or CERTIFIED disposition: a deviation (any
+    category, incidents and DI investigations included) linked to the lot or to a lot or batch upstream in its genealogy;
+    a revised LIMS result on the lot; an as-found calibration failure on equipment used by a batch of its records where
+    such a record exists (otherwise a residual). A trigger in the same transaction calls `recipe.suspend_release`.
+  - **D-5-2** Suspension sets every RELEASED or CERTIFIED market of the lot, and of every lot downstream of it through
+    the PR-57 genealogy, to RELEASE_SUSPENDED; the manufacturer decision is kept as signed; a lot not yet released only
+    gets the cause linked (the release gate already blocks it).
+  - **D-5-3** In the same transaction: one outbox row asking the ERP to block the lot's stock (delivered by the stub,
+    at least once, idempotent by lot and cause), and one recall-assessment task owned by the AP role (IN-29). Shipping
+    is refused while suspended (the slice 4 interlock reads the disposition).
+  - **D-5-4** RECONFIRM by the AP (never an involved person), per market, with an impact assessment text: allowed only
+    when every cause is resolved (deviation closed with no CONFIRMED impact for that market, D-2a-9 stays; revised result
+    within limits) and G-REL for the market is green at an unchanged epoch; the market returns to the state it had.
+  - **D-5-5** RECALL and REJECT_AFTER_RELEASE by the AP, per market, from RELEASE_SUSPENDED or a decided state; both
+    terminal; RECALL also writes the lot event RECALL (slice 2 path) and needs a reason.
+  - **D-5-6** DISPOSAL of a REJECTED or REJECTED_AFTER_RELEASE lot, one route: WITNESSED_DESTRUCTION (the performer
+    and an independent witness, two signatures), REPROCESSING (names a Phase 3 reprocessing authorisation of the same
+    product) or RETURN (to supplier or customer, with a reference). A serial-decommissioning task opens when the lot
+    has serials (stub). Disposal is once per lot.
+  - **D-5-7** Locking: a processing record locks when its bulk reconciliation closes (every packaging order closed or
+    the remaining bulk held); a packaging record locks at its lot's first manufacturer disposition. Writes to a locked
+    record are refused in the database. LOCKED -> UNDER_AMENDMENT needs a linked open deviation or change record and
+    the QA permission; the amendment appends, never edits; opening it calls `recipe.suspend_release` for every released
+    lot made from the record and opens AP market-impact tasks; closing re-locks with a signature (INV-21, R-04).
+  - **D-5-8** PR-38: bulk may be issued across several packaging orders, the issued sum never above the remaining
+    quantity; the product master's maximum hold for bright stock is checked at issue and at packaging start; past it,
+    issue is refused unless a linked deviation is approved by QA.
+- **Slice 5a defaults (built on `phase-4/slice-5a`; recipe-core 0840, site services 0880 and 0881; owner may change):**
+  - **D-5a-1** A cause suspends a lot only once its manufacturer release was RELEASED; within it, each market decided
+    RELEASED (IN, US) or CERTIFIED (EU) and not yet recalled or rejected after release gets its own suspension row (the
+    manufacturer decision stays as signed). The genealogy edges walked downstream are lot consumption, the bulk issue and
+    packaging allocation, whole-batch reprocessing parents, reprocessing and recovery additions, finished lots of a batch
+    and returned goods. Kernel incidents and DI investigations count when linked to a `batch` or `material_lot`.
+  - **D-5a-2** INV-39 stays strict: while IN is RELEASE_SUSPENDED every market disposition waits, a US rejection or an EU
+    certification included; a decided export market reads RELEASE_SUSPENDED until IN is re-confirmed and then until its own
+    causes are covered; US or EU is re-confirmed only after IN. (A slice 4 test linking the PR-56 investigation after the
+    release was changed to link it before; the EU OOS test now meets the INV-39 refusal first.)
+  - **D-5a-3** Resolution of a cause for RECONFIRM: deviation CLOSED or CANCELLED and no link with a CONFIRMED impact for the
+    market (D-2a-9); incident or DI investigation no longer blocking the node it was linked to; revised result whose latest
+    revision passes; an as-found calibration failure is resolved by the AP's signed impact assessment itself; any other kind
+    (RECORD_AMENDMENT, 5b) fails closed until 5b gives its rule. A cancelled deviation still needs the AP's re-confirmation.
+  - **D-5a-4** Disposal also accepts a RECALLED lot (a recall ends in a disposal), besides REJECTED and
+    REJECTED_AFTER_RELEASE; the IN state decides. The quantity is a positive decimal at most the lot's received quantity.
+    A disposal by reprocessing leaves the lot REJECTED in the register (the reprocessing batch consumes it).
+  - **D-5a-5** Signers: RECONFIRM, RECALL, REJECT_AFTER_RELEASE are the AP's (RELEASE.MANUFACTURER, signed as
+    AUTHORISED_PERSON, not delegable in 5a); DISPOSAL_RECORDED needs the new RELEASE.DISPOSAL (AP and QA reviewer);
+    DESTRUCTION_WITNESSED needs STEP.WITNESS or RELEASE.DISPOSAL and is independent of the performer (kernel and act).
+  - **D-5a-6** RECONFIRM checks G-REL for the market at the signed epoch with no RED item; it does not require "since review"
+    acknowledgements (the AP has no US or EU acknowledgement permission); the impact assessment is the signed text.
+  - **D-5a-7** IN-29: one open recall-assessment task per lot (owner role AUTHORISED_PERSON); it closes when no market is
+    suspended by a cause of its own. The ERP gets BLOCK per cause and one UNBLOCK when IN reads RELEASED again; shipping
+    never waits for the stub (the interlock reads the states). The serial-decommissioning task opens when the lot's records
+    drew serial pools (tab.serial_pool), owner QA reviewer.
+  - **D-5a-8** The as-found calibration failure suspends the lots of batches that used the equipment (equipment or
+    instrument use) since its previous calibration (all uses when it has none).
+  - **D-5a-9** Lots made before material_lot v3 (machine version 2) cannot take the register move of a recall, rejection
+    after release or disposal (the act refuses); new lots are v3. Residual for existing demo databases only.
+  - Residuals: no test yet for the DI-investigation and calibration triggers (the deviation, incident, LIMS-revision and
+    amendment paths are tested); the ERP stub delivery has no route (database function for the ERP interface only); a
+    seeded RELEASED lot through real signed paths needs the green release path (GB-T-02, slice 7): the packaging demo lot's
+    G-REL has eleven RED items (reviews, specification, Tablets reconciliation and pack examination).
+
+- **Slice 5 lead decision (12 October):** no demo shortcut for a released lot. The released seed lot needs the green
+  release path, which is in GB-T-02 (slice 7). The suspension, reconfirm and recall browser flow moves there too; until
+  then the server route tests cover it. The slice 5 e2e covers disposal of the lot `release-flow.spec.ts` rejects, and
+  the amendment of its locked packaging record.
+- **Slice 5b defaults (builder 5b, 12 October; decision 0004; owner may change):** built on `phase-4/slice-5b`
+  (recipe-core 0870 to 0873, tablets 1190 and 1199; contract `ns/records-lock.ts`, routes `/api/records/*`,
+  `RECORD_LOCK_ACT`).
+  - **D-5b-1** Bright stock for the Tablets edition is the processing batch's closed bulk containers; the hold runs from
+    each container's close. It is checked per container at issue and, at packaging start (a TB-21 RUN_START or the first
+    entry of a TB-23 or TB-24 step), over every container issued to the order.
+  - **D-5b-2** The maximum hold lives in a recipe-side product parameter (`recipe.bright_stock_max_hold`, insert-only
+    versions, latest wins), set by master data (MASTERDATA.CHANGE, with a reason), not in the ERP feed (site-services is
+    outside 5b's ranges). A product with no maximum set checks none (stricter would refuse every existing product,
+    GB-T-01 included); the owner may want it required before Phase 4 exits.
+  - **D-5b-3** "A linked deviation approved by QA" is a deviation linked to the packaging order, its processing batch or
+    the container whose state is IMPACT_ASSESSED, PENDING_CLOSURE or CLOSED.
+  - **D-5b-4** Bulk across orders: a container is issued whole to one order (0701); the database checks that each issue
+    records the container's closed net in its unit and that the batch's issued sum never exceeds what it produced. Partial
+    containers across orders are not offered (a residual if the owner wants it).
+  - **D-5b-5** The bulk reconciliation is closed by production approval (RECORD.PRODUCTION_APPROVE), unsigned (no meaning
+    was fixed for it), with a reason when bulk is left; the closure itself is the formal hold of the bulk left (it is
+    never packed afterwards: the record is locked). Only a processing or reprocessing record whose execution is
+    EXECUTION_COMPLETE closes one; a planned packaging order counts as open until cancelled.
+  - **D-5b-6** Amendment entries (LATE_ENTRY, CORRECTION, NOTE) are appended by production's responsible person
+    (RECORD.PRODUCTION_APPROVE) in the office; QA opens (AMENDMENT_OPENED) and closes (AMENDMENT_CLOSED, excluding every
+    entry author) with RECORD.QA_REVIEW. A change record (no state of its own) is accepted as a basis whenever it exists.
+  - **D-5b-7** The amendment's AP market-impact tasks cover IN (manufacturer RELEASED), US RELEASED and EU CERTIFIED of
+    each lot made from the record; a task reads DONE once the amendment is closed and the market is no longer
+    RELEASE_SUSPENDED. `recipe.suspend_release` is called once per manufacturer-released lot with the cause
+    `{"kind": "RECORD_AMENDMENT", batch_id, batch_number, amendment_id, amendment_number, basis_kind, basis_id,
+    signature_id}`; while it is the 4-0 stub the opening is refused whole (fail closed).
+  - **D-5b-8** A locked record refuses writes to the engine's tables, consumption, the exception register, abort
+    checklists, reprocessing additions and step starts, bulk issued to or from it, its containers, closes, charges and
+    in-process checks, and the edition's record tables (tablets 1190). QA's container holds, plant logbooks, review acts
+    and device-side rows are not part of the record and stay writable. The first manufacturer disposition locks the
+    finished lot's own batch record, whatever its kind.
+  - **D-5b-9** (integration fix, recipe-core 0874, 0875) A RECORD_AMENDMENT suspension cause is resolved once that
+    amendment is closed (AMENDMENT_CLOSED, the record LOCKED again). An amendment counts every lot made from the record
+    whose manufacturer decision is RELEASED, suspended already or not (a deviation linked after release suspends it at
+    once, 0840), with each decided market (RELEASED or CERTIFIED, not recalled or rejected after release); its cause
+    carries the amendment id as ref, the batch as via node and a label. A cause linked again after a re-confirmation
+    covered it suspends the market again (quick review MEDIUM, L-19); the ERP block key names the episode's first row.
+
 ### Slice 6: India specifics, records and the PQR extract
 - **6a, India fields** (site-services 0870 to 0889, recipe-core 0890 to 0909): manufacturing licences (Form 25 or 28,
   endorsed products) and loan licence with technical agreement (IN-30); export permission per product, strength and

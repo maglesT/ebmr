@@ -34,6 +34,9 @@ tests:
   - "apps/tablets-server/test/release/qp-shipping-routes.test.ts > the ERP shipping interlock over HTTP (INV-42) > [INV-42][IN-05] the ERP asks before it ships: India ships after the release; the EU waits for its disposition and the named importer; a refused shipment records nothing"
   - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][IN-05] nothing ships without a current manufacturer release: a lot in quarantine, then held after its release, is refused; a released lot ships"
   - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][IN-05] the database refuses every way around the interlock: direct writes, the superuser's write, a person instead of the ERP, a claimed state, too much or a wrong unit"
+  - "packages/recipe-core/test/release/after-release.test.ts > recall, rejection after release and disposal (outline 5.2.6; L-19, PR-46, IN-05 (e); D-5-5, D-5-6) > [L-19][PR-46][IN-05] the AP recalls or rejects a market after release (terminal, with a reason); for IN the lot register moves in the same transaction; the rejected lot is disposed of once, a destruction completed by an independent witness"
+  - "apps/tablets-server/test/release/after-release-routes.test.ts > after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-05] the AP recalls the suspended lot through the ceremony (with a reason); a recall without one signs nothing; the lot register moves with it"
+  - "packages/site-services/test/lots/machine.test.ts > the material lot machine, version 3 (Phase 4 slice 5a) > [L-19][PR-46][IN-05] version 3 keeps every transition of version 2 and adds only the release model's after-release exits and the disposal of a rejected or recalled finished lot, each guarded by its act recorded in the same transaction"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

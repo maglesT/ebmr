@@ -2419,3 +2419,21 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   the signing dry run refuses bad input before it reads the record (DI-37). Full suite 5,724 passed, trace ok, register
   synced; E2E 32 of 34 in the full run, the two others (review flow, cookie-planting security spec) timed out on their
   first page under load and passed when re-run alone.
+- 2026-10-12: GB-T-01 DATE FIX (PR #19, `phase-4/golden-date-fix`). The true-copy hashes changed with the day of the run
+  (the seeded lots' fixed retest and expiry dates were normalised as run instants; a deviation number held the year).
+  Lot dates now stay as they are and the year is a placeholder; hashes re-recorded and shown equal on runs started on
+  different days (`EBMR_GOLDEN_LATER_DAYS`). Test code only.
+- 2026-10-12: PHASE 4 SLICE 5 (branch phase-4/slice-5; builders 5a, 5b, 5c). After release: suspension of released lots
+  and their downstream lots on a cause linked after release, with the ERP stock block and the AP's recall-assessment
+  task in the same transaction; RECONFIRM, RECALL, REJECT_AFTER_RELEASE and DISPOSAL (L-19, IN-29, PR-46; recipe-core
+  0840, 0841, site-services 0880, 0881); record locking and the appending amendment that suspends the record's released
+  lots, bulk across orders and the bright-stock maximum hold (INV-21, R-04, PR-38; recipe-core 0870 to 0875, tablets
+  1190, 1199); screens and one browser flow (disposal and amendment after the rejection). Integration: an amendment
+  counts lots already suspended and its cause resolves at its close (D-5b-9). Quick review: one high (the amendment's
+  cause lacked its reference, so every opening was refused) and one core medium (a cause linked again after a
+  re-confirmation did not suspend again) fixed with tests. Browser suite: office specs now run one at a time
+  (kiosk specs beside them). Two causes, both test-side: the review and release specs act on the same demo batch, so
+  each changed the record the other was signing (rightly refused, DI-37); and every fresh page's first device nonce
+  carries no proof ticket, so parallel heavy office specs exceeded the address's shared allowance for such requests
+  (X34). The limit is unchanged. The review spec also has its own terminals (PC-QA-06, PC-PLAN-03). Full suite 5,771
+  passed, E2E 35 of 35, trace ok, register synced. The suspension browser flow waits for GB-T-02 (slice 7).

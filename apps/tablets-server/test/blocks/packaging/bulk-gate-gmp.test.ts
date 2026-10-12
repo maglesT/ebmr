@@ -82,6 +82,37 @@ describe('a packing step needs bulk issued to its batch (exit review HIGH-3; tab
     expect([refused?.code, refused?.why]).toEqual(['EBMR-PKG-001', expect.stringMatching(/batch .* is no packaging order/)]);
   }, 300_000);
 
+  it('[PR-38] packaging start (the first entry of a cartoning step) on bulk past the product\'s maximum hold for bright stock is refused by the database (EBMR-TAB-395); within the hold it is not', async () => {
+    const issuer = await w.gmp.asPersona('issuer');
+    const batchId = await w.issued(issuer);
+    const [b] = (await w.gmp.db.admin.query<{ n: string; p: string; s: string }>("select batch_number as n, recipe.batch_product(id) ->> 'code' as p, recipe.batch_product(id) ->> 'strength' as s from recipe.batch_execution where id = $1", [batchId])).rows;
+    await occupiedLine(w.gmp, batchId, 'TEST-LINE-CTN-H3', b!.n, ARTWORK_SET);
+    // ARRANGED: bulk issued to the batch from a container closed 50 hours ago (the issue itself is proven in recipe-core), and
+    // a maximum hold of 24 hours for the product (master data's act is proven there too).
+    const container = randomUUID();
+    await asSetup(w.gmp, `with c as (insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account)
+                                     values ($1, 'OC-' || $2 || '-7001', gen_random_uuid(), $2, $3, $4, 'COMPRESSION', 'kg', $1, $1) returning id),
+                               x as (insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing, closed_at)
+                                     select id, 25, id, id, 'WEIGHED', '{}'::jsonb, clock_timestamp() - interval '50 hours' from c returning container_id)
+                          insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id)
+                          select $5, gen_random_uuid(), container_id, gen_random_uuid(), 25, 'kg', $1, $1 from x`, [container, b!.n, b!.p, b!.s, batchId]);
+    const hold = (hours: number) => asSetup(w.gmp, "insert into recipe.bright_stock_max_hold (product_code, strength, max_hold_hours, reason, person_id, account_id) values ($1, $2, $3, 'Hold study for the test', gen_random_uuid(), gen_random_uuid())", [b!.p, b!.s, hours]);
+    await hold(24);
+    const d = new RunDriver(w.gmp, batchId, { operator1: await w.gmp.asPersona('operator1') });
+    d.beforeTap = () => vi.advanceTimersByTime(7_000);
+    await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-tb24@' });
+    const entry = { type: 'RECORD_ENTRY', stepKey: 'p-tb24@', entry: { kind: 'BLOCK_ENTRY', entryKind: 'CHALLENGE', data: { device: 'CW', trigger: 'START', result: 'PASS' } } } as const;
+    const before = await d.version('operator1');
+    const r = await d.command('operator1', entry);
+    expect(r.ok).toBe(false);
+    expect(JSON.stringify(refusalOf(r))).toMatch(/EBMR-TAB-395.*past its maximum hold.*maximum hold of 24 hours/);
+    expect(await d.version('operator1')).toBe(before);
+    // The latest version of the maximum wins: within 100 hours the line starts.
+    await hold(100);
+    const again = await d.command('operator1', entry);
+    expect(again.ok).toBe(true);
+  }, 300_000);
+
   it('[INV-27][IN-18] bulk is issued only to a batch that exists as an issued GMP batch', async () => {
     const actor = { ...(await openPersonaSession(w.gmp.db, w.gmp.seed, 'operator1')), authEventId: await freshTap(w.gmp.db, w.gmp.seed, 'operator1'), reasonCode: 'TEST', reasonText: 'bulk issue kill test' };
     const c = await w.gmp.db.admin.connect();

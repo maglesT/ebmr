@@ -138,6 +138,15 @@ describe('ERP shipping interlock (INV-42, IN-05 (a))', () => {
     await w.sql(w.cast.operator, "select site.link_deviation($1, 'LOT', $2) as r", [dev.deviationId, lot]);
     expect(await refusal(ship({ lotId: lot, market: 'IN' }))).toMatch(new RegExp(`EBMR-SHP-002 .*deviation ${dev.ref} was linked after the release and is OPEN: an open post-release link`));
     await w.sql(w.cast.qa, 'select site.cancel_deviation($1, $2) as r', [dev.deviationId, 'raised against the wrong lot']);
+    // Slice 5a (L-19): the link after the release suspended the lot; it ships again only once the AP re-confirmed it
+    // (recipe-core 0840; the signed re-confirmation is proven in recipe-core's after-release tests).
+    expect((await problems({ lotId: lot, market: 'IN' })).join(' ')).toMatch(/RELEASE_SUSPENDED/);
+    await fixture(
+      `insert into recipe.after_release_decision (lot_id, market, seq, act, to_state, text, epoch, checklist, suspension_ids, signature_id, content_hash, person_id, account_id, role_code, correlation_id)
+       select $1, 'IN', 1, 'RECONFIRM', 'RELEASED', 'fixture', repeat('0', 64), '{}', array_agg(s.id), gen_random_uuid(), 'fixture', $2, $3, 'AUTHORISED_PERSON', gen_random_uuid()
+         from recipe.release_suspension s where s.lot_id = $1 and s.market = 'IN'`,
+      [lot, w.cast.qa.personId, w.cast.qa.accountId],
+    );
     expect(await problems({ lotId: lot, market: 'IN' })).toEqual([]);
     await ship({ lotId: lot, market: 'IN' });
   });

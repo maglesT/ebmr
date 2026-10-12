@@ -138,6 +138,18 @@ export {
   MarketSubjectKind,
   QpAcknowledgementView,
   QpCertificationView,
+  // Phase 4 slice 5a: after release.
+  AfterReleaseAct,
+  AfterReleaseDecisionView,
+  AfterReleaseMarketView,
+  DisposalRoute,
+  DisposalView,
+  LotAfterReleaseView,
+  RecallTaskView,
+  StockBlockView,
+  SuspendedLotSummaryView,
+  SuspensionCauseKind,
+  SuspensionCauseView,
 } from './ns/release.ts';
 export { NotificationDepartment, NotificationView } from './ns/notifications.ts';
 export {
@@ -154,6 +166,23 @@ export {
   ShipmentView,
 } from './ns/qp-shipping.ts';
 export { ContainerHoldView, ContainerState, ContainerView } from './ns/containers.ts';
+export {
+  AmendmentEntryKind,
+  AmendmentEntryView,
+  AmendmentView,
+  BrightStockHoldView,
+  BulkContainerView,
+  BulkOrderView,
+  BulkQuantity,
+  BulkReconciliationView,
+  HoldHours,
+  LockCause,
+  LockedRecordKind,
+  MarketImpactTaskView,
+  RecordLockState,
+  RecordLockSummaryView,
+  RecordLockView,
+} from './ns/records-lock.ts';
 export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';

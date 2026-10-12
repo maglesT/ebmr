@@ -14,6 +14,8 @@ import {
   MATERIAL_LOT_V1,
   MATERIAL_LOT_V2,
   MATERIAL_LOT_V2_EVENTS,
+  MATERIAL_LOT_V3,
+  MATERIAL_LOT_V3_EVENTS,
   materialLotMachine,
   SITE_MACHINES,
   SITE_SQL_DIR,
@@ -98,5 +100,37 @@ describe('the material lot machine, version 2 (Phase 4 slice 3a)', () => {
     // The decision guard refuses a lot it does not know, and every other event of a finished lot.
     const [g] = (await db.admin.query<{ r: string }>(`select site.guard_manufacturer_decision('material_lot', gen_random_uuid(), '{"event": "MANUFACTURER_RELEASE"}'::jsonb, '{}'::jsonb, '{}'::jsonb) as r`)).rows;
     expect(g?.r).toBe('the lot does not exist');
+  });
+});
+
+describe('the material lot machine, version 3 (Phase 4 slice 5a)', () => {
+  it('[L-19][PR-46][IN-05] version 3 keeps every transition of version 2 and adds only the release model\'s after-release exits and the disposal of a rejected or recalled finished lot, each guarded by its act recorded in the same transaction', async () => {
+    const v2 = state.extractDefinition(MATERIAL_LOT_V2);
+    const v3 = state.extractDefinition(MATERIAL_LOT_V3);
+    expect(v3.states).toEqual(v2.states);
+    const added = v3.transitions.filter((t) => !v2.transitions.some((x) => x.from === t.from && x.event === t.event));
+    const after = ['material_lot.command_recorded', 'material_lot.after_release_decision'];
+    const disposal = ['material_lot.command_recorded', 'material_lot.disposal_recorded'];
+    expect(added).toEqual([
+      { from: 'ON_HOLD', event: 'RELEASE_RECALL', to: 'RECALLED', guards: after, signature: null, permission: 'release.manufacturer' },
+      { from: 'ON_HOLD', event: 'RELEASE_REJECT', to: 'REJECTED', guards: after, signature: null, permission: 'release.manufacturer' },
+      { from: 'RECALLED', event: 'DISPOSAL_DESTROY', to: 'DESTROYED', guards: disposal, signature: null, permission: 'step.witness' },
+      { from: 'RECALLED', event: 'DISPOSAL_RETURN', to: 'RETURNED', guards: disposal, signature: null, permission: 'release.disposal' },
+      { from: 'REJECTED', event: 'DISPOSAL_DESTROY', to: 'DESTROYED', guards: disposal, signature: null, permission: 'step.witness' },
+      { from: 'REJECTED', event: 'DISPOSAL_RETURN', to: 'RETURNED', guards: disposal, signature: null, permission: 'release.disposal' },
+      { from: 'RELEASED', event: 'RELEASE_RECALL', to: 'RECALLED', guards: after, signature: null, permission: 'release.manufacturer' },
+      { from: 'RELEASED', event: 'RELEASE_REJECT', to: 'REJECTED', guards: after, signature: null, permission: 'release.manufacturer' },
+    ]);
+    expect(v3.transitions.filter((t) => !added.includes(t))).toEqual(v2.transitions);
+    const dbRows = await rows<{ from: string; event: string }>(
+      `select from_state as from, event from platform.machine_transition where machine_code = 'material_lot' and machine_version = 3 order by from_state collate "C", event collate "C"`,
+    );
+    expect(dbRows).toEqual(v3.transitions.map((t) => ({ from: t.from, event: t.event })));
+    expect([...MATERIAL_LOT_V3_EVENTS].sort()).toEqual([...new Set(v3.transitions.map((t) => t.event))].sort());
+    // Both guards refuse a lot they do not know, and a lot without the act recorded in this transaction.
+    for (const g of ['site.guard_after_release_decision', 'site.guard_disposal_recorded']) {
+      const [r] = (await db.admin.query<{ r: string }>(`select ${g}('material_lot', gen_random_uuid(), '{"event": "RELEASE_RECALL"}'::jsonb, '{}'::jsonb, '{}'::jsonb) as r`)).rows;
+      expect(r?.r).toBe('the lot does not exist');
+    }
   });
 });

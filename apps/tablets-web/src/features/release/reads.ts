@@ -14,6 +14,10 @@ export type MarketAddEvaluationView = RouteResponse<typeof routes.release.market
 export type MarketAddOutcome = MarketAddEvaluationView['outcome'];
 export type MarketChangeView = MarketDispositionView['changes'][number];
 export type QpCertificationView = MarketDispositionView['certifications'][number];
+// Slice 5: after release.
+export type LotAfterReleaseView = RouteResponse<typeof routes.release.afterRelease>;
+export type AfterReleaseMarketView = LotAfterReleaseView['markets'][number];
+export type DisposalView = NonNullable<LotAfterReleaseView['disposal']>;
 
 export const RELEASE_READS: readonly string[] = [
   routes.release.queue.id,
@@ -22,6 +26,8 @@ export const RELEASE_READS: readonly string[] = [
   routes.release.markets.id,
   routes.release.marketAdd.id,
   routes.release.batchMarketAdd.id,
+  routes.release.suspended.id,
+  routes.release.afterRelease.id,
   routes.review.batch.id,
   routes.notifications.list.id,
 ];
@@ -38,6 +44,8 @@ export function marketTone(s: MarketDispositionState): StateTone {
     case 'REJECTED':
     case 'REJECTED_BY_QP':
     case 'INELIGIBLE':
+    case 'RECALLED':
+    case 'REJECTED_AFTER_RELEASE':
       return 'error';
     case 'RELEASE_SUSPENDED':
       return 'warning';
@@ -61,9 +69,39 @@ export function releaseTone(s: ManufacturerReleaseState): StateTone {
     case 'READY':
       return 'info';
     case 'REJECTED':
+    case 'RECALLED':
+    case 'REJECTED_AFTER_RELEASE':
       return 'error';
+    case 'RELEASE_SUSPENDED':
+      return 'warning';
     default:
       return 'pending';
+  }
+}
+
+/** The chip tone of any state word the after-release views carry as text (display only). */
+export function stateTone(s: string): StateTone {
+  switch (s) {
+    case 'RELEASED':
+    case 'CERTIFIED':
+    case 'RECORDED':
+    case 'CLOSED':
+    case 'DONE':
+    case 'LOCKED':
+      return 'ok';
+    case 'REJECTED':
+    case 'REJECTED_BY_QP':
+    case 'RECALLED':
+    case 'REJECTED_AFTER_RELEASE':
+    case 'INELIGIBLE':
+      return 'error';
+    case 'RELEASE_SUSPENDED':
+    case 'AWAITING_WITNESS':
+    case 'OPEN':
+    case 'UNDER_AMENDMENT':
+      return 'warning';
+    default:
+      return 'neutral';
   }
 }
 

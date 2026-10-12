@@ -17,7 +17,13 @@
  *   QP_CERTIFY             qp_certification <lot>/<outcome>          QP_CERTIFIED or QP_REJECTED (registered QP, switch on)  recipe.record_qp_certification
  *   MARKET_ADD, MARKET_REMOVE  market_change LOT/<lot>/<ADD|REMOVE>/<market>/<n>   MARKET_ADDED, MARKET_REMOVED  recipe.record_market_change
  *   BATCH_MARKET_ACT       market_change BATCH/<batch>/<ADD|REMOVE>/<market>/<n>  the same, for an issued batch
- * The recall and disposal acts arrive with slice 5 (501 until then).
+ *   RECONFIRM              release_suspension <lot>/<market>/RECONFIRM/<n>             RELEASE_RECONFIRMED (AP; expectedEpoch,
+ *                          text = the impact assessment)  recipe.record_after_release_decision (slice 5a)
+ *   RECALL                 release_suspension <lot>/<market>/RECALL/<n>                RECALLED (AP; reason)
+ *   REJECT_AFTER_RELEASE   release_suspension <lot>/<market>/REJECT_AFTER_RELEASE/<n>  REJECTED_AFTER_RELEASE (AP; reason)
+ *                          (n, the market's next decision number, is the database's: recipe.release_suspension_next_id)
+ *   DISPOSAL               disposal <lot>/<sha256 of the details>   DISPOSAL_RECORDED  recipe.record_disposal; with `disposalId`
+ *                          only, DESTRUCTION_WITNESSED on the same record by an independent witness  recipe.witness_disposal
  */
 import { createHash } from 'node:crypto';
 import type { ReleaseActInput, SignableAction } from '@ebmr/api-contract';
@@ -38,7 +44,11 @@ type BuiltAct =
   | 'QP_INTAKE_VERIFY'
   | 'QP_CERTIFY'
   | 'MARKET_ADD'
-  | 'MARKET_REMOVE';
+  | 'MARKET_REMOVE'
+  | 'RECONFIRM'
+  | 'RECALL'
+  | 'REJECT_AFTER_RELEASE'
+  | 'DISPOSAL';
 
 /** The members each built act uses; any other is refused (422). */
 const USES: Readonly<Record<BuiltAct, { needs: readonly (keyof ReleaseActInput)[]; may: readonly (keyof ReleaseActInput)[] }>> = {
@@ -53,7 +63,13 @@ const USES: Readonly<Record<BuiltAct, { needs: readonly (keyof ReleaseActInput)[
   QP_CERTIFY: { needs: ['qpOutcome', 'expectedEpoch'], may: ['reason'] },
   MARKET_ADD: { needs: ['market', 'changeRecordId'], may: [] },
   MARKET_REMOVE: { needs: ['market', 'deviationId'], may: [] },
+  RECONFIRM: { needs: ['market', 'expectedEpoch', 'text'], may: [] },
+  RECALL: { needs: ['market', 'reason'], may: [] },
+  REJECT_AFTER_RELEASE: { needs: ['market', 'reason'], may: [] },
+  DISPOSAL: { needs: ['disposalRoute', 'disposalQuantity'], may: ['returnTo', 'disposalReference', 'reprocessingRef', 'text'] },
 };
+/** DISPOSAL by the witness: the recorded destruction only. */
+const WITNESS_USES: { needs: readonly (keyof ReleaseActInput)[]; may: readonly (keyof ReleaseActInput)[] } = { needs: ['disposalId'], may: [] };
 
 const isBuilt = (act: ReleaseAct['act']): act is BuiltAct => act in USES;
 const sha256 = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
@@ -63,6 +79,13 @@ export function qpDetailsSha256(i: ReleaseActInput): string {
   const c = i.certification;
   return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
 }
+
+/** As recipe.disposal_details_sha256 computes it: the details as entered, trimmed, one per line. */
+export function disposalDetailsSha256(i: ReleaseActInput): string {
+  return sha256([i.disposalRoute ?? '', i.disposalQuantity ?? '', i.returnTo ?? '', i.disposalReference ?? '', i.reprocessingRef ?? '', i.text ?? ''].map((x) => x.trim()).join('\n'));
+}
+
+const isWitness = (a: ReleaseAct): boolean => a.act === 'DISPOSAL' && a.input.disposalId !== undefined;
 
 /** As the database computes them (recipe-core 0781, 0822, 0824): the aggregate ids of the release acts. */
 export function releaseActAggregateId(a: ReleaseAct): string {
@@ -90,6 +113,14 @@ export function releaseActAggregateId(a: ReleaseAct): string {
     case 'MARKET_REMOVE':
       // The sequence is the database's (recipe.market_change_next_id); targetNow reads it.
       return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
+    case 'RECONFIRM':
+    case 'RECALL':
+    case 'REJECT_AFTER_RELEASE':
+      // The sequence is the database's (recipe.release_suspension_next_id); targetNow reads it.
+      return `${a.lotId}/${i.market ?? ''}/${a.act}`;
+    case 'DISPOSAL':
+      // The witness signs the recorded destruction's record; targetNow reads its id.
+      return isWitness(a) ? (i.disposalId ?? '') : `${a.lotId}/${disposalDetailsSha256(i)}`;
     default:
       return a.lotId;
   }
@@ -118,9 +149,35 @@ function target(a: ReleaseAct): ActTarget {
     case 'MARKET_ADD':
     case 'MARKET_REMOVE':
       return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
+    case 'RECONFIRM':
+    case 'RECALL':
+    case 'REJECT_AFTER_RELEASE':
+      return { aggregateType: 'release_suspension', aggregateId: id, meaning: AFTER_RELEASE_MEANING[a.act] };
+    case 'DISPOSAL':
+      return isWitness(a)
+        ? { aggregateType: 'disposal', aggregateId: id, meaning: 'DESTRUCTION_WITNESSED', expectedState: 'AWAITING_WITNESS' }
+        : { aggregateType: 'disposal', aggregateId: id, meaning: 'DISPOSAL_RECORDED' };
     default:
-      return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${a.act}`, meaning: '' };
+      return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${String(a.act)}`, meaning: '' };
   }
+}
+
+const AFTER_RELEASE_MEANING = { RECONFIRM: 'RELEASE_RECONFIRMED', RECALL: 'RECALLED', REJECT_AFTER_RELEASE: 'REJECTED_AFTER_RELEASE' } as const;
+
+/** An after-release decision's record, with the market's next decision number and its state read now (slice 5a). */
+async function afterReleaseTarget(db: pg.Pool | pg.PoolClient, a: ReleaseAct): Promise<ActTarget> {
+  const act = a.act as keyof typeof AFTER_RELEASE_MEANING;
+  const { rows } = await db.query<{ a: string; s: string | null }>(
+    "select recipe.release_suspension_next_id($1, $2, $3) as a, case when $2 = 'IN' then recipe.manufacturer_release_state($1) else recipe.disposition_state($1, $2) end as s",
+    [a.lotId, a.input.market ?? '', act],
+  );
+  return { aggregateType: 'release_suspension', aggregateId: rows[0]!.a, meaning: AFTER_RELEASE_MEANING[act], ...(rows[0]!.s ? { expectedState: rows[0]!.s } : {}) };
+}
+
+/** The witness signs the record of the destruction recorded on the lot (slice 5a). */
+async function witnessTarget(db: pg.Pool | pg.PoolClient, a: ReleaseAct): Promise<ActTarget> {
+  const { rows } = await db.query<{ a: string }>('select aggregate_id as a from recipe.lot_disposal where id = $1 and lot_id = $2', [a.input.disposalId, a.lotId]);
+  return { aggregateType: 'disposal', aggregateId: rows[0]?.a ?? `${a.lotId}/no-disposal`, meaning: 'DESTRUCTION_WITNESSED', expectedState: 'AWAITING_WITNESS' };
 }
 
 /** A market change's record, with the subject's next sequence number read now. */
@@ -134,9 +191,9 @@ async function marketChangeTarget(db: pg.Pool | pg.PoolClient, kind: 'LOT' | 'BA
 
 function inputRefusal(a: ReleaseAct): DryRunOutcome | null {
   if (!isBuilt(a.act)) {
-    return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${a.act} arrives with Phase 4 slice 5.`, ['IN-05'], ['Use another path for now.']);
+    return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
   }
-  const u = USES[a.act];
+  const u = isWitness(a) ? WITNESS_USES : USES[a.act];
   const given = Object.keys(a.input) as (keyof ReleaseActInput)[];
   const extra = given.filter((k) => !u.needs.includes(k) && !u.may.includes(k));
   const missing = u.needs.filter((k) => a.input[k] === undefined);
@@ -149,19 +206,22 @@ export function releaseActHandler(app: AppContext): SignableActionHandler<Releas
   return dbActHandler<ReleaseAct>(app, {
     kind: 'RELEASE_ACT',
     aggregateTypes: ['manufacturer_release', 'post_change_evaluation', 'ppq_outcome', 'investigation_justification', 'us_disposition', 'qp_transcription',
-                     'qp_transcription_check', 'qp_certification', 'market_change'],
+                     'qp_transcription_check', 'qp_certification', 'market_change', 'release_suspension', 'disposal'],
     target,
-    targetNow: (db, a) =>
-      a.act === 'MARKET_ADD' || a.act === 'MARKET_REMOVE'
-        ? marketChangeTarget(db, 'LOT', a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', a.input.market ?? '')
-        : Promise.resolve(target(a)),
+    targetNow: (db, a) => {
+      if (a.act === 'MARKET_ADD' || a.act === 'MARKET_REMOVE') return marketChangeTarget(db, 'LOT', a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', a.input.market ?? '');
+      if (a.act === 'RECONFIRM' || a.act === 'RECALL' || a.act === 'REJECT_AFTER_RELEASE') return afterReleaseTarget(db, a);
+      if (isWitness(a)) return witnessTarget(db, a);
+      return Promise.resolve(target(a));
+    },
     // D-P4-5: the AP who also holds the QCU permission releases for the US in the same ceremony.
     companionOf: (a) =>
       a.act === 'MANUFACTURER_RELEASE' && a.input.usExpectedEpoch !== undefined
         ? { aggregateType: 'us_disposition', aggregateId: `${a.lotId}/RELEASE`, meaning: 'US_DISPOSITION' }
         : undefined,
     reasonOf: (a) =>
-      (a.act === 'MANUFACTURER_REJECT' || a.act === 'US_DISPOSE' || a.act === 'QP_INTAKE' || a.act === 'QP_CERTIFY') && a.input.reason
+      (a.act === 'MANUFACTURER_REJECT' || a.act === 'US_DISPOSE' || a.act === 'QP_INTAKE' || a.act === 'QP_CERTIFY' || a.act === 'RECALL' || a.act === 'REJECT_AFTER_RELEASE') &&
+      a.input.reason
         ? { reasonCode: a.input.reason.code, reasonText: a.input.reason.text }
         : undefined,
     delegationOf: (a) => (a.act === 'MANUFACTURER_RELEASE' || a.act === 'MANUFACTURER_REJECT' ? a.input.delegationId : undefined),
@@ -211,8 +271,26 @@ export function releaseActHandler(app: AppContext): SignableActionHandler<Releas
             a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', i.market, a.act === 'MARKET_ADD' ? i.changeRecordId : i.deviationId, signatureId,
           ]);
           break;
+        case 'RECONFIRM':
+        case 'RECALL':
+        case 'REJECT_AFTER_RELEASE': {
+          const { rows } = await client.query<{ id: string }>('select recipe.record_after_release_decision($1, $2, $3, $4, $5, $6) as id', [
+            a.lotId, i.market, a.act, signatureId, a.act === 'RECONFIRM' ? i.expectedEpoch : null, a.act === 'RECONFIRM' ? i.text : (i.reason?.text ?? null),
+          ]);
+          return { act: a.act, lotId: a.lotId, decisionId: rows[0]?.id ?? null };
+        }
+        case 'DISPOSAL': {
+          if (i.disposalId !== undefined) {
+            await client.query('select recipe.witness_disposal($1, $2)', [i.disposalId, signatureId]);
+            return { act: a.act, lotId: a.lotId, disposalId: i.disposalId };
+          }
+          const { rows } = await client.query<{ id: string }>('select recipe.record_disposal($1, $2, $3, $4, $5, $6, $7, $8) as id', [
+            a.lotId, i.disposalRoute, i.disposalQuantity, i.returnTo ?? null, i.disposalReference ?? null, i.reprocessingRef ?? null, i.text ?? null, signatureId,
+          ]);
+          return { act: a.act, lotId: a.lotId, disposalId: rows[0]?.id ?? null };
+        }
         default:
-          throw new Error(`release act ${a.act} is not built`);
+          throw new Error(`release act ${String(a.act)} is not built`);
       }
       return { act: a.act, lotId: a.lotId };
     },
