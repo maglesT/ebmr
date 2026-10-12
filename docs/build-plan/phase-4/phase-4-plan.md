@@ -55,6 +55,35 @@ below; each builder ticks them off there.
   high-water mark, delta review (DI-25, INV-48, INV-35); `recipe.evidence_epoch` and its bump triggers; free-text
   language precondition at production approval (D-P4-12); PR-07 clause (three deviations on a low-risk step pause
   review by exception for it); DI-34 clause (disposition before review refused); the CORRECT_ENTRY route.
+- **1a built (12 October; recipe-core 0710 to 0717, tablets 1140; `apps/tablets-server/src/features/review/**`).**
+  Database-enforced: production approval only from EXECUTION_COMPLETE or ABORTED with every exception dispositioned or
+  linked to a deviation, an aborted record only with its abort checklist and no usable output, free text translated and
+  verified on US or EU batches; QA review only from PRODUCTION_APPROVED (INV-30), every item concluded, the audit-trail
+  review signed and covering every in-scope event (INV-48), the evidence epoch unchanged; audit-trail review never by an
+  involved person (INV-35, kernel and database); the record frozen while in review, reopen by QA with a reason starts a
+  new cycle and supersedes the cycle's review signatures; QA's item acceptance only signed and in review (DI-34 clause);
+  grouped acceptance only of non-critical items sharing one deviation after the full list was shown, critical items
+  alone after their detail was opened; PR-07 pause after three deviations on a step; a loop reading that missed its
+  endpoint needs evidence and QA approval to be corrected. Codes EBMR-REV-001 to 064. Defaults taken (decision 0004):
+  - **D-1a-1** Reopen returns the record to the start of its review (EXECUTION_COMPLETE, review cycle + 1); a correction
+    then moves the execution to IN_PROGRESS as before. The QA acceptances of items stay (each item is concluded once; a
+    correction raises its own POST_ENTRY_CORRECTION item).
+  - **D-1a-2** QA's own register acts (query, answer, acceptance, escalation) and the review tables are the review, not
+    reviewed by it: they are outside the audit-trail scope and do not bump the evidence epoch.
+  - **D-1a-3** Audit-trail scope: the record's and its packaging orders' chains and their evidence records (output
+    containers, the cleanings its equipment uses relied on, its line clearances, linked deviations, LIMS results of
+    consumed lots) with every event, also after completion; shared objects (equipment, instruments, rooms, lots, the MBR
+    version, involved persons and accounts) from 72 hours before the issue to the record's last execution row. Critical
+    (D-P4-16): a shared-object change in the 72 hours before the issue, or an evidence-record change after completion.
+    Not yet in scope: rule-table versions, site values and policies (residual).
+  - **D-1a-4** Free text needing translation (D-P4-12) is text with letters of a non-Latin script (Cyrillic to the Indic
+    scripts, CJK, Hangul); its translation is Latin-script English, verified by a second person, bound to the text's hash.
+  - **D-1a-5** PR-07: masters carry no per-step risk class yet, so every step counts as low-risk; closing a re-review task
+    is not built (residual).
+  - **D-1a-6** Open question 1 taken at its default: a loop reading of an iteration that CONTINUEd or was EXHAUSTED counts
+    as failing; its correction always needs a stored evidence document and a QA approval (whatever the new value).
+  - **D-1a-7** Contract additions (lead agreed): `ReviewActInput.reviewId` (the report's review id) and `cycle` (REOPEN);
+    CORRECTION_APPROVAL is registered by execution on both installations.
 - **1b, Phase 3 carry-overs on containers and devices** (recipe-core 0740 to 0759, tablets 1110 to 1139;
   `apps/tablets-server/src/features/{devices,containers}/**`): GMP sweeper service identity (D-P4-9); container routes
   and the typed net (`plant.close_container` needs a recorded weighing or a second person, DI-30); output container
@@ -230,7 +259,7 @@ New permissions and meanings go in the builder's range; reuse the kernel meaning
 
 ## Open for the owner (defaults stand until answered)
 
-1. **Drying-loop correction** (GB-T-01): should a loop reading that did not meet the endpoint count as failing for the
+1. **Drying-loop correction** (GB-T-01; default built in 1a, D-1a-6): should a loop reading that did not meet the endpoint count as failing for the
    correction-evidence rule? Blocks the CORRECT_ENTRY route in 1a. Default: yes (stricter), evidence required.
 2. **TB-12 subdivision for India**: no IP rule set or not-applicable record exists, so subdivision cannot be recorded
    (India is in every market set). Blocks scored-tablet products in golden batches and the expert check before 3b's

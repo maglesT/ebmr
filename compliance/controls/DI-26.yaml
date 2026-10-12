@@ -92,6 +92,10 @@ tests:
   - "apps/tablets-server/test/execution/db-guards-hand-over.test.ts > HAND_OVER_STEP: signed by a supervisor and approved by QA, neither of them a performer, with a reason > [PR-14][DI-24][DI-26][DI-35] the honest hand-over is recorded and registered; without QA's approval, from a person not on the step, approved by the incoming performer, without its exception or with another reason than given, it is refused"
   - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > the register row of an exception record (DI-26) > [DI-26][INV-41] a record that is not an object, or names an unknown review category, is refused with EXE-160"
   - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > the register row of an exception record (DI-26) > [DI-26][PR-13] the row records the flags the record carries, false where it carries none"
+  - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [INV-30][PR-52][DI-26] QA review needs every item concluded and the audit-trail review signed; the production approver cannot sign it; with the evidence epoch unchanged it is recorded"
+  - "packages/recipe-core/test/review/review.test.ts > the exception register in QA review (outline 7.3; PR-52, DI-26) > [PR-52][DI-26] grouped acceptance takes non-critical items sharing one deviation, after the full list was shown, with one justification; each item gets its own row; a critical item is accepted alone, after its detail was opened, with a justification"
+  - "packages/recipe-core/test/review/review.test.ts > the exception register in QA review (outline 7.3; PR-52, DI-26) > [PR-52][DI-26] a person who dispositioned an item cannot conclude it in review, and an escalation names a deviation linked to the batch"
+  - "packages/recipe-core/test/review/review.test.ts > the evidence epoch (plan interface; write after evaluation) > [INV-30][DI-26] the QA review names the evidence epoch it evaluated: a deviation linked to the batch after the evaluation refuses it; reloaded, it is recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

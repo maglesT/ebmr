@@ -229,7 +229,7 @@ describe('the evidence a row records (recipe.row_evidence_problem, 0335)', () =>
   const cancel = { ...base, commandId: UUID(7), type: 'CANCEL_BATCH', reason: 'r', signature: { id: UUID(24), meaning: 'BATCH_CANCELLED', signer: actor.id } };
   const start = { ...base, type: 'START_STEP', step: 'p-disp-pcm', context: [] };
 
-  it('[DI-05][DI-30][DI-35][DI-37] a signature id, or the refusal before signing, is evidence only of the commands the server signs through the signature ceremony (a step performed or verified, a hold point, a stage sign-off, an exception\'s disposition): beside a correction, a cancellation, a start or an entry it is refused, though its command carries that signature', async () => {
+  it('[DI-05][DI-30][DI-35][DI-37] a signature id, or the refusal before signing, is evidence only of the commands the server signs through the signature ceremony (a step performed or verified, a hold point, a stage sign-off, an exception\'s disposition and, since Phase 4 slice 1a, an entry correction): beside a cancellation, a start or an entry it is refused, though its command carries that signature', async () => {
     const got = {
       performed: await rowProblem('COMMAND', performed.commandId, performed, true, { signatureId: signature.id }),
       verified: await rowProblem('COMMAND', verify.commandId, verify, true, { signatureId: UUID(21) }),
@@ -246,7 +246,7 @@ describe('the evidence a row records (recipe.row_evidence_problem, 0335)', () =>
       performed: null,
       verified: null,
       correction: null,
-      correctionSignatureId: 'evidence.signatureId is a member the server does not record with a CORRECT_ENTRY command',
+      correctionSignatureId: null,
       cancel: null,
       cancelSignatureId: 'evidence.signatureId is a member the server does not record with a CANCEL_BATCH command',
       cancelRefusedBeforeSigning: 'evidence.meaning is a member the server does not record with a CANCEL_BATCH command',

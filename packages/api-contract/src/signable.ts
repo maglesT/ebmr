@@ -63,6 +63,10 @@ export const ReviewActInput = z.strictObject({
   justification: z.string().trim().min(1).max(4000).optional(),
   /** DISPOSE_ITEM ESCALATE: the deviation-lite record linked to the batch the item is escalated to. */
   deviationRef: z.string().trim().min(1).max(128).optional(),
+  /** AUDIT_TRAIL_REVIEW, DELTA_REVIEW: the review the report names (`reviewId` of review.auditTrail, `<batch>/<n>`). */
+  reviewId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[1-9][0-9]{0,6}$/).optional(),
+  /** REOPEN: the review cycle being reopened (`cycle` of review.batch). */
+  cycle: z.number().int().min(1).max(1_000_000).optional(),
 });
 export type ReviewActInput = z.infer<typeof ReviewActInput>;
 
