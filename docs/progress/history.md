@@ -2419,3 +2419,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   the signing dry run refuses bad input before it reads the record (DI-37). Full suite 5,724 passed, trace ok, register
   synced; E2E 32 of 34 in the full run, the two others (review flow, cookie-planting security spec) timed out on their
   first page under load and passed when re-run alone.
+- 2026-10-12: GB-T-01 DATE FIX (PR #19, `phase-4/golden-date-fix`). The true-copy hashes changed with the day of the run
+  (the seeded lots' fixed retest and expiry dates were normalised as run instants; a deviation number held the year).
+  Lot dates now stay as they are and the year is a placeholder; hashes re-recorded and shown equal on runs started on
+  different days (`EBMR_GOLDEN_LATER_DAYS`). Test code only.
