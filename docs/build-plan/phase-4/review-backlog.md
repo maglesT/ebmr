@@ -141,3 +141,16 @@ validator should require it); `recipe.release_lots` and `release_lot_facts` are 
   quarantine), D-4b-4 (post-entry change list from UPDATE events; the CoA from the lot's current results).
 - Kernel fix in 4b: true copies of insert-only tables without an `id` column now match each row to its own INSERT
   event (records true-copy verifier).
+
+## Slice 4 quick review (12 October 2026)
+
+No critical. One high fixed in slice 4 with a test: a refused QP message no longer blocks the importer's correct
+resend (deduplication only on accepted acknowledgements; transient errors are not recorded as refusals). Core mediums
+fixed: one EU outcome per lot across transcription and message; a distinct QP rejection meaning; the two-row release
+checks the actor's QCU permission; a QP account must hold EU_QP_READER as its only live role; package sections tied to
+the lot; only the latest package is served and none after a suspension or removal, from one snapshot; the shipping
+interlock takes the full release-evidence locks; the EU_QP_CERTIFY probe no longer swallows lock errors.
+
+Backlog (low): the definer reads granted to the application role (`market_added`, `eu_certification_gate_problems`,
+`lot_market_changes`, `lot_qp_certifications`) are guarded only at the HTTP layer; add read-permission checks with the
+slice 6 records work.
