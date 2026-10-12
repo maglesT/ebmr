@@ -1,0 +1,540 @@
+{
+  "bulk": {
+    "batchId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    "batchNumber": "G2600012",
+    "recordKind": "PROCESSING",
+    "produced": [
+      {
+        "quantity": "75.000",
+        "unit": "kg"
+      }
+    ],
+    "issued": [
+      {
+        "quantity": "50.000",
+        "unit": "kg"
+      }
+    ],
+    "remaining": [
+      {
+        "quantity": "25.000",
+        "unit": "kg"
+      }
+    ],
+    "orders": [
+      {
+        "orderBatchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "batchNumber": "G2600012/P01",
+        "status": "EXECUTION_COMPLETE",
+        "closed": true,
+        "issued": [
+          {
+            "quantity": "25.000",
+            "unit": "kg"
+          }
+        ],
+        "containers": 1,
+        "holdProblem": null
+      },
+      {
+        "orderBatchId": "c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e7f",
+        "batchNumber": "G2600012/P02",
+        "status": "IN_PROGRESS",
+        "closed": false,
+        "issued": [
+          {
+            "quantity": "25.000",
+            "unit": "kg"
+          }
+        ],
+        "containers": 1,
+        "holdProblem": null
+      }
+    ],
+    "containers": [
+      {
+        "containerId": "e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a81",
+        "label": "OC-G2600012-0001",
+        "quantity": "25.000",
+        "unit": "kg",
+        "state": "RELEASED_BY_QA",
+        "closedAt": {
+          "us": "1791600000000000",
+          "text": "10-OCT-2026 06:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "disposition": "ISSUED",
+        "orderBatchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "orderBatchNumber": "G2600012/P01",
+        "heldHours": "52",
+        "pastMaxHold": false
+      },
+      {
+        "containerId": "f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b92",
+        "label": "OC-G2600012-0002",
+        "quantity": "25.000",
+        "unit": "kg",
+        "state": "RELEASED_BY_QA",
+        "closedAt": {
+          "us": "1791600000000000",
+          "text": "10-OCT-2026 06:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "disposition": "ISSUED",
+        "orderBatchId": "c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e7f",
+        "orderBatchNumber": "G2600012/P02",
+        "heldHours": "52",
+        "pastMaxHold": false
+      },
+      {
+        "containerId": "a7b8c9d0-e1f2-4a3b-9c4d-5e6f7a8b9ca3",
+        "label": "OC-G2600012-0003",
+        "quantity": "25.000",
+        "unit": "kg",
+        "state": "RELEASED_BY_QA",
+        "closedAt": {
+          "us": "1791600000000000",
+          "text": "10-OCT-2026 06:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "disposition": "LEFT",
+        "orderBatchId": null,
+        "orderBatchNumber": null,
+        "heldHours": "52",
+        "pastMaxHold": false
+      }
+    ],
+    "maxHold": {
+      "productCode": "GBT01",
+      "strength": "500 mg",
+      "maxHoldHours": "720",
+      "reason": "Bright stock hold study HS-GBT01-01: 30 days in sealed drums",
+      "setBy": {
+        "personId": "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+        "legalName": "Mira Steward",
+        "loginName": "mira.steward",
+        "role": "MASTER_DATA_STEWARD"
+      },
+      "setAt": {
+        "us": "1791500000000000",
+        "text": "09-OCT-2026 03:03:20 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "closeProblems": [
+      "packaging order G2600012/P02 is IN_PROGRESS: every packaging order of the bulk is closed (completed, aborted or cancelled) before the reconciliation closes"
+    ],
+    "closure": null,
+    "lockState": "UNLOCKED"
+  },
+  "bulkClosed": {
+    "batchId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+    "batchNumber": "G2600012",
+    "recordKind": "PROCESSING",
+    "produced": [
+      {
+        "quantity": "75.000",
+        "unit": "kg"
+      }
+    ],
+    "issued": [
+      {
+        "quantity": "50.000",
+        "unit": "kg"
+      }
+    ],
+    "remaining": [
+      {
+        "quantity": "25.000",
+        "unit": "kg"
+      }
+    ],
+    "orders": [
+      {
+        "orderBatchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "batchNumber": "G2600012/P01",
+        "status": "EXECUTION_COMPLETE",
+        "closed": true,
+        "issued": [
+          {
+            "quantity": "25.000",
+            "unit": "kg"
+          }
+        ],
+        "containers": 1,
+        "holdProblem": null
+      },
+      {
+        "orderBatchId": "c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e7f",
+        "batchNumber": "G2600012/P02",
+        "status": "EXECUTION_COMPLETE",
+        "closed": true,
+        "issued": [
+          {
+            "quantity": "25.000",
+            "unit": "kg"
+          }
+        ],
+        "containers": 1,
+        "holdProblem": null
+      }
+    ],
+    "containers": [
+      {
+        "containerId": "e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a81",
+        "label": "OC-G2600012-0001",
+        "quantity": "25.000",
+        "unit": "kg",
+        "state": "RELEASED_BY_QA",
+        "closedAt": {
+          "us": "1791600000000000",
+          "text": "10-OCT-2026 06:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "disposition": "ISSUED",
+        "orderBatchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "orderBatchNumber": "G2600012/P01",
+        "heldHours": "52",
+        "pastMaxHold": false
+      },
+      {
+        "containerId": "f6a7b8c9-d0e1-4f2a-8b3c-4d5e6f7a8b92",
+        "label": "OC-G2600012-0002",
+        "quantity": "25.000",
+        "unit": "kg",
+        "state": "RELEASED_BY_QA",
+        "closedAt": {
+          "us": "1791600000000000",
+          "text": "10-OCT-2026 06:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "disposition": "ISSUED",
+        "orderBatchId": "c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e7f",
+        "orderBatchNumber": "G2600012/P02",
+        "heldHours": "52",
+        "pastMaxHold": false
+      },
+      {
+        "containerId": "a7b8c9d0-e1f2-4a3b-9c4d-5e6f7a8b9ca3",
+        "label": "OC-G2600012-0003",
+        "quantity": "25.000",
+        "unit": "kg",
+        "state": "RELEASED_BY_QA",
+        "closedAt": {
+          "us": "1791600000000000",
+          "text": "10-OCT-2026 06:50:00 +05:30 (Asia/Kolkata)"
+        },
+        "disposition": "LEFT",
+        "orderBatchId": null,
+        "orderBatchNumber": null,
+        "heldHours": "52",
+        "pastMaxHold": false
+      }
+    ],
+    "maxHold": {
+      "productCode": "GBT01",
+      "strength": "500 mg",
+      "maxHoldHours": "720",
+      "reason": "Bright stock hold study HS-GBT01-01: 30 days in sealed drums",
+      "setBy": {
+        "personId": "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+        "legalName": "Mira Steward",
+        "loginName": "mira.steward",
+        "role": "MASTER_DATA_STEWARD"
+      },
+      "setAt": {
+        "us": "1791500000000000",
+        "text": "09-OCT-2026 03:03:20 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "closeProblems": [],
+    "closure": {
+      "closedBy": {
+        "personId": "3e4f5a6b-7c8d-4e9f-8a0b-1c2d3e4f5a6b",
+        "legalName": "Hari Head",
+        "loginName": "hari.head",
+        "role": "HEAD_OF_PRODUCTION"
+      },
+      "closedAt": {
+        "us": "1791900000000000",
+        "text": "13-OCT-2026 18:00:00 +05:30 (Asia/Kolkata)"
+      },
+      "remainingHeldReason": "Left over bulk held for a later packaging order under deviation review"
+    },
+    "lockState": "LOCKED"
+  },
+  "lock": {
+    "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "batchNumber": "G2600012/P01",
+    "recordKind": "PACKAGING",
+    "state": "UNDER_AMENDMENT",
+    "lockedAt": {
+      "us": "1791950000000000",
+      "text": "14-OCT-2026 07:53:20 +05:30 (Asia/Kolkata)"
+    },
+    "cause": "FIRST_DISPOSITION",
+    "amendments": [
+      {
+        "amendmentId": "d0e1f2a3-b4c5-4d6e-8f7a-8b9cadbecf26",
+        "number": 1,
+        "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "state": "OPEN",
+        "basis": {
+          "kind": "DEVIATION",
+          "id": "e1f2a3b4-c5d6-4e7f-9a8b-9cadbecfd037",
+          "ref": "DEV-SITE-1-2026-00042"
+        },
+        "reason": "Untranscribed line clearance check found after release",
+        "openedBy": {
+          "personId": "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+          "legalName": "Rhea Reviewer",
+          "loginName": "rhea.reviewer",
+          "role": "QA_REVIEWER"
+        },
+        "openedAt": {
+          "us": "1791990000000000",
+          "text": "14-OCT-2026 19:00:00 +05:30 (Asia/Kolkata)"
+        },
+        "openSignatureId": "f2a3b4c5-d6e7-4f8a-8b9c-adbecfd0e148",
+        "closedBy": null,
+        "closedAt": null,
+        "closeSignatureId": null,
+        "closingStatement": null,
+        "entries": [
+          {
+            "entryId": "b8c9d0e1-f2a3-4b4c-8d5e-6f7a8b9cad04",
+            "seq": 1,
+            "kind": "LATE_ENTRY",
+            "target": "Step p-line-check: line clearance record",
+            "text": "Line clearance second check recorded on paper log LC-114 was not transcribed",
+            "value": "PASS",
+            "reason": "Found at QA review of the packaging record; entry appended under the deviation",
+            "by": {
+              "personId": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
+              "legalName": "Om Operator",
+              "loginName": "om.operator",
+              "role": "OPERATOR"
+            },
+            "at": {
+              "us": "1792000000000000",
+              "text": "14-OCT-2026 21:46:40 +05:30 (Asia/Kolkata)"
+            }
+          }
+        ],
+        "suspendedLots": [
+          {
+            "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+            "lotCode": "P26-0001"
+          }
+        ],
+        "tasks": [
+          {
+            "taskId": "c9d0e1f2-a3b4-4c5d-9e6f-7a8b9cadbe15",
+            "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+            "lotCode": "P26-0001",
+            "market": "IN",
+            "ownerRole": "AUTHORISED_PERSON",
+            "state": "OPEN",
+            "dispositionNow": "RELEASED",
+            "openedAt": {
+              "us": "1791990000000000",
+              "text": "14-OCT-2026 19:00:00 +05:30 (Asia/Kolkata)"
+            }
+          }
+        ]
+      }
+    ],
+    "nextAmendmentNumber": 2,
+    "openAmendmentNumber": 1,
+    "releasedLots": [
+      {
+        "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "lotCode": "P26-0001"
+      }
+    ]
+  },
+  "amendment": {
+    "amendmentId": "d0e1f2a3-b4c5-4d6e-8f7a-8b9cadbecf26",
+    "number": 1,
+    "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "state": "OPEN",
+    "basis": {
+      "kind": "DEVIATION",
+      "id": "e1f2a3b4-c5d6-4e7f-9a8b-9cadbecfd037",
+      "ref": "DEV-SITE-1-2026-00042"
+    },
+    "reason": "Untranscribed line clearance check found after release",
+    "openedBy": {
+      "personId": "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+      "legalName": "Rhea Reviewer",
+      "loginName": "rhea.reviewer",
+      "role": "QA_REVIEWER"
+    },
+    "openedAt": {
+      "us": "1791990000000000",
+      "text": "14-OCT-2026 19:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "openSignatureId": "f2a3b4c5-d6e7-4f8a-8b9c-adbecfd0e148",
+    "closedBy": null,
+    "closedAt": null,
+    "closeSignatureId": null,
+    "closingStatement": null,
+    "entries": [
+      {
+        "entryId": "b8c9d0e1-f2a3-4b4c-8d5e-6f7a8b9cad04",
+        "seq": 1,
+        "kind": "LATE_ENTRY",
+        "target": "Step p-line-check: line clearance record",
+        "text": "Line clearance second check recorded on paper log LC-114 was not transcribed",
+        "value": "PASS",
+        "reason": "Found at QA review of the packaging record; entry appended under the deviation",
+        "by": {
+          "personId": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
+          "legalName": "Om Operator",
+          "loginName": "om.operator",
+          "role": "OPERATOR"
+        },
+        "at": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 21:46:40 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "suspendedLots": [
+      {
+        "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "lotCode": "P26-0001"
+      }
+    ],
+    "tasks": [
+      {
+        "taskId": "c9d0e1f2-a3b4-4c5d-9e6f-7a8b9cadbe15",
+        "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "lotCode": "P26-0001",
+        "market": "IN",
+        "ownerRole": "AUTHORISED_PERSON",
+        "state": "OPEN",
+        "dispositionNow": "RELEASED",
+        "openedAt": {
+          "us": "1791990000000000",
+          "text": "14-OCT-2026 19:00:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  },
+  "amendmentClosed": {
+    "amendmentId": "d0e1f2a3-b4c5-4d6e-8f7a-8b9cadbecf26",
+    "number": 1,
+    "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+    "state": "CLOSED",
+    "basis": {
+      "kind": "DEVIATION",
+      "id": "e1f2a3b4-c5d6-4e7f-9a8b-9cadbecfd037",
+      "ref": "DEV-SITE-1-2026-00042"
+    },
+    "reason": "Untranscribed line clearance check found after release",
+    "openedBy": {
+      "personId": "4f5a6b7c-8d9e-4f0a-9b1c-2d3e4f5a6b7c",
+      "legalName": "Rhea Reviewer",
+      "loginName": "rhea.reviewer",
+      "role": "QA_REVIEWER"
+    },
+    "openedAt": {
+      "us": "1791990000000000",
+      "text": "14-OCT-2026 19:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "openSignatureId": "f2a3b4c5-d6e7-4f8a-8b9c-adbecfd0e148",
+    "closedBy": {
+      "personId": "5a6b7c8d-9e0f-4a1b-8c2d-3e4f5a6b7c8d",
+      "legalName": "Ravi Reviewer",
+      "loginName": "ravi.reviewer",
+      "role": "QA_REVIEWER"
+    },
+    "closedAt": {
+      "us": "1792100000000000",
+      "text": "16-OCT-2026 01:33:20 +05:30 (Asia/Kolkata)"
+    },
+    "closeSignatureId": "a3b4c5d6-e7f8-4a9b-9cad-becfd0e1f259",
+    "closingStatement": "The late entry restores the second check; no impact on the product",
+    "entries": [
+      {
+        "entryId": "b8c9d0e1-f2a3-4b4c-8d5e-6f7a8b9cad04",
+        "seq": 1,
+        "kind": "LATE_ENTRY",
+        "target": "Step p-line-check: line clearance record",
+        "text": "Line clearance second check recorded on paper log LC-114 was not transcribed",
+        "value": "PASS",
+        "reason": "Found at QA review of the packaging record; entry appended under the deviation",
+        "by": {
+          "personId": "6b7c8d9e-0f1a-4b2c-9d3e-4f5a6b7c8d9e",
+          "legalName": "Om Operator",
+          "loginName": "om.operator",
+          "role": "OPERATOR"
+        },
+        "at": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 21:46:40 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "suspendedLots": [
+      {
+        "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "lotCode": "P26-0001"
+      }
+    ],
+    "tasks": [
+      {
+        "taskId": "c9d0e1f2-a3b4-4c5d-9e6f-7a8b9cadbe15",
+        "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "lotCode": "P26-0001",
+        "market": "IN",
+        "ownerRole": "AUTHORISED_PERSON",
+        "state": "DONE",
+        "dispositionNow": "RELEASED",
+        "openedAt": {
+          "us": "1791990000000000",
+          "text": "14-OCT-2026 19:00:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  },
+  "locks": {
+    "records": [
+      {
+        "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "batchNumber": "G2600012/P01",
+        "recordKind": "PACKAGING",
+        "state": "UNDER_AMENDMENT",
+        "lockedAt": {
+          "us": "1791950000000000",
+          "text": "14-OCT-2026 07:53:20 +05:30 (Asia/Kolkata)"
+        },
+        "cause": "FIRST_DISPOSITION",
+        "openAmendmentNumber": 1
+      },
+      {
+        "batchId": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "batchNumber": "G2600012",
+        "recordKind": "PROCESSING",
+        "state": "LOCKED",
+        "lockedAt": {
+          "us": "1791900000000000",
+          "text": "13-OCT-2026 18:00:00 +05:30 (Asia/Kolkata)"
+        },
+        "cause": "BULK_RECONCILIATION_CLOSED",
+        "openAmendmentNumber": null
+      }
+    ]
+  },
+  "hold": {
+    "productCode": "GBT01",
+    "strength": "500 mg",
+    "maxHoldHours": "720",
+    "reason": "Bright stock hold study HS-GBT01-01: 30 days in sealed drums",
+    "setBy": {
+      "personId": "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+      "legalName": "Mira Steward",
+      "loginName": "mira.steward",
+      "role": "MASTER_DATA_STEWARD"
+    },
+    "setAt": {
+      "us": "1791500000000000",
+      "text": "09-OCT-2026 03:03:20 +05:30 (Asia/Kolkata)"
+    }
+  }
+}

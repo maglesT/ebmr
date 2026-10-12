@@ -52,6 +52,9 @@
  *  - BATCH_MARKET_ACT MARKET_ADD, MARKET_REMOVE  market_change BATCH/<batch>/<ADD|REMOVE>/<market>  as above.
  * Phase 4 slice 4b (kernel 1160):
  *  - QP_PACKAGE_ACT ISSUE  qp_package <package id>  TRUE_COPY_VERIFIED (QA): issues the assembled EU QP batch package.
+ * Phase 4 slice 5b (recipe-core 0870 to 0889; ns/records-lock.ts):
+ *  - RECORD_LOCK_ACT AMENDMENT_OPEN   record_lock <batch>/<n>/OPEN/<DEVIATION|CHANGE_RECORD>/<id>  AMENDMENT_OPENED (QA)
+ *                    AMENDMENT_CLOSE  record_lock <batch>/<n>/CLOSE                                 AMENDMENT_CLOSED (QA)
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -145,6 +148,18 @@ export const BatchMarketActInput = z.strictObject({
   deviationId: Uuid.optional(),
 });
 export type BatchMarketActInput = z.infer<typeof BatchMarketActInput>;
+
+/** What a record-lock act carries besides its batch (members an act does not use are refused, 422). */
+export const RecordLockActInput = z.strictObject({
+  /** AMENDMENT_OPEN: the open deviation linked to the record, or the change record, the amendment is made under (one of them). */
+  deviationId: Uuid.optional(),
+  changeRecordId: Uuid.optional(),
+  /** AMENDMENT_OPEN: the person's own reason, both halves (DI-22). */
+  reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(10).max(2000) }).optional(),
+  /** AMENDMENT_CLOSE: the closing statement (what the amendment found and appended). */
+  statement: z.string().trim().min(10).max(4000).optional(),
+});
+export type RecordLockActInput = z.infer<typeof RecordLockActInput>;
 
 export const RELEASE_ACTS = [
   'MANUFACTURER_RELEASE',
@@ -279,6 +294,13 @@ export const SignableAction = z.discriminatedUnion('kind', [
     /** Phase 4 slice 4b: QA verifies the assembled EU QP batch package as a true copy and issues it (DI-41). */
     act: z.literal('ISSUE'),
     packageId: Uuid,
+  }),
+  z.strictObject({
+    kind: z.literal('RECORD_LOCK_ACT'),
+    /** Phase 4 slice 5b: QA opens an amendment of a locked record (AMENDMENT_OPENED) or closes it, re-locking (AMENDMENT_CLOSED). */
+    act: z.enum(['AMENDMENT_OPEN', 'AMENDMENT_CLOSE']),
+    batchId: Uuid,
+    input: RecordLockActInput,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
