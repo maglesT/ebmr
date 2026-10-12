@@ -177,7 +177,7 @@ describe('access life cycle (DI-16)', () => {
 describe('authority at the moment of action (DI-17)', () => {
   it('[DI-17] permission matrix: every kernel role allows exactly its permissions and nothing else', async () => {
     const roles = (await db.app.query<{ code: string }>('select code from iam.role where is_kernel order by code')).rows.map((r) => r.code);
-    expect(roles).toHaveLength(32); // 32 with EU_QP_READER (kernel 1160)
+    expect(roles).toHaveLength(33); // 32 with EU_QP_READER (kernel 1160), 33 with INSPECTION_READER (kernel 1171)
     for (const role of roles) {
       const actor = role === 'SERVICE_ACCOUNT' ? await seedServiceActor(db) : await seedActor(db, { roleCode: role, acknowledgeEsig: false });
       const { rows } = await db.app.query<{ code: string; allowed: boolean; expected: boolean }>(

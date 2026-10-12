@@ -4,8 +4,8 @@
  * GB-T-01's product, with US and EU export permissions; the review batch of GB-T-01 issued under it):
  *  1. the regulatory signer finds the demo licence current, records a new licence for a new product and sees it DRAFT;
  *     the issue gate for that product says it is not approved by QA (IN-30, D-6-1);
- *  2. QA approves it through the office ceremony (INDIA_ACT, LICENCE_APPROVED) once builder 6c's preview mapping names
- *     manufacturing_licence (tablets 1198); until then that step is skipped and said so in the evidence;
+ *  2. QA approves it through the office ceremony (INDIA_ACT, LICENCE_APPROVED): it is current and the gate lets the
+ *     product be issued;
  *  3. the allocation register lists the review batch's number as ISSUED with the demo licence (IN-18);
  *  4. the batch's India-domestic label particulars and its Schedule H2 payload stub are shown from the record, with the
  *     plain manufacture and expiry dates and the manufacturing licence number (IN-31, PR-43, D-P4-14).
@@ -13,7 +13,6 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { openDatabase } from '@ebmr/test-kit';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 
@@ -31,16 +30,7 @@ test('India: licences recorded and approved, the issue gate, the allocation regi
   const product = `E2E6A-${randomUUID().slice(0, 8).toUpperCase()}`;
   const licenceNumber = `MH/25/${product}`;
 
-  const db = openDatabase(e2e.state.databases.GMP, 'GMP');
-  let mapped = false;
-  let batchId: string;
-  try {
-    const { rows } = await db.admin.query<{ m: boolean }>("select 'LICENCE_APPROVED' = any (tab.kernel_signing_meanings('manufacturing_licence')) as m");
-    mapped = rows[0]?.m === true;
-    batchId = reviewBatchId(e2e.state.keysDir);
-  } finally {
-    await db.close();
-  }
+  const batchId = reviewBatchId(e2e.state.keysDir);
 
   const page = await officePage('GMP', 'PC-QA-07');
   await signIn.office(page, regulatory);
@@ -63,21 +53,21 @@ test('India: licences recorded and approved, the issue gate, the allocation regi
     return { licenceNumber, state: 'DRAFT' };
   }, page);
 
-  if (mapped) {
-    const second = await officePage('GMP', 'PC-QA-07');
-    await signIn.office(second, qa);
-    await evidence.step('QA approves the licence', 'LICENCE_APPROVED through the office ceremony (INDIA_ACT); the licence is current and the gate lets the product be issued', async () => {
-      await second.goto(`${base}/india`);
-      const item = second.getByTestId(`licence-${licenceNumber}`);
-      await item.getByRole('button', { name: `Approve licence ${licenceNumber}` }).click();
-      await officeSign(second, new RegExp(`^Approve licence ${licenceNumber.replace(/[/]/g, '\\/')}`), qa);
-      await expect(item).toHaveAttribute('data-state', 'APPROVED');
-      await expect(item).toContainText('Current');
-      return { state: 'APPROVED' };
-    }, second);
-  } else {
-    await evidence.step('QA approves the licence', 'SKIPPED: the preview mapping of manufacturing_licence (tablets 1198, builder 6c) is not in this database yet', () => Promise.resolve({ skipped: true }), page);
-  }
+  const second = await officePage('GMP', 'PC-QA-07');
+  await signIn.office(second, qa);
+  await evidence.step('QA approves the licence', 'LICENCE_APPROVED through the office ceremony (INDIA_ACT); the licence is current and the gate lets the product be issued', async () => {
+    await second.goto(`${base}/india`);
+    const item = second.getByTestId(`licence-${licenceNumber}`);
+    await item.getByRole('button', { name: `Approve licence ${licenceNumber}` }).click();
+    await officeSign(second, new RegExp(`^Approve licence ${licenceNumber.replace(/[/]/g, '\\/')}`), qa);
+    await expect(item).toHaveAttribute('data-state', 'APPROVED');
+    await expect(item).toContainText('Current');
+    const check = second.getByTestId('india-check');
+    await check.getByRole('textbox', { name: 'Product code' }).fill(product);
+    await check.getByRole('textbox', { name: 'Strength' }).fill('10 mg');
+    await expect(second.getByTestId('india-check-licence')).toContainText(`Licence ${licenceNumber}: may be issued.`);
+    return { state: 'APPROVED' };
+  }, second);
 
   await evidence.step('The allocation register', 'The review batch\'s number is ISSUED with the demo licence; every entry has its date, product and batch size', async () => {
     await page.goto(`${base}/india/register`);

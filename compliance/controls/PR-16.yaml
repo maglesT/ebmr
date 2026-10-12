@@ -41,6 +41,9 @@ tests:
   - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [PR-13][PR-16] the database never lets a Tablets edition step be skipped (TB-09, TB-10, TB-17 and every later TB block), even one the MBR marks skippable that moves no material"
   - "apps/tablets-server/test/mutation/tablets-core-checks.test.ts > recipe.skip_problem (tablets 0874) > [PR-13][PR-16] a skippable phase that moves nothing, checks nothing and writes nothing another step reads is skipped; each single reason refuses it"
   - "apps/tablets-server/test/mutation/tablets-core-checks.test.ts > recipe.skip_problem (tablets 0874) > [PR-13][PR-16] never a step outside the MBR, a hold point, a step not declared skippable, or a step of a material-moving or tablet block"
+  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify"
+  - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][PR-16] issue 3 contingency sheets and return 2: completion is blocked and the message names the sheet not reconciled"
+  - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][PR-16] every sheet used and verified or voided, then the signed reconciliation: the batch may complete"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -27,7 +27,18 @@ behaviour: |-
   - Checks: extract counts reconcile to the registers.
 catalog_test: A product extract for a period reconciles to the batch list and the deviation and CAPA registers. Re-running it gives identical results.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/pqr/pqr-routes.test.ts > PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot"
+  - "apps/tablets-server/test/pqr/pqr-routes.test.ts > PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)"
+  - "apps/tablets-web/test/pqr/pqr.test.tsx > PQR extract screens (IN-01, PR-58) > [IN-01][PR-58] an extract shows its hash, that it reproduces, the reconciliation, the export-only batch and the market removal, and the deviations with CAPA"
+  - "packages/api-contract/test/contract.test.ts > route table > [IN-01][PR-58] the pqr namespace (Phase 4 slice 6c) is GMP only, each route with an example; a run names a product and a calendar period; PQR_SIGN_OFF names the extract only"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [IN-01][PR-58] the extract of a product and period includes domestic and export-only batches, their lots, market removals, deviations with CAPA as recorded and the change records, and reconciles to the registers"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [PR-58] a re-run on the same data gives the same result and the same hash; the stored extract reproduces"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [PR-58] parameters are checked: a product code, a period whose end is not before its start, at most three years"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [IN-01][PR-58] a deviation register that does not match the records fails the extract and stores nothing"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [IN-01][PR-58] a batch number register that does not match the issued batches fails the extract"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][PR-58] changed data gives a different hash; the earlier extract no longer reproduces and is not signed off"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][PR-58] the AP signs off a reproducing, reconciled extract once; the signed content carries the hash and the reconciliation"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

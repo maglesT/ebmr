@@ -3,10 +3,8 @@
  * regulatory signer and approved by QA (INDIA_ACT), the issue check, the allocation register with the use of every
  * number, the India-domestic label particulars and the H2 payload issued and verified, the stability basis and hazard
  * records. Every rule is the database's; the routes carry the person's own command.
- *
- * The signing ceremony of INDIA_ACT previews the content through tab.kernel_signing_meanings, whose single re-creation
- * for slice 6 is builder 6c's (tablets 1198): until it names manufacturing_licence and export_permission, the ceremony
- * test skips itself and the approval is signed through the kernel directly (as the database tests do).
+ * Where a test needs an approved licence without the ceremony, QA signs through the kernel directly (as the database
+ * tests do); the ceremony itself is proven once (INDIA_ACT; tablets 1200 maps both aggregates for the preview).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -19,22 +17,17 @@ import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 
 let w: GmpBatchWorld;
 let gmp: TestServer;
-let ceremonyMapped = false;
 const I = routes.india;
 
 beforeAll(async () => {
   w = await startGmpBatchWorld();
   gmp = w.gmp;
-  const { rows } = await gmp.db.admin.query<{ m: boolean }>(
-    "select 'LICENCE_APPROVED' = any (tab.kernel_signing_meanings('manufacturing_licence')) and 'EXPORT_PERMISSION_APPROVED' = any (tab.kernel_signing_meanings('export_permission')) as m",
-  );
-  ceremonyMapped = rows[0]?.m === true;
 }, 600_000);
 afterAll(async () => {
   await w?.close();
 });
 
-/** QA's approval through the kernel (the database decides as for any signature), for when the ceremony is not mapped yet. */
+/** QA's approval through the kernel (the database decides as for any signature). */
 async function approveDirect(aggregateType: 'manufacturing_licence' | 'export_permission', id: string): Promise<void> {
   const world = await gmpLifecycleWorld(gmp);
   const qa = await actorOf(gmp, 'approver');
@@ -71,8 +64,7 @@ describe('licences and export permissions over HTTP (Phase 4 slice 6a)', () => {
     expect(suspended).toMatchObject({ state: 'SUSPENDED', current: false, suspension: { reason: 'Suspended by order of the licensing authority' } });
   });
 
-  it('[IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder', async (t) => {
-    if (!ceremonyMapped) t.skip();
+  it('[IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder', async () => {
     const reg = await gmp.asPersona('regulatory');
     const qa = await gmp.asPersona('approver');
     const p = code();

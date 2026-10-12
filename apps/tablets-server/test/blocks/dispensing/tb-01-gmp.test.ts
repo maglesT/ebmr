@@ -61,10 +61,7 @@ class GmpWorld extends World {
   }
 
   override async sign(signer: SeededActor, aggregateType: string, aggregateId: string, meaning: string, expectedState: string | null): Promise<string> {
-    // Phase 4 slice 6a: licence content is read as the set-up tool reads it until tablets 1198 (builder 6c) maps it.
-    const content = ['manufacturing_licence', 'export_permission'].includes(aggregateType)
-      ? await esig.contentForSigning(this.db.admin, aggregateType, aggregateId)
-      : await recordContentForSigning(this.db.app, aggregateType, aggregateId);
+    const content = await recordContentForSigning(this.db.app, aggregateType, aggregateId);
     const ch = await withCommand(this.db.app, await cmd(this.db, signer), (c) =>
       esig.createChallenge(c, { aggregateType, aggregateId, contentVersion: content.contentVersion ?? '1', meaning, clientContentHash: content.contentHash ?? '' }),
     );

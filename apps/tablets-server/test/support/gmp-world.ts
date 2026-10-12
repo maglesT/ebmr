@@ -39,12 +39,7 @@ class GmpWorld extends World {
   }
 
   override async sign(signer: SeededActor, aggregateType: string, aggregateId: string, meaning: string, expectedState: string | null): Promise<string> {
-    // Phase 4 slice 6a: the licence and export-permission content is read as the set-up tool reads it (the superuser's
-    // connection) until builder 6c's tablets 1198 maps those aggregates for the server's own read; the challenge, the
-    // authentication and the signature stay the signer's and the database decides as for any signature.
-    const content = ['manufacturing_licence', 'export_permission'].includes(aggregateType)
-      ? await esig.contentForSigning(this.db.admin, aggregateType, aggregateId)
-      : await recordContentForSigning(this.db.app, aggregateType, aggregateId);
+    const content = await recordContentForSigning(this.db.app, aggregateType, aggregateId);
     const ch = await withCommand(this.db.app, await cmd(this.db, signer), (c) =>
       esig.createChallenge(c, { aggregateType, aggregateId, contentVersion: content.contentVersion ?? '1', meaning, clientContentHash: content.contentHash ?? '' }),
     );
