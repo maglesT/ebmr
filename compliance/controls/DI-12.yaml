@@ -51,6 +51,7 @@ tests:
   - "packages/kernel/test/records/investigations.test.ts > DI-50 data-integrity investigation > [DI-50][DI-12] the release lock links and holds a record the person investigated wrote to after opening, so the blocker epoch moves once (F35)"
   - "packages/kernel/test/review/f35.test.ts > F35: an implicit DI-investigation blocker moves the blocker epoch > [DI-50][DI-12] a write by the person investigated inside the window, after opening, moves the epoch of the record it blocks"
   - "packages/recipe-core/test/release/release.test.ts > incidents, validation and change (DI-12, PR-09, IN-03) > [DI-12] an open incident linked to the batch is shown on the disposition checklist and blocks the release until it is assessed for the batch"
+  - "packages/recipe-core/test/release/after-release.test.ts > suspension by a kernel incident (L-19, DI-12; D-5-1) > [L-19][DI-12] an incident linked to a released lot's batch suspends it; the cause is resolved once the incident is assessed for that batch"
 clauses:
   - clause: "Kill the balance interface in the middle of a weighing. An incident is created, linked to the batch"
     tests:
