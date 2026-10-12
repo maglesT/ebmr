@@ -118,6 +118,13 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   interlock (site-services 0870, 0871; INV-42, IN-05 (a)); screens for the market tabs, the EU tab (package, certification
   intake), market add and removal and the two-row ceremony. Quick review fixes in 4a (recipe-core 0826) and 4b. Slice 4
   integrated on `phase-4/slice-4`; the signing dry run now refuses bad input before it reads the record (DI-37).
+- Phase 4 slice 5a (`phase-4/slice-5a`, 12 October): after release in the database: automatic suspension of every decided
+  market of a released lot and of the released lots downstream (PR-57 genealogy) when a deviation, incident, DI
+  investigation, revised LIMS result or as-found calibration failure links after release, with the ERP stock-block outbox
+  and the AP's recall-assessment task in the same transaction (L-19, IN-29); RECONFIRM, RECALL, REJECT_AFTER_RELEASE and
+  DISPOSAL (witnessed destruction, reprocessing, return; PR-46) through RELEASE_ACT; material_lot v3 (recipe-core 0840,
+  0841; site services 0880, 0881); routes release.suspended and release.afterRelease. Defaults D-5a-1 to D-5a-9 in the
+  plan. The HTTP signing test waits for 5b's tablets 1199 mapping.
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and
