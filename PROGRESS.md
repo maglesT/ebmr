@@ -33,137 +33,35 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Where things stand
 
-- Phase 0 (repo, CI, register) and Phase 1 (compliance kernel) are done.
-- Phase 2 (recipe engine and designer) is done: PR #4 (`phase-2/recipe-core`) merged on 9 October 2026 with the exit
-  review's findings, the SQL mutation run on the Phase 2 guards and defects D1 to D17 fixed
-  (`docs/build-plan/phase-2-exit/`). Review backlog for later phases: `docs/build-plan/phase-2-exit/review-backlog.md`.
-- `compliance/phase.yaml` is at 2: CI needs a passing test for every Phase 1 and Phase 2 control. It goes to 3 with the
-  slice that completes Phase 3.
-- Phase 3 slice 1 is merged (PR #7, 9 October 2026; plan and defaults D-S1-1 to D-S1-6:
-  `docs/build-plan/phase-3/slice-1-plan.md`): material lots with release routes, reservations and guarded consumption
-  (site-services 0710 to 0712, recipe-core 0430); equipment kinds, cleaning, campaigns, rooms and lines, clearance types
-  (recipe-core 0400 to 0405, schema `plant`); output containers with the IPC hold window (recipe-core 0420 to 0422).
-  One quick review: 2 high and 2 medium fixed, the rest in `docs/build-plan/phase-3/review-backlog.md`.
-- Phase 3 slice 2 (execution paths) is merged (PR #8, 10 October 2026; plan and defaults D-S2-1 to D-S2-3:
-  `docs/build-plan/phase-3/slice-2-plan.md`): the exception register in the database (0440, 0441), void, invalidation,
-  skip, abort and cancel guarded with approvals bound to the act (0450 to 0453, 0470 to 0472), step hand-over (0461 to
-  0463, 0480), engine 1.6.0; slice 1 backlog #6 and #10 (site-services 0720, 0721; recipe-core 0460).
-- Phase 3 slice 2b (execution on the GMP installation) is merged (PR #9, 10 October 2026; plan and defaults D-S2b-1 to
-  D-S2b-3: `docs/build-plan/phase-3/slice-2b-plan.md`): GMP batches issued from an effective MBR with a register number
-  and an ISSUED signature (recipe-core 0500 to 0504); the tablets server plans, signs, issues and runs GMP batches with
-  site lots and no watermark (tablets 0800, 0801).
-- Phase 3 slice 3 (tablet blocks with the press and coater simulators) is split into 3a to 3d
-  (`docs/build-plan/phase-3/slice-3-plan.md`); 3a (equipment interface) is built on `phase-3/slice-3a`: the integration-sdk process
-  module, press and coater simulators, the gateway's process driver and uplink; process readings, setpoint downloads and
-  alarms on the server (tablets 0820); G-06@1, G-09@2 and G-10@2 (recipe-core 0520 to 0523); the tablets block
-  registry; the kernel SCOPE hook (kernel 1150, ADR 0018); merged (PR #10). 3b (TB-01 dispensing and the granulation
-  blocks TB-02 to TB-05 and TB-07, tablets sql 0840 to 0852) merged (PR #11). 3c (compression: TB-09 tooling,
-  TB-10 press set-up, TB-17 detectors, TB-11 IPC scheduler, TB-12 to TB-15 compendial checks; tablets sql 0870 to 0894,
-  recipe-core 0540, 0541) merged (PR #12). 3d (TB-18 coating, TB-19 printing with the QC gate, TB-20 AQL, TB-06 roller
-  compaction, TB-16 bilayer; tablets sql 0910 to 0913, 0930 to 0932) is built on `phase-3/slice-3d`. The compendial
-  rule-set values and the AQL tables await the expert's check (review backlog); merged (PR #13). Slice 3 complete.
-- Phase 3 slice 4 (packaging, `docs/build-plan/phase-3/slice-4-plan.md`): 4a (G-21 with the printer simulator and the
-  serialisation stub; recipe-core 0580 to 0582, tablets 0950 to 0952) merged (PR #14). 4b (TB-21 blister, TB-22 leak
-  test, TB-23 bottle line, TB-24 secondary packaging and SSCC aggregation; tablets 0970 to 0972, 0985 to 0989) merged
-  (PR #15). Slice 4 complete. Slice 5 plan: `docs/build-plan/phase-3/slice-5-plan.md` (5a quality and master data,
-  5b reprocessing and recovery), built on `phase-3/slice-5`: deviation-lite, LIMS-lite with second-person approval and
-  retest, ERP stub with the BOM match at GMP issue (site-services 0730 to 0753, recipe-core 0600 to 0603, tablets 1000 to
-  1002); TB-08 additions and G-24@2, whole-batch reprocessing with a new batch number linked to its parents (INV-33),
-  the expiry cap (recipe-core 0620 to 0625, tablets 1020 to 1022). Merged (PR #16). Slice 6 plan:
-  `docs/build-plan/phase-3/slice-6-plan.md`, built on `phase-3/slice-6`: screens (shop floor for TB-01..24, G-06, G-21,
-  G-24@2; planning; master data with the formulation library and "Choose a product"; plant; quality), the GMP batch,
-  planning, master-data, plant and quality routes with every signed act over HTTP, devices and GMP seeds, and GB-T-01
-  matching its expected outputs exactly. compliance/phase.yaml is 3; the trace passes at phase 3. Merged (PR #17).
-- Phase 3 exit (decision 0009, `docs/build-plan/phase-3/exit-plan.md`, branch `phase-3/exit`): one Opus review pass
-  (no critical; five high, four fixed with tests, the fifth decided by ADR-0019), SQL and TypeScript mutation runs by
-  Opus (results and residuals in the review backlog), and the final run green. Open for the owner: the drying-loop
-  correction question and the India subdivision rule (review backlog). Merged (PR #18); Phase 3 complete.
-- Phase 4 (review, release and India specifics): plan `docs/build-plan/phase-4/phase-4-plan.md`, seven slices; slice 1
-  (record review and evidence epochs) on `phase-4/slice-1`: 1-0 (contract `review`, epochs, review register, GB-T-01
-  baseline) pushed; 1a (review acts, audit-trail review, epochs' triggers, CORRECT_ENTRY route; recipe-core 0710 to
-  0721, tablets 1140 and 1141; defaults D-1a-1 to D-1a-7 in the plan); 1b (containers with a weighed or verified
-  close, release refused while the hold is open, the GMP sweeper, device readings to entries, TB-20@2 NO_PLAN;
-  recipe-core 0740 and 0741, tablets 1110 to 1113, site-services 0810); 1c (review, register, audit-trail, container,
-  device-reading and correction screens; the `--gmp-review-batch` seed; two browser flows). Quick review: two high, one
-  medium-high and five core mediums fixed with tests (Phase 4 review backlog).
-- Phase 4 slice 2c (`phase-4/slice-2c`, 12 October; 2a and 2b merged in): packaging orders planned over HTTP from an
-  issued processing batch, pack type in the packaging family's identity (D-P4-13), a packaging master without TB-24
-  refused, a number allocated ahead planned only by its allocator (recipe-core 0760 to 0762; defaults D-2c-1 to D-2c-5 in
-  the plan); screens for packaging planning and the bulk issue, the full deviation record, specifications, lot events,
-  samples and returned goods; e2e: packaging order with its bulk issue (`--gmp-packaging` demo seed), deviation life
-  cycle through closure.
-- Phase 4 slice 1 merged (PR #20). Slice 2 (quality records) on `phase-4/slice-2`: the full deviation stand-in (QA
-  classification, per-market impact signed by an independent QA person, closure basis, cancellation rules, insert-only
-  links, release blocked at once on link; evidence stored as bytes), specifications with pharmacopoeia editions and
-  limits never typed, required tests, OOS-linked revisions, finished lots in quarantine, returned goods, retention
-  samples, lot events with the propose step, packaging-order planning with pack type and the bulk-issue screen.
-  Quick review: four high and two core mediums fixed. Open for the owner: D-2a-9 (CONFIRMED impact keeps release
-  blocked after closure).
-- Phase 4 slice 3a (`phase-4/slice-3a`, 12 October): G-REL items 1 to 9 and the manufacturer release in the database
-  (recipe-core 0781, 0782; site-services 0860, 0861 material_lot v2; tablets 1179 signing meanings), routes
-  `/api/release/*` and RELEASE_ACT. Defaults D-3a-1 to D-3a-9 in the plan; open for the owner: D-P4-6 consequence (with
-  India treated as the EU, a PPQ batch's manufacturer release always waits for the validation outcome).
-- Phase 4 slice 2 merged (PR #21). Slice 3 (G-REL and the manufacturer release) on `phase-4/slice-3`: the release
-  evaluator with items 1 to 11 re-evaluated at an unchanged epoch inside the signing transaction, the AP or a valid
-  delegate (never an involved person), since-review acknowledgement, the checklist stored with the decision, finished
-  lots leaving quarantine only by this release; the Tablets edition items (reconciliation, finished-pack examination,
-  printed-tablet QC, held containers, rule-set verification, whole-batch parents), all failing closed; the release
-  cockpit and the notification centre (both departments notified). Open for the owner: D-P4-6, D-3a-10.
-- Phase 4 slice 4a (`phase-4/slice-4a`, 12 October; 4-0 interfaces on `phase-4/slice-4`): US disposition by the QCU,
-  the two-row release (D-P4-5), EU outcome from a signed message, a verified transcription or a registered in-system QP,
-  INELIGIBLE, market add and removal with the market-add evaluation, packaging orders only for the parent's markets, the
-  manufacturer rejection cascading (recipe-core 0820 to 0825, tablets 1180, 1189). Defaults D-4a-1 to D-4a-9 in the plan.
-- Phase 4 slice 4b and 4c (`phase-4/slice-4b`, `phase-4/slice-4c`): the EU QP batch package (kernel 1160 to 1162: a
-  register, signed issue, time-boxed read-only QP access granted and revoked, role EU_QP_READER) and the ERP shipping
-  interlock (site-services 0870, 0871; INV-42, IN-05 (a)); screens for the market tabs, the EU tab (package, certification
-  intake), market add and removal and the two-row ceremony. Quick review fixes in 4a (recipe-core 0826) and 4b. Slice 4
-  integrated on `phase-4/slice-4`; the signing dry run now refuses bad input before it reads the record (DI-37).
-- Phase 4 slice 5a (`phase-4/slice-5a`, 12 October): after release in the database: automatic suspension of every decided
-  market of a released lot and of the released lots downstream (PR-57 genealogy) when a deviation, incident, DI
-  investigation, revised LIMS result or as-found calibration failure links after release, with the ERP stock-block outbox
-  and the AP's recall-assessment task in the same transaction (L-19, IN-29); RECONFIRM, RECALL, REJECT_AFTER_RELEASE and
-  DISPOSAL (witnessed destruction, reprocessing, return; PR-46) through RELEASE_ACT; material_lot v3 (recipe-core 0840,
-  0841; site services 0880, 0881); routes release.suspended and release.afterRelease. Defaults D-5a-1 to D-5a-9 in the
-  plan. The HTTP signing test waits for 5b's tablets 1199 mapping.
-- Phase 4 slice 5b (`phase-4/slice-5b`, 12 October): record locking and amendment, bulk across orders and the bright-stock
-  maximum hold (recipe-core 0870 to 0873, tablets 1190, 1199; contract `ns/records-lock.ts`, routes `/api/records/*`,
-  `RECORD_LOCK_ACT`). A processing record locks at its bulk reconciliation closure, a finished lot's record at its first
-  manufacturer disposition; a locked record refuses every write in the database; QA opens (AMENDMENT_OPENED, calling
-  `recipe.suspend_release` per released lot and opening AP market-impact tasks) and closes (AMENDMENT_CLOSED) an
-  appending amendment (INV-21, R-04); PR-38 checked at issue and packaging start. Defaults D-5b-1 to D-5b-8 in the plan.
-- CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
+- Phases 0, 1 (compliance kernel), 2 (recipe engine and designer) and 3 (Tablets edition, PRs #7 to #18) are done;
+  details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation
+  runs; residuals in `docs/build-plan/phase-3/review-backlog.md`).
+- Decision 0010: Tablets reaches v1.0 first (Phases 3, 4, 6, 7), then Injectables.
+- Phase 4 (review, release and India specifics), plan `docs/build-plan/phase-4/phase-4-plan.md`, seven slices:
+  - Merged: slice 1 record review and evidence epochs (PR #20); slice 2 quality records, deviations, specifications,
+    lots, packaging planning (PR #21); slice 3 G-REL, manufacturer release, cockpit, notifications (PR #22); GB-T-01
+    date fix (PR #19); slice 4 market dispositions, two-row release, EU QP package, shipping interlock, market screens
+    (PR #23).
+  - Slice 5 (after release) on `phase-4/slice-5`: 5a suspension of released lots and their downstream lots on a cause
+    linked after release, with the ERP stock block and the AP's recall-assessment task in the same transaction;
+    RECONFIRM, RECALL, REJECT_AFTER_RELEASE, DISPOSAL (recipe-core 0840, 0841; site-services 0880, 0881; L-19, IN-29,
+    PR-46). 5b record locking and appending amendment that suspends the record's released lots; bulk across orders and
+    the bright-stock maximum hold (recipe-core 0870 to 0875, tablets 1190, 1199; INV-21, R-04, PR-38). 5c screens.
+    Quick review: one high (amendment cause refused by the suspension) and one core medium (a cause linked again after
+    a re-confirmation did not suspend again) fixed with tests. Defaults D-5-1 to D-5-8, D-5a-*, D-5b-* in the plan.
+  - Moved to GB-T-02 (slice 7): the green release path, the released demo lot and the suspension browser flow, the demo
+    H-PACK shortcut, the e2e QP package and market release.
+  - Open for the owner (defaults stand): D-2a-9 (CONFIRMED impact keeps release blocked after closure), D-P4-6 (India
+    PPQ release waits for the validation outcome), D-3a-10 (CONFIRMED impact never justifiable), D-5b-2 (a product with
+    no bright-stock maximum is not checked), the drying-loop correction and India subdivision questions (Phase 3 backlog).
+- CI runs the tests in four shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;
+  run lint with `node --max-old-space-size=4096` and the rest of the chain separately.
 
-- Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and
-  orders need ERP.MASTER_WRITE (ERP interface only); a new code, or a change of reprocessing permission, shelf life,
-  material kind or retest interval, takes effect only on QA's ERP_MASTER_CONFIRMED signature (site-services 0802, tablets
-  1101; ERP status screen lists and confirms; seed and e2e fixture confirm). HIGH-2: QA proposes a lot status decision
-  first and the signed content names it (0800). HIGH-3: bulk is issued to a packaging order only after its processing
-  batch's H-PACK, from usable containers (recipe-core 0701, route `POST /api/batches/:id/bulk`); TB-21 RUN_START, TB-23
-  and TB-24 refused on GMP until then (tablets 1102). HIGH-4: consumption only into a running batch and named by an entry
-  of the same command; reservations revoked at batch end (0801, recipe-core 0700, tablets 1100). MEDIUM: TB-11 counter as
-  bigint. GB-T-01 unchanged. Open for the owner: no screen yet for the bulk issue; packing steps in a GMP processing batch
-  are now refused (stricter default); HTTP LOT_DECISION still offers only release and reject.
-- GB-T-01 date fix (`phase-4/golden-date-fix`, 12 October): the true-copy hashes changed with the day of the run, because
-  the normalisation took the seeded lots' fixed retest and expiry dates (2027 to 2029) for run instants and wrote them as
-  minutes from the issue; the exception-rich one also held the year in its deviation number. The lot dates now stay as
-  they are and the deviation year is a placeholder; hashes re-recorded and shown equal on runs started on different days
-  (`EBMR_GOLDEN_LATER_DAYS`). Test code only.
+## Next
 
-## Next: Phase 3, Tablets edition (outline section 11)
-
-Built in slices, each on its own branch and PR, merged when CI is green; one quick review each; a plan before each.
-Each slice first sorts the controls it touches into core (database-enforced, full tests) or other (application code
-allowed), using the control's sources and outline section 9.2.
-
-1. Equipment kinds, campaigns, clearance types; lots with release routes and reservations; containers.
-2. Execution paths: exception tiers, correction, void and invalidation, hand-over.
-3. Tablet blocks TB-01 to TB-24 with the press and coater simulators (G-06).
-4. Blister packaging (G-21) with the printer simulator and a serialisation stub.
-5. Reprocessing and recovery; ERP stub, LIMS-lite, deviation-lite.
-6. Shop-floor, planning and master-data screens; the GB-T-01 golden batch demo.
-
-Exit (decision 0009): the Phase 3 controls have passing tests; the Opus mutation run and review pass; critical and high
-fixed with tests; one final run of the suite, E2E, trace and GB-T-01 (exact outputs).
+Phase 4 slices 6 (India specifics, records, PDF/A-3, retention, PQR extract) and 7 (trace to phase 4, golden batches
+GB-T-01 continued and GB-T-02, residual kill tests), then the Phase 4 exit (decision 0008: one review pass, full suite,
+golden batches, browser suite). Each slice: a plan, builders on branches, one quick review, PR merged on green CI.
 
 ## How to work here
 
