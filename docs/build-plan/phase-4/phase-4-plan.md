@@ -333,7 +333,7 @@ below; each builder ticks them off there.
   - Signing names fixed up front. Aggregates: `release_suspension` (5a, RECORD class), `disposal` (5a), `record_lock` (5b).
     Meanings: RELEASE_RECONFIRMED, RECALLED, REJECTED_AFTER_RELEASE, DISPOSAL_RECORDED, DESTRUCTION_WITNESSED (5a);
     AMENDMENT_OPENED, AMENDMENT_CLOSED (5b).
-  - Later ranges move: 6a site-services 0885 to 0899 (was 0870 to 0889); 7b tablets 1200 to 1209 (was 1190 to 1199).
+  - Later ranges move: 6a site-services 0885 to 0899 (was 0870 to 0889); 7b tablets 1210 to 1219 (was 1190 to 1199; 1200 holds slice 6c's signing-meanings re-creation, which must sort after 1199).
 - **Slice 5 defaults (decision 0004; owner may change):**
   - **D-5-1** Suspension causes, each linked after the lot's first RELEASED or CERTIFIED disposition: a deviation (any
     category, incidents and DI investigations included) linked to the lot or to a lot or batch upstream in its genealogy;
