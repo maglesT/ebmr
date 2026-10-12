@@ -371,3 +371,19 @@ line), the held-granulation check, G-24@2 and the exception-register sync guards
 
 Low: `recipe.reprocessing_start_problem` is never called since recipe-core 0625 (drop it); `batch_record_identity_guard`
 and a SITE-165 branch of `consume_reservation` can never fire (an earlier check refuses first).
+
+## Ticked in Phase 4 slice 1b (12 October 2026, branch phase-4/slice-1b)
+
+- GMP sweeper (slice 6c, exit review): the GMP service identity svc.sweeper on SRV-SWEEPER-01, EXECUTION_SWEEPER only
+  (D-P4-9); the GMP server reads it from gmp-service-keys.json. The "unusable under hold" design stays.
+- `plant.close_container` typed net (exit review medium): a typed close needs a second person's VERIFIED check before
+  use or release (recipe-core 0740, DI-30); a weighed close stands on two claimed scale readings (tablets 1111). Container
+  routes: contract ns/containers.ts, signable CONTAINER_ACT (tablets 1112).
+- Output container release vs its hold (exit review medium): refused while the hold's exceptions are open or a linked
+  deviation is not concluded, and while the sweeper's MISSED hold is not yet recorded on its step (recipe-core 0741).
+- Device-to-entry path (slice 6d residual): an EQUIPMENT entry names only its reading; the server claims it and copies the
+  value (D-P4-10); the claim is limited to the step's window (tablets 1111). GB-T-01 still keys its coater values by hand.
+- TB-20 NO-PLAN (slices 3d, 5b, 6c): TB-20@2 with the NO_PLAN outcome through a linked deviation (tablets 1113, D-P4-11).
+- TB-11 missed start sweep stays due (mutation medium): fixed in tb-11.ts and tablets 1110.
+- Site-services 0733 collation (mutation medium): `collate "C"` in site.qc_test_codes (site-services 0810).
+
