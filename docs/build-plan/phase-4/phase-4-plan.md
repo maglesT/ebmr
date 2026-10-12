@@ -217,6 +217,10 @@ below; each builder ticks them off there.
   - **D-3a-7** Head-of-QC approval is the approval of every current RELEASE result signed in role HEAD_OF_QC.
   - **D-3a-8** A decided release provides the stored checklist as its signed content, so the release signature stays valid.
   - **D-3a-9** MANUFACTURER_REJECT also carries `expectedEpoch` (contract comment updated).
+  - **D-3a-10** (slice 3 quick review, open for the owner): a link whose latest impact for the market is CONFIRMED is never
+    released under a PR-53 justification, the record open or closed (consistent with D-2a-9); every link of the record to
+    the lot, its batches or their containers must be assessed for the market, read structurally; an exception escalated
+    to the record counts like a linked one (recipe-core 0783).
   Residuals: critical alarms (DI-49) are not read; "additional sampling for linked changes and deviations carried out"
   (11.3.9 (f)) is not checked; lots posted before material_lot v2 cannot leave quarantine through the release (gate says
   so); the release cockpit's facts compute G-REL per lot in the queue (fine for the stand-in volume).
