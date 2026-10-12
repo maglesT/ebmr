@@ -48,6 +48,7 @@ tests:
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-42][IN-31] GTIN check digits, the configuration as read"
   - "packages/recipe-core/test/mutation/packaging-g21-rules.test.ts > recipe.g21_counted > [PR-42][INV-25] counts the reconciliations of G-21 steps that code the material in that unit, nothing else"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-42][IN-17] E.RECONCILIATION_SERIAL: an open serial reconciliation blocks until its deviation is closed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

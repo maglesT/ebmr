@@ -1,0 +1,503 @@
+{
+  "queue": {
+    "lots": [
+      {
+        "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "lotCode": "P26-0001",
+        "batchId": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a81",
+        "batchNumber": "P26-0001",
+        "productCode": "GBT01",
+        "strength": "500 mg",
+        "markets": [
+          "IN",
+          "US"
+        ],
+        "lotStatus": "QUARANTINE",
+        "state": "NOT_READY"
+      }
+    ]
+  },
+  "lot": {
+    "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+    "lotCode": "P26-0001",
+    "batchId": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a81",
+    "batchNumber": "P26-0001",
+    "productCode": "GBT01",
+    "strength": "500 mg",
+    "markets": [
+      "IN",
+      "US"
+    ],
+    "lotStatus": "QUARANTINE",
+    "state": "NOT_READY",
+    "grel": {
+      "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+      "market": "IN",
+      "epoch": "3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b",
+      "ready": false,
+      "items": [
+        {
+          "id": "G1.REVIEW",
+          "group": "1",
+          "title": "Packaging and processing records QA reviewed, audit trail covered",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [
+            {
+              "kind": "BATCH",
+              "ref": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a81",
+              "label": "P26-0001 packaging record"
+            },
+            {
+              "kind": "BATCH",
+              "ref": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+              "label": "B26-0001 processing record"
+            }
+          ],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G2.DEVIATIONS",
+          "group": "2",
+          "title": "Deviations closed or assessed for the market",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G3.LIMS",
+          "group": "3",
+          "title": "Release tests passed with head-of-QC approval",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [
+            {
+              "kind": "LIMS_RESULT",
+              "ref": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c50",
+              "label": "ASSAY 99.4 %"
+            }
+          ],
+          "sinceReview": true,
+          "acknowledged": true
+        },
+        {
+          "id": "G3.SAMPLES",
+          "group": "3",
+          "title": "Reserve samples taken",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G4.RECONCILIATION",
+          "group": "4",
+          "title": "Reconciliation evaluated by the edition",
+          "status": "RED",
+          "problem": "the Tablets edition reports no reconciliation item yet",
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G5.MATERIALS",
+          "group": "5",
+          "title": "Consumed lots usable, none rejected, recalled or on hold since",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G6.VALIDATION",
+          "group": "6",
+          "title": "Validation basis, post-change evaluation and PPQ rule",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G7.INCIDENTS",
+          "group": "7",
+          "title": "No unassessed incident or alarm",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G8.MARKET_ADD",
+          "group": "8",
+          "title": "No unmet market-add item",
+          "status": "NA",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G9.PACK_EXAMINATION",
+          "group": "9",
+          "title": "Finished-pack examination recorded",
+          "status": "RED",
+          "problem": "the Tablets edition reports no finished-pack examination yet",
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        }
+      ]
+    },
+    "decision": null,
+    "incidents": [],
+    "registrationRelevant": [],
+    "openInvestigationPath": false,
+    "validationBatches": [],
+    "postChange": [
+      {
+        "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "batchNumber": "B26-0001",
+        "changeRecord": "CC-2026-014",
+        "evaluated": true
+      }
+    ],
+    "gates": {
+      "release": {
+        "ready": false,
+        "problems": [
+          "G-REL item G4.RECONCILIATION is RED: the Tablets edition reports no reconciliation item yet"
+        ]
+      },
+      "reject": {
+        "ready": true,
+        "problems": []
+      }
+    },
+    "signable": {
+      "aggregateType": "manufacturer_release",
+      "release": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/RELEASE",
+      "reject": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/REJECT"
+    }
+  },
+  "released": {
+    "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+    "lotCode": "P26-0001",
+    "batchId": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a81",
+    "batchNumber": "P26-0001",
+    "productCode": "GBT01",
+    "strength": "500 mg",
+    "markets": [
+      "IN",
+      "US"
+    ],
+    "lotStatus": "RELEASED",
+    "state": "RELEASED",
+    "grel": {
+      "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+      "market": "IN",
+      "epoch": "3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b",
+      "ready": true,
+      "items": [
+        {
+          "id": "G1.REVIEW",
+          "group": "1",
+          "title": "Packaging and processing records QA reviewed, audit trail covered",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [
+            {
+              "kind": "BATCH",
+              "ref": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a81",
+              "label": "P26-0001 packaging record"
+            },
+            {
+              "kind": "BATCH",
+              "ref": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+              "label": "B26-0001 processing record"
+            }
+          ],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G2.DEVIATIONS",
+          "group": "2",
+          "title": "Deviations closed or assessed for the market",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G3.LIMS",
+          "group": "3",
+          "title": "Release tests passed with head-of-QC approval",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [
+            {
+              "kind": "LIMS_RESULT",
+              "ref": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c50",
+              "label": "ASSAY 99.4 %"
+            }
+          ],
+          "sinceReview": true,
+          "acknowledged": true
+        },
+        {
+          "id": "G3.SAMPLES",
+          "group": "3",
+          "title": "Reserve samples taken",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G4.RECONCILIATION",
+          "group": "4",
+          "title": "Reconciliation evaluated by the edition",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G5.MATERIALS",
+          "group": "5",
+          "title": "Consumed lots usable, none rejected, recalled or on hold since",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G6.VALIDATION",
+          "group": "6",
+          "title": "Validation basis, post-change evaluation and PPQ rule",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G7.INCIDENTS",
+          "group": "7",
+          "title": "No unassessed incident or alarm",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G8.MARKET_ADD",
+          "group": "8",
+          "title": "No unmet market-add item",
+          "status": "NA",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        },
+        {
+          "id": "G9.PACK_EXAMINATION",
+          "group": "9",
+          "title": "Finished-pack examination recorded",
+          "status": "GREEN",
+          "problem": null,
+          "evidence": [],
+          "sinceReview": false,
+          "acknowledged": false
+        }
+      ]
+    },
+    "decision": {
+      "decision": "RELEASED",
+      "by": {
+        "personId": "3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e90",
+        "legalName": "Anita Rao",
+        "loginName": "ap",
+        "role": "AUTHORISED_PERSON"
+      },
+      "at": {
+        "us": "1791000000000000",
+        "text": "03-OCT-2026 09:20:00 +05:30 (Asia/Kolkata)"
+      },
+      "signatureId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e77",
+      "delegationId": null,
+      "reason": null,
+      "epoch": "3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b",
+      "checklistHash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "justifications": []
+    },
+    "incidents": [],
+    "registrationRelevant": [],
+    "openInvestigationPath": false,
+    "validationBatches": [],
+    "postChange": [
+      {
+        "batchId": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+        "batchNumber": "B26-0001",
+        "changeRecord": "CC-2026-014",
+        "evaluated": true
+      }
+    ],
+    "gates": {
+      "release": {
+        "ready": false,
+        "problems": [
+          "the manufacturer release of lot P26-0001 is RELEASED"
+        ]
+      },
+      "reject": {
+        "ready": false,
+        "problems": [
+          "the manufacturer release of lot P26-0001 is RELEASED"
+        ]
+      }
+    },
+    "signable": {
+      "aggregateType": "manufacturer_release",
+      "release": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/RELEASE",
+      "reject": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70/REJECT"
+    }
+  },
+  "grel": {
+    "lotId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+    "market": "IN",
+    "epoch": "3a7bd3e2360a3d29eea436fcfb7e44c735d117c42d1c1835420b6b9942dd4f1b",
+    "ready": false,
+    "items": [
+      {
+        "id": "G1.REVIEW",
+        "group": "1",
+        "title": "Packaging and processing records QA reviewed, audit trail covered",
+        "status": "GREEN",
+        "problem": null,
+        "evidence": [
+          {
+            "kind": "BATCH",
+            "ref": "e5f6a7b8-c9d0-4e1f-8a2b-3c4d5e6f7a81",
+            "label": "P26-0001 packaging record"
+          },
+          {
+            "kind": "BATCH",
+            "ref": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+            "label": "B26-0001 processing record"
+          }
+        ],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G2.DEVIATIONS",
+        "group": "2",
+        "title": "Deviations closed or assessed for the market",
+        "status": "GREEN",
+        "problem": null,
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G3.LIMS",
+        "group": "3",
+        "title": "Release tests passed with head-of-QC approval",
+        "status": "GREEN",
+        "problem": null,
+        "evidence": [
+          {
+            "kind": "LIMS_RESULT",
+            "ref": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c50",
+            "label": "ASSAY 99.4 %"
+          }
+        ],
+        "sinceReview": true,
+        "acknowledged": true
+      },
+      {
+        "id": "G3.SAMPLES",
+        "group": "3",
+        "title": "Reserve samples taken",
+        "status": "GREEN",
+        "problem": null,
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G4.RECONCILIATION",
+        "group": "4",
+        "title": "Reconciliation evaluated by the edition",
+        "status": "RED",
+        "problem": "the Tablets edition reports no reconciliation item yet",
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G5.MATERIALS",
+        "group": "5",
+        "title": "Consumed lots usable, none rejected, recalled or on hold since",
+        "status": "GREEN",
+        "problem": null,
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G6.VALIDATION",
+        "group": "6",
+        "title": "Validation basis, post-change evaluation and PPQ rule",
+        "status": "GREEN",
+        "problem": null,
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G7.INCIDENTS",
+        "group": "7",
+        "title": "No unassessed incident or alarm",
+        "status": "GREEN",
+        "problem": null,
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G8.MARKET_ADD",
+        "group": "8",
+        "title": "No unmet market-add item",
+        "status": "NA",
+        "problem": null,
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      },
+      {
+        "id": "G9.PACK_EXAMINATION",
+        "group": "9",
+        "title": "Finished-pack examination recorded",
+        "status": "RED",
+        "problem": "the Tablets edition reports no finished-pack examination yet",
+        "evidence": [],
+        "sinceReview": false,
+        "acknowledged": false
+      }
+    ]
+  }
+}

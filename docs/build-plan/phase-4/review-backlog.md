@@ -51,3 +51,68 @@ Backlog:
 - Low: `tab.post_finished_lot` does not check the posted quantity against the packed counts (slice 3, with
   reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
   declared immutable but calls recipe functions.
+
+## Slice 3c open items (builder report, 12 October 2026)
+
+- Residual (lead's decision, option b): the `--gmp-packaging` demo seed keeps its labelled DEMO SHORTCUT for the bulk
+  parent's H-PACK (behind the two-step demo gate). A real H-PACK through the routes needs a valid GMP master run to its
+  end: the designer gate requires every BOM line consumed, a clearance and a yield per material stage (GMP-BOM-CONSUMED,
+  GMP-STAGE-CLEARANCE, GMP-STAGE-YIELD), and the ERP order needs at least one BOM line matching the master exactly
+  (recipe-core 0602), so a short "hold point only" master is refused. GB-T-01 proves the real path (golden batch
+  `stages.ts`); the slice 7 golden batch GB-T-02, which runs to release, gives the e2e packaging demo a real parent.
+- Residual (lead's decision): the release e2e covers the flow up to a signed REJECTION of a NOT_READY lot (queue, red
+  and green items with evidence, since-review acknowledgement where one exists, the signed rejection, both departments
+  notified and acknowledging). The green-items release path in the browser waits for GB-T-02 (slice 7); it is proven
+  in the database (recipe-core release tests) and on the contract examples (web tests).
+
+## Slice 3b open items (builder report, 12 October 2026)
+
+- `since_review` is false on every Tablets edition item until slice 3a's epoch comparison feeds it.
+- No server route or screen yet for the compendial rule-set verification (slice 3c or slice 4 screens).
+- IN-17 clause 2 stays deferred in its control file; the slice 7a mapping cites `grel-tablets-items.test.ts`.
+- Test names carry the tags [L-30] and [TB-11], which are not control files (outline rule and block ids); the register
+  ignores them. Keep or retitle at the slice 7a mapping.
+## Slice 3a (builder report, 12 October 2026)
+
+- Ticked: the slice 2b items for slice 3 (extra testing, samples, finished lot out of quarantine through the release).
+- Open: `tab.post_finished_lot` quantity against the packed counts stays with 3b's reconciliation item (group 4).
+
+## Slice 3a open items (builder report, 12 October 2026)
+
+- Open for the owner (D-P4-6): with India treated as the EU, a process-validation (PPQ) batch's manufacturer release
+  always waits for the validation outcome; concurrent release applies to US-only batches.
+- Residuals: ancestor intermediates are not in the G-REL evidence set (the packaging batch and its processing parent
+  are); critical alarms (DI-49) are not read by G-REL; the extra sampling for linked changes and deviations (11.3.9 (f))
+  is not checked; finished lots posted before material-lot machine version 2 cannot be released (the gate says why).
+- Kernel note: `esig.signature_state` does not return the signer role or delegation; the release act reads them from
+  `esig.signature`.
+
+## Slice 3a open items (builder report, 12 October 2026)
+
+- Open for the owner (D-P4-6): with India treated as the EU, a process-validation (PPQ) batch's manufacturer release
+  always waits for the validation outcome; concurrent release applies to US-only batches.
+- Residuals: ancestor intermediates are not in the G-REL evidence set (the packaging batch and its processing parent
+  are); critical alarms (DI-49) are not read by G-REL; the extra sampling for linked changes and deviations (11.3.9 (f))
+  is not checked; finished lots posted before material-lot machine version 2 cannot be released (the gate says why).
+- Kernel note: `esig.signature_state` does not return the signer role or delegation; the release act reads them from
+  `esig.signature`.
+
+## Slice 3 quick review (12 October 2026)
+
+No critical or high findings: RED items block every release path, the evaluation and signing race is closed by the
+epoch locks, the signer, delegation, involvement and since-review rules hold, a finished lot leaves quarantine only
+through the release decision, the edition hook fails closed, PPQ concurrent release is US-only, and no signing meaning
+or guard was lost. Fixed in slice 3 with tests: every deviation link checked structurally under PR-53 (no message-text
+matching); CONFIRMED impact never justifiable (D-3a-10, open for the owner); escalated exceptions count as linked;
+Tablets items carry since_review; the printed-tablet QC reads the live signature state; rule sets, printed tablets in a
+library call and a printing master without a G-21 instance fail closed (RED) instead of NA.
+
+Backlog (low): G6.PPQ and `record_ppq_outcome` default the purpose to COMMERCIAL when the header has none (the
+validator should require it); `recipe.release_lots` and `release_lot_facts` are readable by any session (read-only).
+
+## Slice 3c open items (builder report, 12 October 2026)
+
+- G-11 environment excursion notifications are still recorded only in the engine, not in the notification centre.
+- IN-39 clause 2 stays deferred in its control file until the slice 7a mapping cites `notification-centre.test.ts`.
+- Default: the PRODUCTION department is HEAD_OF_PRODUCTION and SHIFT_SUPERVISOR; QA is AUTHORISED_PERSON, QA_REVIEWER,
+  QA_SHOP_FLOOR and QA_MBR_APPROVER (notification routing).

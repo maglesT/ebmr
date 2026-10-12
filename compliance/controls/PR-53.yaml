@@ -18,7 +18,11 @@ sources: "US: 211.192; 211.165(f) | EU: Ch.5 5.61 | ICH/EMA/draft: Annex 16 sect
 behaviour: The gate reads live status from the eBMR and the linked QMS/LIMS. Batches linked as "potentially affected" are held. CAPA completion is tracked separately (PR-51).
 catalog_test: A batch with an open deviation cannot be released. With the e-signed justification it can, and the exception is printed on the release record. An open reconciliation discrepancy cannot be justified away.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/release/release.test.ts > deviations and open investigations (PR-53, PR-08) > [PR-53] with the switch off an open investigation blocks and cannot be justified; with it on, the release authority's signed justification releases the lot and is printed on the release record, never for an OOS record"
+  - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53] every link of an open record is read structurally: a link to the lot not assessed for the market refuses the justification, whatever the first blocking reason says"
+  - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53] a CONFIRMED impact is never released under a justification (D-3a-10): refused at justification, and a justification made before the impact was confirmed no longer counts"
+  - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

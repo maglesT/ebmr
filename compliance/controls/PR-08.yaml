@@ -165,6 +165,8 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/tb-13-edges.test.ts > TB-13 physical checks > [IN-35][PR-29][PR-08] each parameter is judged on its individual and its mean limits, the worst deciding; breaking force in N, or in kp converted to N"
   - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > only QA dispositions (PR-08, INV-41) > [PR-08][INV-41] an exception is QA-only for the engine's flag, a REGISTERED or VALIDATED tier, or a decision-affecting correction, and for nothing else"
   - "packages/recipe-core/test/validator/data.test.ts > data gates > [PR-08][PR-03] DATA-UNITS: tablet hardness is a force (by its tag, the legacy alias or kp); the alias warns, a pressure is refused, its limits are a force (mutation follow-up)"
+  - "packages/recipe-core/test/release/release.test.ts > deviations and open investigations (PR-53, PR-08) > [PR-08] registration-relevant deviations of the records are shown on the release checklist; the application role cannot clear the flag"
+  - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

@@ -438,7 +438,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
                 return result as unknown as commands.JsonValue;
               }
               const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action) : null);
-              const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState }, sealKey);
+              const delegationId = handler.delegationOf?.(body.action);
+              const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState, ...(delegationId ? { delegationId } : {}) }, sealKey);
               const applied = await handler.apply(client, ctx, body.action, { signatureId: sig.signatureId, meaning: ch.meaning, signer: ch.signerPerson });
               const result: SignWork = { signed: { manifestation: manifestationView(sig.manifestation, ch.signerPerson, true), result: applied } };
               return result as unknown as commands.JsonValue;

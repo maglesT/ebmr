@@ -36,7 +36,9 @@ test('packaging order: planned from a processing batch released for packing, iss
   const base = e2e.url('GMP');
   const issuer = persona('GMP', 'issuer');
   const operator = persona('GMP', 'operator1');
-  const orderNumber = `${p.parentBatchNumber}/P01`;
+  // The register gives the packaging number of that batch: its number, then the rule's sequence (the set-up's release
+  // demo, step 7, planned a packaging order before this one, so the sequence is not always 01).
+  let orderNumber = '';
 
   const page = await officePage('GMP', 'PC-PLAN-01');
   await signIn.office(page, issuer);
@@ -54,7 +56,9 @@ test('packaging order: planned from a processing batch released for packing, iss
     else await form.getByRole('radio', { name: new RegExp(`^${p.line} `) }).locator('xpath=ancestor::label[1]').click();
     await form.getByRole('button', { name: `Plan a packaging order for ${p.orderNo}` }).click();
     const issue = card.getByTestId('issue-form');
-    await expect(issue.getByRole('heading', { name: `Issue batch ${orderNumber}` })).toBeVisible();
+    const heading = issue.getByRole('heading', { name: new RegExp(`^Issue batch ${p.parentBatchNumber}/P[0-9]{2}$`) });
+    await expect(heading).toBeVisible();
+    orderNumber = ((await heading.textContent()) ?? '').replace(/^Issue batch /, '');
     return { batchNumber: orderNumber };
   }, page);
 

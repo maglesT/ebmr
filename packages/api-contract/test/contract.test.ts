@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -207,7 +207,7 @@ describe('route table', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
       'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
-      'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'planning.planPackagingOrder', 'plant.completeCleaning',
+      'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
       'quality.registerEvidenceDocument', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
@@ -322,6 +322,25 @@ describe('route table', () => {
     expect(ok(SignedIntent, { ...correct, value: { kind: 'DECIMAL', value: 3, unit: '%' } })).toBe(false);
     expect(ok(SignedIntent, { ...correct, evidence: { kind: 'PRINTOUT', sha256: 'a'.repeat(64) }, approvalSignatureId: batchId })).toBe(true);
     expect(ok(ClientIntent, correct)).toBe(false);
+  });
+
+  it('the release namespace (Phase 4 slice 3) is GMP only (office routes), each route with an example; RELEASE_ACT names its act, lot and input', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of RELEASE_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of Object.values(routes.release)) expect(r.installation, r.id).toBe('GMP');
+    const lotId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    const epoch = 'a'.repeat(64);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MANUFACTURER_RELEASE', lotId, input: { expectedEpoch: epoch } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MANUFACTURER_RELEASE', lotId, input: { expectedEpoch: '7' } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MANUFACTURER_REJECT', lotId, input: { reason: { code: 'OOS', text: 'Assay failed' } } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'PPQ_OUTCOME', lotId, input: { batchId: lotId, outcome: 'PASSED', protocolRef: 'PV-1' } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'PPQ_OUTCOME', lotId, input: { batchId: lotId, outcome: 'MAYBE' } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'RELEASE', lotId, input: {} })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MANUFACTURER_RELEASE', lotId, input: { signer: 'x' } })).toBe(false);
+    const ack = routes.release.acknowledge.body;
+    expect(ack?.safeParse({ market: 'IN', itemId: 'G3.LIMS', epoch }).success).toBe(true);
+    expect(ack?.safeParse({ market: 'UK', itemId: 'G3.LIMS', epoch }).success).toBe(false);
+    expect(ack?.safeParse({ market: 'IN', itemId: 'lims', epoch }).success).toBe(false);
   });
 
   it('[DI-24] no route of the contract deletes anything, and the void of an attempt carries the person\'s reason', () => {

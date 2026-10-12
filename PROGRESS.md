@@ -99,6 +99,16 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   samples, lot events with the propose step, packaging-order planning with pack type and the bulk-issue screen.
   Quick review: four high and two core mediums fixed. Open for the owner: D-2a-9 (CONFIRMED impact keeps release
   blocked after closure).
+- Phase 4 slice 3a (`phase-4/slice-3a`, 12 October): G-REL items 1 to 9 and the manufacturer release in the database
+  (recipe-core 0781, 0782; site-services 0860, 0861 material_lot v2; tablets 1179 signing meanings), routes
+  `/api/release/*` and RELEASE_ACT. Defaults D-3a-1 to D-3a-9 in the plan; open for the owner: D-P4-6 consequence (with
+  India treated as the EU, a PPQ batch's manufacturer release always waits for the validation outcome).
+- Phase 4 slice 2 merged (PR #21). Slice 3 (G-REL and the manufacturer release) on `phase-4/slice-3`: the release
+  evaluator with items 1 to 11 re-evaluated at an unchanged epoch inside the signing transaction, the AP or a valid
+  delegate (never an involved person), since-review acknowledgement, the checklist stored with the decision, finished
+  lots leaving quarantine only by this release; the Tablets edition items (reconciliation, finished-pack examination,
+  printed-tablet QC, held containers, rule-set verification, whole-batch parents), all failing closed; the release
+  cockpit and the notification centre (both departments notified). Open for the owner: D-P4-6, D-3a-10.
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and

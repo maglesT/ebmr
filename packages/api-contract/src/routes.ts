@@ -16,12 +16,14 @@ import { meta } from './ns/meta.ts';
 import { planning } from './ns/planning.ts';
 import { plant } from './ns/plant.ts';
 import { quality } from './ns/quality.ts';
+import { notifications } from './ns/notifications.ts';
+import { release } from './ns/release.ts';
 import { review } from './ns/review.ts';
 import { samples } from './ns/samples.ts';
 import { session } from './ns/session.ts';
 import { specifications } from './ns/specifications.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples } as const;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications } as const;
 export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
@@ -45,4 +47,6 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   containers: 'P4',
   specifications: 'P4',
   samples: 'P4',
+  release: 'P4',
+  notifications: 'P4',
 };

@@ -168,17 +168,81 @@ below; each builder ticks them off there.
     SHORTCUT (H-PACK set APPROVED in the stored state with triggers off), as the review seed marks its batch complete.
 
 ### Slice 3: G-REL and the manufacturer release
-- **3a, release core** (recipe-core 0770 to 0809, `apps/tablets-server/src/features/release/**`): manufacturer
+- **3a, release core** (recipe-core 0780 to 0809 (0770 to 0779 were used by slice 2a), `apps/tablets-server/src/features/release/**`): manufacturer
   release NOT_READY -> READY (computed) -> RELEASED or REJECTED, NOT_READY -> REJECTED; `recipe.grel_evaluate` items
   1 to 9 (D-P4-4); signing re-evaluates at an unchanged epoch inside the transaction (INV-05); AP or delegate with a
   valid delegation, head-of-QC approval, all signature components, involvement exclusion (IN-05, INV-35); checklist
   stored with the signature (IN-05 (d)); PR-53 open-investigation switch (off by default); PPQ rule (PR-09, D-P4-6);
   post-change evaluation (IN-03); validation-basis references present; DI-12 clause (open incident on the disposition
   screen); PR-08 clause.
-- **3b, Tablets items** (tablets 1150 to 1179): `tab.grel_edition_items` behind the 3-0 hook: printed-tablet QC
+- **3-0 done (12 October).** Contract namespace `release` (`packages/api-contract/src/ns/release.ts`, routes
+  `/api/release/lots`, `/lots/:lotId`, `/lots/:lotId/grel?market=`, `/lots/:lotId/acknowledgements`, examples in
+  `fixtures/release.json`); signable action `RELEASE_ACT {act, lotId, input}` with the acts of the interface list plus
+  POST_CHANGE_EVALUATE (IN-03), PPQ_OUTCOME (PR-09) and INVESTIGATION_JUSTIFY (PR-53). SQL (recipe-core 0780):
+  `recipe.grel_evaluate(lot, market) returns jsonb` `{lot, market, epoch text, ready, items}`, item `{id ("G<n>.<NAME>",
+  edition "E.<NAME>"), group ("1" to "11"), title, status GREEN|RED|NA, problem (NULL unless RED), evidence [{kind, ref,
+  label}], since_review}`; `recipe.grel_edition_items(lot, market)` resolved through `recipe.grel_edition_hook` (edition ->
+  function `(uuid, text) returns jsonb`, registered by the edition's migration with the owner-only
+  `recipe.register_grel_edition_hook`); an edition answers groups 4, 9 and 10, and the core keeps 4 and 9 RED until it
+  does (fails closed); `recipe.manufacturer_release_state(lot)`. Tablets 1160: `tab.grel_edition_items` stub (no items),
+  registered; 3b replaces it from 1161. Server feature `release` (3-0: G-REL read only).
+- **3a built (12 October; recipe-core 0781, 0782, site-services 0860, 0861, tablets 1179;
+  `apps/tablets-server/src/features/release/**`).** Database-enforced: G-REL items 1 to 9 over the lot's evidence set
+  (packaging batch and the processing batch it packs), each with its evidence and a since-review flag; the epoch is the
+  SHA-256 of the evidence versions (BATCH, LOT, consumed lots, DEVIATION, kernel blocker epochs) and the items; the
+  manufacturer release act takes every lock, re-evaluates and refuses a moved epoch or a signed checklist that is not
+  the current one (INV-05), needs the AP role with a delegation still valid at recording, no involved signer (INV-35), no
+  cancelled-deviation signer (L-21), every since-review item acknowledged by the signer at that epoch, and stores the
+  checklist with the decision (IN-05 (d)); REJECT with a reason from NOT_READY or READY; the finished lot leaves
+  quarantine only in that transaction (material_lot v2, guard `material_lot.manufacturer_decision`). Wired: slice 2's
+  deviation items (CONFIRMED blocks, IN needs an assessment) and signer problem, extra testing, reserve samples, LIMS with
+  every RELEASE result approved under role HEAD_OF_QC, `recipe.reprocessing_release_problem` (3b need not wire it again),
+  incidents and DI holds (DI-12), registration-relevant exceptions listed (PR-08). Codes EBMR-REL-010 to 051. Defaults:
+  - **D-3a-1** Evidence set: the packaging batch and its processing parent; ancestor intermediates, reprocessing parents
+    and added residue batches are not yet in it (residual).
+  - **D-3a-2** IN-03: the first GMP batch issued on a master version above 1 needs QA's signed post-change evaluation (after
+    its QA review); that batch's change record needs a regulatory assessment for the market. Changes to master data,
+    limit tables, software or configuration do not yet flag a batch (residual).
+  - **D-3a-3** PR-09: a batch issued with purpose PPQ or VALIDATION needs its signed outcome PASSED; CONCURRENT_RELEASE
+    (after its QA review) counts for US only, so the manufacturer release (always IN) waits for the outcome (D-P4-6); an
+    outcome PASSED or FAILED is final.
+  - **D-3a-4** PR-53: switch `release.open_investigation_path` (platform setting, default OFF, PROCESS_OWNER). With it ON
+    the AP's OPEN_INVESTIGATION_JUSTIFIED signature makes an open, assessed record green for the lot and market; never an
+    OOS record, a record linked to a registration-relevant exception or to a yield or reconciliation exception. The
+    justification lapses when the investigation's state moves (its signature's content).
+  - **D-3a-5** Validation basis: the batch's master version cites at least one validation reference in its change
+    record. Licence and export permission (item 6) and the market-add evaluation (item 8) are NA until slices 6a and 4.
+  - **D-3a-6** "AP or delegate": the signer signs in role AUTHORISED_PERSON (the kernel requires RELEASE.MANUFACTURER and
+    checks a cited delegation at signing); a named delegate holds that role and cites the delegation.
+  - **D-3a-7** Head-of-QC approval is the approval of every current RELEASE result signed in role HEAD_OF_QC.
+  - **D-3a-8** A decided release provides the stored checklist as its signed content, so the release signature stays valid.
+  - **D-3a-9** MANUFACTURER_REJECT also carries `expectedEpoch` (contract comment updated).
+  - **D-3a-10** (slice 3 quick review, open for the owner): a link whose latest impact for the market is CONFIRMED is never
+    released under a PR-53 justification, the record open or closed (consistent with D-2a-9); every link of the record to
+    the lot, its batches or their containers must be assessed for the market, read structurally; an exception escalated
+    to the record counts like a linked one (recipe-core 0783).
+  Residuals: critical alarms (DI-49) are not read; "additional sampling for linked changes and deviations carried out"
+  (11.3.9 (f)) is not checked; lots posted before material_lot v2 cannot leave quarantine through the release (gate says
+  so); the release cockpit's facts compute G-REL per lot in the queue (fine for the stand-in volume).
+- **3b, Tablets items** (tablets 1160 to 1179 (1150 to 1159 were used by slice 2)): `tab.grel_edition_items` behind the 3-0 hook: printed-tablet QC
   approval (IN-37), held containers dispositioned, container release state, `recipe.reprocessing_release_problem`
   wired (PR-47), finished-pack examination from TB-24, reconciliation outside limits blocks release (IN-17 clause 2),
   TB-12 compendial rule set QA verification record (design E.1, backlog 3c); whole-batch parents checked for REJECTED.
+- **3b built (12 October)**: recipe-core 0800 (`recipe.packaging_master_problem` needs TB-24 on every completing path),
+  tablets 1161 (QA's signed rule-set verification, meaning COMPENDIAL_RULE_SET_VERIFIED; its ceremony mapping is in
+  3a's 1179), tablets 1162 (`tab.grel_edition_items`: E.RECONCILIATION_PRINTED, _PACKS, _SERIAL, _YIELD,
+  E.POSTED_QUANTITY (group 4), E.FINISHED_PACK_EXAMINATION (9), E.PRINTED_TABLETS_QC, E.HELD_CONTAINERS,
+  E.CONTAINER_RELEASE, E.RULE_SETS_VERIFIED, E.WHOLE_BATCH_PARENTS (10)); tests
+  `apps/tablets-server/test/release/grel-tablets-items.test.ts`. Defaults: **D-3b-1** a completing path ignores
+  approved skips; a library call, a hold point and a replicate with minimum 0 never count as passing TB-24.
+  **D-3b-2** a reconciliation, yield or failed end-of-run examination exception is resolved only when dispositioned and
+  its linked deviation is CLOSED (QA's signed closure; never the PR-53 justification). **D-3b-3** printed-tablet approval
+  = the hold point right after each TB-19 step COMPLETED, positive, valid HOLD_POINT signature, same frames.
+  **D-3b-4** rule sets are still evaluated as shipped; only release waits for the verification; a new verification row
+  supersedes the signed one until signed. **D-3b-5** a whole-batch parent is REJECTED when each end container (not
+  charged within it, not merged) is REJECTED or charged into its reprocessing child, and each finished lot packed from it
+  is REJECTED. **D-3b-6** the posted quantity must equal the packs in TB-24 SHIPPER entries (unit not compared).
+  **D-3b-7** `since_review` is false on every edition item until 3a's epoch comparison covers them.
 - **3c, cockpit and notification** (`apps/tablets-web/**`, `apps/tablets-server/src/features/notifications/**`):
   release cockpit manufacturer tab, red/green items linked to evidence, "since review" list acknowledged item by item;
   IN-39 clause 2 (both departments notified) through the notification centre.

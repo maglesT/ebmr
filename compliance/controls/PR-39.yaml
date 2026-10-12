@@ -37,6 +37,10 @@ tests:
   - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-39][INV-32] a packaging master without reconciliation limits, without artwork for a market, coding without a destruction step, or challenging without a plant unit cannot be defined"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 reconciliation > [INV-32][IN-17][PR-39] unexplained = issued - accounted, at the finest scale; inside both limits (equal allowed) or a release-blocking exception"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][PR-37] E.RECONCILIATION_PACKS: red without the reconciliation entry and while a pack reconciliation outside its limit has no closed deviation (release is blocked); green once the deviation is closed"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][INV-32] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39] E.RECONCILIATION_YIELD: a yield outside its limits in the processing batch blocks until its deviation is closed"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-17][PR-39] E.RECONCILIATION_PRINTED: when the packaging master prints but the record holds no G-21 step instance it is red, never NA"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

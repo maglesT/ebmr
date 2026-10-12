@@ -36,6 +36,10 @@
  * Phase 4 slice 1b (containers; recipe-core 0740, 0741; ns/containers.ts):
  *  - CONTAINER_ACT: VERIFY_CLOSE (VERIFIED on the output container, by a second person, never its closer or opener) and
  *    RELEASE (OUTPUT_CONTAINER_RELEASED, by QA, once the hold's exceptions are dispositioned and deviations concluded).
+ * Phase 4 slice 3 (release; recipe-core 0780 to 0809; aggregates and meanings in ns/release.ts):
+ *  - RELEASE_ACT: MANUFACTURER_RELEASE and MANUFACTURER_REJECT of a finished lot (MANUFACTURER_RELEASE, AP or named
+ *    delegate), POST_CHANGE_EVALUATE (IN-03), PPQ_OUTCOME (PR-09) and INVESTIGATION_JUSTIFY (PR-53); the market, recall
+ *    and disposal acts are reserved for slices 4 and 5 (the handler refuses them until then, 501).
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -73,6 +77,43 @@ export const ReviewActInput = z.strictObject({
   cycle: z.number().int().min(1).max(1_000_000).optional(),
 });
 export type ReviewActInput = z.infer<typeof ReviewActInput>;
+
+/** What a release act carries besides its lot; members an act does not use are refused by the handler (422). */
+export const ReleaseActInput = z.strictObject({
+  /** MANUFACTURER_RELEASE, MANUFACTURER_REJECT (and the market acts): the G-REL epoch the signer evaluated (INV-05: a later change refuses it). */
+  expectedEpoch: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  /** MANUFACTURER_RELEASE, MANUFACTURER_REJECT: the delegation a named delegate of the AP cites (checked at signing). */
+  delegationId: Uuid.optional(),
+  /** MANUFACTURER_REJECT: the person's own reason, both halves (DI-22). */
+  reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
+  /** POST_CHANGE_EVALUATE, PPQ_OUTCOME: the batch of the lot's evidence set the act is about. */
+  batchId: Uuid.optional(),
+  /** PPQ_OUTCOME: the validation outcome, or CONCURRENT_RELEASE under a protocol that permits it (US only, D-P4-6). */
+  outcome: z.enum(['PASSED', 'FAILED', 'CONCURRENT_RELEASE']).optional(),
+  /** PPQ_OUTCOME: the protocol (and report, when known) the outcome is recorded under. */
+  protocolRef: z.string().trim().min(1).max(128).optional(),
+  /** INVESTIGATION_JUSTIFY: the open deviation-lite record; POST_CHANGE_EVALUATE, PPQ_OUTCOME, INVESTIGATION_JUSTIFY: the text. */
+  deviationId: Uuid.optional(),
+  text: z.string().trim().min(1).max(4000).optional(),
+});
+export type ReleaseActInput = z.infer<typeof ReleaseActInput>;
+
+export const RELEASE_ACTS = [
+  'MANUFACTURER_RELEASE',
+  'MANUFACTURER_REJECT',
+  'POST_CHANGE_EVALUATE',
+  'PPQ_OUTCOME',
+  'INVESTIGATION_JUSTIFY',
+  'US_DISPOSE',
+  'QP_INTAKE',
+  'QP_CERTIFY',
+  'MARKET_ADD',
+  'MARKET_REMOVE',
+  'RECONFIRM',
+  'RECALL',
+  'REJECT_AFTER_RELEASE',
+  'DISPOSAL',
+] as const;
 
 export const SignableAction = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -169,6 +210,13 @@ export const SignableAction = z.discriminatedUnion('kind', [
     containerId: Uuid,
     /** The person's own reason; a RELEASE carries one (it changes the container's state, EBMR-AUDIT-002). */
     reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('RELEASE_ACT'),
+    act: z.enum(RELEASE_ACTS),
+    /** The finished lot (site.finished_lot) the act is about. */
+    lotId: Uuid,
+    input: ReleaseActInput,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

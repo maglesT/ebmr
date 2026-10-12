@@ -88,6 +88,17 @@ export interface ReviewBatchSeed {
   containerId: string;
   containerLabel: string;
   packaging?: PackagingSeed;
+  /** The release demo (step 7, with --gmp-packaging): a finished lot in quarantine, NOT_READY. */
+  release?: ReleaseSeed;
+}
+
+/** DEMO-ONLY data of the release demo (step 7). */
+export interface ReleaseSeed {
+  lotId: string;
+  lotCode: string;
+  /** The packaging order the lot was posted from (its record marked complete by the DEMO SHORTCUT). */
+  orderBatchId: string;
+  orderBatchNumber: string;
 }
 
 interface Browser {
@@ -442,22 +453,26 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
   );
   const packSize = packContent.header.batchSizes.find((b) => b.id === PACK_SIZE_ID);
   if (!packSize) throw new Error(`the packaging master has no batch size ${PACK_SIZE_ID}`);
-  const orderNo = `PO-GBT01-PK-${tag}`;
   const erp = await openServiceSession(db, seed, 'erpInterface');
-  await withCommand(db.app, { ...erp, correlationId: randomUUID() }, (c) =>
-    c.query('select site.erp_receive_order($1::jsonb)', [
-      JSON.stringify({
-        orderNo,
-        siteCode: SITE,
-        productCode: GBT01_PRODUCT.productCode,
-        strength: GBT01_PRODUCT.strength,
-        batchSize: packSize.quantity.value,
-        batchSizeUnit: packSize.quantity.unit,
-        bom: packContent.bom.map((b) => ({ materialCode: b.material, quantity: b.quantity.value, unit: b.quantity.unit })),
-        erpReference: `SAP-PP-${orderNo}`,
-      }),
-    ]),
-  );
+  /** An open ERP order of the packaging master. */
+  const postPackOrder = async (no: string): Promise<string> => {
+    await withCommand(db.app, { ...erp, correlationId: randomUUID() }, (c) =>
+      c.query('select site.erp_receive_order($1::jsonb)', [
+        JSON.stringify({
+          orderNo: no,
+          siteCode: SITE,
+          productCode: GBT01_PRODUCT.productCode,
+          strength: GBT01_PRODUCT.strength,
+          batchSize: packSize.quantity.value,
+          batchSizeUnit: packSize.quantity.unit,
+          bom: packContent.bom.map((b) => ({ materialCode: b.material, quantity: b.quantity.value, unit: b.quantity.unit })),
+          erpReference: `SAP-PP-${no}`,
+        }),
+      ]),
+    );
+    return no;
+  };
+  const orderNo = await postPackOrder(`PO-GBT01-PK-${tag}`);
 
   log('packaging demo: a second GB-T-01 batch with two usable containers');
   const second = value(await o('issuer').api.call(routes.execution.planBatch, { body: { familyId: created.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE_ID } }), 'the plan of the second batch');
@@ -500,8 +515,33 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
     shortcut.release();
   }
   log(`packaging demo: order ${orderNo} of ${packCode} open; batch ${second.batchNumber} released for packing with containers ${labels.join(', ')}`);
+
+  // 7. The release demo (Phase 4 slice 3c): a finished lot in quarantine for the release cockpit. A packaging order of the
+  //    review batch is planned against its own ERP order and issued by the issuer through the ceremony; DEMO SHORTCUT, as
+  //    in step 5, its record is marked complete by a superuser update (its packing steps are not run here); the
+  //    warehouse posts its finished lot through the edition's definer. The lot is NOT_READY (its records are not
+  //    reviewed and the packing items are red), so the cockpit shows red and green items and the AP may reject it.
+  log('release demo: a packaging order of the review batch and its finished lot');
+  const releaseOrderNo = await postPackOrder(`PO-GBT01-PK2-${tag}`);
+  const order = value(
+    await o('issuer').api.call(routes.planning.planPackagingOrder, { body: { familyId: packFamily, markets: ['IN'], site: SITE, line: LINE, batchSize: PACK_SIZE_ID, erpOrder: releaseOrderNo, parentBatchId: batchId } }),
+    'the plan of the release demo packaging order',
+  );
+  await sign(
+    o('issuer'),
+    { kind: 'GMP_BATCH_ISSUE', batchId: order.batchId, reason: { code: 'PACKING_PLAN', text: `Packaging order of batch ${planned.batchNumber} for the India market` }, variants: {}, inputs: { tabletsPerBatch: { kind: 'COUNT', value: '100000' } } },
+    'the issue of the release demo packaging order',
+  );
+  log('release demo: DEMO SHORTCUT, the packaging order set EXECUTION_COMPLETE by the superuser');
+  await assertDemoInstallation(db, opts.database);
+  await db.admin.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [order.batchId]);
+  const stores = await browserOf('stores');
+  const lotId = await dbAs<string>(stores, 'select tab.post_finished_lot($1, $2, $3) as r', [order.batchId, '1000', 'packs'], { reasonCode: 'PACKING_COMPLETE', reasonText: 'Finished packs of the packaging order posted' });
+  const lotCode = (await db.app.query<{ c: string }>('select lot_code as c from site.material_lot where id = $1', [lotId])).rows[0]?.c ?? '';
+  log(`release demo: finished lot ${lotCode} (${lotId}) of packaging order ${order.batchNumber} in quarantine`);
   return {
     ...out,
     packaging: { orderNo, familyCode: packCode, packType: PACK_TYPE, line: LINE, parentBatchId: second.batchId, parentBatchNumber: second.batchNumber, containers: labels },
+    release: { lotId, lotCode, orderBatchId: order.batchId, orderBatchNumber: order.batchNumber },
   };
 }

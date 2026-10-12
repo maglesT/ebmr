@@ -22,7 +22,7 @@ test.describe('security', () => {
       const gmp = await context.newPage();
       const sbx = await context.newPage();
       const { pickTerminal } = await import('../../fixtures/index.ts');
-      await pickTerminal(gmp, e2e.url('GMP'), 'PC-QA-01');
+      await pickTerminal(gmp, e2e.url('GMP'), 'PC-QA-03');
       await signIn.office(gmp, persona('GMP', 'regulatory'));
       await pickTerminal(sbx, e2e.url('SANDBOX'), 'TEST-PC-01');
       await signIn.office(sbx, persona('SANDBOX', 'steward'));
@@ -103,7 +103,7 @@ test.describe('security', () => {
 
       // 2. Swap: another person's live GMP session token, planted while the person works.
       const approverPage = await other.newPage();
-      await pickTerminal(approverPage, e2e.url('GMP'), 'PC-QA-01');
+      await pickTerminal(approverPage, e2e.url('GMP'), 'PC-QA-03');
       await signIn.office(approverPage, approver);
       const approverToken = (await other.cookies()).find((c) => c.name === 'ebmr_gmp_sid')?.value ?? '';
       expect(approverToken).not.toBe('');
@@ -136,9 +136,9 @@ test.describe('security', () => {
     const other = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     try {
       const { pickTerminal } = await import('../../fixtures/index.ts');
-      // The approver's live session, opened on PC-QA-01 in another browser.
+      // The approver's live session, opened on PC-QA-03 in another browser.
       const approverPage = await other.newPage();
-      await pickTerminal(approverPage, e2e.url('GMP'), 'PC-QA-01');
+      await pickTerminal(approverPage, e2e.url('GMP'), 'PC-QA-03');
       await signIn.office(approverPage, approver);
       const approverToken = (await other.cookies()).find((c) => c.name === 'ebmr_gmp_sid')?.value ?? '';
       expect(approverToken).not.toBe('');

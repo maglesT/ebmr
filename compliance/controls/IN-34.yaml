@@ -47,6 +47,8 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-coating.test.ts > AQL single sampling (tablets 0911) > [PR-33][IN-34] the code letter of a lot size: both ends of its range, and the next range after it"
   - "apps/tablets-server/test/mutation/tablets-ipc.test.ts > weight uniformity and subdivision > [PR-29][IN-34] the band by the average weight: an inclusive limit takes its average, an exclusive one does not"
   - "apps/tablets-server/test/mutation/tablets-ipc.test.ts > weight uniformity and subdivision > [PR-29][IN-34] a unit exactly at the band is inside it; the counts against the rule set's maxima decide the pass"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > QA verification of a compendial rule set (slice 3b, tablets 1161; tablets spec E.1) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: NA when no entry cites a rule set; red while a cited rule set has no signed QA verification; green once QA records and signs it"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: an entry whose rule-set reference is malformed is red (\"cannot determine\"), never dropped to NA"
 clauses:
   - clause: "300 mg tablet: India or India+US gives plus/minus 5%; US-only legacy table gives 7.5%."
     tests:
