@@ -2403,3 +2403,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   fixed with tests. Final integration: site.deviation_seq registered as protected (INV-27), the deviation browser spec
   moved to the QC office terminal (the device rate limit of the QA terminal was reached by parallel specs). Full suite
   (5,588 passed before the three bookkeeping fixes, which then pass), E2E 32, trace at phase 3 (115 of 241) green.
+- 2026-10-12: PHASE 4 SLICE 3 (branch phase-4/slice-3; builders 3a, 3b, 3c). G-REL and the manufacturer release
+  (INV-05, IN-05, INV-35, PR-09, PR-53, IN-03, DI-12, PR-08), Tablets edition items (IN-37, IN-17 clause 2, L-30), the
+  every-path TB-24 check, the release cockpit and the notification centre (IN-39 clause 2). Quick review: no high; core
+  mediums fixed (structural PR-53 link check, CONFIRMED impact never justifiable, escalated exceptions, since-review on
+  edition items, live signature state, fail-closed items). Final integration: notification acknowledgement checks a
+  catalogued permission (DI-17, DI-18); browser specs spread over more office terminals (PC-QA-02, PC-QA-03,
+  PC-PLAN-02) so parallel specs stay under each terminal's device rate limit. Full suite (5,646 passed before the two
+  fixes, which then pass), E2E 33, register synced.
