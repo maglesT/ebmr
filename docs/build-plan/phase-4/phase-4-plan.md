@@ -455,6 +455,41 @@ below; each builder ticks them off there.
   version, parameters, result hash), reconciled to the batch, deviation and CAPA registers (a mismatch fails the
   extract), export-only SKUs included, market removals shown, AP sign-off (IN-01, PR-58; D-P4-8).
 
+- **Slice 6 build notes (lead, 12 October).** Three full-stack builders (database, server, contract, screens, tests):
+  - 6a India fields: site-services 0885 to 0899, recipe-core 0890 to 0909; contract `ns/india.ts`, routes `/api/india/*`,
+    screens `apps/tablets-web/src/features/india/**`. G-REL item 6 (export permission) is re-created from its latest
+    definition by 6a only.
+  - 6b records: kernel 1170 to 1199; contract `ns/archive.ts`, routes `/api/archive/*`, screens
+    `apps/tablets-web/src/features/archive/**`; the PDF/A-3 library is pinned exactly (D-P4-7); veraPDF stays a
+    deployment check (D-P4-7).
+  - 6c PQR extract: recipe-core 0910 to 0929, tablets 1191 to 1198; contract `ns/pqr.ts`, routes `/api/pqr/*`, screens
+    `apps/tablets-web/src/features/pqr/**`. 6c owns the single re-creation of `tab.kernel_signing_meanings` and
+    `tab.aggregate_read_class` (tablets 1198, from tablets 1199), with these names fixed up front:
+    aggregates `manufacturing_licence`, `export_permission` (6a), `evidence_export`, `form_reconciliation` (6b),
+    `pqr_extract` (6c); meanings LICENCE_APPROVED, EXPORT_PERMISSION_APPROVED (6a), EVIDENCE_EXPORT_CERTIFIED,
+    FORMS_RECONCILED (6b), PQR_SIGNED_OFF (6c). A builder that needs another name records it and the lead adds it.
+  - Shared files: `packages/api-contract/src/index.ts`, `routes.ts`, `signable.ts`, `examples.ts` and the web
+    `features.ts`: additive hunks only. Each builder its own office terminal for e2e (PC-QA-07, PC-QA-08, PC-QA-09).
+- **Slice 6 defaults (decision 0004; owner may change):**
+  - **D-6-1** A GMP batch is issued only when the site holds a current manufacturing licence (Form 25 or 28) endorsing
+    the product, or a loan licence whose technical agreement names the product and site (IN-30); a lapsed licence
+    blocks issue, not batches already running (a deviation is raised for them).
+  - **D-6-2** Export permission is per product, strength and destination country, with a validity window; issue and
+    G-REL item 6 refuse a market whose permission is missing or lapsed at that time.
+  - **D-6-3** Expiry dating (PR-43): expiry = manufacture date + the approved shelf life, rounded down to the month end
+    as the label shows month and year; a retest date never exceeds expiry; computed in the database, never typed.
+  - **D-6-4** PDF/A-3 true copy: the record's canonical content rendered with the evidence embedded as associated files
+    and the content hash in the document metadata; re-rendering the same content gives the same bytes (fixed creation
+    date taken from the record, not the clock).
+  - **D-6-5** Retention: kept for the longest of the market rules that apply; EU batches are not eligible for any
+    retention action until certified or finally rejected; aborted batches are kept like completed ones; a record
+    another kept record depends on inherits the longer period (IN-08, PR-59, DI-46, DI-47). No deletion is built:
+    retention only computes and shows the earliest date.
+  - **D-6-6** Contingency packs (DI-43): the paper forms issued at issue and at stage start are numbered; every form
+    is reconciled (used, transcribed and verified, or voided) before EXECUTION_COMPLETE.
+  - **D-6-7** The PQR extract reconciles batch, deviation and change-record counts (CAPA as recorded on deviations; no
+    separate CAPA register yet, a residual); a mismatch fails the extract; AP signs it off.
+
 ### Slice 7: trace, golden batches, residual kill tests (then the Phase 4 exit)
 - **7a, trace** (`compliance/**`): `clauses` for all 95 phase-4 controls and the Phase 3 deferrals; a clause the
   build cannot test is deferred to 6 or 7 only with its reason, listed for the owner (D-S6-10 rule); the `editions`
