@@ -494,9 +494,10 @@ describe('suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to
     await amend();
     await amend();
     expect((await suspensions(downstream.lotId)).map((s) => s.cause_kind)).toEqual(['LIMS_REVISION', 'RECORD_AMENDMENT']);
-    // An amendment cause is resolved only by its own record (5b): it fails closed until then.
+    // An amendment cause is resolved only by its own record: once that amendment is closed (5b, D-5b-9); open (here no
+    // such amendment exists at all) it fails closed.
     const amendment = (await db.app.query<{ id: string }>("select id from recipe.release_suspension where lot_id = $1 and cause_kind = 'RECORD_AMENDMENT'", [upstream.lotId])).rows[0]!.id;
-    expect((await db.app.query<{ p: string | null }>('select recipe.suspension_cause_problem($1) as p', [amendment])).rows[0]!.p).toMatch(/not resolved/);
+    expect((await db.app.query<{ p: string | null }>('select recipe.suspension_cause_problem($1) as p', [amendment])).rows[0]!.p).toMatch(/record amendment AMEND-1 is still open: a record amendment is resolved once QA closes it/);
   });
 });
 

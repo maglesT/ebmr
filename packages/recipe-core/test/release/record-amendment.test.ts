@@ -8,11 +8,13 @@
  * answers G-REL groups 4, 9 and 10. Every act runs as the application role with real e-signatures.
  */
 import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withProtectedNumbers } from '../../../kernel/src/continuity/numbers.ts';
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
 import { withCommand } from '../../../kernel/src/db/command.ts';
-import { cmd } from '../../../kernel/test/esig/helpers.ts';
+import { createChallenge, contentForSigning, sign } from '../../../kernel/src/esig/signing.ts';
+import { cmd, ensureSealKey, signatureAuth, testSealKey } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
@@ -66,7 +68,7 @@ async function codeOf(p: Promise<unknown>): Promise<string> {
 const q = async <T>(sql: string, params: unknown[] = []): Promise<T[]> => (await db.admin.query(sql, params)).rows as T[];
 
 /** A superuser fixture transaction with an actor context (the test edition and the stand-ins below). */
-async function fixture(work: (c: import('pg').PoolClient) => Promise<void>): Promise<void> {
+async function fixture(work: (c: pg.PoolClient) => Promise<void>): Promise<void> {
   const fx = await db.admin.connect();
   try {
     await fx.query('begin');
@@ -189,15 +191,32 @@ async function deviationOnLot(lotId: string): Promise<string> {
   return d.deviationId;
 }
 
+const batchNumberOf = async (batch: string): Promise<string> => (await q<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [batch]))[0]!.n;
+const lotCodeOf = async (lot: string): Promise<string> => (await q<{ c: string }>('select lot_code as c from site.material_lot where id = $1', [lot]))[0]!.c;
 const lockState = async (batch: string): Promise<string> => (await q<{ s: string }>('select recipe.record_lock_state($1) as s', [batch]))[0]!.s;
 const openId = async (batch: string, basis: string): Promise<string> => (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'OPEN', 'DEVIATION', $2) as a", [batch, basis]))[0]!.a;
 const open = (who: SeededActor, batch: string, basis: string, sig: string) =>
   w.run(who, (c) => c.query("select recipe.open_record_amendment($1, 'DEVIATION', $2, 'LATE_ENTRY', 'Untranscribed check found after release', $3)", [batch, basis, sig]));
 
-/** Whether recipe.suspend_release is still the refusing 4-0 stub (recipe-core 0820) or slice 5a's. */
-async function suspendIsStub(): Promise<boolean> {
-  const [r] = await q<{ src: string }>("select prosrc as src from pg_proc where oid = 'recipe.suspend_release(uuid, jsonb)'::regprocedure");
-  return (r?.src ?? '').includes('EBMR-DSP-001 the suspension of a released lot arrives with slice 5');
+const openAs = (who: SeededActor, batch: string, kind: 'DEVIATION' | 'CHANGE_RECORD', basis: string, sig: string) =>
+  w.run(who, (c) => c.query("select recipe.open_record_amendment($1, $2, $3, 'LATE_ENTRY', 'Untranscribed check found after release', $4)", [batch, kind, basis, sig]));
+const inState = async (lotId: string): Promise<string> => (await q<{ s: string }>('select recipe.manufacturer_release_state($1) as s', [lotId]))[0]!.s;
+const reconfirmProblems = async (lotId: string): Promise<string[]> => (await q<{ p: string[] }>("select recipe.after_release_problems($1, 'IN', 'RECONFIRM') as p", [lotId]))[0]!.p;
+
+/** The AP's RECONFIRM of IN as the ceremony runs it: sign the record now, then the act with the signature. */
+async function reconfirmIn(lotId: string): Promise<void> {
+  const g = await acknowledged(ap, lotId, 'IN');
+  const aid = (await q<{ a: string }>("select recipe.release_suspension_next_id($1, 'IN', 'RECONFIRM') as a", [lotId]))[0]!.a;
+  // As the server's ceremony: the signature and the act in one command, so a refused act rolls its signature back.
+  await ensureSealKey(db);
+  const content = await contentForSigning(db.app, 'release_suspension', aid);
+  const ch = await withCommand(db.app, await cmd(db, ap), (c) =>
+    createChallenge(c, { aggregateType: 'release_suspension', aggregateId: aid, contentVersion: content.contentVersion ?? '1', meaning: 'RELEASE_RECONFIRMED', clientContentHash: content.contentHash ?? '' }));
+  const ev = await signatureAuth(db, ap, ap, ch.challengeId);
+  await withCommand(db.app, await cmd(db, ap), async (c) => {
+    const sig = (await sign(c, { challengeId: ch.challengeId, authEventId: ev, expectedState: 'RELEASE_SUSPENDED' }, testSealKey)).signatureId;
+    await c.query("select recipe.record_after_release_decision($1, 'IN', 'RECONFIRM', $2, $3, 'Amendment reviewed: no impact on the lot')", [lotId, sig, g.epoch]);
+  });
 }
 
 beforeAll(async () => {
@@ -265,30 +284,86 @@ describe('the record of a finished lot locks at its first disposition; an amendm
     expect((await q<{ s: string }>("select recipe.disposition_state($1, 'US') as s", [lot.lotId]))[0]!.s).toBe('RELEASED');
   });
 
-  it('[INV-21][R-04] opening an amendment of a released record suspends every released lot made from it in the same transaction (recipe.suspend_release) and opens the AP\'s market-impact task for each market already released; while suspension is the 4-0 stub, the opening is refused whole', async () => {
+  it('[INV-21][R-04][L-19] opening an amendment of a released record whose lot a linked deviation suspended already: the lot still counts (its decided markets), the amendment is added as a cause of its own, and the AP gets a market-impact task per decided market', async () => {
     const lot = await readyLot();
     await manufacturerRelease(lot);
     await usRelease(lot);
     const dev = await deviationOnLot(lot.lotId);
+    // Slice 5a: the deviation linked after release suspends the lot at once.
+    expect(await inState(lot.lotId)).toBe('RELEASE_SUSPENDED');
     const aid = await openId(lot.batchId, dev);
     const content = (await q<{ c: { content: { released_lots: unknown } } }>("select esig.provide('record_lock', $1) as c", [aid]))[0]!.c;
-    expect(content.content.released_lots).toEqual([{ lot_id: lot.lotId, lot_code: expect.any(String), markets: [{ market: 'IN', disposition: 'RELEASED' }, { market: 'US', disposition: 'RELEASED' }] }]);
+    expect(content.content.released_lots).toEqual([{ lot_id: lot.lotId, lot_code: await lotCodeOf(lot.lotId), markets: [
+      { market: 'IN', disposition: 'RELEASED', now: 'RELEASE_SUSPENDED' }, { market: 'US', disposition: 'RELEASED', now: 'RELEASE_SUSPENDED' }] }]);
     const sig = await signFor(db, qaReviewer3, { type: 'record_lock', id: aid }, 'AMENDMENT_OPENED', 'LOCKED');
-    if (await suspendIsStub()) {
-      // Fail closed: a record whose releases cannot be suspended is not amended; nothing of the opening is kept.
-      expect(await codeOf(open(qaReviewer3, lot.batchId, dev, sig))).toBe('EBMR-DSP-001');
-      expect(await lockState(lot.batchId)).toBe('LOCKED');
-      expect(await q('select count(*)::int as n from recipe.record_amendment where batch_id = $1', [lot.batchId])).toEqual([{ n: 0 }]);
-      expect(await q('select count(*)::int as n from recipe.amendment_market_task where batch_id = $1', [lot.batchId])).toEqual([{ n: 0 }]);
-    } else {
-      // Slice 5a's suspension: the opening goes through and the released markets are suspended.
-      await open(qaReviewer3, lot.batchId, dev, sig);
-      expect(await lockState(lot.batchId)).toBe('UNDER_AMENDMENT');
-      expect((await q<{ s: string }>("select recipe.disposition_state($1, 'US') as s", [lot.lotId]))[0]!.s).toBe('RELEASE_SUSPENDED');
-    }
+    await open(qaReviewer3, lot.batchId, dev, sig);
+    expect(await lockState(lot.batchId)).toBe('UNDER_AMENDMENT');
+    const [a] = await q<{ id: string; lots: string[] }>('select id, suspended_lots::text[] as lots from recipe.record_amendment where batch_id = $1', [lot.batchId]);
+    expect(a?.lots).toEqual([lot.lotId]);
+    expect(await q("select market, cause_kind, prior_state from recipe.release_suspension where lot_id = $1 and cause_kind = 'RECORD_AMENDMENT' and cause_ref = $2 order by market", [lot.lotId, a?.id])).toEqual([
+      { market: 'IN', cause_kind: 'RECORD_AMENDMENT', prior_state: 'RELEASED' }, { market: 'US', cause_kind: 'RECORD_AMENDMENT', prior_state: 'RELEASED' }]);
+    expect(await q('select market, disposition_before from recipe.amendment_market_task where batch_id = $1 order by market', [lot.batchId])).toEqual([
+      { market: 'IN', disposition_before: 'RELEASED' }, { market: 'US', disposition_before: 'RELEASED' }]);
+    expect((await q<{ s: string }>("select recipe.disposition_state($1, 'US') as s", [lot.lotId]))[0]!.s).toBe('RELEASE_SUSPENDED');
   });
 
-  it('[INV-21][R-04] the call path: with a recording stand-in for recipe.suspend_release, the opening calls it once per released lot with the amendment as its cause and opens one AP task per market already released; the amendment names the lots it suspended', async () => {
+  it('[INV-21][L-19] a RECORD_AMENDMENT cause is resolved only once its amendment is closed (D-5b-9): the AP\'s re-confirmation is refused while the amendment is open and allowed after QA closes it', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    // A change record as the basis isolates the amendment's own cause (no deviation is linked to the lot).
+    const cr = (await q<{ id: string }>('select id from recipe.change_record order by recorded_at limit 1'))[0]!.id;
+    const aid = (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'OPEN', 'CHANGE_RECORD', $2) as a", [lot.batchId, cr]))[0]!.a;
+    const sig = await signFor(db, qaReviewer3, { type: 'record_lock', id: aid }, 'AMENDMENT_OPENED', 'LOCKED');
+    await openAs(qaReviewer3, lot.batchId, 'CHANGE_RECORD', cr, sig);
+    expect(await inState(lot.lotId)).toBe('RELEASE_SUSPENDED');
+    // The real recipe.suspend_release, end to end: the amendment's own cause, the ERP stock block, the AP's tasks.
+    const amendment = (await q<{ id: string }>('select id from recipe.record_amendment where batch_id = $1', [lot.batchId]))[0]!.id;
+    expect(await q('select market, cause_kind, via_kind, via_id from recipe.release_suspension where lot_id = $1 and cause_ref = $2', [lot.lotId, amendment])).toEqual([
+      { market: 'IN', cause_kind: 'RECORD_AMENDMENT', via_kind: 'BATCH', via_id: lot.batchId }]);
+    expect(await q("select kind from site.erp_stock_block_request where lot_id = $1 and cause_key like 'RECORD_AMENDMENT/' || $2 || '/%'", [lot.lotId, amendment])).toEqual([{ kind: 'BLOCK' }]);
+    expect(await q("select kind, owner_role from recipe.release_task where lot_id = $1 and not exists (select 1 from recipe.release_task_closure c where c.task_id = release_task.id)", [lot.lotId])).toEqual([
+      { kind: 'RECALL_ASSESSMENT', owner_role: 'AUTHORISED_PERSON' }]);
+    expect(await q('select market, disposition_before from recipe.amendment_market_task where batch_id = $1', [lot.batchId])).toEqual([{ market: 'IN', disposition_before: 'RELEASED' }]);
+    expect((await reconfirmProblems(lot.lotId)).join(' ')).toMatch(/is still open: a record amendment is resolved once QA closes it/);
+    expect(await codeOf(reconfirmIn(lot.lotId))).toBe('EBMR-ARL-012');
+    const cid = (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'CLOSE', null, null) as a", [lot.batchId]))[0]!.a;
+    const closeSig = await signFor(db, qaReviewer2, { type: 'record_lock', id: cid }, 'AMENDMENT_CLOSED', 'UNDER_AMENDMENT');
+    await w.run(qaReviewer2, (c) => c.query("select recipe.close_record_amendment($1, 1, 'Nothing appended: the record stands as signed', $2)", [lot.batchId, closeSig]));
+    expect(await lockState(lot.batchId)).toBe('LOCKED');
+    expect((await reconfirmProblems(lot.lotId)).join(' ')).not.toMatch(/record amendment/);
+    await reconfirmIn(lot.lotId);
+    expect(await inState(lot.lotId)).toBe('RELEASED');
+    expect(await q("select count(*)::int as n from site.erp_stock_block_request where lot_id = $1 and kind = 'UNBLOCK'", [lot.lotId])).toEqual([{ n: 1 }]);
+  });
+
+  it('[L-19] a cause linked again after the AP re-confirmed the market (here through another genealogy path) suspends the lot again, with a new ERP block and a recall-assessment task; linked again while still uncovered it adds nothing', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    const cr = (await q<{ id: string }>('select id from recipe.change_record order by recorded_at limit 1'))[0]!.id;
+    const sig = await signFor(db, qaReviewer3, { type: 'record_lock', id: (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'OPEN', 'CHANGE_RECORD', $2) as a", [lot.batchId, cr]))[0]!.a }, 'AMENDMENT_OPENED', 'LOCKED');
+    await openAs(qaReviewer3, lot.batchId, 'CHANGE_RECORD', cr, sig);
+    const amendment = (await q<{ id: string }>('select id from recipe.record_amendment where batch_id = $1', [lot.batchId]))[0]!.id;
+    const cid = (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'CLOSE', null, null) as a", [lot.batchId]))[0]!.a;
+    const closeSig = await signFor(db, qaReviewer2, { type: 'record_lock', id: cid }, 'AMENDMENT_CLOSED', 'UNDER_AMENDMENT');
+    await w.run(qaReviewer2, (c) => c.query("select recipe.close_record_amendment($1, 1, 'Nothing appended: the record stands as signed', $2)", [lot.batchId, closeSig]));
+    await reconfirmIn(lot.lotId);
+    expect(await inState(lot.lotId)).toBe('RELEASED');
+    // The same cause reaches the lot again through another node of its genealogy (the owner-only entry the triggers use).
+    const again = async (): Promise<void> => fixture(async (fx) => {
+      await fx.query("select recipe.suspend_release($1, $2::jsonb)", [lot.lotId, JSON.stringify({ kind: 'RECORD_AMENDMENT', ref: amendment, via_kind: 'LOT', via_id: lot.lotId, label: 'the same amendment, another path' })]);
+    });
+    await again();
+    expect(await inState(lot.lotId)).toBe('RELEASE_SUSPENDED');
+    expect(await q('select count(*)::int as n from recipe.release_suspension where lot_id = $1 and cause_ref = $2', [lot.lotId, amendment])).toEqual([{ n: 2 }]);
+    expect(await q("select count(*)::int as n from site.erp_stock_block_request where lot_id = $1 and kind = 'BLOCK'", [lot.lotId])).toEqual([{ n: 2 }]);
+    expect(await q("select count(*)::int as n from recipe.release_task where lot_id = $1 and kind = 'RECALL_ASSESSMENT' and not exists (select 1 from recipe.release_task_closure c where c.task_id = release_task.id)", [lot.lotId])).toEqual([{ n: 1 }]);
+    // Idempotent while uncovered: linked a third time, nothing is added.
+    await again();
+    expect(await q('select count(*)::int as n from recipe.release_suspension where lot_id = $1 and cause_ref = $2', [lot.lotId, amendment])).toEqual([{ n: 2 }]);
+    expect(await q("select count(*)::int as n from site.erp_stock_block_request where lot_id = $1 and kind = 'BLOCK'", [lot.lotId])).toEqual([{ n: 2 }]);
+  });
+
+  it('[INV-21][R-04] the call path: with a recording stand-in for recipe.suspend_release (last in the file: it replaces the one of slice 5a), the opening calls it once per released lot with the amendment as its cause and opens one AP task per market already released; the amendment names the lots it suspended', async () => {
     const lot = await readyLot();
     await manufacturerRelease(lot);
     await usRelease(lot);
@@ -308,9 +383,11 @@ describe('the record of a finished lot locks at its first disposition; an amendm
     expect(await lockState(lot.batchId)).toBe('UNDER_AMENDMENT');
     const [a] = await q<{ id: string; lots: string[] }>('select id, suspended_lots::text[] as lots from recipe.record_amendment where batch_id = $1', [lot.batchId]);
     expect(a?.lots).toEqual([lot.lotId]);
+    const number = await batchNumberOf(lot.batchId);
     expect(await q('select lot_id, cause from test_edition.suspend_call where lot_id = $1', [lot.lotId])).toEqual([{
       lot_id: lot.lotId,
-      cause: { kind: 'RECORD_AMENDMENT', batch_id: lot.batchId, batch_number: expect.any(String), amendment_id: a?.id, amendment_number: 1, basis_kind: 'DEVIATION', basis_id: dev, signature_id: sig },
+      cause: { kind: 'RECORD_AMENDMENT', ref: a?.id, via_kind: 'BATCH', via_id: lot.batchId, label: `amendment 1 of batch record ${number}`,
+               batch_id: lot.batchId, batch_number: number, amendment_id: a?.id, amendment_number: 1, basis_kind: 'DEVIATION', basis_id: dev, signature_id: sig },
     }]);
     expect(await q('select lot_id, market, owner_role, disposition_before from recipe.amendment_market_task where batch_id = $1 order by market', [lot.batchId])).toEqual([
       { lot_id: lot.lotId, market: 'IN', owner_role: 'AUTHORISED_PERSON', disposition_before: 'RELEASED' },

@@ -433,6 +433,12 @@ below; each builder ticks them off there.
     in-process checks, and the edition's record tables (tablets 1190). QA's container holds, plant logbooks, review acts
     and device-side rows are not part of the record and stay writable. The first manufacturer disposition locks the
     finished lot's own batch record, whatever its kind.
+  - **D-5b-9** (integration fix, recipe-core 0874, 0875) A RECORD_AMENDMENT suspension cause is resolved once that
+    amendment is closed (AMENDMENT_CLOSED, the record LOCKED again). An amendment counts every lot made from the record
+    whose manufacturer decision is RELEASED, suspended already or not (a deviation linked after release suspends it at
+    once, 0840), with each decided market (RELEASED or CERTIFIED, not recalled or rejected after release); its cause
+    carries the amendment id as ref, the batch as via node and a label. A cause linked again after a re-confirmation
+    covered it suspends the market again (quick review MEDIUM, L-19); the ERP block key names the episode's first row.
 
 ### Slice 6: India specifics, records and the PQR extract
 - **6a, India fields** (site-services 0870 to 0889, recipe-core 0890 to 0909): manufacturing licences (Form 25 or 28,
