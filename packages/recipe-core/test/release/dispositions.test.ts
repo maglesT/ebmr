@@ -25,7 +25,7 @@ import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from '../lifecycle/support.ts';
-import { dueDate } from '../../../site-services/test/quality/deviation-path.ts';
+import { dueDate } from './deviation-path.ts';
 
 let db: TestDatabase;
 let w: World;

@@ -30,7 +30,7 @@ import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from '../lifecycle/support.ts';
-import { investigateDeviation } from '../../../site-services/test/quality/deviation-path.ts';
+import { investigateDeviation } from './deviation-path.ts';
 import { assessIncidentImpact, raiseIncident } from '../../../kernel/src/records/incidents.ts';
 
 let db: TestDatabase;
