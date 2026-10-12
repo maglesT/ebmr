@@ -97,6 +97,6 @@ export function evidenceLink(e: Evidence): { to: string; params: Record<string, 
 
 /** "MANUFACTURER_RELEASED" -> "Manufacturer released". */
 export function words(code: string): string {
-  const s = code.replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|ppq|ap|lims)\b/g, (w) => w.toUpperCase());
+  const s = code.replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|qp|ppq|ap|lims|us|eu)\b/g, (w) => w.toUpperCase());
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
