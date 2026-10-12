@@ -14,7 +14,7 @@
  *   is in dc:identifier-free predefined fields only: the Keywords (pdf:Keywords) and the Subject (dc:description), so no
  *   extension schema is needed;
  * - the record's canonical JSON as associated files (/AF on the catalog, /AFRelationship Source or Data on each file
- *   specification, MIME subtype and dates on each embedded file).
+ *   specification, MIME subtype and dates on each embedded file), unfiltered so the database finds each byte for byte.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -23,7 +23,7 @@ import { createRequire } from 'node:module';
 // provides it (it must load before the shaper runs).
 import 'regenerator-runtime/runtime.js';
 import fontkit from '@pdf-lib/fontkit';
-import { AFRelationship, PDFDocument, PDFHexString, PDFName, PDFString, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
+import { PDFDocument, PDFHexString, PDFName, PDFString, rgb, type PDFFont, type PDFPage, type PDFRef } from 'pdf-lib';
 
 export const PDFA_RENDERER_VERSION = 'ebmr.pdfa3-true-copy/1';
 
@@ -403,15 +403,32 @@ export async function renderPdfA3(input: PdfaInput): Promise<Uint8Array> {
   const id = createHash('sha256').update(`${PDFA_RENDERER_VERSION}:${input.contentSha256}`).digest('hex').slice(0, 32);
   ctx.trailerInfo.ID = ctx.obj([PDFHexString.of(id), PDFHexString.of(id)]);
 
+  // The associated files, unfiltered (the database finds each one byte for byte in the file, kernel 1174), in name order
+  // in the EmbeddedFiles name tree and in the catalog's /AF array.
+  const names: (PDFHexString | PDFRef)[] = [];
+  const specs: PDFRef[] = [];
   for (const a of [...input.attachments].sort((x, y) => (x.name < y.name ? -1 : x.name > y.name ? 1 : 0))) {
-    await doc.attach(new TextEncoder().encode(a.text), a.name, {
-      mimeType: a.mediaType,
-      description: a.description,
-      creationDate: when,
-      modificationDate: when,
-      afRelationship: AFRelationship[a.relationship],
+    const bytes = new TextEncoder().encode(a.text);
+    const file = ctx.stream(bytes, {
+      Type: 'EmbeddedFile',
+      Subtype: a.mediaType,
+      Params: { Size: bytes.length, CreationDate: PDFString.fromDate(when), ModDate: PDFString.fromDate(when) },
     });
+    const spec = ctx.register(
+      ctx.obj({
+        Type: 'Filespec',
+        F: PDFString.of(a.name),
+        UF: PDFHexString.fromText(a.name),
+        EF: { F: ctx.register(file) },
+        Desc: PDFHexString.fromText(a.description),
+        AFRelationship: a.relationship,
+      }),
+    );
+    names.push(PDFHexString.fromText(a.name), spec);
+    specs.push(spec);
   }
+  doc.catalog.set(PDFName.of('Names'), ctx.obj({ EmbeddedFiles: ctx.obj({ Names: ctx.obj(names) }) }));
+  doc.catalog.set(PDFName.of('AF'), ctx.obj(specs));
   return doc.save({ useObjectStreams: false, addDefaultPage: false, updateFieldAppearances: false });
 }
 

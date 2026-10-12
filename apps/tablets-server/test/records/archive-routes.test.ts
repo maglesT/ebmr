@@ -11,9 +11,9 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type SignableAction } from '@ebmr/api-contract';
-import { records } from '@ebmr/kernel';
+import { records, withCommand } from '@ebmr/kernel';
 import { refusalOf, valueOf } from '../esig/support.ts';
-import { startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { actorOf, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
 import type { TestBrowser } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
 
@@ -78,7 +78,8 @@ describe('archive over HTTP (slice 6b)', () => {
     expect(r.inputs.outcome).toBe('IN_PROGRESS');
     expect(r.scheduled).toBe(false);
     // No lot made yet: the expiry rules cannot be dated, the Form 25 five-year rule can.
-    expect(r.governingRules.length + r.openBecause.length).toBeGreaterThan(0);
+    expect(r.status).toBe('OPEN');
+    expect(r.openBecause).toContain('MISSING_INPUT:EXPIRY');
     const answer = valueOf(await qa.call(routes.archive.requestDisposal, { params: { batchId }, body: { reason: 'space on the archive server' } }));
     expect(answer.outcome).toBe('REFUSED');
     expect(answer.refusals[0]?.code).toBe('EBMR-REC-021');
@@ -127,5 +128,44 @@ describe('archive over HTTP (slice 6b)', () => {
     expect((await records.verifyEvidenceExportText(file.text, { exportSha256: exp.exportSha256 })).ok).toBe(true);
     expect((await view()).exports[0]!.reads).toBe(1);
     expect(refusalOf(await qa.call(routes.archive.exportFile, { params: { exportId: randomUUID() } })).code).toBe('EBMR-REC-127');
+  });
+
+  it('[DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it', async () => {
+    const ended = await w.issued(issuer);
+    // Fixture, not proof: the stored status of the batch set as its completion leaves it (the engine's path is proven in recipe-core).
+    await w.gmp.db.admin.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [ended]);
+    const qaActor = await actorOf(w.gmp, 'qaInvestigator');
+    const issue = () =>
+      withCommand(w.gmp.db.app, { ...qaActor, correlationId: randomUUID() }, (c) =>
+        records.issueContingencyPack(c, { batchId: ended, batchLabel: 'ended', moment: 'ISSUE', templateRef: 'DT-1 v2', destination: 'Suite 1', pages: 1, reason: 'planned network outage' }),
+      );
+    await expect(issue()).rejects.toThrow(/^EBMR-REC-107 /);
+    expect(refusalOf(await qa.call(routes.archive.issuePack, { params: { batchId: ended }, body: { moment: 'ISSUE', templateRef: 'DT-1', destination: 'Suite', pages: 1, reason: 'planned network outage' } })).code).toMatch(/^EBMR-(REC-107|API-ARCHIVE)$/);
+  });
+
+  it('[IN-08] the licence form of the retention is the batch\'s recorded licence basis: a Form 28 batch gets the Form 28 rules', async () => {
+    const recorded = (await w.gmp.db.admin.query<{ f: string | null }>("select basis ->> 'form' as f from recipe.batch_licence_basis where batch_id = $1", [batchId])).rows[0]?.f ?? null;
+    const before = (await view()).retention;
+    expect(before.inputs.licenceForm).toBe(recorded === '28' || recorded === '28A' ? 'FORM_28' : recorded === null ? null : 'FORM_25');
+    // Fixture, not proof: the basis recorded at issue rewritten to a Form 28 licence (triggers off for this one update).
+    const client = await w.gmp.db.admin.connect();
+    try {
+      await client.query('begin');
+      await client.query("set local session_replication_role = 'replica'");
+      const n = await client.query("update recipe.batch_licence_basis set basis = jsonb_set(basis, '{form}', '\"28\"') where batch_id = $1", [batchId]);
+      if (n.rowCount === 0) {
+        await client.query("insert into recipe.batch_licence_basis (batch_id, licence_id, licence_number, basis) values ($1, gen_random_uuid(), 'MFG-28-TEST', '{\"form\": \"28\"}')", [batchId]);
+      }
+      await client.query('commit');
+    } finally {
+      client.release();
+    }
+    const after = (await view()).retention;
+    expect(after.inputs.licenceForm).toBe('FORM_28');
+    // No lot is made yet, so no expiry: with the labelled expiry its lot will carry, the Form 28 rule governs.
+    const own = (await w.gmp.db.admin.query<{ o: { governingRules: string[] } }>('select records.evaluate_retention($1::jsonb) as o', [
+      JSON.stringify({ retentionKey: 'BATCH_RECORD', markets: ['IN'], licenceForm: after.inputs.licenceForm, manufactureDate: after.inputs.manufactureDate, expiryDate: '2027-12-31' }),
+    ])).rows[0]!.o;
+    expect(own.governingRules).toContain('IN_FORM28_EXPIRY');
   });
 });

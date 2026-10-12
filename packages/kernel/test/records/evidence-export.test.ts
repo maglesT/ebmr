@@ -3,7 +3,7 @@
  * D-6-4, D-P4-7; IN-11, DI-41, DI-40, DI-24 clause). Records come from stub tables of the batch aggregate; every act runs
  * as the application role through the records definers with real signatures.
  */
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
@@ -17,13 +17,13 @@ import {
   type EvidenceExport,
 } from '../../src/records/evidence-export.ts';
 import { DI24_CLAUSE, renderTrueCopyPdf, trueCopyContent, trueCopySections, verifyTrueCopyPdf } from '../../src/records/pdf-true-copy.ts';
-import { readPdfA3, srgbIccProfile } from '../../src/records/pdfa.ts';
+import { readPdfA3, renderPdfA3, srgbIccProfile } from '../../src/records/pdfa.ts';
 import { trueCopyBundleFromSnapshot } from '../../src/records/qp-package.ts';
 import { registerTrueCopy, type AuditChainPart, type RecordsPart, type TrueCopyBundle } from '../../src/records/true-copy.ts';
 import { expectPermissionDenied, expectRefused } from '../identity/helpers.ts';
 import { seedActor, type SeededActor } from '../identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
-import { again, signFor } from './helpers.ts';
+import { again, signFor, testActor } from './helpers.ts';
 
 vi.setConfig({ testTimeout: 180_000, hookTimeout: 300_000 });
 
@@ -290,5 +290,73 @@ describe('certified evidence export (IN-11) and the inspection workspace (DI-40)
       expect(chain.chainKey).toBe(`batch:${batch}`);
       expect(chain.events.length).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it('[DI-41][IN-11] the database derives a PDF\'s content SHA-256 from its bundle exactly as the renderer does', async () => {
+    const bundle = await copyOf(await recordedBatch());
+    const { rows } = await db.admin.query<{ t: string }>('select records.true_copy_content_text($1::jsonb) as t', [JSON.stringify(bundle)]);
+    const ts = trueCopyContent(bundle);
+    expect(rows[0]?.t).toBe(ts.text);
+  });
+
+  it('[IN-11][DI-41] an export whose bundle part was altered, even under a manifest made for it, is refused, so it can never be certified', async () => {
+    const batch = await recordedBatch();
+    const { exp, bundle } = await exportOf(batch);
+    const records = (bundle.parts['records.json'] as string).replace('12.50 kg', '12.60 kg');
+    // Altered under the genuine manifest: the part no longer matches the manifest's SHA-256.
+    const tampered: TrueCopyBundle = { ...bundle, parts: { ...bundle.parts, 'records.json': records } };
+    const pdf = await renderTrueCopyPdf(bundle, { title: 't', label: 'l' });
+    const assemble = (b: TrueCopyBundle) =>
+      assembleEvidenceExport({
+        subject: { type: 'batch', id: batch, label: 'Batch tampered' },
+        generatedAt: '2026-10-12T00:00:00.000000Z',
+        bundles: [{ name: 'batch-record', title: 'Batch record', bundle: b }],
+        pdfs: [{ name: 'batch-record-pdf', title: 'PDF', chainKey: `batch:${batch}`, pdf: pdf.pdf, contentSha256: pdf.contentSha256 }],
+        documents: [],
+      });
+    await expectRefused(run(qa, (c) => registerEvidenceExport(c, assemble(tampered))), 'EBMR-REC-128', /records.json does not match/);
+    // A manifest made for the altered part and registered as a true copy: the rows are not the stored rows.
+    const m = JSON.parse(bundle.manifest) as { parts: { name: string; sha256: string; bytes: number }[] };
+    m.parts = m.parts.map((x) => (x.name === 'records.json' ? { ...x, sha256: createHash('sha256').update(records).digest('hex'), bytes: Buffer.byteLength(records) } : x));
+    const manifest = JSON.stringify(m, null, 2);
+    const forged: TrueCopyBundle = { ...tampered, manifest, manifestSha256: createHash('sha256').update(manifest).digest('hex') };
+    await run(qa, (c) => registerTrueCopy(c, forged, 'forged'));
+    await expectRefused(run(qa, (c) => registerEvidenceExport(c, assemble(forged))), 'EBMR-REC-128', /not the stored rows/);
+    // The genuine export registers and is certified.
+    const id = await run(qa, (c) => registerEvidenceExport(c, exp));
+    const sig = await signFor(db, qa2, { type: 'evidence_export', id }, 'EVIDENCE_EXPORT_CERTIFIED', 'ASSEMBLED');
+    await run(qa2, (c) => certifyEvidenceExport(c, id, sig));
+  });
+
+  it('[IN-11][DI-41] a PDF without the audit trail, or whose content SHA-256 is not its bundle\'s, is refused', async () => {
+    const batch = await recordedBatch();
+    const bundle = await copyOf(batch);
+    await run(qa, (c) => registerTrueCopy(c, bundle, 'evidence export'));
+    const content = trueCopyContent(bundle);
+    const noTrail = await renderPdfA3({
+      title: 't', subject: 's', recordDate: content.content.recordDate, contentSha256: content.sha256, integrityClause: 'c', sections: [],
+      attachments: [
+        { name: 'content.json', mediaType: 'application/json', relationship: 'Data', description: 'd', text: content.text },
+        { name: 'records.json', mediaType: 'application/json', relationship: 'Source', description: 'd', text: content.records },
+      ],
+    });
+    const otherPdf = await renderTrueCopyPdf(await copyOf(await recordedBatch()), { title: 't', label: 'l' });
+    const assemble = (pdf: Uint8Array, contentSha256: string) =>
+      assembleEvidenceExport({
+        subject: { type: 'batch', id: batch, label: 'Batch PDF' },
+        generatedAt: '2026-10-12T00:00:00.000000Z',
+        bundles: [{ name: 'batch-record', title: 'Batch record', bundle }],
+        pdfs: [{ name: 'batch-record-pdf', title: 'PDF', chainKey: `batch:${batch}`, pdf, contentSha256 }],
+        documents: [],
+      });
+    await expectRefused(run(qa, (c) => registerEvidenceExport(c, assemble(noTrail, content.sha256))), 'EBMR-REC-129', /audit trail/);
+    await expectRefused(run(qa, (c) => registerEvidenceExport(c, assemble(otherPdf.pdf, otherPdf.contentSha256))), 'EBMR-REC-129', /not the one of the true copy/);
+    const good = await renderTrueCopyPdf(bundle, { title: 't', label: 'l' });
+    expect(await run(qa, (c) => registerEvidenceExport(c, assemble(good.pdf, good.contentSha256)))).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('[DI-40][DI-18] an administrator does not read the inspection workspace (refused before the permission check)', async () => {
+    const admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR' });
+    await expectRefused(withCommand(db.app, admin, (c) => readEvidenceExport(c, randomUUID())), 'EBMR-IAM-042');
   });
 });

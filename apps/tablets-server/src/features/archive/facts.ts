@@ -3,7 +3,8 @@
  * (kernel records/batch-retention.ts) read from the batch's record: the issue date in the site's zone, the market set,
  * the latest expiry of the lots made from it, the EU disposition of those lots and the abort or cancellation date.
  *
- * D-6b-2: the licence form is FORM_25 (a manufacturing licence) until the licence register of slice 6a is read here (lead).
+ * The licence form is the one of the licence basis recorded at the batch's issue (recipe.batch_licence_basis, slice 6a:
+ * basis.form 25 or 25A is FORM_25, 28 or 28A is FORM_28); none recorded (a batch issued before 6a): no licence rule.
  * D-6b-3: the EU state is CERTIFIED when a lot of the batch has a QP certification (the latest date), FINALLY_REJECTED when
  * the QP rejected it or its EU disposition is REJECTED or INELIGIBLE (the date of that event), else PENDING.
  */
@@ -32,8 +33,14 @@ interface Row {
   abort_date: string | null;
   eu_certified: string | null;
   eu_rejected: string | null;
+  licence_form: string | null;
   packed_from: string[] | null;
   packed_into: string[] | null;
+}
+
+/** The retention engine's licence form of a recorded licence basis form (Drugs Rules Form 25/25A or 28/28A), or null. */
+export function licenceFormOf(form: string | null | undefined): 'FORM_25' | 'FORM_28' | null {
+  return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
 }
 
 export async function batchFacts(db: Db, batchId: string): Promise<BatchFacts | null> {
@@ -53,6 +60,7 @@ export async function batchFacts(db: Db, batchId: string): Promise<BatchFacts | 
                 union all
                 select ev.recorded_at from recipe.market_disposition_event ev join lots on lots.lot_id = ev.lot_id
                  where ev.market = 'EU' and recipe.disposition_state(ev.lot_id, 'EU') in ('REJECTED', 'INELIGIBLE')) x) as eu_rejected,
+            (select lb.basis ->> 'form' from recipe.batch_licence_basis lb where lb.batch_id = b.id) as licence_form,
             (select array_agg(distinct x::text) from lots, unnest(lots.batches) x where lots.batches[1] = b.id and x <> b.id) as packed_from,
             (select array_agg(distinct lots.batches[1]::text) from lots where lots.batches[1] <> b.id) as packed_into
        from b left join recipe.execution_state s on s.batch_id = b.id`,
@@ -81,7 +89,7 @@ export async function batchFacts(db: Db, batchId: string): Promise<BatchFacts | 
     dependsOn: (r.packed_from ?? []).filter((x) => x !== batchId),
     retention: {
       markets,
-      licenceForm: 'FORM_25',
+      licenceForm: licenceFormOf(r.licence_form),
       manufactureDate: r.manufacture_date,
       expiryDate: r.expiry_date,
       outcome,

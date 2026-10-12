@@ -101,7 +101,8 @@ export async function retentionView(app: AppContext, db: Db, f: BatchFacts): Pro
       if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
     }
   } else {
-    const own = (await db.query<{ o: OwnJson }>('select records.evaluate_retention($1::jsonb) as o', [JSON.stringify(inputs)])).rows[0]?.o;
+    // The engine evaluates the rules of the record's retention key (a batch record's), as it does for a stored schedule.
+    const own = (await db.query<{ o: OwnJson }>('select records.evaluate_retention($1::jsonb) as o', [JSON.stringify({ ...inputs, retentionKey: 'BATCH_RECORD' })])).rows[0]?.o;
     if (!own) throw new Error('retention was not evaluated');
     status = own.status === 'DATED' ? 'DATED' : 'OPEN';
     retainUntil = own.status === 'DATED' ? own.retainUntil : null;
