@@ -585,3 +585,152 @@ describe('the correction of a loop reading (plan open question 1, default: count
     expect(await problem(correction({}), loop('EXIT'))).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// Slice 1 quick review: regressions of findings 1 to 6 (recipe-core 0719 to 0721)
+// ---------------------------------------------------------------------------------------------
+
+/** A fixture written past the definers by the test (an actor context for the audit; triggers and keys skipped). */
+async function fixture(statements: { text: string; params: unknown[] }[]): Promise<void> {
+  const fx = await db.admin.connect();
+  try {
+    await fx.query('begin');
+    await fx.query("set local session_replication_role = 'replica'");
+    await fx.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify({
+      person_id: '00000000-0000-0000-0000-000000000000', account_id: '00000000-0000-0000-0000-000000000000', role_code: 'TEST_FIXTURE',
+      session_id: '00000000-0000-0000-0000-000000000000', source: 'SYSTEM', site_zone: 'UTC', correlation_id: randomUUID(), legal_name: 'Test fixture',
+      reason_code: 'TEST_FIXTURE', reason_text: 'review regression fixture' })]);
+    for (const s of statements) await fx.query(s.text, s.params);
+    await fx.query('commit');
+  } finally {
+    fx.release();
+  }
+}
+
+/** An audit event on `chain` recorded by the test (a change of a record the batch relied on). */
+async function auditEventOn(chain: string): Promise<void> {
+  const fx = await db.admin.connect();
+  try {
+    await fx.query('begin');
+    await fx.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify({
+      person_id: '00000000-0000-0000-0000-000000000000', account_id: '00000000-0000-0000-0000-000000000000', role_code: 'TEST_FIXTURE',
+      session_id: '00000000-0000-0000-0000-000000000000', source: 'SYSTEM', site_zone: 'UTC', correlation_id: randomUUID(), legal_name: 'Test fixture',
+      reason_code: 'TEST_FIXTURE', reason_text: 'a change of a record in scope' })]);
+    await fx.query("select kernel.audit_business_event($1, 'a change recorded by the test', '{}'::jsonb)", [chain]);
+    await fx.query('commit');
+  } finally {
+    fx.release();
+  }
+}
+
+async function withRole(actor: SeededActor, roleCode: string): Promise<SeededActor> {
+  const { admin, owner } = await seedAdministration(db);
+  const grant = await withCommand(db.app, withReason(admin), (c) => requestRoleGrant(c, { accountId: actor.accountId, roleCode, scope: {}, reason: 'second role for the test' }));
+  await withCommand(db.app, withReason(owner), (c) => decideRoleGrant(c, grant, true, 'approved for test'));
+  return { ...actor, roleCode };
+}
+
+describe('slice 1 quick review regressions (recipe-core 0719 to 0721)', () => {
+  it('[INV-35] container work counts in the involvement set: the person who opened a container of the batch cannot sign its audit-trail review', async () => {
+    const b = await issuedBatch();
+    const opener = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Kavya Container', roomCode: 'DISP-01' });
+    const c = await w.run(opener, async (x) => (await x.query<{ r: { container_id: string } }>("select plant.open_container($1, 'GRANULATION', 'kg') as r", [b.batchId])).rows[0]!.r.container_id);
+    const ex = await raise(b, 'Container label reprinted');
+    await disposition(b, ex);
+    await complete(b);
+    await approve(b);
+    const involved = (await db.app.query<{ p: string[] }>('select recipe.batch_involvement($1) as p', [b.batchId])).rows[0]!.p;
+    expect(involved).toContain(opener.personId);
+    expect((await db.app.query<{ k: string[] }>('select array_agg(chain_key) as k from recipe.audit_review_scope_chains($1)', [b.batchId])).rows[0]!.k).toContain(`output_container:${c}`);
+    const reviewer = await withRole(opener, 'QA_REVIEWER');
+    expect(await codeOf(w.sign(reviewer, 'batch_audit_review', await nextReviewId(b), 'AUDIT_TRAIL_REVIEWED', 'PRODUCTION_APPROVED'))).toBe('EBMR-ESIG-045');
+  });
+
+  it('[INV-30][INV-48] a QA review evaluated before a new OOS result on a lot the batch consumed is refused: the result bumps the batch epoch', async () => {
+    const { b, ex } = await approvedBatch();
+    await w.run(qaReviewer2, (c) => c.query('select recipe.show_review_register($1)', [b.batchId]));
+    await dispose(b, qaReviewer2, 'ACCEPT', [ex], null);
+    await auditReview(b);
+    const lotId = randomUUID();
+    const resId = randomUUID();
+    const material = 'API-FX';
+    await fixture([
+      { text: `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at,
+                                              received_by_person, received_by_account, correlation_id)
+               values ($1, 'SITE-1', $2, $3, 'Fixture API', 'API', 10, 'kg', '2030-01-01T00:00:00Z', $4, $4, $4)`, params: [lotId, `L-${lotId.slice(0, 8).toUpperCase()}`, material, randomUUID()] },
+      { text: `insert into site.lot_reservation (id, lot_id, batch_id, batch_number, edition, quantity, unit, expires_at, lot_state_version, reserved_by_person, reserved_by_account)
+               select $1, $2, b.id, b.batch_number, 'TABLETS', 1, 'kg', now() + interval '1 day', 2, $3, $3 from recipe.batch_execution b where b.id = $4`, params: [resId, lotId, randomUUID(), b.batchId] },
+      { text: `insert into site.lot_consumption (lot_id, reservation_id, batch_id, batch_number, edition, material_code, quantity, unit, quantity_before, quantity_after, market_set,
+                                                 identity_basis, consumed_by_person, consumed_by_account, xact_id)
+               select $1, $2, b.id, b.batch_number, 'TABLETS', $3, 1, 'kg', 10, 9, b.market_set, 'IDENTITY_RESULT', $4, $4, txid_current() from recipe.batch_execution b where b.id = $5`,
+        params: [lotId, resId, material, randomUUID(), b.batchId] },
+    ]);
+    const seen = await epoch(b);
+    const sig = await w.sign(qaReviewer2, 'batch_review', b.batchId, 'QA_REVIEWED', 'PRODUCTION_APPROVED');
+    const analyst = await seedActor(db, { roleCode: 'QC_ANALYST', legalName: 'Anu Analyst' });
+    await w.run(analyst, (c) =>
+      c.query('select site.record_lot_test_result($1, $2::jsonb)', [lotId, JSON.stringify({ testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose: 'RELEASE', value: '91.0', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' })]),
+    );
+    expect(BigInt(await epoch(b))).toBeGreaterThan(BigInt(seen));
+    expect(await codeOf(w.run(qaReviewer2, (c) => c.query('select recipe.record_qa_review($1, $2, $3)', [b.batchId, sig, seen])))).toMatch(/EBMR-REV-02[01]/);
+    expect(await state(b)).toBe('PRODUCTION_APPROVED');
+  });
+
+  it('[INV-48][DI-25] an audit event on a shared record after the batch was completed neither bumps its epoch nor blocks its QA review; one on the batch chain does both', async () => {
+    const { b, ex } = await approvedBatch();
+    await w.run(qaReviewer2, (c) => c.query('select recipe.show_review_register($1)', [b.batchId]));
+    await dispose(b, qaReviewer2, 'ACCEPT', [ex], null);
+    await auditReview(b);
+    const before = await epoch(b);
+    await auditEventOn(`person:${operator.personId}`);
+    expect(await epoch(b)).toBe(before);
+    expect(await problems(b, 'QA_REVIEW')).toEqual([]);
+    await auditEventOn(`batch:${b.batchId}`);
+    expect(BigInt(await epoch(b))).toBeGreaterThan(BigInt(before));
+    expect((await problems(b, 'QA_REVIEW')).join(' ')).toMatch(/a delta review is due \(INV-48\)/);
+  });
+
+  it('[INV-48] the recorded high-water mark and report hash are those of the signed content', async () => {
+    const { b } = await approvedBatch();
+    const id = await nextReviewId(b);
+    const sig = await auditReview(b);
+    const { rows } = await db.admin.query<{ hw: unknown; rh: string; signed: string; content: { high_water: unknown; report_hash: string } }>(
+      `select a.high_water as hw, a.report_hash as rh, esig.signature_state($2) ->> 'content_hash' as signed, esig.provide('batch_audit_review', $3) -> 'content' as content
+         from recipe.batch_review_act a where a.signature_id = $2 and a.batch_id = $1`,
+      [b.batchId, sig, id],
+    );
+    expect(rows[0]!.hw).toEqual(rows[0]!.content.high_water);
+    expect(rows[0]!.rh).toBe(rows[0]!.content.report_hash);
+    expect(await valid(sig)).toBe(true);
+  });
+
+  it('[PR-52][DI-26] a reopen supersedes the item dispositions of the closed cycle: the item is open again and is dispositioned again in the new cycle', async () => {
+    const { b, ex } = await approvedBatch();
+    await w.run(qaReviewer2, (c) => c.query('select recipe.show_review_register($1)', [b.batchId]));
+    const accepted = await dispose(b, qaReviewer2, 'ACCEPT', [ex], null);
+    expect((await db.app.query<{ s: string }>('select recipe.review_item_status($1, $2) as s', [b.batchId, ex])).rows[0]!.s).toBe('ACCEPTED');
+    const reopen = await w.sign(qaReviewer, 'batch_review_reopen', `${b.batchId}/1`, 'REVIEW_REOPENED', 'PRODUCTION_APPROVED');
+    await w.run(qaReviewer, (c) => c.query('select recipe.reopen_review($1, $2, $3)', [b.batchId, reopen, 'Reviewed again after a correction']));
+    expect(await valid(accepted)).toBe(false);
+    expect((await db.app.query<{ s: string }>('select recipe.review_item_status($1, $2) as s', [b.batchId, ex])).rows[0]!.s).toBe('OPEN');
+    await approve(b, head2);
+    await dispose(b, qaReviewer2, 'ACCEPT', [ex], 'Accepted again in the new cycle');
+    expect((await db.app.query<{ s: string }>('select recipe.review_item_status($1, $2) as s', [b.batchId, ex])).rows[0]!.s).toBe('ACCEPTED');
+  });
+
+  it('[PR-52][DI-26][DI-34] on a GMP batch an unsigned escalation is refused, a query waits for the QA review, an escalation stands only while its deviation is linked, and a critical item is escalated only after its detail was opened', async () => {
+    const b = await issuedBatch();
+    const ex = await raise(b, 'Seal checked late');
+    expect(await codeOf(w.run(qaReviewer, (c) => c.query("select recipe.review_exception($1, $2, 'QUERIED', 'Why late?', null)", [b.batchId, ex])))).toBe('EBMR-REV-065');
+    const dev = await deviation(b.batchId);
+    expect(await codeOf(w.run(qaReviewer, (c) => c.query("select recipe.review_exception($1, $2, 'ESCALATED', 'Repeat', $3)", [b.batchId, ex, dev.ref])))).toBe('EBMR-REV-059');
+    await disposition(b, ex);
+    await complete(b);
+    await approve(b);
+    await dispose(b, qaReviewer, 'ESCALATE', [ex], 'Repeat event: impact assessment', dev.ref);
+    await auditReview(b, qaReviewer2);
+    expect(await problems(b, 'QA_REVIEW')).toEqual([]);
+    await w.run(qaReviewer2, (c) => c.query('select site.cancel_deviation($1, $2)', [dev.deviationId, 'raised twice']));
+    expect((await problems(b, 'QA_REVIEW')).join(' ')).toMatch(/escalated to a deviation that is not linked to the batch/);
+  });
+});

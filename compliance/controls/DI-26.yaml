@@ -96,6 +96,8 @@ tests:
   - "packages/recipe-core/test/review/review.test.ts > the exception register in QA review (outline 7.3; PR-52, DI-26) > [PR-52][DI-26] grouped acceptance takes non-critical items sharing one deviation, after the full list was shown, with one justification; each item gets its own row; a critical item is accepted alone, after its detail was opened, with a justification"
   - "packages/recipe-core/test/review/review.test.ts > the exception register in QA review (outline 7.3; PR-52, DI-26) > [PR-52][DI-26] a person who dispositioned an item cannot conclude it in review, and an escalation names a deviation linked to the batch"
   - "packages/recipe-core/test/review/review.test.ts > the evidence epoch (plan interface; write after evaluation) > [INV-30][DI-26] the QA review names the evidence epoch it evaluated: a deviation linked to the batch after the evaluation refuses it; reloaded, it is recorded"
+  - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26] a reopen supersedes the item dispositions of the closed cycle: the item is open again and is dispositioned again in the new cycle"
+  - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26][DI-34] on a GMP batch an unsigned escalation is refused, a query waits for the QA review, an escalation stands only while its deviation is linked, and a critical item is escalated only after its detail was opened"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

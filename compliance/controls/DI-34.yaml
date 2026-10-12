@@ -391,6 +391,7 @@ tests:
   - "packages/recipe-core/test/engine/approvals-edges.test.ts > abort approvals > [DI-34][PR-13] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once"
   - "packages/recipe-core/test/engine/hand-over.test.ts > hand-over of a step in progress (L-07) > [PR-14][DI-34] once taken over, a step is handed over by any performer still on it, not only by the last incoming one (mutation follow-up)"
   - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [DI-34] a disposition before the review is complete is refused: the review gate names the missing review until QA_REVIEWED, and QA cannot conclude an item before production approval nor accept one unsigned"
+  - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26][DI-34] on a GMP batch an unsigned escalation is refused, a query waits for the QA review, an escalation stands only while its deviation is linked, and a critical item is escalated only after its detail was opened"
 clauses:
   - clause: "Try step N+1 before step N. Blocked."
     tests:
