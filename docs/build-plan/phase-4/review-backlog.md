@@ -52,6 +52,19 @@ Backlog:
   reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
   declared immutable but calls recipe functions.
 
+## Slice 3c open items (builder report, 12 October 2026)
+
+- Residual (lead's decision, option b): the `--gmp-packaging` demo seed keeps its labelled DEMO SHORTCUT for the bulk
+  parent's H-PACK (behind the two-step demo gate). A real H-PACK through the routes needs a valid GMP master run to its
+  end: the designer gate requires every BOM line consumed, a clearance and a yield per material stage (GMP-BOM-CONSUMED,
+  GMP-STAGE-CLEARANCE, GMP-STAGE-YIELD), and the ERP order needs at least one BOM line matching the master exactly
+  (recipe-core 0602), so a short "hold point only" master is refused. GB-T-01 proves the real path (golden batch
+  `stages.ts`); the slice 7 golden batch GB-T-02, which runs to release, gives the e2e packaging demo a real parent.
+- Residual (lead's decision): the release e2e covers the flow up to a signed REJECTION of a NOT_READY lot (queue, red
+  and green items with evidence, since-review acknowledgement where one exists, the signed rejection, both departments
+  notified and acknowledging). The green-items release path in the browser waits for GB-T-02 (slice 7); it is proven
+  in the database (recipe-core release tests) and on the contract examples (web tests).
+
 ## Slice 3b open items (builder report, 12 October 2026)
 
 - `since_review` is false on every Tablets edition item until slice 3a's epoch comparison feeds it.

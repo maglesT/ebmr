@@ -1,0 +1,22 @@
+{
+  "list": {
+    "departments": ["QA"],
+    "notifications": [
+      {
+        "notificationId": "0b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e",
+        "department": "QA",
+        "event": "MANUFACTURER_RELEASED",
+        "subjectKind": "FINISHED_LOT",
+        "subjectId": "d4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70",
+        "subjectLabel": "GBT01 500 mg P26-0001 (lot P26-0001)",
+        "message": "GBT01 500 mg P26-0001 (lot P26-0001) was released by the manufacturer by Shalini Kapoor (Authorised person).",
+        "signatureId": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+        "by": { "personId": "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a", "legalName": "Shalini Kapoor", "loginName": "shalini.kapoor", "role": "AUTHORISED_PERSON" },
+        "at": { "us": "1791800000000000", "text": "12-OCT-2026 14:13:20 +05:30 (Asia/Kolkata)" },
+        "acknowledgements": [],
+        "acknowledgedByMe": false,
+        "mayAcknowledge": true
+      }
+    ]
+  }
+}

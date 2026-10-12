@@ -50,6 +50,7 @@ import pk from '../fixtures/packaging.json' with { type: 'json' };
 import dv from '../fixtures/deviation.json' with { type: 'json' };
 import lm from '../fixtures/lims.json' with { type: 'json' };
 import rl from '../fixtures/release.json' with { type: 'json' };
+import nt from '../fixtures/notifications.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -261,6 +262,9 @@ export const EXAMPLES = {
   'release-lot-released': { schema: r.release.lot.response, data: rl.released },
   'release-grel': { schema: r.release.grel.response, data: rl.grel, routeId: r.release.grel.id },
   'release-acknowledge': { schema: r.release.acknowledge.response, data: rl.grel, routeId: r.release.acknowledge.id },
+  // Phase 4 slice 3c: the notification centre (IN-39 clause 2).
+  'notifications-list': { schema: r.notifications.list.response, data: nt.list, routeId: r.notifications.list.id },
+  'notifications-acknowledge': { schema: r.notifications.acknowledge.response, data: nt.list.notifications[0], routeId: r.notifications.acknowledge.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 4 slice 3: the release routes, each with an example above (checked by the contract test). */
