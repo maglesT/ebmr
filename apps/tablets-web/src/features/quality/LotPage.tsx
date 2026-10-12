@@ -56,12 +56,8 @@ export function LotPage() {
             submitLabel="Record the result"
             fields={[
               { name: 'testCode', label: 'Test code', kind: 'text' },
-              { name: 'methodReference', label: 'Method reference', kind: 'text' },
               { name: 'purpose', label: 'Purpose', kind: 'choice', options: ['RELEASE', 'RETEST'] },
               { name: 'value', label: 'Value', kind: 'decimal' },
-              { name: 'unit', label: 'Unit', kind: 'text' },
-              { name: 'lowerLimit', label: 'Lower limit', kind: 'decimal', optional: true },
-              { name: 'upperLimit', label: 'Upper limit', kind: 'decimal', optional: true },
             ]}
           />
         ) : null}

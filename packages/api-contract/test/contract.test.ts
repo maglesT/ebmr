@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -210,7 +210,8 @@ describe('route table', () => {
       'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
-      'quality.registerEvidenceDocument',
+      'quality.registerEvidenceDocument', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
+      'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
     ]);
     for (const r of fresh) {
       expect(r.auth, r.id).toBe('SESSION');
@@ -241,6 +242,23 @@ describe('route table', () => {
       expect(exampled.has(id), `${id} has an example`).toBe(true);
       expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
     }
+  });
+
+  it('[IN-33] the specifications and samples namespaces (Phase 4 slice 2b) are GMP only, reads plain and commands FRESH_ON_SHARED, each route with an example; a result names no limits and a specification test cites its pharmacopoeia and edition', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of LIMS_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of [...Object.values(routes.specifications), ...Object.values(routes.samples)]) {
+      expect(r.installation, r.id).toBe('GMP');
+      expect(r.attribution === 'FRESH_ON_SHARED', r.id).toBe(r.mutating);
+    }
+    const result = routes.quality.recordLotResult.body;
+    expect(result?.safeParse({ testCode: 'ASSAY', purpose: 'RELEASE', value: '99.1' }).success).toBe(true);
+    expect(result?.safeParse({ testCode: 'ASSAY', purpose: 'RELEASE', value: '99.1', lowerLimit: '98.0' }).success).toBe(false);
+    const test = { testCode: 'ASSAY', methodReference: 'STP-1', unit: '%', lowerLimit: '98.0', required: true, pharmacopoeia: 'IP', edition: '2022', sampleQuantity: '0.05', sampleUnit: 'kg' };
+    const draft = routes.specifications.draft.body;
+    expect(draft?.safeParse({ materialCode: 'MAT-1', title: 't', monographReference: 'm', tests: [test] }).success).toBe(true);
+    expect(draft?.safeParse({ materialCode: 'MAT-1', title: 't', monographReference: 'm', tests: [{ ...test, edition: undefined }] }).success).toBe(false);
+    expect(draft?.safeParse({ materialCode: 'MAT-1', title: 't', monographReference: 'm', tests: [{ ...test, pharmacopoeia: 'JP' }] }).success).toBe(false);
   });
 
   it('[DI-30][DI-31] the containers namespace (Phase 4 slice 1b) is GMP only, reads plain and commands FRESH_ON_SHARED, each route with an example; a close is weighed or typed, never both; CONTAINER_ACT signs a net check or a release', () => {

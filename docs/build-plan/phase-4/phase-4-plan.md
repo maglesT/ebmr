@@ -122,6 +122,25 @@ below; each builder ticks them off there.
   (IN-05 (a), PR-45); lot events HOLD, UNHOLD, RETURN, RECALL over HTTP with the propose step (D-P4-3); returned
   products (PR-48); reserve and retention samples (PR-44, IN-32); a reel or lot quarantined mid-run caught at the next
   entry (tablets guard, backlog 4b).
+  Built in site-services 0840 to 0843 and tablets 1150, 1151 (codes EBMR-SITE-400 to 434, EBMR-TAB-850 to 853; contract
+  namespaces `specifications` and `samples`, signable LIMS_ACT, LOT_DECISION HOLD/UNHOLD/RETURN/RECALL). Defaults taken:
+  - **D-2b-1** A specification is per site and material code; a finished product's uses its product code (its finished
+    lots carry that code). Only the approved version with the highest number is in effect; an older one is never approved.
+  - **D-2b-2** Every limit cites IP, BP, PH_EUR, USP or IN_HOUSE and an edition (in-house: the document version). The
+    edition review lists specifications only; MBR IPC limits citing an edition (recipe-core) are a residual.
+  - **D-2b-3** Every revision of a RELEASE result cites an OOS record of the lot, and a revised failing result blocks the
+    release until that record concludes a confirmed laboratory error (IN-20, as an approved failure). Extra tests QC
+    decides must be tests of the lot's specification (optional ones allowed); a later decision only adds tests.
+  - **D-2b-4** Reserve samples: several pulls may make up the reserve; the required quantity is twice the sample
+    quantities of all tests (sterility and pyrogen not left out); kept until the latest over the batch's markets of India
+    expiry + 3 months and US or EU expiry + 1 year.
+  - **D-2b-5** Starting materials keep a retention sample until their expiry + 1 year ("1 year after the last product lot
+    containing it" needs the slice 7 trace: residual); the US annual visual examination task is a residual.
+  - **D-2b-6** A finished lot is posted by the warehouse (MATERIAL.HANDLE) from a PACKAGING order in EXECUTION_COMPLETE,
+    lot code = batch number, expiry from the processing batch it packs (capped for recovered material); its quantity is
+    the count received (reconciliation with TB-24 is the release model's). Returned goods are a lot of kind RETURNED that
+    leaves quarantine only by rejection after QC's signed assessment chose destruction or chemical recovery; return to
+    stock and the chemical recovery act wait for the release model and reprocessing (residual).
 - **2c, planning and screens** (recipe-core 0760 to 0769, `apps/tablets-server/src/features/planning/**`,
   `apps/tablets-web/**`): HTTP route to plan a packaging order and the bulk-issue screen (exit residual); pack type
   in the packaging family's identity (D-P4-13); a PACKAGING order whose MBR has no TB-24 refused; prepare_gmp_issue

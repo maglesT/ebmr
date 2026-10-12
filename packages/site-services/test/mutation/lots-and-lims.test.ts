@@ -103,7 +103,7 @@ describe('lots: each refusal on its own (site services 0712)', () => {
 });
 
 describe('LIMS: results and their approval (site services 0740)', () => {
-  const RESULT = { testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose: 'RELEASE', value: '97.0', unit: '%', lowerLimit: '98.0', upperLimit: '102.0' };
+  const RESULT = { testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose: 'RELEASE', value: '97.0', unit: '%' };
   const record = (lotId: string, p: unknown) =>
     w.run(w.cast.analyst, async (c) => (await c.query<{ r: { resultId: string } }>('select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, p === null ? null : JSON.stringify(p)])).rows[0]?.r.resultId ?? '');
 

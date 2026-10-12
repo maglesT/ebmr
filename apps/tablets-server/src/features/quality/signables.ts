@@ -15,6 +15,8 @@
  *                                     (site-services 0762: the signed content binds the new instant and the results)
  *   LOT_DECISION RELEASE              material_lot <id>           MATERIAL_LOT_RELEASED    site.change_lot_status
  *                REJECT               material_lot <id>           MATERIAL_LOT_REJECTED from every state (the lot's machine)
+ *                HOLD, UNHOLD, RETURN, RECALL  material_lot <id>  MATERIAL_LOT_STATUS_DECIDED over the proposed decision
+ *                                     (site-services 0800; proposed first over HTTP, specifications.proposeLotDecision)
  *   REPROCESSING_ACT RESERVE_RESIDUE  output_container <id>       RESIDUE_RESERVED         recipe.reserve_residue
  *                AUTHORISE_ADDITION   reprocessing_authorisation  REPROCESSING_AUTHORISED  recipe.authorise_reprocessing
  *                AUTHORISE_REQUEST    reprocessing_request        REPROCESSING_AUTHORISED  recipe.authorise_reprocessing_request
@@ -156,8 +158,12 @@ async function lotState(db: pg.Pool | pg.PoolClient, lotId: string): Promise<{ s
   return rows[0] ?? null;
 }
 
-/** The lot's machine (site-services 0711): a release is MATERIAL_LOT_RELEASED, a rejection MATERIAL_LOT_REJECTED from every state. */
-const lotMeaning = (a: LotDecision): string => (a.decision === 'RELEASE' ? 'MATERIAL_LOT_RELEASED' : 'MATERIAL_LOT_REJECTED');
+/**
+ * The lot's machine (site-services 0711): a release is MATERIAL_LOT_RELEASED, a rejection MATERIAL_LOT_REJECTED from every
+ * state; HOLD, UNHOLD, RETURN and RECALL are MATERIAL_LOT_STATUS_DECIDED over the decision QA proposed (0800; D-P4-3).
+ */
+const lotMeaning = (a: LotDecision): string =>
+  a.decision === 'RELEASE' ? 'MATERIAL_LOT_RELEASED' : a.decision === 'REJECT' ? 'MATERIAL_LOT_REJECTED' : 'MATERIAL_LOT_STATUS_DECIDED';
 
 export function lotDecisionHandler(app: AppContext): SignableActionHandler<LotDecision> {
   return dbActHandler<LotDecision>(app, {

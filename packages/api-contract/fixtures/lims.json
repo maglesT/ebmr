@@ -1,0 +1,172 @@
+{
+  "specification": {
+    "specificationId": "6c2f4d3e-5a7b-4c8d-9e0f-1a2b3c4d5e61",
+    "siteCode": "SITE-1",
+    "materialCode": "MAT-EXZ-NA",
+    "version": 1,
+    "title": "Exemplazole sodium",
+    "monographReference": "IP 2022 monograph",
+    "state": "APPROVED",
+    "tests": [
+      {
+        "testCode": "ASSAY",
+        "methodReference": "STP-EXZ-AS-01",
+        "unit": "%",
+        "lowerLimit": "98.0",
+        "upperLimit": "102.0",
+        "required": true,
+        "pharmacopoeia": "IP",
+        "edition": "2022",
+        "sampleQuantity": "0.050",
+        "sampleUnit": "kg"
+      },
+      {
+        "testCode": "WATER",
+        "methodReference": "STP-KF-01",
+        "unit": "%",
+        "lowerLimit": null,
+        "upperLimit": "1.5",
+        "required": true,
+        "pharmacopoeia": "IP",
+        "edition": "2022",
+        "sampleQuantity": "0.050",
+        "sampleUnit": "kg"
+      }
+    ],
+    "draftedBy": {
+      "personId": "5b1e3c2d-4f6a-4b7c-8d9e-0a1b2c3d4e51",
+      "legalName": "Sunita Bose",
+      "loginName": "sunita.bose",
+      "role": "DRAFTER"
+    },
+    "draftedAt": {
+      "us": "1791000000000000",
+      "text": "05-OCT-2026 10:40 IST"
+    },
+    "approvedBy": {
+      "personId": "5b1e3c2d-4f6a-4b7c-8d9e-0a1b2c3d4e52",
+      "legalName": "Karan Malhotra",
+      "loginName": "karan.malhotra",
+      "role": "APPROVER"
+    },
+    "approvedAt": {
+      "us": "1791003600000000",
+      "text": "05-OCT-2026 11:40 IST"
+    }
+  },
+  "sample": {
+    "sampleId": "7d3a5e4f-6b8c-4d9e-8f0a-2b3c4d5e6f71",
+    "lotId": "8e4b6f5a-7c9d-4e0f-9a1b-3c4d5e6f7a81",
+    "kind": "RESERVE",
+    "quantity": "120",
+    "unit": "units",
+    "requiredQuantity": "88",
+    "container": "Marketed blister in carton",
+    "storageLocation": "Reserve room R-2, shelf 4",
+    "retainUntil": {
+      "us": "1909000000000000",
+      "text": "30-JUN-2030 23:59 IST"
+    },
+    "pulledBy": {
+      "personId": "5b1e3c2d-4f6a-4b7c-8d9e-0a1b2c3d4e51",
+      "legalName": "Sunita Bose",
+      "loginName": "sunita.bose",
+      "role": "SAMPLER"
+    },
+    "pulledAt": {
+      "us": "1791090000000000",
+      "text": "06-OCT-2026 11:00 IST"
+    },
+    "disposedBy": null,
+    "disposedAt": null,
+    "disposalReason": null
+  },
+  "return": {
+    "lotId": "9f5c7a6b-8d0e-4f1a-8b2c-4d5e6f7a8b91",
+    "lotCode": "G2600012-R1",
+    "status": "QUARANTINE",
+    "originalLotId": "8e4b6f5a-7c9d-4e0f-9a1b-3c4d5e6f7a81",
+    "originalLotCode": "G2600012",
+    "productCode": "PCM500",
+    "quantity": "200",
+    "unit": "units",
+    "reason": "Wet cartons at the stockist",
+    "returnedFrom": "Stockist Nagpur",
+    "receivedBy": {
+      "personId": "5b1e3c2d-4f6a-4b7c-8d9e-0a1b2c3d4e53",
+      "legalName": "Ramesh Iyer",
+      "loginName": "ramesh.iyer",
+      "role": "RECEIVER"
+    },
+    "receivedAt": {
+      "us": "1791180000000000",
+      "text": "07-OCT-2026 12:00 IST"
+    },
+    "assessment": {
+      "assessmentId": "0a6d8b7c-9e1f-4a2b-9c3d-5e6f7a8b9c01",
+      "nature": "Uncoated tablets in blisters",
+      "storage": "Below 30 C, dry",
+      "conditionHistory": "Cartons wet; blisters intact",
+      "timeSinceIssue": "2 months",
+      "doubt": true,
+      "implicatesOtherBatches": false,
+      "investigationId": null,
+      "disposition": "DESTROY",
+      "recordedBy": {
+        "personId": "5b1e3c2d-4f6a-4b7c-8d9e-0a1b2c3d4e52",
+        "legalName": "Karan Malhotra",
+        "loginName": "karan.malhotra",
+        "role": "QC_ASSESSOR"
+      },
+      "recordedAt": {
+        "us": "1791190000000000",
+        "text": "07-OCT-2026 14:46 IST"
+      },
+      "signed": true
+    }
+  },
+  "editionReview": {
+    "items": [
+      {
+        "specificationId": "6c2f4d3e-5a7b-4c8d-9e0f-1a2b3c4d5e61",
+        "siteCode": "SITE-1",
+        "materialCode": "MAT-EXZ-NA",
+        "version": 1,
+        "testCode": "ASSAY",
+        "pharmacopoeia": "IP",
+        "cited": "2022",
+        "effective": "2026"
+      }
+    ]
+  },
+  "releaseCheck": {
+    "lotId": "1b7e9c8d-0f2a-4b3c-8d4e-6f7a8b9c0d11",
+    "specificationId": "6c2f4d3e-5a7b-4c8d-9e0f-1a2b3c4d5e61",
+    "limsProblem": "the required test WATER of the specification in effect (version 1) has no current RELEASE result for the lot (PR-45, IN-33)",
+    "sampleProblem": null
+  },
+  "proposal": {
+    "proposalId": "2c8f0d9e-1a3b-4c4d-9e5f-7a8b9c0d1e21",
+    "lotId": "1b7e9c8d-0f2a-4b3c-8d4e-6f7a8b9c0d11",
+    "event": "HOLD",
+    "fromState": "RELEASED",
+    "version": "3"
+  },
+  "finishedLot": {
+    "lotId": "8e4b6f5a-7c9d-4e0f-9a1b-3c4d5e6f7a81",
+    "lotCode": "G2600012",
+    "batchId": "3d9a1e0f-2b4c-4d5e-8f6a-8b9c0d1e2f31",
+    "productCode": "PCM500",
+    "status": "QUARANTINE",
+    "quantity": "48000",
+    "unit": "units",
+    "markets": [
+      "IN",
+      "US"
+    ],
+    "expiry": {
+      "us": "1877000000000000",
+      "text": "30-JUN-2029 23:59 IST"
+    }
+  }
+}
