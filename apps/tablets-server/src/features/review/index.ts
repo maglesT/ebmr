@@ -1,28 +1,24 @@
 /**
  * Feature `review` (Phase 4 slice 1, GMP): production approval, the exception register in QA review, the audit-trail
- * review, reopening, the abort checklist and translations (contract ns/review.ts; recipe-core 0710 to 0739). Every rule
- * is the database's; the signed acts are the signable action REVIEW_ACT.
- *
- * 1-0 (the interface commit): the reads answer from the review register (recipe-core 0710); the attributed commands are
- * "not available yet" until slice 1a lands.
+ * review, reopening, the abort checklist and translations (contract ns/review.ts; recipe-core 0710 to 0716). Every rule
+ * is the database's: each route runs the person's own command through the review definers, and the signed acts are the
+ * signable actions REVIEW_ACT and CORRECTION_APPROVAL (signables.ts).
  */
 import { routes } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
+import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { refusal } from '../../platform/http/refusal.ts';
-import { auditTrailReport, batchReview, reviewQueue } from './reads.ts';
+import type { SignableActionRegistry } from '../../platform/ports.ts';
+import { usOf } from '../common/people.ts';
+import { auditTrailReport, batchReview, itemDetail, reviewItems, reviewQueue } from './reads.ts';
+import { correctionApprovalHandler, reviewActHandler } from './signables.ts';
 
-const later = (): Promise<never> =>
-  Promise.reject(
-    refusal(501, {
-      code: 'NOT_IMPLEMENTED',
-      kind: 'NOT_ENABLED',
-      whatHappened: 'This function is not available yet.',
-      why: 'It arrives with Phase 4 slice 1a (review).',
-      whatYouCanDo: ['Use another path for now.'],
-    }),
-  );
+export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
+  if (app.installation !== 'GMP') return;
+  registry.register(reviewActHandler(app));
+  registry.register(correctionApprovalHandler(app));
+}
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
@@ -35,16 +31,67 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       requireSession();
       return batchReview(app, pool, params.batchId);
     },
-    auditTrail: async ({ params, requireSession }) => {
-      requireSession();
-      return auditTrailReport(pool, params.batchId);
+    register: async ({ params, actor, idempotencyKey, requestHash }) => {
+      const who = actor();
+      const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
+        const { rows } = await c.query<{ us: string }>(
+          `select ${usOf('v.shown_at')} as us from recipe.review_list_view v where v.id = recipe.show_review_register($1)`,
+          [params.batchId],
+        );
+        return rows[0]?.us ?? '0';
+      });
+      const items = await reviewItems(app, pool, params.batchId, who.personId);
+      const byCategory: Record<string, number> = {};
+      for (const i of items) byCategory[i.category] = (byCategory[i.category] ?? 0) + 1;
+      return { batchId: params.batchId, items, shownAt: app.formatInstant(out.result), noExceptions: items.length === 0, byCategory };
     },
-    register: later,
-    openItem: later,
-    respond: later,
-    recordAbortChecklist: later,
-    recordTranslation: later,
-    verifyTranslation: later,
+    openItem: async ({ params, actor, idempotencyKey, requestHash }) => {
+      const who = actor();
+      const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
+        const { rows } = await c.query<{ us: string }>(
+          `select ${usOf('v.opened_at')} as us from recipe.review_item_view v where v.id = recipe.open_review_item($1, $2)`,
+          [params.batchId, params.exceptionId],
+        );
+        return rows[0]?.us ?? '0';
+      });
+      return itemDetail(app, pool, params.batchId, params.exceptionId, who.personId, out.result);
+    },
+    respond: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      const who = actor();
+      await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query("select recipe.review_exception($1, $2, 'RESPONDED', $3, null)", [params.batchId, params.exceptionId, body.text]);
+        return null;
+      });
+      const item = (await reviewItems(app, pool, params.batchId, who.personId, params.exceptionId))[0];
+      if (!item) throw new Error('the answered item was not found');
+      return item;
+    },
+    auditTrail: async ({ params, query, requireSession }) => {
+      requireSession();
+      return auditTrailReport(app, pool, params.batchId, query.limit === undefined ? 500 : Number(query.limit));
+    },
+    recordAbortChecklist: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select recipe.record_abort_checklist($1, $2::jsonb)', [params.batchId, JSON.stringify(body)]);
+        return null;
+      });
+      return batchReview(app, pool, params.batchId);
+    },
+    recordTranslation: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select recipe.record_translation($1, $2, $3)', [params.batchId, body.sourceRef, body.english]);
+        return null;
+      });
+      return batchReview(app, pool, params.batchId);
+    },
+    verifyTranslation: async ({ params, actor, idempotencyKey, requestHash }) => {
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select recipe.verify_translation($1)', [params.translationId]);
+        const { rows } = await c.query<{ b: string }>('select batch_id as b from recipe.free_text_translation where id = $1', [params.translationId]);
+        return rows[0]?.b ?? '';
+      });
+      return batchReview(app, pool, out.result);
+    },
   });
   return Promise.resolve();
 }

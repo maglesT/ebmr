@@ -376,7 +376,7 @@ create function recipe.review_items_aggregate_id(p_batch uuid, p_disposition tex
 language sql immutable set search_path = pg_catalog, pg_temp as $$
   select p_batch::text || '/' || coalesce(p_disposition, '') || '/'
          || encode(sha256(convert_to(coalesce(btrim(p_justification), '') || E'\n' || coalesce(btrim(p_deviation_ref), ''), 'UTF8')), 'hex') || '/'
-         || coalesce((select string_agg(distinct x, '+' order by x) from unnest(p_items) x), '')
+         || coalesce((select string_agg(distinct x collate "C", '+' order by x collate "C") from unnest(p_items) x), '')
 $$;
 
 create function recipe.review_items_content(p_id text) returns jsonb
@@ -733,7 +733,7 @@ begin
      or (select count(distinct x) from unnest(p_items) x) <> cardinality(p_items) then
     raise exception using errcode = 'P0001', message = 'EBMR-REV-050 a disposition names its register items, each once (PR-52)';
   end if;
-  v_ids := array(select x from unnest(p_items) x order by x);
+  v_ids := array(select x from unnest(p_items) x order by x collate "C");
   if p_disposition in ('QUERY', 'ESCALATE') and cardinality(v_ids) > 1 then
     raise exception using errcode = 'P0001', message = format('EBMR-REV-051 a %s names one item; only non-critical items are accepted together (PR-52)', lower(p_disposition));
   end if;
