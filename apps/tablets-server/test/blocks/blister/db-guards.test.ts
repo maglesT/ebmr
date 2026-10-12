@@ -263,6 +263,23 @@ describe('the blister blocks in the database (tablets 0970 to 0972)', () => {
     expect(await types('p-tb21@')).toEqual(['DEFECT_CHECK_FAILED', 'PROCESS_MANUAL_FALLBACK', 'PROCESS_VALUE_OUT_OF_LIMITS']);
   });
 
+  it('[PR-33][PR-45] a reel whose lot leaves RELEASED mid-run (QA hold, quarantine, recall, expiry) is caught at the run\'s next entry; changing the reel is the way on, and a device reading is never refused (tablets 1151)', async () => {
+    // QA puts the forming-film lot on the machine back out of use (a sandbox lot's register status, arranged).
+    await asSetup(sbx, "update tab.sandbox_lot set status = 'QUARANTINE' where lot_code = 'TEST-PVC-1'");
+    expect(await verdict('p-tb21', defects('0'))).toBe('EBMR-TAB-853 TB21-REEL-NOT-RELEASED');
+    expect(await verdict('p-tb21', { kind: 'REJECTS', emptyPocket: '1', brokenPocket: '0' })).toBe('EBMR-TAB-853 TB21-REEL-NOT-RELEASED');
+    expect(await sql<string>('select tab.reel_in_use_problem($1, recipe.batch_mbr_content($1), $2, $3, 0) as r', [d.runId, await stateOf(sbx, d.runId), 'p-tb21@'])).toMatch(/FORMING_FILM reel .* TEST-PVC-1, is QUARANTINE/);
+    // A change to another lot that is not released is refused by the change itself; a released one restores the run.
+    expect(await verdict('p-tb21', { kind: 'REEL_CHANGE', role: 'FORMING_FILM', material: FILM_MATERIAL, lot: 'TEST-PVC-Q' })).toBe('EBMR-TAB-370 TB21-LOT');
+    await withCommand(sbx.db.app, await as('steward'), (c) =>
+      c.query('select tab.register_sandbox_lot($1::jsonb)', [JSON.stringify({ lotCode: 'TEST-PVC-2', materialCode: FILM_MATERIAL, materialName: FILM_MATERIAL, status: 'RELEASED', identityTested: true })]));
+    expect(await verdict('p-tb21', { kind: 'REEL_CHANGE', role: 'FORMING_FILM', material: FILM_MATERIAL, lot: 'TEST-PVC-2' })).toBe('ok');
+    // The run goes on (a failing check, so the run's last check stays failing as the next test expects).
+    expect(await verdict('p-tb21', defects('1'))).toBe('ok');
+    // The application role cannot call the guard's functions.
+    await expect(sbx.db.app.query("select tab.reel_in_use_problem(gen_random_uuid(), '{}', '{}', 'x', 0)")).rejects.toThrow(/permission denied/);
+  });
+
   it('[PR-33][PR-37] TB-21 run: a new reel is a released lot of its web, a printed one issued at the G-21 step; pocket rejects feed the count, whose reconciliation is the database\'s own (a forged balance is refused); the run closes only with its count and a passing last defect check', async () => {
     expect(await verdict('p-tb21', { kind: 'REEL_CHANGE', role: 'LIDDING_FOIL', material: FOIL_MATERIAL, lot: 'TEST-FOIL-2' })).toBe('EBMR-TAB-370 TB21-FOIL-NOT-ISSUED');
     expect(await verdict('p-tb21', { kind: 'REEL_CHANGE', role: 'FORMING_FILM', material: FILM_MATERIAL, lot: 'TEST-PVC-Q' })).toBe('EBMR-TAB-370 TB21-LOT');

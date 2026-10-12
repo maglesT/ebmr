@@ -116,8 +116,8 @@ language sql stable security definer set search_path = pg_catalog, site, pg_temp
    where l.id = p_lot and t.test_code = p_test
 $$;
 
--- The specifications in effect with a limit citing an edition older than the one effective now for its pharmacopoeia
--- (IN-33): [{specificationId, siteCode, materialCode, version, testCode, pharmacopoeia, cited, effective}].
+-- The specifications in effect with a limit citing a recorded edition older than the one effective now for its
+-- pharmacopoeia (IN-33; an edition not recorded yet is never listed as older): [{specificationId, siteCode, materialCode, version, testCode, pharmacopoeia, cited, effective}].
 create function site.specification_edition_review() returns jsonb
 language sql stable security definer set search_path = pg_catalog, site, pg_temp as $$
   with current_edition as (
@@ -132,9 +132,9 @@ language sql stable security definer set search_path = pg_catalog, site, pg_temp
     from site.specification s
     join site.specification_test t on t.specification_id = s.id
     join current_edition c on c.pharmacopoeia = t.pharmacopoeia and c.edition <> t.edition
+    join site.pharmacopoeia_edition cited on cited.pharmacopoeia = t.pharmacopoeia and cited.edition = t.edition
    where site.specification_in_effect(s.site_code, s.material_code) = s.id
-     and coalesce((select e.effective_from from site.pharmacopoeia_edition e where e.pharmacopoeia = t.pharmacopoeia and e.edition = t.edition), '-infinity')
-         < c.effective_from
+     and cited.effective_from < c.effective_from
 $$;
 
 -- ---------------------------------------------------------------------------------------------

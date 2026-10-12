@@ -121,7 +121,7 @@ interface ReturnRow {
 
 async function returnsOf(app: AppContext, db: Db, lotId?: string): Promise<ReturnView[]> {
   const { rows } = await db.query<ReturnRow>(
-    `select g.lot_id, l.lot_code, site.lot_state(l.id) as status, g.original_lot_id, o.lot_code as original_lot_code, o.material_code as product_code,
+    `select g.lot_id, l.lot_code, (select s.state from platform.aggregate_state s where s.aggregate_type = 'material_lot' and s.aggregate_id = l.id) as status, g.original_lot_id, o.lot_code as original_lot_code, o.material_code as product_code,
             g.quantity::text as quantity, g.unit, g.reason, g.returned_from, g.received_by_person as received_by, ${usOf('g.received_at')} as received_us,
             (select jsonb_build_object('id', a.id, 'nature', a.nature, 'storage', a.storage, 'conditionHistory', a.condition_history,
                                        'timeSinceIssue', a.time_since_issue, 'doubt', a.doubt, 'implicatesOtherBatches', a.implicates_other_batches,
@@ -169,7 +169,7 @@ async function returnsOf(app: AppContext, db: Db, lotId?: string): Promise<Retur
 
 async function finishedLot(app: AppContext, db: Db, lotId: string): Promise<FinishedLotView> {
   const { rows } = await db.query<{ lot_code: string; batch_id: string; product_code: string; status: string; quantity: string; unit: string; markets: string[]; exp_us: string }>(
-    `select l.lot_code, f.batch_id, f.product_code, site.lot_state(l.id) as status, l.received_quantity::text as quantity, l.unit, f.markets,
+    `select l.lot_code, f.batch_id, f.product_code, (select s.state from platform.aggregate_state s where s.aggregate_type = 'material_lot' and s.aggregate_id = l.id) as status, l.received_quantity::text as quantity, l.unit, f.markets,
             ${usOf('l.expires_at')} as exp_us
        from site.finished_lot f join site.material_lot l on l.id = f.lot_id where f.lot_id = $1`,
     [lotId],
@@ -313,9 +313,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return view;
     },
     assessReturn: async ({ params, body, actor, idempotencyKey, requestHash }) => {
-      const { attribution: _attribution, ...assessment } = body;
+      const assessment = compact({
+        nature: body.nature, storage: body.storage, conditionHistory: body.conditionHistory, timeSinceIssue: body.timeSinceIssue, doubt: body.doubt,
+        implicatesOtherBatches: body.implicatesOtherBatches, investigationId: body.investigationId, disposition: body.disposition,
+      });
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        await c.query('select site.record_returned_goods_assessment($1, $2::jsonb)', [params.lotId, JSON.stringify(compact(assessment))]);
+        await c.query('select site.record_returned_goods_assessment($1, $2::jsonb)', [params.lotId, JSON.stringify(assessment)]);
         return null;
       });
       const [view] = await returnsOf(app, pool, params.lotId);

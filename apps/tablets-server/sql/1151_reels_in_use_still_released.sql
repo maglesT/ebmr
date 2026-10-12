@@ -4,10 +4,10 @@
 -- TB-21 checks each reel at its LINE_SETUP and REEL_CHANGE only (tablets 0972, tab.blister_lot_problem), so a reel lot
 -- that QA put ON_HOLD (or RETURNED, RECALLED, REJECTED) after the set-up, or that expired since, stayed on the machine.
 --
---   tab.blister_reels_in_use(content, state, run key)  the reels on the run's machine now: those of the latest
+--   tab.reels_in_use(content, state, run key)  the reels on the run's machine now: those of the latest
 --       LINE_SETUP of a TB-21 line-check step on the machine of the run's RUN_START, each role replaced by the run's
 --       later REEL_CHANGEs in order.
---   tab.blister_reel_in_use_problem(batch, content, state, run key, now)  the first reel whose lot is not RELEASED and
+--   tab.reel_in_use_problem(batch, content, state, run key, now)  the first reel whose lot is not RELEASED and
 --       unexpired in the register now (tab.lot_facts, 0801/1000: RELEASED only while the lot's state is usable), or NULL.
 --   trigger zzi_tab_reels_in_use on recipe.execution_state (after update; a batch whose MBR has a TB-21 step): every new
 --       person's entry of a TB-21 RUN step while the run is on (RUN_START up to and including RUN_END: RUN_START,
@@ -19,7 +19,7 @@
 
 set local role ebmr_owner;
 
-create function tab.blister_reels_in_use(p_content jsonb, p_state jsonb, p_run_key text) returns jsonb
+create function tab.reels_in_use(p_content jsonb, p_state jsonb, p_run_key text) returns jsonb
 language plpgsql immutable set search_path = pg_catalog, tab, recipe, pg_temp as $$
 declare
   v_machine text;
@@ -48,13 +48,13 @@ begin
 end
 $$;
 
-create function tab.blister_reel_in_use_problem(p_batch uuid, p_content jsonb, p_state jsonb, p_run_key text, p_now numeric) returns text
+create function tab.reel_in_use_problem(p_batch uuid, p_content jsonb, p_state jsonb, p_run_key text, p_now numeric) returns text
 language plpgsql stable security definer set search_path = pg_catalog, tab, recipe, pg_temp as $$
 declare
   r       jsonb;
   v_facts jsonb;
 begin
-  for r in select y from jsonb_array_elements(tab.blister_reels_in_use(p_content, p_state, p_run_key)) y loop
+  for r in select y from jsonb_array_elements(tab.reels_in_use(p_content, p_state, p_run_key)) y loop
     v_facts := tab.lot_facts(r ->> 'lot', p_batch);
     if v_facts is null or v_facts ->> 'status' is distinct from 'RELEASED'
        or (v_facts ->> 'expiresAtUs' is not null and (v_facts ->> 'expiresAtUs')::numeric <= p_now) then
@@ -100,7 +100,7 @@ begin
     if e ->> 'kind' <> 'RUN_START' and exists (select 1 from jsonb_array_elements(v_prior) x where x ->> 'kind' = 'RUN_END') then
       continue;
     end if;
-    v_problem := tab.blister_reel_in_use_problem(new.batch_id, v_content, new.state, v_key, recipe.micros_of(e -> 'recordedAt'));
+    v_problem := tab.reel_in_use_problem(new.batch_id, v_content, new.state, v_key, recipe.micros_of(e -> 'recordedAt'));
     if v_problem is not null then
       raise exception using errcode = 'P0001',
         message = format('This row stores entry %s (%s) of step %s, but %s. [EBMR-TAB-853]', k, e ->> 'kind', v_key, v_problem);
@@ -113,6 +113,6 @@ $$;
 create trigger zzi_tab_reels_in_use after update on recipe.execution_state
   for each row execute function tab.reels_in_use_check();
 
-revoke all on function tab.blister_reels_in_use(jsonb, jsonb, text), tab.blister_reel_in_use_problem(uuid, jsonb, jsonb, text, numeric), tab.reels_in_use_check() from public;
+revoke all on function tab.reels_in_use(jsonb, jsonb, text), tab.reel_in_use_problem(uuid, jsonb, jsonb, text, numeric), tab.reels_in_use_check() from public;
 
 reset role;

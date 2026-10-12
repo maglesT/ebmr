@@ -178,6 +178,13 @@ export class QualityWorld {
     return draft.specificationId;
   }
 
+  /** Posts a product master entry as the ERP interface (a specification of a finished product names its product code). */
+  async product(productCode: string, strength = '500 mg'): Promise<void> {
+    await this.sql(this.cast.erp, 'select site.erp_receive_product($1::jsonb)', [
+      JSON.stringify({ productCode, strength, productName: `Product ${productCode}`, betaLactam: false, shelfLifeMonths: 24, erpReference: `ERP-${productCode}` }),
+    ]);
+  }
+
   /** An output container of batch `b` (what the resolver reads for a CONTAINER). */
   async container(b: GmpBatch): Promise<{ id: string; label: string }> {
     const id = randomUUID();
