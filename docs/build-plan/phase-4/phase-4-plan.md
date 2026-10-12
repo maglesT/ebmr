@@ -190,6 +190,21 @@ below; each builder ticks them off there.
   approval (IN-37), held containers dispositioned, container release state, `recipe.reprocessing_release_problem`
   wired (PR-47), finished-pack examination from TB-24, reconciliation outside limits blocks release (IN-17 clause 2),
   TB-12 compendial rule set QA verification record (design E.1, backlog 3c); whole-batch parents checked for REJECTED.
+- **3b built (12 October)**: recipe-core 0800 (`recipe.packaging_master_problem` needs TB-24 on every completing path),
+  tablets 1161 (QA's signed rule-set verification, meaning COMPENDIAL_RULE_SET_VERIFIED; its ceremony mapping is in
+  3a's 1179), tablets 1162 (`tab.grel_edition_items`: E.RECONCILIATION_PRINTED, _PACKS, _SERIAL, _YIELD,
+  E.POSTED_QUANTITY (group 4), E.FINISHED_PACK_EXAMINATION (9), E.PRINTED_TABLETS_QC, E.HELD_CONTAINERS,
+  E.CONTAINER_RELEASE, E.RULE_SETS_VERIFIED, E.WHOLE_BATCH_PARENTS (10)); tests
+  `apps/tablets-server/test/release/grel-tablets-items.test.ts`. Defaults: **D-3b-1** a completing path ignores
+  approved skips; a library call, a hold point and a replicate with minimum 0 never count as passing TB-24.
+  **D-3b-2** a reconciliation, yield or failed end-of-run examination exception is resolved only when dispositioned and
+  its linked deviation is CLOSED (QA's signed closure; never the PR-53 justification). **D-3b-3** printed-tablet approval
+  = the hold point right after each TB-19 step COMPLETED, positive, valid HOLD_POINT signature, same frames.
+  **D-3b-4** rule sets are still evaluated as shipped; only release waits for the verification; a new verification row
+  supersedes the signed one until signed. **D-3b-5** a whole-batch parent is REJECTED when each end container (not
+  charged within it, not merged) is REJECTED or charged into its reprocessing child, and each finished lot packed from it
+  is REJECTED. **D-3b-6** the posted quantity must equal the packs in TB-24 SHIPPER entries (unit not compared).
+  **D-3b-7** `since_review` is false on every edition item until 3a's epoch comparison covers them.
 - **3c, cockpit and notification** (`apps/tablets-web/**`, `apps/tablets-server/src/features/notifications/**`):
   release cockpit manufacturer tab, red/green items linked to evidence, "since review" list acknowledged item by item;
   IN-39 clause 2 (both departments notified) through the notification centre.
