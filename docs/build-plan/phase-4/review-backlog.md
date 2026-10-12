@@ -109,3 +109,10 @@ library call and a printing master without a G-21 instance fail closed (RED) ins
 
 Backlog (low): G6.PPQ and `record_ppq_outcome` default the purpose to COMMERCIAL when the header has none (the
 validator should require it); `recipe.release_lots` and `release_lot_facts` are readable by any session (read-only).
+
+## Slice 3c open items (builder report, 12 October 2026)
+
+- G-11 environment excursion notifications are still recorded only in the engine, not in the notification centre.
+- IN-39 clause 2 stays deferred in its control file until the slice 7a mapping cites `notification-centre.test.ts`.
+- Default: the PRODUCTION department is HEAD_OF_PRODUCTION and SHIFT_SUPERVISOR; QA is AUTHORISED_PERSON, QA_REVIEWER,
+  QA_SHOP_FLOOR and QA_MBR_APPROVER (notification routing).
