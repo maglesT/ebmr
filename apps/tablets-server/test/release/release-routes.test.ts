@@ -41,14 +41,14 @@ afterAll(async () => {
 const codeOf = (r: Awaited<ReturnType<typeof signAction>>): string => (r.ok ? 'ok' : (refusalOf(r)?.code ?? 'refused'));
 
 describe('release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit)', () => {
-  it('[meta] the queue and the lot\'s checklist: NOT_READY with the reasons, the Tablets stub\'s groups 4 and 9 RED, the PR-53 switch off, the gates; G-REL per market', async () => {
+  it('[meta] the queue and the lot\'s checklist: NOT_READY with the reasons, the Tablets edition\'s groups 4 and 9 RED, the PR-53 switch off, the gates; G-REL per market', async () => {
     const queue = valueOf(await ap.call(routes.release.queue, { query: {} }));
     expect(queue.lots.find((l) => l.lotId === lotId)).toMatchObject({ batchId, lotStatus: 'QUARANTINE', state: 'NOT_READY', markets: ['IN'] });
     expect(valueOf(await ap.call(routes.release.queue, { query: { state: 'RELEASED' } })).lots.map((l) => l.lotId)).not.toContain(lotId);
     const view = valueOf(await ap.call(routes.release.lot, { params: { lotId } }));
     expect(view).toMatchObject({ state: 'NOT_READY', decision: null, openInvestigationPath: false, signable: { aggregateType: 'manufacturer_release', release: `${lotId}/RELEASE`, reject: `${lotId}/REJECT` } });
     const red = view.grel.items.filter((i) => i.status === 'RED').map((i) => i.id);
-    expect(red).toEqual(expect.arrayContaining(['G1.REVIEW_1', 'G3.LIMS', 'G4.RECONCILIATION', 'G9.PACK_EXAMINATION']));
+    expect(red).toEqual(expect.arrayContaining(['G1.REVIEW_1', 'G3.LIMS', 'E.RECONCILIATION_PACKS', 'E.FINISHED_PACK_EXAMINATION']));
     expect(view.gates.release.ready).toBe(false);
     expect(view.gates.release.problems.join(' ')).toMatch(/G-REL item G1.REVIEW_1 is RED/);
     expect(view.gates.reject).toEqual({ ready: true, problems: [] });
