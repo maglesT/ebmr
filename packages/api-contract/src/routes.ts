@@ -5,7 +5,9 @@
 import { access } from './ns/access.ts';
 import { audit } from './ns/audit.ts';
 import { batches } from './ns/batches.ts';
+import { containers } from './ns/containers.ts';
 import { designer } from './ns/designer.ts';
+import { deviceReadings } from './ns/device-readings.ts';
 import { devices } from './ns/devices.ts';
 import { esig } from './ns/esig.ts';
 import { execution } from './ns/execution.ts';
@@ -17,7 +19,7 @@ import { quality } from './ns/quality.ts';
 import { review } from './ns/review.ts';
 import { session } from './ns/session.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices, quality, batches, planning, masterData, plant, review } as const;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers } as const;
 export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
@@ -38,4 +40,5 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   masterData: 'S6',
   plant: 'S6',
   review: 'P4',
+  containers: 'P4',
 };

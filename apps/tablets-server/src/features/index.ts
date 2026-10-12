@@ -8,6 +8,7 @@
  */
 import * as access from './access/index.ts';
 import * as audit from './audit/index.ts';
+import * as containers from './containers/index.ts';
 import * as designer from './designer/index.ts';
 import * as devices from './devices/index.ts';
 import * as esig from './esig/index.ts';
@@ -35,6 +36,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'master-data', installations: ['GMP'], module: masterData satisfies FeatureModule },
   { name: 'plant', installations: ['GMP'], module: plant satisfies FeatureModule },
   { name: 'review', installations: ['GMP'], module: review satisfies FeatureModule },
+  { name: 'containers', installations: ['GMP'], module: containers satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

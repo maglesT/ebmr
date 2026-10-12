@@ -111,3 +111,5 @@ export {
   ReviewState,
   ReviewSummaryView,
 } from './ns/review.ts';
+export { ContainerHoldView, ContainerState, ContainerView } from './ns/containers.ts';
+export { ProcessReadingView } from './ns/device-readings.ts';
