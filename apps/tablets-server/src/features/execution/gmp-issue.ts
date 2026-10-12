@@ -45,6 +45,8 @@ export interface PlanInput {
    * pinned MBR either way (recipe-core 0602).
    */
   erpOrder?: string;
+  /** A packaging order (record kind PACKAGING): the issued processing batch it packs (D-S4-2; Phase 4 slice 2c route). */
+  parentBatch?: string;
 }
 
 /** The external ledger of protected numbers (EBMR_NUMBER_LEDGER_FILE; DEMO-ONLY file, write-once storage in production). */

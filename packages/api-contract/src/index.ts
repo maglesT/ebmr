@@ -79,7 +79,7 @@ export {
 } from './ns/quality.ts';
 export * from './tablet-entries.ts';
 export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
-export { PlanningOrderView } from './ns/planning.ts';
+export { PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {
   FormulaChoiceView,
   FormulaLineInput,

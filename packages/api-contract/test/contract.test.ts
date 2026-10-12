@@ -207,7 +207,7 @@ describe('route table', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
       'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
-      'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'plant.completeCleaning',
+      'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
       'quality.registerEvidenceDocument',

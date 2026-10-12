@@ -247,7 +247,7 @@ function marketRule(r: Reader, v: unknown, path: string): { key: string; bound: 
 }
 
 function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
-  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants']);
+  const o = r.object(v, path, ['family', 'title', 'edition', 'recordKind', 'product', 'batchSizes', 'marketSet', 'predicates', 'variants'], ['packType']);
   if (!o) return undefined;
   const family = r.id(o, 'family', path);
   const title = r.string(o, 'title', path);
@@ -285,8 +285,11 @@ function header(r: Reader, v: unknown, path: string): MbrHeader | undefined {
     const values = r.strings(vo, 'values', vp);
     return id && values ? { id, values } : undefined;
   });
+  // D-P4-13: a packaging master names its pack type (part of its family's identity with the product and the pack size).
+  const packType = r.string(o, 'packType', path, /^[A-Z0-9][A-Z0-9-]{0,31}$/);
+  if (packType !== undefined && recordKind !== undefined && recordKind !== 'PACKAGING') r.fail(`${path}.packType`, 'is named only by a packaging master (D-P4-13)');
   if (!family || !title || !edition || !recordKind || !product || !batchSizes || !marketSet || !variants) return undefined;
-  return { family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants };
+  return { family, title, edition, recordKind, product, batchSizes, marketSet, predicates, variants, ...(packType !== undefined ? { packType } : {}) };
 }
 
 function reference(r: Reader, v: unknown, path: string): Reference | undefined {

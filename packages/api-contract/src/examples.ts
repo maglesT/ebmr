@@ -46,6 +46,7 @@ import gmpBatch from '../fixtures/gmp-batch.json' with { type: 'json' };
 import s6 from '../fixtures/slice-6.json' with { type: 'json' };
 import rv from '../fixtures/review.json' with { type: 'json' };
 import cn from '../fixtures/containers.json' with { type: 'json' };
+import pk from '../fixtures/packaging.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -224,6 +225,10 @@ export const EXAMPLES = {
   'containers-sort': { schema: r.containers.sort.response, data: { ...cn.held, state: 'SORTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is SORTED: held containers are never merged, charged or packed until QA releases them' }, routeId: r.containers.sort.id },
   'containers-reject': { schema: r.containers.reject.response, data: { ...cn.held, state: 'REJECTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is REJECTED', releaseProblem: null }, routeId: r.containers.reject.id },
   'devices-process-readings': { schema: r.devices.processReadings.response, data: cn.processReadings, routeId: r.devices.processReadings.id },
+  // Phase 4 slice 2c: packaging orders, planned from an issued processing batch, and their bulk issue.
+  'planning-packaging-orders': { schema: r.planning.packagingOrders.response, data: pk.orders, routeId: r.planning.packagingOrders.id },
+  'planning-plan-packaging-order': { schema: r.planning.planPackagingOrder.response, data: pk.planned, routeId: r.planning.planPackagingOrder.id },
+  'planning-packaging-bulk': { schema: r.planning.packagingBulk.response, data: pk.bulk, routeId: r.planning.packagingBulk.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 3 slice 6: the routes added by slice 6a-0, each with at least one example above (checked by the contract test). */
