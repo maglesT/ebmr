@@ -118,6 +118,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   interlock (site-services 0870, 0871; INV-42, IN-05 (a)); screens for the market tabs, the EU tab (package, certification
   intake), market add and removal and the two-row ceremony. Quick review fixes in 4a (recipe-core 0826) and 4b. Slice 4
   integrated on `phase-4/slice-4`; the signing dry run now refuses bad input before it reads the record (DI-37).
+- Phase 4 slice 5b (`phase-4/slice-5b`, 12 October): record locking and amendment, bulk across orders and the bright-stock
+  maximum hold (recipe-core 0870 to 0873, tablets 1190, 1199; contract `ns/records-lock.ts`, routes `/api/records/*`,
+  `RECORD_LOCK_ACT`). A processing record locks at its bulk reconciliation closure, a finished lot's record at its first
+  manufacturer disposition; a locked record refuses every write in the database; QA opens (AMENDMENT_OPENED, calling
+  `recipe.suspend_release` per released lot and opening AP market-impact tasks) and closes (AMENDMENT_CLOSED) an
+  appending amendment (INV-21, R-04); PR-38 checked at issue and packaging start. Defaults D-5b-1 to D-5b-8 in the plan.
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and

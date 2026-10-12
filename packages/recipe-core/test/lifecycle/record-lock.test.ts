@@ -387,22 +387,23 @@ describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', ()
     expect(await lockState(other)).toBe('UNDER_AMENDMENT');
   });
 
-  it('[INV-21] the amendment appends numbered entries, never edits; QA closes it with AMENDMENT_CLOSED over the entries as they stand, by a person who appended none: the record is LOCKED again', async () => {
+  it('[INV-21] the amendment appends numbered entries, never edits; production appends them (never an operator or an administrator); QA closes it with AMENDMENT_CLOSED over the entries as they stand, by a person who appended none: the record is LOCKED again', async () => {
     const batch = await lockedProcessing();
     const dev = await deviationOn(batch);
     const sig = await signFor(db, qa, { type: 'record_lock', id: await openId(batch, 'DEVIATION', dev) }, 'AMENDMENT_OPENED', 'LOCKED');
     await open(qa, batch, 'DEVIATION', dev, sig);
-    expect(await codeOf(entry(operator, batch, 2))).toBe('EBMR-LCK-040');
-    expect(await codeOf(entry(operator, batch, 1, 'EDIT'))).toBe('EBMR-LCK-041');
+    expect(await codeOf(entry(head, batch, 2))).toBe('EBMR-LCK-040');
+    expect(await codeOf(entry(operator, batch, 1))).toBe('EBMR-IAM-040');
+    expect(await codeOf(entry(head, batch, 1, 'EDIT'))).toBe('EBMR-LCK-041');
     expect(await codeOf(entry(admin, batch, 1))).toBe('EBMR-IAM-042');
-    await entry(operator, batch, 1);
-    expect(await q('select seq, kind, value from recipe.record_amendment_entry where batch_id = $1', [batch])).toEqual([{ seq: 1, kind: 'LATE_ENTRY', value: '12 min' }]);
+    await entry(head, batch, 1);
+    expect(await q('select seq, kind, value, role_code from recipe.record_amendment_entry where batch_id = $1', [batch])).toEqual([{ seq: 1, kind: 'LATE_ENTRY', value: '12 min', role_code: 'HEAD_OF_PRODUCTION' }]);
     expect(await superuserWrite("update recipe.record_amendment_entry set value = '15 min' where batch_id = $1", [batch])).not.toBe('ok');
     expect(await codeOf(db.app.query("insert into recipe.record_amendment_entry (amendment_id, batch_id, seq, kind, target, body, reason, person_id, account_id) select id, batch_id, 9, 'NOTE', 't', 'b', 'reason text here', batch_id, batch_id from recipe.record_amendment where batch_id = $1", [batch]))).toMatch(/permission denied/);
     const cid = await closeId(batch);
     expect(cid).toBe(`${batch}/1/CLOSE`);
     const stale = await signFor(db, qa2, { type: 'record_lock', id: cid }, 'AMENDMENT_CLOSED', 'UNDER_AMENDMENT');
-    await entry(operator, batch, 1, 'NOTE');
+    await entry(head, batch, 1, 'NOTE');
     expect(await close(qa2, batch, 1, stale).catch((e: Error) => e.message)).toMatch(/EBMR-REL-013 signature .* is CONTENT_MISMATCH/);
     expect(await codeOf(close(operator, batch, 1, stale))).toBe('EBMR-IAM-040');
     expect(await lockState(batch)).toBe('UNDER_AMENDMENT');
@@ -411,7 +412,7 @@ describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', ()
     await close(qa, batch, 1, fresh);
     expect(await lockState(batch)).toBe('LOCKED');
     expect(await q('select event from recipe.record_lock_event where batch_id = $1 order by seq', [batch])).toEqual([{ event: 'LOCKED' }, { event: 'AMENDMENT_OPENED' }, { event: 'AMENDMENT_CLOSED' }]);
-    expect(await codeOf(entry(operator, batch, 1))).toBe('EBMR-LCK-040');
+    expect(await codeOf(entry(head, batch, 1))).toBe('EBMR-LCK-040');
     expect(await superuserWrite("update recipe.execution_state set status = 'IN_PROGRESS' where batch_id = $1", [batch])).toBe('EBMR-LCK-001');
     // The next amendment is number 2.
     expect(await openId(batch, 'DEVIATION', dev)).toBe(`${batch}/2/OPEN/DEVIATION/${dev}`);
