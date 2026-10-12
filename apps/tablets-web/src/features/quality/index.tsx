@@ -2,6 +2,7 @@
  * Web feature `quality` (Phase 3 slice 6, GMP): deviation-lite (list, raise, link, investigate, finding, conclude,
  * close, cancel), material lots (receive, LIMS-lite results, approve, OOS link, retest, release and reject), the QC
  * extra-testing decision of a batch, the ERP import status, and reprocessing (authorisations, residue reservation).
+ * Phase 4 slice 2c: the full deviation record, specifications and editions, lot status events and samples, returned goods.
  */
 import { createRoute, Link, type AnyRootRoute, type AnyRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
@@ -13,6 +14,8 @@ import { ErpStatusPage } from './ErpStatusPage.tsx';
 import { LotPage } from './LotPage.tsx';
 import { LotsPage } from './LotsPage.tsx';
 import { ReprocessingPage } from './ReprocessingPage.tsx';
+import { ReturnsPage } from './ReturnsPage.tsx';
+import { SpecificationsPage } from './SpecificationsPage.tsx';
 
 function QualityHome() {
   return (
@@ -24,6 +27,12 @@ function QualityHome() {
         </li>
         <li>
           <Link to="/quality/lots">Material lots</Link>
+        </li>
+        <li>
+          <Link to="/quality/specifications">Specifications</Link>
+        </li>
+        <li>
+          <Link to="/quality/returns">Returned goods</Link>
         </li>
         <li>
           <Link to="/quality/extra-testing">Extra testing of a batch</Link>
@@ -46,6 +55,8 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/quality/deviations/$deviationId', component: DeviationPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots', component: LotsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId', component: LotPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/specifications', component: SpecificationsPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/returns', component: ReturnsPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/extra-testing', component: BatchQualityPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/reprocessing', component: ReprocessingPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/erp', component: ErpStatusPage }),

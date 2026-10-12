@@ -46,6 +46,8 @@ import gmpBatch from '../fixtures/gmp-batch.json' with { type: 'json' };
 import s6 from '../fixtures/slice-6.json' with { type: 'json' };
 import rv from '../fixtures/review.json' with { type: 'json' };
 import cn from '../fixtures/containers.json' with { type: 'json' };
+import pk from '../fixtures/packaging.json' with { type: 'json' };
+import dv from '../fixtures/deviation.json' with { type: 'json' };
 import lm from '../fixtures/lims.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
@@ -225,6 +227,15 @@ export const EXAMPLES = {
   'containers-sort': { schema: r.containers.sort.response, data: { ...cn.held, state: 'SORTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is SORTED: held containers are never merged, charged or packed until QA releases them' }, routeId: r.containers.sort.id },
   'containers-reject': { schema: r.containers.reject.response, data: { ...cn.held, state: 'REJECTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is REJECTED', releaseProblem: null }, routeId: r.containers.reject.id },
   'devices-process-readings': { schema: r.devices.processReadings.response, data: cn.processReadings, routeId: r.devices.processReadings.id },
+  // Phase 4 slice 2c: packaging orders, planned from an issued processing batch, and their bulk issue.
+  'planning-packaging-orders': { schema: r.planning.packagingOrders.response, data: pk.orders, routeId: r.planning.packagingOrders.id },
+  'planning-plan-packaging-order': { schema: r.planning.planPackagingOrder.response, data: pk.planned, routeId: r.planning.planPackagingOrder.id },
+  'planning-packaging-bulk': { schema: r.planning.packagingBulk.response, data: pk.bulk, routeId: r.planning.packagingBulk.id },
+  'deviation-detail': { schema: r.quality.deviationDetail.response, data: dv.detail, routeId: r.quality.deviationDetail.id },
+  'deviation-reclassify': { schema: r.quality.reclassifyDeviation.response, data: dv.detail, routeId: r.quality.reclassifyDeviation.id },
+  'deviation-impact': { schema: r.quality.recordDeviationImpact.response, data: { ...dv.detail, state: 'UNDER_INVESTIGATION', impactCurrent: false }, routeId: r.quality.recordDeviationImpact.id },
+  'deviation-closure-basis': { schema: r.quality.recordDeviationClosureBasis.response, data: { ...dv.detail, closureBasis: dv.closureBasis }, routeId: r.quality.recordDeviationClosureBasis.id },
+  'deviation-release': { schema: r.quality.deviationRelease.response, data: dv.release, routeId: r.quality.deviationRelease.id },
   // Phase 4 slice 2b: specifications, lot decisions, finished lots, samples and returned goods, for the screens (2c).
   'specifications-list': { schema: r.specifications.list.response, data: { specifications: [lm.specification] }, routeId: r.specifications.list.id },
   'specifications-draft': { schema: r.specifications.draft.response, data: { ...lm.specification, state: 'DRAFT', approvedBy: null, approvedAt: null }, routeId: r.specifications.draft.id },
@@ -273,6 +284,9 @@ export const REVIEW_ROUTE_IDS: readonly string[] = Object.values(r.review).map((
 
 /** Phase 4 slice 1b: the container routes and the process-readings route, each with an example above (contract test). */
 export const CONTAINER_ROUTE_IDS: readonly string[] = [...Object.values(r.containers), r.devices.processReadings].map((route) => route.id);
+
+/** Phase 4 slice 2a: the full deviation stand-in's routes, each with an example above (contract test). */
+export const DEVIATION_ROUTE_IDS: readonly string[] = [r.quality.deviationDetail, r.quality.reclassifyDeviation, r.quality.recordDeviationImpact, r.quality.recordDeviationClosureBasis, r.quality.deviationRelease].map((route) => route.id);
 
 export type ExampleName = keyof typeof EXAMPLES;
 

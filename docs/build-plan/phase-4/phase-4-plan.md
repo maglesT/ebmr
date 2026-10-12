@@ -100,6 +100,21 @@ below; each builder ticks them off there.
   assessment, non-empty list of other batches assessed), CLOSED; cancellation rules (L-21); insert-only links ending
   only with "assessed, not affected" (INV-46); release-blocking at once on link; document service: evidence documents
   tied to stored bytes, hash computed by the server (backlog slice 5).
+- **2a defaults** (recorded; owner may change): D-2a-1 QA classifies when the investigation starts (DEVIATION.CLASSIFY:
+  QA shop floor, QA reviewer, AP), never the initiator; the rationale is always written; a reclassification is a new row
+  while UNDER_INVESTIGATION or IMPACT_ASSESSED; the classifier enters data in the record, so neither concludes nor closes
+  it (INV-03). D-2a-2 impact per link and market (IN, US, EU); every link needs IN before the sign-off (site services do
+  not know a batch's market set); release checks the market asked. D-2a-3 a new link or impact row takes the record back
+  to UNDER_INVESTIGATION until QA signs again; closure needs the sign-off current. D-2a-4 the closure basis: method for
+  MAJOR and CRITICAL; at least one CAPA for MAJOR, CRITICAL or a root cause not determined, otherwise the reason none is
+  needed; process, procedure and system factors for a human error; the conclusion and closure also exclude the owner
+  and the recorders of the finding and basis. D-2a-5 cancellation OPEN only (outline 5.2.5); the canceller never signs
+  the release of a linked lot or container (trigger), batch release calls `site.deviation_release_problem` with its
+  signer (slice 3). D-2a-6 release blocking at once on link for material lots (RELEASE, RELEASE_FOR_FURTHER_PROCESSING,
+  UNHOLD) and output containers linked directly; a batch link does not block a container release in process (the batch's
+  release is slice 3). D-2a-7 evidence bytes in the database (bytea, at most 16 MB, insert-only); the document row with
+  its hash is audited, the bytes are not copied into the audit trail. D-2a-8 the new tables bump the evidence epochs
+  through `site.deviation_epoch_hook`, which finds `recipe.bump_epoch` when it runs.
 - **2b, LIMS, lots and samples** (site-services 0840 to 0859, tablets 1150 to 1159; 1140 and 1141 were taken by slice 1a): approved specifications per
   material with pharmacopoeia edition (IN-33); limits from the specification, never typed; revising a RELEASE result
   needs an OOS link; required tests per material (a lot without results no longer passes); QC extra-testing decision
@@ -130,6 +145,24 @@ below; each builder ticks them off there.
   `apps/tablets-web/**`): HTTP route to plan a packaging order and the bulk-issue screen (exit residual); pack type
   in the packaging family's identity (D-P4-13); a PACKAGING order whose MBR has no TB-24 refused; prepare_gmp_issue
   allocation by another person (2b #4, low); deviation, specification, lot-event and sample screens.
+- **2c planning built (12 October; recipe-core 0760 to 0762; routes planning.packagingOrders, planPackagingOrder,
+  packagingBulk; screens /planning (packaging card), /planning/packaging, /planning/packaging/$batchId).**
+  Database-enforced: a packaging family's identity is (edition, product, strength, form, pack sizes, pack type) in the
+  insert-only, audited `recipe.mbr_family_pack` (a PACKAGING family without one fails at commit; a master's header names
+  its family's pack type); a packaging order is planned only on a master holding its edition's completion block
+  (`recipe.packaging_completion_block`, tablets TB-24; EBMR-PLN-005); a number allocated ahead is planned only by its
+  allocator (EBMR-PLN-004). Codes EBMR-PLN-001 to 005. Defaults taken (decision 0004):
+  - **D-2c-1** `recipe.mbr_family` is insert-only, so the pack type lives in its own table; a packaging definition or
+    header without one reads STANDARD; existing packaging families take their approved master's header pack type
+    (STANDARD when it names none).
+  - **D-2c-2** The completion block per edition is recipe-core data, not a tablets migration (2c has no tablets range); an
+    edition with no row plans no packaging order (fails closed until Injectables registers its own).
+  - **D-2c-3** A number allocated ahead is taken only by the person who allocated it (stricter than "any planner holding
+    BATCH_NUMBER.ALLOCATE").
+  - **D-2c-4** The planning screen now sends the matched batch-size id (it sent the order's quantity, which the database
+    refused); the packaging plan names the ERP order it was planned from.
+  - **D-2c-5** The e2e demo (set-up CLI `--gmp-packaging`) releases its second GB-T-01 batch for packing by a DEMO
+    SHORTCUT (H-PACK set APPROVED in the stored state with triggers off), as the review seed marks its batch complete.
 
 ### Slice 3: G-REL and the manufacturer release
 - **3a, release core** (recipe-core 0770 to 0809, `apps/tablets-server/src/features/release/**`): manufacturer

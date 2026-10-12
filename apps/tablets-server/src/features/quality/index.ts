@@ -13,12 +13,10 @@ import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { createHash, randomUUID } from 'node:crypto';
 import { refusal } from '../../platform/http/refusal.ts';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
+import { deviationHandlers } from './deviation.ts';
 import { deviationIds, erpMaterials, erpOrders, erpPending, erpProducts, extraTesting, lots } from './reads.ts';
 import { reprocessingAuthorisations, reprocessingRequests, residueContainers } from './reprocessing.ts';
 import { lotDecisionHandler, qualityActHandler, reprocessingActHandler } from './signables.ts';
@@ -105,6 +103,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     app,
     routes.quality,
     {
+      ...deviationHandlers(pool),
       raiseDeviation: async ({ body, actor, idempotencyKey, requestHash }) => {
         const d = body;
         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
@@ -121,9 +120,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         });
         return deviationView(pool, params.deviationId);
       },
-      startInvestigation: async ({ params, actor, idempotencyKey, requestHash }) => {
+      startInvestigation: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+        // QA's classification starts the investigation (IN-02; site services 0821).
         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-          await c.query('select site.start_deviation_investigation($1)', [params.deviationId]);
+          await c.query('select site.start_deviation_investigation($1, $2::jsonb)', [params.deviationId, JSON.stringify(body)]);
           return null;
         });
         return deviationView(pool, params.deviationId);
@@ -167,15 +167,11 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         if (bytes.length === 0 || bytes.length > 4_194_304) {
           throw refusal(422, { code: 'EBMR-API-DOCUMENT-SIZE', kind: 'INVALID_INPUT', whatHappened: 'The document is empty or larger than 4 MB. Nothing was stored.', why: `It has ${String(bytes.length)} bytes.`, whatYouCanDo: ['Attach a document of at most 4 MB.'] });
         }
-        const sha256 = createHash('sha256').update(bytes).digest('hex');
-        // Content-addressed and written once, before the record names it (a refused record leaves an unnamed file only).
-        const storageKey = `evidence/${sha256.slice(0, 2)}/${sha256}-${randomUUID()}`;
-        const path = join(app.config.exchangeDir, storageKey);
-        mkdirSync(join(path, '..'), { recursive: true });
-        writeFileSync(path, bytes, { flag: 'wx', mode: 0o440 });
+        // The database stores the bytes and computes their SHA-256 and size (site services 0823): nothing is self-attested.
         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-          const { rows } = await c.query<{ r: string }>('select site.register_evidence_document($1::jsonb)::text as r', [
-            JSON.stringify({ sha256, mediaType: body.mediaType, sizeBytes: String(bytes.length), storageKey, title: body.title }),
+          const { rows } = await c.query<{ r: string }>('select site.store_evidence_document($1::jsonb, $2)::text as r', [
+            JSON.stringify({ mediaType: body.mediaType, title: body.title }),
+            bytes,
           ]);
           return rows[0]?.r ?? '';
         });

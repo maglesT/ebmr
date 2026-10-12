@@ -10,6 +10,7 @@ import { esig, identity, withCommand } from '@ebmr/kernel';
 import { ensureSealKey, testSealKey } from '../../../kernel/test/esig/helpers.ts';
 import { seedAuthn, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { QualityWorld, refusal, seedQualityCast, unique } from './support.ts';
+import { investigateDeviation, type DeviationPathDriver } from './deviation-path.ts';
 
 let db: TestDatabase;
 let w: QualityWorld;
@@ -88,6 +89,8 @@ async function oosOf(lotId: string): Promise<string> {
 }
 
 /** Releases a lot on the identity-tested route (identity result, MATERIAL_LOT_RELEASED by the head of QC). */
+const pathDriver: DeviationPathDriver<SeededActor> = { run: (a, work) => w.run(a, work), sign: (a, agg, m, st) => signFor(db, a, agg, m, st) };
+
 async function release(lotId: string, signer: SeededActor = w.cast.qcHead2): Promise<void> {
   await w.sql(w.cast.analyst, "select site.record_identity_result($1, 'PASS', 'IR-01', $2)", [lotId, unique('T')]);
   const sig = await signFor(db, signer, { type: 'material_lot', id: lotId }, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
@@ -173,10 +176,10 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
     // Concluded with an assignable cause (laboratory error): resolved.
-    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1)', [oos.deviationId]);
-    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Titrant not standardised before the run', rootCauseCategory: 'LABORATORY_ERROR' })]);
-    const sig = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, sig]);
+    // The full deviation path (site services 0820 to 0822): the lot is assessed not affected once the error is confirmed.
+    await investigateDeviation(pathDriver, oos.deviationId, { classifier: w.cast.qa, owner: w.cast.qa, assessor: w.cast.qa2, concluder: w.cast.qa2 }, {
+      finding: { assignableCause: true, cause: 'Titrant not standardised before the run', rootCauseCategory: 'LABORATORY_ERROR' },
+    });
     // A confirmed laboratory error invalidates the result, but the lot still needs an approved passing replacement.
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
     const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%' });
@@ -196,10 +199,10 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     ]);
     await w.sql(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2)", [oos.deviationId, lot.lotId]);
     await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
-    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1)', [oos.deviationId]);
-    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Supplier crystallisation step out of control', rootCauseCategory: 'MATERIAL' })]);
-    const sig = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, sig]);
+    await investigateDeviation(pathDriver, oos.deviationId, { classifier: w.cast.qa, owner: w.cast.qa, assessor: w.cast.qa2, concluder: w.cast.qa2 }, {
+      finding: { assignableCause: true, cause: 'Supplier crystallisation step out of control', rootCauseCategory: 'MATERIAL' },
+      impact: 'CONFIRMED',
+    });
     const again = await result(lot.lotId, assay('99.0'));
     await approve(again.resultId);
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);

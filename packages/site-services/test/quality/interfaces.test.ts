@@ -14,7 +14,7 @@ import {
   qcExtraTestingAggregateId,
   qcExtraTestingDecisionOf,
   recordQcExtraTestingDecision,
-  registerEvidenceDocument,
+  storeEvidenceDocument,
   type ErpProduct,
 } from '../../src/index.ts';
 import { createTestDatabase, type TestDatabase } from '../helpers.ts';
@@ -34,19 +34,16 @@ afterAll(async () => {
 const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 describe('evidence documents', () => {
-  it('[DI-24] a stored document is named by its id at its site; an unknown id, another site or a malformed hash is refused; the app role cannot write the table', async () => {
-    const id = await w.run(w.cast.qa, (c) =>
-      registerEvidenceDocument(c, { sha256: sha('risk evaluation'), mediaType: 'application/pdf', sizeBytes: '20480', storageKey: `evidence/${unique('D')}.pdf`, title: 'Risk evaluation' }),
-    );
+  it('[DI-24] a stored document is named by its id at its site; an unknown id, another site or the self-attested form is refused; the app role cannot write the table', async () => {
+    const id = await w.run(w.cast.qa, (c) => storeEvidenceDocument(c, { mediaType: 'application/pdf', title: 'Risk evaluation', bytes: Buffer.from(`risk evaluation ${unique('D')}`) }));
     expect(await w.run(w.cast.qa, (c) => evidenceDocumentProblem(c, id, 'SITE-1'))).toBeNull();
     expect(await w.run(w.cast.qa, (c) => evidenceDocumentProblem(c, id, 'SITE-2'))).toMatch(/stored at site SITE-1, not at site SITE-2/);
     expect(await w.run(w.cast.qa, (c) => evidenceDocumentProblem(c, '00000000-0000-4000-8000-000000000009', 'SITE-1'))).toMatch(/is not a stored evidence document/);
+    // 0731's self-attested form (the storer types the hash and size) is no longer the application role's (site services 0823).
     expect(
-      await refusal(w.run(w.cast.qa, (c) => registerEvidenceDocument(c, { sha256: 'abc', mediaType: 'application/pdf', sizeBytes: '1', storageKey: 'evidence/x.pdf', title: 'x' }))),
-    ).toMatch(/EBMR-SITE-331/);
-    expect(
-      await refusal(w.run(w.cast.erp, (c) => registerEvidenceDocument(c, { sha256: sha('x'), mediaType: 'application/pdf', sizeBytes: '1', storageKey: `evidence/${unique('D')}`, title: 'x' }))),
-    ).toMatch(/EBMR-IAM/);
+      await refusal(w.run(w.cast.qa, (c) => c.query('select site.register_evidence_document($1::jsonb)', [JSON.stringify({ sha256: sha('x'), mediaType: 'application/pdf', sizeBytes: '1', storageKey: `evidence/${unique('D')}`, title: 'x' })]))),
+    ).toMatch(/permission denied/);
+    expect(await refusal(w.run(w.cast.erp, (c) => storeEvidenceDocument(c, { mediaType: 'application/pdf', title: 'x', bytes: Buffer.from('x') })))).toMatch(/EBMR-IAM/);
     for (const sql of [
       "insert into site.evidence_document (site_code, sha256, media_type, size_bytes, storage_key, title, uploaded_by_person, uploaded_by_account, correlation_id) values ('SITE-1', repeat('a', 64), 'application/pdf', 1, 'k', 't', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
       "update site.evidence_document set sha256 = repeat('b', 64)",

@@ -23,6 +23,8 @@ export interface FamilyDefinition {
   recordKind: RecordKind;
   product: { code: string; name: string; strength: string; dosageForm: string };
   batchSizes: BatchSize[];
+  /** A packaging family's pack type (D-P4-13; recipe-core 0760): with the product and the pack size its identity. */
+  packType?: string;
 }
 
 export interface VersionRef {

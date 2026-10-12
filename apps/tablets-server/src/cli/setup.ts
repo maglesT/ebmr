@@ -65,6 +65,8 @@ export interface SetupOptions {
    * `<keys>/gmp-review-batch.json` for the demo and the e2e specs.
    */
   reviewBatch?: boolean;
+  /** GMP, DEMO-ONLY (Phase 4 slice 2c): with the review batch, also the packaging-order demo (review-batch.ts step 6). */
+  packaging?: boolean;
   log?: (message: string) => void;
 }
 
@@ -188,9 +190,9 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
       }
     }
 
-    if (opts.reviewBatch) {
-      if (kind !== 'GMP') throw new Error('--gmp-review-batch is for the GMP installation');
-      const batch = await seedReviewBatch({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, log });
+    if (opts.reviewBatch || opts.packaging) {
+      if (kind !== 'GMP') throw new Error('--gmp-review-batch and --gmp-packaging are for the GMP installation');
+      const batch = await seedReviewBatch({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, log, packaging: opts.packaging === true });
       writeJson(join(opts.keysDir, 'gmp-review-batch.json'), { label: 'DEMO-ONLY review batch', ...batch });
     }
 
@@ -225,6 +227,7 @@ async function main(): Promise<void> {
       recreate: { type: 'boolean', default: false },
       'gateway-spki': { type: 'string' },
       'gmp-review-batch': { type: 'boolean', default: false },
+      'gmp-packaging': { type: 'boolean', default: false },
     },
   });
   if (values.installation !== 'GMP' && values.installation !== 'SANDBOX') throw new Error('--installation GMP|SANDBOX is required');
@@ -238,6 +241,7 @@ async function main(): Promise<void> {
     personaSets: Number(values['persona-sets']),
     recreate: values.recreate,
     reviewBatch: values['gmp-review-batch'],
+    packaging: values['gmp-packaging'],
     ...(values['gateway-spki'] ? { gatewaySpki: values['gateway-spki'] } : {}),
   });
 }

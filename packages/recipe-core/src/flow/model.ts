@@ -43,6 +43,11 @@ export interface MbrHeader {
   predicates: Record<string, string | boolean>;
   /** Issue-time variants: each has a closed domain; alternatives in ISSUE_VARIANT mode partition it. */
   variants: { id: string; values: string[] }[];
+  /**
+   * A packaging master's pack type (D-P4-13): an upper-case code such as ALU-PVC-BLISTER; with the product and the pack
+   * size it is the packaging family's identity. Absent reads STANDARD; a processing master names none.
+   */
+  packType?: string;
 }
 
 /** A controlled, versioned risk scale (IN-02). */
