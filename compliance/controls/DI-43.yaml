@@ -54,6 +54,7 @@ tests:
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] a batch with no contingency form issued completes as before"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] completion is refused while a form is issued and not returned, returned and not verified, or reported missing without its deviation reference; it passes once every form is reconciled and FORMS_RECONCILED is signed"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] the application role cannot write the completion around the gate nor switch the gate off"
+  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

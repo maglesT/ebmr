@@ -23,6 +23,7 @@ tests:
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [IN-08] a 24-month tablet made in January 2026 for India only is kept to January 2031 (five years from manufacture beat expiry + 1 year)"
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [IN-08] the same batch for the EU, certified in March 2026, is kept to March 2031; before the certification it is open"
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [IN-08] the batch inputs always carry India, and only an EU batch carries its certification or final rejection"
+  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
