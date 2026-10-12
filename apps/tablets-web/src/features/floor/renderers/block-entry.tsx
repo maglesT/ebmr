@@ -21,6 +21,7 @@ import { useSessionChange } from '../session.tsx';
 import { st } from '../text.ts';
 import { useDraftGuard } from '../unsettled.ts';
 import { useRunCommand } from '../usePendingCall.ts';
+import { DeviceReadingPicker, isDeviceEntry } from './device-reading.tsx';
 import { availability } from './parts.tsx';
 
 // ---------------------------------------------------------------------------------------------
@@ -277,16 +278,36 @@ export interface BlockEntryFormProps {
   chosen?: Readonly<Record<string, string>>;
 }
 
-export function BlockEntryForm({ def, view, chosen = {} }: BlockEntryFormProps) {
+/**
+ * The BLOCK_ENTRY of a process value taken from the equipment (D-P4-10): only the source and the reading's id; the
+ * server copies the rest from the stored reading.
+ */
+export function deviceEntry(def: BlockEntryFormDef, readingId: string | null): ClientEntry | null {
+  if (!readingId) return null;
+  const parsed = ClientEntry.safeParse({ kind: 'BLOCK_ENTRY', entryKind: def.kind, data: { source: 'EQUIPMENT', readingId } });
+  return parsed.success ? parsed.data : null;
+}
+
+export function BlockEntryForm({ def, view, chosen: given = {} }: BlockEntryFormProps) {
   const record = availability(view, 'RECORD_ENTRY');
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  const clear = () => setDrafts({});
+  // A process value: from the equipment (a reading picked) or keyed by hand (the block's manual-entry path).
+  const device = isDeviceEntry(def);
+  const [source, setSource] = useState<'EQUIPMENT' | 'MANUAL' | null>(null);
+  const [reading, setReading] = useState<string | null>(null);
+  const chosen: Readonly<Record<string, string>> = device && source === 'MANUAL' ? { ...given, source: 'MANUAL' } : given;
+  const clear = () => {
+    setDrafts({});
+    setReading(null);
+  };
   const cmd = useRunCommand(view.run.runId, view.step.stepKey, st('tap.reason.entry', { what: def.title }), { onSaved: clear, onDiscarded: clear });
   useSessionChange(clear);
   useDraftGuard(Object.keys(drafts).length > 0);
   const locked = cmd.busy || cmd.state === 'notSaved';
   const merged: Record<string, Draft> = { ...drafts, ...chosen };
-  const { entry, pending, problems } = buildBlockEntry(def, merged);
+  const fromDevice = device && source === 'EQUIPMENT';
+  const built = fromDevice ? { entry: deviceEntry(def, reading), pending: reading ? [] : [st('device.pick')], problems: [] } : device && source === null ? { entry: null, pending: [st('device.source')], problems: [] } : buildBlockEntry(def, merged);
+  const { entry, pending, problems } = built;
   const save = () => {
     if (!entry) return;
     cmd.send({ type: 'RECORD_ENTRY', stepKey: view.step.stepKey, entry }, view.run.version, view);
@@ -303,10 +324,24 @@ export function BlockEntryForm({ def, view, chosen = {} }: BlockEntryFormProps) 
         </p>
       ) : (
         <>
+          {device ? (
+            <floor.ChoiceGroup
+              label={st('device.source')}
+              options={[
+                { value: 'EQUIPMENT', label: st('device.equipment') },
+                { value: 'MANUAL', label: st('device.manual') },
+              ]}
+              value={source}
+              onChange={(v) => setSource(v === 'MANUAL' ? 'MANUAL' : 'EQUIPMENT')}
+              isDisabled={locked}
+            />
+          ) : null}
+          {fromDevice ? <DeviceReadingPicker view={view} value={reading} onChange={setReading} disabled={locked} /> : null}
           {Object.entries(def.schema.fields)
             .filter(([, m]) => !isServerFilled(m))
+            .filter(() => !fromDevice && !(device && source === null))
             .map(([name, member]) =>
-              name in chosen ? (
+              name === 'source' && device ? null : name in chosen ? (
                 <p key={name} data-testid={`chosen-${name}`}>
                   {memberTitle(name)}: {chosen[name]}
                 </p>
