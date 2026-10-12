@@ -14,7 +14,7 @@
  *   US_DISPOSE             us_disposition <lot>/<RELEASE|REJECT>     US_DISPOSITION (QCU)   recipe.record_us_disposition
  *   QP_INTAKE              qp_transcription <lot>/<sha256 of the details>  QP_CERTIFICATION_RECORDED  recipe.record_qp_transcription
  *   QP_INTAKE_VERIFY       qp_transcription_check <intake>           QP_CERTIFICATION_VERIFIED  recipe.verify_qp_transcription
- *   QP_CERTIFY             qp_certification <lot>/<outcome>          QP_CERTIFIED (registered QP, switch on)  recipe.record_qp_certification
+ *   QP_CERTIFY             qp_certification <lot>/<outcome>          QP_CERTIFIED or QP_REJECTED (registered QP, switch on)  recipe.record_qp_certification
  *   MARKET_ADD, MARKET_REMOVE  market_change LOT/<lot>/<ADD|REMOVE>/<market>/<n>   MARKET_ADDED, MARKET_REMOVED  recipe.record_market_change
  *   BATCH_MARKET_ACT       market_change BATCH/<batch>/<ADD|REMOVE>/<market>/<n>  the same, for an issued batch
  * The recall and disposal acts arrive with slice 5 (501 until then).
@@ -114,7 +114,7 @@ function target(a: ReleaseAct): ActTarget {
     case 'QP_INTAKE_VERIFY':
       return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: 'TRANSCRIBED' };
     case 'QP_CERTIFY':
-      return { aggregateType: 'qp_certification', aggregateId: id, meaning: 'QP_CERTIFIED' };
+      return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
     case 'MARKET_ADD':
     case 'MARKET_REMOVE':
       return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };

@@ -3,7 +3,7 @@
 --   * tab.kernel_signing_meanings: CREATE OR REPLACE from its latest definition (1179) with the US disposition
 --     (US_DISPOSITION on us_disposition <lot>/<RELEASE|REJECT>), the market changes (MARKET_ADDED, MARKET_REMOVED on
 --     market_change), the transcribed EU certification and its check (QP_CERTIFICATION_RECORDED on qp_transcription,
---     QP_CERTIFICATION_VERIFIED on qp_transcription_check), the in-system QP certification (QP_CERTIFIED on
+--     QP_CERTIFICATION_VERIFIED on qp_transcription_check), the in-system QP certification (QP_CERTIFIED, or QP_REJECTED from the slice 4 quick review, recipe-core 0826, on
 --     qp_certification), the EU importer (EU_IMPORTER_APPROVED) and the QP register (QP_REGISTERED) (recipe-core 0821
 --     to 0824).
 --   * tab.aggregate_read_class: CREATE OR REPLACE from its latest definition (1179): the lot-level aggregates are
@@ -77,7 +77,7 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
            when 'market_change' then array['MARKET_ADDED', 'MARKET_REMOVED']
            when 'qp_transcription' then array['QP_CERTIFICATION_RECORDED']
            when 'qp_transcription_check' then array['QP_CERTIFICATION_VERIFIED']
-           when 'qp_certification' then array['QP_CERTIFIED']
+           when 'qp_certification' then array['QP_CERTIFIED', 'QP_REJECTED']
            when 'eu_importer' then array['EU_IMPORTER_APPROVED']
            when 'qp_register' then array['QP_REGISTERED']
            -- Phase 4 slice 4b: the EU QP batch package, qp_package <package id>, expected state ASSEMBLED (kernel 1160).
