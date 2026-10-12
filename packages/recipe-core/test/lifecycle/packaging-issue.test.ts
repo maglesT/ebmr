@@ -96,15 +96,17 @@ function withSecondaryPacking(content: unknown): unknown {
 }
 
 /** An effective master of `name` for IN at SITE-1/L1 with a numbering rule of its kind; the product given or its own. */
-async function master(name: Fixture, product?: string, opts: { secondaryPacking?: boolean; packType?: string } = {}): Promise<{ familyId: string; product: string; versionId: string }> {
-  const m = uniqueContent(name, ['IN']);
+async function master(name: Fixture, product?: string, opts: { secondaryPacking?: boolean; packType?: string; markets?: ('IN' | 'US' | 'EU')[] } = {}): Promise<{ familyId: string; product: string; versionId: string }> {
+  const m = uniqueContent(name, opts.markets ?? ['IN']);
   m.header.product = { ...m.header.product, code: (product ?? m.header.product.code).toUpperCase() };
   if (opts.packType) m.header.packType = opts.packType;
   const stripped = without(m, ['G-09', 'G-10']);
   const content = (name === 'tablet-blister-packaging' && opts.secondaryPacking !== false ? withSecondaryPacking(stripped) : stripped) as MbrContent;
   const v = await w.approvedVersion(content);
-  const def: lc.MarketAuthorisationDefinition = { versionId: v.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, 'L1', SIZE[name])], regulatoryBasis: 'IN: registration on file' };
-  await w.authorise(def);
+  for (const market of opts.markets ?? ['IN']) {
+    const def: lc.MarketAuthorisationDefinition = { versionId: v.versionId, market, kind: 'CURRENT', cells: [cell(SITE, 'L1', SIZE[name])], regulatoryBasis: `${market}: registration on file` };
+    await w.authorise(def);
+  }
   const kind = name === 'tablet-blister-packaging' ? 'PACKAGING' : 'PROCESSING';
   await w.run(steward, (c) =>
     c.query('select site.define_batch_number_rule($1::jsonb)', [
@@ -189,6 +191,20 @@ describe('packaging orders as GMP batches (D-S4-2; recipe-core 0582)', () => {
     }).toEqual({ draftOnly: 'EBMR-EXE-192', notAuthorised: 'EBMR-EXE-192', unlistedPackSize: 'EBMR-EXE-192', processingMaster: 'EBMR-EXE-198', unknownFamily: 'EBMR-EXE-192' });
     expect(await q('select 1 from recipe.stub_batch b join recipe.mbr_family f on f.id = b.family_id where f.id in ($1, $2)', [drafted.familyId, unauthorised.familyId])).toEqual([]);
     const planned = await plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize, parentBatch: parent });
+    expect(planned.batchNumber).toMatch(/\/P01$/);
+  });
+
+  it('a packaging order is planned only for markets inside its processing batch\'s set (outline 3.3.3; Phase 4 slice 4a)', async () => {
+    const proc = await master('tablet-granulation-compression', undefined, { markets: ['IN', 'US'] });
+    const pack = await master('tablet-blister-packaging', proc.product, { markets: ['IN', 'US'] });
+    const parent = randomUUID();
+    await plan(parent, { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'] });
+    await issue(parent, 'tablet-granulation-compression');
+    const packSize = SIZE['tablet-blister-packaging'];
+    const refused = randomUUID();
+    expect(await codeOf(plan(refused, { familyId: pack.familyId, batchSize: packSize, parentBatch: parent, markets: ['IN', 'US'] }))).toBe('EBMR-DSP-016');
+    expect(await q('select 1 from recipe.stub_batch where id = $1', [refused])).toEqual([]);
+    const planned = await plan(randomUUID(), { familyId: pack.familyId, batchSize: packSize, parentBatch: parent, markets: ['IN'] });
     expect(planned.batchNumber).toMatch(/\/P01$/);
   });
 

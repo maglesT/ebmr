@@ -123,8 +123,36 @@ export {
   ReleaseDecisionView,
   ReleaseGate,
   ReleaseMarket,
+  // Phase 4 slice 4 (4-0): market dispositions, certification intake, market changes.
+  EuImporterView,
+  ExportMarket,
+  GrelItemId,
+  LotMarketsView,
+  MarketAddEvaluationView,
+  MarketAddItemView,
+  MarketAddOutcome,
+  MarketChangeView,
+  MarketDecisionView,
+  MarketDispositionState,
+  MarketDispositionView,
+  MarketSubjectKind,
+  QpAcknowledgementView,
+  QpCertificationView,
 } from './ns/release.ts';
 export { NotificationDepartment, NotificationView } from './ns/notifications.ts';
+export {
+  LotQpView,
+  QpAccessView,
+  QpPackageFileView,
+  QpPackageView,
+  QpReaderPackageView,
+  QpSectionRole,
+  QpSectionView,
+  ShipmentCheckView,
+  ShipmentMarket,
+  ShipmentRequest,
+  ShipmentView,
+} from './ns/qp-shipping.ts';
 export { ContainerHoldView, ContainerState, ContainerView } from './ns/containers.ts';
 export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';

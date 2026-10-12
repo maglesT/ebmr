@@ -29,6 +29,8 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'PC-QA-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QA office PC', key: 'BROWSER' },
   { code: 'PC-QA-02', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Second QA office PC (record review and release)', key: 'BROWSER' },
   { code: 'PC-QA-03', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Third QA office PC (security checks)', key: 'BROWSER' },
+  // Phase 4 slice 4c: the market dispositions spec has its own office PC (no shared device rate limit).
+  { code: 'PC-QA-04', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Fourth QA office PC (market dispositions and certification intake)', key: 'BROWSER' },
   { code: 'PC-PLAN-02', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Second production office PC (plant cleaning and verification)', key: 'BROWSER' },
   { code: 'PC-PLAN-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Production planning office PC (GMP batch issue)', key: 'BROWSER' },
   { code: 'PC-QC-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QC laboratory office PC (results, approvals, deviation-lite)', key: 'BROWSER' },

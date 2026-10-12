@@ -9,21 +9,24 @@
  *    the PR-53 switch is on, the justification of an open investigation;
  *  - the manufacturer release (with the checklist shown and the epoch the signer saw) or rejection (with the person's
  *    reason), each through esig.describe and the ceremony (RELEASE_ACT); the decision once recorded;
- *  - the notifications of the decision to production and QA (IN-39 clause 2).
+ *  - the notifications of the decision to production and QA (IN-39 clause 2);
+ *  - slice 4: the US, EU and India tabs (MarketTabs.tsx).
  * Every gate, state, item status and meaning is the server's; the browser computes none of them.
  */
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { routes, type GrelItemView, type LotReleaseView } from '@ebmr/api-contract';
+import { routes, type LotReleaseView } from '@ebmr/api-contract';
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
-import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
+import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
 import { GateProblems } from '../review/parts.tsx';
 import { NotificationList } from '../notifications/NotificationList.tsx';
-import { evidenceLink, itemTone, itemWord, RELEASE_READS, releaseTone, words } from './reads.ts';
+import { IndiaTab, MarketTab } from './MarketTabs.tsx';
+import { GrelChecklist, SinceReview } from './parts.tsx';
+import { itemWord, RELEASE_READS, releaseTone, words } from './reads.ts';
 
 export function LotReleasePage() {
   const lotId = useRouteParams()['lotId'] ?? '';
@@ -38,8 +41,17 @@ export function LotReleasePage() {
   );
 }
 
+type Tab = 'MANUFACTURER' | 'US' | 'EU' | 'IN';
+
+const TABS: readonly { id: Tab; label: string }[] = [
+  { id: 'MANUFACTURER', label: 'Manufacturer (market IN checklist)' },
+  { id: 'US', label: 'US' },
+  { id: 'EU', label: 'EU' },
+  { id: 'IN', label: 'India' },
+];
+
 function LotRelease({ view: v }: { view: LotReleaseView }) {
-  const qa = useOffered('QA');
+  const [tab, setTab] = useState<Tab>('MANUFACTURER');
   return (
     <>
       <p data-testid="release-state">
@@ -50,102 +62,44 @@ function LotRelease({ view: v }: { view: LotReleaseView }) {
         · lot {words(v.lotStatus)} · markets {v.markets.join(', ')}
       </p>
       <div role="tablist" aria-label="Release of the lot">
-        <span role="tab" aria-selected="true" data-testid="tab-manufacturer">
-          Manufacturer (market IN checklist)
-        </span>
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`panel-${t.id}`}
+            data-testid={t.id === 'MANUFACTURER' ? 'tab-manufacturer' : `tab-${t.id.toLowerCase()}`}
+            onClick={() => setTab(t.id)}
+            style={{ fontWeight: tab === t.id ? 700 : 400, marginInlineEnd: '0.5rem' }}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
-      <div role="tabpanel" aria-label="Manufacturer">
-        <Checklist view={v} />
-        <SinceReview view={v} />
-        <Flags view={v} />
-        {v.postChange.length > 0 ? <PostChange view={v} offered={qa} /> : null}
-        {v.validationBatches.length > 0 ? <PpqOutcome view={v} offered={qa} /> : null}
-        {v.openInvestigationPath ? <Justifications view={v} offered={qa} /> : null}
-        {v.decision ? <Decision view={v} /> : <ReleaseDecision view={v} offered={qa} />}
-        <Section title="Notifications of the decision" testId="lot-notifications">
-          <NotificationList subjectId={v.lotId} empty="No notification yet: production and QA are notified when the decision is signed." />
-        </Section>
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} aria-label={TABS.find((t) => t.id === tab)?.label}>
+        {tab === 'MANUFACTURER' ? <ManufacturerTab view={v} /> : tab === 'IN' ? <IndiaTab lot={v} /> : <MarketTab lot={v} market={tab} />}
       </div>
     </>
   );
 }
 
-function Evidence({ item }: { item: GrelItemView }) {
-  if (item.evidence.length === 0) return null;
+function ManufacturerTab({ view: v }: { view: LotReleaseView }) {
+  const qa = useOffered('QA');
   return (
-    <ul aria-label={`Evidence of ${item.id}`}>
-      {item.evidence.map((e) => {
-        const link = evidenceLink(e);
-        return (
-          <li key={`${e.kind}:${e.ref}`}>
-            {words(e.kind)}:{' '}
-            {link ? (
-              <Link to={link.to} params={link.params}>
-                {e.label || e.ref}
-              </Link>
-            ) : (
-              <span>{e.label || e.ref}</span>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function ItemRow({ item }: { item: GrelItemView }) {
-  return (
-    <li data-testid={`grel-item-${item.id}`} data-status={item.status}>
-      <StatusChip tone={itemTone(item.status)} label={itemWord(item.status)} /> <strong>{item.id}</strong> {item.title}
-      {item.sinceReview ? <StatusChip tone="warning" label="Changed since review" /> : null}
-      {item.problem ? <p>{item.problem}</p> : null}
-      <Evidence item={item} />
-    </li>
-  );
-}
-
-function Checklist({ view: v }: { view: LotReleaseView }) {
-  const g = v.grel;
-  return (
-    <Section title="Release checklist (G-REL, market IN)" testId="grel-checklist">
-      <p>
-        {g.ready ? 'No item is red.' : 'Some items are red: the lot cannot be released yet.'} Evaluated now, evidence epoch {g.epoch}.
-      </p>
-      <ul>
-        {g.items.map((i) => (
-          <ItemRow key={i.id} item={i} />
-        ))}
-      </ul>
-    </Section>
-  );
-}
-
-function SinceReview({ view: v }: { view: LotReleaseView }) {
-  const ack = useCommand(routes.release.acknowledge, RELEASE_READS);
-  const items = v.grel.items.filter((i) => i.sinceReview);
-  if (items.length === 0) return null;
-  return (
-    <Section title="Changed since the QA review" testId="since-review">
-      <p>The evidence of these items changed after the QA review of the record. Acknowledge each one after you have looked at it; a later change needs a new acknowledgement.</p>
-      <ul>
-        {items.map((i) => (
-          <li key={i.id} data-testid={`since-review-${i.id}`}>
-            <StatusChip tone={itemTone(i.status)} label={itemWord(i.status)} /> <strong>{i.id}</strong> {i.title} <Evidence item={i} />
-            {i.acknowledged ? (
-              <StatusChip tone="ok" label="Acknowledged by you" />
-            ) : (
-              <ActButton
-                primary={false}
-                label={`Acknowledge ${i.id}`}
-                onPress={() => ack.run({ params: { lotId: v.lotId }, body: { market: v.grel.market, itemId: i.id, epoch: v.grel.epoch } })}
-                disabled={ack.busy}
-              />
-            )}
-          </li>
-        ))}
-      </ul>
-      <ActResult error={ack.error} done={ack.done} label="Acknowledged." />
-    </Section>
+    <>
+      <GrelChecklist grel={v.grel} title="Release checklist (G-REL, market IN)" testId="grel-checklist" />
+      <SinceReview lotId={v.lotId} grel={v.grel} />
+      <Flags view={v} />
+      {v.postChange.length > 0 ? <PostChange view={v} offered={qa} /> : null}
+      {v.validationBatches.length > 0 ? <PpqOutcome view={v} offered={qa} /> : null}
+      {v.openInvestigationPath ? <Justifications view={v} offered={qa} /> : null}
+      {v.decision ? <Decision view={v} /> : <ReleaseDecision view={v} offered={qa} />}
+      <Section title="Notifications of the decision" testId="lot-notifications">
+        <NotificationList subjectId={v.lotId} empty="No notification yet: production and QA are notified when the decision is signed." />
+      </Section>
+    </>
   );
 }
 

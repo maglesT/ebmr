@@ -57,6 +57,11 @@ function BatchReview({ view: v }: { view: BatchReviewView }) {
               Output containers
             </Link>
           </li>
+          <li>
+            <Link to="/release/batches/$batchId" params={{ batchId: v.batchId }}>
+              Markets of the batch (add or remove)
+            </Link>
+          </li>
         </ul>
       </nav>
       {v.pausedSteps.length > 0 ? (

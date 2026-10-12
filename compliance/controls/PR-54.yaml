@@ -26,7 +26,10 @@ behaviour: |-
   - Contract manufacture: when the site makes product under contract, the record also supports approval or rejection by the contract giver's QCU (211.22(a)).
 catalog_test: An extended-release tablet lot missing one active's release-rate result cannot be released.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition (outline 5.2.6; PR-54, INV-39, DI-39) > [PR-54][INV-39][DI-39] the QCU releases a lot for the US only once the manufacturer release is RELEASED; QA, the AP and an administrator cannot; the checklist is stored with the signature"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition (outline 5.2.6; PR-54, INV-39, DI-39) > [PR-54] an extended-release lot missing one active's release-rate result cannot be released for the US; with it approved it can"
+  - "packages/recipe-core/test/release/dispositions.test.ts > two signature rows in one ceremony (D-P4-5) > [INV-39][PR-54] the AP who also holds the QCU permission releases for the manufacturer and the US in one command: two rows, each its own meaning and content; a stale US evaluation records neither"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

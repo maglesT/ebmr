@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -324,6 +324,20 @@ describe('route table', () => {
     expect(ok(ClientIntent, correct)).toBe(false);
   });
 
+  it('the QP package and ERP shipping namespaces (Phase 4 slice 4b) are GMP only, each route with an example; QP_PACKAGE_ACT issues one package; a shipment names an exact decimal', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of QP_SHIPPING_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of [...Object.values(routes.qpPackage), ...Object.values(routes.erpShipping)]) expect(r.installation, r.id).toBe('GMP');
+    const packageId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    expect(ok(SignableAction, { kind: 'QP_PACKAGE_ACT', act: 'ISSUE', packageId })).toBe(true);
+    expect(ok(SignableAction, { kind: 'QP_PACKAGE_ACT', act: 'REVOKE', packageId })).toBe(false);
+    const shipment = { lotId: packageId, market: 'EU', consigneeCode: 'IMP-DE-01', consigneeName: 'Importer', quantity: '120.5', unit: 'units', quarantine: true };
+    const creds = { loginName: 'erp', serviceKey: 'k', fingerprint: 'f' };
+    expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment }).success).toBe(true);
+    expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment: { ...shipment, quantity: 120.5 } }).success).toBe(false);
+    expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment: { ...shipment, market: 'UK' } }).success).toBe(false);
+  });
+
   it('the release namespace (Phase 4 slice 3) is GMP only (office routes), each route with an example; RELEASE_ACT names its act, lot and input', () => {
     const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
     for (const id of RELEASE_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
@@ -341,6 +355,26 @@ describe('route table', () => {
     expect(ack?.safeParse({ market: 'IN', itemId: 'G3.LIMS', epoch }).success).toBe(true);
     expect(ack?.safeParse({ market: 'UK', itemId: 'G3.LIMS', epoch }).success).toBe(false);
     expect(ack?.safeParse({ market: 'IN', itemId: 'lims', epoch }).success).toBe(false);
+    expect(ack?.safeParse({ market: 'US', itemId: 'G11.US_RELEASE_RATE', epoch }).success).toBe(true);
+    expect(ack?.safeParse({ market: 'US', itemId: 'G12.X', epoch }).success).toBe(false);
+  });
+
+  it('the slice 4 market acts (4-0): US disposition, two-row release, certification intake and market changes name what they sign', () => {
+    const lotId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    const epoch = 'b'.repeat(64);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId, input: { usDecision: 'RELEASE', expectedEpoch: epoch } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId, input: { usDecision: 'CERTIFY', expectedEpoch: epoch } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MANUFACTURER_RELEASE', lotId, input: { expectedEpoch: epoch, usExpectedEpoch: epoch } })).toBe(true);
+    const certification = { certifier: 'Dr. Lena Vogel', miaNumber: 'DE-MIA-2024-118', certifiedAt: '2026-10-12T09:30:00+02:00', reference: 'QP-CERT-1' };
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'QP_INTAKE', lotId, input: { qpOutcome: 'CERTIFIED', certification } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'QP_INTAKE', lotId, input: { qpOutcome: 'CERTIFIED', certification: { ...certification, certifiedAt: '12.10.2026' } } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'QP_INTAKE_VERIFY', lotId, input: { intakeId: lotId } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MARKET_ADD', lotId, input: { market: 'US', changeRecordId: lotId } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'BATCH_MARKET_ACT', act: 'MARKET_REMOVE', batchId: lotId, input: { market: 'EU', deviationId: lotId } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'BATCH_MARKET_ACT', act: 'MARKET_REMOVE', batchId: lotId, input: { market: 'UK', deviationId: lotId } })).toBe(false);
+    const msg = routes.release.qpMessage.body;
+    expect(msg?.safeParse({ message: '{"a":1}', signature: `${'A'.repeat(86)}==` }).success).toBe(true);
+    expect(msg?.safeParse({ message: '{"a":1}', signature: 'not-base64' }).success).toBe(false);
   });
 
   it('[DI-24] no route of the contract deletes anything, and the void of an attempt carries the person\'s reason', () => {

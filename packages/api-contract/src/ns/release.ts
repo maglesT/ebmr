@@ -30,6 +30,9 @@ export type ManufacturerReleaseState = z.infer<typeof ManufacturerReleaseState>;
 /** The evidence token of a G-REL evaluation (text); the signing act sends it back. */
 export const GrelEpoch = z.string().regex(/^[0-9a-f]{64}$|^0$/);
 
+/** `G<group>.<NAME>` for the core items (groups 1 to 11; 11 = market items, slice 4), `E.<NAME>` for the edition's. */
+export const GrelItemId = z.string().regex(/^(G(?:[1-9]|1[01])|E)\.[A-Z0-9_]{1,64}$/);
+
 export const GrelEvidence = z.strictObject({
   /** BATCH, LOT, DEVIATION, INCIDENT, LIMS_RESULT, SAMPLE, CHANGE_RECORD, SIGNATURE, CONTAINER, EXCEPTION, ... */
   kind: z.string().min(1).max(32),
@@ -40,7 +43,7 @@ export const GrelEvidence = z.strictObject({
 /** One G-REL item (recipe.grel_evaluate; item shape fixed in recipe-core 0780). */
 export const GrelItemView = z.strictObject({
   /** `G<group>.<NAME>` for the core items, `E.<NAME>` for the edition's. */
-  id: z.string().regex(/^(G[1-9]|E)\.[A-Z0-9_]{1,64}$/),
+  id: GrelItemId,
   /** Outline 5.2.7 group: 1 to 9 core, 10 edition, 11 market items (slice 4); an edition may answer for 4 and 9. */
   group: z.string().regex(/^([1-9]|1[01])$/),
   title: z.string().min(1),
@@ -117,7 +120,180 @@ export const LotReleaseView = LotReleaseSummaryView.extend({
 });
 export type LotReleaseView = z.infer<typeof LotReleaseView>;
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Slice 4 (4-0): market dispositions, QP certification intake, market add and removal (outline 3.3.3, 5.2.6, 5.2.7 items
+// 8 and 11; INV-39, INV-43, PR-54 to PR-56, DI-39, DI-30; D-P4-5). Every rule is the database's (recipe-core 0820 to
+// 0849, tablets 1180 to 1189).
+// ---------------------------------------------------------------------------------------------------------------------
+
+/** The export markets with a disposition of their own (IN is decided by the manufacturer release, slice 3). */
+export const ExportMarket = z.enum(['US', 'EU']);
+export type ExportMarket = z.infer<typeof ExportMarket>;
+
+/**
+ * recipe.disposition_state(lot, market). US: NOT_READY -> READY (computed: G-REL for US ready) -> RELEASED or REJECTED.
+ * EU: NOT_READY -> AWAITING_QP_CERTIFICATION (computed: manufacturer release RELEASED and G-REL for EU ready) ->
+ * CERTIFIED or REJECTED_BY_QP. Both: INELIGIBLE (terminal: the market-add evaluation signed with the addition had an
+ * UNMET_FINAL item), RELEASE_SUSPENDED (a decided market whose manufacturer release is no longer RELEASED; INV-39
+ * cascade), REMOVED (the market was removed from the lot's set, 3.3.3).
+ */
+export const MarketDispositionState = z.enum([
+  'NOT_READY',
+  'READY',
+  'RELEASED',
+  'REJECTED',
+  'AWAITING_QP_CERTIFICATION',
+  'CERTIFIED',
+  'REJECTED_BY_QP',
+  'INELIGIBLE',
+  'RELEASE_SUSPENDED',
+  'REMOVED',
+]);
+export type MarketDispositionState = z.infer<typeof MarketDispositionState>;
+
+/** Outline 3.3.3: each market-add item ends MET, UNMET_RECOVERABLE (still achievable) or UNMET_FINAL (never any more). */
+export const MarketAddOutcome = z.enum(['MET', 'UNMET_RECOVERABLE', 'UNMET_FINAL']);
+export type MarketAddOutcome = z.infer<typeof MarketAddOutcome>;
+
+export const MarketSubjectKind = z.enum(['BATCH', 'LOT']);
+
+export const MarketAddItemView = z.strictObject({
+  /** `MA.<NAME>`, e.g. MA.MBR_AUTHORISATION, MA.IDENTITY_ROUTE, MA.RELEASE_TESTS, MA.RESERVE_SAMPLES. */
+  id: z.string().regex(/^MA\.[A-Z0-9_]{1,64}$/),
+  title: z.string().min(1),
+  outcome: MarketAddOutcome,
+  /** Why it is not MET, in the database's words; null when MET. */
+  detail: z.string().nullable(),
+  evidence: z.array(GrelEvidence),
+});
+export type MarketAddItemView = z.infer<typeof MarketAddItemView>;
+
+/** recipe.market_add_evaluate(kind, id, market): the worst item decides the outcome. */
+export const MarketAddEvaluationView = z.strictObject({
+  subjectKind: MarketSubjectKind,
+  subjectId: Uuid,
+  market: ReleaseMarket,
+  outcome: MarketAddOutcome,
+  items: z.array(MarketAddItemView),
+});
+export type MarketAddEvaluationView = z.infer<typeof MarketAddEvaluationView>;
+
+/** One signed change of a market set (insert-only; the original resolution stays in the record). */
+export const MarketChangeView = z.strictObject({
+  changeId: Uuid,
+  change: z.enum(['ADD', 'REMOVE']),
+  market: ReleaseMarket,
+  subjectKind: MarketSubjectKind,
+  subjectId: Uuid,
+  by: PersonRef,
+  at: Instant,
+  signatureId: Uuid,
+  /** ADD: the change record the addition is made under. */
+  changeRecord: z.string().nullable(),
+  /** REMOVE: the linked deviation-lite record. */
+  deviationRef: z.string().nullable(),
+  /** REMOVE: the market had failed against its own rules before the removal (cockpit and PQR extract show it). */
+  removedAfterFailure: z.boolean(),
+  /** ADD: the evaluation signed with the addition (an UNMET_FINAL item makes the market INELIGIBLE). */
+  evaluation: MarketAddEvaluationView.nullable(),
+});
+export type MarketChangeView = z.infer<typeof MarketChangeView>;
+
+/** An EU certification outcome as recorded (the append-only register, PR-55, DI-39). */
+export const QpCertificationView = z.strictObject({
+  certificationId: Uuid,
+  /**
+   * MESSAGE: a structured message signed by the importer, verified and acknowledged; TRANSCRIBED: entered by hand and
+   * verified by a second person (DI-30); IN_SYSTEM: a registered QP account signed it here (switch on, PR-55).
+   */
+  source: z.enum(['MESSAGE', 'TRANSCRIBED', 'IN_SYSTEM']),
+  outcome: z.enum(['CERTIFIED', 'REJECTED_BY_QP']),
+  certifier: z.string(),
+  miaNumber: z.string(),
+  certifiedAt: Instant,
+  importerCode: z.string().nullable(),
+  /** The importer's message id or certification reference. */
+  reference: z.string(),
+  /** False only for a transcription waiting for its second person; it counts only once verified. */
+  verified: z.boolean(),
+  recordedBy: PersonRef.nullable(),
+  verifiedBy: PersonRef.nullable(),
+  reason: z.string().nullable(),
+});
+export type QpCertificationView = z.infer<typeof QpCertificationView>;
+
+export const MarketDecisionView = z.strictObject({
+  decision: z.enum(['RELEASED', 'REJECTED']),
+  by: PersonRef,
+  at: Instant,
+  signatureId: Uuid,
+  epoch: GrelEpoch,
+  checklistHash: z.string().regex(/^[0-9a-f]{64}$/),
+  reason: z.string().nullable(),
+  /** REJECTED: the investigation (deviation-lite record linked to the lot) every other market sees (PR-56). */
+  deviationId: Uuid.nullable(),
+  /** Written in the same ceremony as the manufacturer release (the AP also holds the QCU permission; D-P4-5). */
+  withManufacturerRelease: z.boolean(),
+});
+export type MarketDecisionView = z.infer<typeof MarketDecisionView>;
+
+export const MarketDispositionView = z.strictObject({
+  market: ExportMarket,
+  state: MarketDispositionState,
+  /** G-REL for the market evaluated now (null when the market was removed). */
+  grel: GrelView.nullable(),
+  /** US: the QCU decision. */
+  decision: MarketDecisionView.nullable(),
+  /** EU: every certification outcome recorded for the lot, pending transcriptions included. */
+  certifications: z.array(QpCertificationView),
+  /** The market was added after issue: its evaluation now (G-REL item 8). */
+  marketAdd: MarketAddEvaluationView.nullable(),
+  /** Every signed change of the market for the lot or its batches, oldest first. */
+  changes: z.array(MarketChangeView),
+  /** PR-55: in-system QP certification is switched on (default off). */
+  inSystemQp: z.boolean(),
+  gates: z.strictObject({ release: ReleaseGate, reject: ReleaseGate, certify: ReleaseGate }),
+});
+export type MarketDispositionView = z.infer<typeof MarketDispositionView>;
+
+export const LotMarketsView = z.strictObject({
+  lotId: Uuid,
+  manufacturerState: ManufacturerReleaseState,
+  /** The lot's market set now (original, plus added, minus removed). */
+  markets: z.array(ReleaseMarket),
+  dispositions: z.array(MarketDispositionView),
+});
+export type LotMarketsView = z.infer<typeof LotMarketsView>;
+
+/** The receipt returned to the sender of a structured certification message (DI-39). */
+export const QpAcknowledgementView = z.strictObject({
+  acknowledgementId: Uuid,
+  messageId: z.string(),
+  messageSha256: z.string().regex(/^[0-9a-f]{64}$/),
+  outcome: z.enum(['ACCEPTED', 'REFUSED']),
+  /** REFUSED: why, in the database's words. */
+  reason: z.string().nullable(),
+  receivedAt: Instant,
+  lotId: Uuid.nullable(),
+  certificationId: Uuid.nullable(),
+});
+export type QpAcknowledgementView = z.infer<typeof QpAcknowledgementView>;
+
+/** An EU importer named in a technical agreement, with the key its certification messages are signed with. */
+export const EuImporterView = z.strictObject({
+  importerId: Uuid,
+  code: z.string(),
+  name: z.string(),
+  technicalAgreementRef: z.string(),
+  miaNumber: z.string(),
+  /** SHA-256 of the Ed25519 public key. */
+  keyFingerprint: z.string().regex(/^[0-9a-f]{64}$/),
+  products: z.array(z.string()),
+});
+export type EuImporterView = z.infer<typeof EuImporterView>;
+
 const lotParams = z.strictObject({ lotId: Uuid });
+const batchParams = z.strictObject({ batchId: Uuid });
 
 export const release = {
   queue: defineRoute({
@@ -163,7 +339,68 @@ export const release = {
     mutating: true,
     summary: 'This person acknowledges one "since review" item at the epoch shown (a later change needs a new acknowledgement)',
     params: lotParams,
-    body: z.strictObject({ market: ReleaseMarket, itemId: z.string().regex(/^(G[1-9]|E)\.[A-Z0-9_]{1,64}$/), epoch: GrelEpoch }),
+    body: z.strictObject({ market: ReleaseMarket, itemId: GrelItemId, epoch: GrelEpoch }),
     response: GrelView,
+  }),
+  markets: defineRoute({
+    id: 'release.markets',
+    method: 'GET',
+    path: '/api/release/lots/:lotId/markets',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The US and EU dispositions of the lot: state, G-REL for the market, decision, certifications, market changes and gates',
+    params: lotParams,
+    response: LotMarketsView,
+  }),
+  marketAdd: defineRoute({
+    id: 'release.marketAdd',
+    method: 'GET',
+    path: '/api/release/lots/:lotId/market-add',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The market-add evaluation of the lot for a market, evaluated now against the recorded data (3.3.3)',
+    params: lotParams,
+    query: z.strictObject({ market: ReleaseMarket }),
+    response: MarketAddEvaluationView,
+  }),
+  batchMarketAdd: defineRoute({
+    id: 'release.batchMarketAdd',
+    method: 'GET',
+    path: '/api/release/batches/:batchId/market-add',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The market-add evaluation of an issued batch for a market (before a packaging order for that market)',
+    params: batchParams,
+    query: z.strictObject({ market: ReleaseMarket }),
+    response: MarketAddEvaluationView,
+  }),
+  qpMessage: defineRoute({
+    id: 'release.qpMessage',
+    method: 'POST',
+    path: '/api/release/qp-messages',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    summary: 'Take in a structured certification message signed by the EU importer; the database verifies it and the acknowledgement goes back',
+    body: z.strictObject({
+      /** The message exactly as received (JSON text, format ebmr.qp-certification.v1); its UTF-8 bytes are what was signed. */
+      message: z.string().min(2).max(16_384),
+      /** The Ed25519 signature of the message bytes, base64 (64 bytes). */
+      signature: z.string().regex(/^[A-Za-z0-9+/]{86}==$/),
+    }),
+    response: QpAcknowledgementView,
+  }),
+  importers: defineRoute({
+    id: 'release.importers',
+    method: 'GET',
+    path: '/api/release/eu-importers',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The EU importers named in technical agreements, with their products and key fingerprints',
+    response: z.strictObject({ importers: z.array(EuImporterView) }),
   }),
 } as const;

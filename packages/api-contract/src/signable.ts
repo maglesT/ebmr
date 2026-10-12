@@ -40,6 +40,18 @@
  *  - RELEASE_ACT: MANUFACTURER_RELEASE and MANUFACTURER_REJECT of a finished lot (MANUFACTURER_RELEASE, AP or named
  *    delegate), POST_CHANGE_EVALUATE (IN-03), PPQ_OUTCOME (PR-09) and INVESTIGATION_JUSTIFY (PR-53); the market, recall
  *    and disposal acts are reserved for slices 4 and 5 (the handler refuses them until then, 501).
+ * Phase 4 slice 4 (4-0; recipe-core 0820 to 0849, tablets 1180 to 1189):
+ *  - RELEASE_ACT US_DISPOSE        us_disposition <lot>/<RELEASE|REJECT>                    US_DISPOSITION (QCU role)
+ *                MANUFACTURER_RELEASE with usExpectedEpoch: two rows in one ceremony (D-P4-5), the companion challenge
+ *                                signs us_disposition <lot>/RELEASE
+ *                QP_INTAKE         qp_transcription <lot>/<sha256 of the canonical details>  QP_CERTIFICATION_RECORDED (QA)
+ *                QP_INTAKE_VERIFY  qp_transcription_check <intake>                         QP_CERTIFICATION_VERIFIED (another QA person, DI-30)
+ *                QP_CERTIFY        qp_certification <lot>/<CERTIFIED|REJECTED_BY_QP>        QP_CERTIFIED (registered QP, switch on, PR-55)
+ *                MARKET_ADD        market_change LOT/<lot>/ADD/<market>                    MARKET_ADDED (QA, with a change record)
+ *                MARKET_REMOVE     market_change LOT/<lot>/REMOVE/<market>                 MARKET_REMOVED (QA, with a linked deviation)
+ *  - BATCH_MARKET_ACT MARKET_ADD, MARKET_REMOVE  market_change BATCH/<batch>/<ADD|REMOVE>/<market>  as above.
+ * Phase 4 slice 4b (kernel 1160):
+ *  - QP_PACKAGE_ACT ISSUE  qp_package <package id>  TRUE_COPY_VERIFIED (QA): issues the assembled EU QP batch package.
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -95,8 +107,44 @@ export const ReleaseActInput = z.strictObject({
   /** INVESTIGATION_JUSTIFY: the open deviation-lite record; POST_CHANGE_EVALUATE, PPQ_OUTCOME, INVESTIGATION_JUSTIFY: the text. */
   deviationId: Uuid.optional(),
   text: z.string().trim().min(1).max(4000).optional(),
+  // Slice 4 (4-0): market dispositions, certification intake, market add and removal.
+  /**
+   * MANUFACTURER_RELEASE only, D-P4-5: the AP also holds the QCU permission and releases the lot for the US in the same
+   * ceremony: the G-REL epoch for US the signer evaluated. Two signature rows are written (MANUFACTURER_RELEASE and
+   * US_DISPOSITION), each on its own record; the companion challenge is the US_DISPOSITION one (esig sign).
+   */
+  usExpectedEpoch: z.string().regex(/^[0-9a-f]{64}$/).optional(),
+  /** US_DISPOSE: RELEASE or REJECT (a rejection carries `reason` and the investigation `deviationId`, PR-56). */
+  usDecision: z.enum(['RELEASE', 'REJECT']).optional(),
+  /** MARKET_ADD, MARKET_REMOVE: the market. */
+  market: z.enum(['IN', 'US', 'EU']).optional(),
+  /** MARKET_ADD: the change record the addition is made under (3.3.3). MARKET_REMOVE names `deviationId` instead. */
+  changeRecordId: Uuid.optional(),
+  /** QP_INTAKE (transcribed), QP_CERTIFY (in-system): the outcome. */
+  qpOutcome: z.enum(['CERTIFIED', 'REJECTED_BY_QP']).optional(),
+  /** QP_INTAKE: the certification as received outside a structured message, transcribed (DI-30: a second person verifies it). */
+  certification: z
+    .strictObject({
+      certifier: z.string().trim().min(1).max(200),
+      miaNumber: z.string().trim().min(1).max(64),
+      certifiedAt: z.iso.datetime({ offset: true }),
+      reference: z.string().trim().min(1).max(128),
+    })
+    .optional(),
+  /** QP_INTAKE_VERIFY: the transcription the second person verifies. */
+  intakeId: Uuid.optional(),
 });
 export type ReleaseActInput = z.infer<typeof ReleaseActInput>;
+
+/** What a batch market act carries besides its batch (3.3.3; members an act does not use are refused, 422). */
+export const BatchMarketActInput = z.strictObject({
+  market: z.enum(['IN', 'US', 'EU']),
+  /** MARKET_ADD: the change record. */
+  changeRecordId: Uuid.optional(),
+  /** MARKET_REMOVE: the linked deviation-lite record. */
+  deviationId: Uuid.optional(),
+});
+export type BatchMarketActInput = z.infer<typeof BatchMarketActInput>;
 
 export const RELEASE_ACTS = [
   'MANUFACTURER_RELEASE',
@@ -107,6 +155,7 @@ export const RELEASE_ACTS = [
   'US_DISPOSE',
   'QP_INTAKE',
   'QP_CERTIFY',
+  'QP_INTAKE_VERIFY',
   'MARKET_ADD',
   'MARKET_REMOVE',
   'RECONFIRM',
@@ -217,6 +266,19 @@ export const SignableAction = z.discriminatedUnion('kind', [
     /** The finished lot (site.finished_lot) the act is about. */
     lotId: Uuid,
     input: ReleaseActInput,
+  }),
+  z.strictObject({
+    kind: z.literal('BATCH_MARKET_ACT'),
+    /** Phase 4 slice 4: add a market to an issued batch's set (MARKET_ADDED) or remove one (MARKET_REMOVED), 3.3.3. */
+    act: z.enum(['MARKET_ADD', 'MARKET_REMOVE']),
+    batchId: Uuid,
+    input: BatchMarketActInput,
+  }),
+  z.strictObject({
+    kind: z.literal('QP_PACKAGE_ACT'),
+    /** Phase 4 slice 4b: QA verifies the assembled EU QP batch package as a true copy and issues it (DI-41). */
+    act: z.literal('ISSUE'),
+    packageId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

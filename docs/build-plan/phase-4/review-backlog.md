@@ -116,3 +116,41 @@ validator should require it); `recipe.release_lots` and `release_lot_facts` are 
 - IN-39 clause 2 stays deferred in its control file until the slice 7a mapping cites `notification-centre.test.ts`.
 - Default: the PRODUCTION department is HEAD_OF_PRODUCTION and SHIFT_SUPERVISOR; QA is AUTHORISED_PERSON, QA_REVIEWER,
   QA_SHOP_FLOOR and QA_MBR_APPROVER (notification routing).
+
+## Slice 4a open items (builder report, 12 October 2026)
+
+- `recipe.suspend_release` stays the 4-0 stub: slice 5 builds the manufacturer suspension and must call
+  `recipe.cascade_market_dispositions(lot, cause)` in the same transaction (decided markets already read
+  RELEASE_SUSPENDED while the manufacturer release is not RELEASED).
+- No route or screen registers EU importers or QPs (`recipe.register_eu_importer`, `recipe.register_qp`, QA signed); the
+  seed has no US QCU or EU QP persona (4c, demo).
+- Residuals: market-add items for stricter step keys, label rules, retention and the injectables items; the identity item
+  has no test with consumed lots (golden batch, slice 7); the message acknowledgement is not signed by the server.
+
+## Slice 4a and 4b open items (builder reports, 12 October 2026)
+
+- `recipe.suspend_release` is a stub until slice 5, which calls `recipe.cascade_market_dispositions`.
+- No route registers EU importers or QPs (database acts only); the screens and seed add what the demo needs.
+- Market-add evaluation does not yet cover stricter per-step keys, label rules, retention and the Injectables items.
+- The DI-39 acknowledgement is not signed by the server.
+- The QP package is stored in full in an audited row, so its size grows the audit trail (measure with the
+  performance baseline).
+- Defaults: D-4a-1 (one authentication per challenge for the two-row release), D-4a-3 (controlled release from the
+  master's dosage form; release-rate test per active), D-4a-8 (EU certification not gated on the QP package);
+  D-4b-3 (a CERTIFIED EU lot may ship to the named importer outside quarantine; before certification it ships only in
+  quarantine), D-4b-4 (post-entry change list from UPDATE events; the CoA from the lot's current results).
+- Kernel fix in 4b: true copies of insert-only tables without an `id` column now match each row to its own INSERT
+  event (records true-copy verifier).
+
+## Slice 4 quick review (12 October 2026)
+
+No critical. One high fixed in slice 4 with a test: a refused QP message no longer blocks the importer's correct
+resend (deduplication only on accepted acknowledgements; transient errors are not recorded as refusals). Core mediums
+fixed: one EU outcome per lot across transcription and message; a distinct QP rejection meaning; the two-row release
+checks the actor's QCU permission; a QP account must hold EU_QP_READER as its only live role; package sections tied to
+the lot; only the latest package is served and none after a suspension or removal, from one snapshot; the shipping
+interlock takes the full release-evidence locks; the EU_QP_CERTIFY probe no longer swallows lock errors.
+
+Backlog (low): the definer reads granted to the application role (`market_added`, `eu_certification_gate_problems`,
+`lot_market_changes`, `lot_qp_certifications`) are guarded only at the HTTP layer; add read-permission checks with the
+slice 6 records work.
