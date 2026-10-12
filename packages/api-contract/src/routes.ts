@@ -14,15 +14,16 @@ import { meta } from './ns/meta.ts';
 import { planning } from './ns/planning.ts';
 import { plant } from './ns/plant.ts';
 import { quality } from './ns/quality.ts';
+import { review } from './ns/review.ts';
 import { session } from './ns/session.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices, quality, batches, planning, masterData, plant } as const;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices, quality, batches, planning, masterData, plant, review } as const;
 export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
 /** Which module owns each namespace's handlers (the stub feature files pass to these owners). */
-/** Phase 3 slice 6 (S6): batches over the execution handlers, planning, master data (formulas) and plant. */
-export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2' | 'C3' | 'C5' | 'S6'>> = {
+/** Phase 3 slice 6 (S6): batches over the execution handlers, planning, master data (formulas) and plant. Phase 4 (P4): review. */
+export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2' | 'C3' | 'C5' | 'S6' | 'P4'>> = {
   meta: 'C0',
   session: 'C0',
   access: 'C1',
@@ -36,4 +37,5 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   planning: 'S6',
   masterData: 'S6',
   plant: 'S6',
+  review: 'P4',
 };

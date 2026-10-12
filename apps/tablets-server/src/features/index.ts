@@ -3,7 +3,8 @@
  * designer C2 (GMP); execution C3 and devices C5 on both installations since Phase 3 slice 2b (test packages and test
  * batches stay sandbox-only, the GMP batch issue GMP-only, by the contract's route installations; each installation has its
  * own gateways and scales). A module replaces only its own index.ts. Phase 3 slice 6: planning, master-data
- * (formulation library) and plant on GMP; the GMP batch family `/api/batches/*` is bound by execution (D-S6-1).
+ * (formulation library) and plant on GMP; the GMP batch family `/api/batches/*` is bound by execution (D-S6-1). Phase 4
+ * slice 1: review on GMP.
  */
 import * as access from './access/index.ts';
 import * as audit from './audit/index.ts';
@@ -16,6 +17,7 @@ import * as meta from './meta/index.ts';
 import * as planning from './planning/index.ts';
 import * as plant from './plant/index.ts';
 import * as quality from './quality/index.ts';
+import * as review from './review/index.ts';
 import * as session from './session/index.ts';
 import type { FeatureEntry, FeatureModule } from './types.ts';
 
@@ -32,6 +34,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'planning', installations: ['GMP'], module: planning satisfies FeatureModule },
   { name: 'master-data', installations: ['GMP'], module: masterData satisfies FeatureModule },
   { name: 'plant', installations: ['GMP'], module: plant satisfies FeatureModule },
+  { name: 'review', installations: ['GMP'], module: review satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

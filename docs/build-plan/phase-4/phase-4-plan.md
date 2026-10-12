@@ -24,6 +24,29 @@ below; each builder ticks them off there.
 ### Slice 1: record review and evidence epochs
 - **1-0 (lead, half a day):** contract and SQL signatures below; **performance baseline**: GB-T-01 wall time and
   triggers per `recipe.execution_state` change (backlog: about 50 triggers, about 20 minutes), written to the plan.
+- **1-0 done (12 October).** Contract: namespace `review` (`packages/api-contract/src/ns/review.ts`, routes under
+  `/api/review/*`, each with an example in `fixtures/review.json`); signable actions `REVIEW_ACT` (aggregates
+  `batch_review <batch>` for PRODUCTION_APPROVE, QA_REVIEW; `batch_audit_review <batch>/<n>` for AUDIT_TRAIL_REVIEW and
+  DELTA_REVIEW; `batch_review_reopen <batch>/<cycle>` for REOPEN; `review_items <batch>/<disposition>/<text hash>/<ids>` for
+  DISPOSE_ITEM) and `CORRECTION_APPROVAL` (CORRECTION_APPROVED on `batch_point <batch>:<point>`); the signed intent
+  `CORRECT_ENTRY` (engine command now CLIENT_SIGNED). SQL (recipe-core 0710): `recipe.evidence_epoch` table,
+  `recipe.bump_epoch(kind text, id uuid) returns bigint` (owner only, for triggers), `recipe.epoch_of(kind, id) returns
+  bigint`, `recipe.batch_review_act` (insert-only, audited on `batch_review:<batch>`, outside the audit-trail scope),
+  `recipe.batch_review_cycle(batch) returns integer`, `recipe.batch_record_kind(batch) returns text`,
+  `recipe.batch_review_state(batch uuid) returns text`. 1a adds (names fixed): `recipe.record_production_approval(batch,
+  signature)`, `recipe.record_qa_review(batch, signature, expected_epoch bigint)`, `recipe.audit_review_next_id(batch) returns
+  text`, `recipe.audit_review_report(batch uuid, limit int) returns jsonb`, `recipe.record_audit_trail_review(review_id text,
+  signature)`, `recipe.reopen_review(batch, signature, reason)`, `recipe.review_items_aggregate_id(batch, disposition, items
+  text[], justification, deviation_ref) returns text`, `recipe.dispose_review_items(batch, items text[], disposition,
+  justification, deviation_ref, signature)`, `recipe.review_gate_problems(batch, act text) returns text[]`,
+  `recipe.review_disposition_problem(batch) returns text` (for slices 3 and 4: NULL only when QA_REVIEWED and the audit-trail
+  mark covers every in-scope event, DI-34, INV-48).
+- **Performance baseline (1-0, 12 October, local libfaketime cluster as the golden CI job):** GB-T-01 wall time 898 s (the
+  vitest file, 16 tests; backlog estimate was about 20 minutes). `recipe.execution_state` has 52 row triggers (53 with the
+  truncate guard); each state write fires 51 of them (insert-only ones excepted on update): 46 647 trigger calls for 917
+  state writes (914 updates, 3 inserts) in one run, 329 s of trigger time in total, about 360 ms per state change (37 % of
+  the run). Two GB-T-01 tests (the true-copy hashes of the happy and exception-rich variants) did not match `expected.json`
+  in this run before any slice 1 change to the database (open item for the lead; the start date is the next midnight UTC).
 - **1a, recipe-core review states** (recipe-core 0710 to 0739; `apps/tablets-server/src/features/review/**`):
   EXECUTION_COMPLETE -> PRODUCTION_APPROVED -> QA_REVIEWED for processing and packaging records (INV-30, S8); abort
   checklist path; reopen with QA signature and reason invalidating review signatures (L-09); exception register

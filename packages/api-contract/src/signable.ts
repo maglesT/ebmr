@@ -23,6 +23,12 @@
  *    (VOID_AUTHORISED for a void), by another person than the requester;
  *  - PLANT_VERIFY: CLEANING and REPAIR (LOGBOOK_DOUBLE_CHECKED), CLEARANCE (the clearance verification meaning of
  *    recipe-core 0404).
+ * Phase 4 slice 1 (review; recipe-core 0710 to 0739; aggregates and meanings in ns/review.ts):
+ *  - REVIEW_ACT: PRODUCTION_APPROVE, QA_REVIEW, AUDIT_TRAIL_REVIEW, DELTA_REVIEW, REOPEN and DISPOSE_ITEM of a GMP batch
+ *    record; the input members an act does not use are refused by the handler (422).
+ *  - CORRECTION_APPROVAL: the approval of an entry correction (CORRECTION_APPROVED on the data point, batch_point
+ *    `<batch>:<point>`), given before the corrector's signed CORRECT_ENTRY names it (S25; QA when a failing value, or a
+ *    loop reading that missed its endpoint, would change: plan open question 1, default taken).
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -40,6 +46,22 @@ export const QualityActInput = z.strictObject({
   results: z.array(Uuid).max(50).optional(),
 });
 export type QualityActInput = z.infer<typeof QualityActInput>;
+
+/** What a review act carries besides its batch; members another act does not use are refused by the handler (422). */
+export const ReviewActInput = z.strictObject({
+  /** QA_REVIEW: the batch's evidence epoch the reviewer evaluated (a later bump refuses the act: write after evaluation). */
+  expectedEpoch: z.string().regex(/^(0|[1-9][0-9]*)$/).optional(),
+  /** REOPEN: the person's own reason, both halves (L-09, DI-22). */
+  reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
+  /** DISPOSE_ITEM: the exception ids (one for a critical item; several only for grouped acceptance, PR-52). */
+  items: z.array(z.string().min(1).max(128)).min(1).max(500).optional(),
+  disposition: z.enum(['ACCEPT', 'QUERY', 'ESCALATE']).optional(),
+  /** DISPOSE_ITEM: the justification (ACCEPT of a critical item or a group), the query text (QUERY) or the reason (ESCALATE). */
+  justification: z.string().trim().min(1).max(4000).optional(),
+  /** DISPOSE_ITEM ESCALATE: the deviation-lite record linked to the batch the item is escalated to. */
+  deviationRef: z.string().trim().min(1).max(128).optional(),
+});
+export type ReviewActInput = z.infer<typeof ReviewActInput>;
 
 export const SignableAction = z.discriminatedUnion('kind', [
   z.strictObject({
@@ -107,6 +129,19 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.enum(['CLEANING', 'CLEARANCE', 'REPAIR']),
     /** The cleaning, clearance or repair record. */
     id: Uuid,
+  }),
+  z.strictObject({
+    kind: z.literal('REVIEW_ACT'),
+    act: z.enum(['PRODUCTION_APPROVE', 'QA_REVIEW', 'AUDIT_TRAIL_REVIEW', 'DELTA_REVIEW', 'REOPEN', 'DISPOSE_ITEM']),
+    /** The GMP batch whose record (processing or packaging) is reviewed. */
+    batchId: Uuid,
+    input: ReviewActInput,
+  }),
+  z.strictObject({
+    kind: z.literal('CORRECTION_APPROVAL'),
+    batchId: Uuid,
+    /** The data point the correction replaces. */
+    point: z.string().min(1).max(256),
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
