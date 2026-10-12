@@ -12,6 +12,8 @@ import {
   MATERIAL_LOT_EVENTS,
   MATERIAL_LOT_STATES,
   MATERIAL_LOT_V1,
+  MATERIAL_LOT_V2,
+  MATERIAL_LOT_V2_EVENTS,
   materialLotMachine,
   SITE_MACHINES,
   SITE_SQL_DIR,
@@ -74,5 +76,27 @@ describe('the material lot machine', () => {
         expect({ s, e, next }).toEqual({ s, e, next: table.get(`${s}/${e}`) ?? null });
       }
     }
+  });
+});
+
+describe('the material lot machine, version 2 (Phase 4 slice 3a)', () => {
+  it('[IN-05] version 2 keeps every transition of version 1 and adds only the manufacturer release\'s two exits of a finished lot from quarantine, guarded by the decision recorded in the same transaction', async () => {
+    const v1 = state.extractDefinition(MATERIAL_LOT_V1);
+    const v2 = state.extractDefinition(MATERIAL_LOT_V2);
+    expect(v2.states).toEqual(v1.states);
+    const added = v2.transitions.filter((t) => !v1.transitions.some((x) => x.from === t.from && x.event === t.event));
+    expect(added).toEqual([
+      { from: 'QUARANTINE', event: 'MANUFACTURER_REJECT', to: 'REJECTED', guards: ['material_lot.command_recorded', 'material_lot.manufacturer_decision'], signature: null, permission: 'release.manufacturer' },
+      { from: 'QUARANTINE', event: 'MANUFACTURER_RELEASE', to: 'RELEASED', guards: ['material_lot.command_recorded', 'material_lot.manufacturer_decision'], signature: null, permission: 'release.manufacturer' },
+    ]);
+    expect(v2.transitions.filter((t) => !added.includes(t))).toEqual(v1.transitions);
+    const dbRows = await rows<{ from: string; event: string }>(
+      `select from_state as from, event from platform.machine_transition where machine_code = 'material_lot' and machine_version = 2 order by from_state collate "C", event collate "C"`,
+    );
+    expect(dbRows).toEqual(v2.transitions.map((t) => ({ from: t.from, event: t.event })));
+    expect([...MATERIAL_LOT_V2_EVENTS].sort()).toEqual([...new Set(v2.transitions.map((t) => t.event))].sort());
+    // The decision guard refuses a lot it does not know, and every other event of a finished lot.
+    const [g] = (await db.admin.query<{ r: string }>(`select site.guard_manufacturer_decision('material_lot', gen_random_uuid(), '{"event": "MANUFACTURER_RELEASE"}'::jsonb, '{}'::jsonb, '{}'::jsonb) as r`)).rows;
+    expect(g?.r).toBe('the lot does not exist');
   });
 });
