@@ -148,7 +148,7 @@ describe('the impact per linked subject and market', () => {
 });
 
 describe('PENDING_CLOSURE and CLOSED (PR-50, PR-51)', () => {
-  it('[PR-50][PR-51] the closure basis names the root-cause method, a system-factor assessment for a human error, CAPA references, the regulatory-notification assessment and the other batches assessed; closure needs the impact current', async () => {
+  it('[PR-50] the closure basis names the root-cause method, a system-factor assessment for a human error, CAPA references, the regulatory-notification assessment and the other batches assessed; closure needs the impact current', async () => {
     const b = await w.gmpBatch();
     const d = await raise();
     const lb = await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'BATCH', b.id));
@@ -163,7 +163,8 @@ describe('PENDING_CLOSURE and CLOSED (PR-50, PR-51)', () => {
     expect(await refusal(basis({ ...good, capaRefs: ['x'] }))).toMatch(/EBMR-SITE-826 each CAPA reference/);
     expect(await refusal(basis({ ...good, systemFactors: { process: 'too short' } }))).toMatch(/EBMR-SITE-826 a system-factor assessment/);
     // A MAJOR record with the root cause not determined: the basis without a method or a CAPA is recorded, but does not conclude.
-    await recordDeviationClosureBasisAs(d.deviationId, { ...good, capaRefs: [], noCapaReason: 'The trend review covers it already', rootCauseMethod: undefined });
+    const { rootCauseMethod: _method, ...noMethod } = good;
+    await recordDeviationClosureBasisAs(d.deviationId, { ...noMethod, capaRefs: [], noCapaReason: 'The trend review covers it already' });
     await impact(d.deviationId, lb, 'IN');
     await signImpact(d.deviationId);
     const conclude = async () => {

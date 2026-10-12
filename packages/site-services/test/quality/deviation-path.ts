@@ -8,6 +8,8 @@
  * impact and is neither the initiator nor the owner; the concluder and the closer are neither the initiator, the owner nor
  * a recorder of the finding or the basis.
  */
+import type { DeviationClosureBasis } from '../../src/index.ts';
+
 type Queryable = { query: (text: string, values?: unknown[]) => Promise<{ rows: unknown[] }> };
 
 export interface DeviationPathDriver<A extends { personId: string }> {
@@ -35,7 +37,7 @@ export interface DeviationPathOptions {
 /** A due date a month from now (YYYY-MM-DD). */
 export const dueDate = (): string => new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
 
-export const closureBasis = (finding: DeviationPathOptions['finding']) => ({
+export const closureBasis = (finding: DeviationPathOptions['finding']): DeviationClosureBasis => ({
   rootCauseMethod: 'Five whys with the investigation team',
   ...(finding.rootCauseCategory === 'HUMAN_ERROR'
     ? { systemFactors: { process: 'The process step gives no prompt for the check', procedure: 'The procedure states the check in a footnote only', system: 'The system accepted the entry without the check' } }

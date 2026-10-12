@@ -15,6 +15,7 @@ import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { investigateDeviation } from '../../../site-services/test/quality/deviation-path.ts';
 import type { Command } from '../../src/engine/index.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -150,16 +151,11 @@ async function deviation(kind: 'DEVIATION' | 'OOS' | 'INVESTIGATION', batchId?: 
   return d;
 }
 
+/** The full deviation path (site services 0820 to 0822): qa classifies and investigates, qa2 signs the impact and concludes. */
 async function conclude(d: { deviationId: string }, assignableCause: boolean): Promise<void> {
-  await w.run(qa, (c) => c.query('select site.start_deviation_investigation($1)', [d.deviationId]));
-  await w.run(qa, (c) =>
-    c.query('select site.record_deviation_finding($1, $2::jsonb)', [
-      d.deviationId,
-      JSON.stringify({ assignableCause, cause: 'Analyst used an expired reference standard', rootCauseCategory: assignableCause ? 'LABORATORY_ERROR' : 'NOT_DETERMINED' }),
-    ]),
-  );
-  const sig = await signFor(db, qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-  await w.run(qa2, (c) => c.query('select site.conclude_deviation($1, $2)', [d.deviationId, sig]));
+  await investigateDeviation({ run: (a, work) => w.run(a, work), sign: (a, agg, m, st) => signFor(db, a, agg, m, st) }, d.deviationId, { classifier: qa, owner: qa, assessor: qa2, concluder: qa2 }, {
+    finding: { assignableCause, cause: 'Analyst used an expired reference standard', rootCauseCategory: assignableCause ? 'LABORATORY_ERROR' : 'NOT_DETERMINED' },
+  });
 }
 
 const exceptionIds = (state: Json): string[] => Object.keys((state['exceptions'] as Json | undefined) ?? {});
@@ -229,11 +225,8 @@ describe('GMP deviation references (D-S2-2, D-S5-2)', () => {
     const sha = createHash('sha256').update('printout of the balance').digest('hex');
     expect(await failToPass({ kind: 'PRINTOUT' })).toMatch(/^\[603\] .* names no stored evidence document/);
     expect(await failToPass({ kind: 'PRINTOUT', sha256: sha })).toMatch(/^\[603\] .* no evidence document with SHA-256 .* is stored at site SITE-1/);
-    await w.run(operator, (c) =>
-      c.query('select site.register_evidence_document($1::jsonb)', [
-        JSON.stringify({ sha256: sha, mediaType: 'image/png', sizeBytes: '2048', storageKey: `evidence/${randomUUID()}.png`, title: 'Balance printout' }),
-      ]),
-    );
+    // Stored with its bytes (site services 0823): the database computes the hash.
+    await w.run(operator, (c) => c.query('select site.store_evidence_document($1::jsonb, $2)', [JSON.stringify({ mediaType: 'image/png', title: 'Balance printout' }), Buffer.from('printout of the balance')]));
     expect(await failToPass({ kind: 'PRINTOUT', sha256: createHash('sha256').update('another').digest('hex') })).toMatch(/^\[603\]/);
     expect(await failToPass({ kind: 'PRINTOUT', sha256: sha })).toBeNull();
     // A correction that is not from fail to pass carries no document requirement.
@@ -301,8 +294,9 @@ describe('a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 
     for (const p of parents) await w.run(operator, (c) => c.query("select site.link_deviation($1, 'BATCH', $2)", [inv.deviationId, p.batchId]));
     await conclude(inv, true);
     const risk = await w.run(operator, async (c) =>
-      (await c.query<{ r: string }>('select site.register_evidence_document($1::jsonb) as r', [
-        JSON.stringify({ sha256: createHash('sha256').update(`risk ${randomUUID()}`).digest('hex'), mediaType: 'application/pdf', sizeBytes: '4096', storageKey: `evidence/${randomUUID()}.pdf`, title: 'Risk evaluation' }),
+      (await c.query<{ r: string }>('select site.store_evidence_document($1::jsonb, $2) as r', [
+        JSON.stringify({ mediaType: 'application/pdf', title: 'Risk evaluation' }),
+        Buffer.from(`risk ${randomUUID()}`),
       ])).rows[0]!.r,
     );
     const productVersion = await withCommand(db.app, { ...erp, correlationId: randomUUID() }, async (c) =>

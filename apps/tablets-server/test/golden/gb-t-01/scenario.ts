@@ -167,10 +167,21 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
   await g.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: ex.exceptionId, outcome: 'DEVIATION_RAISED', justification: `Deviation ${dev.ref}: the held containers stay held until QA decides on them` });
   // The investigation re-weighed the retained sample of the failing check on a checked balance: within limits (an
   // instrument reading error). Phase 4 slice 1b (recipe-core 0741): QA releases a held container only once the
-  // investigation is concluded, so the investigator records the finding and a second QA person concludes it first.
-  // QA then releases the held container (OUTPUT_CONTAINER_RELEASED: the kernel's ceremony directly) before the approval
-  // for coating.
-  ok(await qa.call(routes.quality.startInvestigation, { params: { deviationId: dev.deviationId }, body: {} }), 'the investigation');
+  // investigation is concluded. Phase 4 slice 2a (site services 0820 to 0822), the full path: the shop-floor QA person
+  // classifies the record and starts the investigation with the investigator as its owner; the investigator records the
+  // finding and the impact on the batch for India; the second QA person signs the impact; the investigator records the
+  // closure basis and the second QA person concludes (PENDING_CLOSURE). QA then releases the held container
+  // (OUTPUT_CONTAINER_RELEASED: the kernel's ceremony directly) before the approval for coating.
+  const approver = (w.b['qaApprover2'] ??= await w.server.asPersona('qaApprover2'));
+  const id = { deviationId: dev.deviationId };
+  const due = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
+  ok(
+    await g.b('qa1').call(routes.quality.startInvestigation, {
+      params: id,
+      body: { classification: 'MAJOR', riskRationale: 'Weight outside the action limit on one side; held containers at risk', ownerPersonId: personaOf(w.seed, 'qaInvestigator').personId, dueDate: due },
+    }),
+    'the investigation',
+  );
   ok(
     await qa.call(routes.quality.recordFinding, {
       params: { deviationId: dev.deviationId },
@@ -178,8 +189,31 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
     }),
     'the finding',
   );
-  w.b['qaApprover2'] ??= await w.server.asPersona('qaApprover2');
-  const concluded = await signOffice(w.seed, w.b['qaApprover2'], 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: dev.deviationId, input: {} });
+  const link = ok(await qa.call(routes.quality.deviationDetail, { params: id }), 'the deviation detail').links[0];
+  if (!link) throw new Error('the deviation has no link');
+  ok(
+    await qa.call(routes.quality.recordDeviationImpact, {
+      params: id,
+      body: { linkId: link.linkId, market: 'IN', impact: 'NONE', rationale: 'Retained sample re-weighed within limits on a checked balance: an instrument reading error' },
+    }),
+    'the impact',
+  );
+  const assessed = await signOffice(w.seed, approver, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_IMPACT_ASSESS', subjectId: dev.deviationId, input: {} });
+  if (!assessed.ok) throw new Error(`the deviation impact assessment was refused: ${JSON.stringify(assessed.error)}`);
+  ok(
+    await qa.call(routes.quality.recordDeviationClosureBasis, {
+      params: id,
+      body: {
+        rootCauseMethod: 'Re-weighing of the retained sample on a checked balance',
+        capaRefs: ['CAPA-GBT01-001'],
+        notificationRequired: false,
+        notificationRationale: 'No registered detail or licence condition is affected',
+        otherBatches: [{ subjectKind: 'PRODUCT', ref: `Batches compressed on the press since the last passing check of ${g.batchNumber}`, included: false, reason: 'No other batch ran on the press in that time' }],
+      },
+    }),
+    'the closure basis',
+  );
+  const concluded = await signOffice(w.seed, approver, 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: dev.deviationId, input: {} });
   if (!concluded.ok) throw new Error(`the deviation conclusion was refused: ${JSON.stringify(concluded.error)}`);
   for (const c of held) {
     const sig = await signDirect(w.server, w.seed, 'qa1', 'output_container', c.id, 'OUTPUT_CONTAINER_RELEASED', 'HELD', 'PC-QA-01');
