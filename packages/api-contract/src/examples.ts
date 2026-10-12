@@ -50,6 +50,7 @@ import pk from '../fixtures/packaging.json' with { type: 'json' };
 import dv from '../fixtures/deviation.json' with { type: 'json' };
 import lm from '../fixtures/lims.json' with { type: 'json' };
 import rl from '../fixtures/release.json' with { type: 'json' };
+import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
@@ -271,7 +272,21 @@ export const EXAMPLES = {
   // Phase 4 slice 3c: the notification centre (IN-39 clause 2).
   'notifications-list': { schema: r.notifications.list.response, data: nt.list, routeId: r.notifications.list.id },
   'notifications-acknowledge': { schema: r.notifications.acknowledge.response, data: nt.list.notifications[0], routeId: r.notifications.acknowledge.id },
+  // Phase 4 slice 4b: the EU QP batch package, the QP's read-only access and the ERP shipping interlock.
+  'qp-package-lot': { schema: r.qpPackage.lot.response, data: qs.lot, routeId: r.qpPackage.lot.id },
+  'qp-package-assemble': { schema: r.qpPackage.assemble.response, data: { ...qs.package, state: 'ASSEMBLED', issuedBy: null, issuedAt: null, signatureId: null }, routeId: r.qpPackage.assemble.id },
+  'qp-package-grant-access': { schema: r.qpPackage.grantAccess.response, data: { ...qs.access, reads: 0 }, routeId: r.qpPackage.grantAccess.id },
+  'qp-package-revoke-access': { schema: r.qpPackage.revokeAccess.response, data: { ...qs.access, state: 'REVOKED' }, routeId: r.qpPackage.revokeAccess.id },
+  'qp-reader-packages': { schema: r.qpPackage.readerPackages.response, data: qs.reader, routeId: r.qpPackage.readerPackages.id },
+  'qp-reader-file': { schema: r.qpPackage.readerFile.response, data: qs.file, routeId: r.qpPackage.readerFile.id },
+  'erp-shipping-check': { schema: r.erpShipping.check.response, data: qs.checkAllowed, routeId: r.erpShipping.check.id },
+  'erp-shipping-check-refused': { schema: r.erpShipping.check.response, data: qs.checkRefused },
+  'erp-shipping-record': { schema: r.erpShipping.record.response, data: qs.shipment, routeId: r.erpShipping.record.id },
+  'erp-shipping-lot': { schema: r.erpShipping.lot.response, data: qs.shipments, routeId: r.erpShipping.lot.id },
 } as const satisfies Record<string, Example>;
+
+/** Phase 4 slice 4b: the QP package and ERP shipping routes, each with an example above (checked by the contract test). */
+export const QP_SHIPPING_ROUTE_IDS: readonly string[] = [...Object.values(r.qpPackage), ...Object.values(r.erpShipping)].map((route) => route.id);
 
 /** Phase 4 slice 3: the release routes, each with an example above (checked by the contract test). */
 export const RELEASE_ROUTE_IDS: readonly string[] = Object.values(r.release).map((route) => route.id);

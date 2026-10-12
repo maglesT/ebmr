@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -322,6 +322,20 @@ describe('route table', () => {
     expect(ok(SignedIntent, { ...correct, value: { kind: 'DECIMAL', value: 3, unit: '%' } })).toBe(false);
     expect(ok(SignedIntent, { ...correct, evidence: { kind: 'PRINTOUT', sha256: 'a'.repeat(64) }, approvalSignatureId: batchId })).toBe(true);
     expect(ok(ClientIntent, correct)).toBe(false);
+  });
+
+  it('the QP package and ERP shipping namespaces (Phase 4 slice 4b) are GMP only, each route with an example; QP_PACKAGE_ACT issues one package; a shipment names an exact decimal', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of QP_SHIPPING_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of [...Object.values(routes.qpPackage), ...Object.values(routes.erpShipping)]) expect(r.installation, r.id).toBe('GMP');
+    const packageId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    expect(ok(SignableAction, { kind: 'QP_PACKAGE_ACT', act: 'ISSUE', packageId })).toBe(true);
+    expect(ok(SignableAction, { kind: 'QP_PACKAGE_ACT', act: 'REVOKE', packageId })).toBe(false);
+    const shipment = { lotId: packageId, market: 'EU', consigneeCode: 'IMP-DE-01', consigneeName: 'Importer', quantity: '120.5', unit: 'units', quarantine: true };
+    const creds = { loginName: 'erp', serviceKey: 'k', fingerprint: 'f' };
+    expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment }).success).toBe(true);
+    expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment: { ...shipment, quantity: 120.5 } }).success).toBe(false);
+    expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment: { ...shipment, market: 'UK' } }).success).toBe(false);
   });
 
   it('the release namespace (Phase 4 slice 3) is GMP only (office routes), each route with an example; RELEASE_ACT names its act, lot and input', () => {

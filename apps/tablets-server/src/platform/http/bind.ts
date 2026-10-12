@@ -112,6 +112,12 @@ export interface BindOptions {
 const ALLOWED_WHEN_LOCKED = new Set(['session.get', 'session.logout', 'access.lock', 'access.unlock', 'access.switchUser']);
 /** Routes that work before the role is chosen. */
 const ALLOWED_WITHOUT_ROLE = new Set(['session.get', 'session.chooseRole', 'session.logout', 'access.lock', 'access.unlock', 'access.switchUser', 'access.keepAlive']);
+/**
+ * Phase 4 slice 4b: a session in the EU importer QP's read-only role (EU_QP_READER, kernel 1160) reaches only its own
+ * package routes and the session routes; the database scopes those reads to the one lot of a live access (DI-14).
+ */
+const QP_READER_ROLE = 'EU_QP_READER';
+const ALLOWED_FOR_QP_READER = new Set([...ALLOWED_WITHOUT_ROLE, 'qpPackage.readerPackages', 'qpPackage.readerFile']);
 /** Body members never part of a request hash, a log line or a proof subject. */
 const SECRET_MEMBERS = ['attribution', 'credentials', 'proof', 'secret', 'pin', 'password', 'newSecret', 'currentSecret', 'changeTicket'];
 
@@ -325,6 +331,16 @@ export async function admitSession(app: AppContext, routeId: string, session: Re
       why: session.state === 'IDLE_LOCKED' ? 'The terminal was idle longer than the lock time.' : 'The session was locked.',
       controls: ['DI-38'],
       whatYouCanDo: ['Unlock it with your own credentials, or sign in as another person.'],
+    });
+  }
+  if (session.roleCode === QP_READER_ROLE && !ALLOWED_FOR_QP_READER.has(routeId)) {
+    throw refusal(403, {
+      code: 'QP_READER_SCOPE',
+      kind: 'NOT_ALLOWED',
+      whatHappened: 'This account reads the QP batch package of its lot only.',
+      why: 'A QP account is read-only and scoped to the lot its access names.',
+      controls: ['DI-14', 'DI-17'],
+      whatYouCanDo: ['Open the package list.'],
     });
   }
   if (session.roleCode === null && !ALLOWED_WITHOUT_ROLE.has(routeId)) {

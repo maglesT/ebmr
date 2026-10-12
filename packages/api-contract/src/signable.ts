@@ -50,6 +50,8 @@
  *                MARKET_ADD        market_change LOT/<lot>/ADD/<market>                    MARKET_ADDED (QA, with a change record)
  *                MARKET_REMOVE     market_change LOT/<lot>/REMOVE/<market>                 MARKET_REMOVED (QA, with a linked deviation)
  *  - BATCH_MARKET_ACT MARKET_ADD, MARKET_REMOVE  market_change BATCH/<batch>/<ADD|REMOVE>/<market>  as above.
+ * Phase 4 slice 4b (kernel 1160):
+ *  - QP_PACKAGE_ACT ISSUE  qp_package <package id>  TRUE_COPY_VERIFIED (QA): issues the assembled EU QP batch package.
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -271,6 +273,12 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.enum(['MARKET_ADD', 'MARKET_REMOVE']),
     batchId: Uuid,
     input: BatchMarketActInput,
+  }),
+  z.strictObject({
+    kind: z.literal('QP_PACKAGE_ACT'),
+    /** Phase 4 slice 4b: QA verifies the assembled EU QP batch package as a true copy and issues it (DI-41). */
+    act: z.literal('ISSUE'),
+    packageId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

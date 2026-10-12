@@ -31,6 +31,9 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-45][IN-05] E.POSTED_QUANTITY: the posted quantity must equal the packs put into shippers"
   - "apps/tablets-server/test/seed/release-seed.test.ts > the release demo of the set-up CLI (demo seed) > [IN-05][IN-39] the AP rejects the NOT_READY lot over HTTP on the epoch shown; production and QA are notified and each acknowledges"
   - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [IN-05] the manufacturer release shows the checklist and signs it through the ceremony with the epoch the signer saw"
+  - "apps/tablets-server/test/release/qp-shipping-routes.test.ts > the ERP shipping interlock over HTTP (INV-42) > [INV-42][IN-05] the ERP asks before it ships: India ships after the release; the EU waits for its disposition and the named importer; a refused shipment records nothing"
+  - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][IN-05] nothing ships without a current manufacturer release: a lot in quarantine, then held after its release, is refused; a released lot ships"
+  - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][IN-05] the database refuses every way around the interlock: direct writes, the superuser's write, a person instead of the ERP, a claimed state, too much or a wrong unit"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

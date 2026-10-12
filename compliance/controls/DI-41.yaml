@@ -30,6 +30,13 @@ implemented_by:
     - "G-05: an attached scanned paper original carries its SHA-256 and makes a second-person verification of the step mandatory"
 tests:
   - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [DI-41][DI-30] a scanned paper original attached as evidence makes a second-person verification mandatory"
+  - "apps/tablets-server/test/release/qp-shipping-routes.test.ts > the EU QP batch package over HTTP (DI-41, DI-14) > [DI-41][DI-14] QA assembles and signs the package of a released lot; the QP lists and downloads it, the copy verifies against the registered hash, and the QP account reaches nothing else"
+  - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] the database computes the package hash again, checks every section and every true copy, and stores the package; the copy verifies offline"
+  - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] a package whose hash, sections or copies do not match is refused, and an altered byte fails the offline check"
+  - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] a true copy read through the definer is the copy the direct builder makes, and only a person who registers true copies reads it"
+  - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] a true copy of an insert-only table without an id column verifies row by row, and a row left out or altered is reported"
+  - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] the register is written only by the definers: the application role and a person without the permission are refused"
+  - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41][DI-35] QA issues the package with a TRUE_COPY_VERIFIED signature of this package, made by the person who records it, once"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
