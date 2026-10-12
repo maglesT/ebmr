@@ -171,6 +171,20 @@ async function item(id: string): Promise<Item> {
   return found;
 }
 
+/** A real COMPENDIAL_RULE_SET_VERIFIED signature of the QA approver over rule set `code` version `version`; its id. */
+async function signVerification(code: string, version: number): Promise<string> {
+  const qa = await actorOf(w.gmp, 'approver');
+  const content = await esig.contentForSigning(w.gmp.db.admin, 'compendial_rule_set', `${code}:${version}`);
+  const ch = await withCommand(db.app, await cmd(db, qa), (c) =>
+    esig.createChallenge(c, { aggregateType: 'compendial_rule_set', aggregateId: `${code}:${version}`, contentVersion: content.contentVersion ?? '1', meaning: 'COMPENDIAL_RULE_SET_VERIFIED', clientContentHash: content.contentHash ?? '' }),
+  );
+  const authEventId = await signatureAuth(db, qa, qa, ch.challengeId);
+  const key = w.gmp.built.ctx.sealKey;
+  if (!key) throw new Error('no seal key');
+  const r = await withCommand(db.app, await cmd(db, qa), (c) => esig.sign(c, { challengeId: ch.challengeId, authEventId, expectedState: content.state ?? null }, key));
+  return r.signatureId;
+}
+
 beforeAll(async () => {
   w = await startGmpBatchWorld();
   db = { name: w.gmp.database, admin: w.gmp.db.admin, app: w.gmp.db.app, drop: () => Promise.resolve() };
@@ -311,12 +325,16 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
     expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ group: '10', status: 'RED', problem: like(/holds no printing step/) });
     await setStep(parentId, 'p-print@', { step: 'p-print', status: 'COMPLETED', frames: [] });
     await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'ENABLED', frames: [] });
-    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'RED', problem: 'the tablets printed at p-print@ wait for the QC approval at hold point H-PRINT (IN-37)' });
-    await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'COMPLETED', frames: [], disposition: { positive: true, value: 'APPROVED' }, signatures: [{ role: 'HOLD_POINT', valid: false }] });
+    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'RED', problem: 'the tablets printed at p-print@ wait for the QC approval at hold point H-PRINT under a valid signature (IN-37)' });
+    await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'COMPLETED', frames: [], disposition: { positive: true, value: 'APPROVED' }, signatures: [{ role: 'HOLD_POINT', valid: false, id: randomUUID() }] });
     expect((await item('E.PRINTED_TABLETS_QC')).status).toBe('RED');
-    await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'COMPLETED', frames: [], disposition: { positive: false, value: 'REJECTED' }, signatures: [{ role: 'HOLD_POINT', valid: true }] });
+    await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'COMPLETED', frames: [], disposition: { positive: false, value: 'REJECTED' }, signatures: [{ role: 'HOLD_POINT', valid: true, id: randomUUID() }] });
     expect((await item('E.PRINTED_TABLETS_QC')).status).toBe('RED');
-    await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'COMPLETED', frames: [], disposition: { positive: true, value: 'APPROVED' }, signatures: [{ role: 'HOLD_POINT', valid: true }] });
+    // The stored flag alone does not count: the signature must exist and be valid in the kernel now (quick review 2).
+    await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'COMPLETED', frames: [], disposition: { positive: true, value: 'APPROVED' }, signatures: [{ role: 'HOLD_POINT', valid: true, id: randomUUID() }] });
+    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'RED', problem: like(/under a valid signature/) });
+    const signature = await signVerification('PHEUR-UOW', 1);
+    await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'COMPLETED', frames: [], disposition: { positive: true, value: 'APPROVED' }, signatures: [{ role: 'HOLD_POINT', valid: true, id: signature }] });
     expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'GREEN', problem: null });
   });
 
@@ -358,19 +376,6 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
 });
 
 describe('QA verification of a compendial rule set (slice 3b, tablets 1161; tablets spec E.1)', () => {
-  async function signVerification(code: string, version: number): Promise<string> {
-    const qa = await actorOf(w.gmp, 'approver');
-    const content = await esig.contentForSigning(w.gmp.db.admin, 'compendial_rule_set', `${code}:${version}`);
-    const ch = await withCommand(db.app, await cmd(db, qa), (c) =>
-      esig.createChallenge(c, { aggregateType: 'compendial_rule_set', aggregateId: `${code}:${version}`, contentVersion: content.contentVersion ?? '1', meaning: 'COMPENDIAL_RULE_SET_VERIFIED', clientContentHash: content.contentHash ?? '' }),
-    );
-    const authEventId = await signatureAuth(db, qa, qa, ch.challengeId);
-    const key = w.gmp.built.ctx.sealKey;
-    if (!key) throw new Error('no seal key');
-    const r = await withCommand(db.app, await cmd(db, qa), (c) => esig.sign(c, { challengeId: ch.challengeId, authEventId, expectedState: content.state ?? null }, key));
-    return r.signatureId;
-  }
-
   it('[IN-34][DI-10] E.RULE_SETS_VERIFIED: NA when no entry cites a rule set; red while a cited rule set has no signed QA verification; green once QA records and signs it', async () => {
     expect((await item('E.RULE_SETS_VERIFIED')).status).toBe('NA');
     await addEntry(parentId, 'p-ipc@', 'WEIGHT_CHECK', { check: 'EN-1', ruleSets: [{ code: 'IP-UOW', version: 1 }] });
@@ -415,5 +420,61 @@ describe('a packaging master completes only through its secondary packaging step
     expect(await problem({ kind: 'alternative', id: 'alt', branches: [{ id: 'a', body: tb24 }, { id: 'b' }] })).toMatch(/can complete without a TB-24 step/);
     expect(await problem({ kind: 'replicate', id: 'r', count: { mode: 'RUNTIME', min: 0, max: 3 }, body: tb24 })).toMatch(/can complete without a TB-24 step/);
     expect(await problem({ kind: 'sequence', id: 's', children: [other] })).toMatch(/has no TB-24 step/);
+  });
+});
+
+describe('slice 3 quick review: the Tablets items fail closed (tablets 1163)', () => {
+  const contentOfParent = "snapshot #> '{mbr,content}'";
+  const setParentContent = (sql: string): Promise<void> =>
+    arrange(`update recipe.control_recipe set snapshot = jsonb_set(snapshot, '{mbr,content}', ${sql}) where id = (select control_recipe_id from recipe.batch_execution where id = $1)`, [parentId]);
+
+  it('[IN-34][DI-10] E.RULE_SETS_VERIFIED: an entry whose rule-set reference is malformed is red ("cannot determine"), never dropped to NA', async () => {
+    const bad = await addEntry(parentId, 'p-ipc@', 'WEIGHT_CHECK', { check: 'EN-2', ruleSets: [{ code: 'PHEUR-UOW', version: 'one' }] });
+    expect(await item('E.RULE_SETS_VERIFIED')).toMatchObject({ status: 'RED', problem: like(/cannot determine the rule sets entry .* cites: its rule-set reference is malformed/) });
+    await dropEntry(parentId, bad);
+    const notArray = await addEntry(parentId, 'p-ipc@', 'WEIGHT_CHECK', { check: 'EN-3', ruleSets: 'IP-UOW' });
+    expect((await item('E.RULE_SETS_VERIFIED')).status).toBe('RED');
+    await dropEntry(parentId, notArray);
+  });
+
+  it('[IN-37][PR-45] E.PRINTED_TABLETS_QC: a library call whose element is not pinned is red ("cannot determine"); a printing step inlined from a pinned element needs the hold point after it in that element, under a valid signature', async () => {
+    await setParentContent(`jsonb_set(${contentOfParent}, '{procedure,body}', jsonb_build_object('kind', 'sequence', 'id', 'seq-lib', 'children',
+                              jsonb_build_array(jsonb_build_object('kind', 'libraryCall', 'id', 'call-print', 'element', 'LIB-PRINT', 'bind', '{}'::jsonb),
+                                                ${contentOfParent} #> '{procedure,body}')))`);
+    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'RED', problem: like(/cannot determine whether the processing batch prints/) });
+    await setParentContent(`jsonb_set(${contentOfParent}, '{library}', coalesce(${contentOfParent} -> 'library', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+                              'ref', 'LIB-PRINT', 'level', 'OPERATION', 'symbols', '[]'::jsonb, 'body', jsonb_build_object('kind', 'sequence', 'id', 'seq-lprint', 'children', jsonb_build_array(
+                                jsonb_build_object('kind', 'phase', 'id', 'p-lprint', 'block', jsonb_build_object('type', 'TB-19', 'version', '1')),
+                                jsonb_build_object('kind', 'holdPoint', 'id', 'H-LPRINT', 'name', 'QC approval', 'role', 'QA', 'dispositions', jsonb_build_array('APPROVED', 'REJECTED')))))))`);
+    await setStep(parentId, 'call-print/p-lprint@', { step: 'call-print/p-lprint', status: 'COMPLETED', frames: [] });
+    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'RED', problem: 'the tablets printed at call-print/p-lprint@ wait for the QC approval at hold point call-print/H-LPRINT under a valid signature (IN-37)' });
+    const signature = await signVerification('LEGACY-UOW', 1);
+    await setStep(parentId, 'call-print/H-LPRINT@', { step: 'call-print/H-LPRINT', status: 'COMPLETED', frames: [], disposition: { positive: true, value: 'APPROVED' }, signatures: [{ role: 'HOLD_POINT', valid: true, id: signature }] });
+    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'GREEN', problem: null });
+  });
+
+  it('[IN-17][PR-39] E.RECONCILIATION_PRINTED: when the packaging master prints but the record holds no G-21 step instance it is red, never NA', async () => {
+    const saved = (await w.gmp.db.admin.query<{ s: Json | null }>("select state -> 'steps' -> 'p-g21@' as s from recipe.execution_state where batch_id = $1", [orderId])).rows[0]?.s;
+    await arrange("update recipe.execution_state set state = jsonb_set(state, '{steps}', (state -> 'steps') - 'p-g21@') where batch_id = $1", [orderId]);
+    expect(await item('E.RECONCILIATION_PRINTED')).toMatchObject({ status: 'RED', problem: 'the packaging master prints, but the record holds no printed-materials step (G-21): nothing was reconciled' });
+    await setStep(orderId, 'p-g21@', saved ?? { step: 'p-g21', status: 'COMPLETED', frames: [] });
+    expect((await item('E.RECONCILIATION_PRINTED')).status).toBe('GREEN');
+  });
+
+  it('[INV-05][DI-37] since_review: false before QA reviewed the packaging record and for facts older than the review; true on an item whose facts changed after it (an exception, a container state)', async () => {
+    expect((await items()).every((i) => !i.since_review)).toBe(true);
+    await arrange(`insert into recipe.batch_review_act (batch_id, cycle, act, signature_id, person_id, account_id, role_code, correlation_id)
+                   values ($1, recipe.batch_review_cycle($1), 'QA_REVIEWED', gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), 'QA', gen_random_uuid())`, [orderId]);
+    // Facts recorded in the earlier tests are older than the review: nothing to acknowledge for the packs reconciliation.
+    expect((await item('E.RECONCILIATION_PACKS')).since_review).toBe(false);
+    const ex = await raise(orderId, 'p-tb24@', 'PACK_RECONCILIATION');
+    expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ status: 'RED', since_review: true });
+    await resolve(orderId, ex);
+    expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ status: 'GREEN', since_review: true });
+    // A container packed into the order released again after the review.
+    expect((await item('E.CONTAINER_RELEASE')).since_review).toBe(false);
+    const packed = (await item('E.CONTAINER_RELEASE')).evidence[0]?.ref ?? '';
+    await arrange("update platform.aggregate_state set state = 'RELEASED_BY_QA', updated_at = clock_timestamp() where aggregate_type = 'output_container' and aggregate_id = $1", [packed]);
+    expect(await item('E.CONTAINER_RELEASE')).toMatchObject({ status: 'GREEN', since_review: true });
   });
 });
