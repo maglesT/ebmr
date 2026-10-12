@@ -118,6 +118,9 @@ tests:
   - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [PR-45][IN-33] a lot is released only against an approved specification and with a current, approved result of every required test: a lot with no results no longer passes"
   - "packages/site-services/test/quality/specifications.test.ts > finished lots and returned goods (IN-05 (a), PR-45, PR-48) > [IN-05][PR-45] a finished lot is created in quarantine only from its packaging batch's output: never received, never created by the application role, and never released, rejected or recalled through the material-lot path"
   - "packages/site-services/test/quality/specifications.test.ts > finished lots and returned goods (IN-05 (a), PR-45, PR-48) > [PR-45] a RECALL of a finished lot is never proposed on the material-lot path (D-P4-3); HOLD, UNHOLD and RECALL of a material lot are proposed by QA first"
+  - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [PR-33][PR-45] a reel whose lot leaves RELEASED mid-run (QA hold, quarantine, recall, expiry) is caught at the run's next entry; changing the reel is the way on, and a device reading is never refused (tablets 1151)"
+  - "apps/tablets-server/test/quality/lims-routes.test.ts > specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test"
+  - "apps/tablets-server/test/quality/lims-routes.test.ts > finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [IN-05][PR-45] a finished lot is posted only from a packaging order whose execution is complete"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

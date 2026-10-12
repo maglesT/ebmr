@@ -41,6 +41,7 @@ tests:
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 issue > [PR-32][PR-33] a released, unexpired lot of the material, the scanned artwork the lot's and every market's, in the item's unit, positive"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 issue > [PR-33][IN-17] the issued total never above the need plus the allowance (equal allowed); manual counts need a second person; nothing after the reconciliation"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
+  - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [PR-33][PR-45] a reel whose lot leaves RELEASED mid-run (QA hold, quarantine, recall, expiry) is caught at the run's next entry; changing the reel is the way on, and a device reading is never refused (tablets 1151)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

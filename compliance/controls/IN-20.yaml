@@ -46,6 +46,7 @@ tests:
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > LIMS: results and their approval (site services 0740) > [IN-20] an OOS link: an unknown result is refused as unknown; a result is linked to its OOS record once"
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [IN-20][PR-19] an OOS record only impact-assessed is not a confirmed laboratory error: the failure stands until QA concludes it (site services 0859)"
   - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [IN-20][DI-33] a revision of a RELEASE result cites the lot's OOS record, and a revised failure stands until that record concludes a confirmed laboratory error"
+  - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [IN-20][DI-33] a revision of a RELEASE result cites an OOS record about its own test: one tied to another test of the lot is refused, so another test's laboratory error never unblocks it (slice 2 quick review)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -22,6 +22,8 @@ tests:
   - "packages/site-services/test/quality/specifications.test.ts > specifications (IN-33) > [IN-33] marking a new edition effective lists every specification in effect whose limits cite the previous one"
   - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [IN-33] the limits, unit and method of a result are the specification's, never typed; a test outside the specification in effect is refused; the stored row cannot carry other limits"
   - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [PR-45][IN-33] a lot is released only against an approved specification and with a current, approved result of every required test: a lot with no results no longer passes"
+  - "apps/tablets-server/test/quality/lims-routes.test.ts > specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test"
+  - "packages/api-contract/test/contract.test.ts > route table > [IN-33] the specifications and samples namespaces (Phase 4 slice 2b) are GMP only, reads plain and commands FRESH_ON_SHARED, each route with an example; a result names no limits and a specification test cites its pharmacopoeia and edition"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

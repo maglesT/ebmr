@@ -117,6 +117,7 @@ tests:
   - "packages/site-services/test/mutation/reprocessing.test.ts > the reprocessing registers and what is signed (recipe-core 0621, 0622, 0624, 0625) > [INV-33][PR-47] what a batch received is its own: a link or addition of another batch does not make it reprocessed"
   - "packages/site-services/test/mutation/reprocessing.test.ts > the reprocessing registers and what is signed (recipe-core 0621, 0622, 0624, 0625) > [DI-37][PR-47] what the quality unit signs names this authorisation's batch and source container, and this request's master, parents and risk evaluation"
   - "packages/site-services/test/quality/interfaces.test.ts > QC decision on extra testing (D-S5-9) > [PR-47] the tests are ordered by code point whatever collation they arrive in, so the signed id matches the server's on any database (site-services 0810)"
+  - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [PR-47] the extra tests QC decided for a batch are checked against the tests run on its lot: named in the specification, with a current approved passing result"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

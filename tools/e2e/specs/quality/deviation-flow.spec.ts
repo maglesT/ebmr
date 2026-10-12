@@ -19,12 +19,12 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
   const tag = `qf${testInfo.parallelIndex}${Date.now() % 100000}`;
   const erp = await importErp(api('GMP'), e2e.seeds.GMP, tag);
   // QA confirms the new codes: a new master is in effect only then (site-services 0802, exit review HIGH-1).
-  const qaMaster = await officePage('GMP', 'PC-QA-01');
+  const qaMaster = await officePage('GMP', 'PC-QC-01');
   await signIn.office(qaMaster, persona('GMP', 'approver'));
   await confirmErp(qaMaster, e2e, persona('GMP', 'approver'), erp);
   const base = e2e.url('GMP');
 
-  const warehouse = await officePage('GMP', 'PC-QA-01');
+  const warehouse = await officePage('GMP', 'PC-QC-01');
   await signIn.office(warehouse, stores);
   const storesApi = await signedInApi(warehouse, e2e);
   const lot = valueOf(
@@ -32,7 +32,7 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
     await storesApi.call(routes.quality.receiveLot, { body: { materialCode: erp.materials.api, lotCode: `L-${tag.toUpperCase()}`, supplier: 'E2E supplier', supplierLot: 'S-1', quantity: '25.000', expiresAt: '2028-06-30T23:59:59+05:30' } }),
   );
   await warehouse.context().close();
-  const page = await officePage('GMP', 'PC-QA-01');
+  const page = await officePage('GMP', 'PC-QC-01');
   await signIn.office(page, qa);
   const title = `Granulation end point late ${tag}`;
 
@@ -57,7 +57,7 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
   }, page);
 
   // The quality unit's authorised person classifies (a performer of the record from then on, so not its concluder).
-  const classifier = await officePage('GMP', 'PC-QA-01');
+  const classifier = await officePage('GMP', 'PC-QC-01');
   await signIn.office(classifier, persona('GMP', 'qcuAuthoriser'));
   await evidence.step('QA classifies it and starts the investigation', 'The record is UNDER_INVESTIGATION', async () => {
     await classifier.goto(page.url());
@@ -109,7 +109,7 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
     await expect(page.getByTestId('closure-summary')).toContainText(`CAPA: CAPA-${tag.toUpperCase()}`);
   }, page);
 
-  const second = await officePage('GMP', 'PC-QA-01');
+  const second = await officePage('GMP', 'PC-QC-01');
   await signIn.office(second, qa2);
   await evidence.step('QA signs the impact assessment and concludes through the ceremony', 'The record is PENDING_CLOSURE', async () => {
     await second.goto(page.url());

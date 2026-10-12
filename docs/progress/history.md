@@ -2395,3 +2395,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   readings to entries, TB-20@2 NO_PLAN. Screens for all of it, and a reviewable GMP seed batch. GB-T-01 made independent
   of the run date (PR #19) and its hashes re-recorded. Quick review: two high, one medium-high, five core mediums fixed.
   Full suite (5,533 passed; register synced), E2E 31, trace at phase 3 (111 of 241) green locally.
+- 2026-10-12: PHASE 4 SLICE 2 (branch phase-4/slice-2; builders 2a, 2b, 2c). Deviation stand-in to section 5.2.5 with
+  evidence documents stored as bytes; specifications, required tests, OOS-linked revisions, finished and returned lots,
+  retention samples, lot HOLD/UNHOLD/RETURN/RECALL with the propose step; packaging-order planning with pack type, the
+  bulk-issue screen and the quality screens. Quick review: four high (evidence by hash alone, classifier and impact
+  recorder independence, demo-seed gate) and two core mediums (CONFIRMED impact after closure, OOS of the same test)
+  fixed with tests. Final integration: site.deviation_seq registered as protected (INV-27), the deviation browser spec
+  moved to the QC office terminal (the device rate limit of the QA terminal was reached by parallel specs). Full suite
+  (5,588 passed before the three bookkeeping fixes, which then pass), E2E 32, trace at phase 3 (115 of 241) green.
