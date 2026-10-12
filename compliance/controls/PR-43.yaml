@@ -29,6 +29,8 @@ tests:
   - "packages/recipe-core/test/release/india.test.ts > expiry dating (recipe-core 0893; PR-43, D-6-3) > [PR-43] the expiry is the manufacture date plus the shelf life rounded down to a month end, computed by the database"
   - "packages/recipe-core/test/release/india.test.ts > expiry dating (recipe-core 0893; PR-43, D-6-3) > [PR-43] a batch takes the shelf life in effect when it was made: a later change, made on its stability basis, applies only to batches made after it; a tentative basis is shown"
   - "packages/site-services/test/india/licences.test.ts > the stability basis of a shelf life (site services 0886) > [PR-43] a product master version that changes the shelf life takes effect only on a recorded stability basis; the version in effect at an instant is kept"
+  - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > one expiry rule for the printed data (tablets 1201; PR-43, D-6-3) > [PR-43] the G-21 batch data shows the manufacture date and the expiry month and year of recipe.batch_expiry; batch data with another expiry is refused for every writer; a step naming another shelf life than the product master in effect at issue is refused"
+  - "apps/tablets-server/test/seed/release-seed.test.ts > the release demo of the set-up CLI (demo seed) > [PR-43] the finished lot expires at the end of recipe.batch_expiry's date in the site's zone (tablets 1201); the application can neither type an expiry nor change one"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

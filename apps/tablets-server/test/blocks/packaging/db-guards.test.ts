@@ -294,3 +294,35 @@ describe('G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952)'
     await expect(sbx.db.app.query("insert into tab.serial_report (pool_id, counts, unexplained, report_hash, fetched_by) values ($1, '{}', 0, $2, $3)", [pool, 'a'.repeat(64), randomUUID()])).rejects.toThrow(/permission denied/);
   });
 });
+
+describe('one expiry rule for the printed data (tablets 1201; PR-43, D-6-3)', () => {
+  it('[PR-43] the G-21 batch data shows the manufacture date and the expiry month and year of recipe.batch_expiry; batch data with another expiry is refused for every writer; a step naming another shelf life than the product master in effect at issue is refused', async () => {
+    const be = await sql<{ manufactureDate: string; expiryDate: string; shelfLifeMonths: number }>('select recipe.batch_expiry($1) as r', [d.runId]);
+    expect(be?.shelfLifeMonths).toBe(24);
+    expect(be?.expiryDate).toBe(await sql<string>('select recipe.expiry_month_end($1::date, 24)::text as r', [be?.manufactureDate]));
+    const fields = await sql<Json>("select fields as r from tab.packaging_batch_data where batch_id = $1 and step_key = 'p-g21@' order by version desc limit 1", [d.runId]);
+    expect(fields).toMatchObject({ mfgDate: be?.manufactureDate, expiryDate: be?.expiryDate.slice(0, 7) });
+    // A writer around the function (the owner, in a command) with another expiry month: refused by the table's check.
+    const typed = withCommand(sbx.db.admin, await as('operator1'), (c) =>
+      c.query(`insert into tab.packaging_batch_data (batch_id, step_key, version, fields, reason, recorded_by_person, recorded_by_account, correlation_id)
+               select batch_id, step_key, version + 1, jsonb_set(fields, '{expiryDate}', '"2099-12"'), 'typed expiry', recorded_by_person, recorded_by_account, gen_random_uuid()
+                 from tab.packaging_batch_data where batch_id = $1 and step_key = 'p-g21@' order by version desc limit 1`, [d.runId]));
+    await expect(typed).rejects.toThrow(/computed by the database, never typed \(PR-43\)/);
+    // The product master in effect when the batch was made gives 36 months (arranged before the issue): the step's 24 is refused.
+    const p = (await sbx.db.admin.query<{ code: string; strength: string }>("select recipe.batch_product($1) ->> 'code' as code, recipe.batch_product($1) ->> 'strength' as strength", [d.runId])).rows[0];
+    const id = randomUUID();
+    const conn = await sbx.db.admin.connect();
+    try {
+      await conn.query('begin');
+      await conn.query("set local session_replication_role = 'replica'");
+      await conn.query(`insert into site.erp_product (id, product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, received_at, correlation_id)
+                        values ($1, $2, $3, $2, false, false, 36, 'ERP-TEST-36', $1, $1, '2001-01-01', $1)`, [id, p?.code, p?.strength]);
+      await conn.query("insert into site.erp_master_effect (master_kind, master_key, version_id, basis, person_id, account_id, effective_at) values ('PRODUCT', site.erp_product_key($2, $3), $1, 'RELEASE_BASELINE', $1, $1, '2001-01-01')", [id, p?.code, p?.strength]);
+      await conn.query('commit');
+    } finally {
+      conn.release();
+    }
+    expect(await sql<Json>('select recipe.batch_expiry($1) as r', [d.runId])).toMatchObject({ shelfLifeMonths: 36 });
+    await expect(asP('operator1', 'select tab.record_packaging_batch_data($1, $2, null, $3) as r', [d.runId, 'p-g21@', 'Shelf life checked'])).rejects.toThrow(/names a shelf life of 24 months; the product master in effect when the batch was made gives 36/);
+  });
+});
