@@ -15,6 +15,7 @@
  *   <kind>-secrets.json       CSRF and nonce keys (EBMR_SECRETS_FILE), kept when present
  *   sandbox-service-keys.json the sweeper's, the gateway's and the gateway API monitor's service secrets (EBMR_SERVICE_KEYS_FILE)
  *   gmp-service-keys.json     the GMP sweeper's service secret (EBMR_SERVICE_KEYS_FILE of the GMP server; D-P4-9)
+ *   gmp-review-batch.json     with --gmp-review-batch (GMP): the batch record built ready for review (review-batch.ts)
  */
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -44,6 +45,7 @@ import {
 } from '@ebmr/test-kit';
 import { FEATURES } from '../features/index.ts';
 import { publishRuleTables } from '../platform/rule-tables.ts';
+import { seedReviewBatch } from './review-batch.ts';
 import type { FeatureSeedContext } from '../features/types.ts';
 
 export const TABLETS_SQL = new URL('../../sql', import.meta.url).pathname;
@@ -58,6 +60,11 @@ export interface SetupOptions {
   recreate: boolean;
   /** The gateway's Ed25519 public key (SPKI DER, base64). */
   gatewaySpki?: string;
+  /**
+   * GMP, DEMO-ONLY (Phase 4 slice 1c): also build one GB-T-01 batch record ready for review (review-batch.ts), written to
+   * `<keys>/gmp-review-batch.json` for the demo and the e2e specs.
+   */
+  reviewBatch?: boolean;
   log?: (message: string) => void;
 }
 
@@ -181,6 +188,12 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
       }
     }
 
+    if (opts.reviewBatch) {
+      if (kind !== 'GMP') throw new Error('--gmp-review-batch is for the GMP installation');
+      const batch = await seedReviewBatch({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, log });
+      writeJson(join(opts.keysDir, 'gmp-review-batch.json'), { label: 'DEMO-ONLY review batch', ...batch });
+    }
+
     writeJson(join(opts.keysDir, `${prefix}-seed.json`), seed);
     writeJson(join(opts.keysDir, `${prefix}-demo-devices.json`), demoDevicesOf(seed));
     const serviceEntry = (s: (typeof seed.services)[number]) => ({
@@ -211,6 +224,7 @@ async function main(): Promise<void> {
       'persona-sets': { type: 'string', default: '1' },
       recreate: { type: 'boolean', default: false },
       'gateway-spki': { type: 'string' },
+      'gmp-review-batch': { type: 'boolean', default: false },
     },
   });
   if (values.installation !== 'GMP' && values.installation !== 'SANDBOX') throw new Error('--installation GMP|SANDBOX is required');
@@ -223,6 +237,7 @@ async function main(): Promise<void> {
     exchangeDir: resolve(values['exchange-dir']),
     personaSets: Number(values['persona-sets']),
     recreate: values.recreate,
+    reviewBatch: values['gmp-review-batch'],
     ...(values['gateway-spki'] ? { gatewaySpki: values['gateway-spki'] } : {}),
   });
 }

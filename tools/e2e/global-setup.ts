@@ -34,7 +34,8 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
   mkdirSync(keysDir, { recursive: true });
   const workers = config.workers;
   const echo = process.env['EBMR_E2E_ECHO'] === '1';
-  await setupStack({ databases, keysDir, exchangeDir, personaSets: workers + 1, echo });
+  // The review specs (Phase 4 slice 1c) review the DEMO-ONLY batch record the set-up builds (gmp-review-batch.json).
+  await setupStack({ databases, keysDir, exchangeDir, personaSets: workers + 1, echo, gmpReviewBatch: true });
   await buildWeb(echo);
   const ports = { gmp: await freePort(), sandbox: await freePort(), gatewayListener: await freePort(), gateway: await freePort(), simulatorTcp: await freePort(), simulatorHttp: await freePort() };
   const stack = await startStack({ databases, keysDir, exchangeDir, ports, webDist: WEB_DIST, host: 'localhost', echo, logLevel: 'warn' });
