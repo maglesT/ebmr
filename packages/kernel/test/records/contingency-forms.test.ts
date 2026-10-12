@@ -15,6 +15,8 @@ import {
   signFormReconciliation,
   type IssuedForm,
 } from '../../src/records/contingency.ts';
+import { trueCopyBundleFromSnapshot } from '../../src/records/qp-package.ts';
+import { verifyTrueCopyBundle } from '../../src/records/true-copy.ts';
 import { expectPermissionDenied, expectRefused } from '../identity/helpers.ts';
 import { seedActor, type SeededActor } from '../identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
@@ -154,6 +156,17 @@ describe('contingency packs (kernel 1170)', () => {
     await expectRefused(run(qa, (c) => signFormReconciliation(c, batch, sig2)), 'EBMR-REC-105', /person who signed/);
     await run(qa2, (c) => signFormReconciliation(c, batch, sig2));
     expect(await formReconciliationState(db.app, batch)).toBe('SIGNED');
+  });
+
+  it('[DI-43][DI-41] the contingency forms of a batch are copied as a true copy that verifies offline (records-schema tables named as the audit trail names them)', async () => {
+    const batch = randomUUID();
+    const [form] = await pack(batch, 2);
+    await useAndVerify(form as IssuedForm);
+    const qaReviewer = await seedActor(db, { roleCode: 'QA_REVIEWER' });
+    const bundle = await run(qaReviewer, (c) => trueCopyBundleFromSnapshot(c, `form_reconciliation:${batch}`));
+    const report = verifyTrueCopyBundle(bundle);
+    expect(report.problems).toEqual([]);
+    expect(JSON.parse(bundle.manifest).tables).toEqual(expect.arrayContaining(['records.contingency_form', 'records.contingency_form_event']));
   });
 
   it('[DI-43][INV-27] the tables are written only by the definers and the serial sequence is protected', async () => {
