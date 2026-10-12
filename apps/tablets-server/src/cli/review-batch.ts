@@ -116,9 +116,21 @@ function parseSetCookie(header: string | string[] | undefined, jar: Map<string, 
   }
 }
 
+const DEMO_DATABASE = /(_demo$|_e2e_[a-z0-9]+$)/;
+
+/** Refuses unless the database is named as a demo or E2E one and carries the tab.demo_installation mark. */
+export async function assertDemoInstallation(db: DatabaseHandle, database: string): Promise<void> {
+  const marked = (await db.admin.query<{ m: boolean }>('select exists (select 1 from tab.demo_installation) as m')).rows[0]?.m === true;
+  if (!DEMO_DATABASE.test(database) || !marked) {
+    throw new Error(`the DEMO-ONLY seed refuses database ${database}: it is not a marked demo installation (tab.demo_installation)`);
+  }
+}
+
 /** Builds a GMP batch record ready for review on an installation the set-up CLI has just seeded. */
 export async function seedReviewBatch(opts: ReviewBatchSeedOptions): Promise<ReviewBatchSeed> {
   const { db, log } = opts;
+  // DEMO-ONLY (slice 2 review): the shortcuts below run only on a database the set-up marked as a demo installation.
+  await assertDemoInstallation(db, opts.database);
   const admin = new URL(process.env['EBMR_PG_ADMIN_URL'] ?? 'postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres');
   const env = parseConfig(
     {
@@ -471,6 +483,7 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
   // The state guards refuse a step the token has not reached, so the update runs with the triggers off (replica), as the
   // recipe-core bulk-issue tests arrange it.
   log('packaging demo: DEMO SHORTCUT, H-PACK of the second batch set APPROVED by the superuser (triggers off)');
+  await assertDemoInstallation(db, opts.database);
   const shortcut = await db.admin.connect();
   try {
     await shortcut.query('begin');

@@ -70,7 +70,17 @@ export interface SetupOptions {
   log?: (message: string) => void;
 }
 
-const DEMO_NAME = /(_demo$|_e2e_[a-z0-9]+$)/;
+export const DEMO_NAME = /(_demo$|_e2e_[a-z0-9]+$)/;
+
+/**
+ * The DEMO-ONLY seeds (--gmp-review-batch, --gmp-packaging) write superuser shortcuts (a status set complete, a hold point
+ * set approved with a placeholder signature): they run only on a database named as a demo or E2E one (slice 2 review).
+ */
+export function demoSeedRefusal(opts: Pick<SetupOptions, 'database' | 'reviewBatch' | 'packaging'>): string | null {
+  if (!opts.reviewBatch && !opts.packaging) return null;
+  if (DEMO_NAME.test(opts.database)) return null;
+  return `--gmp-review-batch and --gmp-packaging are DEMO-ONLY: database ${opts.database} is not a demo or E2E database (its name must end in _demo or _e2e_<hex>)`;
+}
 
 function readJson<T>(file: string): T | undefined {
   return existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as T) : undefined;
@@ -99,6 +109,8 @@ export function demoDevicesOf(seed: SiteSeed): { installation: 'GMP' | 'SANDBOX'
 
 export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
   const log = opts.log ?? ((m: string) => console.log(m));
+  const refused = demoSeedRefusal(opts);
+  if (refused) throw new Error(refused);
   const kind = opts.installation;
   const prefix = kind === 'GMP' ? 'gmp' : 'sandbox';
   mkdirSync(opts.keysDir, { recursive: true, mode: 0o700 });
