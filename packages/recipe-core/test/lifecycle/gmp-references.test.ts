@@ -260,6 +260,50 @@ describe('GMP deviation references (D-S2-2, D-S5-2)', () => {
   });
 });
 
+describe('the evidence of a correction is a document stored with its bytes (slice 2 quick review, recipe-core 0770)', () => {
+  it('[DI-24][INV-41] a document row without stored bytes (the self-attested form of before site services 0823) is not evidence of a fail-to-pass or loop-reading correction', async () => {
+    const b = await issuedBatch();
+    const problem = async (command: Json, old: Json, next: Json = {}): Promise<string | null> =>
+      (await db.admin.query<{ p: string | null }>("select recipe.gmp_reference_problem($1, $2::jsonb, $3::jsonb, 'COMMAND', $4::jsonb, true) as p", [
+        b.batchId,
+        JSON.stringify(old),
+        JSON.stringify(next),
+        JSON.stringify(command),
+      ])).rows[0]?.p ?? null;
+    const bytes = Buffer.from(`legacy printout ${randomUUID()}`);
+    const sha = createHash('sha256').update(bytes).digest('hex');
+    // A legacy row: hash, size and key typed by the storer, no bytes (written past the commands, as before 0823).
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query(
+        `insert into site.evidence_document (site_code, sha256, media_type, size_bytes, storage_key, title, uploaded_by_person, uploaded_by_account, correlation_id)
+         values ($1, $2, 'image/png', $3, $4, 'Legacy printout', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+        [SITE, sha, bytes.length, `evidence/${randomUUID()}.png`],
+      );
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    const failToPass = () =>
+      problem({ type: 'CORRECT_ENTRY', point: 'P1', evidence: { kind: 'PRINTOUT', sha256: sha } }, { points: { P1: { failed: true } } }, { points: { P1: { failed: true, supersededBy: 'P2' }, P2: { failed: false } } });
+    const qaFloor = await seedActor(db, { roleCode: 'QA_SHOP_FLOOR', legalName: 'Farah Floor-QA', roomCode: 'DISP-01' });
+    const qaApproval = { approver: { id: qaFloor.personId, kind: 'PERSON', roles: ['QA'] } };
+    const loop = () =>
+      problem(
+        { type: 'CORRECT_ENTRY', point: 'P-LOD-1', approval: qaApproval, evidence: { kind: 'PRINTOUT', sha256: sha } },
+        { decisions: { 'L-DRY@R-DRY=1': { kind: 'LOOP', outcome: 'CONTINUE', inputs: { points: ['P-LOD-1'], derived: [] } } }, points: { 'P-LOD-1': { failed: false } } },
+      );
+    expect(await failToPass()).toMatch(/^\[603\] .* no evidence document with SHA-256 .* is stored at site SITE-1/);
+    expect(await loop()).toMatch(/^\[603\] corrects P-LOD-1, a loop reading .* without a stored evidence document/);
+    // The same bytes stored through the document service: now evidence.
+    await w.run(operator, (x) => x.query('select site.store_evidence_document($1::jsonb, $2)', [JSON.stringify({ mediaType: 'image/png', title: 'Printout' }), bytes]));
+    expect(await failToPass()).toBeNull();
+    expect(await loop()).toBeNull();
+  });
+});
+
 describe('the ERP order at GMP issue (outline 5.2.2; D-S5-4)', () => {
   it('a GMP batch is planned only against an ERP order whose product, strength, site, size and BOM match the pinned MBR; a missing, unknown, other-product, other-size or mismatched order is refused; an order plans one batch', async () => {
     const { familyId, content } = await effective();

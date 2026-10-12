@@ -163,6 +163,7 @@ tests:
   - "packages/site-services/test/quality/deviation-full.test.ts > the impact per linked subject and market > [PR-49] every link is assessed for IN before QA signs; a later impact row or a new link takes the record back to UNDER_INVESTIGATION until QA signs again"
   - "packages/site-services/test/quality/deviation-full.test.ts > links and release (INV-46, L-21) > [INV-46][PR-49] a link blocks the lot's release from the moment it is made, is insert-only, and ends only with QA's signed impact NONE"
   - "packages/site-services/test/quality/deviation-full.test.ts > links and release (INV-46, L-21) > [INV-46][PR-49] a batch's release reads the links to the batch and to its output containers"
+  - "packages/site-services/test/quality/deviation-full.test.ts > slice 2 quick review (site services 0824) > [INV-46][PR-49] a lot linked with a CONFIRMED impact stays unreleasable after the record is closed; one assessed POTENTIAL is released after closure (D-2a-9)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

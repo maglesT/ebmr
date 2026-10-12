@@ -44,6 +44,7 @@ tests:
   - "apps/tablets-server/test/quality/routes.test.ts > signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [PR-50] the impact sign-off, the conclusion and the closure succeed through the ceremony and are refused for the initiator, the owner or changed content; the closure basis and the detail over HTTP (slice 2a)"
   - "packages/site-services/test/quality/deviation-full.test.ts > PENDING_CLOSURE and CLOSED (PR-50, PR-51) > [PR-50] the closure basis names the root-cause method, a system-factor assessment for a human error, CAPA references, the regulatory-notification assessment and the other batches assessed; closure needs the impact current"
   - "packages/site-services/test/quality/deviation-full.test.ts > links and release (INV-46, L-21) > [PR-50] a cancelled deviation is listed on the release checklist and does not block; its canceller does not sign the release of a linked lot (L-21)"
+  - "packages/site-services/test/quality/deviation-full.test.ts > slice 2 quick review (site services 0824) > [PR-50][INV-03] the classifier and an impact recorder are performers: neither signs the impact nor concludes; nobody approves an impact they recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

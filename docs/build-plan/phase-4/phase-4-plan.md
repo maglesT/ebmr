@@ -115,6 +115,9 @@ below; each builder ticks them off there.
   release is slice 3). D-2a-7 evidence bytes in the database (bytea, at most 16 MB, insert-only); the document row with
   its hash is audited, the bytes are not copied into the audit trail. D-2a-8 the new tables bump the evidence epochs
   through `site.deviation_epoch_hook`, which finds `recipe.bump_epoch` when it runs.
+  D-2a-9 (quick review, open for the owner): a link whose latest impact for the market is CONFIRMED keeps the subject
+  blocked after the record is closed; the subject is rejected, or released only through a signed QA disposition of that
+  link (a later slice). Closure ends a link assessed NONE or POTENTIAL (site-services 0824).
 - **2b, LIMS, lots and samples** (site-services 0840 to 0859, tablets 1150 to 1159; 1140 and 1141 were taken by slice 1a): approved specifications per
   material with pharmacopoeia edition (IN-33); limits from the specification, never typed; revising a RELEASE result
   needs an OOS link; required tests per material (a lot without results no longer passes); QC extra-testing decision
@@ -320,6 +323,8 @@ New permissions and meanings go in the builder's range; reuse the kernel meaning
 4. Still waiting from Phase 3: compendial and AQL values (expert), TB-19 signer (QA kept), packing steps refused in a
    GMP processing batch, formula readers (D-S6-4); SQL groups below 90 %: twins stay for deployment validation.
 5. Clauses 7a defers to 6 or 7, each with its reason, listed in PROGRESS.md before `phase.yaml` goes to 4.
+6. D-2a-9: a lot or batch whose deviation link was CONFIRMED stays blocked after closure until a signed QA disposition
+   of that link (default); the alternative is that closure ends every link.
 
 ## Tests each sub-slice must have
 

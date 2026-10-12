@@ -28,7 +28,7 @@ import {
   type DeviationClassificationInput,
   type DeviationClosureBasis,
 } from '../../src/index.ts';
-import { createTestDatabase, signFor, type TestDatabase } from '../helpers.ts';
+import { createTestDatabase, signerActor, signFor, type TestDatabase } from '../helpers.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { closureBasis, dueDate } from './deviation-path.ts';
 import { QualityWorld, refusal, seedQualityCast, unique } from './support.ts';
@@ -306,5 +306,55 @@ describe('evidence documents tied to their stored bytes (site services 0823)', (
     expect(await w.run(w.cast.qa, (c) => evidenceDocumentProblem(c, forged, 'SITE-1'))).toMatch(/has no stored bytes matching its SHA-256/);
     await w.fixture("insert into site.evidence_document_content (document_id, bytes) values ($1, '\\x01')", [forged]);
     expect(await w.run(w.cast.qa, (c) => evidenceDocumentProblem(c, forged, 'SITE-1'))).toMatch(/has no stored bytes matching its SHA-256/);
+  });
+});
+
+describe('slice 2 quick review (site services 0824)', () => {
+  it('[PR-50][INV-03] the classifier and an impact recorder are performers: neither signs the impact nor concludes; nobody approves an impact they recorded', async () => {
+    const qa4 = await signerActor(db, 'QA_REVIEWER');
+    const lot = await w.lot();
+    const d = await raise();
+    const link = await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'LOT', lot.lotId));
+    // qa2 classifies (owner qa3); qa4 records the impact.
+    await w.run(w.cast.qa2, (c) => startDeviationInvestigation(c, d.deviationId, cls(w.cast.qa3)));
+    await w.run(qa4, (c) => recordDeviationImpact(c, d.deviationId, { linkId: link, market: 'IN', impact: 'NONE', rationale: 'Not used in the affected run' }));
+    const byClassifier = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    expect(await refusal(w.run(w.cast.qa2, (c) => assessDeviationImpact(c, d.deviationId, byClassifier)))).toMatch(/EBMR-SITE-833/);
+    const byRecorder = await w.sign(qa4, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    expect(await refusal(w.run(qa4, (c) => assessDeviationImpact(c, d.deviationId, byRecorder)))).toMatch(/EBMR-SITE-834/);
+    const content = (await db.admin.query<{ c: { entered_by: string[] } }>('select site.deviation_content($1) as c', [d.deviationId])).rows[0]?.c;
+    expect(content?.entered_by).toEqual(expect.arrayContaining([w.cast.qa2.personId, qa4.personId]));
+    await signImpact(d.deviationId, w.cast.qa);
+    await w.run(w.cast.qa3, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Pump rate below the set value', rootCauseCategory: 'EQUIPMENT' }));
+    await w.run(w.cast.qa3, (c) => recordDeviationClosureBasis(c, d.deviationId, closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'EQUIPMENT' })));
+    // Neither the classifier nor the impact recorder can sign the conclusion; QA outside the record concludes.
+    expect(await refusal(w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED'))).not.toBe('');
+    expect(await refusal(w.sign(qa4, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED'))).not.toBe('');
+    const sig = await w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+    await w.run(w.cast.qa, (c) => concludeDeviation(c, d.deviationId, sig));
+    expect(await state(d.deviationId)).toBe('PENDING_CLOSURE');
+  });
+
+  it('[INV-46][PR-49] a lot linked with a CONFIRMED impact stays unreleasable after the record is closed; one assessed POTENTIAL is released after closure (D-2a-9)', async () => {
+    const confirmed = await w.lot();
+    const potential = await w.lot();
+    const d = await raise();
+    const lc = await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'LOT', confirmed.lotId));
+    const lp = await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'LOT', potential.lotId));
+    await w.run(w.cast.qa3, (c) => startDeviationInvestigation(c, d.deviationId, cls(w.cast.qa)));
+    await impact(d.deviationId, lc, 'IN', 'CONFIRMED');
+    await impact(d.deviationId, lp, 'IN', 'POTENTIAL');
+    await signImpact(d.deviationId);
+    await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Moisture above the limit in the first lot', rootCauseCategory: 'MATERIAL' }));
+    await recordDeviationClosureBasisAs(d.deviationId, closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'MATERIAL' }));
+    const concluded = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+    await w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, concluded));
+    const closed = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'PENDING_CLOSURE');
+    await w.run(w.cast.qa2, (c) => closeDeviation(c, d.deviationId, closed));
+    expect(await state(d.deviationId)).toBe('CLOSED');
+    expect(await refusal(releaseLot(confirmed.lotId))).toMatch(/EBMR-SITE-830 .* is CLOSED: it was closed with the impact on lot .* for IN CONFIRMED/);
+    expect(await w.run(w.cast.qa, (c) => deviationOpenFor(c, confirmed.lotId))).toBe(true);
+    expect(await w.run(w.cast.qa, (c) => deviationOpenFor(c, potential.lotId))).toBe(false);
+    await releaseLot(potential.lotId);
   });
 });
