@@ -10,8 +10,9 @@
 --                        record is made for the market; PR-56).
 --   G11.REGISTRATION     each batch's master version held a valid authorisation cell for the market at issue (PR-56).
 --   G11.MARKET_REJECTIONS PR-56: a rejection in another market (a US REJECTED decision, an EU REJECTED_BY_QP outcome) is
---                        visible here; it is GREEN only once a deviation-lite record is linked to the lot at or after
---                        the rejection (the investigation every market then assesses for itself through G2); NA when none.
+--                        visible here; it is GREEN only once its investigation is linked to the lot: the deviation-lite
+--                        record a US rejection names, or (an EU outcome comes from outside) one linked at or after the
+--                        rejection; every market then assesses that record for itself through G2. NA when none.
 --   G11.US_RELEASE_RATE  (US) PR-54 [T]: a controlled-release product (the master's dosage form names an extended,
 --                        prolonged, modified, controlled, sustained or delayed release) needs, for every active of its
 --                        bill of materials (role ACTIVE), a current RELEASE result RELEASE_RATE.<material> that passed
@@ -140,9 +141,9 @@ language sql stable security definer set search_path = pg_catalog, recipe, pg_te
 $$;
 
 -- The rejections in export markets of the lot: (market, at), for G11.MARKET_REJECTIONS (0824 adds the EU outcomes).
-create function recipe.market_rejections(p_lot uuid) returns table (market text, rejected_at timestamptz, ref text)
+create function recipe.market_rejections(p_lot uuid) returns table (market text, rejected_at timestamptz, ref text, deviation_id uuid)
 language sql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
-  select 'US'::text, d.recorded_at, d.signature_id::text from recipe.us_disposition_decision d where d.lot_id = p_lot and d.decision = 'REJECTED'
+  select 'US'::text, d.recorded_at, d.signature_id::text, d.deviation_id from recipe.us_disposition_decision d where d.lot_id = p_lot and d.decision = 'REJECTED'
 $$;
 
 -- PR-54 [T] (default D-4a-3): the controlled-release product's actives (BOM role ACTIVE) when any master of the lot's
@@ -221,7 +222,8 @@ begin
   v_ev := '[]'::jsonb;
   for r in select * from recipe.market_rejections(p_lot) j where j.market <> p_market order by j.rejected_at loop
     v_ev := v_ev || jsonb_build_array(jsonb_build_object('kind', 'MARKET_REJECTION', 'ref', r.ref, 'label', format('rejected for %s', r.market)));
-    if v_prob is null and not exists (select 1 from site.deviation_link k where k.subject_kind = 'LOT' and k.subject_id = p_lot and k.linked_at >= r.rejected_at) then
+    if v_prob is null and r.deviation_id is null
+       and not exists (select 1 from site.deviation_link k where k.subject_kind = 'LOT' and k.subject_id = p_lot and k.linked_at >= r.rejected_at) then
       v_prob := format('the lot was rejected for %s; an investigation (a deviation record linked to the lot) is opened before %s decides (PR-56)', r.market, p_market);
     end if;
   end loop;
