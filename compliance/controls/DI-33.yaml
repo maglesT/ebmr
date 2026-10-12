@@ -281,6 +281,7 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-ipc.test.ts > statistics, bounds and verdicts > [PR-29][DI-33] the statistics of the values"
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > LIMS: results and their approval (site services 0740) > [DI-33] a result is an object; only a revision states a revision reason"
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > LIMS: results and their approval (site services 0740) > [DI-33][DI-35] approval: an unknown result, one approved already, its recorder, another QC person's signature"
+  - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [IN-20][DI-33] a revision of a RELEASE result cites the lot's OOS record, and a revised failure stands until that record concludes a confirmed laboratory error"
 clauses:
   - clause: "The yield step shows inputs, formula version, result and a verification signature."
     tests:

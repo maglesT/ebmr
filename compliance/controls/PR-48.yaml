@@ -20,7 +20,8 @@ behaviour: |-
   - Investigation: if the reason for return implicates other batches, a 211.192 investigation is linked.
 catalog_test: Repackaging returned units without a QC assessment is blocked. After a "doubt" assessment, only destroy or chemical recovery is offered.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/site-services/test/quality/specifications.test.ts > finished lots and returned goods (IN-05 (a), PR-45, PR-48) > [PR-48] returned goods are booked in quarantine linked to their finished lot; they leave it only by rejection after QC's signed assessment, and with any doubt only destruction or chemical recovery is chosen"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

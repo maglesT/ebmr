@@ -67,6 +67,15 @@ const impact = (id: string, linkId: string, market: 'IN' | 'US' | 'EU', i: 'NONE
   w.run(w.cast.qa, (c) => recordDeviationImpact(c, id, { linkId, market, impact: i, rationale: 'Assessed against the batch record and the test results' }));
 
 async function releaseLot(lotId: string, signer: SeededActor = w.cast.qcHead2): Promise<void> {
+  // The specification's required test (site services 0841): an approved passing ASSAY result first.
+  if (!(await db.app.query('select 1 from site.lot_test_result where lot_id = $1', [lotId])).rows.length) {
+    const r = await w.sql<{ resultId: string }>(w.cast.analyst, 'select site.record_lot_test_result($1, $2::jsonb) as r', [
+      lotId,
+      JSON.stringify({ testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose: 'RELEASE', value: '99.5', unit: '%' }),
+    ]);
+    const approval = await signFor(db, w.cast.qcHead, { type: 'lot_test_result', id: r.resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
+    await w.sql(w.cast.qcHead, 'select site.approve_lot_test_result($1, $2)', [r.resultId, approval]);
+  }
   await w.sql(w.cast.analyst, "select site.record_identity_result($1, 'PASS', 'IR-01', $2)", [lotId, unique('T')]);
   const sig = await signFor(db, signer, { type: 'material_lot', id: lotId }, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
   const v = (await db.app.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lotId])).rows[0]?.v;

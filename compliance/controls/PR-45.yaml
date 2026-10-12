@@ -115,6 +115,9 @@ tests:
   - "apps/tablets-server/test/blocks/coating/db-guards.test.ts > the coating and finishing blocks in the database (tablets 0910 to 0912) > [IN-37][PR-29][PR-45] TB-19: printed tablets wait for the QC approval: a printed container cannot be charged until the hold point after printing is released; a passing print check of the printer is the only PASS that vouches for them; the printer is a plant unit; in a batch that also runs a TB-11 scheduler; a container opened on the printer before its set-up waits too (review 3d #4)"
   - "apps/tablets-server/test/blocks/coating/tb-19-edges.test.ts > TB-19 printing > [IN-37][PR-29][PR-45] PERFORMED needs the set-up and a passing last check"
   - "apps/tablets-server/test/blocks/coating/tb-19-edges.test.ts > TB-19 the QC gate > [IN-37][PR-29][PR-45] the node right after the step is a hold point of the gate role (D QA) with a disposition that rejects; the mark content is named"
+  - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [PR-45][IN-33] a lot is released only against an approved specification and with a current, approved result of every required test: a lot with no results no longer passes"
+  - "packages/site-services/test/quality/specifications.test.ts > finished lots and returned goods (IN-05 (a), PR-45, PR-48) > [IN-05][PR-45] a finished lot is created in quarantine only from its packaging batch's output: never received, never created by the application role, and never released, rejected or recalled through the material-lot path"
+  - "packages/site-services/test/quality/specifications.test.ts > finished lots and returned goods (IN-05 (a), PR-45, PR-48) > [PR-45] a RECALL of a finished lot is never proposed on the material-lot path (D-P4-3); HOLD, UNHOLD and RECALL of a material lot are proposed by QA first"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
