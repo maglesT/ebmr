@@ -389,3 +389,13 @@ and a SITE-165 branch of `consume_reservation` can never fire (an earlier check 
 - TB-11 missed start sweep stays due (mutation medium): fixed in tb-11.ts and tablets 1110.
 - Site-services 0733 collation (mutation medium): `collate "C"` in site.qc_test_codes (site-services 0810).
 
+
+## Ticked in Phase 4 slice 2c (12 October 2026, branch phase-4/slice-2c)
+
+- Slice 2b #4 (low): `recipe.prepare_gmp_issue` takes a number allocated ahead only from the person who allocated it
+  (EBMR-PLN-004) and checks the test-number rule at planning too (recipe-core 0761).
+- Slice 4b: a PACKAGING order whose master has no TB-24 step is refused at planning (EBMR-PLN-005; the completion block
+  per edition is recipe-core data, `recipe.packaging_completion_block`, tablets TB-24).
+- Slice 6c: the packaging family's identity holds its pack type (D-P4-13; `recipe.mbr_family_pack`, recipe-core 0760).
+- Exit residual: packaging orders are planned over HTTP (`POST /api/planning/packaging-orders`) and their bulk is issued
+  from a screen (`/planning/packaging/$batchId`, over `POST /api/batches/:id/bulk`).

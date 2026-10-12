@@ -111,6 +111,24 @@ below; each builder ticks them off there.
   `apps/tablets-web/**`): HTTP route to plan a packaging order and the bulk-issue screen (exit residual); pack type
   in the packaging family's identity (D-P4-13); a PACKAGING order whose MBR has no TB-24 refused; prepare_gmp_issue
   allocation by another person (2b #4, low); deviation, specification, lot-event and sample screens.
+- **2c planning built (12 October; recipe-core 0760 to 0762; routes planning.packagingOrders, planPackagingOrder,
+  packagingBulk; screens /planning (packaging card), /planning/packaging, /planning/packaging/$batchId).**
+  Database-enforced: a packaging family's identity is (edition, product, strength, form, pack sizes, pack type) in the
+  insert-only, audited `recipe.mbr_family_pack` (a PACKAGING family without one fails at commit; a master's header names
+  its family's pack type); a packaging order is planned only on a master holding its edition's completion block
+  (`recipe.packaging_completion_block`, tablets TB-24; EBMR-PLN-005); a number allocated ahead is planned only by its
+  allocator (EBMR-PLN-004). Codes EBMR-PLN-001 to 005. Defaults taken (decision 0004):
+  - **D-2c-1** `recipe.mbr_family` is insert-only, so the pack type lives in its own table; a packaging definition or
+    header without one reads STANDARD; existing packaging families take their approved master's header pack type
+    (STANDARD when it names none).
+  - **D-2c-2** The completion block per edition is recipe-core data, not a tablets migration (2c has no tablets range); an
+    edition with no row plans no packaging order (fails closed until Injectables registers its own).
+  - **D-2c-3** A number allocated ahead is taken only by the person who allocated it (stricter than "any planner holding
+    BATCH_NUMBER.ALLOCATE").
+  - **D-2c-4** The planning screen now sends the matched batch-size id (it sent the order's quantity, which the database
+    refused); the packaging plan names the ERP order it was planned from.
+  - **D-2c-5** The e2e demo (set-up CLI `--gmp-packaging`) releases its second GB-T-01 batch for packing by a DEMO
+    SHORTCUT (H-PACK set APPROVED in the stored state with triggers off), as the review seed marks its batch complete.
 
 ### Slice 3: G-REL and the manufacturer release
 - **3a, release core** (recipe-core 0770 to 0809, `apps/tablets-server/src/features/release/**`): manufacturer
