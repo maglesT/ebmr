@@ -341,6 +341,26 @@ describe('route table', () => {
     expect(ack?.safeParse({ market: 'IN', itemId: 'G3.LIMS', epoch }).success).toBe(true);
     expect(ack?.safeParse({ market: 'UK', itemId: 'G3.LIMS', epoch }).success).toBe(false);
     expect(ack?.safeParse({ market: 'IN', itemId: 'lims', epoch }).success).toBe(false);
+    expect(ack?.safeParse({ market: 'US', itemId: 'G11.US_RELEASE_RATE', epoch }).success).toBe(true);
+    expect(ack?.safeParse({ market: 'US', itemId: 'G12.X', epoch }).success).toBe(false);
+  });
+
+  it('the slice 4 market acts (4-0): US disposition, two-row release, certification intake and market changes name what they sign', () => {
+    const lotId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    const epoch = 'b'.repeat(64);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId, input: { usDecision: 'RELEASE', expectedEpoch: epoch } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId, input: { usDecision: 'CERTIFY', expectedEpoch: epoch } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MANUFACTURER_RELEASE', lotId, input: { expectedEpoch: epoch, usExpectedEpoch: epoch } })).toBe(true);
+    const certification = { certifier: 'Dr. Lena Vogel', miaNumber: 'DE-MIA-2024-118', certifiedAt: '2026-10-12T09:30:00+02:00', reference: 'QP-CERT-1' };
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'QP_INTAKE', lotId, input: { qpOutcome: 'CERTIFIED', certification } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'QP_INTAKE', lotId, input: { qpOutcome: 'CERTIFIED', certification: { ...certification, certifiedAt: '12.10.2026' } } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'QP_INTAKE_VERIFY', lotId, input: { intakeId: lotId } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RELEASE_ACT', act: 'MARKET_ADD', lotId, input: { market: 'US', changeRecordId: lotId } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'BATCH_MARKET_ACT', act: 'MARKET_REMOVE', batchId: lotId, input: { market: 'EU', deviationId: lotId } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'BATCH_MARKET_ACT', act: 'MARKET_REMOVE', batchId: lotId, input: { market: 'UK', deviationId: lotId } })).toBe(false);
+    const msg = routes.release.qpMessage.body;
+    expect(msg?.safeParse({ message: '{"a":1}', signature: `${'A'.repeat(86)}==` }).success).toBe(true);
+    expect(msg?.safeParse({ message: '{"a":1}', signature: 'not-base64' }).success).toBe(false);
   });
 
   it('[DI-24] no route of the contract deletes anything, and the void of an attempt carries the person\'s reason', () => {

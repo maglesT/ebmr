@@ -262,6 +262,12 @@ export const EXAMPLES = {
   'release-lot-released': { schema: r.release.lot.response, data: rl.released },
   'release-grel': { schema: r.release.grel.response, data: rl.grel, routeId: r.release.grel.id },
   'release-acknowledge': { schema: r.release.acknowledge.response, data: rl.grel, routeId: r.release.acknowledge.id },
+  // Phase 4 slice 4 (4-0): market dispositions, market add, certification intake, importers (screens of 4c).
+  'release-markets': { schema: r.release.markets.response, data: rl.markets, routeId: r.release.markets.id },
+  'release-market-add': { schema: r.release.marketAdd.response, data: rl.marketAdd, routeId: r.release.marketAdd.id },
+  'release-batch-market-add': { schema: r.release.batchMarketAdd.response, data: { ...rl.marketAdd, subjectKind: 'BATCH' }, routeId: r.release.batchMarketAdd.id },
+  'release-qp-message': { schema: r.release.qpMessage.response, data: rl.qpAck, routeId: r.release.qpMessage.id },
+  'release-importers': { schema: r.release.importers.response, data: rl.importers, routeId: r.release.importers.id },
   // Phase 4 slice 3c: the notification centre (IN-39 clause 2).
   'notifications-list': { schema: r.notifications.list.response, data: nt.list, routeId: r.notifications.list.id },
   'notifications-acknowledge': { schema: r.notifications.acknowledge.response, data: nt.list.notifications[0], routeId: r.notifications.acknowledge.id },

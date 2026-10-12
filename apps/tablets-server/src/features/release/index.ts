@@ -11,11 +11,24 @@ import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { grelView, lotRelease, releaseQueue } from './reads.ts';
-import { releaseActHandler } from './signables.ts';
+import { refusal } from '../../platform/http/refusal.ts';
+import { batchMarketActHandler, releaseActHandler } from './signables.ts';
+
+const notYet = (): Promise<never> =>
+  Promise.reject(
+    refusal(501, {
+      code: 'NOT_IMPLEMENTED',
+      kind: 'NOT_ENABLED',
+      whatHappened: 'This function is not available yet.',
+      why: 'It arrives with Phase 4 slice 4a.',
+      whatYouCanDo: ['Use another path for now.'],
+    }),
+  );
 
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
   if (app.installation !== 'GMP') return;
   registry.register(releaseActHandler(app));
+  registry.register(batchMarketActHandler(app));
 }
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
@@ -41,6 +54,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       });
       return grelView(pool, params.lotId, body.market, who.personId);
     },
+    // Slice 4-0: the market routes answer 501 until 4a builds them.
+    markets: notYet,
+    marketAdd: notYet,
+    batchMarketAdd: notYet,
+    qpMessage: notYet,
+    importers: notYet,
   });
   return Promise.resolve();
 }

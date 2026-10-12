@@ -118,3 +118,21 @@ export function releaseActHandler(app: AppContext): SignableActionHandler<Releas
     },
   });
 }
+
+type BatchMarketAct = Extract<SignableAction, { kind: 'BATCH_MARKET_ACT' }>;
+
+/** BATCH_MARKET_ACT (slice 4-0): market_change BATCH/<batch>/<ADD|REMOVE>/<market>; 501 until slice 4a builds it. */
+export function batchMarketActHandler(app: AppContext): SignableActionHandler<BatchMarketAct> {
+  return dbActHandler<BatchMarketAct>(app, {
+    kind: 'BATCH_MARKET_ACT',
+    aggregateTypes: ['market_change'],
+    target: (a) => ({
+      aggregateType: 'market_change',
+      aggregateId: `BATCH/${a.batchId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${a.input.market}`,
+      meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED',
+    }),
+    precheck: () =>
+      Promise.resolve(refusedOutcome(501, 'NOT_IMPLEMENTED', 'This market act is not available yet. Nothing was signed.', 'Market add and removal arrive with Phase 4 slice 4a.', ['INV-43'], ['Use another path for now.'])),
+    apply: () => Promise.reject(new Error('BATCH_MARKET_ACT is not built yet')),
+  });
+}

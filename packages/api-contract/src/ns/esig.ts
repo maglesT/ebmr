@@ -83,6 +83,8 @@ export const SignOutcomeView = z.strictObject({
   manifestation: ManifestationView,
   /** The handler's result (for ENGINE_COMMAND: the new StepScreenView), or null. */
   result: z.looseObject({}).nullable(),
+  /** The second signature row of a two-row ceremony (D-P4-5), when the request carried a companion challenge. */
+  companion: ManifestationView.optional(),
 });
 export type SignOutcomeView = z.infer<typeof SignOutcomeView>;
 
@@ -98,6 +100,11 @@ export const SignableDescriptorView = z.strictObject({
   aggregateId: z.string(),
   meaning: z.string().nullable(),
   expectedState: z.string().nullable(),
+  /**
+   * Phase 4 slice 4 (D-P4-5): the second record and meaning signed in the same ceremony (the client opens a challenge for
+   * each and signs once with `companionChallengeId`); absent for a one-row act.
+   */
+  companion: z.strictObject({ aggregateType: z.string(), aggregateId: z.string(), meaning: z.string(), expectedState: z.string().nullable() }).optional(),
 });
 export type SignableDescriptorView = z.infer<typeof SignableDescriptorView>;
 
@@ -140,7 +147,18 @@ export const esig = {
     auth: 'SESSION',
     mutating: true,
     summary: 'Authenticate the signer for the challenge, then dry-run, seal and apply in one command',
-    body: z.strictObject({ challengeId: Uuid, credentials: SignatureCredentials, proof: DeviceProof, action: SignableAction }),
+    body: z.strictObject({
+      challengeId: Uuid,
+      credentials: SignatureCredentials,
+      proof: DeviceProof,
+      action: SignableAction,
+      /**
+       * Phase 4 slice 4 (D-P4-5): the second challenge of a two-row ceremony (the descriptor names its record and meaning).
+       * The credentials are entered once; each challenge gets its own authentication event and signature row, in one
+       * command with the act.
+       */
+      companionChallengeId: Uuid.optional(),
+    }),
     response: SignOutcomeView,
   }),
   describe: defineRoute({
