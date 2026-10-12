@@ -26,7 +26,14 @@ behaviour: |-
   - QCU approval: the QCU approval e-signature states that the complete record, including the packaging and labeling records, was reviewed.
 catalog_test: Seed one exception of each type. All appear, and approval stays blocked until each is dispositioned. Enabling review by exception on a step with no validation reference is refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [INV-30][PR-52] production approval waits for every exception to be dispositioned, then QA review follows it: QA review and item dispositions before it are refused, as the application role"
+  - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [INV-30][PR-52] a completed record with every exception dispositioned is approved by production, with the approver's own signature only"
+  - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [INV-30][PR-52][DI-26] QA review needs every item concluded and the audit-trail review signed; the production approver cannot sign it; with the evidence epoch unchanged it is recorded"
+  - "packages/recipe-core/test/review/review.test.ts > the exception register in QA review (outline 7.3; PR-52, DI-26) > [PR-52][DI-26] grouped acceptance takes non-critical items sharing one deviation, after the full list was shown, with one justification; each item gets its own row; a critical item is accepted alone, after its detail was opened, with a justification"
+  - "packages/recipe-core/test/review/review.test.ts > the exception register in QA review (outline 7.3; PR-52, DI-26) > [PR-52][DI-26] a person who dispositioned an item cannot conclude it in review, and an escalation names a deviation linked to the batch"
+  - "packages/recipe-core/test/review/review.test.ts > the abort checklist (outline 5.2.2 ABORTED -> PRODUCTION_APPROVED) > [PR-52] an aborted record is approved by production only with its abort checklist, recorded in words, and its exceptions dispositioned"
+  - "packages/recipe-core/test/review/review.test.ts > free text on US and EU batches (D-P4-12, outline 7.4) > [PR-52] a text in a non-Latin script needs a translation verified by a second person on a US or EU batch only; the translator does not verify it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

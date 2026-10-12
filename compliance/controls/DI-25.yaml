@@ -30,6 +30,8 @@ implemented_by: {}
 tests:
   - "packages/kernel/test/audit/verification.test.ts > moving a row to another aggregate (F77) > [DI-22][DI-25][INV-07] an entry moved to another batch appears in both batches' trails, and both still verify"
   - "packages/kernel/test/review/f77.test.ts > F77: moving a row to another aggregate must be visible in the old aggregate's audit chain > [DI-22][DI-25][INV-07] update market.stub_pack set batch_id = B2 is recorded in chain market_stub_batch:B1 as well as B2"
+  - "packages/recipe-core/test/review/review.test.ts > the audit-trail review (outline 5.4; DI-25, INV-35, INV-48) > [INV-35][DI-25] a person involved in the batch cannot sign its audit-trail review: the QA who dispositioned an exception and the production approver are refused by the kernel; an uninvolved reviewer signs it with the high-water mark of every in-scope chain"
+  - "packages/recipe-core/test/review/review.test.ts > the audit-trail review (outline 5.4; DI-25, INV-35, INV-48) > [INV-48][DI-25] a change in scope after the QA review (a deviation linked to the batch) keeps disposition blocked until a signed delta review covers it; a delta with nothing to review is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
