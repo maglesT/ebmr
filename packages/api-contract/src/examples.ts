@@ -269,6 +269,10 @@ export const EXAMPLES = {
   'release-batch-market-add': { schema: r.release.batchMarketAdd.response, data: { ...rl.marketAdd, subjectKind: 'BATCH' }, routeId: r.release.batchMarketAdd.id },
   'release-qp-message': { schema: r.release.qpMessage.response, data: rl.qpAck, routeId: r.release.qpMessage.id },
   'release-importers': { schema: r.release.importers.response, data: rl.importers, routeId: r.release.importers.id },
+  // Phase 4 slice 5a: after release (suspension, recall, rejection after release and disposal).
+  'release-suspended': { schema: r.release.suspended.response, data: rl.suspended, routeId: r.release.suspended.id },
+  'release-after-release': { schema: r.release.afterRelease.response, data: rl.afterRelease, routeId: r.release.afterRelease.id },
+  'release-after-release-disposed': { schema: r.release.afterRelease.response, data: rl.afterReleaseDisposed },
   // Phase 4 slice 3c: the notification centre (IN-39 clause 2).
   'notifications-list': { schema: r.notifications.list.response, data: nt.list, routeId: r.notifications.list.id },
   'notifications-acknowledge': { schema: r.notifications.acknowledge.response, data: nt.list.notifications[0], routeId: r.notifications.acknowledge.id },

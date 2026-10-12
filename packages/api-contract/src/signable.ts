@@ -52,6 +52,12 @@
  *  - BATCH_MARKET_ACT MARKET_ADD, MARKET_REMOVE  market_change BATCH/<batch>/<ADD|REMOVE>/<market>  as above.
  * Phase 4 slice 4b (kernel 1160):
  *  - QP_PACKAGE_ACT ISSUE  qp_package <package id>  TRUE_COPY_VERIFIED (QA): issues the assembled EU QP batch package.
+ * Phase 4 slice 5a (recipe-core 0840 to 0869; L-19, PR-46, IN-05 (e)):
+ *  - RELEASE_ACT RECONFIRM             release_suspension <lot>/<market>/RECONFIRM/<n>             RELEASE_RECONFIRMED (AP)
+ *                RECALL                release_suspension <lot>/<market>/RECALL/<n>                RECALLED (AP)
+ *                REJECT_AFTER_RELEASE  release_suspension <lot>/<market>/REJECT_AFTER_RELEASE/<n>  REJECTED_AFTER_RELEASE (AP)
+ *                DISPOSAL              disposal <lot>/<sha256 of the details>  DISPOSAL_RECORDED; with `disposalId` only,
+ *                                      DESTRUCTION_WITNESSED on the same record by an independent witness
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -133,6 +139,20 @@ export const ReleaseActInput = z.strictObject({
     .optional(),
   /** QP_INTAKE_VERIFY: the transcription the second person verifies. */
   intakeId: Uuid.optional(),
+  // Slice 5a: after release. RECONFIRM carries `market`, `expectedEpoch` (G-REL of the market) and `text` (the impact
+  // assessment); RECALL and REJECT_AFTER_RELEASE carry `market` and `reason`.
+  /** DISPOSAL (record): the route (D-5-6). */
+  disposalRoute: z.enum(['WITNESSED_DESTRUCTION', 'REPROCESSING', 'RETURN']).optional(),
+  /** DISPOSAL (record): the quantity disposed of, as a decimal in the lot's unit. */
+  disposalQuantity: z.string().regex(/^(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$/).optional(),
+  /** DISPOSAL RETURN: to the SUPPLIER or the CUSTOMER. */
+  returnTo: z.enum(['SUPPLIER', 'CUSTOMER']).optional(),
+  /** DISPOSAL: the return reference (RETURN, required) or the destruction record reference. */
+  disposalReference: z.string().trim().min(1).max(128).optional(),
+  /** DISPOSAL REPROCESSING: the Phase 3 reprocessing authorisation or request of the same product. */
+  reprocessingRef: Uuid.optional(),
+  /** DISPOSAL (witness): the recorded destruction the independent witness signs. */
+  disposalId: Uuid.optional(),
 });
 export type ReleaseActInput = z.infer<typeof ReleaseActInput>;
 
