@@ -429,3 +429,108 @@ export const TB20: BlockVersion = {
   },
   tests: ['apps/tablets-server/test/blocks/coating/blocks.test.ts', 'apps/tablets-server/test/blocks/coating/calc.test.ts', 'apps/tablets-server/test/blocks/coating/db-guards.test.ts'],
 };
+
+// ---------------------------------------------------------------------------------------------
+// TB-20@2 (Phase 4 slice 1b, D-P4-11): the NO_PLAN outcome through a linked deviation
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * TB-20@2: as TB-20@1, and a lot the sampling scheme has no plan for (fewer than two accepted tablets, TB20-NO-PLAN) can be
+ * recorded with the outcome NO_PLAN, only with a deviation reference: on a GMP batch a deviation-lite record of the batch's
+ * site linked to the batch and not cancelled (the database checks it, tablets 1113); in a test run a reference only
+ * (D-S5-2). Such a result raises AQL_NO_PLAN (QA decides; it needs its deviation, blocks the steps after it until
+ * dispositioned and blocks release). NO_PLAN is refused while the scheme has a plan for the lot (TB20-PLAN-EXISTS); a
+ * deviation reference is recorded only with it (TB20-NO-PLAN-ONLY); the outcome needs the reference
+ * (TB20-NO-PLAN-DEVIATION) and draws no sample (TB20-NO-PLAN-FOUND). TB-20@1 stays as released for batches issued on it.
+ */
+function aqlResultV2(view: HandlerView, entry: Entry): EntryResult {
+  const noPlan = entry['outcome'] === 'NO_PLAN';
+  if (!noPlan) {
+    if (entry['deviationRef'] !== undefined) return refuse('TB20-NO-PLAN-ONLY', 'A deviation reference is recorded with the NO_PLAN outcome only', ['PR-29', 'INV-41']);
+    return aqlResult(view, entry);
+  }
+  const sort = view.entries('SORT_RESULT')[0];
+  if (!sort) return refuse('TB20-AQL-EARLY', `The AQL sample of ${view.stepKey} is drawn from the sorted lot`, ['PR-29', 'PR-46']);
+  if (view.entries('AQL_RESULT').length > 0) return refuse('TB20-AQL-TWICE', `${view.stepKey} already records its AQL result: a rejected lot is re-inspected only through an approved reprocessing, never by a new sample here`, ['INV-41', 'PR-47']);
+  const severity = (SEVERITIES as readonly string[]).includes(String(entry['severity'])) ? (entry['severity'] as Severity) : 'NORMAL';
+  const lot = BigInt(String((sort.data['accepted'] as Record<string, unknown>)['count']));
+  if (evaluateAql(view.config, severity, lot, {})) return refuse('TB20-PLAN-EXISTS', `The sampling scheme has a plan for a lot of ${lot} tablets: the AQL sample is drawn and judged`, ['PR-29', 'DI-10']);
+  if (isRecord(entry['found']) && Object.keys(entry['found']).length > 0) return refuse('TB20-NO-PLAN-FOUND', 'A lot without a sampling plan draws no AQL sample; no defects are counted', ['PR-29']);
+  const ref = typeof entry['deviationRef'] === 'string' ? entry['deviationRef'].trim() : '';
+  if (ref === '') return refuse('TB20-NO-PLAN-DEVIATION', `A lot of ${lot} tablets without a sampling plan leaves the inspection only through a linked deviation`, ['PR-29', 'PR-49', 'INV-41']);
+  return {
+    ok: true,
+    data: { result: 'NO_PLAN', severity, lotSize: lot.toString(), deviationRef: ref, recordedBy: view.actor.id },
+    exceptions: [
+      {
+        type: 'AQL_NO_PLAN',
+        title: `The sampling scheme has no plan for the ${lot} accepted tablets of ${view.stepKey}: the lot leaves the inspection through deviation ${ref}; QA decides`,
+        controls: ['PR-29', 'PR-46', 'PR-49', 'DI-10', 'INV-41'],
+        severity: 'ACTION',
+        category: 'OUT_OF_LIMIT',
+        blocks: 'DOWNSTREAM',
+        until: 'DISPOSITION',
+        deviationRequired: true,
+        qaOnly: true,
+        releaseBlocking: true,
+      },
+    ],
+  };
+}
+
+function acceptV2(view: HandlerView, entry: Entry): EntryResult {
+  return entry.kind === 'AQL_RESULT' ? aqlResultV2(view, entry) : accept(view, entry);
+}
+
+const V1_AQL = TB20.dataSchema?.entries['AQL_RESULT'];
+
+export const TB20_V2: BlockVersion = {
+  ...TB20,
+  version: '2',
+  dataSchema: {
+    entries: {
+      ...(TB20.dataSchema?.entries ?? {}),
+      AQL_RESULT: {
+        type: 'object',
+        description: 'The AQL sample of the sorted lot, or the NO_PLAN outcome with its deviation',
+        fields: {
+          ...(V1_AQL?.fields ?? {}),
+          found: { ...(V1_AQL?.fields['found'] as ObjectSchema), optional: true },
+          outcome: { type: 'string', enum: ['NO_PLAN'], optional: true, description: 'NO_PLAN: the sampling scheme has no plan for the lot (D-P4-11)' },
+          deviationRef: { type: 'string', optional: true, description: 'The deviation the NO_PLAN lot leaves the inspection through' },
+        },
+      },
+    },
+  },
+  handler: { acceptEntry: acceptV2, beforePerform },
+  exceptionRules: [
+    ...(TB20.exceptionRules ?? []),
+    { type: 'AQL_NO_PLAN', category: 'OUT_OF_LIMIT', severity: 'ACTION', summary: 'A lot without a sampling plan, left through a linked deviation (D-P4-11)', controls: ['PR-29', 'PR-46', 'PR-49', 'DI-10', 'INV-41'] },
+  ],
+  simulatorModel: {
+    exceptionTypes: () => ['FOREIGN_TABLET_FOUND', 'AQL_REJECTED', 'AQL_NO_PLAN'],
+    nominalEntries: (input) => TB20.simulatorModel?.nominalEntries(input) ?? [],
+  },
+  goldenFixture: {
+    description:
+      'TB-20@2, the NO_PLAN path (D-P4-11): a manual belt sort of 3 tablets (0.003 kg) leaves 1 accepted tablet and 2 chipped ones for destruction; the sampling scheme has no plan for a lot of 1, so the AQL result is NO_PLAN with its deviation DEV-SITE-1-2026-00042 and raises AQL_NO_PLAN for QA',
+    controls: ['PR-29', 'PR-49', 'INV-41'],
+    phase: { ...(TB20.goldenFixture?.phase ?? { config: {} }), block: { type: 'TB-20', version: '2' } },
+    script: [
+      { entry: { kind: 'INSPECTION_START' } },
+      { advanceUs: 600_000_000n },
+      { entry: { kind: 'INSPECTION_END' } },
+      {
+        entry: {
+          kind: 'SORT_RESULT',
+          inspected: { count: '3', mass: { value: '0.003', unit: 'kg' } },
+          accepted: { count: '1', mass: { value: '0.001', unit: 'kg' } },
+          defects: [{ code: 'CHIPPED', count: '2' }],
+          rejects: [{ category: 'DESTRUCTION', container: '00000000-0000-4000-8000-000000000001', count: '2', mass: { value: '0.002', unit: 'kg' } }],
+        },
+      },
+      { entry: { kind: 'AQL_RESULT', severity: 'NORMAL', outcome: 'NO_PLAN', deviationRef: 'DEV-SITE-1-2026-00042' } },
+    ],
+    expect: { exceptions: ['AQL_NO_PLAN'], status: 'COMPLETED' },
+  },
+};

@@ -36,6 +36,23 @@ export const DEFECTS = [
   { code: 'FOREIGN', class: 'CRITICAL', foreign: true },
 ];
 
+/**
+ * Phase 4 slice 1b (D-P4-11): dc-mini with two TB-20@2 inspection steps first in its dispensing preparation (p-tb20a and
+ * p-tb20b, each followed by its witnessed destruction step), in parallel branches.
+ */
+export function tb20V2DbMbr(): flow.MbrContent {
+  return dcMiniVariant((prep) => {
+    const insp = (n: string) => ({
+      kind: 'sequence', id: `seq-insp-${n}`, children: [
+        phaseOf(`p-tb20${n}`, 'TB-20', { mode: 'MANUAL_BELT', defects: DEFECTS, aql: { level: 'II', major: '0.65', minor: '2.5' }, destructionStep: `p-destroy${n}` }, { block: { type: 'TB-20', version: '2' } }),
+        phaseOf(`p-destroy${n}`, 'G-23', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } }),
+      ],
+    });
+    const par = { kind: 'parallel', id: 'par-insp', branches: ['a', 'b'].map((n, i) => ({ id: `br-insp-${String(i + 1)}`, name: `Inspection ${n}`, body: insp(n) })) };
+    return [par, ...prep];
+  });
+}
+
 const gate = (id: string): Json => ({ kind: 'holdPoint', id, name: `Printed tablets approved by QC (${id})`, role: 'QA', dispositions: ['APPROVED', 'NOT_APPROVED'] });
 
 /**
