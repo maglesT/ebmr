@@ -109,6 +109,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   lots leaving quarantine only by this release; the Tablets edition items (reconciliation, finished-pack examination,
   printed-tablet QC, held containers, rule-set verification, whole-batch parents), all failing closed; the release
   cockpit and the notification centre (both departments notified). Open for the owner: D-P4-6, D-3a-10.
+- Phase 4 slice 4a (`phase-4/slice-4a`, 12 October; 4-0 interfaces on `phase-4/slice-4`): US disposition by the QCU,
+  the two-row release (D-P4-5), EU outcome from a signed message, a verified transcription or a registered in-system QP,
+  INELIGIBLE, market add and removal with the market-add evaluation, packaging orders only for the parent's markets, the
+  manufacturer rejection cascading (recipe-core 0820 to 0825, tablets 1180, 1189). Defaults D-4a-1 to D-4a-9 in the plan.
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and

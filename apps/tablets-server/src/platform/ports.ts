@@ -69,6 +69,11 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
    * kernel checks it at signing (EBMR-ESIG-041) and the act's database command again when it records. Absent: none.
    */
   delegationOf?(action: A): string | undefined;
+  /**
+   * Phase 4 slice 4 (D-P4-5): the second record and meaning the same person signs in this ceremony (two signature rows,
+   * each with its own meaning, content hash and life cycle), when the action asks for it. Absent or undefined: one row.
+   */
+  companionOf?(action: A): { aggregateType: string; aggregateId: string; meaning: string; expectedState?: string } | undefined;
   /** GET /api/esig/content: the exact text to sign (a pure preview for engine actions). */
   previewContent(ctx: SignableContext, query: { aggregateType: string; aggregateId: string; intent: string }): Promise<SignableContentView>;
   /** Inside the challenge command: prepare the record at database time (PREPARE row when it changed). */
@@ -80,7 +85,12 @@ export interface SignableActionHandler<A extends SignableAction = SignableAction
    */
   dryRun(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<DryRunOutcome>;
   /** After sealing, in the same transaction: apply with the real signature; asserts the content hash is unchanged. */
-  apply(client: pg.PoolClient, ctx: SignableContext, action: A, signature: { signatureId: string; meaning: string; signer: string }): Promise<Record<string, unknown> | null>;
+  apply(
+    client: pg.PoolClient,
+    ctx: SignableContext,
+    action: A,
+    signature: { signatureId: string; meaning: string; signer: string; companionSignatureId?: string },
+  ): Promise<Record<string, unknown> | null>;
 }
 
 export class SignableActionRegistry {

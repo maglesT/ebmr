@@ -256,6 +256,49 @@ below; each builder ticks them off there.
   switch (PR-55); INV-39 (manufacturer RELEASED at that instant; cascade in the same transaction); INELIGIBLE;
   market-add evaluation (MET, UNMET_RECOVERABLE, UNMET_FINAL) and removal with a linked deviation, "removed after
   failure" flag (3.3.3, INV-43); packaging orders only for markets in the set; PR-54, PR-56.
+- **4-0 done (12 October, 354167c).** Contract: market dispositions, market-add evaluations, market changes, the QP
+  certification register and the acknowledgement of a structured message, EU importers; routes `release.markets`,
+  `marketAdd`, `batchMarketAdd`, `qpMessage`, `importers`; RELEASE_ACT inputs for US_DISPOSE, the two-row release
+  (`usExpectedEpoch`), QP_INTAKE, QP_INTAKE_VERIFY (new), QP_CERTIFY, MARKET_ADD, MARKET_REMOVE; signable
+  BATCH_MARKET_ACT; esig sign takes `companionChallengeId`. SQL (recipe-core 0820): `recipe.market_set`,
+  `recipe.disposition_state`, `recipe.market_add_evaluate`, `recipe.suspend_release` (owner only, slice 5), the importer
+  registry and `recipe.eu_importer_of`.
+- **4a built (12 October; recipe-core 0821 to 0825, tablets 1180, 1189).** Database-enforced: market changes (QA's
+  MARKET_ADDED under a change record with the evaluation stored, MARKET_REMOVED with a linked deviation and the "removed
+  after failure" flag; India never added or removed); the market-add evaluation (MA.MBR_AUTHORISATION and
+  MA.IDENTITY_ROUTE UNMET_FINAL, MA.RELEASE_TESTS and MA.RESERVE_SAMPLES UNMET_RECOVERABLE); G-REL for US and EU with
+  G8 (INV-43) and group 11 (market in the set, registration, rejections in other markets, US release rate per active);
+  INELIGIBLE; the US disposition by the QCU role (INV-39, INV-05, INV-35, PR-54); the two-row release (D-P4-5); the
+  manufacturer rejection cascading in the same transaction; the EU outcome from a signed message (Ed25519 verified in
+  the database, every message acknowledged), a transcription verified by a second QA person, or a registered QP with
+  the switch on; packaging orders refused outside the processing batch's set. Codes EBMR-DSP-010 to 089. Defaults:
+  - **D-4a-1** Two-row signing: the credentials are entered once; the server opens two challenges and authenticates
+    once per challenge (the kernel binds one authentication event to one signature, INV-10); both signatures and the act
+    in one command; no kernel change. The AP's role must also carry RELEASE.US_DISPOSITION (a governed role permission).
+  - **D-4a-2** US READY: the manufacturer release READY or RELEASED and G-REL for US ready; every market act needs the
+    manufacturer release RELEASED at that instant. EU AWAITING_QP_CERTIFICATION: manufacturer RELEASED and G-REL for EU
+    ready. A decided market reads RELEASE_SUSPENDED whenever the manufacturer release is not RELEASED.
+  - **D-4a-3** PR-54 [T]: a controlled-release product is one whose master's dosage form names an extended, prolonged,
+    modified, controlled, sustained or delayed release; each BOM active needs an approved passing RELEASE result
+    `RELEASE_RATE.<material>`. The contract-giver QCU item is NA until licences (6a).
+  - **D-4a-4** PR-56: a US rejection names a deviation linked to the lot; an EU QP rejection (from outside) keeps
+    G11.MARKET_REJECTIONS RED for the US until a deviation is linked to the lot after it; each market then assesses it (G2).
+  - **D-4a-5** A market change signs `market_change <LOT|BATCH>/<id>/<ADD|REMOVE>/<market>/<n>` (the n-th change of that
+    market; the server reads n). A decided market (RELEASED, CERTIFIED, RELEASE_SUSPENDED) is not removed here; a
+    processing batch keeps a market while a packaging order of it holds it.
+  - **D-4a-6** "Removed after failure": the disposition REJECTED, REJECTED_BY_QP or INELIGIBLE, the market-add evaluation
+    not MET, or a linked deviation's latest impact for the market POTENTIAL or CONFIRMED.
+  - **D-4a-7** INELIGIBLE is terminal once any signed addition of the market (to the lot or a batch of its records) had an
+    UNMET_FINAL item, even if re-added; a removed market reads REMOVED.
+  - **D-4a-8** EU certification: not gated on the QP package (4b's evidence); the certifier's MIA number is the
+    importer's; the certification time is neither in the future nor before the manufacturer release; one importer per
+    product; the message is taken in by a QA person (RECORD.QA_REVIEW) and a resend gets its first acknowledgement.
+  - **D-4a-9** With the in-system QP switch on, the received and transcribed paths stay open; QA registers a QP
+    (QP_REGISTERED, never themselves) on an importer's MIA number.
+  Residuals: market-add items for stricter step keys (verifier counts, IPC intervals, hold times), label rules and
+  retention, and the injectables items, are not evaluated; the identity item has no test with consumed lots yet
+  (golden batch); no route registers importers or QPs (database acts only); the seed has no US QCU or EU QP persona;
+  the acknowledgement is not signed by the server.
 - **4b, package and shipping** (kernel 1160 to 1169, site-services 0870 to 0879 (0860 and 0861 were used by slice 3), `packages/kernel/src/records/**`
   QP part only): EU QP batch package as a signed true-copy bundle (processing and packaging records, audit-trail
   review, post-entry change list, deviations with per-market assessments, release and checklist, CoA); read-only,

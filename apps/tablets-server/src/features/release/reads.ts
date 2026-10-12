@@ -3,7 +3,19 @@
  * acknowledgements, the finished lots and one lot's facts. Every value is the database's (recipe-core 0781, 0782).
  */
 import type pg from 'pg';
-import type { GrelView, LotReleaseSummaryView, LotReleaseView, ManufacturerReleaseState, ReleaseMarket } from '@ebmr/api-contract';
+import type {
+  EuImporterView,
+  GrelView,
+  LotMarketsView,
+  LotReleaseSummaryView,
+  LotReleaseView,
+  ManufacturerReleaseState,
+  MarketAddEvaluationView,
+  MarketAddOutcome,
+  MarketDispositionState,
+  MarketDispositionView,
+  ReleaseMarket,
+} from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { peopleOf, personRef } from '../common/people.ts';
@@ -126,4 +138,197 @@ export async function lotRelease(app: AppContext, db: Db, lotId: string, personI
     },
     signable: { aggregateType: 'manufacturer_release', release: `${lotId}/RELEASE`, reject: `${lotId}/REJECT` },
   };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Phase 4 slice 4a: the market dispositions, market-add evaluations and importers (recipe-core 0820 to 0824)
+// ---------------------------------------------------------------------------------------------
+
+const micros = (col: string): string => `(extract(epoch from ${col}) * 1000000)::numeric(20, 0)::text`;
+
+interface EvaluationRow {
+  subject_kind: 'BATCH' | 'LOT';
+  subject_id: string;
+  market: ReleaseMarket;
+  outcome: MarketAddOutcome;
+  items: { id: string; title: string; outcome: MarketAddOutcome; detail: string | null; evidence: { kind: string; ref: string; label: string }[] }[];
+}
+
+function evaluationView(e: EvaluationRow): MarketAddEvaluationView {
+  return {
+    subjectKind: e.subject_kind,
+    subjectId: e.subject_id,
+    market: e.market,
+    outcome: e.outcome,
+    items: e.items.map((i) => ({ id: i.id, title: i.title, outcome: i.outcome, detail: i.detail, evidence: i.evidence })),
+  };
+}
+
+/** The market-add evaluation of a lot or an issued batch for a market, evaluated now (3.3.3). */
+export async function marketAddView(db: Db, kind: 'BATCH' | 'LOT', id: string, market: ReleaseMarket): Promise<MarketAddEvaluationView> {
+  const { rows } = await db.query<{ e: EvaluationRow }>('select recipe.market_add_evaluate($1, $2, $3) as e', [kind, id, market]);
+  const e = rows[0]?.e;
+  if (!e || e.items.some((i) => i.id === 'MA.SUBJECT')) {
+    throw refusal(404, {
+      code: 'EBMR-DSP-011',
+      kind: 'INVALID_INPUT',
+      whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
+      why: `${kind} ${id} is unknown.`,
+      whatYouCanDo: ['Open the release queue.'],
+    });
+  }
+  return evaluationView(e);
+}
+
+interface ChangeRow {
+  id: string;
+  change: 'ADD' | 'REMOVE';
+  market: ReleaseMarket;
+  subject_kind: 'BATCH' | 'LOT';
+  subject_id: string;
+  person_id: string;
+  us: string;
+  signature_id: string;
+  change_record: string | null;
+  deviation_ref: string | null;
+  removed_after_failure: boolean;
+  evaluation: EvaluationRow | null;
+}
+
+interface CertificationRow {
+  id: string;
+  source: 'MESSAGE' | 'TRANSCRIBED' | 'IN_SYSTEM';
+  outcome: 'CERTIFIED' | 'REJECTED_BY_QP';
+  certifier: string;
+  mia_number: string;
+  certified_us: string;
+  importer_code: string | null;
+  reference: string;
+  verified: boolean;
+  person_id: string;
+  source_role: string;
+  verified_by: string | null;
+  reason: string | null;
+}
+
+interface UsDecisionRow {
+  decision: 'RELEASED' | 'REJECTED';
+  person_id: string;
+  role_code: string;
+  us: string;
+  signature_id: string;
+  epoch: string;
+  checklist_hash: string;
+  reason: string | null;
+  deviation_id: string | null;
+  with_mr: boolean;
+}
+
+const gate = (p: string[]): { ready: boolean; problems: string[] } => ({ ready: p.length === 0, problems: p });
+
+/** The US and EU dispositions of the lot: state, G-REL, decision, certifications, market changes and gates. */
+export async function lotMarkets(app: AppContext, db: Db, lotId: string, personId: string): Promise<LotMarketsView> {
+  const { rows } = await db.query<{ m: ManufacturerReleaseState | null; set: ReleaseMarket[] | null; qp: boolean }>(
+    "select recipe.manufacturer_release_state($1) as m, recipe.market_set('LOT', $1) as set, platform.setting_text('release.in_system_qp_certification') = 'ON' as qp",
+    [lotId],
+  );
+  const head = rows[0];
+  if (!head?.set) throw noLot(lotId);
+  const changes = (
+    await db.query<ChangeRow>('select * from recipe.lot_market_changes($1)', [lotId])
+  ).rows;
+  const decision = (
+    await db.query<UsDecisionRow>(
+      `select d.decision, d.person_id, d.role_code, ${micros('d.recorded_at')} as us, d.signature_id, d.epoch, d.checklist_hash, d.reason, d.deviation_id,
+              d.with_manufacturer_release as with_mr
+         from recipe.us_disposition_decision d where d.lot_id = $1`,
+      [lotId],
+    )
+  ).rows[0];
+  const certs = (
+    await db.query<CertificationRow>('select * from recipe.lot_qp_certifications($1)', [lotId])
+  ).rows;
+  const people = await peopleOf(db, [decision?.person_id, ...changes.map((c) => c.person_id), ...certs.flatMap((c) => [c.person_id, c.verified_by])]);
+  const gates = (
+    await db.query<{ release: string[]; reject: string[]; certify: string[] }>(
+      "select recipe.us_disposition_gate_problems($1, 'RELEASE') as release, recipe.us_disposition_gate_problems($1, 'REJECT') as reject, recipe.eu_certification_gate_problems($1) as certify",
+      [lotId],
+    )
+  ).rows[0]!;
+  const dispositions: MarketDispositionView[] = [];
+  for (const market of ['US', 'EU'] as const) {
+    const st = (await db.query<{ s: MarketDispositionState | null }>('select recipe.disposition_state($1, $2) as s', [lotId, market])).rows[0]?.s ?? null;
+    if (st === null) continue;
+    const added = (await db.query<{ a: boolean }>('select recipe.market_added($1, $2) as a', [lotId, market])).rows[0]?.a ?? false;
+    const notHere = [`the ${market} disposition is not decided by this act`];
+    dispositions.push({
+      market,
+      state: st,
+      grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId),
+      decision:
+        market === 'US' && decision
+          ? {
+              decision: decision.decision,
+              by: personRef(people, decision.person_id, decision.role_code),
+              at: app.formatInstant(decision.us),
+              signatureId: decision.signature_id,
+              epoch: decision.epoch,
+              checklistHash: decision.checklist_hash,
+              reason: decision.reason,
+              deviationId: decision.deviation_id,
+              withManufacturerRelease: decision.with_mr,
+            }
+          : null,
+      certifications:
+        market === 'EU'
+          ? certs.map((c) => ({
+              certificationId: c.id,
+              source: c.source,
+              outcome: c.outcome,
+              certifier: c.certifier,
+              miaNumber: c.mia_number,
+              certifiedAt: app.formatInstant(c.certified_us),
+              importerCode: c.importer_code,
+              reference: c.reference,
+              verified: c.verified,
+              recordedBy: personRef(people, c.person_id, c.source_role),
+              verifiedBy: c.verified_by ? personRef(people, c.verified_by, '') : null,
+              reason: c.reason,
+            }))
+          : [],
+      marketAdd: added && st !== 'REMOVED' ? await marketAddView(db, 'LOT', lotId, market) : null,
+      changes: changes
+        .filter((c) => c.market === market)
+        .map((c) => ({
+          changeId: c.id,
+          change: c.change,
+          market: c.market,
+          subjectKind: c.subject_kind,
+          subjectId: c.subject_id,
+          by: personRef(people, c.person_id, ''),
+          at: app.formatInstant(c.us),
+          signatureId: c.signature_id,
+          changeRecord: c.change_record,
+          deviationRef: c.deviation_ref,
+          removedAfterFailure: c.removed_after_failure,
+          evaluation: c.evaluation ? evaluationView(c.evaluation) : null,
+        })),
+      inSystemQp: head.qp,
+      gates:
+        market === 'US'
+          ? { release: gate(gates.release), reject: gate(gates.reject), certify: gate(notHere) }
+          : { release: gate(notHere), reject: gate(notHere), certify: gate(gates.certify) },
+    });
+  }
+  return { lotId, manufacturerState: head.m ?? 'NOT_READY', markets: head.set, dispositions };
+}
+
+/** The EU importers named in technical agreements. */
+export async function euImporters(db: Db): Promise<EuImporterView[]> {
+  const { rows } = await db.query<{ id: string; code: string; name: string; ta: string; mia: string; fp: string; products: string[] }>(
+    `select i.id, i.code, i.name, i.technical_agreement_ref as ta, i.mia_number as mia, i.key_fingerprint as fp,
+            coalesce((select array_agg(p.product_code order by p.product_code) from recipe.eu_importer_product p where p.importer_id = i.id), '{}') as products
+       from recipe.eu_importer i order by i.code`,
+  );
+  return rows.map((r) => ({ importerId: r.id, code: r.code, name: r.name, technicalAgreementRef: r.ta, miaNumber: r.mia, keyFingerprint: r.fp, products: r.products }));
 }
