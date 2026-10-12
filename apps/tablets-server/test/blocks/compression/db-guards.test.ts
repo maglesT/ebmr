@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { openPersonaSession, openServiceSession } from '@ebmr/test-kit';
 import { actorOfBrowser } from '../../esig/support.ts';
-import { codeOf } from '../../execution/db-guards-support.ts';
+import { codeOf, verifyTypedNet } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { adminActor, enrol, fakeGateway, type FakeGateway } from '../../devices/support.ts';
 import { COMPRESSION_BLOCK_VERSIONS } from '../../../src/blocks/compression/index.ts';
@@ -250,6 +250,7 @@ describe('the compression blocks in the database (tablets 0870 to 0874)', () => 
     // The hopper charge: a container of this batch, closed and usable, scanned by the operator (plant.charge_container).
     const opened = await asOp<{ container_id: string; version: number }>('select plant.open_container($1, $2, $3) as r', [d.runId, 'BLENDING', 'kg']);
     const closed = await asOp<{ label_code: string }>('select plant.close_container($1, $2, $3) as r', [opened.container_id, '42.000', opened.version]);
+    await verifyTypedNet(sbx, d.browser('verifier1'), opened.container_id);
     const charge = await asOp<{ charge_id: string }>('select plant.charge_container($1, $2, $3) as r', [d.runId, 'COMPRESSION', closed.label_code]);
     expect(await verdict('p-tb10', { kind: 'HOPPER_CHARGE', chargeId: randomUUID() })).toBe('EBMR-EXE-260 TB10-CHARGE');
     expect(await verdict('p-tb10', { kind: 'HOPPER_CHARGE', chargeId: charge.charge_id })).toBe('ok');

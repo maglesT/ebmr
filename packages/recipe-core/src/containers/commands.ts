@@ -125,6 +125,23 @@ export async function rejectContainer(db: Db, containerId: string, expectedVersi
   return moved(await one(db, 'select plant.reject_container($1, $2) as r', [containerId, expectedVersion]));
 }
 
+/** The signature meaning of the second person's check of a typed net quantity (sql/0740, DI-30). */
+export const CONTAINER_NET_VERIFY_MEANING = 'VERIFIED';
+
+/**
+ * A second person verifies the typed net quantity of a closed container with their VERIFIED signature on it (sql/0740,
+ * DI-30): never the person who closed or opened it. Until then the container is not usable and cannot be released.
+ */
+export async function verifyContainerClose(db: Db, containerId: string, signatureId: string): Promise<{ labelCode: string; netQuantity: string; unit: QuantityUnit; verifiedBy: string }> {
+  const r = await one<{ label_code: string; net_quantity: string; quantity_unit: QuantityUnit; verified_by: string }>(db, 'select plant.verify_container_close($1, $2) as r', [containerId, signatureId]);
+  return { labelCode: r.label_code, netQuantity: r.net_quantity, unit: r.quantity_unit, verifiedBy: r.verified_by };
+}
+
+/** Why QA cannot release the container now (its hold's exception or deviation open, a typed net unverified), or null (sql/0741). */
+export async function containerReleaseProblem(db: Db, containerId: string): Promise<string | null> {
+  return one<string | null>(db, 'select plant.container_release_problem($1) as r', [containerId]);
+}
+
 /** HELD or SORTED -> RELEASED_BY_QA with the QA signature OUTPUT_CONTAINER_RELEASED. */
 export async function releaseContainer(db: Db, containerId: string, expectedVersion: number, signatureId: string): Promise<{ state: OutputContainerState; version: number }> {
   return moved(await one(db, 'select plant.release_container($1, $2, $3) as r', [containerId, expectedVersion, signatureId]));
