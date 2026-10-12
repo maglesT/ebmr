@@ -10,7 +10,7 @@ import { esig, identity, withCommand } from '@ebmr/kernel';
 import { ensureSealKey, testSealKey } from '../../../kernel/test/esig/helpers.ts';
 import { seedAuthn, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { QualityWorld, refusal, seedQualityCast, unique } from './support.ts';
-import { investigateDeviation, type DeviationPathDriver } from './deviation-path.ts';
+import { closureBasis, dueDate, investigateDeviation, type DeviationPathDriver } from './deviation-path.ts';
 
 let db: TestDatabase;
 let w: QualityWorld;
@@ -188,6 +188,38 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     await release(lot.lotId);
     const { rows } = await db.app.query<{ state: string }>("select state from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lot.lotId]);
     expect(rows[0]?.state).toBe('RELEASED');
+  });
+
+  it('[IN-20][PR-19] an OOS record only impact-assessed is not a confirmed laboratory error: the failure stands until QA concludes it (site services 0859)', async () => {
+    const lot = await w.lot({ materialKind: 'API' });
+    await approve((await result(lot.lotId, assay('99.0'))).resultId);
+    const fail = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.9', unit: '%' });
+    await approve(fail.resultId);
+    const oos = await w.sql<{ deviationId: string }>(w.cast.analyst, 'select site.raise_deviation($1::jsonb) as r', [
+      JSON.stringify({ kind: 'OOS', title: 'Water above limit', classification: 'MAJOR', riskRationale: 'Water above specification may affect stability' }),
+    ]);
+    const link = await w.sql<string>(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2) as r", [oos.deviationId, lot.lotId]);
+    await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [fail.resultId, oos.deviationId]);
+    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1, $2::jsonb)', [
+      oos.deviationId,
+      JSON.stringify({ classification: 'MAJOR', riskRationale: 'Water above specification may affect stability', ownerPersonId: w.cast.qa.personId, dueDate: dueDate() }),
+    ]);
+    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ assignableCause: true, cause: 'Titrant not standardised before the run', rootCauseCategory: 'LABORATORY_ERROR' })]);
+    await w.sql(w.cast.qa, 'select site.record_deviation_impact($1, $2::jsonb)', [oos.deviationId, JSON.stringify({ linkId: link, market: 'IN', impact: 'NONE', rationale: 'The failing result is a laboratory error' })]);
+    const impact = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    await w.sql(w.cast.qa2, 'select site.assess_deviation_impact($1, $2)', [oos.deviationId, impact]);
+    expect((await db.app.query<{ s: string }>('select site.deviation_state($1) as s', [oos.deviationId])).rows[0]?.s).toBe('IMPACT_ASSESSED');
+    const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%' });
+    await approve(replacement.resultId);
+    const labError = async () => (await db.admin.query<{ r: boolean }>('select site.oos_confirmed_lab_error($1) as r', [oos.deviationId])).rows[0]?.r;
+    expect(await labError()).toBe(false);
+    expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
+    // Concluded by QA (PENDING_CLOSURE): now a confirmed laboratory error, and the lot is released.
+    await w.sql(w.cast.qa, 'select site.record_deviation_closure_basis($1, $2::jsonb)', [oos.deviationId, JSON.stringify(closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'LABORATORY_ERROR' }))]);
+    const concluded = await signFor(db, w.cast.qa2, { type: 'deviation', id: oos.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, concluded]);
+    expect(await labError()).toBe(true);
+    await release(lot.lotId);
   });
 
   it('[IN-20][PR-19] an approved failure whose OOS concluded any other assignable cause than a laboratory error stands: the lot is not released even with a passing replacement result', async () => {

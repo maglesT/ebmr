@@ -10,6 +10,7 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, signFor, type TestDatabase } from '../helpers.ts';
 import { QualityWorld, refusal, seedQualityCast, SPEC_TESTS, unique } from './support.ts';
+import { investigateDeviation } from './deviation-path.ts';
 
 let db: TestDatabase;
 let w: QualityWorld;
@@ -71,10 +72,10 @@ async function oos(lotId: string, category?: string): Promise<string> {
   ]);
   await w.sql(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2)", [d.deviationId, lotId]);
   if (category) {
-    await w.sql(w.cast.qa, 'select site.start_deviation_investigation($1)', [d.deviationId]);
-    await w.sql(w.cast.qa, 'select site.record_deviation_finding($1, $2::jsonb)', [d.deviationId, JSON.stringify({ assignableCause: true, cause: 'Cause found by the investigation', rootCauseCategory: category })]);
-    const sig = await signFor(db, w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-    await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [d.deviationId, sig]);
+    // The full deviation path (site services 0820 to 0822): classified, impact on the lot signed, concluded.
+    await investigateDeviation({ run: (a, work) => w.run(a, work), sign: (a, agg, m, st) => signFor(db, a, agg, m, st) }, d.deviationId,
+      { classifier: w.cast.qa, owner: w.cast.qa, assessor: w.cast.qa2, concluder: w.cast.qa2 },
+      { finding: { assignableCause: true, cause: 'Cause found by the investigation', rootCauseCategory: category } });
   }
   return d.deviationId;
 }

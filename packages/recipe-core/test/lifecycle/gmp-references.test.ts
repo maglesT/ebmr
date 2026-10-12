@@ -15,7 +15,6 @@ import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
-import { investigateDeviation } from '../../../site-services/test/quality/deviation-path.ts';
 import type { Command } from '../../src/engine/index.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -151,11 +150,36 @@ async function deviation(kind: 'DEVIATION' | 'OOS' | 'INVESTIGATION', batchId?: 
   return d;
 }
 
-/** The full deviation path (site services 0820 to 0822): qa classifies and investigates, qa2 signs the impact and concludes. */
+/**
+ * The full deviation path (site services 0820 to 0822), in SQL (recipe-core never imports site services): qa classifies
+ * and investigates, records the impact on each link for IN and the closure basis; qa2 signs the impact and concludes.
+ */
 async function conclude(d: { deviationId: string }, assignableCause: boolean): Promise<void> {
-  await investigateDeviation({ run: (a, work) => w.run(a, work), sign: (a, agg, m, st) => signFor(db, a, agg, m, st) }, d.deviationId, { classifier: qa, owner: qa, assessor: qa2, concluder: qa2 }, {
-    finding: { assignableCause, cause: 'Analyst used an expired reference standard', rootCauseCategory: assignableCause ? 'LABORATORY_ERROR' : 'NOT_DETERMINED' },
-  });
+  const q = (who: SeededActor, text: string, params: unknown[]) => w.run(who, (c) => c.query(text, params));
+  const due = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
+  await q(qa, 'select site.start_deviation_investigation($1, $2::jsonb)', [
+    d.deviationId,
+    JSON.stringify({ classification: 'MAJOR', riskRationale: 'QA classification after the first review', ownerPersonId: qa.personId, dueDate: due }),
+  ]);
+  await q(qa, 'select site.record_deviation_finding($1, $2::jsonb)', [
+    d.deviationId,
+    JSON.stringify({ assignableCause, cause: 'Analyst used an expired reference standard', rootCauseCategory: assignableCause ? 'LABORATORY_ERROR' : 'NOT_DETERMINED' }),
+  ]);
+  const links = await w.run(qa, (c) => c.query<{ id: string }>('select id from site.deviation_link where deviation_id = $1', [d.deviationId]));
+  for (const l of links.rows) {
+    await q(qa, 'select site.record_deviation_impact($1, $2::jsonb)', [d.deviationId, JSON.stringify({ linkId: l.id, market: 'IN', impact: 'NONE', rationale: 'Assessed against the investigation' })]);
+  }
+  const impact = await signFor(db, qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+  await q(qa2, 'select site.assess_deviation_impact($1, $2)', [d.deviationId, impact]);
+  await q(qa, 'select site.record_deviation_closure_basis($1, $2::jsonb)', [
+    d.deviationId,
+    JSON.stringify({
+      rootCauseMethod: 'Five whys', capaRefs: ['CAPA-TEST-001'], notificationRequired: false, notificationRationale: 'No registered detail is affected',
+      otherBatches: [{ subjectKind: 'PRODUCT', ref: 'Other batches of the product', included: false, reason: 'Not tested with that standard' }],
+    }),
+  ]);
+  const sig = await signFor(db, qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+  await q(qa2, 'select site.conclude_deviation($1, $2)', [d.deviationId, sig]);
 }
 
 const exceptionIds = (state: Json): string[] => Object.keys((state['exceptions'] as Json | undefined) ?? {});
