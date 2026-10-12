@@ -28,6 +28,8 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'PC-DESIGN-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'MBR design office PC', key: 'BROWSER' },
   { code: 'PC-QA-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QA office PC', key: 'BROWSER' },
   { code: 'PC-QA-02', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Second QA office PC (record review and release)', key: 'BROWSER' },
+  { code: 'PC-QA-03', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Third QA office PC (security checks)', key: 'BROWSER' },
+  { code: 'PC-PLAN-02', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Second production office PC (plant cleaning and verification)', key: 'BROWSER' },
   { code: 'PC-PLAN-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Production planning office PC (GMP batch issue)', key: 'BROWSER' },
   { code: 'PC-QC-01', installation: 'GMP', deviceClass: 'PERSONAL', description: 'QC laboratory office PC (results, approvals, deviation-lite)', key: 'BROWSER' },
   { code: 'SRV-ERP-01', installation: 'GMP', deviceClass: 'SERVER', description: 'ERP interface host (product and material masters, production orders)', key: 'SERVICE' },

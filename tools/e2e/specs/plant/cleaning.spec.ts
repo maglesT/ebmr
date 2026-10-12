@@ -24,7 +24,7 @@ test('plant: a cleaning is started, completed and verified by a second person @o
   valueOf('define a class', await stewardApi.call(routes.plant.defineEquipmentClass, { body: { code: classCode, kind: 'PROCESS', description: 'E2E granulator class', cleanHold: '72 hours', dirtyHold: '24 hours' } }));
   valueOf('define the unit', await stewardApi.call(routes.plant.defineEquipment, { body: { code: unit, name: 'E2E granulator', classCode } }));
   await stewardPage.context().close();
-  const cleaning = await officePage('GMP', 'PC-PLAN-01');
+  const cleaning = await officePage('GMP', 'PC-PLAN-02');
   await signIn.office(cleaning, cleaner);
 
   await evidence.step('Start and complete the cleaning', 'The cleaning waits for the second person', async () => {
@@ -43,7 +43,7 @@ test('plant: a cleaning is started, completed and verified by a second person @o
     await expect(page.getByTestId(`pending-CLEANING-${unit}`)).toBeVisible();
   }, cleaning);
 
-  const second = await officePage('GMP', 'PC-PLAN-01');
+  const second = await officePage('GMP', 'PC-PLAN-02');
   await signIn.office(second, verifier);
   await evidence.step('A second person verifies it', 'The cleaning leaves the waiting list', async () => {
     await second.goto(`${base}/plant`);
