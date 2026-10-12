@@ -10,7 +10,8 @@
  * items are never offered for grouped acceptance. The aggregate a disposition signs is the database's
  * (recipe.review_items_aggregate_id through esig.describe); every refusal is shown in the server's words.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { routes, type CallError, type ItemDetailView, type RegisterView, type ReviewItemView } from '@ebmr/api-contract';
 import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
@@ -44,23 +45,23 @@ const statusTone = (s: ReviewItemView['reviewStatus']) => (s === 'ACCEPTED' ? 'o
 export function RegisterPage() {
   const batchId = useRouteParams()['batchId'] ?? '';
   const batch = useApiQuery(routes.review.batch, { params: { batchId } });
-  const [register, setRegister] = useState<RegisterView | null>(null);
-  const [error, setError] = useState<CallError | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
-  // The showing is the person's own recorded act; it is repeated after every disposition (the server's list is shown).
+  // The showing is the person's own recorded act (a POST); it is repeated after every disposition and every opening,
+  // so the list on the screen is the server's latest.
+  const shown = useQuery({
+    queryKey: ['review.register.show', batchId],
+    queryFn: () => api.call(routes.review.register, { params: { batchId }, body: {} }),
+    staleTime: Infinity,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
   const show = useCallback(async () => {
-    const r = await api.call(routes.review.register, { params: { batchId }, body: {} });
-    if (r.ok) {
-      setRegister(r.value);
-      setError(null);
-    } else setError(r.error);
-  }, [batchId]);
-  useEffect(() => {
-    void show();
-  }, [show]);
-
-  const items = register?.items ?? [];
+    await shown.refetch();
+  }, [shown]);
+  const register: RegisterView | null = shown.data?.ok ? shown.data.value : null;
+  const error: CallError | null = shown.data && !shown.data.ok ? shown.data.error : null;
+  const items = useMemo(() => register?.items ?? [], [register]);
   const move = useCallback((step: 1 | -1) => setSelected((cur) => nextItem(items, cur, step) ?? cur), [items]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -118,18 +119,23 @@ export function RegisterPage() {
 }
 
 function ItemDetail({ batchId, batchNumber, item, onChanged }: { batchId: string; batchNumber: string; item: ReviewItemView; onChanged: () => Promise<void> }) {
-  const [detail, setDetail] = useState<ItemDetailView | null>(null);
-  const [error, setError] = useState<CallError | null>(null);
-  const opened = useCallback(async () => {
-    const r = await api.call(routes.review.openItem, { params: { batchId, exceptionId: item.exceptionId }, body: {} });
-    if (r.ok) setDetail(r.value);
-    else setError(r.error);
-  }, [batchId, item.exceptionId]);
-  useEffect(() => {
-    // The opening is recorded by the server (a critical item is dispositioned only after it).
-    // Once per item shown; the register is shown again after the opening (its detail-opened mark is the server's).
-    void opened().then(onChanged);
-  }, [opened, onChanged]);
+  const qc = useQueryClient();
+  // The opening is recorded by the server (a critical item is dispositioned only after it), once per item shown; the
+  // register is shown again after it (its detail-opened mark is the server's).
+  const opened = useQuery({
+    queryKey: ['review.openItem.record', batchId, item.exceptionId],
+    queryFn: async () => {
+      const r = await api.call(routes.review.openItem, { params: { batchId, exceptionId: item.exceptionId }, body: {} });
+      await qc.invalidateQueries({ queryKey: ['review.register.show', batchId] });
+      return r;
+    },
+    staleTime: Infinity,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+  const detail: ItemDetailView | null = opened.data?.ok ? opened.data.value : null;
+  const error: CallError | null = opened.data && !opened.data.ok ? opened.data.error : null;
   return (
     <Section title={`Item ${item.exceptionId}: ${item.title}`} testId="item-detail">
       {error ? <RefusalMessage error={error} /> : null}

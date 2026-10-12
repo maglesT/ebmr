@@ -101,7 +101,7 @@ function parseSetCookie(header: string | string[] | undefined, jar: Map<string, 
 
 /** Builds a GMP batch record ready for review on an installation the set-up CLI has just seeded. */
 export async function seedReviewBatch(opts: ReviewBatchSeedOptions): Promise<ReviewBatchSeed> {
-  const { seed, db, log } = opts;
+  const { db, log } = opts;
   const admin = new URL(process.env['EBMR_PG_ADMIN_URL'] ?? 'postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres');
   const env = parseConfig(
     {
@@ -143,7 +143,7 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
     const token = newSessionToken();
     await db.app.query('select tab.bind_session($1, $2, $3)', [actor.sessionId, tokenHash(token), p.roleCode]);
     const jar = new Map<string, string>([[cookie, token]]);
-    let csrf: string | undefined;
+    const held: { csrf?: string } = {};
     let lastNonce: string | undefined;
     const fetchLike: FetchLike = async (url, init) => {
       const res = await app.inject({
@@ -155,8 +155,8 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
       parseSetCookie(res.headers['set-cookie'], jar);
       return { status: res.statusCode, headers: { get: (n: string) => (res.headers[n.toLowerCase()] as string | undefined) ?? null }, text: () => Promise.resolve(res.body) };
     };
-    const api = createApiClient({ fetch: fetchLike, installation: () => 'GMP', csrfToken: () => csrf, headers: () => ({ origin: ORIGIN, 'sec-fetch-site': 'same-origin' }) });
-    csrf = value(await api.call(routes.session.get), `the session of ${key}`).csrfToken;
+    const api = createApiClient({ fetch: fetchLike, installation: () => 'GMP', csrfToken: () => held.csrf, headers: () => ({ origin: ORIGIN, 'sec-fetch-site': 'same-origin' }) });
+    held.csrf = value(await api.call(routes.session.get), `the session of ${key}`).csrfToken;
     const kiosk = t.deviceClass === 'SHARED' || t.deviceClass === 'GRADE_A_B';
     return {
       key,
@@ -319,7 +319,7 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
 
   const stepKey = 'p-disp-clear@';
   await command(operator, { type: 'START_STEP', stepKey }, 'the start of the line clearance');
-  await command(operator, { type: 'RECORD_ENTRY', stepKey, entry: { kind: 'BLOCK_ENTRY', entryKind: 'AREA_OCCUPANCY', data: { areaCode: 'DISP-1', occupancyId: occupancy } } } as ClientIntent, 'the occupancy entry');
+  await command(operator, { type: 'RECORD_ENTRY', stepKey, entry: { kind: 'BLOCK_ENTRY', entryKind: 'AREA_OCCUPANCY', data: { areaCode: 'DISP-1', occupancyId: occupancy } } }, 'the occupancy entry');
   await command(operator, { type: 'RAISE_EXCEPTION', stepKey, description: 'Label of the previous product found on the booth door; removed and destroyed', severity: 'ALERT' }, 'the first alert');
   await command(operator, { type: 'RAISE_EXCEPTION', stepKey, description: 'Booth differential pressure briefly read 8 Pa (alert limit 10 Pa)', severity: 'ALERT' }, 'the second alert');
   // An action exception of the batch (no step): it needs a deviation, which QA raises and links (deviation-lite).
