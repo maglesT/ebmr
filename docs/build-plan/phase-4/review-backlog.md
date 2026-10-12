@@ -116,3 +116,13 @@ validator should require it); `recipe.release_lots` and `release_lot_facts` are 
 - IN-39 clause 2 stays deferred in its control file until the slice 7a mapping cites `notification-centre.test.ts`.
 - Default: the PRODUCTION department is HEAD_OF_PRODUCTION and SHIFT_SUPERVISOR; QA is AUTHORISED_PERSON, QA_REVIEWER,
   QA_SHOP_FLOOR and QA_MBR_APPROVER (notification routing).
+
+## Slice 4a open items (builder report, 12 October 2026)
+
+- `recipe.suspend_release` stays the 4-0 stub: slice 5 builds the manufacturer suspension and must call
+  `recipe.cascade_market_dispositions(lot, cause)` in the same transaction (decided markets already read
+  RELEASE_SUSPENDED while the manufacturer release is not RELEASED).
+- No route or screen registers EU importers or QPs (`recipe.register_eu_importer`, `recipe.register_qp`, QA signed); the
+  seed has no US QCU or EU QP persona (4c, demo).
+- Residuals: market-add items for stricter step keys, label rules, retention and the injectables items; the identity item
+  has no test with consumed lots (golden batch, slice 7); the message acknowledgement is not signed by the server.

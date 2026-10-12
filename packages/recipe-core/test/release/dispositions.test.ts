@@ -9,6 +9,7 @@
  * release results approved by the head of QC and its reserve samples; a test edition answers groups 4, 9 and 10.
  */
 import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withProtectedNumbers } from '../../../kernel/src/continuity/numbers.ts';
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
@@ -142,11 +143,6 @@ async function review(b: string): Promise<void> {
   await w.run(qaReviewer2, (c) => c.query('select recipe.record_qa_review($1, $2, $3)', [b, qa, epoch]));
 }
 
-async function deltaReview(b: string): Promise<void> {
-  const id = (await db.app.query<{ id: string }>('select recipe.audit_review_next_id($1) as id', [b])).rows[0]!.id;
-  const sig = await w.sign(qaReviewer, 'batch_audit_review', id, 'DELTA_AUDIT_TRAIL_REVIEWED', 'QA_REVIEWED');
-  await w.run(qaReviewer, (c) => c.query('select recipe.record_audit_trail_review($1, $2)', [id, sig]));
-}
 
 async function finishedLot(b: string, m: Master, markets: string[]): Promise<string> {
   const number = (await db.app.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [b])).rows[0]!.n;
@@ -211,7 +207,7 @@ async function manufacturerRelease(lot: Lot): Promise<void> {
  * As the server's ceremony does it: the challenge and the authentication first, then one command that signs and runs the
  * act with the signature; a refused act rolls the signature back with it.
  */
-async function signed<T = unknown>(who: SeededActor, type: string, id: string, meaning: string, expectedState: string | null, act: (c: import('pg').PoolClient, sig: string) => Promise<T>): Promise<T> {
+async function signed<T = unknown>(who: SeededActor, type: string, id: string, meaning: string, expectedState: string | null, act: (c: pg.PoolClient, sig: string) => Promise<T>): Promise<T> {
   await ensureSealKey(db);
   const content = await contentForSigning(db.app, type, id);
   const ch = await withCommand(db.app, await cmd(db, who), (c) => createChallenge(c, { aggregateType: type, aggregateId: id, contentVersion: content.contentVersion ?? '1', meaning, clientContentHash: content.contentHash ?? '' }));
