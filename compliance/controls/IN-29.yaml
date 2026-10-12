@@ -16,7 +16,9 @@ sources: Schedule M Part I section 6 (complaints; pharmacovigilance) and section
 behaviour: Complaint and recall records link to batch IDs; genealogy answers within seconds "which batches used material lot X" and "which batches contain reprocessed or recovered material from batch Y"; per-batch distribution data (customer, quantity, date) supports a recall reconciliation of delivered versus recovered quantities; the AP role owns recall execution; a flag records that the licensing authority was informed of an intended recall.
 catalog_test: from a defective API lot, list every finished batch including those with recovered material from affected batches.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-web/test/release/after-release.test.tsx > suspended lots > [L-19][IN-29] lists each suspended lot with its suspended markets and the open recall assessment, linking to its After release tab"
+  - "apps/tablets-web/test/release/after-release.test.tsx > After release tab > [L-19][IN-29] shows the suspension per market, its causes with the database's reason, the recall assessment and the ERP stock block"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

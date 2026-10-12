@@ -39,6 +39,11 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 AQL > [PR-46][PR-29] PERFORMED needs the inspection ended, the sort result and the AQL result"
   - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 definition checks > [PR-46][PR-50][PR-29] the catalogue (each code once; a foreign tablet critical), the AQL, the vision recipe, residue only with a recovery step"
   - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 definition checks > [PR-46][IN-35] the rejects are destroyed in a later, witnessed, never skippable G-23 step of the same sequence"
+  - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] a disposal cannot be recorded while the lot is not rejected; the reason is the server's"
+  - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] the performer signs a witnessed destruction with its quantity and reference"
+  - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] a return names to whom and its reference; a reprocessing names its authorisation"
+  - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] a destruction waiting for its witness is signed by the witness on the same record (the disposal id only)"
+  - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] a recorded disposal shows the route, quantity and both signatures, and nothing more to sign"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

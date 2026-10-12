@@ -24,6 +24,8 @@ tests:
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-17][PR-38] a TB-23 step closes only with every stream's last check passing and none due, its devices' START and END challenges, its good output and no bright stock left (read on the run's state)"
   - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 bottle line > [PR-38][IN-17][IN-22] bright stock is set aside only where the MBR allows it, tagged and identified, and labelled back only by the scan of this batch and product, never more than is left; a stopped line counts no output"
   - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 bottle line > [PR-37][PR-38][IN-17] PERFORMED: every stream checked and passing, the good output, no bright stock left unlabelled"
+  - "apps/tablets-web/test/records/records.test.tsx > locked records > [PR-38] the maximum hold of bright stock is listed and set as a new version with a reason"
+  - "apps/tablets-web/test/records/records.test.tsx > bulk reconciliation > [PR-38] shows produced, issued and left bulk per order and container; the close waits for the server's problems"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
