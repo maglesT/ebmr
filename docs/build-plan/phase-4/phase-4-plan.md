@@ -489,6 +489,32 @@ below; each builder ticks them off there.
     is reconciled (used, transcribed and verified, or voided) before EXECUTION_COMPLETE.
   - **D-6-7** The PQR extract reconciles batch, deviation and change-record counts (CAPA as recorded on deviations; no
     separate CAPA register yet, a residual); a mismatch fails the extract; AP signs it off.
+- **Slice 6c built (PQR extract; recipe-core 0910, tablets 1200; contract `ns/pqr.ts`, routes `/api/pqr/*`, screens
+  `features/pqr`, e2e `specs/pqr` on PC-QA-09).** Defaults (decision 0004; owner may change):
+  - **D-6c-1** The five slice 6 aggregates (`manufacturing_licence`, `export_permission`, `evidence_export`,
+    `form_reconciliation`, `pqr_extract`) are RECORD-class (read with RECORD.READ), so the QA and AP signers can preview
+    them; 6a may ask the lead to move its two to GOVERNANCE. The mapping names meanings only: a meaning is signable once its
+    builder adds the catalogue row and content provider (until then the kernel refuses it).
+  - **D-6c-2** Every batch is made under the Indian licence (INV-28), so an export-only SKU is a finished lot whose market
+    set leaves out IN; a batch is export-only when it has lots and every one is.
+  - **D-6c-3** The sign-off meaning is the lead's fixed name PQR_SIGNED_OFF (D-P4-8 said PQR_EXTRACT_APPROVED); REVIEW
+    category, APPROVER class, excludes involved persons; the signer works as AUTHORISED_PERSON (PQR.SIGN_OFF is the AP's only)
+    and is outside the involvement set of every batch in the extract (INV-35 by analogy). PQR.EXTRACT: QA reviewer, head of
+    QC, AP.
+  - **D-6c-4** Product = the code in the issued master; period = issue days, inclusive, in each batch's site zone, at most
+    three years. Registers: the batch number register (the product's allocations, not voided, linked to an issued batch),
+    the deviation register by batch number and finished lot, the change records through the batches' master pins, market
+    adds and the product's masters effective in the period. Compared both ways; a mismatch refuses the run (422,
+    EBMR-PQR-006) and nothing is stored; the sign-off re-runs the query and refuses a changed hash or a lost reconciliation.
+  - **D-6c-5** The query version is the SHA-256 of the query function's definition as installed; a run refuses a changed
+    definition. The functions it calls (release and deviation states) are not in that hash: a later re-creation of one
+    changes the output and shows as "does not reproduce", never silently.
+  - **D-6c-6** The single re-creation of `tab.kernel_signing_meanings` and `tab.aggregate_read_class` is tablets 1200, not
+    1198: the runner applies a source's files in name order, so on a new database 1198 would run before 1199 and be
+    overwritten by it. 1200 is in no builder's range; slice 7b keeps 1190 to 1199.
+  - Residuals (owner): the new-supplier flag of IN-01 (b), the management-review extract (c) and the CAPA register with
+    effectiveness checks (d); typed yields and IPC results in the extract (PR-58 data types); a refused run is not
+    recorded; one product code per extract (no recorded product grouping).
 
 ### Slice 7: trace, golden batches, residual kill tests (then the Phase 4 exit)
 - **7a, trace** (`compliance/**`): `clauses` for all 95 phase-4 controls and the Phase 3 deferrals; a clause the
