@@ -91,7 +91,7 @@ test('review: production approval, then the exception register, the audit-trail 
   const qa = persona('GMP', 'qaInvestigator');
   const qa2 = persona('GMP', 'qaApprover2');
 
-  const production = await officePage('GMP', 'PC-PLAN-01');
+  const production = await officePage('GMP', 'PC-PLAN-03');
   await signIn.office(production, head);
   await evidence.step('The head of production approves the record', 'The record is PRODUCTION_APPROVED; the QA review still lists what stands in its way', async () => {
     await production.goto(`${base}/review/${b.batchId}`);
@@ -103,7 +103,7 @@ test('review: production approval, then the exception register, the audit-trail 
     return { state: 'PRODUCTION_APPROVED' };
   }, production);
 
-  const review = await officePage('GMP', 'PC-QA-02');
+  const review = await officePage('GMP', 'PC-QA-06');
   await signIn.office(review, qa);
   await evidence.step('QA works through the exception register', 'The next item opens by keyboard; the two alerts are accepted together and the action exception on its own', async () => {
     await review.goto(`${base}/review/${b.batchId}/register`);
@@ -142,7 +142,7 @@ test('review: production approval, then the exception register, the audit-trail 
     await expect(panel.getByText('Covered by the last signed mark')).toBeVisible();
   }, review);
 
-  const second = await officePage('GMP', 'PC-QA-02');
+  const second = await officePage('GMP', 'PC-QA-06');
   await signIn.office(second, qa2);
   await evidence.step('A second QA person signs the QA review on the epoch shown', 'The record is QA_REVIEWED', async () => {
     await second.goto(`${base}/review/${b.batchId}`);
