@@ -101,6 +101,13 @@ the day; keep n under about 45, since the personas' passwords are set at the rea
 (DI-19), and the variants run 41 days after the start. CI runs it in the `golden` job on its own cluster, one file at a
 time (`.github/workflows/ci.yml`); a run takes about 20 minutes.
 
+Hashes re-recorded on 12 October 2026 (Phase 4 slice 1): the driver now has a second person verify each typed container
+net (DI-30, recipe-core 0740) and, before QA releases the held compression containers, the investigator records a finding
+and a second QA person concludes the deviation (recipe-core 0741). These acts sit outside the batch's record head; the
+normalised true copies differ from the previous recording only in instants one minute later (happy 47, exception-rich 34 values),
+since the extra one-second ticks cross a minute boundary. No key was added or removed, and every other value of
+`expected.json` (signatures 131 and 136 included) is unchanged.
+
 ## Residuals (Phase 3; for the owner)
 
 Steps the driver takes through the database as the right persona because no route exists yet: the change record, risk
