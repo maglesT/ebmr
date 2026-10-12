@@ -2378,3 +2378,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   clock. 6d: GB-T-01 end to end over HTTP, matching expected.json exactly; seven defects found and fixed. Quick review:
   three high and five core medium, all fixed with regression tests. phase.yaml raised to 3. Full suite (4,982 passed,
   17 skipped), register sync, trace at phase 3 (110 of 241 controls), E2E (29) green locally.
+- 2026-10-12: PHASE 3 EXIT (branch phase-3/exit, decision 0009). Opus review pass: no critical; HIGH-1 ERP master data
+  needs ERP.MASTER_WRITE and a QA-signed confirmation for safety-relevant changes; HIGH-2 lot decisions are proposed and
+  the signature binds the event; HIGH-3 packaging needs a bulk issue after H-PACK; HIGH-4 consumption needs a running
+  batch and an entry of the same command, reservations end with the batch; HIGH-5 by ADR-0019 (generic-block guards to
+  recipe-core before Phase 5); the TB-11 counter compared as bigint. SQL mutation (14,544 mutants, 60 groups; core and
+  Phase 2 groups at or above 90 %, block twins listed as residuals) and TypeScript mutation (calculations and entries
+  at or above 90 %; five blocks 84 to 90 %) by Opus. Final run: full suite (5,454 passed, 17 skipped; the README list and
+  register sync fixed), E2E 29 (one race in the deviation spec hardened), trace at phase 3 (110 of 241), GB-T-01 on the
+  golden CI job.

@@ -6,6 +6,8 @@
 import { createHash } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  confirmErpMaster,
+  erpMasterPending,
   erpReceiveProduct,
   evidenceDocumentProblem,
   productMasterOf,
@@ -65,13 +67,26 @@ describe('ERP product master', () => {
     ...over,
   });
 
-  it('[PR-47] the ERP interface posts versions, the latest wins; reprocessing defaults to not permitted; unknown products read NULL; only the interface writes', async () => {
-    expect(await w.run(w.cast.qa, (c) => productMasterOf(c, 'AMOX-250', '250 mg'))).toBeNull();
-    await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product()));
-    expect(await w.run(w.cast.qa, (c) => productMasterOf(c, 'AMOX-250', '250 mg'))).toEqual({ reprocessingPermitted: false, betaLactam: true, shelfLifeMonths: 24 });
-    await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ reprocessingPermitted: true, shelfLifeMonths: 36, erpReference: 'ERP-MAT-000123/2' })));
-    expect(await w.run(w.cast.qa, (c) => productMasterOf(c, 'AMOX-250', '250 mg'))).toEqual({ reprocessingPermitted: true, betaLactam: true, shelfLifeMonths: 36 });
-    expect(await w.run(w.cast.qa, (c) => productMasterOf(c, 'AMOX-250', '500 mg'))).toBeNull();
+  const masterOf = (code = 'AMOX-250', strength = '250 mg') => w.run(w.cast.qa, (c) => productMasterOf(c, code, strength));
+
+  it('[PR-47][IN-19] a new product is unknown until QA confirms it; a version that keeps the reprocessing permission and shelf life takes effect at once; one that changes them waits for QA\'s ERP_MASTER_CONFIRMED signature', async () => {
+    expect(await masterOf()).toBeNull();
+    const v1 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product()));
+    expect(await masterOf()).toBeNull();
+    expect(await w.masterState('PRODUCT', v1)).toBe('PENDING');
+    await w.confirm('PRODUCT', v1);
+    expect(await masterOf()).toEqual({ reprocessingPermitted: false, betaLactam: true, shelfLifeMonths: 24 });
+    // A new name and reference only: in effect on receipt.
+    const v2 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productName: 'Amoxicillin capsules IP', erpReference: 'ERP-MAT-000123/2' })));
+    expect(await w.masterState('PRODUCT', v2)).toBe('EFFECTIVE');
+    // D-S5-5 and the IN-19 cap: reprocessing permitted and a longer shelf life wait for QA; the values in effect apply meanwhile.
+    const v3 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ reprocessingPermitted: true, shelfLifeMonths: 36, erpReference: 'ERP-MAT-000123/3' })));
+    expect(await masterOf()).toEqual({ reprocessingPermitted: false, betaLactam: true, shelfLifeMonths: 24 });
+    const pending = (await w.run(w.cast.qa, (c) => erpMasterPending(c))).find((p) => p.versionId === v3);
+    expect([pending?.masterKind, pending?.values['shelfLifeMonths'], pending?.inEffect?.['shelfLifeMonths']]).toEqual(['PRODUCT', 36, 24]);
+    await w.confirm('PRODUCT', v3);
+    expect(await masterOf()).toEqual({ reprocessingPermitted: true, betaLactam: true, shelfLifeMonths: 36 });
+    expect(await masterOf('AMOX-250', '500 mg')).toBeNull();
 
     expect(await refusal(w.run(w.cast.qa, (c) => erpReceiveProduct(c, product())))).toMatch(/EBMR-IAM/);
     expect(await refusal(w.run(w.cast.erp, (c) => erpReceiveProduct(c, { ...product(), betaLactam: 'yes' as unknown as boolean })))).toMatch(/EBMR-SITE-340/);
@@ -83,6 +98,77 @@ describe('ERP product master', () => {
         ),
       ),
     ).toMatch(/permission denied/);
+    expect(await refusal(db.app.query("insert into site.erp_master_effect (master_kind, master_key, version_id, basis, person_id, account_id) values ('PRODUCT', 'AMOX-250|250 mg', $1, 'UNCHANGED', gen_random_uuid(), gen_random_uuid())", [v3]))).toMatch(/permission denied/);
+  });
+
+  it('[PR-47][IN-38] a change of the beta-lactam flag (it drives the isolation of the packing line) takes effect only once QA confirms it (site-services 0803)', async () => {
+    const code = unique('PRD-');
+    await w.confirm('PRODUCT', await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productCode: code }))));
+    expect(await masterOf(code)).toMatchObject({ betaLactam: true });
+    const v2 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productCode: code, betaLactam: false, erpReference: 'ERP-BL-2' })));
+    expect(await w.masterState('PRODUCT', v2)).toBe('PENDING');
+    expect(await masterOf(code)).toMatchObject({ betaLactam: true });
+    await w.confirm('PRODUCT', v2);
+    expect(await masterOf(code)).toMatchObject({ betaLactam: false });
+  });
+
+  it('[PR-47][DI-35] the confirmation is a second person\'s: never the ERP interface\'s own person, only with ERP.MASTER_CONFIRM, by the person who signed, of the latest version only, once', async () => {
+    const code = unique('PRD-');
+    const v1 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productCode: code })));
+    // The ERP interface's person entered the record: the approver of it is always another person (INV-03), and the interface holds no confirmation permission.
+    expect(await refusal(w.sign(w.cast.erp, { type: 'erp_master', id: `PRODUCT/${v1}` }, 'ERP_MASTER_CONFIRMED', 'PENDING'))).not.toBe('');
+    // QA reviewers hold no ERP.MASTER_CONFIRM.
+    expect(await refusal(w.sign(w.cast.qa, { type: 'erp_master', id: `PRODUCT/${v1}` }, 'ERP_MASTER_CONFIRMED', 'PENDING'))).not.toBe('');
+    const sig = await w.sign(w.cast.qaMaster, { type: 'erp_master', id: `PRODUCT/${v1}` }, 'ERP_MASTER_CONFIRMED', 'PENDING');
+    expect(await refusal(w.run(w.cast.qaMaster2, (c) => confirmErpMaster(c, 'PRODUCT', v1, sig)))).toMatch(/EBMR-SITE-352/);
+    expect(await refusal(w.run(w.cast.qa, (c) => confirmErpMaster(c, 'PRODUCT', v1, sig)))).toMatch(/EBMR-IAM/);
+    // A later version supersedes the pending one: its signature confirms nothing.
+    const v2 = await w.run(w.cast.erp, (c) => erpReceiveProduct(c, product({ productCode: code, shelfLifeMonths: 30, erpReference: 'ERP-2' })));
+    expect(await refusal(w.run(w.cast.qaMaster, (c) => confirmErpMaster(c, 'PRODUCT', v1, sig)))).toMatch(/EBMR-SITE-351 .*SUPERSEDED/);
+    // A signature on another version does not confirm this one.
+    expect(await refusal(w.run(w.cast.qaMaster, (c) => confirmErpMaster(c, 'PRODUCT', v2, sig)))).toMatch(/EBMR-ESIG-070/);
+    await w.confirm('PRODUCT', v2);
+    expect(await masterOf(code)).toMatchObject({ shelfLifeMonths: 30 });
+    expect(await refusal(w.confirm('PRODUCT', v2))).not.toBe('');
+  });
+
+  it('[DI-17][PR-17][IN-24] masters and orders come from the ERP interface only: an identity holding INTERFACE.WRITE (SERVICE_ACCOUNT) is refused for a product, a material and an order', async () => {
+    const svc = w.cast.service;
+    expect(await refusal(w.run(svc, (c) => erpReceiveProduct(c, product({ productCode: unique('PRD-'), reprocessingPermitted: true }))))).toMatch(/EBMR-IAM.*ERP\.MASTER_WRITE/);
+    expect(
+      await refusal(w.sql(svc, 'select site.erp_receive_material($1::jsonb) as r', [JSON.stringify({ materialCode: unique('M'), materialName: 'x', materialKind: 'INTERMEDIATE', unit: 'kg', erpReference: 'R' })])),
+    ).toMatch(/EBMR-IAM.*ERP\.MASTER_WRITE/);
+    expect(
+      await refusal(
+        w.sql(svc, 'select site.erp_receive_order($1::jsonb) as r', [
+          JSON.stringify({ orderNo: unique('PO-'), siteCode: 'SITE-1', productCode: 'AMOX-250', strength: '250 mg', batchSize: '100', batchSizeUnit: 'kg', bom: [{ materialCode: 'M1', quantity: '1', unit: 'kg' }], erpReference: 'R' }),
+        ]),
+      ),
+    ).toMatch(/EBMR-IAM.*ERP\.MASTER_WRITE/);
+  });
+
+  it('[IN-24][PR-17] a material\'s kind and maximum retest interval change only once QA confirms; a new material, even one posted INTERMEDIATE, cannot be received until then', async () => {
+    const code = unique('M');
+    const post = (kind: string, retest: number | null, name = `Material ${code}`) =>
+      w.sql<string>(w.cast.erp, 'select site.erp_receive_material($1::jsonb) as r', [JSON.stringify({ materialCode: code, materialName: name, materialKind: kind, unit: 'kg', ...(retest ? { maxRetestMonths: retest } : {}), erpReference: `ERP-${code}` })]);
+    const receive = () => w.sql(w.cast.warehouse, 'select site.receive_lot($1::jsonb) as r', [JSON.stringify({ lotCode: unique('L'), materialCode: code, quantity: '1', expiresAt: '2030-01-01T00:00:00Z' })]);
+    const kindNow = async () => (await w.run(w.cast.qa, (c) => c.query<{ m: { materialKind: string; maxRetestMonths: number | null } | null }>('select site.material_master_of($1) as m', [code]))).rows[0]?.m;
+    const v1 = await post('INTERMEDIATE', 24);
+    expect(await kindNow()).toBeNull();
+    expect(await refusal(receive())).toMatch(/EBMR-SITE-171/);
+    await w.confirm('MATERIAL', v1);
+    expect(await kindNow()).toEqual({ materialName: `Material ${code}`, materialKind: 'INTERMEDIATE', unit: 'kg', maxRetestMonths: 24 });
+    // Kind and retest interval: pending; the receipt takes the kind in effect.
+    const v2 = await post('API', 36);
+    expect(await kindNow()).toMatchObject({ materialKind: 'INTERMEDIATE', maxRetestMonths: 24 });
+    expect(await receive()).toMatchObject({ state: 'QUARANTINE' });
+    expect((await db.app.query<{ k: string }>('select material_kind as k from site.material_lot where material_code = $1', [code])).rows.map((r) => r.k)).toEqual(['INTERMEDIATE']);
+    await w.confirm('MATERIAL', v2);
+    expect(await kindNow()).toMatchObject({ materialKind: 'API', maxRetestMonths: 36 });
+    // Name only: in effect on receipt.
+    const v3 = await post('API', 36, 'Renamed');
+    expect(await w.masterState('MATERIAL', v3)).toBe('EFFECTIVE');
+    expect(await kindNow()).toMatchObject({ materialName: 'Renamed' });
   });
 });
 

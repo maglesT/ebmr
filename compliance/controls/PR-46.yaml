@@ -31,6 +31,14 @@ tests:
   - "apps/tablets-server/test/blocks/coating/blocks.test.ts > TB-20 inspection, sorting and AQL > [PR-50][PR-46] a foreign tablet found in sorting is critical: QA decides, release is blocked, a deviation is required"
   - "apps/tablets-server/test/blocks/coating/blocks.test.ts > TB-20 inspection, sorting and AQL > [PR-29][PR-46][PR-47][INV-41][DI-10] the AQL plan is the scheme's for the sorted lot (letter, sample, accept and reject numbers per class, critical at zero); a rejected lot waits for QA and is never sampled again in the block"
   - "apps/tablets-server/test/blocks/coating/db-guards.test.ts > the coating and finishing blocks in the database (tablets 0910 to 0912) > [PR-46][PR-47][PR-50][IN-35][PR-29][INV-41][DI-10] TB-20: the sort reconciled into reject containers of this batch, a foreign tablet only with its exception, the AQL plan and the severity of the switching rule decided by the database, a rejected lot never sampled again; reject containers never charged; the destruction step closes only with every reject container destroyed under witness"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 inspection and sorting > [PR-46] the inspection starts and ends once, in order; the sort result comes after it, once"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 inspection and sorting > [PR-46][IN-35] the sort result reconciles exactly: catalogue defects counted once, rejects in distinct containers, one unit, inspected = accepted + rejected, one defect per reject, no more mass out than in (zero remainder allowed)"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 inspection and sorting > [PR-50][PR-46] a foreign tablet found is critical: QA decides, release is blocked, a deviation is required; a zero count is not a finding"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 inspection and sorting > [PR-46] the defect catalogue as read: an unknown class is critical, foreign only when stated"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 AQL > [PR-29][PR-46][INV-41] the AQL sample is drawn from the sorted lot once; findings beyond the sample are refused; a rejected lot waits for QA"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 AQL > [PR-46][PR-29] PERFORMED needs the inspection ended, the sort result and the AQL result"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 definition checks > [PR-46][PR-50][PR-29] the catalogue (each code once; a foreign tablet critical), the AQL, the vision recipe, residue only with a recovery step"
+  - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 definition checks > [PR-46][IN-35] the rejects are destroyed in a later, witnessed, never skippable G-23 step of the same sequence"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

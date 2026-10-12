@@ -37,6 +37,10 @@ tests:
   - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-01][IN-13] a batch can only be issued at a batch size the MBR lists; there is no free scaling"
   - "packages/recipe-core/test/lifecycle/approval.test.ts > verification before submission (DI-04, PR-02) > [IN-13][INV-34] approve an MBR with one intermediate lacking a hold time: approval is refused (the validator fails on the stored content, naming the intermediate, and the version stays DRAFT)"
   - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the boundary of the GMP issue (DI-05, INV-18) > [DI-05][INV-18][INV-01][INV-28][PR-04][IN-13] a GMP batch is never created without an effective MBR version: no family, a market set without India, a market no version is authorised for, a batch size not approved; nothing is planned and no number is taken"
+  - "apps/tablets-server/test/blocks/granulation/tb-04-edges.test.ts > TB-04 end point on time > [IN-36][IN-13] after the massing start, the massing time at least the minimum (refused below) and at most the maximum (held above); no value named"
+  - "apps/tablets-server/test/blocks/granulation/tb-07-edges.test.ts > TB-07 times > [IN-36][IN-13] the main blend: started once, ended once, never short of its minimum, beyond its maximum a deviation (boundaries inside)"
+  - "apps/tablets-server/test/blocks/granulation/tb-07-edges.test.ts > TB-07 times > [IN-36][IN-13] the lubricant after the main blend, once; lubrication timed from it in its window"
+  - "apps/tablets-server/test/blocks/granulation/tb-07-edges.test.ts > TB-07 definition > [IN-36][IN-13] each time window has a maximum and runs from less to more (equal allowed)"
 clauses:
   - clause: "approve an MBR with one intermediate lacking a hold time; approval is refused."
     tests:

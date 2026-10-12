@@ -140,6 +140,20 @@ export async function chargeContainer(db: Db, batchId: string, stage: string, sc
   return { chargeId: r.charge_id, containerId: r.container_id, netQuantity: r.net_quantity, unit: r.quantity_unit };
 }
 
+export type BulkIssue = {
+  batchId: string;
+  parentBatchId: string;
+  containers: { label: string; containerId: string; quantity: string; unit: QuantityUnit }[];
+};
+
+/**
+ * Issues the processing batch's usable containers (by label) to the packaging order that packs it, once QA released
+ * the batch for packing (H-PACK); each with its net quantity (sql/0701, exit review HIGH-3). All or nothing.
+ */
+export async function issuePackagingBulk(db: Db, orderBatchId: string, labels: readonly string[]): Promise<BulkIssue> {
+  return one<BulkIssue>(db, 'select recipe.issue_packaging_bulk($1, $2::text[]) as r', [orderBatchId, labels]);
+}
+
 /** Pours a usable container into an open one of the same batch and stage (both scanned). */
 export async function mergeContainer(db: Db, sourceLabel: string, targetLabel: string): Promise<{ mergeId: string }> {
   const r = await one<{ merge_id: string }>(db, 'select plant.merge_container($1, $2) as r', [sourceLabel, targetLabel]);

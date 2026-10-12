@@ -146,6 +146,7 @@ tests:
   - "apps/tablets-server/test/mutation/designer-guards.test.ts > the reference-document register (tab.reference_document; DI-04, PR-03) > [DI-04][PR-03] a body that is not ebmr.reference-document version 1 with known members only is refused by the steward's writer, each rule on its own (EBMR-TAB-151)"
   - "apps/tablets-web/test/designer/config-form.test.tsx > optional yes/no members (review F52) > [PR-02][PR-03] G-06 manualFallback: absent, yes and no are each recorded as chosen, and shown as recorded"
   - "apps/tablets-server/test/designer/template-gb-t-01.test.ts > the gb-t-01 template against the real adapters > [PR-03][DI-04] passes every validator gate with no finding, and defines as a GMP batch with the tablets blocks"
+  - "packages/recipe-core/test/validator/data.test.ts > data gates > [PR-08][PR-03] DATA-UNITS: tablet hardness is a force (by its tag, the legacy alias or kp); the alias warns, a pressure is refused, its limits are a force (mutation follow-up)"
 clauses:
   - clause: "Starting from a complete test master, delete one mandatory item at a time. Approval is refused each time, and the refusal names the missing item."
     tests:

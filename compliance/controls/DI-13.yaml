@@ -171,6 +171,8 @@ tests:
   - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] the e-signature preview of a formula version, or of an MBR version pinning one, is refused to a session without FORMULA.READ, even on a shop-floor kiosk"
   - "apps/tablets-server/test/master-data/formula.test.ts > formulation library (slice 6a) > [DI-13] FORMULA.READ is judged in the grant's product scope: an MBR author granted for one product reads that product's composition only"
   - "tools/e2e/specs/master-data/composition.spec.ts > [DI-13] an operator cannot open the composition @office"
+  - "packages/recipe-core/test/mutation/formulas.test.ts > what the library answers > [DI-13] the readers answer for the formula named: its own versions; an unknown formula is refused; the composition only when readable"
+  - "packages/recipe-core/test/mutation/formulas.test.ts > what the library answers > [DI-13][INV-25] \"Choose a product\" takes the approved version, never a later draft"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:

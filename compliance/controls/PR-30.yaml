@@ -76,6 +76,9 @@ tests:
   - "apps/tablets-server/test/blocks/granulation/blocks.test.ts > TB-03 solutions with use-by > [IN-36][PR-30] the use-by is mandatory; preparation starts it at the server time (preparedAtUs, useByUs); one preparation; a discard never exceeds the preparation; the step closes only prepared"
   - "apps/tablets-server/test/blocks/granulation/db-guards.test.ts > the granulation blocks in the database (tablets 0850, 0851) > [IN-36][PR-30][IN-13] TB-03 and TB-04: a binder solution's use-by starts at its preparation (database time); an addition is refused once the use-by has passed at the row's database time, or when it would use more than was prepared, or names no preparation of the batch; a forged use-by is refused; the solution step closes"
   - "apps/tablets-server/test/blocks/granulation/db-guards.test.ts > the granulation blocks in the database (tablets 0850, 0851) > [IN-36][PR-30] review 3b finding 6: a quantity sum is null-safe: an entry without a unit, or no unit to compare with, gives no sum (the use-by and overuse checks then refuse)"
+  - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] the preparation is recorded once, at the database time, with its use-by; an appearance that does not comply holds with its title"
+  - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] discards follow the preparation, in its unit, never above what was prepared in total (equal allowed)"
+  - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] PERFORMED needs the preparation; the MBR gives a positive use-by in whole microseconds"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

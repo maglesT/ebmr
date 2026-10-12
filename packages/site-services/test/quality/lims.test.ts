@@ -51,7 +51,7 @@ async function signedRetest(
   at: string,
   ids: string[],
   by: SeededActor = w.cast.qcHead,
-  opts: { record?: { at: string; ids: string[] }; reuse?: string } = {},
+  opts: { record?: { at: string; ids: string[] }; reuse?: string; signOnly?: boolean } = {},
 ): Promise<{ retestId: string | undefined; signatureId: string }> {
   await ensureSealKey(db);
   const rec = opts.record ?? { at, ids };
@@ -72,6 +72,7 @@ async function signedRetest(
   });
   return withCommand(db.app, { ...by, correlationId: randomUUID(), authEventId: ev.authEventId }, async (c) => {
     const sig = await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: 'OPEN' }, testSealKey);
+    if (opts.signOnly) return { retestId: undefined, signatureId: sig.signatureId };
     const { rows } = await c.query<{ r: string }>('select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], $4)::text as r', [lotId, rec.at, rec.ids, sig.signatureId]);
     return { retestId: rows[0]?.r, signatureId: sig.signatureId };
   });
@@ -246,6 +247,10 @@ describe('retest (PR-18)', () => {
     // Bypass attempts as the application role, in QC's own session: the unsigned writer, and the signed one without a signature.
     expect(await refusal(w.sql(w.cast.qcHead, 'select site.record_lot_retest($1, $2::timestamptz, $3::uuid[])', [lot.lotId, at, [r.resultId]]))).toMatch(/permission denied/);
     expect(await refusal(w.sql(w.cast.qcHead, 'select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], null)', [lot.lotId, at, [r.resultId]]))).toMatch(/EBMR-SITE-190/);
+    expect((await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n).toBe('0');
+    // Another QC head's signature on this very decision, recorded by the head of QC: the recorder is the signer.
+    const theirs = await signedRetest(lot.lotId, at, [r.resultId], w.cast.qcHead2, { signOnly: true });
+    expect(await refusal(signedRetest(lot.lotId, at, [r.resultId], w.cast.qcHead, { reuse: theirs.signatureId }))).toMatch(/EBMR-SITE-190 a retest decision is recorded by the QC person who signed it/);
     expect((await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n).toBe('0');
     await signedRetest(lot.lotId, at, [r.resultId]);
     expect((await db.admin.query<{ n: string }>('select count(*)::text as n from site.lot_retest where lot_id = $1', [lot.lotId])).rows[0]?.n).toBe('1');

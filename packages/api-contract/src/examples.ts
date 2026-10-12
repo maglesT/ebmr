@@ -160,6 +160,27 @@ export const EXAMPLES = {
   'quality-erp-orders': { schema: r.quality.erpOrders.response, data: s6.quality.erpOrders, routeId: r.quality.erpOrders.id },
   'quality-erp-products': { schema: r.quality.erpProducts.response, data: s6.quality.erpProducts, routeId: r.quality.erpProducts.id },
   'quality-erp-materials': { schema: r.quality.erpMaterials.response, data: s6.quality.erpMaterials, routeId: r.quality.erpMaterials.id },
+  'batches-issue-bulk': {
+    schema: r.batches.issueBulk.response,
+    data: {
+      batchId: '5d2c0b7e-8f1a-4c3d-9e4f-0a1b2c3d4e5f', parentBatchId: '6e3d1c8f-9a2b-4d4e-8f5a-1b2c3d4e5f60',
+      containers: [{ label: 'OC-G2600001-1001', containerId: '7f4e2d9a-0b3c-4e5f-9a6b-2c3d4e5f6071', quantity: '25.500', unit: 'kg' }],
+    },
+    routeId: r.batches.issueBulk.id,
+  },
+  'quality-erp-pending': {
+    schema: r.quality.erpPending.response,
+    data: {
+      pending: [
+        {
+          masterKind: 'PRODUCT', key: 'PCM500|500 mg', versionId: '0b5c1d2e-3f40-4a51-8b62-7c83d94ea5f6', erpReference: 'SAP-MM-FG-PCM500/2', receivedAt: { us: '1790000000000000', text: '21-SEP-2026 19:43:20 +05:30 (Asia/Kolkata)' },
+          values: { productName: 'Paracetamol tablets IP 500 mg', reprocessingPermitted: true, betaLactam: false, shelfLifeMonths: 36 },
+          inEffect: { productName: 'Paracetamol tablets IP 500 mg', reprocessingPermitted: false, betaLactam: false, shelfLifeMonths: 36 },
+        },
+      ],
+    },
+    routeId: r.quality.erpPending.id,
+  },
   'quality-lots': { schema: r.quality.lots.response, data: s6.quality.lots, routeId: r.quality.lots.id },
   'esig-describe': { schema: r.esig.describe.response, data: s6.describe, routeId: r.esig.describe.id },
   'quality-reprocessing-requests': { schema: r.quality.reprocessingRequests.response, data: s6.reprocessing.requests, routeId: r.quality.reprocessingRequests.id },

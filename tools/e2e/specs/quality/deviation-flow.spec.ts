@@ -5,7 +5,7 @@
  */
 import { routes } from '@ebmr/api-contract';
 import { expect, signIn, test } from '../../fixtures/index.ts';
-import { importErp, officeSign, signedInApi } from '../../fixtures/slice6.ts';
+import { confirmErp, importErp, officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 
 test('quality: a deviation is raised, linked, investigated and concluded @office', async ({ e2e, officePage, persona, api, evidence }, testInfo) => {
@@ -15,6 +15,10 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
   const stores = persona('GMP', 'stores');
   const tag = `qf${testInfo.parallelIndex}${Date.now() % 100000}`;
   const erp = await importErp(api('GMP'), e2e.seeds.GMP, tag);
+  // QA confirms the new codes: a new master is in effect only then (site-services 0802, exit review HIGH-1).
+  const qaMaster = await officePage('GMP', 'PC-QA-01');
+  await signIn.office(qaMaster, persona('GMP', 'approver'));
+  await confirmErp(qaMaster, e2e, persona('GMP', 'approver'), erp);
   const base = e2e.url('GMP');
 
   const warehouse = await officePage('GMP', 'PC-QA-01');
@@ -47,7 +51,13 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
     await link.getByRole('radio', { name: new RegExp(`^${lot.lotCode}`) }).locator('xpath=ancestor::label[1]').click();
     await link.getByRole('button', { name: 'Link it' }).click();
     await expect(page.getByTestId('deviation-links')).toContainText(lot.lotCode);
-    await page.getByRole('button', { name: 'Start the investigation' }).click();
+    // The page re-reads the record after the link; click only once the investigation button is ready, and wait for the
+    // server's answer to that click, so a click on a button being re-rendered is not lost.
+    const start = page.getByRole('button', { name: 'Start the investigation' });
+    await expect(start).toBeEnabled();
+    const started = page.waitForResponse((r) => r.request().method() === 'POST' && /\/api\/quality\/deviations\/[^/]+\/investigation$/.test(new URL(r.url()).pathname));
+    await start.click();
+    expect((await started).ok()).toBe(true);
     await expect(page.getByTestId('deviation-state')).toContainText('UNDER_INVESTIGATION');
   }, page);
 

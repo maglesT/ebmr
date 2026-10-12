@@ -306,3 +306,68 @@ Residuals (Phase 4 unless noted):
 - Fixed in slice 6: a TB-18 pan load is refused while a compression container of the batch is on hold (tablets
   1092); a GMP G-07 weighing consumes its lot, and a row without it is refused (tablets 1093).
 - Low: a TB-08 refusal repeats its code; a refusal says "test run" on GMP.
+
+## Phase 3 exit review (Opus, 11 October 2026)
+
+No critical findings. Five high: HIGH-1 (ERP master data writable by any interface identity, no QA confirmation),
+HIGH-2 (a lot decision signature does not bind the event), HIGH-3 (a packaging order skips "release for packing" and
+the container holds: no bulk issue), HIGH-4 (orphan consumption: `recipe.consume_lot` checks no batch state or entry)
+are fixed on the exit branch with their tests. HIGH-5 (generic-block guards in the Tablets edition) is decided by
+ADR-0019: moved to recipe-core before Phase 5. The press counter compared as a JavaScript number (tb-11) is fixed.
+
+Backlog (medium):
+- `plant.close_container` takes a typed net quantity with no weighing or second person; no route calls it yet
+  (Phase 4, with container routes).
+- The output container release is not tied to the state of its hold's exception or deviation; the Phase 4 release
+  gate checks it.
+- The GMP sweeper does not run (already listed): missed-check holds on GMP depend on the next manual entry.
+- Performance: each `recipe.execution_state` change runs about 50 triggers, many re-parsing the MBR JSON (GB-T-01 takes
+  about 20 minutes); measure before the Phase 4 golden batches.
+
+Exit fixes (branch phase-3/exit-fix): ERP master writes need ERP.MASTER_WRITE (ERP_INTERFACE only) and safety-relevant
+changes (new code, shelf life, reprocessing permission, material kind, retest interval, beta-lactam) take effect only
+after a QA-signed ERP_MASTER_CONFIRMED; lot decisions are proposed first and the signature binds the event; a packaging
+order needs a bulk issue of usable containers after H-PACK before TB-21, TB-23 or TB-24 entries on GMP; consumption
+needs an ISSUED or IN_PROGRESS batch and an entry of the same command, and reservations are revoked at batch end.
+Residuals: no screen for the bulk issue and no HTTP route to plan a packaging order (Phase 4); packing steps inside a
+GMP processing batch are refused (stricter default); over HTTP a lot decision is still RELEASE or REJECT only, and
+HOLD, UNHOLD, RETURN and RECALL need the propose step on that path when they are exposed (Phase 4).
+
+## Phase 3 exit, TypeScript mutation (Opus, 11 October 2026)
+
+Calculations (potency, IPC, coating, AQL), block entries, G-06, the status blocks, signing content and data rules meet
+90 %; the other tablet blocks meet 80 %. Five high-risk blocks end between 84 and 90 % (TB-15 89.6, TB-11 88.0, TB-12
+86.3, TB-18 86.0, TB-01 84.5), G-21 at 88.4; their remaining survivors are listed by file in the exit branch's commits
+(mostly simulator nominal entries and refusal texts). No critical or high defect.
+
+Backlog:
+- Medium: TB-11, a start sweep marked missed stays due, so every later entry raises IPC_CHECK_MISSED again.
+- Medium, for the owner and the expert: TB-12 subdivision can never be recorded, because India is in every market set
+  and has no rule set (or not-applicable record) for subdivision; decide the India rule before validation.
+- Medium: site-services 0733 sorts test codes without `collate "C"` (0762 uses it); on another database collation the
+  QC extra-testing decision can become unsignable (fails safe).
+- Low: the TB-15 MBR acid time is not bounded by the rule set; the TB-06 recycle message says "above zero" but zero
+  passes; an anhydrous molar mass is not checked against the base.
+- Residuals (lower risk, listed not tested): simulator nominal entries, refusal texts, route wiring and views, thin
+  TypeScript wrappers over SQL (covered by the SQL stream).
+
+## Phase 3 exit, SQL mutation (Opus, 11 October 2026)
+
+14,544 mutants in 60 groups. At or above 90 %: every Phase 2 group (99 to 100, involvement 95.7, weighing 96.9) and the
+Phase 3 groups for signed content, evidence, formulas, plant equipment, ERP interfaces, deviations, entry references,
+output containers, TB-01 dispensing and platform scope. Kill tests cover the core: holds and release gates (press
+output, blister, bottle line, release for packing, bulk issue), forged GMP issue and planning, TB-01 rounding and FEFO,
+IPC and AQL verdicts, G-21 counts, reprocessing limits and signers, approver roles and signed retests. 195 equivalent
+mutants recorded with reasons. No critical or high defect.
+
+Below 90 % (residuals for the owner, Phase 4 exit or deployment validation per decision 0008): reprocessing 85.6,
+lots and LIMS 80.9, tablets core checks 75.2, blister 75.0, coating 70.6, G-21 68.8, forming 67.6, bottle 65.4,
+compression 65.3, printing and serialisation 60.6, tablets IPC 58.4, process devices 56.9, granulation 55.7; GMP batch
+issue and change paths re-running with new kill tests. Most survivors are in the database twins of the engine's entry
+and close checks (the engine validates first; the database re-checks against tampering). Not twins, and to be covered
+first in Phase 4: G-07 consumption pairing, lot-material entry checks, tooling register commands, detector
+challenges, the print, serialisation and process-device gateway checks, the due-time functions (IPC, leak, packing
+line), the held-granulation check, G-24@2 and the exception-register sync guards.
+
+Low: `recipe.reprocessing_start_problem` is never called since recipe-core 0625 (drop it); `batch_record_identity_guard`
+and a SITE-165 branch of `consume_reservation` can never fire (an earlier check refuses first).

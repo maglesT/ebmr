@@ -22,6 +22,8 @@ tests:
   - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > TB-23 bottle line (checks, challenges, bright stock) > [PR-38] bright stock: set aside only where the MBR allows it, identified by the record (product, strength, batch, bottles); labelled back only by the scan of this batch and product and never more than is left; the step is not performed with bright stock left"
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-38] bright stock is identified by the record (product, strength, batch, bottles) and labelled back only by the scan of this batch and product, never more than is left: a forged engine is refused"
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-17][PR-38] a TB-23 step closes only with every stream's last check passing and none due, its devices' START and END challenges, its good output and no bright stock left (read on the run's state)"
+  - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 bottle line > [PR-38][IN-17][IN-22] bright stock is set aside only where the MBR allows it, tagged and identified, and labelled back only by the scan of this batch and product, never more than is left; a stopped line counts no output"
+  - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 bottle line > [PR-37][PR-38][IN-17] PERFORMED: every stream checked and passing, the good output, no bright stock left unlabelled"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -206,7 +206,8 @@ describe('the blister blocks in the database (tablets 0970 to 0972)', () => {
         await c.query('begin');
         await c.query('set local session_replication_role = replica');
         await c.query(
-          "insert into site.erp_product (product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, correlation_id) values ($1, $2, 'fixture', false, $3, 24, 'ERP-FIXTURE', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
+          // In effect as arranged (site-services 0802: the version in effect is the one the effect register names).
+          "with p as (insert into site.erp_product (product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, correlation_id) values ($1, $2, 'fixture', false, $3, 24, 'ERP-FIXTURE', gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id, product_code, strength) insert into site.erp_master_effect (master_kind, master_key, version_id, basis, person_id, account_id) select 'PRODUCT', p.product_code || '|' || p.strength, p.id, 'RELEASE_BASELINE', gen_random_uuid(), gen_random_uuid() from p",
           [product.code, product.strength, betaLactam],
         );
         await c.query('commit');

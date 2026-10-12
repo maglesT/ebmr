@@ -36,6 +36,15 @@ tests:
   - "packages/recipe-core/test/plant/status-blocks.test.ts > G-10@2: the room occupancy an entry names is the plant record (recipe-core 0521, EBMR-EXE-210) > [INV-15][IN-21][PR-34] an AREA_OCCUPANCY entry stands only on an open occupancy of its room by this batch on a passed, verified clearance, started by the person recording it"
   - "packages/recipe-core/test/plant/status-blocks.test.ts > review backlog #5: plant transitions evaluate the batch product (recipe-core 0522) > [DI-17][IN-21] an operator whose STEP.EXECUTE is limited to a product starts and ends a press use and opens a container for a batch of that product, and is refused for another product"
   - "packages/recipe-core/test/containers/containers.test.ts > press codes are plant equipment; a check and an open never race (recipe-core 0540) > [PR-22][IN-21] a container, an in-process check and a discharge configuration name a PROCESS unit of the plant: an unknown code or an instrument is refused"
+  - "packages/recipe-core/test/blocks/status-v2-edges.test.ts > G-10@2 area occupancy > [PR-34][IN-21] one occupied area, needed before PERFORMED; a clearance names its checker"
+  - "packages/recipe-core/test/mutation/output-containers.test.ts > each refusal with its own code > [IN-21][PR-22] an unknown container, batch or label is refused as unknown"
+  - "packages/recipe-core/test/mutation/output-containers.test.ts > each refusal with its own code > [IN-21] a container carries a product code and a strength; a stream names its press; a discharge configuration is decided"
+  - "packages/recipe-core/test/mutation/output-containers.test.ts > the hold guard and the signed content of a container > [DI-05][IN-21] the signed content of a container holds its own close, its own holds and the persons of those acts"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > the row guards hold for owner-level writes > [INV-15][IN-21] the table refuses a clearance verified by its own performer only: the performer of another clearance may verify this one"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > the guards of the plant machines read the aggregate they are asked about > [INV-15][IN-21] CLEAR needs a passed, verified, unused clearance of the area itself, performed after its last occupancy or cleaning"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][IN-21][PR-34] a clearance records PASSED or FAILED in a CLEAN area (or alongside a batch in a segregated room), of the type its area takes"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][IN-21] a clearance is verified once; a second verification is refused as already verified"
+  - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > the commands lock the unit or area they act on > [INV-15][IN-21] campaigns, cleanings, clearances and occupancies of a room lock its row"
 clauses:
   - clause: "start compression on a room with status \"to be cleaned\"; refused."
     tests:

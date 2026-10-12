@@ -15,7 +15,7 @@ import { actorOfBrowser, refusalOf, sessionOfBrowser, startSigningServer, valueO
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import { gmpLifecycleWorld } from '../support/gmp-world.ts';
-import { signAction } from '../support/signed-acts.ts';
+import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 
 let gmp: TestServer;
 let steward: TestBrowser;
@@ -51,6 +51,7 @@ async function importMasters(): Promise<void> {
   };
   const creds = { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminalOf(gmp.seed, erp.terminal).fingerprint };
   valueOf(await gmp.browser().call(routes.quality.erpImport, { body: { ...creds, catalogue } }));
+  await confirmErpPending(gmp);
 }
 
 async function newFormula(units: string, product = PRODUCT): Promise<string> {

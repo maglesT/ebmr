@@ -469,6 +469,9 @@ tests:
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [DI-30][DI-05] the database holds the data schemas of TB-21 and TB-22 as the block registry declares them (G-06 kinds unchanged), their block types and rule codes, the blister machine tags of the integration SDK, TB-21 as a block on a process device and the leak test in the alarm; nothing can change them"
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [DI-30][DI-05] the database holds the data schemas of TB-23 and TB-24 as the block registry declares them (CHALLENGE as G-21's), their block types and rule codes; nothing can change them, and the application role writes no register row directly"
   - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [DI-30][DI-05] the database holds the data schema of TB-08@1 as the registry declares it and its rule codes; nothing can change them"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-edges.test.ts > TB-01 weighings > [PR-19][DI-30] a weighing names a dispensed quantity of the step, the active or the excipient line, a mass unit, and a positive net"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-edges.test.ts > TB-01 weighings > [PR-19][PR-13][DI-30] a BOM line the step does not consume, or consumes as neither the active nor the excipient, is refused; only metric masses are mass units here (mutation follow-up)"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-edges.test.ts > TB-01 weighings > [INV-25][DI-30] a weighing in g counts into a quantity in kg at the resolution it was weighed at, and into the line's total at PERFORMED"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

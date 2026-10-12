@@ -13,10 +13,12 @@ import { seedAdministration, seedServiceActor, withReason, type SeededActor } fr
 import {
   changeLotStatus,
   enableVendorRoute,
+  proposeLotDecision,
   proposeVendorRoute,
   receiveLot,
   recordIdentityResult,
   reserveLot,
+  type LotQaDecision,
   type LotReceipt,
   type MaterialKind,
   type ReceivedLot,
@@ -37,6 +39,8 @@ export interface Cast {
   operator: SeededActor;
   /** The ERP interface: posts the material master a receipt takes the kind, name and unit from (site services 0750). */
   erp: SeededActor;
+  /** QA confirms a new or changed material master (ERP_MASTER_CONFIRMED, site services 0802). */
+  qaMaster: SeededActor;
 }
 
 export async function seedCast(db: TestDatabase): Promise<Cast> {
@@ -50,6 +54,7 @@ export async function seedCast(db: TestDatabase): Promise<Cast> {
     admin: await signerActor(db, 'SYSTEM_ADMINISTRATOR'),
     operator: await signerActor(db, 'OPERATOR'),
     erp: await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' }),
+    qaMaster: await signerActor(db, 'QA_MBR_APPROVER'),
   };
 }
 
@@ -112,13 +117,17 @@ export class World {
     return { ...lot, materialCode, lotCode };
   }
 
-  /** Posts a material master version as the ERP interface (the latest version wins). */
+  /** Posts a material master version as the ERP interface; QA confirms it when it does not take effect on its own (site services 0802). */
   async material(materialCode: string, materialName: string, materialKind: MaterialKind, unit = 'kg', maxRetestMonths: number | null = 24): Promise<void> {
-    await this.run(this.cast.erp, (c) =>
-      c.query('select site.erp_receive_material($1::jsonb)', [
+    const id = await this.run(this.cast.erp, async (c) =>
+      (await c.query<{ id: string }>('select site.erp_receive_material($1::jsonb) as id', [
         JSON.stringify({ materialCode, materialName, materialKind, unit, ...(maxRetestMonths ? { maxRetestMonths } : {}), erpReference: `ERP-${materialCode}` }),
-      ]),
+      ])).rows[0]?.id ?? '',
     );
+    const { rows } = await this.db.app.query<{ s: string }>("select site.erp_master_state('MATERIAL', $1) as s", [id]);
+    if (rows[0]?.s !== 'PENDING') return;
+    const sig = await signFor(this.db, this.cast.qaMaster, { type: 'erp_master', id: `MATERIAL/${id}` }, 'ERP_MASTER_CONFIRMED', 'PENDING');
+    await this.run(this.cast.qaMaster, (c) => c.query("select site.confirm_erp_master('MATERIAL', $1, $2)", [id, sig]));
   }
 
   async version(lotId: string): Promise<string> {
@@ -133,6 +142,12 @@ export class World {
 
   sign(signer: SeededActor, lotId: string, meaning: string, expectedState: string): Promise<string> {
     return signFor(this.db, signer, { type: 'material_lot', id: lotId }, meaning, expectedState);
+  }
+
+  /** QA proposes `event` (sql/0800) and `signer` signs MATERIAL_LOT_STATUS_DECIDED over the content that names it. */
+  async decide(signer: SeededActor, lotId: string, event: LotQaDecision, expectedState: string): Promise<string> {
+    await this.run(signer, (c) => proposeLotDecision(c, lotId, event));
+    return this.sign(signer, lotId, 'MATERIAL_LOT_STATUS_DECIDED', expectedState);
   }
 
   async identity(lotId: string, result: 'PASS' | 'FAIL' = 'PASS'): Promise<string> {
@@ -189,15 +204,18 @@ export class World {
     }
   }
 
-  async batch(markets: string[]): Promise<Batch> {
+  /** A batch record and its stored execution state in `status` (recipe.consume_lot consumes only into a running batch). */
+  async batch(markets: string[], status = 'IN_PROGRESS'): Promise<Batch> {
     const b: Batch = { id: randomUUID(), number: unique('B'), markets };
     const hex = (ch: string) => ch.repeat(64);
     await this.timeTravel(
-      `insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint,
+      `with x as (insert into recipe.batch_execution (id, batch_number, package_hash, content_hash, installation, purpose, engine_version, registry_fingerprint,
                                            policy, policy_hash, issue_request, market_set, batch_size, site_code, site_zone, issued_at_us,
                                            issued_by_person, issued_by_account, correlation_id)
-       values ($1, $2, $3, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', 'fixture', $3, '{}', $3, '{}', $4, 'BS-1', 'SITE-1', 'Asia/Kolkata', 0, $5, $5, $5)`,
-      [b.id, b.number, hex('a'), markets, randomUUID()],
+       values ($1, $2, $3, $3, 'SANDBOX', 'SANDBOX_TEST_RUN', 'fixture', $3, '{}', $3, '{}', $4, 'BS-1', 'SITE-1', 'Asia/Kolkata', 0, $5, $5, $5) returning id)
+       insert into recipe.execution_state (batch_id, state, state_version, state_hash, last_seq, last_row_hash, status)
+       select x.id, jsonb_build_object('status', $6::text), 1, $3, 1, $3, $6 from x`,
+      [b.id, b.number, hex('a'), markets, randomUUID(), status],
     );
     return b;
   }

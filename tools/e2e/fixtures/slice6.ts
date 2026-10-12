@@ -6,7 +6,8 @@
  *    `title`, ending when the signed dialog is closed;
  *  - `signedInApi(page, e2e)`: the typed client over a signed-in GMP page (its session, CSRF token and origin);
  *  - `importErp(api, seed, tag)`: an ERP catalogue for this worker (one product, its materials and one order) through
- *    the ERP interface's own call, unique per tag, so specs do not depend on each other.
+ *    the ERP interface's own call, unique per tag, so specs do not depend on each other;
+ *  - `confirmErp(page, e2e, approver, erp)`: the QA MBR approver confirms that catalogue's new codes (site-services 0802).
  */
 import type { Browser, Page } from '@playwright/test';
 import { routes, type ApiClient, type ErpCatalogue } from '@ebmr/api-contract';
@@ -75,4 +76,19 @@ export async function importErp(api: ApiClient, seed: SiteSeed, tag: string): Pr
   };
   valueOf('ERP import', await api.call(routes.quality.erpImport, { body: { loginName: erp.loginName, serviceKey: erp.serviceKey, fingerprint: terminal.fingerprint, catalogue } }));
   return world;
+}
+
+/**
+ * The QA MBR approver confirms the new product and materials of `erp` on the ERP status screen, each through the office
+ * ceremony (site-services 0802: a new code is in effect only once QA confirms it). `page` is signed in as `approver`.
+ */
+export async function confirmErp(page: Page, e2e: E2eWorld, approver: SeededPersona, erp: ErpWorld): Promise<void> {
+  await page.goto(`${e2e.url('GMP')}/quality/erp`);
+  const box = page.getByTestId('erp-pending');
+  for (const label of [`${erp.productCode} ${erp.strength}`, erp.materials.api, erp.materials.excipient]) {
+    const button = box.getByRole('button', { name: `Confirm ${label}`, exact: true });
+    await button.click();
+    await officeSign(page, new RegExp(`^Confirm the ERP (product|material) master ${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} `), approver);
+    await expect(button).toHaveCount(0);
+  }
 }

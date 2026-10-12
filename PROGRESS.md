@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 9 October 2026.
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 11 October 2026.
 
 ## What this is
 
@@ -73,8 +73,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   `docs/build-plan/phase-3/slice-6-plan.md`, built on `phase-3/slice-6`: screens (shop floor for TB-01..24, G-06, G-21,
   G-24@2; planning; master data with the formulation library and "Choose a product"; plant; quality), the GMP batch,
   planning, master-data, plant and quality routes with every signed act over HTTP, devices and GMP seeds, and GB-T-01
-  matching its expected outputs exactly. compliance/phase.yaml is 3; the trace passes at phase 3. Next: the Phase 3 exit
-  (decision 0009: mutation testing, one Opus review pass, the final full run). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
+  matching its expected outputs exactly. compliance/phase.yaml is 3; the trace passes at phase 3. Merged (PR #17).
+- Phase 3 exit (decision 0009, `docs/build-plan/phase-3/exit-plan.md`, branch `phase-3/exit`): one Opus review pass
+  (no critical; five high, four fixed with tests, the fifth decided by ADR-0019), SQL and TypeScript mutation runs by
+  Opus (results and residuals in the review backlog), and the final run green. Open for the owner: the drying-loop
+  correction question and the India subdivision rule (review backlog). Next: Phase 4 (outline section 11). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 - Slice 6c (`phase-3/slice-6c`, in progress): catalog-test clauses for the 16 Phase 3 exit controls; DI-04 clause 2,
   PR-01 clause 2 and the DI-33 reprocessing scope tested; simulators for every process kind, packaging-line kinds in the
@@ -92,6 +95,16 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   for a base-stated TB-01 (recipe-core 0690), G-09@2 instrument uses (0691), loop iteration and operator choice as client
   intents, hardness units in DATA-UNITS, TB-01 hydrate checks (tablets 1091); held compression cores are never coated
   (tablets 1092); a GMP G-07 weighing consumes its lot (tablets 1093). Residuals in `test/golden/gb-t-01/README.md`.
+- Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and
+  orders need ERP.MASTER_WRITE (ERP interface only); a new code, or a change of reprocessing permission, shelf life,
+  material kind or retest interval, takes effect only on QA's ERP_MASTER_CONFIRMED signature (site-services 0802, tablets
+  1101; ERP status screen lists and confirms; seed and e2e fixture confirm). HIGH-2: QA proposes a lot status decision
+  first and the signed content names it (0800). HIGH-3: bulk is issued to a packaging order only after its processing
+  batch's H-PACK, from usable containers (recipe-core 0701, route `POST /api/batches/:id/bulk`); TB-21 RUN_START, TB-23
+  and TB-24 refused on GMP until then (tablets 1102). HIGH-4: consumption only into a running batch and named by an entry
+  of the same command; reservations revoked at batch end (0801, recipe-core 0700, tablets 1100). MEDIUM: TB-11 counter as
+  bigint. GB-T-01 unchanged. Open for the owner: no screen yet for the bulk issue; packing steps in a GMP processing batch
+  are now refused (stricter default); HTTP LOT_DECISION still offers only release and reject.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 

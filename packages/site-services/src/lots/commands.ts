@@ -83,10 +83,22 @@ export async function disableVendorRoute(client: Queryable, routeId: string, rea
   await client.query('select site.disable_vendor_route($1, $2)', [routeId, reason]);
 }
 
+/** The QA decisions signed MATERIAL_LOT_STATUS_DECIDED (the lot's machine, sql/0711). */
+export type LotQaDecision = 'RELEASE_FOR_FURTHER_PROCESSING' | 'HOLD' | 'UNHOLD' | 'RETURN' | 'RECALL';
+
+/**
+ * QA proposes the status decision it is about to sign (sql/0800): the lot's signed content then names it, and a
+ * MATERIAL_LOT_STATUS_DECIDED signature applies to that event only. Returns the proposal's id.
+ */
+export async function proposeLotDecision(client: Queryable, lotId: string, event: LotQaDecision): Promise<string> {
+  return one<string>(client, 'select site.propose_lot_decision($1, $2) as r', [lotId, event]);
+}
+
 /**
  * A status decision on a lot. RELEASE needs `route` and the releaser's own MATERIAL_LOT_RELEASED signature, and the
  * route must be the one the lot's signed content shows (sql/0720: IDENTITY_TESTED once a passing identity result exists); the
- * QA decisions need a MATERIAL_LOT_STATUS_DECIDED (or MATERIAL_LOT_REJECTED) signature and a reason in the command.
+ * QA decisions need a MATERIAL_LOT_STATUS_DECIDED (or MATERIAL_LOT_REJECTED) signature and a reason in the command; a
+ * MATERIAL_LOT_STATUS_DECIDED signature is given over the decision proposed first (proposeLotDecision, sql/0800).
  */
 export async function changeLotStatus(
   client: Queryable,

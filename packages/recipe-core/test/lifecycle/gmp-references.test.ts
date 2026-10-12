@@ -304,11 +304,14 @@ describe('a whole-batch reprocessing batch on GMP (slice 5b case 1; recipe-core 
         JSON.stringify({ sha256: createHash('sha256').update(`risk ${randomUUID()}`).digest('hex'), mediaType: 'application/pdf', sizeBytes: '4096', storageKey: `evidence/${randomUUID()}.pdf`, title: 'Risk evaluation' }),
       ])).rows[0]!.r,
     );
-    await withCommand(db.app, { ...erp, correlationId: randomUUID() }, (c) =>
-      c.query('select site.erp_receive_product($1::jsonb)', [
+    const productVersion = await withCommand(db.app, { ...erp, correlationId: randomUUID() }, async (c) =>
+      (await c.query<{ id: string }>('select site.erp_receive_product($1::jsonb) as id', [
         JSON.stringify({ productCode: product.code, strength: product.strength, productName: product.name, reprocessingPermitted: true, betaLactam: false, shelfLifeMonths: 24, erpReference: 'ERP-RP' }),
-      ]),
+      ])).rows[0]!.id,
     );
+    // A new product master takes effect once QA confirms it (site services 0802).
+    const confirmation = await signFor(db, w.cast.qa, { type: 'erp_master', id: `PRODUCT/${productVersion}` }, 'ERP_MASTER_CONFIRMED', 'PENDING');
+    await w.run(w.cast.qa, (c) => c.query("select site.confirm_erp_master('PRODUCT', $1, $2)", [productVersion, confirmation]));
     // The request, authorised by the quality-control unit (another person than the issuer).
     const req = await w.run(w.cast.issuer, async (c) =>
       (await c.query<{ r: { id: string } }>('select recipe.propose_reprocessing_request($1, $2, $3::uuid[], $4, $5) as r', [master.familyId, SITE, parents.map((p) => p.batchId), inv.ref, risk])).rows[0]!.r.id,

@@ -39,6 +39,9 @@ tests:
   - "apps/tablets-server/test/blocks/forming/blocks.test.ts > TB-16 bilayer compression > [PR-21][IN-26] each layer's hopper is charged by scan with its own blend: another hopper (a swap) or another blend is refused; every charge needs a second person; the run cannot start while a layer is uncharged"
   - "apps/tablets-server/test/blocks/forming/blocks.test.ts > TB-16 bilayer compression > [IN-35][PR-29][PR-21] the step closes only after the run ended with an end-of-run check of every planned test of every layer, the sweep done and every layer charged; then a second person verifies it"
   - "apps/tablets-server/test/blocks/forming/db-guards.test.ts > the forming blocks in the database (tablets 0930 to 0932) > [PR-21][IN-26][PR-23] TB-16 hopper charges: each layer's hopper takes a container of its own blend by the person's scan (a container of the other layer's blend, a swapped hopper, another person's or a reused charge are refused by the database); each charge needs a second person; the run cannot start with a layer uncharged, nor before the press's first-off approval"
+  - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 definition checks > [PR-21][IN-26][PR-23] two or three layers, each id, hopper and blend its own; a press used; a set-up step in the MBR"
+  - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [PR-21][IN-26] the charges' refusals name the layer, hopper and blend; nothing is charged after the run; the run starts with every layer charged"
+  - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [IN-35][PR-29][PR-21] PERFORMED lists each problem once across the layers"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

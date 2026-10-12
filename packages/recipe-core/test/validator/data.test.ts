@@ -132,6 +132,23 @@ describe('data gates', () => {
     if (p?.limits) p.limits.unit = 'kg';
     expect(found(m, 'DATA-UNITS').join(' ')).toMatch(/limits of "Inlet air temperature \(drying\)" \(inletTemp\) are in another dimension/);
   });
+
+  it('[PR-08][PR-03] DATA-UNITS: tablet hardness is a force (by its tag, the legacy alias or kp); the alias warns, a pressure is refused, its limits are a force (mutation follow-up)', () => {
+    const lim = (unit: string) => ({ unit, ranges: [{ tier: 'INTERNAL_ACTION' as const, low: { value: '1', inclusive: true }, high: { value: '9', inclusive: true }, rounding: 'USP_HALF_UP_AT_LIMIT_DECIMALS' as const, source: { kind: 'VALIDATION_REPORT' as const, ref: 'V' } }] });
+    const hard = (unit: string, extra: Partial<Parameter> = {}): Parameter => ({ id: 'h', name: 'Hardness', valueType: 'DECIMAL', unit, precision: { kind: 'DECIMALS', digits: 1 }, role: 'IPC', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'MANUAL', ...extra });
+    const m = (p: Parameter) => mbrWith(seq('ops', [phase('rec', { records: ['h'] })]), { parameters: [p] });
+    const sev = (p: Parameter) => found(m(p), 'DATA-UNITS').map((x) => x.split(':')[0]);
+    expect(found(m(hard('N', { semanticTag: 'breaking_force', limits: lim('N') })), 'DATA-UNITS')).toEqual([]);
+    expect(sev(hard('kg/cm² (as kgf/kp)', { limits: lim('kgf') }))).toEqual(['WARNING']);
+    expect(sev(hard(' kg/cm2   (as kgf/kp) '))).toEqual(['WARNING']);
+    expect(sev(hard('kp'))).toEqual([]);
+    expect(sev(hard('kg/cm2', { semanticTag: 'breaking_force' }))).toEqual(['ERROR']);
+    expect(found(m(hard('N', { semanticTag: 'breaking_force', limits: lim('kg') })), 'DATA-UNITS')).toEqual(['ERROR: The limits of "Hardness" (h) are not in a force unit (kg) (DATA-UNITS; PR-08, PR-03)']);
+    expect(found(m(hard('kg/cm2', { semanticTag: 'breaking_force', limits: lim('kg') })), 'DATA-UNITS').filter((x) => x.includes('not in a force unit'))).toEqual([]);
+    expect(found(m(hard('kg/cm2', { valueType: 'INTEGER' } as unknown as Partial<Parameter>)), 'DATA-UNITS')).toEqual([]);
+    expect(sev(hard('mm', { limits: lim('kg') }))).toEqual(['ERROR']);
+    expect(sev(hard('kg', { semanticTag: 'mass', limits: lim('g') }))).toEqual([]);
+  });
 });
 
 describe('weighed quantities in a unit the database cannot read (COMPOUND-UNIT; recipe-core sql 0323)', () => {

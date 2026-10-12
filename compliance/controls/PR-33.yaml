@@ -31,6 +31,16 @@ tests:
   - "apps/tablets-server/test/blocks/blister/blocks.test.ts > TB-21 run (engine) > [PR-33] a reel change takes a web of the pack format only and needs a second person"
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [IN-38][PR-33][PR-34][PR-35] TB-21 line set-up: the machine is a PROCESS unit in use on the line the packaging order occupies, cleared for the artwork set scanned; every reel is a released lot of its material, and the printed foil a lot issued for its item at the G-21 step; the change parts are the format's whatever the engine says; the stored set-up is what was scanned with the reels the block builds"
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [PR-33][PR-37] TB-21 run: a new reel is a released lot of its web, a printed one issued at the G-21 step; pocket rejects feed the count, whose reconciliation is the database's own (a forged balance is refused); the run closes only with its count and a passing last defect check"
+  - "apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts > TB-21 line check > [IN-38][PR-33] the set-up scans exactly the pack format's change parts and one reel of each web of its material, once"
+  - "apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts > TB-21 run > [PR-33][PR-37] a reel change is a web of the format of its material, checked by a second person"
+  - "apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts > TB-21 definition checks > [IN-38][PR-33] the pack format: change parts once; the webs its form takes, each once; printed webs named on the MBR's G-21 step with their material"
+  - "apps/tablets-server/test/blocks/blister/tb-21-edges.test.ts > TB-21 definition checks > [PR-33] the pack format as read"
+  - "apps/tablets-server/test/mutation/tablets-coating.test.ts > AQL single sampling (tablets 0911) > [PR-33][IN-34] the code letter of a lot size: both ends of its range, and the next range after it"
+  - "apps/tablets-server/test/mutation/tablets-coating.test.ts > AQL single sampling (tablets 0911) > [PR-33][PR-29] each class is accepted at its acceptance number and rejected at the next; one critical defect rejects; the sample never exceeds the lot"
+  - "apps/tablets-server/test/mutation/tablets-coating.test.ts > AQL single sampling (tablets 0911) > [PR-33] switching: two rejections among four lots tighten the inspection; five accepted lots in a row return it to normal"
+  - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 issue > [PR-32][PR-33] a released, unexpired lot of the material, the scanned artwork the lot's and every market's, in the item's unit, positive"
+  - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 issue > [PR-33][IN-17] the issued total never above the need plus the allowance (equal allowed); manual counts need a second person; nothing after the reconciliation"
+  - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
