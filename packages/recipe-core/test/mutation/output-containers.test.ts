@@ -27,12 +27,14 @@ let db: TestDatabase;
 let operator: SeededActor;
 let qa: SeededActor;
 let steward: SeededActor;
+let verifier: SeededActor;
 
 beforeAll(async () => {
   db = await createTestDatabase();
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator' });
   qa = await seedActor(db, { roleCode: 'QA_SHOP_FLOOR', legalName: 'Qamar QA' });
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Sana Steward' });
+  verifier = await seedActor(db, { roleCode: 'VERIFIER', legalName: 'Vera Verifier' });
 }, 180_000);
 afterAll(async () => {
   await db.drop();
@@ -82,8 +84,14 @@ const why = (text: string) => ({ reasonCode: 'TEST', reasonText: text });
 function open(batch: Batch, press?: string, stream?: string, stage = 'COMPRESSION', unit: oc.QuantityUnit = 'kg'): Promise<oc.ContainerRef> {
   return run(db, operator, (c) => oc.openContainer(c, { batchId: batch.id, stage, unit, ...(press ? { pressCode: press } : {}), ...(stream ? { stream } : {}) }));
 }
-function close(ref: oc.ContainerRef, qty = '12.500'): Promise<oc.ContainerRef> {
-  return run(db, operator, (c) => oc.closeContainer(c, ref.containerId, qty, ref.version));
+/** Closes with a typed net, then the second person verifies it (recipe-core 0740, DI-30: test arrangement here). */
+async function close(ref: oc.ContainerRef, qty = '12.500'): Promise<oc.ContainerRef> {
+  const closed = await run(db, operator, (c) => oc.closeContainer(c, ref.containerId, qty, ref.version));
+  const ch = await challengeFor(db, verifier, ref.containerId, { meaning: oc.CONTAINER_NET_VERIFY_MEANING, aggregateType: 'output_container' });
+  const ev = await signatureAuth(db, verifier, verifier, ch.challengeId);
+  const sig = (await signWith(db, verifier, ch.challengeId, ev, { expectedState: (await oc.containerStatus(db.app, ref.containerId))?.state ?? '' })).signatureId;
+  await run(db, verifier, (c) => oc.verifyContainerClose(c, ref.containerId, sig));
+  return closed;
 }
 function check(batch: Batch, press: string, result: oc.IpcResult, stream: string | null = null): Promise<oc.IpcCheckOutcome> {
   return run(db, operator, (c) => oc.recordIpcCheck(c, { batchId: batch.id, pressCode: press, stream, result, reference: `IPC-${serial++}` }));
@@ -334,7 +342,8 @@ describe('the hold guard and the signed content of a container', () => {
       'select plant.output_container_content($1) as c',
       [mine.containerId],
     )).rows[0]?.c;
-    expect(content?.content_version).toBe(3);
+    // Opened, closed, its net verified by the second person (recipe-core 0740), held once.
+    expect(content?.content_version).toBe(4);
     expect(content?.content.net_quantity).toBe('7.250');
     expect(content?.content.holds.map((h) => h.ipc_check_id)).toEqual([fail.ipcCheckId]);
     expect(JSON.stringify(content)).toContain(operator.personId);

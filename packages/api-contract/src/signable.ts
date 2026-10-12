@@ -29,6 +29,9 @@
  *  - CORRECTION_APPROVAL: the approval of an entry correction (CORRECTION_APPROVED on the data point, batch_point
  *    `<batch>:<point>`), given before the corrector's signed CORRECT_ENTRY names it (S25; QA when a failing value, or a
  *    loop reading that missed its endpoint, would change: plan open question 1, default taken).
+ * Phase 4 slice 1b (containers; recipe-core 0740, 0741; ns/containers.ts):
+ *  - CONTAINER_ACT: VERIFY_CLOSE (VERIFIED on the output container, by a second person, never its closer or opener) and
+ *    RELEASE (OUTPUT_CONTAINER_RELEASED, by QA, once the hold's exceptions are dispositioned and deviations concluded).
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -146,6 +149,14 @@ export const SignableAction = z.discriminatedUnion('kind', [
     batchId: Uuid,
     /** The data point the correction replaces. */
     point: z.string().min(1).max(256),
+  }),
+  z.strictObject({
+    kind: z.literal('CONTAINER_ACT'),
+    /** VERIFY_CLOSE: the second person's VERIFIED check of a typed net (DI-30); RELEASE: QA's OUTPUT_CONTAINER_RELEASED. */
+    act: z.enum(['VERIFY_CLOSE', 'RELEASE']),
+    containerId: Uuid,
+    /** The person's own reason; a RELEASE carries one (it changes the container's state, EBMR-AUDIT-002). */
+    reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

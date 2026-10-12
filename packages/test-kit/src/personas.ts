@@ -39,6 +39,8 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'KIOSK-COAT-1', installation: 'GMP', deviceClass: 'SHARED', room: 'COAT-1', description: 'Shop-floor kiosk, coating room COAT-1 (GMP batches)', key: 'BROWSER' },
   { code: 'KIOSK-INSP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'INSP-1', description: 'Shop-floor kiosk, inspection room INSP-1 (GMP batches)', key: 'BROWSER' },
   { code: 'GW-01', installation: 'GMP', deviceClass: 'SERVER', description: 'Site gateway (scales, instruments and process equipment), GMP installation', key: 'SERVICE' },
+  // Phase 4 slice 1b (D-P4-9): the GMP server's in-process time sweeper, so missed-check holds run on GMP too.
+  { code: 'SRV-SWEEPER-01', installation: 'GMP', deviceClass: 'SERVER', description: 'GMP server: in-process time sweeper identity (time limits, overdue in-process checks, interface losses)', key: 'SERVICE' },
   { code: 'TEST-PC-01', installation: 'SANDBOX', deviceClass: 'PERSONAL', description: 'Sandbox office PC (batch issue, package import)', key: 'BROWSER' },
   { code: 'TEST-KIOSK-DISP-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'DISP-1', description: 'Shop-floor kiosk, dispensing booth DISP-1', key: 'BROWSER' },
   { code: 'TEST-KIOSK-BLEND-1', installation: 'SANDBOX', deviceClass: 'SHARED', room: 'BLEND-1', description: 'Shop-floor kiosk, blending room BLEND-1', key: 'BROWSER' },
@@ -117,7 +119,7 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'operatorVerifier1', installation: 'SANDBOX', legalName: 'TEST-Deepa Pillai', loginName: 'test-operator-verifier-1', roleCode: 'OPERATOR', alsoRoles: ['VERIFIER'], kiosk: true, homeTerminal: 'TEST-KIOSK-DISP-1', title: 'Operator and verifier (two roles)', demo: { password: 'Demo-OpVerifier1-2026!', pin: '358264', badgeUid: '04A10000000041' } },
 ];
 
-/** The service identities (SERVICES): the sandbox's three, and the GMP installation's ERP interface. */
+/** The service identities (SERVICES): the sandbox's three, and the GMP installation's ERP interface, gateway and sweeper. */
 export type ServiceKey = 'sweeper' | 'gateway' | 'monitor' | 'erpInterface';
 
 export interface ServiceSpec {
@@ -156,6 +158,9 @@ export const SERVICES: readonly ServiceSpec[] = [
   { key: 'erpInterface', installation: 'GMP', legalName: 'ERP interface', loginName: 'erp.interface', accountKind: 'INTEGRATION', roleCode: 'ERP_INTERFACE', terminal: 'SRV-ERP-01' },
   // GMP: the site gateway (Phase 3 slice 6c, backlog 3b), with the sandbox gateway's role (INTERFACE.WRITE only).
   { key: 'gateway', installation: 'GMP', legalName: 'Site gateway GW-01', loginName: 'gw-01', accountKind: 'INTEGRATION', roleCode: 'SITE_GATEWAY', terminal: 'GW-01' },
+  // GMP: the time sweeper (Phase 4 slice 1b, D-P4-9): a reserved non-human SERVICE account in EXECUTION_SWEEPER only (recipe-core
+  // 0260: EXECUTION.SWEEP and nothing else; no STEP.EXECUTE), as the sandbox's.
+  { key: 'sweeper', installation: 'GMP', legalName: 'Execution time sweeper', loginName: 'svc.sweeper', accountKind: 'SERVICE', roleCode: 'EXECUTION_SWEEPER', terminal: 'SRV-SWEEPER-01' },
 ];
 
 /** Names of the installation's first administrator and process owner (sandbox names carry TEST-). */

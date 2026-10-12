@@ -5,7 +5,8 @@
  */
 import type { ClientIntent } from '@ebmr/api-contract';
 import { BALANCE, UNITS } from './plant.ts';
-import { dbAs, entry, type GoldenBatch, type StepPlan } from './driver.ts';
+import { verifyTypedNet } from '../../execution/db-guards-support.ts';
+import { dbAs, entry, tick, type GoldenBatch, type StepPlan } from './driver.ts';
 
 type Json = Record<string, unknown>;
 
@@ -43,6 +44,9 @@ export async function openContainer(g: GoldenBatch, stage: string, press?: strin
 export async function closeContainer(g: GoldenBatch, id: string, net: string): Promise<void> {
   const v = (await g.w.server.db.app.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [id])).rows[0]?.v;
   await dbAs(g.w, g.b('operator1'), 'operator1', 'select plant.close_container($1, $2::numeric, $3::bigint) as r', [id, net, v]);
+  // DI-30 (recipe-core 0740): the net was keyed, so the second person checks it before the container is used.
+  tick();
+  await verifyTypedNet(g.w.server, g.b('verifier1'), id);
 }
 
 export interface BlendingPlan {

@@ -18,9 +18,12 @@
  * change. This identity records a SWEEP row and stores what it finds under its own name; it is not the raiser of
  * what the sweep finds.
  *
- * The identity comes from the DEMO-ONLY service-keys file (EBMR_SERVICE_KEYS_FILE; the entry on terminal
- * TEST-SRV-SWEEPER, its service key and its terminal key's fingerprint). Without the file the sweeper does not
- * start (commands still sweep).
+ * The identity comes from the DEMO-ONLY service-keys file (EBMR_SERVICE_KEYS_FILE; the entry on the installation's
+ * sweeper terminal, its service key and its terminal key's fingerprint): TEST-SRV-SWEEPER in the sandbox, and since
+ * Phase 4 slice 1b (D-P4-9) SRV-SWEEPER-01 on GMP, a reserved non-human SERVICE account in EXECUTION_SWEEPER only, so the
+ * missed-check holds and interface losses are recorded on GMP batches without waiting for a person's entry. Without the
+ * file the sweeper does not start (commands still sweep). The "unusable under hold" design stays: the sweeper's MISSED
+ * hold keeps a closed container out of use at once and its state moves to HELD with the next person's check.
  *
  * The sweeper acts in the role EXECUTION_SWEEPER (recipe-core 0260), which holds EXECUTION.SWEEP and nothing else
  * and is only for SERVICE accounts (DI-17 least privilege). The kernel's SERVICE_ACCOUNT role cannot sweep, and the
@@ -44,7 +47,10 @@ import { withActorCommand } from '../../platform/db/commands.ts';
 import { runCache, runContext } from './runs.ts';
 
 export const SWEEP_INTERVAL_MS = 15_000;
-export const SWEEPER_TERMINAL = 'TEST-SRV-SWEEPER';
+/** The sweeper's server terminal per installation (test-kit personas.ts; D-P4-9 for GMP). */
+export const SWEEPER_TERMINALS = { SANDBOX: 'TEST-SRV-SWEEPER', GMP: 'SRV-SWEEPER-01' } as const;
+/** The sandbox's sweeper terminal (kept for callers of Phase 2). */
+export const SWEEPER_TERMINAL = SWEEPER_TERMINALS.SANDBOX;
 /** The sweeper's own role (recipe-core 0260): EXECUTION.SWEEP only; the kernel checks the account holds it (EBMR-IAM-108). */
 export const SWEEPER_ROLE = 'EXECUTION_SWEEPER';
 
@@ -56,11 +62,11 @@ interface ServiceEntry {
   terminalKey?: { fingerprint?: string } | null;
 }
 
-/** The sweeper's credentials from the service-keys file (null when there is no usable entry). */
-export function sweeperCredentials(file: string | null): { loginName: string; serviceKey: string; fingerprint: string } | null {
+/** The sweeper's credentials of `installation` from the service-keys file (null when there is no usable entry). */
+export function sweeperCredentials(file: string | null, installation: 'GMP' | 'SANDBOX' = 'SANDBOX'): { loginName: string; serviceKey: string; fingerprint: string } | null {
   if (!file) return null;
   const parsed = JSON.parse(readFileSync(file, 'utf8')) as { services?: ServiceEntry[] };
-  const e = (parsed.services ?? []).find((s) => s.terminal === SWEEPER_TERMINAL);
+  const e = (parsed.services ?? []).find((s) => s.terminal === SWEEPER_TERMINALS[installation]);
   const fingerprint = e?.terminalKey?.fingerprint ?? e?.fingerprint ?? null;
   if (!e || !fingerprint) return null;
   return { loginName: e.loginName, serviceKey: e.serviceKey, fingerprint };
@@ -76,7 +82,7 @@ export interface SweepResult {
   outcomes: Record<string, number | 'SKIPPED'>;
 }
 
-/** One sweep of every running test batch, as `actor` (a SYSTEM service session). */
+/** One sweep of every running batch of the installation, as `actor` (a SYSTEM service session). */
 export async function sweepAll(app: AppContext, actor: ActorContext): Promise<SweepResult> {
   const { rows } = await app.pools.app.query<{ id: string }>(
     "select b.id from recipe.batch_execution b join recipe.execution_state s on s.batch_id = b.id where s.status in ('ISSUED', 'IN_PROGRESS', 'ON_HOLD') order by b.issued_at",
@@ -189,7 +195,7 @@ export function startSweeper(
 ): { stop(): Promise<void> } | null {
   let creds: ReturnType<typeof sweeperCredentials>;
   try {
-    creds = sweeperCredentials(app.config.serviceKeysFile);
+    creds = sweeperCredentials(app.config.serviceKeysFile, app.config.installation);
   } catch (e) {
     log.warn({ err: e instanceof Error ? e.message : String(e) }, 'the sweeper identity file cannot be read; the sweeper does not start');
     return null;

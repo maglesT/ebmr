@@ -504,7 +504,7 @@ async function resolveEntry(ctx: IntentContext, room: string | null, e: ClientEn
       // D-S6-2: the block's own entry schema (engine) and the database's guards decide; the server refuses the members
       // it fills and fills those it reads from the database (block-entries.ts).
       const block = target ? ctx.def.steps.get(target.step)?.block : undefined;
-      const entry = await resolveBlockEntry({ client: ctx.client, batchId: ctx.state.header.batchId, stepKey, block }, e.entryKind, e.data);
+      const entry = await resolveBlockEntry({ client: ctx.client, batchId: ctx.state.header.batchId, stepKey, ...(target ? { step: target.step } : {}), block }, e.entryKind, e.data);
       return { entry, evidence: {} };
     }
   }

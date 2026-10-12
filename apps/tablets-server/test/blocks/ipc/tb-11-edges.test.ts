@@ -93,6 +93,17 @@ describe('TB-11 when a slot falls due', () => {
     expect(slotsOf({ streams: [{ id: 'L' }, 'x'], plan: [{ test: 'WEIGHT' }, 'y'] }).map((s) => `${s.stream}:${s.test}`)).toEqual(['L:WEIGHT']);
   });
 
+  it('[IN-35][PR-29] a start sweep marked missed is dealt with at the marking: not due again without a repeat interval, due one interval after the marking with one (tablets 1110)', () => {
+    const sw = { ...cfg, sweep: { stations: 4, weight: {}, every: { value: '60', unit: 'min' } } };
+    const once = { ...cfg, sweep: { stations: 4, weight: {} } };
+    const marked = e('WEIGHT_CHECK', at(10n), { stream: 'L', missed: [{ stream: 'L', test: 'SWEEP', by: 'TIME' }] });
+    expect(due([START, marked], 'SWEEP', 'L', once)).toBe('none');
+    expect(due([START, marked], 'SWEEP', 'L', sw)).toBe('70m');
+    // Only the marked stream: R's start sweep is still due from the start.
+    expect(due([START, marked], 'SWEEP', 'R', once)).toBe('0m');
+    expect(overdue([START, marked], once, at(30n)).filter((m) => m.test === 'SWEEP').map((m) => m.stream)).toEqual(['R']);
+  });
+
   it('[IN-35][PR-29] a slot is overdue strictly after its due time plus the grace, in stream and test order', () => {
     expect(overdue([START], cfg, at(30n))).toEqual([]);
     expect(overdue([START], cfg, at(30n, 1n))).toEqual([

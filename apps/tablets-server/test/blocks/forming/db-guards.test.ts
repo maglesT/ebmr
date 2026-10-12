@@ -16,7 +16,7 @@ import { FORMING_BLOCK_VERSIONS, TB06, TB16 } from '../../../src/blocks/forming/
 import { recordIpcOverdue } from '../../../src/features/execution/sweeper.ts';
 import { actorOfBrowser } from '../../esig/support.ts';
 import { adminActor, enrol, fakeGateway, type FakeGateway } from '../../devices/support.ts';
-import { codeOf } from '../../execution/db-guards-support.ts';
+import { codeOf, verifyTypedNet } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { PRESS_CLASS, SPEC } from '../compression/db-support.ts';
 import { asSetup, cleanUnit, linkDevice, startUse } from '../compression/plant-support.ts';
@@ -80,7 +80,11 @@ const types = async (key: string): Promise<string[]> =>
 const checks = async (unit: string): Promise<string[][]> =>
   (await sbx.db.admin.query<{ s: string; r: string }>("select coalesce(stream, '-') as s, result as r from plant.ipc_check where batch_id = $1 and press_code = $2 order by recorded_at, id", [d.runId, unit])).rows.map((r) => [r.s, r.r]);
 const open = (stage: string, unit: string | null) => asOp<{ container_id: string; version: number; label_code: string }>('select plant.open_container($1, $2, $3, $4) as r', [d.runId, stage, 'kg', unit]);
-const close = (c: { container_id: string; version: number }) => asOp<{ label_code: string }>('select plant.close_container($1, $2, $3) as r', [c.container_id, '12.500', c.version]);
+const close = async (c: { container_id: string; version: number }) => {
+  const r = await asOp<{ label_code: string }>('select plant.close_container($1, $2, $3) as r', [c.container_id, '12.500', c.version]);
+  await verifyTypedNet(sbx, d.browser('verifier1'), c.container_id);
+  return r;
+};
 const state = (c: { container_id: string }) => sql<string>("select state as r from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [c.container_id]);
 const held = (c: { container_id: string }) => sql<number>('select count(*)::int as r from plant.container_hold where container_id = $1', [c.container_id]);
 const strip = (o: Json): Json => Object.fromEntries(Object.entries(o).filter(([k, v]) => k !== 'kind' && v !== undefined));

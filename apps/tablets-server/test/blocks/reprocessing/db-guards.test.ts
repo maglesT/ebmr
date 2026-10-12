@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { withCommand, type ActorContext } from '@ebmr/kernel';
 import { actorOfBrowser } from '../../esig/support.ts';
-import { prepareSignature } from '../../execution/db-guards-support.ts';
+import { prepareSignature, verifyTypedNet } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { REPROCESSING_BLOCK_VERSIONS } from '../../../src/blocks/reprocessing/index.ts';
 import { fakeTimers, laxEntry, stateOf, tamperHandler } from '../granulation/db-support.ts';
@@ -60,6 +60,7 @@ async function refusal(p: Promise<unknown>): Promise<string> {
 async function container(d: RunDriver, stage: string, net: string, press?: string): Promise<string> {
   const o = await as<{ container_id: string; version: number }>(d, 'operator1', press ? 'select plant.open_container($1, $2, $3, $4) as r' : 'select plant.open_container($1, $2, $3) as r', press ? [d.runId, stage, 'kg', press] : [d.runId, stage, 'kg']);
   await as(d, 'operator1', 'select plant.close_container($1, $2, $3) as r', [o.container_id, net, o.version]);
+  await verifyTypedNet(sbx, d.browser('verifier1'), o.container_id);
   return o.container_id;
 }
 

@@ -12,7 +12,7 @@ import { esig, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { engine, execution } from '@ebmr/recipe-core';
 import { terminalOf } from '@ebmr/test-kit';
 import { actorOfBrowser } from '../esig/support.ts';
-import type { TestBrowser } from '../support/harness.ts';
+import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { personaIn, type ExecServer, type RunDriver } from './support.ts';
@@ -39,7 +39,7 @@ export async function messageOf(p: Promise<unknown>): Promise<string> {
 }
 
 /** A command of `persona` in the browser's own session (a fresh badge tap on a kiosk; the tap limiter's clock moves on first). */
-export async function actorOf(sbx: ExecServer, browser: TestBrowser, persona: string, extra: Partial<ActorContext> = {}): Promise<ActorContext> {
+export async function actorOf(sbx: TestServer, browser: TestBrowser, persona: string, extra: Partial<ActorContext> = {}): Promise<ActorContext> {
   vi.advanceTimersByTime(7_000);
   return actorOfBrowser(sbx, browser, persona, extra);
 }
@@ -58,7 +58,7 @@ export interface PendingSignature {
  * the kernel's provider gives, a challenge in the persona's command, and the persona's authentication for it on
  * the browser's terminal (badge and PIN on a kiosk, user ID and password elsewhere). Nothing is signed yet.
  */
-export async function prepareSignature(sbx: ExecServer, browser: TestBrowser, persona: string, aggregateType: string, aggregateId: string, meaning: string): Promise<PendingSignature> {
+export async function prepareSignature(sbx: TestServer, browser: TestBrowser, persona: string, aggregateType: string, aggregateId: string, meaning: string): Promise<PendingSignature> {
   const who = personaIn(sbx, persona);
   const content = await esig.contentForSigning(sbx.db.admin, aggregateType, aggregateId);
   if (!content.exists || content.contentVersion === undefined || content.contentHash === undefined) throw new Error(`SETUP: ${aggregateType} ${aggregateId} has no signable content: ${JSON.stringify(content)}`);
@@ -81,6 +81,15 @@ export async function prepareSignature(sbx: ExecServer, browser: TestBrowser, pe
     sign: async (c) => (await esig.sign(c, { challengeId: challenge.challengeId, authEventId: ev.authEventId, expectedState: content.state ?? null }, sealKey)).signatureId,
     actor: () => actorOf(sbx, browser, persona, { authEventId: ev.authEventId }),
   };
+}
+
+/**
+ * DI-30 (recipe-core 0740): the second person's check of a container's typed net quantity, with their VERIFIED signature on
+ * it, in their own command. Test arrangement for tests whose subject is not the typed net (it is proven in recipe-core).
+ */
+export async function verifyTypedNet(sbx: TestServer, browser: TestBrowser, containerId: string, persona = 'verifier1'): Promise<void> {
+  const p = await prepareSignature(sbx, browser, persona, 'output_container', containerId, 'VERIFIED');
+  await withCommand(sbx.db.app, await p.actor(), async (c) => c.query('select plant.verify_container_close($1, $2)', [containerId, await p.sign(c)]));
 }
 
 /** A signature made and committed on its own, in a command of its own (never applied to the record). */

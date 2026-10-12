@@ -120,6 +120,9 @@ function serverEnv(kind: 'GMP' | 'SANDBOX', opts: StartStackOptions, origins: { 
     env['EBMR_GATEWAY_LISTEN'] = `127.0.0.1:${opts.ports.gatewayListener}`;
     env['EBMR_GATEWAY_URL'] = `http://127.0.0.1:${opts.ports.gateway}`;
     env['EBMR_SERVICE_KEYS_FILE'] = join(opts.keysDir, 'sandbox-service-keys.json');
+  } else {
+    // D-P4-9: the GMP server's sweeper identity (missed-check holds and interface losses on GMP batches).
+    env['EBMR_SERVICE_KEYS_FILE'] = join(opts.keysDir, 'gmp-service-keys.json');
   }
   return env;
 }

@@ -10,7 +10,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { withCommand, type ActorContext } from '@ebmr/kernel';
 import { actorOfBrowser } from '../../esig/support.ts';
-import { codeOf } from '../../execution/db-guards-support.ts';
+import { codeOf, verifyTypedNet } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { COATING_BLOCK_VERSIONS } from '../../../src/blocks/coating/index.ts';
 import { AQL_SCHEME, expandedPlans, LETTERS, SAMPLE_CODE_ROWS } from '../../../src/blocks/coating/aql.ts';
@@ -69,6 +69,7 @@ async function container(stage: string, press?: string): Promise<{ id: string; l
     press ? 'select plant.open_container($1, $2, $3, $4) as r' : 'select plant.open_container($1, $2, $3) as r', press ? [d.runId, stage, 'kg', press] : [d.runId, stage, 'kg'],
   );
   await asOp('select plant.close_container($1, $2, $3) as r', [o.container_id, '10.000', o.version]);
+  await verifyTypedNet(sbx, d.browser('verifier1'), o.container_id);
   return { id: o.container_id, label: o.label_code };
 }
 const stateOfContainer = (id: string) => sql<string>('select plant.container_state($1) as r', [id]);

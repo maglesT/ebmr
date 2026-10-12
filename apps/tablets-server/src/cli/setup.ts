@@ -14,6 +14,7 @@
  *   <kind>-seal-key.json      DEMO-ONLY HMAC seal key (EBMR_SEAL_KEY_FILE), kept when present
  *   <kind>-secrets.json       CSRF and nonce keys (EBMR_SECRETS_FILE), kept when present
  *   sandbox-service-keys.json the sweeper's, the gateway's and the gateway API monitor's service secrets (EBMR_SERVICE_KEYS_FILE)
+ *   gmp-service-keys.json     the GMP sweeper's service secret (EBMR_SERVICE_KEYS_FILE of the GMP server; D-P4-9)
  */
 import { randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -182,11 +183,16 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
 
     writeJson(join(opts.keysDir, `${prefix}-seed.json`), seed);
     writeJson(join(opts.keysDir, `${prefix}-demo-devices.json`), demoDevicesOf(seed));
+    const serviceEntry = (s: (typeof seed.services)[number]) => ({
+      ...s,
+      fingerprint: seed.terminals.find((t) => t.code === s.terminal)?.fingerprint ?? null,
+      terminalKey: seed.terminals.find((t) => t.code === s.terminal)?.key ?? null,
+    });
     if (kind === 'SANDBOX') {
-      writeJson(join(opts.keysDir, 'sandbox-service-keys.json'), {
-        label: 'DEMO-ONLY service secrets',
-        services: seed.services.map((s) => ({ ...s, fingerprint: seed.terminals.find((t) => t.code === s.terminal)?.fingerprint ?? null, terminalKey: seed.terminals.find((t) => t.code === s.terminal)?.key ?? null })),
-      });
+      writeJson(join(opts.keysDir, 'sandbox-service-keys.json'), { label: 'DEMO-ONLY service secrets', services: seed.services.map(serviceEntry) });
+    } else {
+      // D-P4-9: the GMP server's in-process sweeper only (the ERP interface and the gateway run elsewhere with their own).
+      writeJson(join(opts.keysDir, 'gmp-service-keys.json'), { label: 'DEMO-ONLY service secrets', services: seed.services.filter((s) => s.key === 'sweeper').map(serviceEntry) });
     }
     log(`${kind} installation ${opts.database} is ready (${seed.personas.length} personas, ${seed.terminals.length} terminals)`);
     return seed;
