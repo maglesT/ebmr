@@ -116,8 +116,8 @@ describe('test-kit installations', () => {
     ]);
     expect(new Set(gmpSeed.personas.map((p) => p.badgeUid).filter(Boolean)).size).toBe(gmpSeed.personas.filter((p) => p.badgeUid).length);
     // The GMP installation's service identities, each INTEGRATION in its own role only (DI-17): the ERP interface
-    // (slice 5a) and the site gateway (slice 6c, backlog 3b).
-    expect(gmpSeed.services.map((s) => `${s.loginName}:${s.roleCode}`)).toEqual(['erp.interface:ERP_INTERFACE', 'gw-01:SITE_GATEWAY']);
+    // (slice 5a) and the site gateway (slice 6c, backlog 3b); and the SERVICE account of the time sweeper (Phase 4 slice 1b, D-P4-9).
+    expect(gmpSeed.services.map((s) => `${s.loginName}:${s.roleCode}`)).toEqual(['erp.interface:ERP_INTERFACE', 'gw-01:SITE_GATEWAY', 'svc.sweeper:EXECUTION_SWEEPER']);
     const roles = sbxSeed.personas.filter((p) => p.set === 0).map((p) => `${p.loginName}:${p.roleCode}`);
     expect(roles).toEqual([
       'test-issuer:BATCH_ISSUER', 'test-steward:MASTER_DATA_STEWARD', 'test-operator-1:OPERATOR', 'test-operator-2:OPERATOR', 'test-verifier-1:VERIFIER',
