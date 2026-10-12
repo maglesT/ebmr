@@ -54,6 +54,8 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [IN-26] a product change in a room reads the latest verified cleaning of that room"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-26][PR-27] a campaign check reads the open campaign of this product on this unit or room, and the MAJOR cleaning and batches of that unit or room only"
   - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17][IN-26] a unit: the product of the use this transaction starts or ends, of that unit only"
+  - "apps/tablets-server/test/execution/packaging-planning-routes.test.ts > packaging orders over HTTP (Phase 4 slice 2c) > [IN-26][INV-27] the bulk read of a packaging order names its processing batch and why it is not released for packing; the bulk issue over HTTP is refused until then and records nothing; an unknown order is not found"
+  - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > the planning reads of packaging orders and their bulk (Phase 4 slice 2c; recipe-core 0762) > [IN-26][INV-27] the bulk-issue read shows the order, its processing batch and why it is not released for packing, each container with the database's reason it cannot be issued, and the bulk issued; the planning read names the parent candidates of a packaging order"
 clauses:
   - clause: "schedule a highly potent product in a positive-pressure cubicle; blocked."
     tests:
