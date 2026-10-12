@@ -4,9 +4,9 @@
  *  1. QA opens the batch in the archive: its retention is computed by the database from the record (the date and the
  *     rules that govern it); a deletion request is refused and logged (PR-59, DI-47);
  *  2. QA downloads the PDF/A-3 true copy: the same record gives the same file (its SHA-256 shown twice, DI-41);
- *  3. QA assembles an evidence export; the database registers it (IN-11). When the signing map of slice 6c is installed
- *     (tab.kernel_signing_meanings for evidence_export), a second QA person certifies it through the office ceremony and
- *     the inspection workspace lists it (DI-40);
+ *  3. QA assembles an evidence export; the database registers it (IN-11). A second QA person certifies it through the
+ *     office ceremony (EVIDENCE_EXPORT_CERTIFIED, mapped by slice 6c's tablets 1200) and the inspection workspace lists
+ *     it (DI-40);
  *  4. the verifier in the inspection workspace refuses a file with one byte altered.
  * The contingency packs of a running batch are proven over HTTP and in the database (archive-routes, contingency-forms).
  */
@@ -68,18 +68,18 @@ test('archive: retention computed by the database, a refused and logged deletion
     await db.close();
   }
 
-  if (mapped) {
-    const second = await officePage('GMP', 'PC-QA-08');
-    await signIn.office(second, qa2);
-    await evidence.step('A second QA person certifies the export', 'EVIDENCE_EXPORT_CERTIFIED through the office ceremony; the inspection workspace lists it', async () => {
-      await second.goto(`${base}/archive/batches/${b.batchId}`);
-      await second.getByTestId('archive-exports').getByRole('button', { name: 'Certify this export' }).first().click();
-      await officeSign(second, /^Certify the evidence export of /, qa2);
-      await second.goto(`${base}/archive/inspection`);
-      await expect(second.getByTestId('inspection-exports')).toContainText(`Batch ${b.batchNumber}`);
-      return { certified: true };
-    }, second);
-  }
+  // The signing map of slice 6c is installed (tablets 1200): the certification always runs.
+  expect(mapped).toBe(true);
+  const second = await officePage('GMP', 'PC-QA-08');
+  await signIn.office(second, qa2);
+  await evidence.step('A second QA person certifies the export', 'EVIDENCE_EXPORT_CERTIFIED through the office ceremony; the inspection workspace lists it', async () => {
+    await second.goto(`${base}/archive/batches/${b.batchId}`);
+    await second.getByTestId('archive-exports').getByRole('button', { name: 'Certify this export' }).first().click();
+    await officeSign(second, /^Certify the evidence export of /, qa2);
+    await second.goto(`${base}/archive/inspection`);
+    await expect(second.getByTestId('inspection-exports')).toContainText(`Batch ${b.batchNumber}`);
+    return { certified: true };
+  }, second);
 
   await evidence.step('The verifier refuses an export file with one byte altered', 'The kernel verifier reports the alteration', async () => {
     await page.goto(`${base}/archive/inspection`);

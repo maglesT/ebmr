@@ -5,8 +5,8 @@
  * in the kernel's records tests; these prove the routes reach them as the application role.
  *
  * The signed acts (ARCHIVE_ACT: EVIDENCE_EXPORT_CERTIFIED, FORMS_RECONCILED) need the ceremony mapping of evidence_export
- * and form_reconciliation (tab.kernel_signing_meanings, re-created once by slice 6c in tablets 1198): they skip until it is
- * installed.
+ * and form_reconciliation (tab.kernel_signing_meanings, re-created once by slice 6c in tablets 1200); each test checks the
+ * mapping is there and fails, never skips, without it.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -64,11 +64,9 @@ describe('archive over HTTP (slice 6b)', () => {
     expect(refusalOf(await operator.call(routes.archive.issuePack, { params: { batchId }, body: { moment: 'ISSUE', templateRef: 'DT-1', destination: 'Suite', pages: 1, reason: 'planned network outage' } })).code).toBe('EBMR-IAM-040');
   });
 
-  it('[DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go', async (ctx) => {
-    if (!mapped) {
-      ctx.skip();
-      return;
-    }
+  it('[DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go', async () => {
+    // The ceremony mapping is installed (tablets 1200): the signed act runs, never skips.
+    expect(mapped).toBe(true);
     const action: SignableAction = { kind: 'ARCHIVE_ACT', act: 'SIGN_FORMS', subjectId: batchId };
     valueOf(await signAction(w.gmp, qa2, 'qaApprover2', action));
     expect((await view()).forms).toMatchObject({ state: 'SIGNED', completionProblem: null });
@@ -115,14 +113,12 @@ describe('archive over HTTP (slice 6b)', () => {
     expect(valueOf(await qa.call(routes.archive.verify, { body: { text: '{"format": "x"}' } })).ok).toBe(false);
   });
 
-  it('[DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read', async (ctx) => {
+  it('[DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read', async () => {
     const issuerView = await issuer.call(routes.archive.inspection, {});
     expect(refusalOf(issuerView).code).toBe('EBMR-IAM-040');
     expect(valueOf(await qa.call(routes.archive.inspection, {})).exports.every((e) => e.state === 'CERTIFIED')).toBe(true);
-    if (!mapped) {
-      ctx.skip();
-      return;
-    }
+    // The ceremony mapping is installed (tablets 1200): the signed act runs, never skips.
+    expect(mapped).toBe(true);
     const exp = (await view()).exports[0]!;
     valueOf(await signAction(w.gmp, qa2, 'qaApprover2', { kind: 'ARCHIVE_ACT', act: 'CERTIFY_EXPORT', subjectId: exp.exportId }));
     const listed = valueOf(await qa.call(routes.archive.inspection, {})).exports.find((e) => e.exportId === exp.exportId);
