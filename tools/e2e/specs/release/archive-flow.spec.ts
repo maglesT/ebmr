@@ -59,8 +59,8 @@ test('archive: retention computed by the database, a refused and logged deletion
   }, page);
 
   const db = openDatabase(e2e.state.databases.GMP, 'GMP');
-  let text = '';
-  let mapped = false;
+  let text: string;
+  let mapped: boolean;
   try {
     mapped = (await db.admin.query<{ m: boolean }>("select 'EVIDENCE_EXPORT_CERTIFIED' = any (tab.kernel_signing_meanings('evidence_export')) as m")).rows[0]?.m ?? false;
     text = `${(await db.admin.query<{ t: string }>("select content as t from records.evidence_export where subject_id = $1 order by recorded_at desc limit 1", [b.batchId])).rows[0]?.t ?? ''}\n`;
