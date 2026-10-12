@@ -130,8 +130,8 @@ describe('After release tab', () => {
     expect(ui.ceremony.sign.mock.calls[0]?.[0].action).toEqual({ kind: 'RELEASE_ACT', act: 'REJECT_AFTER_RELEASE', lotId: L, input: { market: 'US', reason: { code: 'OOS', text: 'Stability failure' } } });
   });
 
-  it('the after-release acts are not offered to a role outside QA', async () => {
-    await openAfter(L, { role: 'OPERATOR' });
+  it('the after-release acts are offered to the authorised person only (the database refuses another role, EBMR-ARL-015)', async () => {
+    await openAfter(L, { role: 'QA_REVIEWER' });
     expect(screen.queryByTestId('after-release-acts-IN')).toBeNull();
     expect(screen.getByTestId('suspension-causes')).toBeTruthy();
   });

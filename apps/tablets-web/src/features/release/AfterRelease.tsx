@@ -20,7 +20,7 @@ import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
-import { useOffered } from '../../app/roles.ts';
+import { useSessionRole } from '../../app/roles.ts';
 import { GateProblems } from '../review/parts.tsx';
 import { DisposalSection } from './Disposal.tsx';
 import { RELEASE_READS, releaseTone, stateTone, words, type AfterReleaseMarketView, type LotAfterReleaseView } from './reads.ts';
@@ -164,9 +164,12 @@ function Tasks({ view: v }: { view: LotAfterReleaseView }) {
   );
 }
 
-/** The AP's acts for one market, offered while the market is suspended or decided (the gates are the server's). */
+/**
+ * The AP's acts for one market, offered while the market is suspended or decided (the gates are the server's). Offered
+ * to the authorised person only: the database refuses an after-release decision signed in any other role (EBMR-ARL-015).
+ */
 function MarketActs({ view: v, lot, m }: { view: LotAfterReleaseView; lot: LotReleaseView; m: AfterReleaseMarketView }) {
-  const offered = useOffered('QA');
+  const offered = useSessionRole() === 'AUTHORISED_PERSON';
   const anyGate = m.gates.reconfirm.ready || m.gates.recall.ready || m.gates.rejectAfterRelease.ready;
   if (!offered || (m.state !== 'RELEASE_SUSPENDED' && !anyGate)) return null;
   return (
