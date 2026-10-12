@@ -8,6 +8,7 @@ import * as audit from '../features/audit/index.tsx';
 import * as designer from '../features/designer/index.tsx';
 import * as devices from '../features/devices/index.tsx';
 import * as floor from '../features/floor/index.tsx';
+import * as india from '../features/india/index.tsx';
 import * as masterData from '../features/master-data/index.tsx';
 import * as planning from '../features/planning/index.tsx';
 import * as plant from '../features/plant/index.tsx';
@@ -34,4 +35,5 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['release', release satisfies WebFeature],
   ['notifications', notifications satisfies WebFeature],
   ['records', records satisfies WebFeature],
+  ['india', india satisfies WebFeature],
 ];

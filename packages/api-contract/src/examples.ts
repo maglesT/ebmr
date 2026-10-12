@@ -53,6 +53,7 @@ import rl from '../fixtures/release.json' with { type: 'json' };
 import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
+import ind from '../fixtures/india.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -297,7 +298,39 @@ export const EXAMPLES = {
   'records-append-amendment-entry': { schema: r.records.appendAmendmentEntry.response, data: rk.amendment, routeId: r.records.appendAmendmentEntry.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
+  // Phase 4 slice 6a: licences, export permissions, the issue check, the allocation register, label particulars and H2.
+  'india-licences': { schema: r.india.licences.response, data: { licences: [ind.licence, ind.loanLicence] }, routeId: r.india.licences.id },
+  'india-record-licence': { schema: r.india.recordLicence.response, data: ind.loanLicence, routeId: r.india.recordLicence.id },
+  'india-suspend-licence': {
+    schema: r.india.suspendLicence.response,
+    data: { ...ind.licence, state: 'SUSPENDED', current: false, suspension: { reason: 'Suspended by order of the licensing authority', suspendedBy: ind.licence.approvedBy, suspendedAt: ind.licence.approvedAt } },
+    routeId: r.india.suspendLicence.id,
+  },
+  'india-export-permissions': { schema: r.india.exportPermissions.response, data: { permissions: [ind.permission] }, routeId: r.india.exportPermissions.id },
+  'india-record-export-permission': {
+    schema: r.india.recordExportPermission.response,
+    data: { ...ind.permission, state: 'DRAFT', current: false, approvedBy: null, approvedAt: null },
+    routeId: r.india.recordExportPermission.id,
+  },
+  'india-suspend-export-permission': {
+    schema: r.india.suspendExportPermission.response,
+    data: { ...ind.permission, state: 'SUSPENDED', current: false, suspension: { reason: 'Withdrawn by the authority', suspendedBy: ind.permission.approvedBy, suspendedAt: ind.permission.approvedAt } },
+    routeId: r.india.suspendExportPermission.id,
+  },
+  'india-check': { schema: r.india.check.response, data: ind.check, routeId: r.india.check.id },
+  'india-allocation-register': { schema: r.india.allocationRegister.response, data: { siteCode: 'SITE-1', entries: [ind.entry, ind.voided] }, routeId: r.india.allocationRegister.id },
+  'india-label': { schema: r.india.label.response, data: ind.label, routeId: r.india.label.id },
+  'india-label-problem': { schema: r.india.label.response, data: ind.labelProblem },
+  'india-issue-h2': { schema: r.india.issueH2.response, data: ind.h2, routeId: r.india.issueH2.id },
+  'india-verify-h2': { schema: r.india.verifyH2.response, data: { batchId: ind.h2.batchId, problem: null }, routeId: r.india.verifyH2.id },
+  'india-shelf-life-bases': { schema: r.india.shelfLifeBases.response, data: { bases: [ind.basis] }, routeId: r.india.shelfLifeBases.id },
+  'india-record-shelf-life-basis': { schema: r.india.recordShelfLifeBasis.response, data: ind.basis, routeId: r.india.recordShelfLifeBasis.id },
+  'india-hazards': { schema: r.india.hazards.response, data: ind.hazards, routeId: r.india.hazards.id },
+  'india-record-hazard': { schema: r.india.recordHazard.response, data: ind.hazards, routeId: r.india.recordHazard.id },
 } as const satisfies Record<string, Example>;
+
+/** Phase 4 slice 6a: the india routes, each with an example above (checked by the india contract test). */
+export const INDIA_ROUTE_IDS: readonly string[] = Object.values(r.india).map((route) => route.id);
 
 /** Phase 4 slice 5b: the record-lock routes, each with an example above (checked by the contract test). */
 export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records).map((route) => route.id);

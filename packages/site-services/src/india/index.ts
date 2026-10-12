@@ -72,8 +72,8 @@ export interface LicenceBasis {
 }
 
 async function value<T>(client: Queryable, text: string, values: unknown[]): Promise<T> {
-  const { rows } = await client.query<{ r: T }>(text, values);
-  return rows[0]?.r as T;
+  const { rows } = await client.query(text, values);
+  return (rows[0] as { r: T } | undefined)?.r as T;
 }
 
 export function recordManufacturingLicence(client: Queryable, l: NewManufacturingLicence): Promise<string> {

@@ -61,6 +61,9 @@
  * Phase 4 slice 5b (recipe-core 0870 to 0889; ns/records-lock.ts):
  *  - RECORD_LOCK_ACT AMENDMENT_OPEN   record_lock <batch>/<n>/OPEN/<DEVIATION|CHANGE_RECORD>/<id>  AMENDMENT_OPENED (QA)
  *                    AMENDMENT_CLOSE  record_lock <batch>/<n>/CLOSE                                 AMENDMENT_CLOSED (QA)
+ * Phase 4 slice 6a (site services 0885; ns/india.ts):
+ *  - INDIA_ACT LICENCE_APPROVE            manufacturing_licence <licence id>     LICENCE_APPROVED (QA, never the recorder)
+ *              EXPORT_PERMISSION_APPROVE  export_permission <permission id>      EXPORT_PERMISSION_APPROVED (QA, never the recorder)
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -321,6 +324,13 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.enum(['AMENDMENT_OPEN', 'AMENDMENT_CLOSE']),
     batchId: Uuid,
     input: RecordLockActInput,
+  }),
+  z.strictObject({
+    /** Phase 4 slice 6a (ns/india.ts): QA's approval of a recorded licence or export permission. */
+    kind: z.literal('INDIA_ACT'),
+    act: z.enum(['LICENCE_APPROVE', 'EXPORT_PERMISSION_APPROVE']),
+    /** The licence or the export permission. */
+    subjectId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

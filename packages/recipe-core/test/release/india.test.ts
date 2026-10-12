@@ -225,7 +225,9 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
     expect(us.status).toBe('GREEN');
     expect(us.evidence.map((e) => e.kind)).toEqual(['LICENCE', 'EXPORT_PERMISSION']);
     await w.run(w.cast.qa, (c) => c.query("select site.suspend_export_permission($1, 'Withdrawn by the authority')", [permission]));
-    expect(await grelItem(lot, 'US')).toMatchObject({ status: 'RED', problem: expect.stringMatching(/suspended or withdrawn/) });
+    const red = await grelItem(lot, 'US');
+    expect(red.status).toBe('RED');
+    expect(red.problem).toMatch(/suspended or withdrawn/);
     expect(await grelItem(lot, 'IN')).toMatchObject({ status: 'GREEN' });
   });
 
@@ -244,7 +246,9 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
     } finally {
       c.release();
     }
-    expect(await grelItem(lot, 'IN')).toMatchObject({ status: 'RED', problem: expect.stringMatching(/no manufacturing or loan licence recorded at its issue/) });
+    const missing = await grelItem(lot, 'IN');
+    expect(missing.status).toBe('RED');
+    expect(missing.problem).toMatch(/no manufacturing or loan licence recorded at its issue/);
   });
 
   it('[IN-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator', async () => {
