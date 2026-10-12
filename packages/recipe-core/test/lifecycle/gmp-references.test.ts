@@ -186,11 +186,12 @@ describe('GMP deviation references (D-S2-2, D-S5-2)', () => {
     const { rows } = await db.app.query('select deviation_ref from recipe.exception_register_act where batch_id = $1 and act = $2', [b.batchId, 'DEVIATION_LINKED']);
     expect(rows).toEqual([{ deviation_ref: good.ref }]);
 
-    // Review by exception: an escalation names a linked, valid record too (EBMR-EXE-604).
+    // Review by exception: on a GMP batch an escalation is a signed disposition in the QA review (Phase 4 slice 1 quick
+    // review, recipe-core 0721), where it names a linked, valid record too (EBMR-REV-051); the unsigned one is refused.
     const review = (ref: string) => w.run(qaReviewer, (c) => c.query("select recipe.review_exception($1, $2, 'ESCALATED', 'escalated for impact assessment', $3)", [b.batchId, exception, ref]));
-    expect(await codeOf(review('DEV-SITE-1-2026-99998'))).toBe('EBMR-EXE-604');
-    expect(await codeOf(review(unlinked.ref))).toBe('EBMR-EXE-604');
-    expect(await codeOf(review(good.ref))).toBe('ok');
+    expect(await codeOf(review('DEV-SITE-1-2026-99998'))).toBe('EBMR-REV-059');
+    expect(await codeOf(review(unlinked.ref))).toBe('EBMR-REV-059');
+    expect(await codeOf(review(good.ref))).toBe('EBMR-REV-059');
   });
 
   it('[IN-20][DI-24] a GMP invalidation citing an unknown, cancelled, unlinked or not concluded reference is refused and the concluded one accepted; a fail-to-pass correction needs a stored document of the batch\'s site with the evidence\'s hash', async () => {

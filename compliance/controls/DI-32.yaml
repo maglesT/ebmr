@@ -195,6 +195,7 @@ tests:
   - "apps/tablets-server/test/containers/weighed-close.test.ts > weighed close of an output container (tablets 1111) > [DI-30][DI-32][L-30] the net is the claimed gross minus the claimed tare in the container's unit; the container is usable with no second person"
   - "apps/tablets-server/test/containers/weighed-close.test.ts > weighed close of an output container (tablets 1111) > [DI-30][DI-32] refused: readings used before, a gross not above its tare, a container counted in units, a missing reading; nothing is closed"
   - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-31][DI-32] D-P4-10, the device-to-entry path: over the server an entry from the equipment names only its reading; the server claims it in the entry's command and copies tag, value, unit, quality and receipt time; a typed value with it, no reading, an old reading or a used one is refused"
+  - "apps/tablets-server/test/review/weighed-close-and-scope.test.ts > weighed close, involvement and scope (slice 1 quick review) > [DI-30][DI-32] a weighed close reads the tare and the gross on one balance, both received while the container is open; nothing is closed otherwise"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

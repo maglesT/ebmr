@@ -481,6 +481,7 @@ tests:
   - "packages/recipe-core/test/containers/net-and-release.test.ts > a typed net quantity is checked by a second person (recipe-core 0740) > [DI-30][L-30] a typed close leaves the container unusable and unreleasable until a second person verifies it with their VERIFIED signature"
   - "packages/recipe-core/test/containers/net-and-release.test.ts > a typed net quantity is checked by a second person (recipe-core 0740) > [DI-30][INV-03] the closer never verifies their own close: refused by the signature service, the command and the row guard"
   - "packages/recipe-core/test/containers/net-and-release.test.ts > a typed net quantity is checked by a second person (recipe-core 0740) > [DI-30] the application role cannot write a close with a forged basis nor call the internal close; a close without a basis is refused by the table"
+  - "apps/tablets-server/test/review/weighed-close-and-scope.test.ts > weighed close, involvement and scope (slice 1 quick review) > [DI-30][DI-32] a weighed close reads the tare and the gross on one balance, both received while the container is open; nothing is closed otherwise"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
