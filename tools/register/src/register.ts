@@ -86,7 +86,33 @@ export function loadRequirements(file = REQUIREMENTS_FILE): RequirementRow[] {
     .map((l) => JSON.parse(l) as RequirementRow);
 }
 
-export function currentPhase(file = PHASE_FILE): number {
-  const doc = YAML.parse(readFileSync(file, 'utf8')) as { current_phase: number };
-  return doc.current_phase;
+export type EditionName = ControlRecord['editions'][number];
+const EDITIONS: readonly EditionName[] = ['tablets', 'injectables'];
+
+interface PhaseDoc {
+  current_phase: number;
+  editions?: unknown;
 }
+
+const readPhaseDoc = (file: string): PhaseDoc => YAML.parse(readFileSync(file, 'utf8')) as PhaseDoc;
+
+export function currentPhase(file = PHASE_FILE): number {
+  return readPhaseDoc(file).current_phase;
+}
+
+/**
+ * The editions the trace gate covers (decision 0010): `editions` in phase.yaml, or both editions when it is absent. A
+ * control is due only when one of its editions is in this list, so injectables-only controls stay out of the gate while
+ * that edition is deferred; a control shared by both editions is always due. An empty list or an unknown edition is
+ * refused, so a typo cannot switch the gate off.
+ */
+export function gateEditions(file = PHASE_FILE): EditionName[] {
+  const listed = readPhaseDoc(file).editions;
+  if (listed === undefined) return [...EDITIONS];
+  if (!Array.isArray(listed) || listed.length === 0) throw new Error(`${file}: editions must be a non-empty list of ${EDITIONS.join(', ')}`);
+  for (const e of listed) if (!EDITIONS.includes(e as EditionName)) throw new Error(`${file}: unknown edition ${String(e)} (known: ${EDITIONS.join(', ')})`);
+  return [...new Set(listed as EditionName[])];
+}
+
+/** Whether a control belongs to an edition the gate covers (decision 0010). */
+export const inGateEditions = (c: Pick<ControlRecord, 'editions'>, editions: readonly EditionName[]): boolean => c.editions.some((e) => editions.includes(e));

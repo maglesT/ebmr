@@ -1,3 +1,8 @@
 current_phase: 3
 # Raise this when a phase starts. CI then requires a passing test for every control
 # whose target_phase is at or before this number (unless the expert chose DONT_FOLLOW).
+editions:
+  - tablets
+# The editions the trace gate covers (decision 0010: Tablets to v1.0 first, Injectables after Phase 7). A control is
+# due only when one of its editions is listed, so the injectables-only controls stay out of the gate while that edition
+# is deferred; controls shared by both editions are always due. Add injectables when that edition is built.
