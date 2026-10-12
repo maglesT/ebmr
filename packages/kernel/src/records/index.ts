@@ -13,3 +13,7 @@ export * from './investigations.ts';
 export * from './lossless-json.ts';
 export * from './true-copy.ts';
 export * from './qp-package.ts';
+export * from './pdfa.ts';
+export * from './pdf-true-copy.ts';
+export * from './evidence-export.ts';
+export * from './contingency.ts';
