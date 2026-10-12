@@ -607,6 +607,22 @@ below; each builder ticks them off there.
   due-time functions (IPC, leak, packing line), the held-granulation check, G-24@2, the exception-register sync guards;
   drop `recipe.reprocessing_start_problem` (recipe-core 0930, new migration).
 
+- **Slice 7 build notes (lead, 12 October).** Three builders, then the lead raises `phase.yaml` to 4 last:
+  - 7a trace (`compliance/**`, `tools/register/**` tests only): clauses for every phase-4 control and the Phase 3
+    deferrals; a clause the build cannot test is deferred only with its reason and listed for the owner; the `editions`
+    filter in `phase.yaml` with its `[meta]` test (decision 0010). 7a runs `pnpm trace` with the phase set to 4 in a
+    scratch copy to list every gap, and hands the lead that list; it does not raise the phase on its branch.
+  - 7b golden batches and demo (`apps/tablets-server/test/golden/**`, the set-up CLI seeds, tools/e2e; tablets 1210
+    to 1219 if a migration is needed): GB-T-01 continued through packaging to release (D-P4-15) and GB-T-02 (direct
+    compression, bottle, US added after vendor history refused, INELIGIBLE); exact outputs per D-S6-7; the green
+    release path through real signed acts, which replaces the demo H-PACK shortcut and gives the e2e a released lot; the
+    browser flows moved here by slices 3 to 5 (green release, suspension then reconfirm or recall, QP package and EU
+    certification intake, US disposition); performance re-measured against the 1-0 baseline (no golden test above 30
+    minutes). GB-T-01 quantities never change; hashes are re-recorded only after the lead reviews the difference.
+  - 7c kill tests (new test files only; recipe-core 0930 to 0939): the "not twins" list above, and recipe-core 0930
+    drops `recipe.reprocessing_start_problem`.
+  - Each builder its own spare cluster and office terminals (7b: PC-QA-10, PC-PLAN-04 and kiosks it adds).
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - `recipe.evidence_epoch(subject_kind text, subject_id uuid, version bigint)`; `recipe.bump_epoch(kind, id)` called by
