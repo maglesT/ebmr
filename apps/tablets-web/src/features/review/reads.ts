@@ -27,6 +27,6 @@ export function stateTone(s: ReviewState): StateTone {
 
 /** "PRODUCTION_APPROVED" -> "Production approved". */
 export function words(code: string): string {
-  const s = code.replace(/_/g, ' ').toLowerCase();
+  const s = code.replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|ipc|lims)\b/g, (w) => w.toUpperCase());
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
