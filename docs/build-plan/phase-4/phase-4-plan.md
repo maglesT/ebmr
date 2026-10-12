@@ -320,6 +320,49 @@ below; each builder ticks them off there.
   for bright stock (backlog 4b, PR-38).
 - **5c, screens:** suspension and recall cockpit (forward trace from PR-57), disposal, amendment.
 
+- **Slice 5 build notes (lead, 12 October; ranges moved because slice 4 used tablets 1180 to 1189 and site-services
+  0870 to 0871):**
+  - 5a: recipe-core 0840 to 0869, site-services 0880 to 0884 (ERP stock-block outbox and its stub consumer); owns
+    `packages/api-contract/src/ns/release.ts` additions and the server routes for RECONFIRM, RECALL,
+    REJECT_AFTER_RELEASE and DISPOSAL under `/api/release/*`.
+  - 5b: recipe-core 0870 to 0889, tablets 1190 to 1199; owns a new contract file `packages/api-contract/src/ns/records-lock.ts`
+    and routes under `/api/records/*`; owns the single re-creation of `tab.kernel_signing_meanings` and
+    `tab.aggregate_read_class` (tablets 1199), covering 5a's names below as well.
+  - 5c: screens only (`apps/tablets-web/src/features/release/**`, a new `features/records/**`), e2e on a new office
+    terminal; starts on the contract examples 5a and 5b commit first.
+  - Signing names fixed up front. Aggregates: `release_suspension` (5a, RECORD class), `disposal` (5a), `record_lock` (5b).
+    Meanings: RELEASE_RECONFIRMED, RECALLED, REJECTED_AFTER_RELEASE, DISPOSAL_RECORDED, DESTRUCTION_WITNESSED (5a);
+    AMENDMENT_OPENED, AMENDMENT_CLOSED (5b).
+  - Later ranges move: 6a site-services 0885 to 0899 (was 0870 to 0889); 7b tablets 1200 to 1209 (was 1190 to 1199).
+- **Slice 5 defaults (decision 0004; owner may change):**
+  - **D-5-1** Suspension causes, each linked after the lot's first RELEASED or CERTIFIED disposition: a deviation (any
+    category, incidents and DI investigations included) linked to the lot or to a lot or batch upstream in its genealogy;
+    a revised LIMS result on the lot; an as-found calibration failure on equipment used by a batch of its records where
+    such a record exists (otherwise a residual). A trigger in the same transaction calls `recipe.suspend_release`.
+  - **D-5-2** Suspension sets every RELEASED or CERTIFIED market of the lot, and of every lot downstream of it through
+    the PR-57 genealogy, to RELEASE_SUSPENDED; the manufacturer decision is kept as signed; a lot not yet released only
+    gets the cause linked (the release gate already blocks it).
+  - **D-5-3** In the same transaction: one outbox row asking the ERP to block the lot's stock (delivered by the stub,
+    at least once, idempotent by lot and cause), and one recall-assessment task owned by the AP role (IN-29). Shipping
+    is refused while suspended (the slice 4 interlock reads the disposition).
+  - **D-5-4** RECONFIRM by the AP (never an involved person), per market, with an impact assessment text: allowed only
+    when every cause is resolved (deviation closed with no CONFIRMED impact for that market, D-2a-9 stays; revised result
+    within limits) and G-REL for the market is green at an unchanged epoch; the market returns to the state it had.
+  - **D-5-5** RECALL and REJECT_AFTER_RELEASE by the AP, per market, from RELEASE_SUSPENDED or a decided state; both
+    terminal; RECALL also writes the lot event RECALL (slice 2 path) and needs a reason.
+  - **D-5-6** DISPOSAL of a REJECTED or REJECTED_AFTER_RELEASE lot, one route: WITNESSED_DESTRUCTION (the performer
+    and an independent witness, two signatures), REPROCESSING (names a Phase 3 reprocessing authorisation of the same
+    product) or RETURN (to supplier or customer, with a reference). A serial-decommissioning task opens when the lot
+    has serials (stub). Disposal is once per lot.
+  - **D-5-7** Locking: a processing record locks when its bulk reconciliation closes (every packaging order closed or
+    the remaining bulk held); a packaging record locks at its lot's first manufacturer disposition. Writes to a locked
+    record are refused in the database. LOCKED -> UNDER_AMENDMENT needs a linked open deviation or change record and
+    the QA permission; the amendment appends, never edits; opening it calls `recipe.suspend_release` for every released
+    lot made from the record and opens AP market-impact tasks; closing re-locks with a signature (INV-21, R-04).
+  - **D-5-8** PR-38: bulk may be issued across several packaging orders, the issued sum never above the remaining
+    quantity; the product master's maximum hold for bright stock is checked at issue and at packaging start; past it,
+    issue is refused unless a linked deviation is approved by QA.
+
 ### Slice 6: India specifics, records and the PQR extract
 - **6a, India fields** (site-services 0870 to 0889, recipe-core 0890 to 0909): manufacturing licences (Form 25 or 28,
   endorsed products) and loan licence with technical agreement (IN-30); export permission per product, strength and
