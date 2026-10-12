@@ -175,6 +175,17 @@ below; each builder ticks them off there.
   stored with the signature (IN-05 (d)); PR-53 open-investigation switch (off by default); PPQ rule (PR-09, D-P4-6);
   post-change evaluation (IN-03); validation-basis references present; DI-12 clause (open incident on the disposition
   screen); PR-08 clause.
+- **3-0 done (12 October).** Contract namespace `release` (`packages/api-contract/src/ns/release.ts`, routes
+  `/api/release/lots`, `/lots/:lotId`, `/lots/:lotId/grel?market=`, `/lots/:lotId/acknowledgements`, examples in
+  `fixtures/release.json`); signable action `RELEASE_ACT {act, lotId, input}` with the acts of the interface list plus
+  POST_CHANGE_EVALUATE (IN-03), PPQ_OUTCOME (PR-09) and INVESTIGATION_JUSTIFY (PR-53). SQL (recipe-core 0780):
+  `recipe.grel_evaluate(lot, market) returns jsonb` `{lot, market, epoch text, ready, items}`, item `{id ("G<n>.<NAME>",
+  edition "E.<NAME>"), group ("1" to "11"), title, status GREEN|RED|NA, problem (NULL unless RED), evidence [{kind, ref,
+  label}], since_review}`; `recipe.grel_edition_items(lot, market)` resolved through `recipe.grel_edition_hook` (edition ->
+  function `(uuid, text) returns jsonb`, registered by the edition's migration with the owner-only
+  `recipe.register_grel_edition_hook`); an edition answers groups 4, 9 and 10, and the core keeps 4 and 9 RED until it
+  does (fails closed); `recipe.manufacturer_release_state(lot)`. Tablets 1160: `tab.grel_edition_items` stub (no items),
+  registered; 3b replaces it from 1161. Server feature `release` (3-0: G-REL read only).
 - **3b, Tablets items** (tablets 1160 to 1179 (1150 to 1159 were used by slice 2)): `tab.grel_edition_items` behind the 3-0 hook: printed-tablet QC
   approval (IN-37), held containers dispositioned, container release state, `recipe.reprocessing_release_problem`
   wired (PR-47), finished-pack examination from TB-24, reconciliation outside limits blocks release (IN-17 clause 2),

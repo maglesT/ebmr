@@ -49,6 +49,7 @@ import cn from '../fixtures/containers.json' with { type: 'json' };
 import pk from '../fixtures/packaging.json' with { type: 'json' };
 import dv from '../fixtures/deviation.json' with { type: 'json' };
 import lm from '../fixtures/lims.json' with { type: 'json' };
+import rl from '../fixtures/release.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -254,7 +255,16 @@ export const EXAMPLES = {
   'samples-returns': { schema: r.samples.returns.response, data: { returns: [lm.return] }, routeId: r.samples.returns.id },
   'samples-receive-return': { schema: r.samples.receiveReturn.response, data: { ...lm.return, assessment: null }, routeId: r.samples.receiveReturn.id },
   'samples-assess-return': { schema: r.samples.assessReturn.response, data: { ...lm.return, assessment: { ...lm.return.assessment, signed: false } }, routeId: r.samples.assessReturn.id },
+  // Phase 4 slice 3 (3-0): the release routes, for the cockpit (3c) before the server (3a).
+  'release-queue': { schema: r.release.queue.response, data: rl.queue, routeId: r.release.queue.id },
+  'release-lot': { schema: r.release.lot.response, data: rl.lot, routeId: r.release.lot.id },
+  'release-lot-released': { schema: r.release.lot.response, data: rl.released },
+  'release-grel': { schema: r.release.grel.response, data: rl.grel, routeId: r.release.grel.id },
+  'release-acknowledge': { schema: r.release.acknowledge.response, data: rl.grel, routeId: r.release.acknowledge.id },
 } as const satisfies Record<string, Example>;
+
+/** Phase 4 slice 3: the release routes, each with an example above (checked by the contract test). */
+export const RELEASE_ROUTE_IDS: readonly string[] = Object.values(r.release).map((route) => route.id);
 
 /** Phase 4 slice 2b: the specifications and samples routes, each with an example above (checked by the contract test). */
 export const LIMS_ROUTE_IDS: readonly string[] = [...Object.values(r.specifications), ...Object.values(r.samples)].map((route) => route.id);

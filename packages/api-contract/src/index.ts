@@ -112,6 +112,18 @@ export {
   ReviewState,
   ReviewSummaryView,
 } from './ns/review.ts';
+export {
+  GrelEpoch,
+  GrelEvidence,
+  GrelItemView,
+  GrelView,
+  LotReleaseSummaryView,
+  LotReleaseView,
+  ManufacturerReleaseState,
+  ReleaseDecisionView,
+  ReleaseGate,
+  ReleaseMarket,
+} from './ns/release.ts';
 export { ContainerHoldView, ContainerState, ContainerView } from './ns/containers.ts';
 export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
