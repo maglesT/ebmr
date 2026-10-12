@@ -2387,3 +2387,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   at or above 90 %; five blocks 84 to 90 %) by Opus. Final run: full suite (5,454 passed, 17 skipped; the README list and
   register sync fixed), E2E 29 (one race in the deviation spec hardened), trace at phase 3 (110 of 241), GB-T-01 on the
   golden CI job.
+- 2026-10-12: PHASE 4 SLICE 1 (branch phase-4/slice-1; builders 1a, 1b, 1c). Record review: production approval and
+  QA review states, abort checklist, reopen by QA, exception register with per-item and grouped dispositions, audit-trail
+  review with a high-water mark and delta review, evidence epochs (INV-30, INV-35, INV-48, DI-25, DI-26, PR-52, PR-07,
+  DI-34), the CORRECT_ENTRY route (a missed loop endpoint needs evidence, owner default). Containers: weighed close from
+  one balance or a typed net verified by a second person, release refused while the hold is open, the GMP sweeper, device
+  readings to entries, TB-20@2 NO_PLAN. Screens for all of it, and a reviewable GMP seed batch. GB-T-01 made independent
+  of the run date (PR #19) and its hashes re-recorded. Quick review: two high, one medium-high, five core mediums fixed.
+  Full suite (5,533 passed; register synced), E2E 31, trace at phase 3 (111 of 241) green locally.

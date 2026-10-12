@@ -159,6 +159,7 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][PR-49][INV-41] TB-20@2 is registered beside TB-20@1, with the same configuration and the AQL_NO_PLAN rule; an MBR on it validates"
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][PR-49][INV-41] a lot without a plan is recorded NO_PLAN only with a deviation reference and no sample; it raises AQL_NO_PLAN (QA, deviation required, release blocking, the steps after it blocked until dispositioned)"
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][PR-49] the TB-20@2 golden fixture: a lot of one accepted tablet leaves through its deviation with AQL_NO_PLAN"
+  - "apps/tablets-server/test/blocks/coating/blocks.test.ts > golden fixtures of the coating blocks > [DI-34][PR-29][PR-49][INV-41] TB-20 Inspection, sorting and AQL: TB-20@2, the NO_PLAN path (D-P4-11): a manual belt sort of 3 tablets (0.003 kg) leaves 1 accepted tablet and 2 chipped ones for destruction; the sampling scheme has no plan for a lot of 1, so the AQL result is NO_PLAN with its deviation DEV-SITE-1-2026-00042 and raises AQL_NO_PLAN for QA"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -83,7 +83,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   baseline) pushed; 1a (review acts, audit-trail review, epochs' triggers, CORRECT_ENTRY route; recipe-core 0710 to
   0721, tablets 1140 and 1141; defaults D-1a-1 to D-1a-7 in the plan); 1b (containers with a weighed or verified
   close, release refused while the hold is open, the GMP sweeper, device readings to entries, TB-20@2 NO_PLAN;
-  recipe-core 0740 and 0741, tablets 1110 to 1113, site-services 0810); 1c (screens) in progress.
+  recipe-core 0740 and 0741, tablets 1110 to 1113, site-services 0810); 1c (review, register, audit-trail, container,
+  device-reading and correction screens; the `--gmp-review-batch` seed; two browser flows). Quick review: two high, one
+  medium-high and five core mediums fixed with tests (Phase 4 review backlog).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and
