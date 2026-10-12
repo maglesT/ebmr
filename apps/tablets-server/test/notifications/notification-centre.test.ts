@@ -3,8 +3,9 @@
  * notified"), as the application role and over HTTP: a recorded manufacturer decision notifies PRODUCTION and QA (one
  * row each, naming the signature and its signer); the rows are insert-only and only the owner's definers write them; a
  * person of the department acknowledges a notification once, as themselves; a person of another department cannot; the
- * acknowledgement is audited. The finished lot and the signature the decision names are arranged as test set-up (the
- * manufacturer release that writes them is slice 3a's and its notification test is in release-notification.test.ts).
+ * acknowledgement is audited. The finished lots, the signatures and the decision rows are arranged as test set-up (slice
+ * 3a's recipe.record_manufacturer_release writes the decision row in the signing transaction, proven by its own tests);
+ * the trigger on the decision row (recipe-core 0811) is what is under test here.
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -18,6 +19,8 @@ import { startServer, type TestServer } from '../support/harness.ts';
 let gmp: TestServer;
 let lotId: string;
 let signatureId: string;
+let unsignedLot: string;
+let rejectedLot: string;
 let notify: (lot: string, decision: string, signature: string) => Promise<unknown>;
 
 /** A signature row of the AP on the lot's decision (arranged; the kernel's signing is proven by the kernel's tests). */
@@ -40,19 +43,37 @@ async function arrangeSignature(lot: string, decision: 'RELEASE' | 'REJECT', sig
 beforeAll(async () => {
   gmp = await startServer('GMP');
   const stores = await gmp.asPersona('stores');
-  lotId = await withCommand(gmp.db.admin, { ...(await actorOfBrowser(gmp, stores, 'stores')), correlationId: randomUUID() }, async (c) =>
-    (await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
-      JSON.stringify({ batchId: randomUUID(), batchNumber: 'GBT2600001/P01', edition: 'TABLETS', siteCode: 'SITE-1', productCode: 'GBT01-250', productName: 'Exemplazine tablets',
-                       strength: '250 mg', markets: ['IN'], quantity: '40', unit: 'packs', expiresAt: '2029-06-30T23:59:59Z' }),
-    ])).rows[0]?.id ?? '',
-  );
+  const storesActor = await actorOfBrowser(gmp, stores, 'stores');
+  const postLot = async (n: string): Promise<string> =>
+    withCommand(gmp.db.admin, { ...storesActor, correlationId: randomUUID() }, async (c) =>
+      (await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
+        JSON.stringify({ batchId: randomUUID(), batchNumber: `GBT260000${n}/P01`, edition: 'TABLETS', siteCode: 'SITE-1', productCode: 'GBT01-250', productName: 'Exemplazine tablets',
+                         strength: '250 mg', markets: ['IN'], quantity: '40', unit: 'packs', expiresAt: '2029-06-30T23:59:59Z' }),
+      ])).rows[0]?.id ?? '',
+    );
+  lotId = await postLot('1');
+  unsignedLot = await postLot('2');
   // The owner's definer, as the decision's trigger calls it in the signing transaction (in a command of the signer).
   const ap = await gmp.asPersona('qcuAuthoriser');
   const actor = await actorOfBrowser(gmp, ap, 'qcuAuthoriser');
   signatureId = await arrangeSignature(lotId, 'RELEASE', actor.personId);
   notify = (lot, decision, signature) =>
     withCommand(gmp.db.admin, { ...actor, correlationId: randomUUID() }, (c) => c.query('select recipe.notify_departments_of_release($1, $2, $3)', [lot, decision, signature]));
-  await notify(lotId, 'RELEASE', signatureId);
+  // The decision as slice 3a's definer records it (recipe.record_manufacturer_release writes this row in the signing
+  // transaction; arranged here): its trigger notifies both departments (recipe-core 0811).
+  const decide = (lot: string, decision: 'RELEASED' | 'REJECTED', signature: string) =>
+    withCommand(gmp.db.admin, { ...actor, correlationId: randomUUID() }, (c) =>
+      c.query(
+        `insert into recipe.manufacturer_release_decision (lot_id, decision, signature_id, reason, epoch, checklist, checklist_hash, content_hash, person_id, account_id, role_code, correlation_id)
+         values ($1, $2, $3, $4, repeat('b', 64), '{}'::jsonb, repeat('c', 64), repeat('d', 64), $5, $6, 'AUTHORISED_PERSON', gen_random_uuid())`,
+        [lot, decision, signature, decision === 'REJECTED' ? 'Assay out of specification' : null, actor.personId, actor.accountId],
+      ),
+    );
+  await decide(lotId, 'RELEASED', signatureId);
+  rejectedLot = await postLot('3');
+  await decide(rejectedLot, 'REJECTED', await arrangeSignature(rejectedLot, 'REJECT', actor.personId));
+  // A signature on another lot's decision that was never recorded.
+  await arrangeSignature(unsignedLot, 'RELEASE', actor.personId);
 }, 300_000);
 
 afterAll(async () => {
@@ -64,7 +85,9 @@ const rowsOf = async (lot: string): Promise<Row[]> =>
   (await gmp.db.app.query<Row>('select id, department, event, message, cause_signature_id, caused_by_role from recipe.notification where subject_id = $1 order by department', [lot])).rows;
 
 describe('the notification centre (slice 3c, recipe-core 0810)', () => {
-  it('[IN-39] a recorded manufacturer decision notifies both departments, production and QA, naming the signature and its signer', async () => {
+  it('[IN-39] a recorded manufacturer decision notifies both departments, production and QA, naming the signature and its signer, for a release and a rejection; a signature without a recorded decision notifies nobody', async () => {
+    expect(await rowsOf(unsignedLot)).toEqual([]);
+    expect((await rowsOf(rejectedLot)).map((r) => [r.department, r.event])).toEqual([['PRODUCTION', 'MANUFACTURER_REJECTED'], ['QA', 'MANUFACTURER_REJECTED']]);
     const rows = await rowsOf(lotId);
     expect(rows.map((r) => [r.department, r.event, r.cause_signature_id, r.caused_by_role])).toEqual([
       ['PRODUCTION', 'MANUFACTURER_RELEASED', signatureId, 'AUTHORISED_PERSON'],
