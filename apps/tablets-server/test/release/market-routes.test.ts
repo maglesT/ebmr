@@ -128,6 +128,12 @@ describe('market routes over HTTP (outline 3.3.3, 5.2.6)', () => {
     const one = await signTwoRows(ap, 'qcuAuthoriser', action, false).catch((e: Error) => e);
     expect(one instanceof Error || !one.ok).toBe(true);
     expect(await count()).toBe(before);
+    // Quick review MEDIUM 4: the database act itself needs RELEASE.US_DISPOSITION of the actor, whatever signatures it is given.
+    const apActor = await actorOf(w.gmp, 'qcuAuthoriser');
+    const direct = await withCommand(w.gmp.db.app, { ...apActor, correlationId: randomUUID() }, (c) =>
+      c.query('select recipe.record_release_with_us_disposition($1, $2, $3, $4, $5)', [lotId, randomUUID(), randomUUID(), 'a'.repeat(64), 'b'.repeat(64)]),
+    ).then(() => 'ok', (e: Error) => e.message);
+    expect(direct).toMatch(/EBMR-IAM-040 .*RELEASE\.US_DISPOSITION/);
   });
 });
 

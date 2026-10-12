@@ -671,4 +671,84 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     expect(red(await grel(lot.lotId, 'EU'))).toContain('G2.DEVIATIONS');
     expect(await codeOf(transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', new Date(Date.now() - 1000).toISOString()))).toBe('EBMR-DSP-053');
   });
+
+  // Slice 4 quick review (recipe-core 0826).
+  const dbNow = async (): Promise<string> => (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+  const takeText = (text: string, signedOk = true) =>
+    sqlAs<{ outcome: string; reason: string | null; id: string }>(qaReviewer3, 'select test_edition.take_qp_message($1, $2) as r', [text, signedOk]);
+  const msgFor = (lot: Lot, at: string, extra: Record<string, unknown> = {}) => JSON.stringify({ format: 'ebmr.qp-certification.v1', messageId: `MSG-${randomUUID()}`, importerCode,
+    lotCode: lot.lotCode, batchNumber: lot.batchNumber, productCode: lot.productCode, outcome: 'CERTIFIED', certifier: { name: 'Dr. Lena Vogel', miaNumber: mia }, certifiedAt: at, ...extra });
+
+  it('[DI-39] a resend of a refused message is evaluated afresh (a bad signature, a lot not yet awaiting certification); only an accepted one is answered with its acknowledgement; a lock timeout is raised, never acknowledged', async () => {
+    const lot = await readyLot();
+    const early = msgFor(lot, new Date().toISOString());
+    expect((await takeText(early)).reason).toMatch(/EBMR-DSP-033/);
+    await manufacturerRelease(lot);
+    const text = msgFor(lot, await dbNow());
+    const bad = await takeText(text, false);
+    expect(bad.reason).toMatch(/EBMR-DSP-082/);
+    // A transient error is not a refusal: the lot is locked elsewhere, the intake times out and nothing is acknowledged.
+    const holder = await db.admin.connect();
+    try {
+      await holder.query('begin');
+      await holder.query('select 1 from site.material_lot where id = $1 for update', [lot.lotId]);
+      const sha = (await db.app.query<{ h: string }>("select encode(sha256(convert_to($1, 'UTF8')), 'hex') as h", [text])).rows[0]!.h;
+      const before = Number((await db.app.query<{ n: string }>('select count(*) as n from recipe.qp_message_ack where message_sha256 = $1', [sha])).rows[0]!.n);
+      expect(await codeOf(w.run(qaReviewer3, async (c) => {
+        await c.query("set local lock_timeout = '300ms'");
+        return c.query('select test_edition.take_qp_message($1, true)', [text]);
+      }))).toMatch(/lock timeout/);
+      expect(Number((await db.app.query<{ n: string }>('select count(*) as n from recipe.qp_message_ack where message_sha256 = $1', [sha])).rows[0]!.n)).toBe(before);
+    } finally {
+      await holder.query('rollback');
+      holder.release();
+    }
+    // The same bytes, now correctly signed and the lot awaiting: accepted; the resend gets that acknowledgement.
+    const ok = await takeText(text);
+    expect(ok.outcome).toBe('ACCEPTED');
+    expect((await takeText(text)).id).toBe(ok.id);
+    expect(await state(lot.lotId, 'EU')).toBe('CERTIFIED');
+    // The early message, sent again, is evaluated again: the lot is decided now.
+    expect((await takeText(early)).reason).toMatch(/EBMR-DSP-051/);
+  });
+
+  it('[DI-30][DI-39] one outcome path at a time: while a transcription waits for its second person, a message and an in-system QP are refused', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    const id = await transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', await dbNow());
+    expect((await takeText(msgFor(lot, await dbNow()))).reason).toMatch(/EBMR-DSP-090/);
+    await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
+    try {
+      const g = await grel(lot.lotId, 'EU');
+      await acknowledgeAll(qp, lot.lotId, 'EU', g);
+      expect(await codeOf(signed(qp, 'qp_certification', `${lot.lotId}/CERTIFIED`, 'QP_CERTIFIED', 'AWAITING_QP_CERTIFICATION', (c, sig) =>
+        c.query("select recipe.record_qp_certification($1, 'CERTIFIED', $2, $3, null)", [lot.lotId, sig, g.epoch])))).toBe('EBMR-DSP-090');
+    } finally {
+      await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
+    }
+    await verify(qaReviewer2, id);
+    expect(await state(lot.lotId, 'EU')).toBe('CERTIFIED');
+    expect((await db.app.query('select 1 from recipe.qp_certification where lot_id = $1', [lot.lotId])).rows).toHaveLength(1);
+  });
+
+  it('[PR-55] an in-system QP rejection is signed QP_REJECTED, never with the certification meaning; the QA fallback of an acknowledgement still works with the switch on', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
+    try {
+      const g = await grel(lot.lotId, 'EU');
+      // LOW 5: a QA reviewer (no QP permission) still acknowledges through the QA permission; an unknown lot is raised.
+      await acknowledgeAll(qaReviewer3, lot.lotId, 'EU', g);
+      expect(await codeOf(w.run(qaReviewer3, (c) => c.query("select recipe.acknowledge_release_item($1, 'EU', 'G3.LIMS', $2)", [randomUUID(), g.epoch])))).toBe('EBMR-REL-010');
+      const reject = (meaning: string) => signed(qp, 'qp_certification', `${lot.lotId}/REJECTED_BY_QP`, meaning, 'AWAITING_QP_CERTIFICATION', (c, sig) =>
+        c.query("select recipe.record_qp_certification($1, 'REJECTED_BY_QP', $2, $3, 'Stability commitment not met for the EU')", [lot.lotId, sig, g.epoch]));
+      expect(await codeOf(reject('QP_CERTIFIED'))).toBe('EBMR-REL-013');
+      await reject('QP_REJECTED');
+      expect(await state(lot.lotId, 'EU')).toBe('REJECTED_BY_QP');
+      const { rows } = await db.admin.query<{ m: string }>('select s.meaning_code as m from recipe.qp_certification q join esig.signature s on s.id = q.signature_id where q.lot_id = $1', [lot.lotId]);
+      expect(rows).toEqual([{ m: 'QP_REJECTED' }]);
+    } finally {
+      await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
+    }
+  });
 });
