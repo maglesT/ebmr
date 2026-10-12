@@ -363,6 +363,11 @@ below; each builder ticks them off there.
     quantity; the product master's maximum hold for bright stock is checked at issue and at packaging start; past it,
     issue is refused unless a linked deviation is approved by QA.
 
+- **Slice 5 lead decision (12 October):** no demo shortcut for a released lot. The released seed lot needs the green
+  release path, which is in GB-T-02 (slice 7). The suspension, reconfirm and recall browser flow moves there too; until
+  then the server route tests cover it. The slice 5 e2e covers disposal of the lot `release-flow.spec.ts` rejects, and
+  the amendment of its locked packaging record.
+
 ### Slice 6: India specifics, records and the PQR extract
 - **6a, India fields** (site-services 0870 to 0889, recipe-core 0890 to 0909): manufacturing licences (Form 25 or 28,
   endorsed products) and loan licence with technical agreement (IN-30); export permission per product, strength and
