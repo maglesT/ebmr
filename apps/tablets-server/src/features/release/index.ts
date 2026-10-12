@@ -1,7 +1,8 @@
 /**
  * Feature `release` (Phase 4 slices 3 and 4a, GMP): the release gate G-REL of a finished lot per market, the manufacturer
- * release, the US and EU dispositions, the EU certification intake and market changes (contract ns/release.ts; recipe-core
- * 0780 to 0849; tablets 1160 to 1189).
+ * release, the US and EU dispositions, the EU certification intake and market changes, and after release the suspension,
+ * re-confirmation, recall, rejection after release and disposal (contract ns/release.ts; recipe-core 0780 to 0869; tablets
+ * 1160 to 1189; site services 0880).
  * Every rule is the database's: the reads come from its definers, the acknowledgement of a "since review" item is the
  * person's own command, and the signed acts are the signable action RELEASE_ACT (signables.ts).
  */
@@ -11,6 +12,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
+import { lotAfterRelease, suspendedLots } from './after-release.ts';
 import { euImporters, grelView, lotMarkets, lotRelease, marketAddView, releaseQueue } from './reads.ts';
 import { batchMarketActHandler, releaseActHandler } from './signables.ts';
 
@@ -83,6 +85,15 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     importers: async ({ requireSession }) => {
       requireSession();
       return { importers: await euImporters(pool) };
+    },
+    // Slice 5a: after release (recipe-core 0840, site services 0880).
+    suspended: async ({ requireSession }) => {
+      requireSession();
+      return { lots: await suspendedLots(app, pool) };
+    },
+    afterRelease: async ({ params, requireSession }) => {
+      requireSession();
+      return lotAfterRelease(app, pool, params.lotId);
     },
   });
   return Promise.resolve();

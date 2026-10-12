@@ -12,8 +12,8 @@
  *   INVESTIGATION_JUSTIFY  investigation_justification <lot>/<deviation>/<sha256 of the text>
  *                                                                       OPEN_INVESTIGATION_JUSTIFIED (release authority;
  *                                                                       PR-53, only while its switch is on)
- * The other acts of RELEASE_ACT (US_DISPOSE, QP_INTAKE, QP_CERTIFY, MARKET_ADD, MARKET_REMOVE, RECONFIRM, RECALL,
- * REJECT_AFTER_RELEASE, DISPOSAL) arrive with slices 4 and 5. A manufacturer release signs the G-REL checklist of market
+ * The other acts of RELEASE_ACT (US_DISPOSE, QP_INTAKE, QP_CERTIFY, MARKET_ADD, MARKET_REMOVE: slice 4; RECONFIRM, RECALL,
+ * REJECT_AFTER_RELEASE, DISPOSAL: slice 5a, below) arrive with slices 4 and 5. A manufacturer release signs the G-REL checklist of market
  * IN as its content (IN-05 (d)), and the act sends back the epoch the signer evaluated (INV-05: a later change refuses it).
  */
 import { z } from 'zod';
@@ -23,8 +23,12 @@ import { defineRoute } from '../route.ts';
 export const ReleaseMarket = z.enum(['IN', 'US', 'EU']);
 export type ReleaseMarket = z.infer<typeof ReleaseMarket>;
 
-/** NOT_READY -> READY (computed by G-REL, never set) -> RELEASED or REJECTED; NOT_READY -> REJECTED too. */
-export const ManufacturerReleaseState = z.enum(['NOT_READY', 'READY', 'RELEASED', 'REJECTED']);
+/**
+ * NOT_READY -> READY (computed by G-REL, never set) -> RELEASED or REJECTED; NOT_READY -> REJECTED too. After release
+ * (slice 5a, L-19): RELEASED -> RELEASE_SUSPENDED (automatic) -> RELEASED (re-confirmed), RECALLED or
+ * REJECTED_AFTER_RELEASE (both terminal).
+ */
+export const ManufacturerReleaseState = z.enum(['NOT_READY', 'READY', 'RELEASED', 'REJECTED', 'RELEASE_SUSPENDED', 'RECALLED', 'REJECTED_AFTER_RELEASE']);
 export type ManufacturerReleaseState = z.infer<typeof ManufacturerReleaseState>;
 
 /** The evidence token of a G-REL evaluation (text); the signing act sends it back. */
@@ -148,6 +152,9 @@ export const MarketDispositionState = z.enum([
   'INELIGIBLE',
   'RELEASE_SUSPENDED',
   'REMOVED',
+  // Slice 5a (L-19, D-5-5): the AP's terminal after-release decisions for the market.
+  'RECALLED',
+  'REJECTED_AFTER_RELEASE',
 ]);
 export type MarketDispositionState = z.infer<typeof MarketDispositionState>;
 
@@ -292,6 +299,165 @@ export const EuImporterView = z.strictObject({
 });
 export type EuImporterView = z.infer<typeof EuImporterView>;
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Slice 5a: after release (L-19, IN-29, PR-46, IN-05 (e); D-5-1 to D-5-6). Every rule is the database's (recipe-core 0840
+// to 0869, site services 0880 to 0884). The signed acts are RELEASE_ACT RECONFIRM, RECALL, REJECT_AFTER_RELEASE and
+// DISPOSAL (signable.ts):
+//   RECONFIRM, RECALL, REJECT_AFTER_RELEASE  release_suspension <lot>/<market>/<act>/<n>   RELEASE_RECONFIRMED, RECALLED,
+//                                            REJECTED_AFTER_RELEASE (the AP, never an involved person; n is the
+//                                            database's sequence, recipe.release_suspension_next_id)
+//   DISPOSAL (record)                        disposal <lot>/<sha256 of the details>          DISPOSAL_RECORDED
+//   DISPOSAL (witness: `disposalId` only)    the same record                                 DESTRUCTION_WITNESSED (another person)
+// ---------------------------------------------------------------------------------------------------------------------
+
+export const AfterReleaseAct = z.enum(['RECONFIRM', 'RECALL', 'REJECT_AFTER_RELEASE']);
+export type AfterReleaseAct = z.infer<typeof AfterReleaseAct>;
+
+/**
+ * What suspended the lot (D-5-1): a deviation-lite record (any kind, investigations included), a kernel incident or DI
+ * investigation linked to the lot or to a lot or batch upstream of it, a revised LIMS result, an as-found calibration
+ * failure on equipment its batches used, or a record amendment (slice 5b).
+ */
+export const SuspensionCauseKind = z.enum(['DEVIATION', 'INCIDENT', 'DI_INVESTIGATION', 'LIMS_REVISION', 'CALIBRATION_FAILURE', 'RECORD_AMENDMENT']);
+export type SuspensionCauseKind = z.infer<typeof SuspensionCauseKind>;
+
+/** One cause suspending one decided market of the lot (insert-only; covered per market by a re-confirmation). */
+export const SuspensionCauseView = z.strictObject({
+  suspensionId: Uuid,
+  market: ReleaseMarket,
+  causeKind: SuspensionCauseKind,
+  /** The cause's own id (deviation, incident, investigation, result, calibration or amendment). */
+  causeRef: z.string(),
+  /** In the database's words, e.g. "deviation DEV-2026-0012 linked to batch B26-0001". */
+  label: z.string(),
+  /** Where the cause was linked: the lot itself, or a lot, batch or equipment upstream of it (PR-57 genealogy). */
+  via: z.strictObject({ kind: z.enum(['LOT', 'BATCH', 'EQUIPMENT']), id: Uuid }),
+  /** The market's state when the cause suspended it (a re-confirmation restores it, D-5-4). */
+  priorState: z.string(),
+  suspendedAt: Instant,
+  /** A re-confirmation of the market covers it. */
+  covered: z.boolean(),
+  /** Why the cause is not resolved yet (open deviation, CONFIRMED impact for the market, result out of limits), or null. */
+  problem: z.string().nullable(),
+});
+export type SuspensionCauseView = z.infer<typeof SuspensionCauseView>;
+
+/** One signed after-release decision of the AP for one market (insert-only). */
+export const AfterReleaseDecisionView = z.strictObject({
+  decisionId: Uuid,
+  market: ReleaseMarket,
+  act: AfterReleaseAct,
+  /** What the market became: RELEASED or CERTIFIED (restored by a re-confirmation), RECALLED or REJECTED_AFTER_RELEASE. */
+  toState: z.string(),
+  by: PersonRef,
+  at: Instant,
+  signatureId: Uuid,
+  /** RECONFIRM: the impact assessment; RECALL, REJECT_AFTER_RELEASE: the person's reason. */
+  text: z.string(),
+  /** RECONFIRM: the G-REL epoch evaluated under the locks (INV-05); null otherwise. */
+  epoch: GrelEpoch.nullable(),
+  /** The suspensions this decision covered. */
+  suspensionIds: z.array(Uuid),
+});
+export type AfterReleaseDecisionView = z.infer<typeof AfterReleaseDecisionView>;
+
+/** IN-29: the recall-assessment task a suspension opens (AP role); PR-46: the serial-decommissioning task of a disposal. */
+export const RecallTaskView = z.strictObject({
+  taskId: Uuid,
+  kind: z.enum(['RECALL_ASSESSMENT', 'SERIAL_DECOMMISSIONING']),
+  ownerRole: z.string(),
+  status: z.enum(['OPEN', 'CLOSED']),
+  openedAt: Instant,
+  closedAt: Instant.nullable(),
+});
+export type RecallTaskView = z.infer<typeof RecallTaskView>;
+
+/** D-5-3: an outbox message asking the ERP to block (or, once every market is decided again, to unblock) the lot's stock. */
+export const StockBlockView = z.strictObject({
+  requestId: Uuid,
+  kind: z.enum(['BLOCK', 'UNBLOCK']),
+  causeKey: z.string(),
+  requestedAt: Instant,
+  /** When the ERP stub applied it (at least once, idempotent by lot and cause); null while pending. */
+  deliveredAt: Instant.nullable(),
+});
+export type StockBlockView = z.infer<typeof StockBlockView>;
+
+export const DisposalRoute = z.enum(['WITNESSED_DESTRUCTION', 'REPROCESSING', 'RETURN']);
+export type DisposalRoute = z.infer<typeof DisposalRoute>;
+
+/** PR-46, IN-05 (e): the disposal of a rejected lot (once per lot). */
+export const DisposalView = z.strictObject({
+  disposalId: Uuid,
+  route: DisposalRoute,
+  /** WITNESSED_DESTRUCTION waits for its independent witness; the other routes are RECORDED at once. */
+  state: z.enum(['AWAITING_WITNESS', 'RECORDED']),
+  quantity: z.string(),
+  unit: z.string(),
+  /** RETURN: SUPPLIER or CUSTOMER; null otherwise. */
+  returnTo: z.enum(['SUPPLIER', 'CUSTOMER']).nullable(),
+  /** RETURN: the return reference; WITNESSED_DESTRUCTION: the destruction record reference (optional). */
+  reference: z.string().nullable(),
+  /** REPROCESSING: the Phase 3 reprocessing authorisation or request of the same product. */
+  reprocessingRef: Uuid.nullable(),
+  text: z.string().nullable(),
+  /** The record both signatures are on: disposal <lot>/<sha256 of the details>. */
+  aggregateId: z.string(),
+  performedBy: PersonRef,
+  performedAt: Instant,
+  signatureId: Uuid,
+  witnessedBy: PersonRef.nullable(),
+  witnessedAt: Instant.nullable(),
+  witnessSignatureId: Uuid.nullable(),
+});
+export type DisposalView = z.infer<typeof DisposalView>;
+
+/** One market of the lot after release, with the gates of the AP's acts for it. */
+export const AfterReleaseMarketView = z.strictObject({
+  market: ReleaseMarket,
+  state: z.string(),
+  /** The state a re-confirmation restores (RELEASED or CERTIFIED) while the market is suspended; null otherwise. */
+  priorState: z.string().nullable(),
+  /** The next record each act signs (release_suspension <lot>/<market>/<act>/<n>). */
+  signable: z.strictObject({ reconfirm: z.string(), recall: z.string(), rejectAfterRelease: z.string() }),
+  gates: z.strictObject({ reconfirm: ReleaseGate, recall: ReleaseGate, rejectAfterRelease: ReleaseGate }),
+});
+export type AfterReleaseMarketView = z.infer<typeof AfterReleaseMarketView>;
+
+export const LotAfterReleaseView = z.strictObject({
+  lotId: Uuid,
+  lotCode: z.string(),
+  productCode: z.string(),
+  batchNumber: z.string(),
+  manufacturerState: ManufacturerReleaseState,
+  markets: z.array(AfterReleaseMarketView),
+  causes: z.array(SuspensionCauseView),
+  decisions: z.array(AfterReleaseDecisionView),
+  tasks: z.array(RecallTaskView),
+  stockBlocks: z.array(StockBlockView),
+  /** Forward trace (PR-57): the finished lots downstream of this one through the genealogy, with their manufacturer state. */
+  downstream: z.array(z.strictObject({ lotId: Uuid, lotCode: z.string(), state: z.string() })),
+  disposal: DisposalView.nullable(),
+  /** Whether a disposal may be recorded now (the lot REJECTED or REJECTED_AFTER_RELEASE for IN, none recorded yet). */
+  disposalGate: ReleaseGate,
+});
+export type LotAfterReleaseView = z.infer<typeof LotAfterReleaseView>;
+
+export const SuspendedLotSummaryView = z.strictObject({
+  lotId: Uuid,
+  lotCode: z.string(),
+  productCode: z.string(),
+  batchNumber: z.string(),
+  manufacturerState: ManufacturerReleaseState,
+  /** The markets RELEASE_SUSPENDED now. */
+  suspendedMarkets: z.array(ReleaseMarket),
+  /** IN-29: an open recall-assessment task. */
+  openTask: z.boolean(),
+  /** When the first cause still open suspended the lot. */
+  since: Instant,
+});
+export type SuspendedLotSummaryView = z.infer<typeof SuspendedLotSummaryView>;
+
 const lotParams = z.strictObject({ lotId: Uuid });
 const batchParams = z.strictObject({ batchId: Uuid });
 
@@ -402,5 +568,27 @@ export const release = {
     mutating: false,
     summary: 'The EU importers named in technical agreements, with their products and key fingerprints',
     response: z.strictObject({ importers: z.array(EuImporterView) }),
+  }),
+  // Slice 5a: after release.
+  suspended: defineRoute({
+    id: 'release.suspended',
+    method: 'GET',
+    path: '/api/release/suspended',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Finished lots with a market RELEASE_SUSPENDED or an open recall-assessment task (IN-29), oldest cause first',
+    response: z.strictObject({ lots: z.array(SuspendedLotSummaryView) }),
+  }),
+  afterRelease: defineRoute({
+    id: 'release.afterRelease',
+    method: 'GET',
+    path: '/api/release/lots/:lotId/after-release',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'One finished lot after release: market states, suspension causes, decisions, tasks, ERP stock blocks, forward trace and disposal',
+    params: lotParams,
+    response: LotAfterReleaseView,
   }),
 } as const;

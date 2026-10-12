@@ -362,6 +362,40 @@ below; each builder ticks them off there.
   - **D-5-8** PR-38: bulk may be issued across several packaging orders, the issued sum never above the remaining
     quantity; the product master's maximum hold for bright stock is checked at issue and at packaging start; past it,
     issue is refused unless a linked deviation is approved by QA.
+- **Slice 5a defaults (built on `phase-4/slice-5a`; recipe-core 0840, site services 0880 and 0881; owner may change):**
+  - **D-5a-1** A cause suspends a lot only once its manufacturer release was RELEASED; within it, each market decided
+    RELEASED (IN, US) or CERTIFIED (EU) and not yet recalled or rejected after release gets its own suspension row (the
+    manufacturer decision stays as signed). The genealogy edges walked downstream are lot consumption, the bulk issue and
+    packaging allocation, whole-batch reprocessing parents, reprocessing and recovery additions, finished lots of a batch
+    and returned goods. Kernel incidents and DI investigations count when linked to a `batch` or `material_lot`.
+  - **D-5a-2** INV-39 stays strict: while IN is RELEASE_SUSPENDED every market disposition waits, a US rejection or an EU
+    certification included; a decided export market reads RELEASE_SUSPENDED until IN is re-confirmed and then until its own
+    causes are covered; US or EU is re-confirmed only after IN. (A slice 4 test linking the PR-56 investigation after the
+    release was changed to link it before; the EU OOS test now meets the INV-39 refusal first.)
+  - **D-5a-3** Resolution of a cause for RECONFIRM: deviation CLOSED or CANCELLED and no link with a CONFIRMED impact for the
+    market (D-2a-9); incident or DI investigation no longer blocking the node it was linked to; revised result whose latest
+    revision passes; an as-found calibration failure is resolved by the AP's signed impact assessment itself; any other kind
+    (RECORD_AMENDMENT, 5b) fails closed until 5b gives its rule. A cancelled deviation still needs the AP's re-confirmation.
+  - **D-5a-4** Disposal also accepts a RECALLED lot (a recall ends in a disposal), besides REJECTED and
+    REJECTED_AFTER_RELEASE; the IN state decides. The quantity is a positive decimal at most the lot's received quantity.
+    A disposal by reprocessing leaves the lot REJECTED in the register (the reprocessing batch consumes it).
+  - **D-5a-5** Signers: RECONFIRM, RECALL, REJECT_AFTER_RELEASE are the AP's (RELEASE.MANUFACTURER, signed as
+    AUTHORISED_PERSON, not delegable in 5a); DISPOSAL_RECORDED needs the new RELEASE.DISPOSAL (AP and QA reviewer);
+    DESTRUCTION_WITNESSED needs STEP.WITNESS or RELEASE.DISPOSAL and is independent of the performer (kernel and act).
+  - **D-5a-6** RECONFIRM checks G-REL for the market at the signed epoch with no RED item; it does not require "since review"
+    acknowledgements (the AP has no US or EU acknowledgement permission); the impact assessment is the signed text.
+  - **D-5a-7** IN-29: one open recall-assessment task per lot (owner role AUTHORISED_PERSON); it closes when no market is
+    suspended by a cause of its own. The ERP gets BLOCK per cause and one UNBLOCK when IN reads RELEASED again; shipping
+    never waits for the stub (the interlock reads the states). The serial-decommissioning task opens when the lot's records
+    drew serial pools (tab.serial_pool), owner QA reviewer.
+  - **D-5a-8** The as-found calibration failure suspends the lots of batches that used the equipment (equipment or
+    instrument use) since its previous calibration (all uses when it has none).
+  - **D-5a-9** Lots made before material_lot v3 (machine version 2) cannot take the register move of a recall, rejection
+    after release or disposal (the act refuses); new lots are v3. Residual for existing demo databases only.
+  - Residuals: no test yet for the DI-investigation and calibration triggers (the deviation, incident, LIMS-revision and
+    amendment paths are tested); the ERP stub delivery has no route (database function for the ERP interface only); a
+    seeded RELEASED lot through real signed paths needs the green release path (GB-T-02, slice 7): the packaging demo lot's
+    G-REL has eleven RED items (reviews, specification, Tablets reconciliation and pack examination).
 
 - **Slice 5 lead decision (12 October):** no demo shortcut for a released lot. The released seed lot needs the green
   release path, which is in GB-T-02 (slice 7). The suspension, reconfirm and recall browser flow moves there too; until

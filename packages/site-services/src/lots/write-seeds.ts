@@ -12,7 +12,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { state } from '@ebmr/kernel';
-import { MATERIAL_LOT_V1, MATERIAL_LOT_V2 } from './machine.ts';
+import { MATERIAL_LOT_V1, MATERIAL_LOT_V2, MATERIAL_LOT_V3 } from './machine.ts';
 
 export interface SiteMachine {
   descriptor: state.MachineDescriptor;
@@ -24,6 +24,7 @@ export interface SiteMachine {
 export const SITE_MACHINES: readonly SiteMachine[] = [
   { descriptor: MATERIAL_LOT_V1, source: 'packages/site-services/src/lots/machine.ts' },
   { descriptor: MATERIAL_LOT_V2, source: 'packages/site-services/src/lots/machine.ts' },
+  { descriptor: MATERIAL_LOT_V3, source: 'packages/site-services/src/lots/machine.ts' },
 ];
 
 export const SITE_SQL_DIR = new URL('../../sql', import.meta.url).pathname;

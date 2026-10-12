@@ -138,6 +138,18 @@ export {
   MarketSubjectKind,
   QpAcknowledgementView,
   QpCertificationView,
+  // Phase 4 slice 5a: after release.
+  AfterReleaseAct,
+  AfterReleaseDecisionView,
+  AfterReleaseMarketView,
+  DisposalRoute,
+  DisposalView,
+  LotAfterReleaseView,
+  RecallTaskView,
+  StockBlockView,
+  SuspendedLotSummaryView,
+  SuspensionCauseKind,
+  SuspensionCauseView,
 } from './ns/release.ts';
 export { NotificationDepartment, NotificationView } from './ns/notifications.ts';
 export {
