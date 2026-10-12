@@ -35,6 +35,8 @@ let parentId: string;
 let orderId: string;
 let lotId: string;
 const PACK_SIZE = 'PO-100K';
+/** A matcher for a string matching r (typed, for object matchers). */
+const like = (r: RegExp): unknown => expect.stringMatching(r);
 const SIGNATURES = { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } };
 
 function phase(id: string, type: string, config: Json, signatures: Json = SIGNATURES): Json {
@@ -230,25 +232,25 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
   });
 
   it('[PR-37] E.FINISHED_PACK_EXAMINATION: red without an end-of-run examination and while a failed one is unresolved; green once it passed or its failure is resolved', async () => {
-    expect(await item('E.FINISHED_PACK_EXAMINATION')).toMatchObject({ group: '9', status: 'RED', problem: expect.stringMatching(/no end-of-run examination/) });
+    expect(await item('E.FINISHED_PACK_EXAMINATION')).toMatchObject({ group: '9', status: 'RED', problem: like(/no end-of-run examination/) });
     const failed = await addEntry(orderId, 'p-tb24@', 'EXAMINATION', { stream: 'EXAM', timing: 'END', examined: '20', defective: '1', labelCorrect: true, result: 'FAIL' });
     const ex = await raise(orderId, 'p-tb24@', 'LINE_CHECK_FAILED');
-    expect(await item('E.FINISHED_PACK_EXAMINATION')).toMatchObject({ status: 'RED', problem: expect.stringMatching(/end-of-run examination at p-tb24@ failed and is not resolved/) });
+    expect(await item('E.FINISHED_PACK_EXAMINATION')).toMatchObject({ status: 'RED', problem: like(/end-of-run examination at p-tb24@ failed and is not resolved/) });
     await resolve(orderId, ex);
     expect(await item('E.FINISHED_PACK_EXAMINATION')).toMatchObject({ status: 'GREEN', problem: null });
     await dropEntry(orderId, failed);
     await addEntry(orderId, 'p-tb24@', 'EXAMINATION', { stream: 'EXAM', timing: 'END', examined: '20', defective: '0', labelCorrect: true, result: 'PASS' });
     expect((await item('E.FINISHED_PACK_EXAMINATION')).status).toBe('GREEN');
     await setStep(orderId, 'p-tb24@', { step: 'p-tb24', status: 'SKIPPED', frames: [] });
-    expect(await item('E.FINISHED_PACK_EXAMINATION')).toMatchObject({ status: 'RED', problem: expect.stringMatching(/p-tb24@ is SKIPPED, not COMPLETED/) });
+    expect(await item('E.FINISHED_PACK_EXAMINATION')).toMatchObject({ status: 'RED', problem: like(/p-tb24@ is SKIPPED, not COMPLETED/) });
     await setStep(orderId, 'p-tb24@', { step: 'p-tb24', status: 'COMPLETED', frames: [] });
   });
 
   it('[IN-17][PR-39][PR-37] E.RECONCILIATION_PACKS: red without the reconciliation entry and while a pack reconciliation outside its limit has no closed deviation (release is blocked); green once the deviation is closed', async () => {
-    expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ group: '4', status: 'RED', problem: expect.stringMatching(/holds no reconciliation of the packs/) });
+    expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ group: '4', status: 'RED', problem: like(/holds no reconciliation of the packs/) });
     await addEntry(orderId, 'p-tb24@', 'RECONCILIATION', { made: '42', shipped: '40', rejects: '0', samples: '0', setAside: '0', reEntered: '0', unexplained: '2', withinLimits: false });
     const ex = await raise(orderId, 'p-tb24@', 'PACK_RECONCILIATION');
-    expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ status: 'RED', problem: expect.stringMatching(/outside their limit: exception .* is not dispositioned/) });
+    expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ status: 'RED', problem: like(/outside their limit: exception .* is not dispositioned/) });
     // The catalogue test of IN-17 clause 2: the gate holds the lot.
     const g = (await w.gmp.db.app.query<{ g: { ready: boolean; items: Item[] } }>("select recipe.grel_evaluate($1, 'IN') as g", [lotId])).rows[0]!.g;
     expect(g.ready).toBe(false);
@@ -257,7 +259,7 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
     await link(orderId, ex, d.ref);
     await disposition(orderId, ex);
     const red = await item('E.RECONCILIATION_PACKS');
-    expect(red).toMatchObject({ status: 'RED', problem: expect.stringMatching(new RegExp(`deviation ${d.ref} .* is OPEN, not CLOSED`)) });
+    expect(red).toMatchObject({ status: 'RED', problem: like(new RegExp(`deviation ${d.ref} .* is OPEN, not CLOSED`)) });
     expect(red.evidence).toEqual(expect.arrayContaining([{ kind: 'DEVIATION', ref: d.id, label: d.ref }]));
     await close(d.id);
     expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ status: 'GREEN', problem: null });
@@ -266,10 +268,10 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
   it('[IN-17][PR-39][INV-32] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved', async () => {
     expect((await item('E.RECONCILIATION_PRINTED')).status).toBe('GREEN');
     await setStep(orderId, 'p-g21@', { step: 'p-g21', status: 'IN_PROGRESS', frames: [] });
-    expect(await item('E.RECONCILIATION_PRINTED')).toMatchObject({ status: 'RED', problem: expect.stringMatching(/p-g21@ is IN_PROGRESS: its reconciliation is not closed/) });
+    expect(await item('E.RECONCILIATION_PRINTED')).toMatchObject({ status: 'RED', problem: like(/p-g21@ is IN_PROGRESS: its reconciliation is not closed/) });
     await setStep(orderId, 'p-g21@', { step: 'p-g21', status: 'COMPLETED', frames: [] });
     const ex = await raise(orderId, 'p-g21@', 'PRINTED_RECONCILIATION');
-    expect(await item('E.RECONCILIATION_PRINTED')).toMatchObject({ group: '4', status: 'RED', problem: expect.stringMatching(/printed materials reconciled outside their limits/) });
+    expect(await item('E.RECONCILIATION_PRINTED')).toMatchObject({ group: '4', status: 'RED', problem: like(/printed materials reconciled outside their limits/) });
     await resolve(orderId, ex);
     expect((await item('E.RECONCILIATION_PRINTED')).status).toBe('GREEN');
   });
@@ -277,7 +279,7 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
   it('[IN-17][PR-39] E.RECONCILIATION_YIELD: a yield outside its limits in the processing batch blocks until its deviation is closed', async () => {
     expect((await item('E.RECONCILIATION_YIELD')).status).toBe('GREEN');
     const ex = await raise(parentId, 'p-yield@', 'YIELD_OUT_OF_LIMITS');
-    expect(await item('E.RECONCILIATION_YIELD')).toMatchObject({ group: '4', status: 'RED', problem: expect.stringMatching(/a yield outside its limits: exception/) });
+    expect(await item('E.RECONCILIATION_YIELD')).toMatchObject({ group: '4', status: 'RED', problem: like(/a yield outside its limits: exception/) });
     await resolve(parentId, ex);
     expect((await item('E.RECONCILIATION_YIELD')).status).toBe('GREEN');
   });
@@ -285,7 +287,7 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
   it('[PR-42][IN-17] E.RECONCILIATION_SERIAL: an open serial reconciliation blocks until its deviation is closed', async () => {
     expect((await item('E.RECONCILIATION_SERIAL')).status).toBe('GREEN');
     const ex = await raise(orderId, 'p-g21@', 'SERIAL_RECONCILIATION_OPEN');
-    expect(await item('E.RECONCILIATION_SERIAL')).toMatchObject({ status: 'RED', problem: expect.stringMatching(/a serial pool reconciled open/) });
+    expect(await item('E.RECONCILIATION_SERIAL')).toMatchObject({ status: 'RED', problem: like(/a serial pool reconciled open/) });
     await resolve(orderId, ex);
     expect((await item('E.RECONCILIATION_SERIAL')).status).toBe('GREEN');
   });
@@ -306,7 +308,7 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
                                        jsonb_build_object('kind', 'holdPoint', 'id', 'H-PRINT', 'name', 'QC approval of printed tablets', 'role', 'QA', 'dispositions', jsonb_build_array('APPROVED', 'REJECTED')),
                                        snapshot #> '{mbr,content,procedure,body}')))
                     where id = (select control_recipe_id from recipe.batch_execution where id = $1)`, [parentId]);
-    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ group: '10', status: 'RED', problem: expect.stringMatching(/holds no printing step/) });
+    expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ group: '10', status: 'RED', problem: like(/holds no printing step/) });
     await setStep(parentId, 'p-print@', { step: 'p-print', status: 'COMPLETED', frames: [] });
     await setStep(parentId, 'H-PRINT@', { step: 'H-PRINT', status: 'ENABLED', frames: [] });
     expect(await item('E.PRINTED_TABLETS_QC')).toMatchObject({ status: 'RED', problem: 'the tablets printed at p-print@ wait for the QC approval at hold point H-PRINT (IN-37)' });
