@@ -65,7 +65,7 @@ create table records.evidence_export_subject (
 revoke all on records.evidence_export_subject from public;
 grant select on records.evidence_export_subject to ebmr_app;
 select platform.enforce_db_time('records.evidence_export_subject', array['registered_at']);
-select kernel.register_audited_table('records.evidence_export_subject', 'evidence_export_subject', 'subject_type', false);
+select kernel.register_audited_table('records.evidence_export_subject', 'evidence_export_subject', 'subject_type', true);
 insert into records.evidence_export_subject (subject_type, chain_prefixes, note)
 values ('batch', '{batch,batch_review,form_reconciliation}',
         'A batch record: its execution record, its review chain and its contingency forms (chains <prefix>:<batch id>)');
