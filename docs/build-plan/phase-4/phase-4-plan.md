@@ -168,14 +168,14 @@ below; each builder ticks them off there.
     SHORTCUT (H-PACK set APPROVED in the stored state with triggers off), as the review seed marks its batch complete.
 
 ### Slice 3: G-REL and the manufacturer release
-- **3a, release core** (recipe-core 0770 to 0809, `apps/tablets-server/src/features/release/**`): manufacturer
+- **3a, release core** (recipe-core 0780 to 0809 (0770 to 0779 were used by slice 2a), `apps/tablets-server/src/features/release/**`): manufacturer
   release NOT_READY -> READY (computed) -> RELEASED or REJECTED, NOT_READY -> REJECTED; `recipe.grel_evaluate` items
   1 to 9 (D-P4-4); signing re-evaluates at an unchanged epoch inside the transaction (INV-05); AP or delegate with a
   valid delegation, head-of-QC approval, all signature components, involvement exclusion (IN-05, INV-35); checklist
   stored with the signature (IN-05 (d)); PR-53 open-investigation switch (off by default); PPQ rule (PR-09, D-P4-6);
   post-change evaluation (IN-03); validation-basis references present; DI-12 clause (open incident on the disposition
   screen); PR-08 clause.
-- **3b, Tablets items** (tablets 1150 to 1179): `tab.grel_edition_items` behind the 3-0 hook: printed-tablet QC
+- **3b, Tablets items** (tablets 1160 to 1179 (1150 to 1159 were used by slice 2)): `tab.grel_edition_items` behind the 3-0 hook: printed-tablet QC
   approval (IN-37), held containers dispositioned, container release state, `recipe.reprocessing_release_problem`
   wired (PR-47), finished-pack examination from TB-24, reconciliation outside limits blocks release (IN-17 clause 2),
   TB-12 compendial rule set QA verification record (design E.1, backlog 3c); whole-batch parents checked for REJECTED.
