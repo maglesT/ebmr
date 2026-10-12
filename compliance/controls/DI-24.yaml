@@ -131,6 +131,8 @@ tests:
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24][INV-41] voids repeat while no valid result exists (an invalidated one is none); an invalidation is approved by another person, never a system, and its investigation is recorded trimmed"
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] a result of another item of the step does not stop a void of this one (mutation follow-up)"
   - "packages/site-services/test/mutation/deviations.test.ts > the signed content and the subject resolver (site services 0730) > [DI-24] a record's content version counts its own links, events, findings and conclusion"
+  - "apps/tablets-server/test/review/review-routes.test.ts > the CORRECT_ENTRY route (outline 5.2.3 path (a); S25) > [DI-24] a correction of critical data is a signed intent that names the approval it needs: without it nothing is signed; with another person's CORRECTION_APPROVAL it is recorded"
+  - "packages/recipe-core/test/review/review.test.ts > the correction of a loop reading (plan open question 1, default: counts as failing) > [DI-24] a loop reading that did not meet the endpoint needs a stored evidence document and QA approval to be corrected, whatever its new value; other readings keep their rule"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
     tests:

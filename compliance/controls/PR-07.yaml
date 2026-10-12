@@ -42,6 +42,7 @@ tests:
   - "apps/tablets-server/test/blocks/forming/tb-06-edges.test.ts > TB-06 PERFORMED and definition > [PR-29][PR-07][IN-36] the definition: a compactor used, a ribbon interval and grace above zero with its risk assessment and parameters, screens once, a recycle limit up to 100, ordered yield limits"
   - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 entries > [PR-29][PR-07][DI-28] a check is of a planned test, gives the press counter when its interval is by count, and the counter never goes back (equal allowed)"
   - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 definition checks > [IN-35][PR-29][PR-07] streams and tests once each, a grace and intervals above zero, a QRM reference and a configuration per planned test"
+  - "packages/recipe-core/test/review/review.test.ts > review by exception paused after three deviations on a step (PR-07) > [PR-07] three deviations on a low-risk step open a re-review task and pause review-by-exception for that step"
 clauses:
   - clause: "Submitting a master with a critical parameter and no linked assessment is blocked."
     tests:
