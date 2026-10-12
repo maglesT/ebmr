@@ -29,10 +29,12 @@ export interface DbActSpec<A extends SignableAction> {
   reasonOf?(action: A): { reasonCode: string; reasonText: string } | undefined;
   /** The delegation the signer cites, when the act allows one (Phase 4 slice 3a). */
   delegationOf?(action: A): string | undefined;
+  /** The second record the same person signs in the ceremony (Phase 4 slice 4, D-P4-5), when the action asks for one. */
+  companionOf?(action: A): ActTarget | undefined;
   /** Checks the server makes before anything is signed (the database checks them again). */
   precheck?(client: pg.PoolClient, ctx: SignableContext, action: A): Promise<DryRunOutcome | null>;
   /** The database command, with the signature just made. */
-  apply(client: pg.PoolClient, ctx: SignableContext, action: A, signatureId: string): Promise<Record<string, unknown> | null>;
+  apply(client: pg.PoolClient, ctx: SignableContext, action: A, signatureId: string, companionSignatureId?: string): Promise<Record<string, unknown> | null>;
 }
 
 export function refusedOutcome(status: number, code: string, whatHappened: string, why: string, controls: string[], whatYouCanDo: string[]): DryRunOutcome {
@@ -40,6 +42,8 @@ export function refusedOutcome(status: number, code: string, whatHappened: strin
 }
 
 export function dbActHandler<A extends SignableAction>(app: AppContext, spec: DbActSpec<A>): SignableActionHandler<A> {
+  // The record read now when the act's id depends on the database (Phase 4 slice 4: a market change's sequence).
+  const targetOf = (db: pg.Pool | pg.PoolClient, a: A): Promise<ActTarget> => (spec.targetNow ? spec.targetNow(db, a) : Promise.resolve(spec.target(a)));
   return {
     kind: spec.kind,
     aggregateTypes: spec.aggregateTypes,
@@ -47,19 +51,20 @@ export function dbActHandler<A extends SignableAction>(app: AppContext, spec: Db
     ...(spec.reasonOf ? { reasonOf: (a: A) => (spec.reasonOf as NonNullable<typeof spec.reasonOf>)(a) } : {}),
     ...(spec.delegationOf ? { delegationOf: (a: A) => (spec.delegationOf as NonNullable<typeof spec.delegationOf>)(a) } : {}),
     ...(spec.targetNow ? { describeNow: (db: pg.Pool | pg.PoolClient, a: A) => (spec.targetNow as NonNullable<typeof spec.targetNow>)(db, a) } : {}),
+    ...(spec.companionOf ? { companionOf: (a: A) => (spec.companionOf as NonNullable<typeof spec.companionOf>)(a) } : {}),
     async expectedStateNow(client, a) {
-      const t = spec.target(a);
+      const t = await targetOf(client, a);
       if (t.expectedState !== undefined) return t.expectedState;
       return (await recordContentForSigning(client, t.aggregateType, t.aggregateId)).state ?? null;
     },
     previewContent: (ctx, query) => kernelContent(app.pools.app, (ctx as Partial<EsigSignableContext>).tokenHash ?? '', query),
     async prepareForChallenge(client, _ctx, a) {
-      const t = spec.target(a);
+      const t = await targetOf(client, a);
       const c = await recordContentForSigning(client, t.aggregateType, t.aggregateId);
       return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
     },
     async dryRun(client, ctx, a) {
-      const t = spec.target(a);
+      const t = await targetOf(client, a);
       const pre = spec.precheck ? await spec.precheck(client, ctx, a) : null;
       if (pre) return pre;
       const c = await recordContentForSigning(client, t.aggregateType, t.aggregateId);
@@ -69,6 +74,6 @@ export function dbActHandler<A extends SignableAction>(app: AppContext, spec: Db
       return { accepted: true, contentHash: c.contentHash, contentVersion: c.contentVersion };
     },
     // A refusal by the database propagates: the signing command rolls back whole and nothing is signed.
-    apply: (client, ctx, a, signature) => spec.apply(client, ctx, a, signature.signatureId),
+    apply: (client, ctx, a, signature) => spec.apply(client, ctx, a, signature.signatureId, signature.companionSignatureId),
   };
 }

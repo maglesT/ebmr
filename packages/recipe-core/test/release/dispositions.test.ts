@@ -303,8 +303,16 @@ beforeAll(async () => {
         jsonb_build_object('id', 'E.RECONCILIATION', 'group', '4', 'title', 'Reconciliation within limits', 'status', 'GREEN', 'problem', null, 'evidence', '[]'::jsonb, 'since_review', false),
         jsonb_build_object('id', 'E.PACK_EXAMINATION', 'group', '9', 'title', 'Finished-pack examination', 'status', 'GREEN', 'problem', null, 'evidence', '[]'::jsonb, 'since_review', false))
     $$`);
-    await fx.query('grant usage on schema test_edition to ebmr_owner');
+    await fx.query('grant usage, create on schema test_edition to ebmr_owner');
+    await fx.query('grant usage on schema test_edition to ebmr_app');
     await fx.query("select recipe.register_grel_edition_hook('TABLETS', 'test_edition.grel_items(uuid, text)')");
+    // TEST STAND-IN for the edition's intake definer (tablets 1180 verifies the importer's Ed25519 signature; its tests
+    // prove the verification): hands a message to recipe.take_qp_message as signed, or as not signed.
+    await fx.query('set local role ebmr_owner');
+    await fx.query(`create function test_edition.take_qp_message(p_message text, p_signed boolean) returns jsonb language sql volatile security definer
+      set search_path = pg_catalog, recipe, pg_temp as $$ select recipe.take_qp_message(p_message, p_signed) $$`);
+    await fx.query('grant execute on function test_edition.take_qp_message(text, boolean) to ebmr_app');
+    await fx.query('reset role');
     await fx.query('commit');
   } catch (error) {
     await fx.query('rollback');
@@ -432,7 +440,7 @@ describe('two signature rows in one ceremony (D-P4-5)', () => {
       const ids = [`${lot.lotId}/RELEASE`, `${lot.lotId}/RELEASE`];
       const types = ['manufacturer_release', 'us_disposition'];
       const meanings = ['MANUFACTURER_RELEASE', 'US_DISPOSITION'];
-      const chs = [];
+      const chs: { challengeId: string }[] = [];
       for (let i = 0; i < 2; i++) {
         const content = await contentForSigning(db.app, types[i]!, ids[i]!);
         chs.push(await withCommand(db.app, await cmd(db, ap), (c) => createChallenge(c, { aggregateType: types[i]!, aggregateId: ids[i]!, contentVersion: content.contentVersion ?? '1', meaning: meanings[i]!, clientContentHash: content.contentHash ?? '' })));
@@ -622,6 +630,38 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     } finally {
       await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
     }
+  });
+
+  it('[DI-39][PR-56] a signed certification message is taken in only while the lot awaits certification, from the importer\'s QP: acknowledged ACCEPTED, then CERTIFIED; a QP rejection is visible to the US until its investigation is linked', async () => {
+    const take = (who: SeededActor, m: Record<string, unknown>, signedOk = true) =>
+      sqlAs<{ outcome: string; reason: string | null; id: string; certification_id: string | null }>(who, 'select test_edition.take_qp_message($1, $2) as r', [JSON.stringify(m), signedOk]);
+    const lot = await readyLot();
+    const msg = (extra: Record<string, unknown> = {}) => ({ format: 'ebmr.qp-certification.v1', messageId: `MSG-${randomUUID()}`, importerCode, lotCode: lot.lotCode,
+      batchNumber: lot.batchNumber, productCode: lot.productCode, outcome: 'CERTIFIED', certifier: { name: 'Dr. Lena Vogel', miaNumber: mia }, ...extra });
+    // INV-39: before the manufacturer release, refused and acknowledged with the reason.
+    expect((await take(qaReviewer3, { ...msg(), certifiedAt: new Date().toISOString() })).reason).toMatch(/EBMR-DSP-033/);
+    await manufacturerRelease(lot);
+    const now = async (): Promise<string> => (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+    expect((await take(qaReviewer3, { ...msg(), certifiedAt: await now() }, false)).reason).toMatch(/EBMR-DSP-082/);
+    expect((await take(qaReviewer3, { ...msg({ certifier: { name: 'Dr. X', miaNumber: 'FR-MIA-1' } }), certifiedAt: await now() })).reason).toMatch(/EBMR-DSP-055/);
+    expect(await codeOf(take(operator, { ...msg(), certifiedAt: await now() }))).toMatch(/EBMR-IAM-\d{3}/);
+    const good = { ...msg(), certifiedAt: await now() };
+    const ack = await take(qaReviewer3, good);
+    expect(ack).toMatchObject({ outcome: 'ACCEPTED', reason: null });
+    expect(await state(lot.lotId, 'EU')).toBe('CERTIFIED');
+    // A resend gets its first acknowledgement; a second outcome is refused.
+    expect((await take(qaReviewer3, good)).id).toBe(ack.id);
+    expect((await take(qaReviewer3, { ...msg({ outcome: 'REJECTED_BY_QP', reason: 'Late' }), certifiedAt: await now() })).reason).toMatch(/EBMR-DSP-051/);
+
+    // A QP rejection on another lot: the US sees it (RED) until an investigation is linked to the lot.
+    const other = await readyLot();
+    await manufacturerRelease(other);
+    const rej = await take(qaReviewer3, { ...msg({ lotCode: other.lotCode, batchNumber: other.batchNumber, outcome: 'REJECTED_BY_QP', reason: 'Transport temperature excursion' }), certifiedAt: await now() });
+    expect(rej.outcome).toBe('ACCEPTED');
+    expect(await state(other.lotId, 'EU')).toBe('REJECTED_BY_QP');
+    expect(red(await grel(other.lotId, 'US'))).toContain('G11.MARKET_REJECTIONS');
+    await deviationOnLot(other.lotId);
+    expect(item(await grel(other.lotId, 'US'), 'G11.MARKET_REJECTIONS').status).toBe('GREEN');
   });
 
   it('[PR-55] an open OOS linked to the lot blocks the EU certification', async () => {

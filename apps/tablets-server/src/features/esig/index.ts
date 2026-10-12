@@ -62,7 +62,7 @@ import { bindRoutes, pathOf } from '../../platform/http/bind.ts';
 import { HttpRefusal, refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionHandler, SignableActionRegistry } from '../../platform/ports.ts';
 import { ChallengeBadgeStore } from './badges.ts';
-import { kernelContent, meaningOfIntent, type EsigSignableContext } from './content.ts';
+import { kernelContent, meaningOfIntent, recordContentForSigning, type EsigSignableContext } from './content.ts';
 import { ESIG_GUIDANCE } from './guidance.ts';
 import { esigStubHandler } from './stub.ts';
 import { manifestationView, meaningInfo, meaningPhrase, readChallenge, recordSignaturesFor, type StoredChallenge } from './views.ts';
@@ -197,7 +197,12 @@ function previewRefused(aggregateType: string, aggregateId: string, problem: str
 }
 
 type RefusedWork = { refused: { status: number; refusal: Refusal } };
-type SignedWork = { signed: { manifestation: ManifestationView; result: Record<string, unknown> | null } };
+type SignedWork = { signed: { manifestation: ManifestationView; result: Record<string, unknown> | null; companion?: ManifestationView } };
+
+/** What the action signs, read now when the handler can (a record whose id or meaning depends on the database). */
+async function describeAction(app: AppContext, handler: SignableActionHandler, action: SignableAction): Promise<ReturnType<SignableActionHandler['describe']>> {
+  return handler.describeNow ? handler.describeNow(app.pools.app, action) : handler.describe(action);
+}
 type SignWork = RefusedWork | SignedWork;
 
 /**
@@ -293,7 +298,10 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const s = requireSession();
         sealKeyOf(app);
         const handler = handlerFor(app, body.action.kind);
-        const d = handler.describe(body.action);
+        // Phase 4 slice 4 (D-P4-5): a two-row action opens a challenge for each of its records.
+        const primary = await describeAction(app, handler, body.action);
+        const companion = handler.companionOf?.(body.action);
+        const d = companion && companion.aggregateType === body.aggregateType && companion.aggregateId === body.aggregateId ? companion : primary;
         if (d.aggregateType !== body.aggregateType || d.aggregateId !== body.aggregateId) throw mismatch(`The action signs ${d.aggregateType} ${d.aggregateId}.`);
         if (d.meaning !== '' && d.meaning !== body.meaning) throw mismatch(`The action is signed ${d.meaning}, not ${body.meaning}.`);
         await meaningInfo(app.pools.app, body.meaning);
@@ -349,13 +357,29 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const s = requireSession();
         const sealKey = sealKeyOf(app);
         const handler = handlerFor(app, body.action.kind);
-        const d = handler.describe(body.action);
+        const d = await describeAction(app, handler, body.action);
         const ch: StoredChallenge | null = await readChallenge(app.pools.app, s.tokenHash, body.challengeId);
         if (!ch || ch.sessionId !== s.sessionId) {
           throw refusal(409, { code: 'EBMR-ESIG-031', kind: 'STALE', whatHappened: 'This signing request is not known here. Nothing was signed.', why: 'The challenge does not exist or belongs to another session.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again.'] });
         }
         if (d.aggregateType !== ch.aggregateType || d.aggregateId !== ch.aggregateId || (d.meaning !== '' && d.meaning !== ch.meaning)) {
           throw mismatch('The action to apply is not the one the challenge was issued for.');
+        }
+        // Phase 4 slice 4 (D-P4-5): a two-row action names its companion challenge (the same signer, its own record and
+        // meaning); a one-row action names none.
+        const comp = handler.companionOf?.(body.action);
+        let ch2: StoredChallenge | null = null;
+        if (comp || body.companionChallengeId) {
+          if (!comp || !body.companionChallengeId) {
+            throw mismatch(comp ? `This action is signed in two rows: the second is ${comp.meaning} on ${comp.aggregateType} ${comp.aggregateId}.` : 'This action is signed in one row; it takes no second challenge.');
+          }
+          ch2 = await readChallenge(app.pools.app, s.tokenHash, body.companionChallengeId);
+          if (!ch2 || ch2.sessionId !== s.sessionId) {
+            throw refusal(409, { code: 'EBMR-ESIG-031', kind: 'STALE', whatHappened: 'The second signing request is not known here. Nothing was signed.', why: 'The challenge does not exist or belongs to another session.', controls: ['DI-38'], whatYouCanDo: ['Start the signing again.'] });
+          }
+          if (ch2.challengeId === ch.challengeId || ch2.aggregateType !== comp.aggregateType || ch2.aggregateId !== comp.aggregateId || ch2.meaning !== comp.meaning || ch2.signerPerson !== ch.signerPerson) {
+            throw mismatch('The second challenge is not the one this action signs with the first.');
+          }
         }
         const { fingerprint, device } = await app.devices.identify(body.proof, { method: request.method, path: pathOf(request), body: without(body, 'proof') });
         if (device.deviceId !== s.deviceId) throw otherTerminal();
@@ -369,6 +393,16 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             why: `${s.deviceCode} is a ${s.deviceClass} terminal.`,
             controls: ['DI-38'],
             whatYouCanDo: ['Sign with the components this terminal asks for.'],
+          });
+        }
+        if (ch2 && floor) {
+          throw refusal(422, {
+            code: 'LOGIN_METHOD',
+            kind: 'NOT_ALLOWED',
+            whatHappened: 'A signing in two rows is made on an office PC. Nothing was signed.',
+            why: `${s.deviceCode} is a ${s.deviceClass} terminal.`,
+            controls: ['DI-38'],
+            whatYouCanDo: ['Sign from an office PC.'],
           });
         }
         let identifier: string;
@@ -412,6 +446,17 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           await logged(app, s.tokenHash, ch.challengeId, new Error(`EBMR-IAM-093 the signature authentication belongs to another person (no proxy signing)`), ev.authEventId);
           throw e;
         }
+        // D-P4-5: the credentials are entered once; the second row gets an authentication event of its own, bound to its
+        // own challenge (the kernel uses one event for one signature, INV-10).
+        let ev2: identity.AuthenticationEvent | null = null;
+        if (ch2) {
+          try {
+            ev2 = await identity.authenticate(app.pools.authn, { method: 'PASSWORD', identifier, secret, deviceFingerprint: fingerprint, purpose: 'SIGNATURE', challengeId: ch2.challengeId });
+          } catch (error) {
+            await logged(app, s.tokenHash, ch2.challengeId, error);
+            throw signingAuthRefusal(error, c.kind);
+          }
+        }
         const a = { ...actor(handler.reasonOf?.(body.action)), authEventId: ev.authEventId };
         const ctx = signableContext(s, a, ch.meaning);
         const key = idempotencyKey ?? '';
@@ -440,8 +485,24 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
               const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action) : null);
               const delegationId = handler.delegationOf?.(body.action);
               const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState, ...(delegationId ? { delegationId } : {}) }, sealKey);
-              const applied = await handler.apply(client, ctx, body.action, { signatureId: sig.signatureId, meaning: ch.meaning, signer: ch.signerPerson });
-              const result: SignWork = { signed: { manifestation: manifestationView(sig.manifestation, ch.signerPerson, true), result: applied } };
+              let sig2: Awaited<ReturnType<typeof esig.sign>> | null = null;
+              if (ch2 && ev2 && comp) {
+                const state2 = comp.expectedState ?? (await recordContentForSigning(client, comp.aggregateType, comp.aggregateId)).state ?? null;
+                sig2 = await esig.sign(client, { challengeId: ch2.challengeId, authEventId: ev2.authEventId, expectedState: state2 }, sealKey);
+              }
+              const applied = await handler.apply(client, ctx, body.action, {
+                signatureId: sig.signatureId,
+                meaning: ch.meaning,
+                signer: ch.signerPerson,
+                ...(sig2 ? { companionSignatureId: sig2.signatureId } : {}),
+              });
+              const result: SignWork = {
+                signed: {
+                  manifestation: manifestationView(sig.manifestation, ch.signerPerson, true),
+                  result: applied,
+                  ...(sig2 && ch2 ? { companion: manifestationView(sig2.manifestation, ch2.signerPerson, true) } : {}),
+                },
+              };
               return result as unknown as commands.JsonValue;
             },
             {
@@ -466,8 +527,16 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       describe: async ({ body, requireSession }) => {
         requireSession();
         const handler = handlerFor(app, body.action.kind);
-        const d = handler.describeNow ? await handler.describeNow(app.pools.app, body.action) : handler.describe(body.action);
-        return { kind: body.action.kind, aggregateType: d.aggregateType, aggregateId: d.aggregateId, meaning: d.meaning === '' ? null : d.meaning, expectedState: d.expectedState ?? null };
+        const d = await describeAction(app, handler, body.action);
+        const comp = handler.companionOf?.(body.action);
+        return {
+          kind: body.action.kind,
+          aggregateType: d.aggregateType,
+          aggregateId: d.aggregateId,
+          meaning: d.meaning === '' ? null : d.meaning,
+          expectedState: d.expectedState ?? null,
+          ...(comp ? { companion: { aggregateType: comp.aggregateType, aggregateId: comp.aggregateId, meaning: comp.meaning, expectedState: comp.expectedState ?? null } } : {}),
+        };
       },
 
       // DI-17, DI-36, DI-50 (tablets 0410, review F34): only when the session's role may read the record.
