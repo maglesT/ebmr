@@ -389,3 +389,11 @@ and a SITE-165 branch of `consume_reservation` can never fire (an earlier check 
 - TB-11 missed start sweep stays due (mutation medium): fixed in tb-11.ts and tablets 1110.
 - Site-services 0733 collation (mutation medium): `collate "C"` in site.qc_test_codes (site-services 0810).
 
+
+## Ticked in Phase 4 slice 2a (12 October 2026, branch phase-4/slice-2a)
+
+- Evidence documents self-attested (slice 5 backlog): the database stores the bytes and computes the SHA-256 and the
+  size (`site.store_evidence_document`, site-services 0823); the typed form is refused; a document is evidence only
+  while its stored bytes match its hash. Residual: recipe-core 0601 and 0716 still look a correction's evidence up by
+  hash in `site.evidence_document` directly, so a row stored before 0823 without bytes still matches there (call
+  `site.evidence_document_verified` in a recipe-core migration of slice 2c or 3).

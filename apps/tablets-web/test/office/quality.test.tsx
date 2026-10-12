@@ -35,7 +35,7 @@ describe('deviations', () => {
     expect(await within(form).findByText('A minor deviation needs its risk rationale.')).toBeTruthy();
   });
 
-  it('links a batch, records the finding and concludes through the QA ceremony', async () => {
+  it('links a batch, records the finding and signs the impact assessment through the QA ceremony', async () => {
     const ui = renderOffice(devPath, { role: 'QA_REVIEWER' });
     const link = await screen.findByTestId('link-form');
     await userEvent.click(within(link).getByRole('radio', { name: 'A batch' }));
@@ -50,22 +50,32 @@ describe('deviations', () => {
     await userEvent.click(within(finding).getByRole('radio', { name: 'EQUIPMENT' }));
     await userEvent.click(within(finding).getByRole('button', { name: 'Record the finding' }));
     await waitFor(() => expect(ui.posts(`${devPath.replace('/quality', '/api/quality')}/findings`)).toHaveLength(1));
-    await userEvent.click(screen.getByRole('button', { name: 'Conclude (QA signature)' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Sign the impact assessment (QA signature)' }));
     await waitFor(() => expect(ui.ceremony.sign).toHaveBeenCalledTimes(1));
-    expect(ui.ceremony.sign.mock.calls[0]?.[0].action).toEqual({ kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: dev?.deviationId, input: {} });
+    expect(ui.ceremony.sign.mock.calls[0]?.[0].action).toEqual({ kind: 'QUALITY_ACT', act: 'DEVIATION_IMPACT_ASSESS', subjectId: dev?.deviationId, input: {} });
   });
 
-  it('starts the investigation of an OPEN record; an operator is offered no QA act', async () => {
+  it('QA\'s classification starts the investigation of an OPEN record; an operator is offered no QA act', async () => {
     const open = { ...dev, state: 'OPEN' };
     const ui = renderOffice(devPath, { role: 'OPERATOR', fixtures: { 'quality.deviation': open } });
-    await userEvent.click(await screen.findByRole('button', { name: 'Start the investigation' }));
+    const form = await screen.findByTestId('form-Classify and start the investigation');
+    await userEvent.click(within(form).getByRole('radio', { name: 'MAJOR' }));
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Risk rationale' }), 'End point outside the validated time');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Owner (person id)' }), '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e76');
+    await userEvent.type(within(form).getByRole('textbox', { name: 'Due date' }), '2026-11-12');
+    await userEvent.click(within(form).getByRole('button', { name: 'Start the investigation' }));
     await waitFor(() => expect(ui.posts(`${devPath.replace('/quality', '/api/quality')}/investigation`)).toHaveLength(1));
     expect(screen.queryByTestId('qa-decision')).toBeNull();
     expect(screen.queryByTestId('cancel-deviation')).toBeNull();
   });
 
-  it('a concluded record is closed through the ceremony', async () => {
-    const ui = renderOffice(devPath, { role: 'QA_REVIEWER', fixtures: { 'quality.deviation': { ...dev, state: 'CONCLUDED' } } });
+  it('an impact-assessed record is concluded, and one pending closure is closed, through the ceremony', async () => {
+    const assessed = renderOffice(devPath, { role: 'QA_REVIEWER', fixtures: { 'quality.deviation': { ...dev, state: 'IMPACT_ASSESSED' } } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Conclude (QA signature)' }));
+    await waitFor(() => expect(assessed.ceremony.sign).toHaveBeenCalledTimes(1));
+    expect(assessed.ceremony.sign.mock.calls[0]?.[0].action).toMatchObject({ act: 'DEVIATION_CONCLUDE' });
+    assessed.unmount();
+    const ui = renderOffice(devPath, { role: 'QA_REVIEWER', fixtures: { 'quality.deviation': { ...dev, state: 'PENDING_CLOSURE' } } });
     await userEvent.click(await screen.findByRole('button', { name: 'Close (QA signature)' }));
     await waitFor(() => expect(ui.ceremony.sign).toHaveBeenCalledTimes(1));
     expect(ui.ceremony.sign.mock.calls[0]?.[0].action).toMatchObject({ act: 'DEVIATION_CLOSE' });

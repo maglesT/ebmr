@@ -142,7 +142,7 @@ describe('life cycle (S7)', () => {
 
     const early = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
     expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, early)))).toMatch(/EBMR-SITE-827 .* has no closure basis/);
-    const { systemFactors: _sf, ...withoutFactors } = closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'HUMAN_ERROR' });
+    const withoutFactors = closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'EQUIPMENT' });
     await w.run(w.cast.qa3, (c) => recordDeviationClosureBasis(c, d.deviationId, withoutFactors));
     expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, early)))).toMatch(/EBMR-SITE-827 .* human error/);
     await w.run(w.cast.qa3, (c) => recordDeviationClosureBasis(c, d.deviationId, closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'HUMAN_ERROR' })));

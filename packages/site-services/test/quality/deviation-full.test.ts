@@ -163,7 +163,7 @@ describe('PENDING_CLOSURE and CLOSED (PR-50, PR-51)', () => {
     expect(await refusal(basis({ ...good, capaRefs: ['x'] }))).toMatch(/EBMR-SITE-826 each CAPA reference/);
     expect(await refusal(basis({ ...good, systemFactors: { process: 'too short' } }))).toMatch(/EBMR-SITE-826 a system-factor assessment/);
     // A MAJOR record with the root cause not determined: the basis without a method or a CAPA is recorded, but does not conclude.
-    const { rootCauseMethod: _method, ...noMethod } = good;
+    const noMethod: DeviationClosureBasis = { capaRefs: good.capaRefs, notificationRequired: good.notificationRequired, notificationRationale: good.notificationRationale, otherBatches: good.otherBatches };
     await recordDeviationClosureBasisAs(d.deviationId, { ...noMethod, capaRefs: [], noCapaReason: 'The trend review covers it already' });
     await impact(d.deviationId, lb, 'IN');
     await signImpact(d.deviationId);

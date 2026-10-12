@@ -9,7 +9,7 @@
  * The parent GMP batches are arranged as fixtures by the superuser with triggers off (their issue is slice 2b's); every
  * rule under test runs as the application role.
  */
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   erpReceiveProduct,
@@ -33,7 +33,6 @@ let processingFamily: string;
 let parents: GmpBatch[];
 let risk: string;
 
-const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 /** A GMP parent batch: 5a's planned batch with its allocation, issued (batch record and control recipe) as a fixture. */
 async function parent(status = 'EXECUTION_COMPLETE'): Promise<GmpBatch> {

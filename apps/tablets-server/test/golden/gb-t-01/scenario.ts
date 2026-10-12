@@ -167,8 +167,8 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
   await g.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: ex.exceptionId, outcome: 'DEVIATION_RAISED', justification: `Deviation ${dev.ref}: the held containers stay held until QA decides on them` });
   // The investigation re-weighed the retained sample of the failing check on a checked balance: within limits (an
   // instrument reading error). Phase 4 slice 1b (recipe-core 0741): QA releases a held container only once the
-  // investigation is concluded. Phase 4 slice 2a (site services 0820 to 0822), the full path: the shop-floor QA person
-  // classifies the record and starts the investigation with the investigator as its owner; the investigator records the
+  // investigation is concluded. Phase 4 slice 2a (site services 0820 to 0822), the full path: the quality unit's authorised
+  // person classifies the record and starts the investigation with the investigator as its owner; the investigator records the
   // finding and the impact on the batch for India; the second QA person signs the impact; the investigator records the
   // closure basis and the second QA person concludes (PENDING_CLOSURE). QA then releases the held container
   // (OUTPUT_CONTAINER_RELEASED: the kernel's ceremony directly) before the approval for coating.
@@ -176,7 +176,7 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
   const id = { deviationId: dev.deviationId };
   const due = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
   ok(
-    await g.b('qa1').call(routes.quality.startInvestigation, {
+    await (await w.server.asPersona('qcuAuthoriser')).call(routes.quality.startInvestigation, {
       params: id,
       body: { classification: 'MAJOR', riskRationale: 'Weight outside the action limit on one side; held containers at risk', ownerPersonId: personaOf(w.seed, 'qaInvestigator').personId, dueDate: due },
     }),
