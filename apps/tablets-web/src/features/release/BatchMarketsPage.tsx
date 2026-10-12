@@ -17,7 +17,8 @@ import { useRouteParams } from '../floor/params.ts';
 import { MarketAddEvaluation } from './MarketTabs.tsx';
 import { RELEASE_READS, words } from './reads.ts';
 
-const MARKETS: readonly ReleaseMarket[] = ['IN', 'US', 'EU'];
+// India is never added or removed (INV-28: every batch is made under an Indian licence; the database refuses it).
+const MARKETS: readonly ReleaseMarket[] = ['US', 'EU'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function BatchMarketsPage() {
