@@ -369,7 +369,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const a = await records.requestDisposal(c, 'batch', params.batchId, body.reason);
         return { outcome: a.outcome, retainUntil: a.retainUntil, refusals: a.refusals };
       });
-      return out.result as { outcome: 'REFUSED' | 'ELIGIBLE'; retainUntil: string | null; refusals: { code: string; detail: string }[] };
+      return out.result;
     },
     issuePack: async ({ params, body, actor, idempotencyKey, requestHash }) => {
       const f = await facts(pool, params.batchId);

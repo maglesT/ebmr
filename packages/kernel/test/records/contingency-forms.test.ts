@@ -166,7 +166,7 @@ describe('contingency packs (kernel 1170)', () => {
     const bundle = await run(qaReviewer, (c) => trueCopyBundleFromSnapshot(c, `form_reconciliation:${batch}`));
     const report = verifyTrueCopyBundle(bundle);
     expect(report.problems).toEqual([]);
-    expect(JSON.parse(bundle.manifest).tables).toEqual(expect.arrayContaining(['records.contingency_form', 'records.contingency_form_event']));
+    expect((JSON.parse(bundle.manifest) as { tables: string[] }).tables).toEqual(expect.arrayContaining(['records.contingency_form', 'records.contingency_form_event']));
   });
 
   it('[DI-43][INV-27] the tables are written only by the definers and the serial sequence is protected', async () => {

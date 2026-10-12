@@ -7,7 +7,7 @@
  * D-6b-3: the EU state is CERTIFIED when a lot of the batch has a QP certification (the latest date), FINALLY_REJECTED when
  * the QP rejected it or its EU disposition is REJECTED or INELIGIBLE (the date of that event), else PENDING.
  */
-import { records } from '@ebmr/kernel';
+import type { records } from '@ebmr/kernel';
 import type pg from 'pg';
 
 type Db = Pick<pg.Pool, 'query'> | pg.PoolClient;

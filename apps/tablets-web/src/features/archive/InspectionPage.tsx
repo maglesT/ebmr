@@ -53,9 +53,9 @@ export function InspectionPage() {
             type="file"
             accept="application/json"
             data-testid="verify-file"
-            onChange={async (ev) => {
+            onChange={(ev) => {
               const f = ev.target.files?.[0];
-              if (f) setText(await f.text());
+              if (f) void f.text().then(setText);
             }}
           />
         </label>

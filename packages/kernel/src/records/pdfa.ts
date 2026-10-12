@@ -248,7 +248,7 @@ const widthCache = new WeakMap<PDFFont, Map<string, number>>();
 function charWidth(c: string, deva: boolean, f: Fonts): number {
   const font = deva ? f.devanagari : f.latin;
   let m = widthCache.get(font);
-  if (!m) widthCache.set(font, (m = new Map()));
+  if (!m) widthCache.set(font, (m = new Map<string, number>()));
   let v = m.get(c);
   if (v === undefined) {
     v = font.widthOfTextAtSize(c, 1);

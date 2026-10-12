@@ -97,7 +97,7 @@ describe('PDF/A-3 true copy (D-6-4, D-P4-7)', () => {
     const batch = await recordedBatch();
     const first = await copyOf(batch);
     const second = await copyOf(batch);
-    expect(JSON.parse(first.manifest).generatedAt).not.toBe(JSON.parse(second.manifest).generatedAt);
+    expect((JSON.parse(first.manifest) as { generatedAt: string }).generatedAt).not.toBe((JSON.parse(second.manifest) as { generatedAt: string }).generatedAt);
     const a = await renderTrueCopyPdf(first, { title: 'Batch record (true copy)', label: 'Batch 1' });
     const b = await renderTrueCopyPdf(second, { title: 'Batch record (true copy)', label: 'Batch 1' });
     expect(Buffer.from(a.pdf).equals(Buffer.from(b.pdf))).toBe(true);

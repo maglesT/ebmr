@@ -117,7 +117,9 @@ const NEXT: Readonly<Record<ContingencyFormView['state'], readonly ('RETURNED' |
 function Forms({ v }: { v: ArchiveBatchView }) {
   const f = v.forms;
   const qa = useOffered('QA');
-  const floorRole = useOffered('PRODUCTION_FLOOR') || useOffered('PRODUCTION_HEAD');
+  const floorOffered = useOffered('PRODUCTION_FLOOR');
+  const head = useOffered('PRODUCTION_HEAD');
+  const floorRole = floorOffered || head;
   const issue = useCommand(routes.archive.issuePack, ARCHIVE_READS, 'issuing a contingency pack');
   const event = useCommand(routes.archive.formEvent, ARCHIVE_READS, 'a contingency form');
   const signed = useSignedAct(ARCHIVE_READS);
@@ -174,7 +176,7 @@ function Forms({ v }: { v: ArchiveBatchView }) {
           <ActResult error={signed.error} outcome={signed.outcome} />
         </>
       ) : null}
-      {(qa || useOffered('PRODUCTION_HEAD')) && !['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(v.status) && f.state !== 'SIGNED' ? (
+      {(qa || head) && !['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(v.status) && f.state !== 'SIGNED' ? (
         <>
           <h3>Issue a contingency pack</h3>
           <floor.ChoiceGroup
