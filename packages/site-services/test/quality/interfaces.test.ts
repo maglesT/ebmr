@@ -173,7 +173,7 @@ describe('ERP product master', () => {
 });
 
 describe('QC decision on extra testing (D-S5-9)', () => {
-  it('[PR-47] the decision needs QC.RESULT_APPROVE and its own QC_EXTRA_TESTING_DECIDED signature binding the batch, decision and tests; the reader returns the latest', async () => {
+  it('[PR-47] the decision needs QC.RESULT_APPROVE and its own QC_EXTRA_TESTING_DECIDED signature binding the batch, decision and tests; the reader returns the latest, which keeps every earlier test', async () => {
     const b = await w.gmpBatch();
     expect(await w.run(w.cast.qa, (c) => qcExtraTestingDecisionOf(c, b.id))).toBeNull();
     const id = await w.run(w.cast.qcHead, (c) => qcExtraTestingAggregateId(c, b.id, 'EXTRA_TESTS', ['DISSOLUTION', 'ASSAY', 'ASSAY']));
@@ -195,12 +195,15 @@ describe('QC decision on extra testing (D-S5-9)', () => {
     // The same signature is never used twice.
     expect(await refusal(w.run(w.cast.qcHead, (c) => recordQcExtraTestingDecision(c, b.id, 'EXTRA_TESTS', ['ASSAY', 'DISSOLUTION'], sig)))).toMatch(/EBMR-SITE-347|EBMR-ESIG/);
 
-    // A later decision supersedes it.
+    // A later decision keeps every test an earlier one named (site services 0841): NONE_REQUIRED is refused, more tests are recorded.
     const noneId = await w.run(w.cast.qcHead2, (c) => qcExtraTestingAggregateId(c, b.id, 'NONE_REQUIRED', []));
     const latest = (await db.app.query<{ id: string }>('select id::text from site.qc_extra_testing_decision where batch_id = $1', [b.id])).rows[0]?.id ?? '';
     const sig2 = await w.sign(w.cast.qcHead2, { type: 'qc_extra_testing', id: noneId }, 'QC_EXTRA_TESTING_DECIDED', latest);
-    await w.run(w.cast.qcHead2, (c) => recordQcExtraTestingDecision(c, b.id, 'NONE_REQUIRED', [], sig2));
-    expect(await w.run(w.cast.qa, (c) => qcExtraTestingDecisionOf(c, b.id))).toMatchObject({ decision: 'NONE_REQUIRED', tests: [], signatureId: sig2 });
+    expect(await refusal(w.run(w.cast.qcHead2, (c) => recordQcExtraTestingDecision(c, b.id, 'NONE_REQUIRED', [], sig2)))).toMatch(/EBMR-SITE-415 .* ASSAY, DISSOLUTION/);
+    const moreId = await w.run(w.cast.qcHead2, (c) => qcExtraTestingAggregateId(c, b.id, 'EXTRA_TESTS', ['ASSAY', 'DISSOLUTION', 'UNIFORMITY']));
+    const sig3 = await w.sign(w.cast.qcHead2, { type: 'qc_extra_testing', id: moreId }, 'QC_EXTRA_TESTING_DECIDED', latest);
+    await w.run(w.cast.qcHead2, (c) => recordQcExtraTestingDecision(c, b.id, 'EXTRA_TESTS', ['ASSAY', 'DISSOLUTION', 'UNIFORMITY'], sig3));
+    expect(await w.run(w.cast.qa, (c) => qcExtraTestingDecisionOf(c, b.id))).toMatchObject({ decision: 'EXTRA_TESTS', tests: ['ASSAY', 'DISSOLUTION', 'UNIFORMITY'], signatureId: sig3 });
 
     // Not a GMP batch of this installation; and no direct write.
     expect(await refusal(w.run(w.cast.qcHead, (c) => recordQcExtraTestingDecision(c, '00000000-0000-4000-8000-000000000003', 'NONE_REQUIRED', [], sig2)))).toMatch(/EBMR-SITE-345/);

@@ -27,7 +27,7 @@ type Json = Record<string, unknown>;
 const result = (lotId: string, p: Json, by: SeededActor = w.cast.analyst) =>
   w.sql<{ resultId: string; verdict: string }>(by, 'select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, JSON.stringify(p)]);
 const assay = (value: string, purpose: 'RELEASE' | 'RETEST' = 'RELEASE', extra: Json = {}): Json => ({
-  testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose, value, unit: '%', lowerLimit: '98.0', upperLimit: '102.0', ...extra,
+  testCode: 'ASSAY', methodReference: 'STP-AS-01', purpose, value, unit: '%', ...extra,
 });
 async function approve(resultId: string, by: SeededActor = w.cast.qcHead): Promise<void> {
   const sig = await signFor(db, by, { type: 'lot_test_result', id: resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
@@ -76,6 +76,15 @@ async function signedRetest(
     const { rows } = await c.query<{ r: string }>('select site.record_signed_lot_retest($1, $2::timestamptz, $3::uuid[], $4)::text as r', [lotId, rec.at, rec.ids, sig.signatureId]);
     return { retestId: rows[0]?.r, signatureId: sig.signatureId };
   });
+}
+
+/** An OOS record of the lot (kind OOS, linked to it), as a revision of a RELEASE result cites (site services 0841). */
+async function oosOf(lotId: string): Promise<string> {
+  const d = await w.sql<{ deviationId: string }>(w.cast.analyst, 'select site.raise_deviation($1::jsonb) as r', [
+    JSON.stringify({ kind: 'OOS', title: 'Result under investigation', classification: 'MAJOR', riskRationale: 'A release result is in doubt and is investigated' }),
+  ]);
+  await w.sql(w.cast.analyst, "select site.link_deviation($1, 'LOT', $2)", [d.deviationId, lotId]);
+  return d.deviationId;
 }
 
 /** Releases a lot on the identity-tested route (identity result, MATERIAL_LOT_RELEASED by the head of QC). */
@@ -127,12 +136,13 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     expect(await state(pass.resultId)).toBe('APPROVED');
     expect(await refusal(approve(pass.resultId, w.cast.qcHead2))).not.toBe('');
 
-    // A revision (with the person's own reason) supersedes the result and drops its approval.
+    // A revision (with the person's own reason and, for a RELEASE result, its OOS record: 0841) supersedes the result and drops its approval.
     expect(await refusal(result(lot.lotId, assay('99.5', 'RELEASE', { revises: pass.resultId })))).toMatch(/EBMR-SITE-202 .* own reason/);
-    const rev = await result(lot.lotId, assay('99.5', 'RELEASE', { revises: pass.resultId, revisionReason: 'Transcription error: the chromatogram reads 99.5' }));
+    const oos = await oosOf(lot.lotId);
+    const rev = await result(lot.lotId, assay('99.5', 'RELEASE', { revises: pass.resultId, revisionReason: 'Transcription error: the chromatogram reads 99.5', oosDeviationId: oos }));
     expect(await state(pass.resultId)).toBe('REVISED');
     expect(await state(rev.resultId)).toBe('RECORDED');
-    expect(await refusal(result(lot.lotId, assay('99.6', 'RELEASE', { revises: pass.resultId, revisionReason: 'again' })))).toMatch(/EBMR-SITE-202 .* current result/);
+    expect(await refusal(result(lot.lotId, assay('99.6', 'RELEASE', { revises: pass.resultId, revisionReason: 'again', oosDeviationId: oos })))).toMatch(/EBMR-SITE-202 .* current result/);
 
     // Bypass attempts as ebmr_app.
     for (const sql of [
@@ -149,7 +159,7 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     const r1 = await result(lot.lotId, assay('99.0'));
     expect(await refusal(release(lot.lotId))).toMatch(/not approved by QC/);
     await approve(r1.resultId);
-    const fail = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.9', unit: '%', upperLimit: '0.5' });
+    const fail = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.9', unit: '%' });
     await approve(fail.resultId);
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
 
@@ -169,7 +179,7 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
     await w.sql(w.cast.qa2, 'select site.conclude_deviation($1, $2)', [oos.deviationId, sig]);
     // A confirmed laboratory error invalidates the result, but the lot still needs an approved passing replacement.
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless/);
-    const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%', upperLimit: '0.5' });
+    const replacement = await result(lot.lotId, { testCode: 'WATER', methodReference: 'STP-KF-01', purpose: 'RELEASE', value: '0.3', unit: '%' });
     expect(await refusal(release(lot.lotId))).toMatch(/failed its limits; it stands unless|not approved by QC/);
     await approve(replacement.resultId);
     await release(lot.lotId);
@@ -200,6 +210,7 @@ describe('results, approval and revision (PR-19, DI-33, DI-37)', () => {
 describe('retest (PR-18)', () => {
   it('[PR-18][IN-24] a lot past retest is usable again only after an approved passing retest, never past expiry or the master\'s interval, never approved by its recorder', async () => {
     const lot = await w.lot({ materialKind: 'EXCIPIENT', retestAt: '2029-01-01T00:00:00Z', maxRetestMonths: 12 });
+    await approve((await result(lot.lotId, assay('99.5'))).resultId);
     await release(lot.lotId);
     await w.fixture('update site.material_lot set retest_at = clock_timestamp() - interval \'1 day\' where id = $1', [lot.lotId]);
     const reserve = () =>

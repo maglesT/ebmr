@@ -93,19 +93,8 @@ describe('receipt and release', () => {
   });
 
   it('[IN-24] a finished-product lot never leaves quarantine through this path; an intermediate is released for further processing by QA only', async () => {
-    const finished = await w.receive('FINISHED');
-    await w.identity(finished.lotId);
-    const sig = await w.sign(w.cast.qcHead, finished.lotId, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');
-    expect(await refusal(w.run(w.cast.qcHead, async (c) => changeLotStatus(c, finished.lotId, 'RELEASE', await w.version(finished.lotId), sig, 'IDENTITY_TESTED')))).toMatch(
-      /not_finished: lot .* is finished product/,
-    );
-    const rej = await w.sign(w.cast.qa, finished.lotId, 'MATERIAL_LOT_REJECTED', 'QUARANTINE');
-    expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, finished.lotId, 'REJECT', await w.version(finished.lotId), rej), 'finished'))).toMatch(/not_finished/);
-    const qd = await w.decide(w.cast.qa, finished.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', 'QUARANTINE');
-    expect(await refusal(w.run(w.cast.qa, async (c) => changeLotStatus(c, finished.lotId, 'RELEASE_FOR_FURTHER_PROCESSING', await w.version(finished.lotId), qd), 'x'))).toMatch(
-      /not_finished/,
-    );
-    expect(await w.state(finished.lotId)).toBe('QUARANTINE');
+    // A finished lot is never received (site services 0842): it is created from its packaging batch's output.
+    expect(await refusal(w.receive('FINISHED', {}, false))).toMatch(/EBMR-SITE-420 lot .* is finished product/);
 
     const intermediate = await w.receive('INTERMEDIATE');
     const isig = await w.sign(w.cast.qcHead, intermediate.lotId, 'MATERIAL_LOT_RELEASED', 'QUARANTINE');

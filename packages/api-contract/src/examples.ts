@@ -46,6 +46,7 @@ import gmpBatch from '../fixtures/gmp-batch.json' with { type: 'json' };
 import s6 from '../fixtures/slice-6.json' with { type: 'json' };
 import rv from '../fixtures/review.json' with { type: 'json' };
 import cn from '../fixtures/containers.json' with { type: 'json' };
+import lm from '../fixtures/lims.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -224,7 +225,28 @@ export const EXAMPLES = {
   'containers-sort': { schema: r.containers.sort.response, data: { ...cn.held, state: 'SORTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is SORTED: held containers are never merged, charged or packed until QA releases them' }, routeId: r.containers.sort.id },
   'containers-reject': { schema: r.containers.reject.response, data: { ...cn.held, state: 'REJECTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is REJECTED', releaseProblem: null }, routeId: r.containers.reject.id },
   'devices-process-readings': { schema: r.devices.processReadings.response, data: cn.processReadings, routeId: r.devices.processReadings.id },
+  // Phase 4 slice 2b: specifications, lot decisions, finished lots, samples and returned goods, for the screens (2c).
+  'specifications-list': { schema: r.specifications.list.response, data: { specifications: [lm.specification] }, routeId: r.specifications.list.id },
+  'specifications-draft': { schema: r.specifications.draft.response, data: { ...lm.specification, state: 'DRAFT', approvedBy: null, approvedAt: null }, routeId: r.specifications.draft.id },
+  'specifications-mark-edition': { schema: r.specifications.markEdition.response, data: { editionId: '4e0b2f1a-3c5d-4e6f-9a7b-9c0d1e2f3a41' }, routeId: r.specifications.markEdition.id },
+  'specifications-edition-review': { schema: r.specifications.editionReview.response, data: lm.editionReview, routeId: r.specifications.editionReview.id },
+  'specifications-lot-release-check': { schema: r.specifications.lotReleaseCheck.response, data: lm.releaseCheck, routeId: r.specifications.lotReleaseCheck.id },
+  'specifications-propose-lot-decision': { schema: r.specifications.proposeLotDecision.response, data: lm.proposal, routeId: r.specifications.proposeLotDecision.id },
+  'specifications-post-finished-lot': { schema: r.specifications.postFinishedLot.response, data: lm.finishedLot, routeId: r.specifications.postFinishedLot.id },
+  'samples-list': { schema: r.samples.list.response, data: { samples: [lm.sample] }, routeId: r.samples.list.id },
+  'samples-pull': { schema: r.samples.pull.response, data: lm.sample, routeId: r.samples.pull.id },
+  'samples-dispose': {
+    schema: r.samples.dispose.response,
+    data: { ...lm.sample, disposedBy: { ...lm.sample.pulledBy, role: 'DISPOSER' }, disposedAt: lm.sample.retainUntil, disposalReason: 'Retention period over' },
+    routeId: r.samples.dispose.id,
+  },
+  'samples-returns': { schema: r.samples.returns.response, data: { returns: [lm.return] }, routeId: r.samples.returns.id },
+  'samples-receive-return': { schema: r.samples.receiveReturn.response, data: { ...lm.return, assessment: null }, routeId: r.samples.receiveReturn.id },
+  'samples-assess-return': { schema: r.samples.assessReturn.response, data: { ...lm.return, assessment: { ...lm.return.assessment, signed: false } }, routeId: r.samples.assessReturn.id },
 } as const satisfies Record<string, Example>;
+
+/** Phase 4 slice 2b: the specifications and samples routes, each with an example above (checked by the contract test). */
+export const LIMS_ROUTE_IDS: readonly string[] = [...Object.values(r.specifications), ...Object.values(r.samples)].map((route) => route.id);
 
 /** Phase 3 slice 6: the routes added by slice 6a-0, each with at least one example above (checked by the contract test). */
 export const SLICE_6_ROUTE_IDS: readonly string[] = [
