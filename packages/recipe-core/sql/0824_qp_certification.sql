@@ -168,11 +168,11 @@ language sql stable security definer set search_path = pg_catalog, recipe, pg_te
   select e.outcome from recipe.qp_effective(p_lot) e order by e.effective_at, e.certification_id limit 1
 $$;
 
-create or replace function recipe.market_rejections(p_lot uuid) returns table (market text, rejected_at timestamptz, ref text)
+create or replace function recipe.market_rejections(p_lot uuid) returns table (market text, rejected_at timestamptz, ref text, deviation_id uuid)
 language sql stable security definer set search_path = pg_catalog, recipe, pg_temp as $$
-  select 'US'::text, d.recorded_at, d.signature_id::text from recipe.us_disposition_decision d where d.lot_id = p_lot and d.decision = 'REJECTED'
+  select 'US'::text, d.recorded_at, d.signature_id::text, d.deviation_id from recipe.us_disposition_decision d where d.lot_id = p_lot and d.decision = 'REJECTED'
   union all
-  select 'EU'::text, e.effective_at, e.certification_id::text from recipe.qp_effective(p_lot) e where e.outcome = 'REJECTED_BY_QP'
+  select 'EU'::text, e.effective_at, e.certification_id::text, null::uuid from recipe.qp_effective(p_lot) e where e.outcome = 'REJECTED_BY_QP'
 $$;
 
 -- The latest register row of a person (REGISTER: a registered QP).
