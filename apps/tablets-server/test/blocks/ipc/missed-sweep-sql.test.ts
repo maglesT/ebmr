@@ -29,7 +29,7 @@ async function sqlDue(entries: ReturnType<typeof entry>[], config: Json, stream:
   return rows[0]?.d ?? null;
 }
 const tsDue = (entries: ReturnType<typeof entry>[], config: Json, stream: string, test: string): string | null => {
-  const d = dueOf(entries as never, config, stream, test as never).dueUs;
+  const d = dueOf(entries, config, stream, test as never).dueUs;
   return d === undefined ? null : d.toString();
 };
 

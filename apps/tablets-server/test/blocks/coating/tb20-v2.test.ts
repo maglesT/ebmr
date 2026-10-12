@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
 import type { flow } from '@ebmr/recipe-core/pure';
 import { TB20, TB20_V2 } from '../../../src/blocks/coating/index.ts';
 import { tabletsBlockRegistry } from '../../../src/features/edition-blocks.ts';
-import { blockMbr, definitionCodes, OP1, Run, runGolden, startRun } from './support.ts';
+import type { Run} from './support.ts';
+import { blockMbr, definitionCodes, OP1, runGolden, startRun } from './support.ts';
 
 type Json = Record<string, unknown>;
 type Entry = Json & { kind: string };

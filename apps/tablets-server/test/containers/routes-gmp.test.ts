@@ -75,7 +75,7 @@ describe('container routes (GMP, Phase 4 slice 1b)', () => {
   it('[DI-30][DI-32] a close is weighed or typed, never both; a weighed close stands on readings the room\'s balance sent (unknown ones are refused); a stale version is refused', async () => {
     const c = await open();
     const both = { expectedVersion: c.version, typed: { net: '1.000' }, weighing: { tareReadingId: randomUUID(), grossReadingId: randomUUID() } };
-    expect((await operator.call(routes.containers.close, { params: { containerId: c.containerId }, body: both as never, attribution: await tap(`/api/containers/${c.containerId}/close`, both) })).ok).toBe(false);
+    expect((await operator.call(routes.containers.close, { params: { containerId: c.containerId }, body: both, attribution: await tap(`/api/containers/${c.containerId}/close`, both) })).ok).toBe(false);
     const weighed = { expectedVersion: c.version, weighing: { tareReadingId: randomUUID(), grossReadingId: randomUUID() } };
     const r = await operator.call(routes.containers.close, { params: { containerId: c.containerId }, body: weighed, attribution: await tap(`/api/containers/${c.containerId}/close`, weighed) });
     expect(r.ok).toBe(false);
