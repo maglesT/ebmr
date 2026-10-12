@@ -14,8 +14,12 @@ import {
   raiseDeviation,
   recordDeviationFinding,
   startDeviationInvestigation,
+  assessDeviationImpact,
+  recordDeviationClosureBasis,
+  recordDeviationImpact,
   type NewDeviation,
 } from '../../src/index.ts';
+import { closureBasis, dueDate, investigateDeviation, type DeviationPathDriver } from './deviation-path.ts';
 import { createTestDatabase, type TestDatabase } from '../helpers.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { QualityWorld, refusal, seedQualityCast, type GmpBatch } from './support.ts';
@@ -42,7 +46,10 @@ async function raise(kind: NewDeviation['kind'] = 'DEVIATION', by: SeededActor =
   return w.run(by, (c) => raiseDeviation(c, dev(kind)));
 }
 
-/** A record linked to `b`, investigated by qa and concluded by qa2 with the finding given. */
+const driver: DeviationPathDriver<SeededActor> = { run: (a, work) => w.run(a, work), sign: (a, agg, m, st) => w.sign(a, agg, m, st) };
+const classification = (owner: SeededActor) => ({ classification: 'MAJOR' as const, riskRationale: 'Moisture outside the validated range; dissolution at risk', ownerPersonId: owner.personId, dueDate: dueDate() });
+
+/** A record linked to `b`, classified and investigated by qa, impact signed and concluded by qa2 with the finding given. */
 async function concluded(
   b: GmpBatch,
   kind: NewDeviation['kind'],
@@ -51,12 +58,9 @@ async function concluded(
 ): Promise<{ deviationId: string; ref: string }> {
   const d = await raise(kind);
   await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'BATCH', b.id));
-  await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
-  await w.run(w.cast.qa, (c) =>
-    recordDeviationFinding(c, d.deviationId, { assignableCause, cause: 'Balance drift found at the calibration check', rootCauseCategory: assignableCause ? category : 'NOT_DETERMINED' }),
-  );
-  const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-  await w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig));
+  await investigateDeviation(driver, d.deviationId, { classifier: w.cast.qa, owner: w.cast.qa, assessor: w.cast.qa2, concluder: w.cast.qa2 }, {
+    finding: { assignableCause, cause: 'Balance drift found at the calibration check', rootCauseCategory: assignableCause ? category : 'NOT_DETERMINED' },
+  });
   return d;
 }
 
@@ -116,28 +120,43 @@ describe('raising and linking', () => {
 });
 
 describe('life cycle (S7)', () => {
-  it('[PR-50][IN-20] a conclusion or closure by the initiator is refused; another QA person concludes and closes', async () => {
+  it('[PR-50][IN-20] the full path: QA other than the initiator classifies, the impact is signed before the conclusion, and neither the initiator nor the owner concludes or closes', async () => {
     const b = await w.gmpBatch();
     const d = await raise('INVESTIGATION', w.cast.qa);
-    await w.run(w.cast.qa, (c) => linkDeviation(c, d.deviationId, 'BATCH', b.id));
-    expect(await refusal(w.run(w.cast.operator, (c) => startDeviationInvestigation(c, d.deviationId)))).toMatch(/EBMR-IAM/);
-    await w.run(w.cast.qa3, (c) => startDeviationInvestigation(c, d.deviationId));
-    expect(await refusal(w.run(w.cast.qa3, (c) => concludeDeviation(c, d.deviationId, '00000000-0000-4000-8000-000000000001')))).toMatch(/EBMR-SITE-309 .* no finding/);
+    const link = await w.run(w.cast.qa, (c) => linkDeviation(c, d.deviationId, 'BATCH', b.id));
+    expect(await refusal(w.run(w.cast.operator, (c) => startDeviationInvestigation(c, d.deviationId, classification(w.cast.qa3))))).toMatch(/EBMR-IAM/);
+    expect(await refusal(w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId, classification(w.cast.qa3))))).toMatch(/EBMR-SITE-307/);
+    await w.run(w.cast.qa3, (c) => startDeviationInvestigation(c, d.deviationId, classification(w.cast.qa3)));
     await w.run(w.cast.qa3, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Wrong sieve size fitted after cleaning', rootCauseCategory: 'HUMAN_ERROR' }));
+    expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, '00000000-0000-4000-8000-000000000001')))).toMatch(/EBMR-SITE-309 .* is UNDER_INVESTIGATION/);
 
-    // The initiator (qa) cannot sign the conclusion: the signature service excludes them (entered_by), and the command
-    // refuses them even with another valid signature.
-    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION'))).not.toBe('');
-    // Nor can the investigator who recorded the finding (qa3).
-    expect(await refusal(w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION'))).not.toBe('');
-    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-    expect(await refusal(w.run(w.cast.qa, (c) => concludeDeviation(c, d.deviationId, sig)))).toMatch(/EBMR-SITE-30[78]/);
+    await w.run(w.cast.qa3, (c) => recordDeviationImpact(c, d.deviationId, { linkId: link, market: 'IN', impact: 'NONE', rationale: 'Sieve fitted after the batch was sieved' }));
+    // The impact is signed by QA who is neither the initiator (qa) nor the owner (qa3).
+    const byInitiator = await w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    expect(await refusal(w.run(w.cast.qa, (c) => assessDeviationImpact(c, d.deviationId, byInitiator)))).toMatch(/EBMR-SITE-307/);
+    const byOwner = await w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    expect(await refusal(w.run(w.cast.qa3, (c) => assessDeviationImpact(c, d.deviationId, byOwner)))).toMatch(/EBMR-SITE-823/);
+    const impact = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    await w.run(w.cast.qa2, (c) => assessDeviationImpact(c, d.deviationId, impact));
+    expect(await w.run(w.cast.qa2, (c) => deviationState(c, d.deviationId))).toBe('IMPACT_ASSESSED');
+
+    const early = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
+    expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, early)))).toMatch(/EBMR-SITE-827 .* has no closure basis/);
+    const { systemFactors: _sf, ...withoutFactors } = closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'HUMAN_ERROR' });
+    await w.run(w.cast.qa3, (c) => recordDeviationClosureBasis(c, d.deviationId, withoutFactors));
+    expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, early)))).toMatch(/EBMR-SITE-827 .* human error/);
+    await w.run(w.cast.qa3, (c) => recordDeviationClosureBasis(c, d.deviationId, closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'HUMAN_ERROR' })));
+    // A signature given before the latest closure basis is superseded by it.
+    expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, early)))).toMatch(/EBMR-ESIG-070|EBMR-SITE-308/);
+    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED'))).not.toBe('');
+    expect(await refusal(w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED'))).not.toBe('');
+    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
     await w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig));
-    expect(await w.run(w.cast.qa2, (c) => deviationState(c, d.deviationId))).toBe('CONCLUDED');
-    expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig)))).toMatch(/EBMR-SITE-309 .* is CONCLUDED/);
+    expect(await w.run(w.cast.qa2, (c) => deviationState(c, d.deviationId))).toBe('PENDING_CLOSURE');
+    expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig)))).toMatch(/EBMR-SITE-309 .* is PENDING_CLOSURE/);
 
-    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'CONCLUDED'))).not.toBe('');
-    const close = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'CONCLUDED');
+    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'PENDING_CLOSURE'))).not.toBe('');
+    const close = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'PENDING_CLOSURE');
     await w.run(w.cast.qa2, (c) => closeDeviation(c, d.deviationId, close));
     expect(await w.run(w.cast.qa2, (c) => deviationState(c, d.deviationId))).toBe('CLOSED');
     const { rows } = await db.app.query('select assignable_cause, root_cause_category from site.deviation_conclusion where deviation_id = $1', [d.deviationId]);
@@ -146,9 +165,12 @@ describe('life cycle (S7)', () => {
 
   it('[PR-50] a conclusion signed before a new finding is refused: the new finding supersedes it', async () => {
     const d = await raise('OOS', w.cast.analyst);
-    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
+    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId, classification(w.cast.qa)));
     await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: false, cause: 'No laboratory error found so far', rootCauseCategory: 'NOT_DETERMINED' }));
-    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
+    const impact = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    await w.run(w.cast.qa2, (c) => assessDeviationImpact(c, d.deviationId, impact));
+    await w.run(w.cast.qa, (c) => recordDeviationClosureBasis(c, d.deviationId, closureBasis({ assignableCause: false, cause: 'x', rootCauseCategory: 'NOT_DETERMINED' })));
+    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
     await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Dilution error in the standard preparation', rootCauseCategory: 'LABORATORY_ERROR' }));
     expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig)))).toMatch(/EBMR-ESIG-070|EBMR-SITE-308/);
     expect(await refusal(w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'x', rootCauseCategory: 'METHOD' })))).toMatch(/EBMR-SITE-306/);
@@ -159,14 +181,17 @@ describe('life cycle (S7)', () => {
 
   it('[PR-50] the QA person who recorded the investigation\'s finding neither concludes nor closes the record', async () => {
     const d = await raise('INVESTIGATION');
-    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
-    await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Wrong sieve size fitted after cleaning', rootCauseCategory: 'HUMAN_ERROR' }));
-    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION'))).not.toBe('');
-    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
+    await w.run(w.cast.qa2, (c) => startDeviationInvestigation(c, d.deviationId, classification(w.cast.qa2)));
+    await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Wrong sieve size fitted after cleaning', rootCauseCategory: 'EQUIPMENT' }));
+    const impact = await w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    await w.run(w.cast.qa3, (c) => assessDeviationImpact(c, d.deviationId, impact));
+    await w.run(w.cast.qa2, (c) => recordDeviationClosureBasis(c, d.deviationId, closureBasis({ assignableCause: true, cause: 'x', rootCauseCategory: 'EQUIPMENT' })));
+    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED'))).not.toBe('');
+    const sig = await w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
     expect(await refusal(w.run(w.cast.qa, (c) => concludeDeviation(c, d.deviationId, sig)))).toMatch(/EBMR-SITE-30[78]|EBMR-SITE-312/);
-    await w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig));
-    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'CONCLUDED'))).not.toBe('');
-    const close = await w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'CONCLUDED');
+    await w.run(w.cast.qa3, (c) => concludeDeviation(c, d.deviationId, sig));
+    expect(await refusal(w.sign(w.cast.qa, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'PENDING_CLOSURE'))).not.toBe('');
+    const close = await w.sign(w.cast.qa3, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CLOSED', 'PENDING_CLOSURE');
     expect(await refusal(w.run(w.cast.qa, (c) => closeDeviation(c, d.deviationId, close)))).not.toBe('');
     await w.run(w.cast.qa3, (c) => closeDeviation(c, d.deviationId, close));
     expect(await w.run(w.cast.qa3, (c) => deviationState(c, d.deviationId))).toBe('CLOSED');
@@ -175,16 +200,19 @@ describe('life cycle (S7)', () => {
     expect(rows[0]?.n).toBe('1');
   });
 
-  it('[PR-50] a cancellation is by QA other than the initiator, with a reason, while OPEN or UNDER_INVESTIGATION only', async () => {
+  it('[PR-50] a cancellation is by QA other than the initiator, with a reason, while OPEN only (L-21)', async () => {
     const d = await raise('DEVIATION', w.cast.qa);
     expect(await refusal(w.run(w.cast.qa, (c) => cancelDeviation(c, d.deviationId, 'raised by mistake')))).toMatch(/EBMR-SITE-307/);
     expect(await refusal(w.run(w.cast.qa2, (c) => cancelDeviation(c, d.deviationId, '  ')))).toMatch(/EBMR-SITE-311/);
     expect(await refusal(w.run(w.cast.operator, (c) => cancelDeviation(c, d.deviationId, 'not mine')))).toMatch(/EBMR-IAM/);
     await w.run(w.cast.qa2, (c) => cancelDeviation(c, d.deviationId, 'raised by mistake'));
     expect(await w.run(w.cast.qa2, (c) => deviationState(c, d.deviationId))).toBe('CANCELLED');
+    const started = await raise();
+    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, started.deviationId, classification(w.cast.qa)));
+    expect(await refusal(w.run(w.cast.qa3, (c) => cancelDeviation(c, started.deviationId, 'too late')))).toMatch(/EBMR-SITE-311 .* is UNDER_INVESTIGATION/);
     const b = await w.gmpBatch();
     const c2 = await concluded(b, 'DEVIATION', true);
-    expect(await refusal(w.run(w.cast.qa3, (c) => cancelDeviation(c, c2.deviationId, 'too late')))).toMatch(/EBMR-SITE-311 .* is CONCLUDED/);
+    expect(await refusal(w.run(w.cast.qa3, (c) => cancelDeviation(c, c2.deviationId, 'too late')))).toMatch(/EBMR-SITE-311 .* is PENDING_CLOSURE/);
   });
 });
 
