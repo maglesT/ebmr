@@ -2,10 +2,56 @@
  * The reads the release cockpit shows, read again after every act (route ids, so `useRefresh` invalidates each by its
  * prefix). Nothing is updated in the browser: the server's answer after the act is what the screen shows.
  */
-import { routes, type GrelItemView, type ManufacturerReleaseState } from '@ebmr/api-contract';
+import { routes, type GrelItemView, type ManufacturerReleaseState, type RouteResponse } from '@ebmr/api-contract';
 import type { StateTone } from '@ebmr/ui-kit';
 
-export const RELEASE_READS: readonly string[] = [routes.release.queue.id, routes.release.lot.id, routes.release.grel.id, routes.notifications.list.id];
+// The slice 4 views, named from their routes (the contract's index does not export them by name).
+export type LotMarketsView = RouteResponse<typeof routes.release.markets>;
+export type MarketDispositionView = LotMarketsView['dispositions'][number];
+export type MarketDispositionState = MarketDispositionView['state'];
+export type ExportMarket = MarketDispositionView['market'];
+export type MarketAddEvaluationView = RouteResponse<typeof routes.release.marketAdd>;
+export type MarketAddOutcome = MarketAddEvaluationView['outcome'];
+export type MarketChangeView = MarketDispositionView['changes'][number];
+export type QpCertificationView = MarketDispositionView['certifications'][number];
+
+export const RELEASE_READS: readonly string[] = [
+  routes.release.queue.id,
+  routes.release.lot.id,
+  routes.release.grel.id,
+  routes.release.markets.id,
+  routes.release.marketAdd.id,
+  routes.release.batchMarketAdd.id,
+  routes.review.batch.id,
+  routes.notifications.list.id,
+];
+
+/** The chip tone of a market disposition state (display only). */
+export function marketTone(s: MarketDispositionState): StateTone {
+  switch (s) {
+    case 'RELEASED':
+    case 'CERTIFIED':
+      return 'ok';
+    case 'READY':
+    case 'AWAITING_QP_CERTIFICATION':
+      return 'info';
+    case 'REJECTED':
+    case 'REJECTED_BY_QP':
+    case 'INELIGIBLE':
+      return 'error';
+    case 'RELEASE_SUSPENDED':
+      return 'warning';
+    case 'REMOVED':
+      return 'neutral';
+    default:
+      return 'pending';
+  }
+}
+
+/** The chip tone of a market-add outcome (display only). */
+export function addTone(o: MarketAddOutcome): StateTone {
+  return o === 'MET' ? 'ok' : o === 'UNMET_RECOVERABLE' ? 'warning' : 'error';
+}
 
 /** The chip tone of a manufacturer release state (display only). */
 export function releaseTone(s: ManufacturerReleaseState): StateTone {
@@ -51,6 +97,6 @@ export function evidenceLink(e: Evidence): { to: string; params: Record<string, 
 
 /** "MANUFACTURER_RELEASED" -> "Manufacturer released". */
 export function words(code: string): string {
-  const s = code.replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|ppq|ap|lims)\b/g, (w) => w.toUpperCase());
+  const s = code.replace(/_/g, ' ').toLowerCase().replace(/\b(qa|qc|qp|ppq|ap|lims|us|eu)\b/g, (w) => w.toUpperCase());
   return s.charAt(0).toUpperCase() + s.slice(1);
 }

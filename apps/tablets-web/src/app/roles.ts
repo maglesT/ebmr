@@ -6,7 +6,7 @@
 import { routes } from '@ebmr/api-contract';
 import { useApiQuery } from '../api/hooks.ts';
 
-export type ActGroup = 'QA' | 'QC' | 'PRODUCTION_HEAD' | 'PRODUCTION_FLOOR' | 'PLANNING' | 'FORMULA_AUTHOR' | 'FORMULA_APPROVER' | 'MASTER_CONFIRMER' | 'PLANT_MASTER' | 'PLANT_VERIFIER' | 'STORES';
+export type ActGroup = 'QA' | 'QC' | 'PRODUCTION_HEAD' | 'PRODUCTION_FLOOR' | 'PLANNING' | 'FORMULA_AUTHOR' | 'FORMULA_APPROVER' | 'MASTER_CONFIRMER' | 'PLANT_MASTER' | 'PLANT_VERIFIER' | 'STORES' | 'US_QCU' | 'EU_QP';
 
 const GROUPS: Readonly<Record<ActGroup, RegExp>> = {
   QA: /^(QA_[A-Z_]+|QA|AUTHORISED_PERSON|HEAD_OF_QA)$/,
@@ -23,6 +23,9 @@ const GROUPS: Readonly<Record<ActGroup, RegExp>> = {
   PLANT_MASTER: /^(MASTER_DATA_STEWARD|SYSTEM_ADMINISTRATOR|ENGINEERING[A-Z_]*|MAINTENANCE_TECHNICIAN)$/,
   PLANT_VERIFIER: /^(QA_[A-Z_]+|SHIFT_SUPERVISOR|PRODUCTION_SUPERVISOR|PRODUCTION_VERIFIER|VERIFIER|HEAD_OF_PRODUCTION|MAINTENANCE_TECHNICIAN|ENGINEERING[A-Z_]*)$/,
   STORES: /^(STORES[A-Z_]*|WAREHOUSE[A-Z_]*|QC_[A-Z_]+|QA_[A-Z_]+|HEAD_OF_QC)$/,
+  // Phase 4 slice 4: the US quality unit's disposition (RELEASE.US_DISPOSITION) and the in-system EU QP (PR-55).
+  US_QCU: /^US_QCU_SIGNER$/,
+  EU_QP: /^EU_QP$/,
 };
 
 /** Whether `role` is offered the acts of `group`. */
@@ -34,6 +37,12 @@ export function offered(role: string | null | undefined, group: ActGroup): boole
 export function useSessionRole(): string | null {
   const s = useApiQuery(routes.session.get, {}, { staleTime: 60_000 });
   return s.data?.role ?? null;
+}
+
+/** The roles the session's account holds now (empty until known). */
+export function useSessionRoles(): readonly string[] {
+  const s = useApiQuery(routes.session.get, {}, { staleTime: 60_000 });
+  return s.data?.roles ?? [];
 }
 
 /** Whether the session's role is offered the acts of `group`. */

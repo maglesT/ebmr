@@ -97,7 +97,10 @@ export function useSignedAct(refresh: readonly string[] = []): SignedAct {
         setOutcome('REFUSED');
         return 'REFUSED';
       }
-      const o = await ceremony.sign({ ...described.subject, action, title });
+      // A two-row act (D-P4-5): the second record and meaning are the server's too (the descriptor's companion).
+      const c = described.descriptor.companion;
+      const companion = c ? { companion: { aggregateType: c.aggregateType, aggregateId: c.aggregateId, meaning: c.meaning } } : {};
+      const o = await ceremony.sign({ ...described.subject, action, title, ...companion });
       if (o.status === 'REFUSED') setError({ kind: 'REFUSAL', status: 409, envelope: o.refusal });
       if (o.status !== 'CANCELLED') await reread();
       setOutcome(o.status);
