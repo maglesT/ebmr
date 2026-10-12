@@ -616,6 +616,12 @@ describe('recall, rejection after release and disposal (outline 5.2.6; L-19, PR-
     expect(await codeOf(afterAct(ap, recalled.lotId, 'IN', 'REJECT_AFTER_RELEASE', 'again'))).toBe('EBMR-ARL-012');
     await afterAct(ap, recalled.lotId, 'US', 'RECALL', 'Same complaint cluster for the US market');
     expect(await marketState(recalled.lotId, 'US')).toBe('RECALLED');
+    // A recalled market is never removed from the set afterwards (3.3.3: nothing decided is relabelled).
+    const removal = await deviationOn('LOT', recalled.lotId, 'Market withdrawn after the recall');
+    const rid = (await db.app.query<{ a: string }>("select recipe.market_change_next_id('LOT', $1, 'REMOVE', 'US') as a", [recalled.lotId])).rows[0]!.a;
+    expect(await codeOf(signed(qaReviewer3, 'market_change', rid, 'MARKET_REMOVED', 'IN_SET', (c, sig) =>
+      c.query("select recipe.record_market_change('LOT', $1, 'REMOVE', 'US', $2, $3)", [recalled.lotId, removal, sig])))).toBe('EBMR-ARL-050');
+    expect(await marketState(recalled.lotId, 'US')).toBe('RECALLED');
     expect((await db.app.query<{ e: string }>("select event as e from platform.state_history where aggregate_type = 'material_lot' and aggregate_id = $1 order by id desc limit 1", [recalled.lotId])).rows[0]!.e).toBe('RELEASE_RECALL');
 
     // REJECT_AFTER_RELEASE from RELEASE_SUSPENDED.
