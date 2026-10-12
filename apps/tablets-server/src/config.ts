@@ -59,7 +59,7 @@ export const EnvSchema = z.object({
   EBMR_GATEWAY_LISTEN: z.string().regex(/^[^:]+:\d+$/).optional(),
   /** Sandbox: the site gateway's API. */
   EBMR_GATEWAY_URL: z.string().default('http://127.0.0.1:3021'),
-  /** DEMO-ONLY service secrets (sweeper, gateway) of the sandbox. */
+  /** DEMO-ONLY service secrets: the sandbox's sweeper, gateway and monitor; the GMP server's sweeper (D-P4-9). */
   EBMR_SERVICE_KEYS_FILE: z.string().optional(),
   EBMR_OTHER_INSTALLATION_URL: z.string().optional(),
   /** The site's serialisation L3 system (integration-sdk serialisation; G-21, PR-42). Unset: off, serial pool requests are refused. */

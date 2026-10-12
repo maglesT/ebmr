@@ -116,6 +116,8 @@ tests:
   - "apps/tablets-server/test/mutation/packaging-blister.test.ts > a passing in-process check rests on a passing check entry of its step, unit and stream, once (tablets 0972) > [PR-29][IN-35][IN-38] refused: a failing entry, another unit or stream, another step or block, an unknown entry, a malformed reference, the same reference twice"
   - "apps/tablets-server/test/mutation/packaging-blister.test.ts > a failed or missed check of a blister series holds the output since the last pass of that series (tablets 0972, tab.blister_hold) > [IN-38][PR-29][IN-35] the last PASS of this batch, machine and series only; every container of the machine open into (that pass, the check], and the containers they were merged into"
   - "apps/tablets-server/test/mutation/tablets-compression.test.ts > a failed challenge or tooling check holds the press output since the last pass (tablets 0871) > [IN-36][IN-35][INV-24] this batch and press, open into (since, check], and the containers they were merged into; nothing closed at since or before"
+  - "apps/tablets-server/test/blocks/ipc/missed-sweep-sql.test.ts > TB-11 missed start sweep (tablets 1110) > [IN-35][PR-29] the database's twin agrees: a start sweep marked missed is not due again without a repeat interval, and due one interval after the marking with one"
+  - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 when a slot falls due > [IN-35][PR-29] a start sweep marked missed is dealt with at the marking: not due again without a repeat interval, due one interval after the marking with one (tablets 1110)"
 clauses:
   - clause: "run 45 minutes without an IPC entry; the alarm fires at 30 minutes."
     tests:

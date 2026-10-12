@@ -191,6 +191,11 @@ tests:
   - "apps/tablets-server/test/execution/block-entries-edges.test.ts > BLOCK_ENTRY forms as JSON > [DI-32] a form is titled from its kind in plain words; a block version outside the list, or without a data schema, offers none"
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 provenance > [DI-31][DI-32] an equipment value names its reading, quality and receipt; it counts only when GOOD and received within the maximum age (both ends allowed)"
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 provenance > [DI-32][PR-14] a manual value only on the MBR's fallback path, naming no device reading; it needs a second person"
+  - "apps/tablets-server/test/containers/routes-gmp.test.ts > container routes (GMP, Phase 4 slice 1b) > [DI-30][DI-32] a close is weighed or typed, never both; a weighed close stands on readings the room's balance sent (unknown ones are refused); a stale version is refused"
+  - "apps/tablets-server/test/containers/weighed-close.test.ts > weighed close of an output container (tablets 1111) > [DI-30][DI-32][L-30] the net is the claimed gross minus the claimed tare in the container's unit; the container is usable with no second person"
+  - "apps/tablets-server/test/containers/weighed-close.test.ts > weighed close of an output container (tablets 1111) > [DI-30][DI-32] refused: readings used before, a gross not above its tare, a container counted in units, a missing reading; nothing is closed"
+  - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-31][DI-32] D-P4-10, the device-to-entry path: over the server an entry from the equipment names only its reading; the server claims it in the entry's command and copies tag, value, unit, quality and receipt time; a typed value with it, no reading, an old reading or a used one is refused"
+  - "apps/tablets-server/test/review/weighed-close-and-scope.test.ts > weighed close, involvement and scope (slice 1 quick review) > [DI-30][DI-32] a weighed close reads the tare and the gross on one balance, both received while the container is open; nothing is closed otherwise"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

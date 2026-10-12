@@ -44,6 +44,8 @@ import version from '../fixtures/version.json' with { type: 'json' };
 import workQueue from '../fixtures/work-queue.json' with { type: 'json' };
 import gmpBatch from '../fixtures/gmp-batch.json' with { type: 'json' };
 import s6 from '../fixtures/slice-6.json' with { type: 'json' };
+import rv from '../fixtures/review.json' with { type: 'json' };
+import cn from '../fixtures/containers.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -187,6 +189,41 @@ export const EXAMPLES = {
   'quality-reprocessing-authorisations': { schema: r.quality.reprocessingAuthorisations.response, data: s6.reprocessing.authorisations, routeId: r.quality.reprocessingAuthorisations.id },
   'quality-residues': { schema: r.quality.residues.response, data: s6.reprocessing.residues, routeId: r.quality.residues.id },
   'quality-receive-lot': { schema: r.quality.receiveLot.response, data: s6.quality.lots.lots[0], routeId: r.quality.receiveLot.id },
+  // Phase 4 slice 1 (1-0): the review routes, for the screens (1c) before the server (1a).
+  'review-queue': { schema: r.review.queue.response, data: rv.queue, routeId: r.review.queue.id },
+  'review-batch': { schema: r.review.batch.response, data: rv.batch, routeId: r.review.batch.id },
+  'review-register': { schema: r.review.register.response, data: rv.register, routeId: r.review.register.id },
+  'review-open-item': { schema: r.review.openItem.response, data: rv.itemDetail, routeId: r.review.openItem.id },
+  'review-respond': { schema: r.review.respond.response, data: { ...rv.item, reviewStatus: 'RESPONDED' }, routeId: r.review.respond.id },
+  'review-audit-trail': { schema: r.review.auditTrail.response, data: rv.auditTrail, routeId: r.review.auditTrail.id },
+  'review-record-abort-checklist': {
+    schema: r.review.recordAbortChecklist.response,
+    data: {
+      ...rv.batch,
+      executionStatus: 'ABORTED',
+      reviewState: 'ABORTED',
+      acts: [],
+      abortChecklist: {
+        materialsAccounted: 'All dispensed material is in the reconciliation of stage 1.',
+        outputsDispositioned: 'Both granule containers are HELD for QA.',
+        equipmentDirty: 'FBD-01 and RMG-02 set to dirty.',
+        genealogyClosed: 'No output was charged anywhere.',
+        contingencyReconciled: 'No contingency form was issued.',
+        recordedBy: rv.batch.acts[0]?.by,
+        recordedAt: rv.batch.acts[0]?.at,
+      },
+    },
+    routeId: r.review.recordAbortChecklist.id,
+  },
+  'review-record-translation': { schema: r.review.recordTranslation.response, data: rv.batch, routeId: r.review.recordTranslation.id },
+  'review-verify-translation': { schema: r.review.verifyTranslation.response, data: rv.batch, routeId: r.review.verifyTranslation.id },
+  // Phase 4 slice 1b: the container routes and the process readings of the device-to-entry path, for the screens (1c).
+  'containers-list': { schema: r.containers.list.response, data: { containers: [cn.closedTyped, cn.held] }, routeId: r.containers.list.id },
+  'containers-open': { schema: r.containers.open.response, data: { ...cn.closedTyped, state: 'OPEN', version: 1, netQuantity: null, closeBasis: null, closedBy: null, closedAt: null, usableProblem: 'container OC-B26-0001-0003 is still open' }, routeId: r.containers.open.id },
+  'containers-close': { schema: r.containers.close.response, data: cn.closedTyped, routeId: r.containers.close.id },
+  'containers-sort': { schema: r.containers.sort.response, data: { ...cn.held, state: 'SORTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is SORTED: held containers are never merged, charged or packed until QA releases them' }, routeId: r.containers.sort.id },
+  'containers-reject': { schema: r.containers.reject.response, data: { ...cn.held, state: 'REJECTED', version: 4, usableProblem: 'container OC-B26-0001-0004 is REJECTED', releaseProblem: null }, routeId: r.containers.reject.id },
+  'devices-process-readings': { schema: r.devices.processReadings.response, data: cn.processReadings, routeId: r.devices.processReadings.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 3 slice 6: the routes added by slice 6a-0, each with at least one example above (checked by the contract test). */
@@ -208,6 +245,12 @@ export const SLICE_6_ROUTE_IDS: readonly string[] = [
   r.quality.reprocessingAuthorisations,
   r.quality.residues,
 ].map((route) => route.id);
+
+/** Phase 4 slice 1: the review routes, each with at least one example above (checked by the contract test). */
+export const REVIEW_ROUTE_IDS: readonly string[] = Object.values(r.review).map((route) => route.id);
+
+/** Phase 4 slice 1b: the container routes and the process-readings route, each with an example above (contract test). */
+export const CONTAINER_ROUTE_IDS: readonly string[] = [...Object.values(r.containers), r.devices.processReadings].map((route) => route.id);
 
 export type ExampleName = keyof typeof EXAMPLES;
 

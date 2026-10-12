@@ -9,6 +9,7 @@ import type { ActionView, RunView, SignedIntent, StepScreenView } from '@ebmr/ap
 import { Banner, floor } from '@ebmr/ui-kit';
 import { HoldBatchDialog, LinkDeviationDialog, RaiseExceptionDialog, ReleaseHoldDialog } from '../dialogs/CommandDialogs.tsx';
 import { DispositionDialog, HoldPointDialog, StageSignOffDialog } from '../dialogs/SignDialogs.tsx';
+import { CorrectEntryDialog } from '../dialogs/CorrectEntryDialog.tsx';
 import { VoidAttemptDialog } from '../dialogs/VoidAttemptDialog.tsx';
 import { st, actionLabel } from '../text.ts';
 import { useRunCommand } from '../usePendingCall.ts';
@@ -32,6 +33,7 @@ type Open =
   | { kind: 'SIGN_OFF_STAGE'; action: ActionView }
   | { kind: 'DISPOSITION_EXCEPTION'; action: ActionView }
   | { kind: 'VOID_ATTEMPT' }
+  | { kind: 'CORRECT_ENTRY' }
   | null;
 
 export function useStepActions(view: StepScreenView, runView: RunView | undefined, signed: Signed) {
@@ -165,14 +167,17 @@ export function useStepActions(view: StepScreenView, runView: RunView | undefine
         />
       ) : null}
       {open?.kind === 'VOID_ATTEMPT' ? <VoidAttemptDialog isOpen onClose={close} view={view} /> : null}
+      {open?.kind === 'CORRECT_ENTRY' ? <CorrectEntryDialog isOpen onClose={close} view={view} signed={signed} /> : null}
       <EntryStatus call={start} />
     </>
   );
 
   /** The void of an attempt, offered whenever the step holds a recorded attempt (DI-24); the server decides. */
   const openVoid = () => setOpen({ kind: 'VOID_ATTEMPT' });
+  /** The correction of a recorded value (CORRECT_ENTRY), offered whenever the step holds one; the server decides. */
+  const openCorrect = () => setOpen({ kind: 'CORRECT_ENTRY' });
 
-  return { perform, dialogs, openVoid, busy: start.busy || start.state === 'notSaved' || signed.busy };
+  return { perform, dialogs, openVoid, openCorrect, busy: start.busy || start.state === 'notSaved' || signed.busy };
 }
 
 /** The hold-point decisions the server offers now: one action per disposition (target), each with its own meaning. */

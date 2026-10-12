@@ -13,6 +13,7 @@ import { actorOfBrowser } from '../esig/support.ts';
 import { engineActor, engineRoles } from '../../src/features/execution/roles.ts';
 import { runContext } from '../../src/features/execution/runs.ts';
 import { codeOf, appendAs, engineResult } from '../execution/db-guards-support.ts';
+import { refusalOf } from '../esig/support.ts';
 import { dcMiniVariant, importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../execution/support.ts';
 import { adminActor, enrol, fakeGateway, type FakeGateway } from './support.ts';
 import { pressInUse } from '../blocks/compression/plant-support.ts';
@@ -56,6 +57,22 @@ const reading = (tag: string, value: string, unit: string, kind = 'ACTUAL', extr
 
 async function send(readings: Json[]) {
   return gw.post('/gw/v1/process-readings', { sessionId: RUN_SESSION, readings });
+}
+
+/** Superuser test setup with triggers off for this transaction only (never used to prove a control). */
+async function asTimeTraveller(server: ExecServer, text: string, params: unknown[]): Promise<void> {
+  const c = await server.db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('set local session_replication_role = replica');
+    await c.query(text, params);
+    await c.query('commit');
+  } catch (e) {
+    await c.query('rollback');
+    throw e;
+  } finally {
+    c.release();
+  }
 }
 
 async function stored(): Promise<{ id: string; seq: string; tag: string; kind: string; value: string; received_us: string }[]> {
@@ -198,6 +215,31 @@ describe('process readings over the gateway uplink (tablets 0820)', () => {
     expect(outcomes).toEqual({ unclaimed: 'EBMR-EXE-211', forgedValue: 'EBMR-EXE-211', forgedTime: 'EBMR-EXE-211', wrongKind: 'EBMR-EXE-211', honest: 'ok', reused: 'EBMR-DEV-145', readback: 'ok' });
     const { rows: uses } = await sbx.db.app.query<{ n: string }>('select count(*)::text as n from tab.process_reading_use where batch_id = $1', [d.runId]);
     expect(uses[0]?.n).toBe('2');
+  });
+
+  it('[DI-31][DI-32] D-P4-10, the device-to-entry path: over the server an entry from the equipment names only its reading; the server claims it in the entry\'s command and copies tag, value, unit, quality and receipt time; a typed value with it, no reading, an old reading or a used one is refused', async () => {
+    expect((await send([reading('turret.speed_rpm', '46.5', 'rpm'), reading('force.main_kN', '12.60', 'kN'), reading('turret.speed_rpm', '47.0', 'rpm')])).status).toBe(200);
+    const rows = await stored();
+    const [speed, old] = rows.filter((r) => r.tag === 'turret.speed_rpm').slice(-2) as [(typeof rows)[number], (typeof rows)[number]];
+    const block = (data: Json) => d.command('operator1', { type: 'RECORD_ENTRY', stepKey: 'p-press@', entry: { kind: 'BLOCK_ENTRY', entryKind: 'ACTUAL', data } } as never);
+    const code = async (data: Json) => {
+      const r = await block(data);
+      return r.ok ? 'ok' : (refusalOf(r)?.code ?? 'refused');
+    };
+    expect(await code({ source: 'EQUIPMENT', readingId: speed.id, value: '99.0' })).toBe('EBMR-API-DEVICE-TYPED');
+    expect(await code({ source: 'EQUIPMENT' })).toBe('EBMR-API-DEVICE-READING');
+    // A reading older than the step's window (its receipt moved back as superuser setup, triggers off) is refused at the claim.
+    await asTimeTraveller(sbx, 'update tab.process_reading set received_us = received_us - 700000000 where id = $1', [old.id]);
+    expect(await code({ source: 'EQUIPMENT', readingId: old.id })).toMatch(/EBMR-DEV-154|INVALID|EXECUTION/);
+    expect(await code({ source: 'EQUIPMENT', readingId: speed.id })).toBe('ok');
+    const state = (await execution.loadState(sbx.db.admin, d.runId))?.state;
+    const recorded = Object.values(state?.entries ?? {}).find((e) => (e.data as Json)['readingId'] === speed.id) as unknown as Json | undefined;
+    expect(recorded?.['data']).toMatchObject({ source: 'EQUIPMENT', readingId: speed.id, quality: 'GOOD', receivedAtUs: speed.received_us });
+    expect(await code({ source: 'EQUIPMENT', readingId: speed.id })).toMatch(/EBMR-DEV-145|INVALID|EXECUTION/);
+    // Bypass: the claim checks the window in the database as the application role too.
+    expect(await codeOf(withCommand(sbx.db.app, await operator(), (c) => c.query('select tab.claim_process_reading($1, $2, $3)', [old.id, d.runId, 'p-press'])))).toBe('EBMR-DEV-154');
+    // A value keyed by hand is still the MBR's to allow (source MANUAL; this press's MBR keeps the fallback shut while the link is up).
+    expect(await code({ source: 'MANUAL', tag: 'turret.speed_rpm', value: '46.0', unit: 'rpm' })).toBe('G06-MANUAL-NOT-ALLOWED');
   });
 
   it('[DI-49] an alarm reading is acknowledged once, by a person, with a comment; the G-06 acknowledgement of a device alarm stands on that acknowledgement in its own command; the alarm log cannot be changed', async () => {

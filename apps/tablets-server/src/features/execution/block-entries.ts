@@ -6,6 +6,14 @@
  * that names one is refused (nothing is written). The server then fills the ones it reads from the database for a
  * person's entry (SERVER_FILLED: DATABASE); the device path's members (DEVICE) arrive only with the gateway's readings;
  * the typed path's (TYPED) only with their own typed entry. The engine's schema and the database's guards still decide.
+ *
+ * The device-to-entry path (Phase 4 slice 1b, D-P4-10): a SETPOINT_READBACK, ACTUAL or ALARM entry with source EQUIPMENT
+ * names only the reading it stands on (readingId, the one DEVICE member a person may name). The server claims that
+ * reading for the step in the entry's own command (tab.claim_process_reading, tablets 0820 as replaced by 1111: the step's
+ * bound device, within the step's window, once) and copies its tag, value, unit, quality and receipt time from the stored
+ * reading; the browser never types them (EBMR-API-DEVICE-TYPED). The database still refuses an entry that does not state
+ * exactly its claimed reading (tablets 0820, EBMR-EXE-211). A value keyed by hand stays possible as source MANUAL, with the
+ * block's manual-entry alert.
  */
 import type pg from 'pg';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS, type BlockEntryFormView, type BlockFieldSchemaWire, type BlockObjectSchemaWire } from '@ebmr/api-contract';
@@ -120,8 +128,15 @@ export interface BlockEntryContext {
   client: pg.PoolClient;
   batchId: string;
   stepKey: string;
+  /** The step's MBR node id (the device binding's key, tab.step_device). */
+  step?: string;
   block: blocks.BlockVersion | undefined;
 }
+
+/** The entry kinds that stand on a process reading when their source is EQUIPMENT (G-06 and the blocks built on it). */
+export const DEVICE_ENTRY_KINDS: readonly string[] = ['SETPOINT_READBACK', 'ACTUAL', 'ALARM'];
+/** What a device entry copies from the stored reading; the browser never sends these with source EQUIPMENT. */
+const FROM_READING = ['tag', 'value', 'unit', 'quality', 'receivedAtUs'] as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const uuidOf = (v: unknown): string | null => (typeof v === 'string' && UUID.test(v) ? v : null);
@@ -143,7 +158,9 @@ export async function resolveBlockEntry(ctx: BlockEntryContext, entryKind: Table
   }
   const schema = ctx.block?.dataSchema?.entries[entryKind];
   const filled = schema ? serverFilledMembers(schema) : [];
-  const sent = schema ? serverFilledSent(schema, data) : [];
+  const fromDevice = DEVICE_ENTRY_KINDS.includes(entryKind) && data['source'] === 'EQUIPMENT';
+  // D-P4-10: the reading's id is the one device member a person names; the rest the server copies from the reading.
+  const sent = (schema ? serverFilledSent(schema, data) : []).filter((m) => !(fromDevice && m === 'readingId'));
   if (sent.length > 0) {
     throw refuse(
       'EBMR-API-SERVER-FILLED',
@@ -153,6 +170,31 @@ export async function resolveBlockEntry(ctx: BlockEntryContext, entryKind: Table
     );
   }
   const entry: Record<string, unknown> = { ...data, kind: entryKind };
+  if (fromDevice) {
+    const typed = FROM_READING.filter((k) => k in data);
+    if (typed.length > 0) {
+      throw refuse(
+        'EBMR-API-DEVICE-TYPED',
+        `The entry from the equipment names ${typed.join(', ')}, which come from the reading itself. Nothing was saved.`,
+        'A value captured from the equipment is copied from the stored reading, never typed (DI-31, DI-32, D-P4-10).',
+        ['Pick the reading only, or record the value as a manual entry.'],
+      );
+    }
+    const readingId = uuidOf(data['readingId']);
+    if (!readingId || !ctx.step) {
+      throw refuse(
+        'EBMR-API-DEVICE-READING',
+        'The entry from the equipment names no reading. Nothing was saved.',
+        'An entry captured from the equipment stands on one stored reading of the step\'s device (DI-31).',
+        ['Pick a current reading of the step\'s device.'],
+      );
+    }
+    const r = await one<Record<string, string>>(ctx.client, 'select tab.claim_process_reading($1::uuid, $2, $3) as r', [readingId, ctx.batchId, ctx.step]);
+    if (r) {
+      entry['readingId'] = r['readingId'];
+      for (const k of FROM_READING) entry[k] = r[k];
+    }
+  }
   if (entryKind === 'ADDITION' && filled.includes('source')) {
     const container = uuidOf(data['container']);
     const facts = container ? await one<Record<string, unknown>>(ctx.client, 'select recipe.source_container_facts($1::uuid, $2) as r', [container, ctx.batchId]) : null;

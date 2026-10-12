@@ -213,4 +213,15 @@ describe('QC decision on extra testing (D-S5-9)', () => {
       ),
     ).toMatch(/permission denied/);
   });
+
+  it('[PR-47] the tests are ordered by code point whatever collation they arrive in, so the signed id matches the server\'s on any database (site-services 0810)', async () => {
+    // An ICU collation sorts '_' and '-' apart from their code points; the canonical order ignores it, as the server's sort does.
+    const tests = ['A_B', 'AB', 'A-C', 'AA', 'AA'];
+    const { rows } = await db.app.query<{ c: string[] }>('select site.qc_test_codes($1::text[] collate "en-US-x-icu") as c', [tests]);
+    expect(rows[0]?.c).toEqual([...new Set(tests)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)));
+    expect(rows[0]?.c).toEqual(['A-C', 'AA', 'AB', 'A_B']);
+    const b = await w.gmpBatch();
+    const id = await w.run(w.cast.qcHead, (c) => qcExtraTestingAggregateId(c, b.id, 'EXTRA_TESTS', ['A_B', 'A-C']));
+    expect(id).toBe(`${b.id}/EXTRA_TESTS/A-C+A_B`);
+  });
 });

@@ -27,6 +27,7 @@ import { SITE_ZONE_CHANGED } from '../../platform/site-zone.ts';
 import { DEVICES_GUIDANCE } from './guidance.ts';
 import { scaleStatusRows, scaleStatuses, type ScaleStatusRow } from './port.ts';
 import { runtimeOf } from './runtime.ts';
+import { processReadings } from './process-readings.ts';
 
 interface ReadingRow {
   id: string;
@@ -222,5 +223,6 @@ export function bindDeviceRoutes(scope: FastifyInstance, app: AppContext): void 
     },
     capture,
     live,
+    processReadings: (ctx) => processReadings(app, ctx),
   });
 }

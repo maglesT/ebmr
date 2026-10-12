@@ -89,6 +89,9 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/tb-14-edges.test.ts > TB-14 friability runs > [IN-35][DI-10] definition checks: a rule set covers the tablet type for every market; an in-house limit is never looser (equal allowed)"
   - "apps/tablets-server/test/blocks/ipc/tb-15-edges.test.ts > TB-15 starting a run > [PR-29][DI-10] no rule set for the tablet type, or no time limit for the stage, refuses the start"
   - "apps/tablets-server/test/blocks/ipc/tb-15-edges.test.ts > TB-15 the step and its definition > [PR-29][DI-10] definition checks: a covering rule set, a time limit for the stage, an acid stage only for gastro-resistant tablets, a time limit in whole microseconds"
+  - "apps/tablets-server/test/blocks/coating/tb20-v2-db.test.ts > TB-20@2 NO_PLAN in the database (tablets 1113) > [PR-29][PR-49][INV-41][DI-10] a lot without a plan is stored NO_PLAN only as its block builds it and only with AQL_NO_PLAN; it is no part of the switching history"
+  - "apps/tablets-server/test/blocks/coating/tb20-v2-db.test.ts > TB-20@2 NO_PLAN in the database (tablets 1113) > [PR-29][DI-10] NO_PLAN for a lot the scheme has a plan for is refused by the database, even from a tampered definition"
+  - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][DI-10] NO_PLAN is refused while the scheme has a plan for the lot: such a lot is sampled and judged as in TB-20@1"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

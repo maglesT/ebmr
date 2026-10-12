@@ -18,6 +18,7 @@ import * as masterData from '../../src/features/master-data/index.tsx';
 import * as planning from '../../src/features/planning/index.tsx';
 import * as plant from '../../src/features/plant/index.tsx';
 import * as quality from '../../src/features/quality/index.tsx';
+import * as review from '../../src/features/review/index.tsx';
 
 export interface Recorded {
   method: string;
@@ -79,7 +80,7 @@ export function renderOffice(path: string, opts: OfficeOptions = {}) {
   setTransport(transport);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
   const root = createRootRoute({ component: () => <Outlet /> });
-  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...designer.routes(root)]);
+  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...review.routes(root), ...designer.routes(root)]);
   const router = createRouter({ routeTree: tree, history: createMemoryHistory({ initialEntries: [path] }) });
   const ceremony = opts.ceremony ?? signedCeremony();
   const tap = fakeTap();

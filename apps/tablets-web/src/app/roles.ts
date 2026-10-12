@@ -6,11 +6,15 @@
 import { routes } from '@ebmr/api-contract';
 import { useApiQuery } from '../api/hooks.ts';
 
-export type ActGroup = 'QA' | 'QC' | 'PLANNING' | 'FORMULA_AUTHOR' | 'FORMULA_APPROVER' | 'MASTER_CONFIRMER' | 'PLANT_MASTER' | 'PLANT_VERIFIER' | 'STORES';
+export type ActGroup = 'QA' | 'QC' | 'PRODUCTION_HEAD' | 'PRODUCTION_FLOOR' | 'PLANNING' | 'FORMULA_AUTHOR' | 'FORMULA_APPROVER' | 'MASTER_CONFIRMER' | 'PLANT_MASTER' | 'PLANT_VERIFIER' | 'STORES';
 
 const GROUPS: Readonly<Record<ActGroup, RegExp>> = {
   QA: /^(QA_[A-Z_]+|QA|AUTHORISED_PERSON|HEAD_OF_QA)$/,
   QC: /^(QC_[A-Z_]+|HEAD_OF_QC)$/,
+  // Phase 4 slice 1 (review): production's approval of the record and its answers to QA's queries.
+  PRODUCTION_HEAD: /^(HEAD_OF_PRODUCTION|PRODUCTION_SUPERVISOR|SHIFT_SUPERVISOR)$/,
+  // Phase 4 slice 1 (containers): the floor's acts on output containers (close, sort, the second person's check).
+  PRODUCTION_FLOOR: /^(OPERATOR|DISPENSER|VERIFIER|PRODUCTION_VERIFIER|SHIFT_SUPERVISOR|PRODUCTION_SUPERVISOR|HEAD_OF_PRODUCTION)$/,
   PLANNING: /^(BATCH_ISSUER|PRODUCTION_PLANNER|HEAD_OF_PRODUCTION|SHIFT_SUPERVISOR|PRODUCTION_SUPERVISOR)$/,
   FORMULA_AUTHOR: /^(FORMULATION_STEWARD|MASTER_DATA_STEWARD|MBR_AUTHOR)$/,
   FORMULA_APPROVER: /^(QA_[A-Z_]+|HEAD_OF_QC|HEAD_OF_PRODUCTION|FORMULATION_STEWARD|MASTER_DATA_STEWARD)$/,

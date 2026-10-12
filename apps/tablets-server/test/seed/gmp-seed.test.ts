@@ -34,7 +34,7 @@ afterAll(async () => {
 describe('the GMP demo seed (slice 6c)', () => {
   it('[DI-17] seeds the GMP shop floor (operators, verifier, supervisor, QA, head of production, warehouse) and the site gateway in its own role only', () => {
     expect(seed.personas.map((p) => p.key)).toEqual(expect.arrayContaining(['operator2', 'verifier1', 'supervisor1', 'qa1', 'head1', 'stores', 'technician1', 'technician2']));
-    expect(seed.services.map((s) => `${s.key}:${s.roleCode}:${s.terminal}`)).toEqual(['erpInterface:ERP_INTERFACE:SRV-ERP-01', 'gateway:SITE_GATEWAY:GW-01']);
+    expect(seed.services.map((s) => `${s.key}:${s.roleCode}:${s.terminal}`)).toEqual(['erpInterface:ERP_INTERFACE:SRV-ERP-01', 'gateway:SITE_GATEWAY:GW-01', 'sweeper:EXECUTION_SWEEPER:SRV-SWEEPER-01']);
   });
 
   it('[PR-19][IN-24] the GB-T-01 lots are released on the identity-tested route after a QC-approved, passing result; the active\'s assay comes from its LIMS results; the ERP orders are open', async () => {

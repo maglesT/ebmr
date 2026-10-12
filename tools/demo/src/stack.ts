@@ -43,6 +43,8 @@ export interface SetupStackOptions {
   /** Persona sets (1 for the demo; workers + 1 for E2E). */
   personaSets?: number;
   echo?: boolean;
+  /** GMP, DEMO-ONLY: also build one batch record ready for review (set-up CLI --gmp-review-batch; Phase 4 slice 1c). */
+  gmpReviewBatch?: boolean;
 }
 
 /** Creates (or recreates) both databases and their DEMO-ONLY credentials. */
@@ -51,7 +53,7 @@ export async function setupStack(opts: SetupStackOptions): Promise<void> {
   for (const d of ['to-sandbox', 'to-gmp']) mkdirSync(join(exchangeDir, d), { recursive: true });
   const gatewaySpki = ensureGatewayKey(opts.keysDir);
   const common = ['--keys-dir', opts.keysDir, '--exchange-dir', exchangeDir, '--persona-sets', String(opts.personaSets ?? 1), '--recreate'];
-  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common], env: {}, echo: opts.echo ?? true });
+  await runNode({ name: 'setup-gmp', entry: SERVER_SETUP, args: ['--installation', 'GMP', '--database', opts.databases.GMP, ...common, ...(opts.gmpReviewBatch ? ['--gmp-review-batch'] : [])], env: {}, echo: opts.echo ?? true });
   await runNode({
     name: 'setup-sbx',
     entry: SERVER_SETUP,
@@ -120,6 +122,9 @@ function serverEnv(kind: 'GMP' | 'SANDBOX', opts: StartStackOptions, origins: { 
     env['EBMR_GATEWAY_LISTEN'] = `127.0.0.1:${opts.ports.gatewayListener}`;
     env['EBMR_GATEWAY_URL'] = `http://127.0.0.1:${opts.ports.gateway}`;
     env['EBMR_SERVICE_KEYS_FILE'] = join(opts.keysDir, 'sandbox-service-keys.json');
+  } else {
+    // D-P4-9: the GMP server's sweeper identity (missed-check holds and interface losses on GMP batches).
+    env['EBMR_SERVICE_KEYS_FILE'] = join(opts.keysDir, 'gmp-service-keys.json');
   }
   return env;
 }

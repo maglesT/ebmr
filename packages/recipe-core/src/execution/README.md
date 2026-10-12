@@ -1077,6 +1077,8 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
 - `signing.test.ts`: the ceremony; INV-10; disposition proposals; hold-point decisions; witness; INV-09.
 - `sweeper.test.ts`: INV-20; only the sweeper identity records a time sweep, and the gateway (SITE_GATEWAY) is
   refused even as source SYSTEM (DI-17).
+- `sweeper-gmp.test.ts` (Phase 4 slice 1b, D-P4-9): the GMP sweeper identity, a SERVICE account on SRV-SWEEPER-01 in
+  EXECUTION_SWEEPER only, records the time breach of a GMP batch as the system's (INV-20, DI-17).
 - `system-facts.test.ts` (review P28, P35): what the system finds or creates inside a person's call is the
   system's; a time fact in a person's name, a person's exception as a time fact, a clock regression the
   database clock does not show are refused. A hold point whose first version carries a title and node hash the

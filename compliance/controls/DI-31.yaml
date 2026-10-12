@@ -195,6 +195,8 @@ tests:
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 PERFORMED and definition > [DI-31][DI-04] the definition: each tag once, ordered limits (equal allowed), a recipe when the interface is configured"
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 PERFORMED and definition > [DI-31] the nominal path: the recipe, each read-back at its setpoint and each value inside its limits, from the equipment now"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 first print and challenges > [IN-22][DI-31] a gateway device's challenge names its result and when the device took it (not later than now, in order); a device without a link names neither"
+  - "apps/tablets-server/test/devices/process-readings.test.ts > process readings over the gateway uplink (tablets 0820) > [DI-31][DI-32] D-P4-10, the device-to-entry path: over the server an entry from the equipment names only its reading; the server claims it in the entry's command and copies tag, value, unit, quality and receipt time; a typed value with it, no reading, an old reading or a used one is refused"
+  - "packages/api-contract/test/contract.test.ts > route table > [DI-30][DI-31] the containers namespace (Phase 4 slice 1b) is GMP only, reads plain and commands FRESH_ON_SHARED, each route with an example; a close is weighed or typed, never both; CONTAINER_ACT signs a net check or a release"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

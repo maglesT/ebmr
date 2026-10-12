@@ -12,6 +12,7 @@ import { StepExceptions } from '../components/Exceptions.tsx';
 import { RunHeader } from '../components/RunHeader.tsx';
 import { SignedResult } from '../components/SignedResult.tsx';
 import { StepActionBar, useStepActions } from '../components/StepActions.tsx';
+import { correctableAttempts } from '../dialogs/CorrectEntryDialog.tsx';
 import { voidableAttempts } from '../dialogs/VoidAttemptDialog.tsx';
 import { useRunView, useStepView } from '../queries.ts';
 import { rendererFor } from '../renderers/registry.ts';
@@ -23,9 +24,10 @@ import type { RunView, StepScreenView } from '@ebmr/api-contract';
 function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | undefined }) {
   const navigate = useNavigate();
   const signed = useSignedAction(view.run.runId);
-  const { perform, dialogs, busy, openVoid } = useStepActions(view, runView, signed);
+  const { perform, dialogs, busy, openVoid, openCorrect } = useStepActions(view, runView, signed);
   // DI-24: an attempt is voided with a reason (never deleted); offered here when the server lists no void action itself.
   const voidOffered = !view.actions.some((a) => a.action === 'VOID_ATTEMPT') && voidableAttempts(view).length > 0;
+  const correctOffered = correctableAttempts(view).length > 0;
   const { Renderer } = rendererFor(view);
   return (
     <div className={wcls('screen')}>
@@ -59,6 +61,11 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
         {voidOffered ? (
           <Button onPress={openVoid} isDisabled={busy}>
             {st('void.open')}
+          </Button>
+        ) : null}
+        {correctOffered ? (
+          <Button onPress={openCorrect} isDisabled={busy}>
+            {st('correct.open')}
           </Button>
         ) : null}
         <StepActionBar view={view} perform={perform} busy={busy} />

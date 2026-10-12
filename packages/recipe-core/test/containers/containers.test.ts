@@ -20,10 +20,12 @@ let operator: SeededActor;
 let qa: SeededActor;
 let qaReviewer: SeededActor;
 let steward: SeededActor;
+let verifier: SeededActor;
 
 beforeAll(async () => {
   db = await createTestDatabase();
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator' });
+  verifier = await seedActor(db, { roleCode: 'VERIFIER', legalName: 'Vera Verifier' });
   qa = await seedActor(db, { roleCode: 'QA_SHOP_FLOOR', legalName: 'Qamar QA' });
   qaReviewer = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Rhea Reviewer' });
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Sana Steward' });
@@ -86,8 +88,17 @@ const why = (text: string) => ({ reasonCode: 'TEST', reasonText: text });
 function open(batch: Batch, press?: string, stream?: string, stage = 'COMPRESSION'): Promise<oc.ContainerRef> {
   return run(db, operator, (c) => oc.openContainer(c, { batchId: batch.id, stage, unit: 'kg', ...(press ? { pressCode: press } : {}), ...(stream ? { stream } : {}) }));
 }
-function close(ref: oc.ContainerRef, qty = '12.500'): Promise<oc.ContainerRef> {
-  return run(db, operator, (c) => oc.closeContainer(c, ref.containerId, qty, ref.version));
+/** Closes with a typed net and, unless `verify` is false, has the second person verify it (sql/0740, DI-30). */
+async function close(ref: oc.ContainerRef, qty = '12.500', verify = true): Promise<oc.ContainerRef> {
+  const closed = await run(db, operator, (c) => oc.closeContainer(c, ref.containerId, qty, ref.version));
+  if (verify) await verifyNet(verifier, closed);
+  return closed;
+}
+async function verifyNet(who: SeededActor, ref: oc.ContainerRef): Promise<void> {
+  const ch = await challengeFor(db, who, ref.containerId, { meaning: oc.CONTAINER_NET_VERIFY_MEANING, aggregateType: 'output_container' });
+  const ev = await signatureAuth(db, who, who, ch.challengeId);
+  const sig = (await signWith(db, who, ch.challengeId, ev, { expectedState: (await status(ref)).state })).signatureId;
+  await run(db, who, (c) => oc.verifyContainerClose(c, ref.containerId, sig));
 }
 function check(batch: Batch, press: string, result: oc.IpcResult, stream: string | null = null): Promise<oc.IpcCheckOutcome> {
   return run(db, operator, (c) => oc.recordIpcCheck(c, { batchId: batch.id, pressCode: press, stream, result, reference: `IPC-${serial++}` }));

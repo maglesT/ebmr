@@ -14,6 +14,7 @@
  * uses none of the scale readings it names (F58.1). Any other failure rolls the whole command back, so nothing partial
  * is ever kept.
  */
+import { correctionApprovalHandler } from '../review/signables.ts';
 import { randomUUID } from 'node:crypto';
 import { routes, type ClientIntent, type CommandResultView, type ProposedActView, type Refusal, type ReplayReportView, type RunSummaryView, type SsccView } from '@ebmr/api-contract';
 import type { z } from 'zod';
@@ -48,6 +49,8 @@ export { seed } from './seed.ts';
 
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
   registry.register(engineCommandHandler(app));
+  // Phase 4 slice 1a: the approval a CORRECT_ENTRY names, on both installations (test runs correct entries too).
+  registry.register(correctionApprovalHandler(app));
   if (app.installation === 'GMP') {
     registry.register(gmpIssueHandler(app));
     registry.register(actApprovalHandler(app));

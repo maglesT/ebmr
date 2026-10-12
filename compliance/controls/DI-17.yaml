@@ -349,6 +349,7 @@ tests:
   - "packages/recipe-core/test/mutation/output-containers.test.ts > each refusal with its own code > [DI-17] a disposition is checked against the product of the container disposed of"
   - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17][IN-26] a unit: the product of the use this transaction starts or ends, of that unit only"
   - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17] an output container: its own product; another permission, a malformed or missing identifier: nothing"
+  - "apps/tablets-server/test/execution/sweeper-gmp.test.ts > the GMP sweeper identity (D-P4-9) > [DI-17][INV-20] the GMP sweeper is a SERVICE account on SRV-SWEEPER-01 holding EXECUTION_SWEEPER only: EXECUTION.SWEEP and no step right"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

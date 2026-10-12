@@ -14,7 +14,7 @@ import { GBT01_ORDERS } from '../../../src/features/execution/seed-gb-t-01.ts';
 import { dbAs, dispensing, GoldenBatch, granulation, ok, signAct, type GranulationPlan } from './driver.ts';
 import { clean, ROOMS, UNITS } from './plant.ts';
 import { blending, coating, compression, inspection, type CompressionPlan } from './stages.ts';
-import { signDirect, type GoldenWorld } from './world.ts';
+import { signDirect, signOffice, type GoldenWorld } from './world.ts';
 
 /** The reservations of each lot for one batch (kg): what dispensing takes, with room for the extra IPA. */
 const RESERVE = { 'MAT-EXZ-NA': '55.000', 'MAT-MCC-101': '8.000', 'MAT-LAC-MH': '14.000', 'MAT-PVP-K30': '2.400', 'MAT-IPA': '3.000', 'MAT-CCS': '2.400', 'MAT-SIO2': '0.400', 'MAT-MGST': '0.800', 'MAT-FCS-W': '2.450' };
@@ -166,8 +166,21 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
   await g.d.ok('supervisor1', { type: 'ATTACH_DEVIATION', exception: ex.exceptionId, deviationRef: dev.ref });
   await g.signed('qa1', { type: 'DISPOSITION_EXCEPTION', exception: ex.exceptionId, outcome: 'DEVIATION_RAISED', justification: `Deviation ${dev.ref}: the held containers stay held until QA decides on them` });
   // The investigation re-weighed the retained sample of the failing check on a checked balance: within limits (an
-  // instrument reading error). QA releases the held container (OUTPUT_CONTAINER_RELEASED: no signable action covers it
-  // in Phase 3, so the kernel's ceremony is used directly, a residual) before the approval for coating.
+  // instrument reading error). Phase 4 slice 1b (recipe-core 0741): QA releases a held container only once the
+  // investigation is concluded, so the investigator records the finding and a second QA person concludes it first.
+  // QA then releases the held container (OUTPUT_CONTAINER_RELEASED: the kernel's ceremony directly) before the approval
+  // for coating.
+  ok(await qa.call(routes.quality.startInvestigation, { params: { deviationId: dev.deviationId }, body: {} }), 'the investigation');
+  ok(
+    await qa.call(routes.quality.recordFinding, {
+      params: { deviationId: dev.deviationId },
+      body: { assignableCause: true, cause: 'Instrument reading error: the retained sample re-weighed on a checked balance is within limits', rootCauseCategory: 'EQUIPMENT' },
+    }),
+    'the finding',
+  );
+  w.b['qaApprover2'] ??= await w.server.asPersona('qaApprover2');
+  const concluded = await signOffice(w.seed, w.b['qaApprover2'], 'qaApprover2', { kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: dev.deviationId, input: {} });
+  if (!concluded.ok) throw new Error(`the deviation conclusion was refused: ${JSON.stringify(concluded.error)}`);
   for (const c of held) {
     const sig = await signDirect(w.server, w.seed, 'qa1', 'output_container', c.id, 'OUTPUT_CONTAINER_RELEASED', 'HELD', 'PC-QA-01');
     const v = (await w.server.db.app.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [c.id])).rows[0]?.v;

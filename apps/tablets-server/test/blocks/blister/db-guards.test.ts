@@ -16,7 +16,7 @@ import { openPersonaSession, openServiceSession } from '@ebmr/test-kit';
 import { BLISTER_BLOCK_VERSIONS, TB21, TB22 } from '../../../src/blocks/blister/index.ts';
 import { recordIpcOverdue } from '../../../src/features/execution/sweeper.ts';
 import { actorOfBrowser } from '../../esig/support.ts';
-import { codeOf } from '../../execution/db-guards-support.ts';
+import { codeOf, verifyTypedNet } from '../../execution/db-guards-support.ts';
 import { importAndIssue, personaIn, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { asSetup, cleanUnit, startUse } from '../compression/plant-support.ts';
 import { fakeTimers, lastEntry, laxEntry, recorder, stateOf, tamperHandler, type Entry } from '../granulation/db-support.ts';
@@ -66,7 +66,11 @@ const types = async (key: string): Promise<string[]> =>
 const checks = async (unit: string): Promise<string[][]> =>
   (await sbx.db.admin.query<{ s: string; r: string }>("select coalesce(stream, '-') as s, result as r from plant.ipc_check where batch_id = $1 and press_code = $2 order by recorded_at, id", [d.runId, unit])).rows.map((r) => [r.s, r.r]);
 const open = (unit: string) => asP<{ container_id: string; version: number; label_code: string }>('operator1', 'select plant.open_container($1, $2, $3, $4) as r', [d.runId, 'BLISTERS', 'kg', unit]);
-const close = (c: { container_id: string; version: number }) => asP<{ label_code: string }>('operator1', 'select plant.close_container($1, $2, $3) as r', [c.container_id, '12.500', c.version]);
+const close = async (c: { container_id: string; version: number }) => {
+  const r = await asP<{ label_code: string }>('operator1', 'select plant.close_container($1, $2, $3) as r', [c.container_id, '12.500', c.version]);
+  await verifyTypedNet(sbx, d.browser('verifier1'), c.container_id);
+  return r;
+};
 const boxState = (c: { container_id: string }) => sql<string>("select state as r from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1", [c.container_id]);
 const directPass = (unit: string, stream: string) => codeOf(asP('operator1', "select plant.record_ipc_check($1, $2, $3, 'PASS', 'operator says so') as r", [d.runId, unit, stream]));
 const content = (): Promise<Json | null> => sql<Json>('select recipe.batch_mbr_content($1) as r', [d.runId]);

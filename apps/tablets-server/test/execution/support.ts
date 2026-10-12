@@ -199,6 +199,9 @@ export class RunDriver {
     if (intent.type === 'DISPOSITION_EXCEPTION') {
       return { aggregateType: 'batch_exception', aggregateId: `${this.runId}:${intent.exception}`, meaning: 'EXCEPTION_DISPOSITIONED', action: undefined };
     }
+    if (intent.type === 'CORRECT_ENTRY') {
+      return { aggregateType: 'batch_point', aggregateId: `${this.runId}:${intent.point}`, meaning: 'CORRECTED', action: undefined };
+    }
     const view = await this.stepView(persona, intent.stepKey);
     const kind = intent.type === 'VERIFY' ? (intent.meaning === 'WITNESSED' ? 'WITNESS' : 'VERIFY') : intent.type;
     const a = view.actions.find((x) => (x.action === kind || (kind === 'VERIFY' && x.action === 'WITNESS') || (kind === 'WITNESS' && x.action === 'VERIFY')) && (intent.type !== 'DISPOSITION_HOLD_POINT' || x.target === intent.disposition));

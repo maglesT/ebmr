@@ -231,7 +231,7 @@ describe('bulk issued to a packaging order only after the release for packing (e
     await arrange(
       `with c as (insert into plant.output_container (id, label_code, batch_id, batch_number, product_code, strength, stage, quantity_unit, opened_by_person, opened_by_account)
                   values ($1, $2, $3, $4, $5, $6, 'COMPRESSION', 'kg', $1, $1) returning id),
-            x as (insert into plant.container_close (container_id, net_quantity, person_id, account_id) select id, $7::numeric, id, id from c returning container_id)
+            x as (insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing) select id, $7::numeric, id, id, 'WEIGHED', '{}'::jsonb from c returning container_id)
        insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version)
        select 'output_container', container_id, 'output_container', 1, $8, 3 from x`,
       [id, label, batch, b?.n, b?.p, b?.s, net, state],

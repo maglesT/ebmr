@@ -74,7 +74,7 @@ describe('a failed challenge or tooling check holds the press output since the l
         );
         if (closed !== null) {
           await c.query(
-            "insert into plant.container_close (container_id, net_quantity, person_id, account_id, closed_at) values ($1, 1, gen_random_uuid(), gen_random_uuid(), case when $2 = 'SINCE' then $3::timestamptz else clock_timestamp() - $2::interval end)",
+            "insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing, closed_at) values ($1, 1, gen_random_uuid(), gen_random_uuid(), 'WEIGHED', '{}', case when $2 = 'SINCE' then $3::timestamptz else clock_timestamp() - $2::interval end)",
             [id, closed, since],
           );
         }

@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { EXAMPLES, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { CONTAINER_ROUTE_IDS, EXAMPLES, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -206,7 +206,7 @@ describe('route table', () => {
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
-      'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
+      'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
       'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
@@ -241,6 +241,50 @@ describe('route table', () => {
       expect(exampled.has(id), `${id} has an example`).toBe(true);
       expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
     }
+  });
+
+  it('[DI-30][DI-31] the containers namespace (Phase 4 slice 1b) is GMP only, reads plain and commands FRESH_ON_SHARED, each route with an example; a close is weighed or typed, never both; CONTAINER_ACT signs a net check or a release', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of CONTAINER_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of Object.values(routes.containers)) {
+      expect(r.installation, r.id).toBe('GMP');
+      expect(r.attribution === 'FRESH_ON_SHARED', r.id).toBe(r.mutating);
+    }
+    expect(routes.devices.processReadings).toMatchObject({ installation: 'ANY', mutating: false });
+    const close = routes.containers.close.body;
+    const t = '0c1d2e3f-4a5b-4c6d-8e7f-a0b1c2d3e401';
+    expect(close?.safeParse({ expectedVersion: 1, typed: { net: '12.500' } }).success).toBe(true);
+    expect(close?.safeParse({ expectedVersion: 1, weighing: { tareReadingId: t, grossReadingId: t } }).success).toBe(true);
+    expect(close?.safeParse({ expectedVersion: 1, typed: { net: '12.500' }, weighing: { tareReadingId: t, grossReadingId: t } }).success).toBe(false);
+    expect(close?.safeParse({ expectedVersion: 1 }).success).toBe(false);
+    expect(close?.safeParse({ expectedVersion: 1, typed: { net: 12.5 } }).success).toBe(false);
+    expect(ok(SignableAction, { kind: 'CONTAINER_ACT', act: 'VERIFY_CLOSE', containerId: t })).toBe(true);
+    expect(ok(SignableAction, { kind: 'CONTAINER_ACT', act: 'RELEASE', containerId: t, reason: { code: 'IPC_INVESTIGATED', text: 'Deviation concluded' } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'CONTAINER_ACT', act: 'REJECT', containerId: t })).toBe(false);
+  });
+
+  it('the review namespace (Phase 4 slice 1) is GMP only, each route with an example; its signed acts are REVIEW_ACT and CORRECTION_APPROVAL', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of REVIEW_ROUTE_IDS) {
+      expect(exampled.has(id), `${id} has an example`).toBe(true);
+      expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
+    }
+    const batchId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'PRODUCTION_APPROVE', batchId, input: {} })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'QA_REVIEW', batchId, input: { expectedEpoch: '7' } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'QA_REVIEW', batchId, input: { expectedEpoch: 7 } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId, input: { items: ['EX-1', 'EX-2'], disposition: 'ACCEPT', justification: 'Both share DEV-1; no impact.' } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId, input: { items: [], disposition: 'ACCEPT' } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'RELEASE', batchId, input: {} })).toBe(false);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'REOPEN', batchId, input: { reason: { code: 'CORRECTION', text: 'A keying error in the LOD' } } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'REOPEN', batchId, input: {}, signer: 'x' })).toBe(false);
+    expect(ok(SignableAction, { kind: 'CORRECTION_APPROVAL', batchId, point: 'p1' })).toBe(true);
+    const correct = { type: 'CORRECT_ENTRY', point: 'p1', value: { kind: 'DECIMAL', value: '3.0', unit: '%' }, reason: 'Keyed 4.1 for 3.1' };
+    expect(ok(SignedIntent, correct)).toBe(true);
+    expect(ok(SignedIntent, { ...correct, reason: ' ' })).toBe(false);
+    expect(ok(SignedIntent, { ...correct, value: { kind: 'DECIMAL', value: 3, unit: '%' } })).toBe(false);
+    expect(ok(SignedIntent, { ...correct, evidence: { kind: 'PRINTOUT', sha256: 'a'.repeat(64) }, approvalSignatureId: batchId })).toBe(true);
+    expect(ok(ClientIntent, correct)).toBe(false);
   });
 
   it('[DI-24] no route of the contract deletes anything, and the void of an attempt carries the person\'s reason', () => {
