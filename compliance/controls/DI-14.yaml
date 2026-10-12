@@ -246,6 +246,7 @@ tests:
   - "packages/recipe-core/test/mutation/signed-content.test.ts > the first content version of a hold point is the system's only when it is derived in full (recipe-core 0304) > [DI-14][INV-03][DI-37][PR-45] no content is derived for an instance of a hold point that is filed as another kind of step, names its step by a number, or has no number"
   - "packages/recipe-core/test/mutation/signed-content.test.ts > a time breach that stops steps is the system's with its block (recipe-core 0299) > [INV-20][DI-14][INV-03] the database derives the first content version of a blocking hold-time breach, its block and the node it stops downstream of, as the engine signs it"
   - "apps/tablets-server/test/execution/gmp-batch.test.ts > GMP batches on the GMP installation (slice 2b) > [DI-14][DI-35][INV-26][INV-01][DI-34] the database refuses a forged GMP issue, each with its own refusal: another number, a policy that does not hash as stated, a request of another person, another market set, a signature that is none, role evidence that is malformed or not behind a stored evaluation, a state that is not the initial one; the honest issue then succeeds"
+  - "apps/tablets-server/test/execution/sweeper-gmp.test.ts > the GMP sweeper identity (D-P4-9) > [INV-20][DI-14] on GMP the sweeper records the time breach of a running batch as the system's, in a SWEEP row of its own identity; the IPC and interface jobs run too"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

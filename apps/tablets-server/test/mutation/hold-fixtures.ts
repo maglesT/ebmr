@@ -53,7 +53,7 @@ export function holdFixtures(c: PoolClient, siteCode: string): HoldFixtures {
       );
       if (closed !== null) {
         await c.query(
-          'insert into plant.container_close (container_id, net_quantity, person_id, account_id, closed_at) values ($1, 1, gen_random_uuid(), gen_random_uuid(), coalesce($2::timestamptz, clock_timestamp() - $3::interval))',
+          "insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing, closed_at) values ($1, 1, gen_random_uuid(), gen_random_uuid(), 'WEIGHED', '{}', coalesce($2::timestamptz, clock_timestamp() - $3::interval))",
           [id, typeof closed === 'string' ? null : closed.at, typeof closed === 'string' ? closed : null],
         );
       }

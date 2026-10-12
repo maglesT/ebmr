@@ -76,7 +76,7 @@ async function container(b: GmpBatch, open = false): Promise<string> {
      values ($1, $2, $3, $4, $5, $6, 'INSPECTION', 'kg', gen_random_uuid(), gen_random_uuid())`,
     [id, `OC-${b.number.replace(/[^A-Za-z0-9]/g, '')}-${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`, b.id, b.number, PRODUCT, STRENGTH],
   );
-  if (!open) await w.fixture("insert into plant.container_close (container_id, net_quantity, person_id, account_id) values ($1, '0.4', gen_random_uuid(), gen_random_uuid())", [id]);
+  if (!open) await w.fixture("insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing) values ($1, '0.4', gen_random_uuid(), gen_random_uuid(), 'WEIGHED', '{}')", [id]);
   return id;
 }
 
@@ -507,7 +507,7 @@ describe('the reprocessing registers and what is signed (recipe-core 0621, 0622,
        values ($1, $2, $3, $4, $5, $6, 'INSPECTION', 'kg', gen_random_uuid(), gen_random_uuid())`,
       [id, `OC-R${randomUUID().slice(0, 6)}-${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`, b.id, b.number, PRODUCT, STRENGTH],
     );
-    await w.fixture("insert into plant.container_close (container_id, net_quantity, person_id, account_id) values ($1, '2', gen_random_uuid(), gen_random_uuid())", [id]);
+    await w.fixture("insert into plant.container_close (container_id, net_quantity, person_id, account_id, basis, weighing) values ($1, '2', gen_random_uuid(), gen_random_uuid(), 'WEIGHED', '{}')", [id]);
     if (reserved) await w.fixture('insert into recipe.residue_reservation (container_id, signature_id, reserved_by_person, reserved_by_account, correlation_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [id]);
     return id;
   };
