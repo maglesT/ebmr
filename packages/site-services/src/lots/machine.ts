@@ -79,6 +79,10 @@ export const LOT_GUARDS = {
   destructionWitnessed: "material_lot.destruction_witnessed",
   /** Version 2 (site-services 0860): the manufacturer release recorded this decision on the finished lot in this transaction. */
   manufacturerDecision: "material_lot.manufacturer_decision",
+  /** Version 3 (site-services 0880): the AP's after-release decision for IN (RECALL, REJECT_AFTER_RELEASE) recorded in this transaction. */
+  afterReleaseDecision: "material_lot.after_release_decision",
+  /** Version 3 (site-services 0880): the lot's disposal (PR-46) completed in this transaction by the route the event names. */
+  disposalRecorded: "material_lot.disposal_recorded",
 } as const;
 
 /** Platform permission names (mapped by iam.platform_permission_code to MATERIAL.HANDLE, MATERIAL.RELEASE, ...). */
@@ -89,6 +93,10 @@ export const LOT_PERMISSIONS = {
   dispense: "dispense.execute",
   /** Version 2: the AP's (or named delegate's) manufacturer release (RELEASE.MANUFACTURER). */
   manufacturerRelease: "release.manufacturer",
+  /** Version 3: the person recording a disposal by return (RELEASE.DISPOSAL, recipe-core 0840). */
+  disposal: "release.disposal",
+  /** Version 3: the independent witness completing a witnessed destruction (STEP.WITNESS). */
+  witness: "step.witness",
 } as const;
 
 /** Signature meanings of the lot machine (vendor minimum types added by sql/0710_material_lots.sql). */
@@ -221,6 +229,49 @@ export const materialLotMachineV2 = setup({}).createMachine({
   },
 });
 
+/**
+ * Version 3 (Phase 4 slice 5a; outline 5.2.6 "After release" and "Rejected lots"; L-19, PR-46, IN-05 (e)): the release
+ * model's after-release decisions and the disposal of a rejected finished lot, each fired only by its recorded act in the
+ * same transaction (recipe-core 0840), with no signature of its own (the act's signature is on its own record):
+ *   RELEASED / ON_HOLD --RELEASE_RECALL [RELEASE.MANUFACTURER]--> RECALLED      (the AP recalled the lot for IN)
+ *   RELEASED / ON_HOLD --RELEASE_REJECT [RELEASE.MANUFACTURER]--> REJECTED      (the AP rejected it after release for IN)
+ *   REJECTED / RECALLED --DISPOSAL_DESTROY [STEP.WITNESS]--> DESTROYED          (the witness completed the destruction)
+ *   REJECTED / RECALLED --DISPOSAL_RETURN [RELEASE.DISPOSAL]--> RETURNED        (returned to the supplier or customer)
+ * A disposal by reprocessing leaves the lot REJECTED: the reprocessing batch it names consumes it (Phase 3).
+ */
+const afterRelease = (target: MaterialLotState) =>
+  gmp(target, { guards: [G.commandRecorded, G.afterReleaseDecision], permission: P.manufacturerRelease });
+const disposal = (target: MaterialLotState, permission: string) =>
+  gmp(target, { guards: [G.commandRecorded, G.disposalRecorded], permission });
+
+/** The events of version 3: version 2's and the after-release and disposal exits. */
+export const MATERIAL_LOT_V3_EVENTS = [
+  ...MATERIAL_LOT_V2_EVENTS,
+  "RELEASE_RECALL",
+  "RELEASE_REJECT",
+  "DISPOSAL_DESTROY",
+  "DISPOSAL_RETURN",
+] as const;
+
+export const materialLotMachineV3 = setup({}).createMachine({
+  id: MATERIAL_LOT_MACHINE,
+  initial: "QUARANTINE",
+  states: {
+    QUARANTINE: {
+      on: {
+        ...quarantineV1,
+        MANUFACTURER_RELEASE: manufacturerDecision("RELEASED"),
+        MANUFACTURER_REJECT: manufacturerDecision("REJECTED"),
+      },
+    },
+    ...statesAfterQuarantine,
+    RELEASED: { on: { ...statesAfterQuarantine.RELEASED.on, RELEASE_RECALL: afterRelease("RECALLED"), RELEASE_REJECT: afterRelease("REJECTED") } },
+    ON_HOLD: { on: { ...statesAfterQuarantine.ON_HOLD.on, RELEASE_RECALL: afterRelease("RECALLED"), RELEASE_REJECT: afterRelease("REJECTED") } },
+    REJECTED: { on: { ...statesAfterQuarantine.REJECTED.on, DISPOSAL_DESTROY: disposal("DESTROYED", P.witness), DISPOSAL_RETURN: disposal("RETURNED", P.disposal) } },
+    RECALLED: { on: { ...statesAfterQuarantine.RECALLED.on, DISPOSAL_DESTROY: disposal("DESTROYED", P.witness), DISPOSAL_RETURN: disposal("RETURNED", P.disposal) } },
+  },
+});
+
 export const MATERIAL_LOT_V1: state.MachineDescriptor = {
   code: MATERIAL_LOT_MACHINE,
   version: 1,
@@ -242,4 +293,15 @@ export const MATERIAL_LOT_V2: state.MachineDescriptor = {
   createPermission: LOT_PERMISSIONS.handle,
   machine: materialLotMachineV2,
   seedFile: "0861_machine_material_lot_v2.sql",
+};
+
+export const MATERIAL_LOT_V3: state.MachineDescriptor = {
+  code: MATERIAL_LOT_MACHINE,
+  version: 3,
+  aggregateType: MATERIAL_LOT_AGGREGATE,
+  description:
+    "Material lot usage status, version 3: as version 2, and a released finished lot is recalled or rejected after release, and a rejected one disposed of, only by the release model's recorded acts (outline 5.2.6; L-19, PR-46, IN-05 (e))",
+  createPermission: LOT_PERMISSIONS.handle,
+  machine: materialLotMachineV3,
+  seedFile: "0881_machine_material_lot_v3.sql",
 };

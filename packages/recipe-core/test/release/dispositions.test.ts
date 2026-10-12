@@ -25,6 +25,7 @@ import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, World } from '../lifecycle/support.ts';
+import { dueDate } from '../../../site-services/test/quality/deviation-path.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -227,6 +228,22 @@ async function deviationOnLot(lotId: string): Promise<string> {
   return d.deviationId;
 }
 
+/** QA's classification, the finding and the signed impact per market of an open deviation (site services 0820 to 0824). */
+async function assessedOpen(deviationId: string, impacts: Partial<Record<Market, 'NONE' | 'POTENTIAL' | 'CONFIRMED'>>): Promise<void> {
+  await w.run(qaReviewer, (c) => c.query('select site.start_deviation_investigation($1, $2::jsonb)', [deviationId, JSON.stringify({
+    classification: 'MAJOR', riskRationale: 'QA classification after the first review of the facts', ownerPersonId: qaReviewer.personId, dueDate: dueDate() })]));
+  await w.run(qaReviewer, (c) => c.query('select site.record_deviation_finding($1, $2::jsonb)', [deviationId, JSON.stringify({
+    assignableCause: true, cause: 'Dissolution drift traced to one granulation lot', rootCauseCategory: 'MATERIAL' })]));
+  const links = (await db.app.query<{ id: string }>('select id from site.deviation_link where deviation_id = $1', [deviationId])).rows;
+  for (const l of links) {
+    for (const [market, impact] of Object.entries(impacts)) {
+      await w.run(qaReviewer, (c) => c.query('select site.record_deviation_impact($1, $2::jsonb)', [deviationId, JSON.stringify({ linkId: l.id, market, impact, rationale: 'Assessed against the finding' })]));
+    }
+  }
+  const sig = await signFor(db, qaReviewer2, { type: 'deviation', id: deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+  await w.run(qaReviewer2, (c) => c.query('select site.assess_deviation_impact($1, $2)', [deviationId, sig]));
+}
+
 async function changeRecord(): Promise<string> {
   const { rows } = await db.app.query<{ id: string }>('select id from recipe.change_record order by recorded_at limit 1');
   return rows[0]!.id;
@@ -389,11 +406,15 @@ describe('the US disposition (outline 5.2.6; PR-54, INV-39, DI-39)', () => {
 
   it('[PR-56] a US rejection states its reason and names the investigation linked to the lot; the EU sees it and assesses that record for itself', async () => {
     const lot = await readyLot();
+    // Slice 5a (L-19): a deviation linked after the release suspends it, and INV-39 then holds every market disposition,
+    // a rejection included. The investigation is linked before the release here, with QA's signed impact NONE for IN and
+    // POTENTIAL for the export markets, so the manufacturer release goes ahead and the export markets wait on it.
+    const deviation = await deviationOnLot(lot.lotId);
+    await assessedOpen(deviation, { IN: 'NONE', US: 'POTENTIAL', EU: 'POTENTIAL' });
     await manufacturerRelease(lot);
     let g = await grel(lot.lotId, 'US');
     expect(await codeOf(usAct(qcu, lot.lotId, 'REJECT', g.epoch, null, null))).toBe('EBMR-DSP-039');
     expect(await codeOf(usAct(qcu, lot.lotId, 'REJECT', g.epoch, 'Dissolution trend outside the US registration', null))).toBe('EBMR-DSP-040');
-    const deviation = await deviationOnLot(lot.lotId);
     g = await grel(lot.lotId, 'US');
     await usAct(qcu, lot.lotId, 'REJECT', g.epoch, 'Dissolution trend outside the US registration', deviation);
     expect(await state(lot.lotId, 'US')).toBe('REJECTED');
@@ -669,7 +690,9 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     await w.run(operator, (c) => c.query("select site.link_deviation($1, 'LOT', $2)", [d.deviationId, lot.lotId]));
     expect(await state(lot.lotId, 'EU')).toBe('NOT_READY');
     expect(red(await grel(lot.lotId, 'EU'))).toContain('G2.DEVIATIONS');
-    expect(await codeOf(transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', new Date(Date.now() - 1000).toISOString()))).toBe('EBMR-DSP-053');
+    // Slice 5a (L-19): the link after the release suspended it; INV-39 refuses the certification before its own G2 check.
+    expect(await state(lot.lotId, 'IN')).toBe('RELEASE_SUSPENDED');
+    expect(await codeOf(transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', new Date(Date.now() - 1000).toISOString()))).toBe('EBMR-DSP-033');
   });
 
   // Slice 4 quick review (recipe-core 0826).

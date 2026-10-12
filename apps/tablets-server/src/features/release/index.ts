@@ -1,7 +1,8 @@
 /**
  * Feature `release` (Phase 4 slices 3 and 4a, GMP): the release gate G-REL of a finished lot per market, the manufacturer
- * release, the US and EU dispositions, the EU certification intake and market changes (contract ns/release.ts; recipe-core
- * 0780 to 0849; tablets 1160 to 1189).
+ * release, the US and EU dispositions, the EU certification intake and market changes, and after release the suspension,
+ * re-confirmation, recall, rejection after release and disposal (contract ns/release.ts; recipe-core 0780 to 0869; tablets
+ * 1160 to 1189; site services 0880).
  * Every rule is the database's: the reads come from its definers, the acknowledgement of a "since review" item is the
  * person's own command, and the signed acts are the signable action RELEASE_ACT (signables.ts).
  */
@@ -10,8 +11,8 @@ import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
-import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
+import { lotAfterRelease, suspendedLots } from './after-release.ts';
 import { euImporters, grelView, lotMarkets, lotRelease, marketAddView, releaseQueue } from './reads.ts';
 import { batchMarketActHandler, releaseActHandler } from './signables.ts';
 
@@ -85,14 +86,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       requireSession();
       return { importers: await euImporters(pool) };
     },
-    // Slice 5a (contract first): the after-release reads arrive with the database acts.
-    suspended: ({ requireSession }) => {
+    // Slice 5a: after release (recipe-core 0840, site services 0880).
+    suspended: async ({ requireSession }) => {
       requireSession();
-      throw refusal(501, { code: 'NOT_IMPLEMENTED', kind: 'NOT_ALLOWED', whatHappened: 'The after-release views arrive with slice 5a.' });
+      return { lots: await suspendedLots(app, pool) };
     },
-    afterRelease: ({ requireSession }) => {
+    afterRelease: async ({ params, requireSession }) => {
       requireSession();
-      throw refusal(501, { code: 'NOT_IMPLEMENTED', kind: 'NOT_ALLOWED', whatHappened: 'The after-release views arrive with slice 5a.' });
+      return lotAfterRelease(app, pool, params.lotId);
     },
   });
   return Promise.resolve();
