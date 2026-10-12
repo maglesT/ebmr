@@ -60,10 +60,27 @@ export async function lineUnit(server: ExecServer, runId: string): Promise<void>
   const cls = `CL-LINE-${randomUUID().slice(0, 6).toUpperCase()}`;
   const product = (await server.db.admin.query<{ p: string }>("select recipe.batch_product($1) ->> 'code' as p", [runId])).rows[0]?.p ?? '';
   await asSetup(server, 'insert into plant.product (code, name, highly_potent, recorded_by) values ($1, $1, false, gen_random_uuid()) on conflict do nothing', [product]);
+  await productMaster(server, runId);
   if ((await server.db.admin.query('select 1 from plant.equipment where code = $1', [LINE_UNIT])).rowCount) return;
   await asSetup(server, `insert into plant.equipment_class (code, kind, description, clean_hold, dirty_hold, calibration_required, recorded_by)
                          values ($1, 'PROCESS', 'Blister line coder (test)', interval '72 hours', interval '48 hours', false, gen_random_uuid())`, [cls]);
   await asSetup(server, "insert into plant.equipment (id, code, name, class_code, kind, recorded_by) values ($1, $2, $2, $3, 'PROCESS', gen_random_uuid())", [id, LINE_UNIT, cls]);
+}
+
+/**
+ * The product master of run `runId`'s product and strength in effect since before the run (arranged), with
+ * G21_CONFIG's shelf life: the printed expiry is recipe.batch_expiry's (PR-43; tablets 1201), never the step's own.
+ */
+export async function productMaster(server: ExecServer, runId: string, months = Number(G21_CONFIG['shelfLifeMonths'])): Promise<void> {
+  const p = (await server.db.admin.query<{ code: string; strength: string }>("select recipe.batch_product($1) ->> 'code' as code, recipe.batch_product($1) ->> 'strength' as strength", [runId])).rows[0];
+  if (!p?.code || !p.strength) return;
+  if ((await server.db.admin.query("select 1 from site.erp_master_effect where master_kind = 'PRODUCT' and master_key = site.erp_product_key($1, $2)", [p.code, p.strength])).rowCount) return;
+  const id = randomUUID();
+  const who = randomUUID();
+  await asSetup(server, `insert into site.erp_product (id, product_code, strength, product_name, reprocessing_permitted, beta_lactam, shelf_life_months, erp_reference, received_by_person, received_by_account, received_at, correlation_id)
+                         values ($1, $2, $3, $2, false, false, $4, 'ERP-TEST', $5, $5, '2000-01-01', $5)`, [id, p.code, p.strength, months, who]);
+  await asSetup(server, `insert into site.erp_master_effect (master_kind, master_key, version_id, basis, person_id, account_id, effective_at)
+                         values ('PRODUCT', site.erp_product_key($2, $3), $1, 'RELEASE_BASELINE', $4, $4, '2000-01-01')`, [id, p.code, p.strength, who]);
 }
 
 /** The line occupied by packaging order `batchNumber` of run `runId` with ARTWORK_SET (arranged, as after its clearance). */

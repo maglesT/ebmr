@@ -49,6 +49,22 @@ describe('the release demo of the set-up CLI (demo seed)', () => {
     expect(r?.orderBatchNumber).toBe(`${batch.batchNumber}/P01`);
   }, 120_000);
 
+  it('[PR-43] the finished lot expires at the end of recipe.batch_expiry\'s date in the site\'s zone (tablets 1201); the application can neither type an expiry nor change one', async () => {
+    const r = batch.release;
+    const db = server.db.app;
+    const { rows } = await server.db.admin.query<{ local: string; exp: string; eod: boolean }>(
+      `select to_char(l.expires_at at time zone kernel.site_zone(), 'YYYY-MM-DD') as local, recipe.batch_expiry(f.batch_id) ->> 'expiryDate' as exp,
+              l.expires_at = (((recipe.batch_expiry(f.batch_id) ->> 'expiryDate')::date + 1)::timestamp at time zone kernel.site_zone()) - interval '1 microsecond' as eod
+         from site.finished_lot f join site.material_lot l on l.id = f.lot_id where f.lot_id = $1`,
+      [r?.lotId],
+    );
+    expect(rows[0]?.exp).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(rows[0]?.local).toBe(rows[0]?.exp);
+    expect(rows[0]?.eod).toBe(true);
+    await expect(db.query('select site.create_finished_lot($1::jsonb)', [JSON.stringify({ expiresAt: '2099-12-31T00:00:00Z' })])).rejects.toThrow(/permission denied/);
+    await expect(db.query("update site.material_lot set expires_at = '2099-12-31' where id = $1", [r?.lotId])).rejects.toThrow(/permission denied/);
+  }, 120_000);
+
   it('[IN-05][IN-39] the AP rejects the NOT_READY lot over HTTP on the epoch shown; production and QA are notified and each acknowledges', async () => {
     const lotId = batch.release?.lotId ?? '';
     const ap = await server.asPersona('qcuAuthoriser');
