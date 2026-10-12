@@ -61,6 +61,16 @@
  * Phase 4 slice 5b (recipe-core 0870 to 0889; ns/records-lock.ts):
  *  - RECORD_LOCK_ACT AMENDMENT_OPEN   record_lock <batch>/<n>/OPEN/<DEVIATION|CHANGE_RECORD>/<id>  AMENDMENT_OPENED (QA)
  *                    AMENDMENT_CLOSE  record_lock <batch>/<n>/CLOSE                                 AMENDMENT_CLOSED (QA)
+ * Phase 4 slice 6c (recipe-core 0910; ns/pqr.ts):
+ *  - PQR_SIGN_OFF  pqr_extract <extract id>  PQR_SIGNED_OFF (AP, outside the reviewed batches' records), state EXTRACTED
+ * Phase 4 slice 6b (kernel 1170, 1171; ns/archive.ts):
+ *  - ARCHIVE_ACT CERTIFY_EXPORT  evidence_export <export id>     EVIDENCE_EXPORT_CERTIFIED (QA), state ASSEMBLED
+ *                SIGN_FORMS      form_reconciliation <batch id>  FORMS_RECONCILED (QA), state RECONCILED
+ * Phase 4 slice 6a (site services 0885; ns/india.ts):
+ *  - INDIA_ACT LICENCE_APPROVE            manufacturing_licence <licence id>     LICENCE_APPROVED (QA, never the recorder)
+ *              EXPORT_PERMISSION_APPROVE  export_permission <permission id>      EXPORT_PERMISSION_APPROVED (QA, never the recorder)
+ *              HAZARD_APPROVE             hazard_classification <record id>      HAZARD_CLASSIFICATION_APPROVED (QA, never the recorder)
+ *              DEDICATION_APPROVE         area_dedication <record id>            AREA_DEDICATION_APPROVED (QA, never the recorder)
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -321,6 +331,26 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.enum(['AMENDMENT_OPEN', 'AMENDMENT_CLOSE']),
     batchId: Uuid,
     input: RecordLockActInput,
+  }),
+  z.strictObject({
+    kind: z.literal('PQR_SIGN_OFF'),
+    /** Phase 4 slice 6c: the authorised person signs off a reproducing, reconciled PQR extract (IN-01 (b), PR-58). */
+    extractId: Uuid,
+  }),
+  z.strictObject({
+    kind: z.literal('ARCHIVE_ACT'),
+    /** Phase 4 slice 6b: QA certifies an evidence export (IN-11) or signs the reconciliation of a batch's paper forms (DI-43). */
+    act: z.enum(['CERTIFY_EXPORT', 'SIGN_FORMS']),
+    /** The export (CERTIFY_EXPORT) or the batch (SIGN_FORMS). */
+    subjectId: Uuid,
+  }),
+  z.strictObject({
+    /** Phase 4 slice 6a (ns/india.ts): QA's approval of a recorded licence or export permission. */
+    kind: z.literal('INDIA_ACT'),
+    /** Slice 6 quick review (recipe-core 0912): a second QA person approves a hazard classification or an area dedication. */
+    act: z.enum(['LICENCE_APPROVE', 'EXPORT_PERMISSION_APPROVE', 'HAZARD_APPROVE', 'DEDICATION_APPROVE']),
+    /** The licence, the export permission, or the hazard or dedication record. */
+    subjectId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

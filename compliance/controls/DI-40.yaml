@@ -31,7 +31,11 @@ behaviour: |-
   - GMP decisions are made in the system by e-signature: release, deviations, holds. Comments and messages linked to a batch are kept with an audit trail. An approval that arrives by email is attached and kept with the batch record, and all of these appear in inspection copies.
 catalog_test: Export a batch and compare it field by field with the database. Correct a value, then print. The release printout flags the change and shows the original. A records package for 5 batches includes their audit trails.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-11] a records package for 5 batches includes their audit trails, each export verifying against its registered hash"
+  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][DI-18] an administrator does not read the inspection workspace (refused before the permission check)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -333,7 +333,7 @@ below; each builder ticks them off there.
   - Signing names fixed up front. Aggregates: `release_suspension` (5a, RECORD class), `disposal` (5a), `record_lock` (5b).
     Meanings: RELEASE_RECONFIRMED, RECALLED, REJECTED_AFTER_RELEASE, DISPOSAL_RECORDED, DESTRUCTION_WITNESSED (5a);
     AMENDMENT_OPENED, AMENDMENT_CLOSED (5b).
-  - Later ranges move: 6a site-services 0885 to 0899 (was 0870 to 0889); 7b tablets 1200 to 1209 (was 1190 to 1199).
+  - Later ranges move: 6a site-services 0885 to 0899 (was 0870 to 0889); 7b tablets 1210 to 1219 (was 1190 to 1199; 1200 holds slice 6c's signing-meanings re-creation, which must sort after 1199).
 - **Slice 5 defaults (decision 0004; owner may change):**
   - **D-5-1** Suspension causes, each linked after the lot's first RELEASED or CERTIFIED disposition: a deviation (any
     category, incidents and DI investigations included) linked to the lot or to a lot or batch upstream in its genealogy;
@@ -454,6 +454,145 @@ below; each builder ticks them off there.
 - **6c, PQR/APR extract** (recipe-core 0910 to 0929, screens): reproducible extract per product and period (query
   version, parameters, result hash), reconciled to the batch, deviation and CAPA registers (a mismatch fails the
   extract), export-only SKUs included, market removals shown, AP sign-off (IN-01, PR-58; D-P4-8).
+
+- **Slice 6 build notes (lead, 12 October).** Three full-stack builders (database, server, contract, screens, tests):
+  - 6a India fields: site-services 0885 to 0899, recipe-core 0890 to 0909; contract `ns/india.ts`, routes `/api/india/*`,
+    screens `apps/tablets-web/src/features/india/**`. G-REL item 6 (export permission) is re-created from its latest
+    definition by 6a only.
+  - 6b records: kernel 1170 to 1199; contract `ns/archive.ts`, routes `/api/archive/*`, screens
+    `apps/tablets-web/src/features/archive/**`; the PDF/A-3 library is pinned exactly (D-P4-7); veraPDF stays a
+    deployment check (D-P4-7).
+  - 6c PQR extract: recipe-core 0910 to 0929, tablets 1191 to 1198; contract `ns/pqr.ts`, routes `/api/pqr/*`, screens
+    `apps/tablets-web/src/features/pqr/**`. 6c owns the single re-creation of `tab.kernel_signing_meanings` and
+    `tab.aggregate_read_class` (tablets 1198, from tablets 1199), with these names fixed up front:
+    aggregates `manufacturing_licence`, `export_permission` (6a), `evidence_export`, `form_reconciliation` (6b),
+    `pqr_extract` (6c); meanings LICENCE_APPROVED, EXPORT_PERMISSION_APPROVED (6a), EVIDENCE_EXPORT_CERTIFIED,
+    FORMS_RECONCILED (6b), PQR_SIGNED_OFF (6c). A builder that needs another name records it and the lead adds it.
+  - Shared files: `packages/api-contract/src/index.ts`, `routes.ts`, `signable.ts`, `examples.ts` and the web
+    `features.ts`: additive hunks only. Each builder its own office terminal for e2e (PC-QA-07, PC-QA-08, PC-QA-09).
+- **Slice 6 defaults (decision 0004; owner may change):**
+  - **D-6-1** A GMP batch is issued only when the site holds a current manufacturing licence (Form 25 or 28) endorsing
+    the product, or a loan licence whose technical agreement names the product and site (IN-30); a lapsed licence
+    blocks issue, not batches already running (a deviation is raised for them).
+  - **D-6-2** Export permission is per product, strength and destination country, with a validity window; issue and
+    G-REL item 6 refuse a market whose permission is missing or lapsed at that time.
+  - **D-6-3** Expiry dating (PR-43): expiry = manufacture date + the approved shelf life, rounded down to the month end
+    as the label shows month and year; a retest date never exceeds expiry; computed in the database, never typed.
+  - **D-6-4** PDF/A-3 true copy: the record's canonical content rendered with the evidence embedded as associated files
+    and the content hash in the document metadata; re-rendering the same content gives the same bytes (fixed creation
+    date taken from the record, not the clock).
+  - **D-6-5** Retention: kept for the longest of the market rules that apply; EU batches are not eligible for any
+    retention action until certified or finally rejected; aborted batches are kept like completed ones; a record
+    another kept record depends on inherits the longer period (IN-08, PR-59, DI-46, DI-47). No deletion is built:
+    retention only computes and shows the earliest date.
+  - **D-6-6** Contingency packs (DI-43): the paper forms issued at issue and at stage start are numbered; every form
+    is reconciled (used, transcribed and verified, or voided) before EXECUTION_COMPLETE.
+  - **D-6-7** The PQR extract reconciles batch, deviation and change-record counts (CAPA as recorded on deviations; no
+    separate CAPA register yet, a residual); a mismatch fails the extract; AP signs it off.
+- **Slice 6a build record (builder 6a; site-services 0885, 0886; recipe-core 0890 to 0895; defaults, owner may change):**
+  - **D-6a-1** An export permission's destination is a market code of the release model (US, EU) or a country code; IN
+    never needs one. Per-country EU destinations wait for a shipping-destination model.
+  - **D-6a-2** A licence may have no end date (kept in force by its retention fee). A loan licence counts only while its
+    host manufacturing licence at the same site counts; when a loan licence names the product, the batch is recorded under
+    it with both numbers (recipe.batch_licence_basis, written by a trigger in the issue transaction). Choosing the party at
+    planning and the contract giver's read-only access (IN-30 catalog test, second half) are residuals.
+  - **D-6a-3** Expiry (D-6-3) is the last day of the month before the month in which manufacture date plus shelf life
+    falls (recipe.expiry_month_end), so the label month never runs past the shelf life; the shelf life is the product
+    master version in effect at the batch's issue (recipe.batch_shelf_life; PR-43 "applies only to batches made after").
+    recipe.source_batch_expiry keeps its first-of-month shape. Residual for the lead (needs a tablets migration): the G-21
+    print data and tab.post_finished_lot still read recipe.source_batch_expiry (the month is right; the finished lot
+    expires at the end of the expiry month's first day) and should read recipe.batch_expiry.
+  - **D-6a-4** A product master version that changes the shelf life takes effect only on a recorded stability basis
+    (trigger on site.erp_master_effect, EBMR-IND-031); the first shelf life of a new product comes with its registration
+    and is not checked. The basis (study reference, tentative flag) is recorded by the head of QC or QA without its own
+    signature: QA's ERP_MASTER_CONFIRMED signature over the change is the approval.
+  - **D-6a-5** IN-27: hazard class per product from its risk assessment and rooms or lines dedicated per class; the GMP
+    issue refuses a hazardous product on a line not dedicated to its class. The step-start room and equipment check, the
+    breathing-air status at step start and the designer's inserted PPE and decontamination steps are residuals.
+  - **D-6a-6** IN-31: the database computes the batch-variable India-domestic particulars and the H2 stub payload (layout
+    H2-STUB-1, status U, key V first); the fixed particulars belong to the approved artwork template. Residuals (tablets):
+    the template-approval check of IN-31 (b) and binding the print job's data to recipe.h2_payload; the integration-sdk's
+    h2CodeContent has no V key yet.
+  - **D-6a-7** IN-18 "deferred clauses": no written list was found; completion here is the register export with the use
+    of every number (ISSUED with its licence, PLANNED, CANCELLED, VOIDED with the reason, UNUSED) and the strength.
+  - **D-6a-8** A licence suspended or lapsed after issue keeps G-REL item 6 green for batches issued under it (D-6-1);
+    raising the deviation for running batches is not automated (residual).
+  - **D-6a-9** Signing names: builder 6c's tablets 1200 maps manufacturing_licence (LICENCE_APPROVED) and
+    export_permission (EXPORT_PERMISSION_APPROVED) as RECORD-class (D-6c-1); 6a keeps that (QA approvers preview them
+    with RECORD.READ). The INDIA_ACT ceremony is proven over HTTP and in the e2e flow on PC-QA-07.
+- **Slice 6c built (PQR extract; recipe-core 0910, tablets 1200; contract `ns/pqr.ts`, routes `/api/pqr/*`, screens
+  `features/pqr`, e2e `specs/pqr` on PC-QA-09).** Defaults (decision 0004; owner may change):
+  - **D-6c-1** The five slice 6 aggregates (`manufacturing_licence`, `export_permission`, `evidence_export`,
+    `form_reconciliation`, `pqr_extract`) are RECORD-class (read with RECORD.READ), so the QA and AP signers can preview
+    them; 6a may ask the lead to move its two to GOVERNANCE. The mapping names meanings only: a meaning is signable once its
+    builder adds the catalogue row and content provider (until then the kernel refuses it).
+  - **D-6c-2** Every batch is made under the Indian licence (INV-28), so an export-only SKU is a finished lot whose market
+    set leaves out IN; a batch is export-only when it has lots and every one is.
+  - **D-6c-3** The sign-off meaning is the lead's fixed name PQR_SIGNED_OFF (D-P4-8 said PQR_EXTRACT_APPROVED); REVIEW
+    category, APPROVER class, excludes involved persons; the signer works as AUTHORISED_PERSON (PQR.SIGN_OFF is the AP's only)
+    and is outside the involvement set of every batch in the extract (INV-35 by analogy). PQR.EXTRACT: QA reviewer, head of
+    QC, AP.
+  - **D-6c-4** Product = the code in the issued master; period = issue days, inclusive, in each batch's site zone, at most
+    three years. Registers: the batch number register (the product's allocations, not voided, linked to an issued batch),
+    the deviation register by batch number and finished lot, the change records through the batches' master pins, market
+    adds and the product's masters effective in the period. Compared both ways; a mismatch refuses the run (422,
+    EBMR-PQR-006) and nothing is stored; the sign-off re-runs the query and refuses a changed hash or a lost reconciliation.
+  - **D-6c-5** The query version is the SHA-256 of the query function's definition as installed; a run refuses a changed
+    definition. The functions it calls (release and deviation states) are not in that hash: a later re-creation of one
+    changes the output and shows as "does not reproduce", never silently.
+  - **D-6c-6** The single re-creation of `tab.kernel_signing_meanings` and `tab.aggregate_read_class` is tablets 1200, not
+    1198: the runner applies a source's files in name order, so on a new database 1198 would run before 1199 and be
+    overwritten by it. 1200 is in no builder's range; slice 7b keeps 1190 to 1199.
+  - **D-6c-7** (quick-review fix, recipe-core 0912, tablets 1209; IN-27) Every hazard classification and area dedication
+    takes effect only on a second QA person's signature (HAZARD_CLASSIFICATION_APPROVED, AREA_DEDICATION_APPROVED;
+    HAZARD.APPROVE for QA MBR approver and QA reviewer; never the recorder; only the latest record approved), except that
+    an unsigned record restricting more counts at once (a pending upgrade to a hazard class, a pending withdrawal of a
+    dedication): fail-safe. Hazard records have no web screen yet (route and INDIA_ACT only; residual for the screens).
+  - **D-6c-8** (quick-review check, recipe-core 0913; IN-18) `recipe.allocation_register` requires RECORD.READ for the
+    site itself; the route reads it inside the person's own command (it checked only for a session before).
+  - Residuals (owner): the new-supplier flag of IN-01 (b), the management-review extract (c) and the CAPA register with
+    effectiveness checks (d); typed yields and IPC results in the extract (PR-58 data types); a refused run is not
+    recorded; one product code per extract (no recorded product grouping).
+
+- **Slice 6b defaults and residuals (builder 6b, 12 October; decision 0004, owner may change).** Kernel 1170 contingency
+  packs, 1171 evidence export and inspection, 1172 logged deletion requests, 1173 true-copy table names (a 4b fix: a copy
+  of a chain held in the records schema named its tables unlike the audit trail, so its rows did not verify).
+  - **D-6b-1** A contingency form is reconciled when VERIFIED (returned, transcribed with a reference to the back-entered
+    entries, verified by a second person) or VOIDED (unused or spoilt, with a reason); a form reported missing is voided
+    only with the reference of the deviation raised for it. The reconciliation is signed FORMS_RECONCILED (QA on the
+    floor or a QA reviewer; a verifier meaning, so performers are excluded). After signing no pack is issued and no form
+    changes. A batch with no form issued reconciles trivially.
+  - **D-6b-2** The licence form in the retention inputs is FORM_25 until the licence register of 6a is read (lead).
+  - **D-6b-3** Retention facts of a batch: manufacture date = the issue date in the site zone; expiry = the latest expiry
+    of the finished lots made from it; EU CERTIFIED with the latest QP certification date, FINALLY_REJECTED when the QP
+    rejected or the EU disposition is REJECTED or INELIGIBLE, else PENDING (OPEN); aborted and cancelled batches carry
+    their abort date. A processing record is linked as supporting the packaging records packed from it (it inherits
+    their longer period). QA stores the schedule on demand (needs an approved record type with the BATCH_RECORD key);
+    until then the screen shows the database's preview.
+  - **D-6b-4** A deletion request is answered and logged by the database (records.request_disposal: REFUSED with the
+    refusals, or ELIGIBLE for the existing QA disposal approval); nothing deletes (D-6-5).
+  - **D-6b-5** The evidence export of a batch holds the true copies of its chains (batch, batch_review,
+    form_reconciliation), the PDF/A-3 true copy of the batch record and a summary; the database checks every section,
+    that each chain belongs to the batch and that the PDF carries its content SHA-256; QA certifies it
+    (EVIDENCE_EXPORT_CERTIFIED, a verifier meaning).
+  - **D-6b-6** The inspection workspace serves every certified export to ARCHIVE.INSPECT (the new read-only role
+    INSPECTION_READER and QA reviewers); every download is logged. A per-inspection scope and time box is a residual.
+  - **D-6b-7** PDF/A-3: pdf-lib 1.17.1 with @pdf-lib/fontkit 1.1.1 (regenerator-runtime 0.14.1 for its Devanagari
+    shaper), Noto Sans and Noto Sans Devanagari from @fontsource 5.3.0 (SIL OFL 1.1, embedding allowed), all pinned; an
+    sRGB ICC v2 profile built in code (sRGB primaries, D50, the sRGB curve); a character neither font draws prints as
+    "?". The document date is the time of the chain's last audit event; the file carries no clock.
+  - **R-6b-1 (lead)** The EXECUTION_COMPLETE gate: kernel migrations run before recipe-core, so the kernel cannot add the
+    trigger. One row trigger on recipe.execution_state (recipe-core or tablets range) must refuse a row whose status
+    becomes EXECUTION_COMPLETE while records.form_reconciliation_problem(batch_id) is not NULL (as tab.serial_completion_check
+    does for PR-42). Existing seeds and GB-T-01 issue no forms, so they reconcile trivially. The automatic deviation for
+    a missing form (site services) is part of the same residual.
+  - **R-6b-2** The ceremony mapping of evidence_export and form_reconciliation (tab.kernel_signing_meanings, 6c): the HTTP
+    signing tests and the e2e certification step skip until it is installed.
+  - **R-6b-3** The verify route takes files up to the 2 MB request limit; larger exports verify offline with the kernel
+    verifier. Printing the numbered forms and reprint control, the downtime drill and back-entry flags in execution are
+    not built (DI-43 clauses for 7a). Component lots are not declared for retention (the dependency covers processing to
+    packaging). The purge check of a cited true copy (F34) still compares unqualified names for records-schema
+    aggregates. veraPDF conformance stays a deployment check (D-P4-7).
 
 ### Slice 7: trace, golden batches, residual kill tests (then the Phase 4 exit)
 - **7a, trace** (`compliance/**`): `clauses` for all 95 phase-4 controls and the Phase 3 deferrals; a clause the

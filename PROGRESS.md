@@ -49,9 +49,19 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
     the bright-stock maximum hold (recipe-core 0870 to 0875, tablets 1190, 1199; INV-21, R-04, PR-38). 5c screens.
     Quick review: one high (amendment cause refused by the suspension) and one core medium (a cause linked again after
     a re-confirmation did not suspend again) fixed with tests. Defaults D-5-1 to D-5-8, D-5a-*, D-5b-* in the plan.
+  - Slice 6 on `phase-4/slice-6`: 6a India fields (licences Form 25/28 and loan licences, export permissions, both
+    checked at issue and in G-REL item 6; expiry computed in the database and used by the finished lot and the G-21
+    print data; shelf-life changes need a stability basis; hazard classes and line dedications, changes signed by a
+    second QA person; allocation register export; India label particulars and the H2 payload stub). 6b records
+    (contingency paper forms reconciled before EXECUTION_COMPLETE; PDF/A-3 true copy, reproducible bytes; certified
+    evidence export checked in the database; retention computed and shown only; read-only inspection workspace). 6c
+    PQR extract (reproducible, reconciled to the registers, AP sign-off). Migrations: site-services 0885, 0886;
+    recipe-core 0890 to 0895, 0910 to 0913; kernel 1170 to 1174; tablets 1200, 1201, 1209. Quick review: no high;
+    core mediums (export certifiable without the database's own check, an unsigned hazard downgrade) fixed with tests.
   - Moved to GB-T-02 (slice 7): the green release path, the released demo lot and the suspension browser flow, the demo
     H-PACK shortcut, the e2e QP package and market release.
-  - Open for the owner (defaults stand): D-2a-9 (CONFIRMED impact keeps release blocked after closure), D-P4-6 (India
+  - Open for the owner (defaults stand): IN-18 "deferred clauses" read as the register export with each number's use
+    (D-6a-7); D-2a-9 (CONFIRMED impact keeps release blocked after closure), D-P4-6 (India
     PPQ release waits for the validation outcome), D-3a-10 (CONFIRMED impact never justifiable), D-5b-2 (a product with
     no bright-stock maximum is not checked), the drying-loop correction and India subdivision questions (Phase 3 backlog).
 - CI runs the tests in four shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;

@@ -15,7 +15,15 @@ sources: Bharatiya Sakshya Adhiniyam 2023 section 63 (in force 1 Jul 2024, repla
 behaviour: "Any batch record can be exported as a package: rendered human-readable copy, machine-readable data, full audit trail, and a manifest with a SHA-256 hash per file plus system name, version, time source, export operator and time. The hashes re-verify on import. The package supplies the facts needed for the certificate that accompanies electronic evidence in Indian proceedings, and keeps origin and date/time metadata (IT Act s.7)."
 catalog_test: export a batch; alter one byte; hash verification fails.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11] export a batch; alter one byte; hash verification fails"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11] the database computes the export hash again and refuses a wrong hash, an altered section, a chain of another record, an unregistered copy or a missing PDF"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-35] QA certifies the export with EVIDENCE_EXPORT_CERTIFIED of this export, made by the person who records it, once"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-11] a records package for 5 batches includes their audit trails, each export verifying against its registered hash"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-41][IN-11] the database derives a PDF's content SHA-256 from its bundle exactly as the renderer does"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-41] an export whose bundle part was altered, even under a manifest made for it, is refused, so it can never be certified"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-41] a PDF without the audit trail, or whose content SHA-256 is not its bundle's, is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -183,6 +183,48 @@ export {
   RecordLockSummaryView,
   RecordLockView,
 } from './ns/records-lock.ts';
+export {
+  AllocationEntryView,
+  AllocationUse,
+  EndorsedProduct,
+  ExportPermissionView,
+  H2IssueView,
+  HazardClass,
+  HazardView,
+  IndiaCheckView,
+  IndiaLabelView,
+  LicenceForm,
+  LicenceKind,
+  LicenceState,
+  LicenceView,
+  ShelfLifeBasisView,
+} from './ns/india.ts';
+export {
+  PqrBatchView,
+  PqrChangeView,
+  PqrCounts,
+  PqrDeviationView,
+  PqrExtractSummaryView,
+  PqrExtractView,
+  PqrLotView,
+  PqrMarketRemovalView,
+  PqrProductCode,
+  PqrReconciliation,
+  PqrSignOffView,
+} from './ns/pqr.ts';
 export { EditionReviewItem, FinishedLotView, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
 export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';
+export {
+  ArchiveBatchSummary,
+  ArchiveBatchView,
+  ContingencyFormState,
+  ContingencyFormView,
+  DisposalAnswerView,
+  ExportFileView,
+  ExportView,
+  FormsView,
+  RetentionView,
+  TrueCopyPdfView,
+  VerificationView,
+} from './ns/archive.ts';

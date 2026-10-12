@@ -143,6 +143,9 @@ tests:
   - "packages/kernel/test/review/f33.test.ts > F33 one QA reviewer shortens retention and approves the disposal alone > [DI-47][INV-22] the person who ended an OPEN retention by changing its inputs cannot alone approve the disposal, and the batch is not purged"
   - "packages/kernel/test/review/f34.test.ts > F34 true copy cited by a disposal approval > [F34][DI-47][INV-22] a true copy that leaves out a registered table holding rows of the record is not accepted as the archive of a purge"
   - "packages/kernel/test/review/f75.test.ts > F75 retention purge of a kernel control register > [INV-27][IN-18][DI-47][INV-22] a QA reviewer plus the retention job cannot erase the batch-number register and reissue a batch number"
+  - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [PR-59][DI-47] deleting a batch before its date is refused and logged; the request deletes nothing"
+  - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [DI-47] an EU batch finally rejected is no longer open: kept for the later of expiry + 1 year and the disposition + 5 years"
+  - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [DI-47][DI-46] an aborted batch is kept like a completed one, and the record a kept batch depends on inherits the longer period"
 clauses:
   - clause: "Try to delete a batch record before its retention end. Blocked."
     tests:

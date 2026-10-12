@@ -16,7 +16,24 @@ sources: Schedule M Part I 9.1-9.5 (loan licence and contract production; 9.3.x 
 behaviour: A batch can belong to a loan licensee or contract giver while made on the host site; the record header carries both the host manufacturing licence number and the loan licence number (IN-31, section C); completed records can be shared read-only with the loan licensee/contract giver; the release workflow shows which party's authorised person releases, per the written contract.
 catalog_test: create a loan-licence batch; both licence numbers appear and a contract-giver reviewer cannot edit.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/india/india-routes.test.ts > licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one"
+  - "apps/tablets-server/test/india/india-routes.test.ts > licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] an export permission recorded over HTTP counts once approved, until it is suspended; IN is never a destination"
+  - "apps/tablets-server/test/india/india-routes.test.ts > licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder"
+  - "apps/tablets-web/test/office/india.test.tsx > licences and export permissions > [IN-30] lists each licence with its state and endorsed products; the regulatory signer records one as typed, with its products and validity"
+  - "apps/tablets-web/test/office/india.test.tsx > licences and export permissions > [IN-30] QA is offered the approval of a draft licence and the suspension of an approved one, never the record forms"
+  - "packages/api-contract/test/india.test.ts > the india namespace (Phase 4 slice 6a) > [IN-30][IN-18][IN-31] every india route lives under /api/india on the GMP installation and has an example that parses"
+  - "packages/api-contract/test/india.test.ts > the india namespace (Phase 4 slice 6a) > [IN-30] a licence is recorded with its form, an endorsed product and a validity; free text on a label carries no ; or ="
+  - "packages/api-contract/test/india.test.ts > the india namespace (Phase 4 slice 6a) > [IN-30] INDIA_ACT approves a licence or an export permission by its id, nothing else"
+  - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-30] a GMP batch is issued only under a current licence endorsing its product and strength; the licence basis is recorded with the batch in the issue transaction; a later suspension blocks the next issue only"
+  - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-30] a loan-licence batch is issued under the loan licence naming its product and the host licence of the site; its record carries both licence numbers and the technical agreement"
+  - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-30] an export market needs a current export permission of the product and strength for it at issue and in G-REL item 6; IN needs none"
+  - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-30] G-REL item 6 is red for a batch of the evidence set without a licence basis recorded at its issue"
+  - "packages/site-services/test/india/licences.test.ts > manufacturing and loan licences (site services 0885) > [IN-30] a manufacturing licence counts only once QA approved it under its own LICENCE_APPROVED signature; the approval is given once and recorded by its signer"
+  - "packages/site-services/test/india/licences.test.ts > manufacturing and loan licences (site services 0885) > [IN-30] a licence does not count before its validity, after it lapsed, once suspended, nor for a product or strength it does not endorse"
+  - "packages/site-services/test/india/licences.test.ts > manufacturing and loan licences (site services 0885) > [IN-30] a loan licence names an approved host manufacturing licence of the site and its technical agreement; a batch under it carries both licence numbers, and it stops counting with its host"
+  - "packages/site-services/test/india/licences.test.ts > manufacturing and loan licences (site services 0885) > [IN-30] the application role cannot write, change or remove a licence, an endorsement, an approval or a suspension directly; not even the owner changes one; an administrator records nothing"
+  - "packages/site-services/test/india/licences.test.ts > export permissions (site services 0885; D-6-2) > [IN-30] an export permission counts for its product, strength and destination within its validity once approved by another person than its recorder; IN needs none; suspension ends it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

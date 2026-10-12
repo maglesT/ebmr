@@ -2437,3 +2437,18 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   carries no proof ticket, so parallel heavy office specs exceeded the address's shared allowance for such requests
   (X34). The limit is unchanged. The review spec also has its own terminals (PC-QA-06, PC-PLAN-03). Full suite 5,771
   passed, E2E 35 of 35, trace ok, register synced. The suspension browser flow waits for GB-T-02 (slice 7).
+- 2026-10-12: PHASE 4 SLICE 6 (branch phase-4/slice-6; builders 6a, 6b, 6c). India: licences (Form 25/28, loan
+  licences with host licence and technical agreement) and export permissions checked at issue and in G-REL item 6
+  (IN-30); expiry computed in the database, used by the finished lot and the G-21 print data, shelf-life changes with a
+  stability basis (PR-43); hazard classes and line dedications (IN-27); allocation register export (IN-18); India label
+  particulars and the H2 payload stub bound to the batch (IN-31). Records: contingency paper forms reconciled and signed
+  before EXECUTION_COMPLETE (DI-43, PR-16); PDF/A-3 true copy with reproducible bytes (DI-41); evidence export checked
+  in the database and certified by QA (IN-11); retention computed and shown, deletion requests answered and logged,
+  never executed (IN-08, PR-59, DI-46, DI-47); read-only inspection workspace with logged reads (DI-40). PQR extract:
+  reproducible, reconciled to the batch, deviation and change-record registers, AP sign-off (IN-01, PR-58). A slice 4b
+  true-copy naming defect fixed (kernel 1173). Quick review: no high; core mediums fixed with tests (the database now
+  checks an evidence export itself before certification; hazard downgrades and dedications need a second QA person's
+  signature; the inspection read refuses administrators; contingency packs refused after completion; the allocation
+  register needs RECORD.READ). Residuals: IN-31 (b) artwork approval and print binding; IN-30 planning party and
+  contract-giver access; IN-27 step-start and PPE checks; no automatic deviation on a lapsed licence; hazard approval
+  screen; a superuser-typed finished-lot expiry unchecked.

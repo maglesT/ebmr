@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RECORDS_LOCK_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { ARCHIVE_ROUTE_IDS, CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, PQR_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RECORDS_LOCK_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -206,10 +206,10 @@ describe('route table', () => {
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
-      'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
-      'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
+      'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
+      'execution.issue', 'execution.planBatch', 'india.issueH2', 'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
-      'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
+      'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'pqr.run', 'quality.receiveLot',
       'quality.registerEvidenceDocument', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
     ]);
@@ -349,6 +349,33 @@ describe('route table', () => {
     expect(ok(SignableAction, { kind: 'RECORD_LOCK_ACT', act: 'AMENDMENT_OPEN', batchId, input: { lotId: batchId } })).toBe(false);
     expect(routes.records.setBrightStockHold.body?.safeParse({ productCode: 'GBT01', strength: '500 mg', maxHoldHours: 720, reason: 'Hold study HS-1' }).success).toBe(false);
     expect(routes.records.setBrightStockHold.body?.safeParse({ productCode: 'GBT01', strength: '500 mg', maxHoldHours: '720', reason: 'Hold study HS-1' }).success).toBe(true);
+  });
+
+  it('[IN-01][PR-58] the pqr namespace (Phase 4 slice 6c) is GMP only, each route with an example; a run names a product and a calendar period; PQR_SIGN_OFF names the extract only', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of PQR_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of Object.values(routes.pqr)) expect(r.installation, r.id).toBe('GMP');
+    const extractId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    expect(ok(SignableAction, { kind: 'PQR_SIGN_OFF', extractId })).toBe(true);
+    expect(ok(SignableAction, { kind: 'PQR_SIGN_OFF', extractId, resultSha256: 'a'.repeat(64) })).toBe(false);
+    const body = (b: unknown) => routes.pqr.run.body?.safeParse(b).success;
+    expect(body({ productCode: 'GBT01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(true);
+    expect(body({ productCode: 'GBT01', periodFrom: '2025-10-01T00:00:00Z', periodTo: '2026-09-30' })).toBe(false);
+    expect(body({ productCode: 'GBT 01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(false);
+  });
+
+  it('the archive namespace (Phase 4 slice 6b) is GMP only, each route with an example; paper-form commands are FRESH_ON_SHARED; ARCHIVE_ACT certifies an export or signs a forms reconciliation', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of ARCHIVE_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of Object.values(routes.archive)) expect(r.installation, r.id).toBe('GMP');
+    expect(routes.archive.issuePack.attribution).toBe('FRESH_ON_SHARED');
+    expect(routes.archive.formEvent.attribution).toBe('FRESH_ON_SHARED');
+    const subjectId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    expect(ok(SignableAction, { kind: 'ARCHIVE_ACT', act: 'CERTIFY_EXPORT', subjectId })).toBe(true);
+    expect(ok(SignableAction, { kind: 'ARCHIVE_ACT', act: 'SIGN_FORMS', subjectId })).toBe(true);
+    expect(ok(SignableAction, { kind: 'ARCHIVE_ACT', act: 'DELETE_RECORD', subjectId })).toBe(false);
+    expect(routes.archive.issuePack.body?.safeParse({ moment: 'ISSUE', templateRef: 'DT-1', destination: 'Suite 1', pages: 0, reason: 'planned network outage' }).success).toBe(false);
+    expect(routes.archive.issuePack.body?.safeParse({ moment: 'ISSUE', templateRef: 'DT-1', destination: 'Suite 1', pages: 3, reason: 'planned network outage' }).success).toBe(true);
   });
 
   it('the release namespace (Phase 4 slice 3) is GMP only (office routes), each route with an example; RELEASE_ACT names its act, lot and input', () => {

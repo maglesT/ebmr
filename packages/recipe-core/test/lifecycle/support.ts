@@ -112,6 +112,9 @@ export interface PrepareOptions {
 }
 
 export class World {
+  /** Phase 4 slice 6a: authorise() also gives the product its licence and export permissions (licenceFor); off to test the gates. */
+  autoLicence = true;
+
   constructor(
     readonly db: TestDatabase,
     readonly cast: Cast,
@@ -292,7 +295,45 @@ export class World {
     const id = await this.run(qa, (c) => lc.proposeMarketAuthorisation(c, def));
     const qaSig = await this.sign(qa, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
     const regSig = await this.sign(regulatory, lc.MARKET_AUTHORISATION_AGGREGATE, id, 'REGULATORY_CONFIRMED', 'PROPOSED');
-    return this.run(qa, (c) => lc.activateMarketAuthorisation(c, id, qaSig, regSig), reason(`${def.market}: market authorised for the test`));
+    const activated = await this.run(qa, (c) => lc.activateMarketAuthorisation(c, id, qaSig, regSig), reason(`${def.market}: market authorised for the test`));
+    if (this.autoLicence) await this.licenceFor(def.versionId, def.market);
+    return activated;
+  }
+
+  /**
+   * Phase 4 slice 6a (site services 0885): what an authorised product needs before a GMP batch of it is issued at the
+   * seed site (D-6-1, D-6-2): a manufacturing licence (Form 25) endorsing its product and strength, recorded by the
+   * regulatory signer and approved by QA under LICENCE_APPROVED, and for an export market an export permission approved
+   * under EXPORT_PERMISSION_APPROVED. Through the real commands; nothing is written when they already hold.
+   */
+  async licenceFor(versionId: string, market: string, site = 'SITE-1'): Promise<void> {
+    const { rows } = await this.db.app.query<{ product_code: string; strength: string }>(
+      'select f.product_code, f.strength from recipe.mbr_version v join recipe.mbr_family f on f.id = v.family_id where v.id = $1',
+      [versionId],
+    );
+    const p = rows[0];
+    if (!p || !/^[A-Z0-9][A-Z0-9._-]{0,63}$/.test(p.product_code)) return;
+    const problem = async (sql: string, args: unknown[]): Promise<string | null> => (await this.db.app.query<{ r: string | null }>(sql, args)).rows[0]?.r ?? null;
+    if (await problem('select site.licence_problem($1, $2, $3, clock_timestamp()) as r', [site, p.product_code, p.strength])) {
+      const id = await this.run(this.cast.regulatory, async (c) =>
+        (await c.query<{ r: string }>('select site.record_manufacturing_licence($1::jsonb) as r', [JSON.stringify({
+          licenceKind: 'MANUFACTURING', form: '25', licenceNumber: `MFG-25-${randomBytes(5).toString('hex').toUpperCase()}`, holderName: 'Test Pharma Ltd',
+          holderAddress: 'Plot 1, Test Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00Z', products: [{ productCode: p.product_code, strength: p.strength }],
+        })])).rows[0]!.r,
+      );
+      const sig = await this.sign(this.cast.qa, 'manufacturing_licence', id, 'LICENCE_APPROVED', 'DRAFT');
+      await this.run(this.cast.qa, (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [id, sig]));
+    }
+    if (market !== 'IN' && (await problem('select site.export_permission_problem($1, $2, $3, $4, clock_timestamp()) as r', [site, p.product_code, p.strength, market]))) {
+      const id = await this.run(this.cast.regulatory, async (c) =>
+        (await c.query<{ r: string }>('select site.record_export_permission($1::jsonb) as r', [JSON.stringify({
+          productCode: p.product_code, strength: p.strength, destination: market, permissionNumber: `NOC-${randomBytes(5).toString('hex').toUpperCase()}`,
+          issuingAuthority: 'State Licensing Authority (test)', validFrom: '2020-01-01T00:00:00Z', validUntil: '2099-01-01T00:00:00Z',
+        })])).rows[0]!.r,
+      );
+      const sig = await this.sign(this.cast.qa, 'export_permission', id, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
+      await this.run(this.cast.qa, (c) => c.query('select site.approve_export_permission($1, $2)', [id, sig]));
+    }
   }
 
   async issue(familyId: string, markets: string[], scope: lc.IssueScope, versionId?: string): Promise<lc.IssueResult & { batchNumber: string }> {

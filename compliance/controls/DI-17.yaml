@@ -350,6 +350,7 @@ tests:
   - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17][IN-26] a unit: the product of the use this transaction starts or ends, of that unit only"
   - "packages/recipe-core/test/mutation/platform-scope.test.ts > the SCOPE hook of the plant > [DI-17] an output container: its own product; another permission, a malformed or missing identifier: nothing"
   - "apps/tablets-server/test/execution/sweeper-gmp.test.ts > the GMP sweeper identity (D-P4-9) > [DI-17][INV-20] the GMP sweeper is a SERVICE account on SRV-SWEEPER-01 holding EXECUTION_SWEEPER only: EXECUTION.SWEEP and no step right"
+  - "packages/recipe-core/test/release/india.test.ts > the allocation register with the use of every number (recipe-core 0895) > [IN-18][DI-17] the register is read only by a person holding RECORD.READ for the site: no actor, or the ERP interface, is refused (recipe-core 0913)"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

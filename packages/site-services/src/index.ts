@@ -15,3 +15,4 @@ export const BUILT_AGAINST = [KernelPackage] as const;
 export * from './batch-numbers/index.ts';
 export * from './lots/index.ts';
 export * from './quality/index.ts';
+export * from './india/index.ts';
