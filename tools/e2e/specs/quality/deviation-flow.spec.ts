@@ -2,8 +2,9 @@
  * Phase 3 slice 6 quality flow, on the full deviation path of Phase 4 slice 2a: QA raises a deviation with its
  * classification and rationale and links a material lot (received for this test); the quality unit's authorised person
  * classifies it and starts the investigation with the first as its owner; the owner records the finding, the impact on the lot for India
- * and the closure basis (the last two through the API until slice 2c's screens); a second QA person signs the impact
- * assessment and concludes through the ceremony (PENDING_CLOSURE).
+ * and the closure basis on the screens of slice 2c; a second QA person signs the impact
+ * assessment, concludes (PENDING_CLOSURE) and closes it through the ceremony; the lot's release checklist then shows it
+ * as not blocking.
  */
 import { routes } from '@ebmr/api-contract';
 import { expect, signIn, test } from '../../fixtures/index.ts';
@@ -72,7 +73,6 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
   }, classifier);
   await classifier.context().close();
 
-  const deviationId = new URL(page.url()).pathname.split('/').at(-1) ?? '';
   await evidence.step('The owner records the finding, the impact and the closure basis', 'The finding is recorded', async () => {
     await page.reload();
     const finding = page.getByTestId('form-Record the finding');
@@ -81,23 +81,32 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
     await finding.getByRole('radio', { name: 'EQUIPMENT' }).locator('xpath=ancestor::label[1]').click();
     await finding.getByRole('button', { name: 'Record the finding' }).click();
     await expect(finding.getByText('Saved.')).toBeVisible();
-    const qaApi = await signedInApi(page, e2e);
-    const detail = valueOf('the deviation detail', await qaApi.call(routes.quality.deviationDetail, { params: { deviationId } }));
-    const linkId = detail.links[0]?.linkId ?? '';
-    valueOf('the impact', await qaApi.call(routes.quality.recordDeviationImpact, { params: { deviationId }, body: { linkId, market: 'IN', impact: 'NONE', rationale: 'The lot was not used in the affected granulation.' } }));
-    valueOf(
-      'the closure basis',
-      await qaApi.call(routes.quality.recordDeviationClosureBasis, {
-        params: { deviationId },
-        body: {
-          rootCauseMethod: 'Fishbone with production and engineering',
-          capaRefs: [`CAPA-${tag.toUpperCase()}`],
-          notificationRequired: false,
-          notificationRationale: 'No registered detail or licence condition is affected',
-          otherBatches: [{ subjectKind: 'PRODUCT', ref: 'Batches granulated since the pump service', included: false, reason: 'Pump rate checked on them' }],
-        },
-      }),
-    );
+  }, page);
+
+  await evidence.step('The owner records the impact on the lot for India on the screen', 'The impact is listed, not signed yet', async () => {
+    const impact = page.getByTestId('impact-form');
+    await impact.getByRole('radio', { name: 'IN' }).locator('xpath=ancestor::label[1]').click();
+    await impact.getByRole('radio', { name: 'NONE' }).locator('xpath=ancestor::label[1]').click();
+    await impact.getByRole('textbox', { name: 'Rationale of the impact' }).fill('The lot was not used in the affected granulation.');
+    await impact.getByRole('button', { name: 'Record the impact' }).click();
+    await expect(impact.getByText('Impact recorded.')).toBeVisible();
+    await expect(page.getByTestId('deviation-impacts')).toContainText('IN NONE (not signed yet)');
+  }, page);
+
+  await evidence.step('The owner records the closure basis on the screen', 'The closure basis is listed with its CAPA and the other subject assessed', async () => {
+    const form = page.getByTestId('closure-form');
+    await form.getByRole('textbox', { name: 'Root-cause method' }).fill('Fishbone with production and engineering');
+    await form.getByRole('textbox', { name: 'CAPA references' }).fill(`CAPA-${tag.toUpperCase()}`);
+    await form.getByRole('radiogroup', { name: 'Regulatory notification required' }).getByRole('radio', { name: 'No' }).locator('xpath=ancestor::label[1]').click();
+    await form.getByRole('textbox', { name: 'Notification assessment' }).fill('No registered detail or licence condition is affected');
+    const row = form.getByTestId('other-batch-0');
+    await row.getByRole('radio', { name: 'PRODUCT' }).locator('xpath=ancestor::label[1]').click();
+    await row.getByRole('textbox', { name: 'Reference 1' }).fill('Batches granulated since the pump service');
+    await row.getByRole('radiogroup', { name: 'Included in the deviation 1' }).getByRole('radio', { name: 'No' }).locator('xpath=ancestor::label[1]').click();
+    await row.getByRole('textbox', { name: 'Reason 1' }).fill('Pump rate checked on them');
+    await form.getByRole('button', { name: 'Record the closure basis' }).click();
+    await expect(form.getByText('Closure basis recorded.')).toBeVisible();
+    await expect(page.getByTestId('closure-summary')).toContainText(`CAPA: CAPA-${tag.toUpperCase()}`);
   }, page);
 
   const second = await officePage('GMP', 'PC-QA-01');
@@ -110,5 +119,13 @@ test('quality: a deviation is raised, linked, investigated and concluded @office
     await second.getByRole('button', { name: 'Conclude (QA signature)' }).click();
     await officeSign(second, new RegExp(`^Conclude DEV-`), qa2);
     await expect(second.getByTestId('deviation-state')).toContainText('PENDING_CLOSURE');
+  }, second);
+
+  await evidence.step('QA closes the record through the ceremony', 'The record is CLOSED; the lot\'s release checklist no longer lists it as blocking', async () => {
+    await second.getByRole('button', { name: 'Close (QA signature)' }).click();
+    await officeSign(second, new RegExp(`^Close DEV-`), qa2);
+    await expect(second.getByTestId('deviation-state')).toContainText('CLOSED');
+    await second.goto(`${base}/quality/lots/${lot.lotId}`);
+    await expect(second.getByTestId('deviation-release')).toContainText('does not block');
   }, second);
 });

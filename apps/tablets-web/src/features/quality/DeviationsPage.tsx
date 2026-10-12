@@ -14,7 +14,7 @@ import { RefusalMessage } from '../../app/refusal.tsx';
 
 const STATES = ['OPEN', 'UNDER_INVESTIGATION', 'IMPACT_ASSESSED', 'PENDING_CLOSURE', 'CLOSED', 'CANCELLED'] as const;
 const KINDS = ['DEVIATION', 'OOS', 'INVESTIGATION'] as const;
-export const DEVIATION_READS = [routes.quality.deviations.id, routes.quality.deviation.id];
+export const DEVIATION_READS = [routes.quality.deviations.id, routes.quality.deviation.id, routes.quality.deviationDetail.id, routes.quality.deviationRelease.id];
 
 export function DeviationsPage() {
   const [state, setState] = useState<(typeof STATES)[number] | null>(null);

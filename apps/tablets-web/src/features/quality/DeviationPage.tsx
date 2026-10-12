@@ -1,8 +1,10 @@
 /**
  * One deviation record (Phase 3 slice 6; Phase 4 slice 2a, the full stand-in): link a batch, a lot or an output
  * container; QA classifies and starts the investigation (IN-02); record the finding; QA's signed impact assessment,
- * conclusion and closure (QUALITY_ACT, through the ceremony); cancel an OPEN record with the person's own reason. The
- * impact per market and the closure basis have their routes (contract ns/deviation.ts); their screens come with slice 2c. What may happen in which state, and by whom, is the database's: a refusal is shown in its words.
+ * conclusion and closure (QUALITY_ACT, through the ceremony); cancel an OPEN record with the person's own reason. Slice
+ * 2c: the full record (DeviationDetail.tsx): QA's classification and reclassification, the impact per linked subject and
+ * market, the finding and the closure basis. What may happen in which state, and by whom, is the database's: a refusal
+ * is shown in its words.
  */
 import { useState } from 'react';
 import { routes, type DeviationView } from '@ebmr/api-contract';
@@ -13,6 +15,7 @@ import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
+import { DeviationDetail } from './DeviationDetail.tsx';
 import { DEVIATION_READS } from './DeviationsPage.tsx';
 
 export function DeviationPage() {
@@ -47,6 +50,7 @@ function DeviationRecord({ d }: { d: DeviationView }) {
         {open ? <LinkForm deviationId={d.deviationId} /> : null}
       </Section>
       {d.state === 'OPEN' ? <StartInvestigation deviationId={d.deviationId} /> : null}
+      <DeviationDetail deviationId={d.deviationId} />
       {investigating ? (
         <Section title="Finding" testId="finding">
           <DefineForm

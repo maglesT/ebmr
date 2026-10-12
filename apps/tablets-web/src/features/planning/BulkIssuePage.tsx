@@ -13,6 +13,7 @@ import { routes, type PackagingBulkView } from '@ebmr/api-contract';
 import { Banner, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
+import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
@@ -99,6 +100,32 @@ function BulkIssue({ v }: { v: PackagingBulkView }) {
         ) : null}
         <ActResult error={issue.error} done={issue.done} label="Bulk issued." />
       </Section>
+      {v.status === 'EXECUTION_COMPLETE' ? <FinishedLot batchId={v.batchId} /> : null}
     </>
+  );
+}
+
+/**
+ * The finished lot of a completed packaging order, posted in quarantine (slice 2b's route; IN-05 (a), PR-45): it leaves
+ * quarantine only through the release model. The quantity is the person's count; the database checks the order.
+ */
+function FinishedLot({ batchId }: { batchId: string }) {
+  const stores = useOffered('STORES');
+  const planner = useOffered('PLANNING');
+  if (!stores && !planner) return null;
+  return (
+    <Section title="Finished lot" testId="finished-lot">
+      <DefineForm
+        title="Post the finished lot"
+        route={routes.specifications.postFinishedLot}
+        fixed={{ batchId }}
+        refresh={[routes.quality.lots.id]}
+        submitLabel="Post the finished lot in quarantine"
+        fields={[
+          { name: 'quantity', label: 'Finished quantity', kind: 'decimal' },
+          { name: 'unit', label: 'Unit', kind: 'text', description: 'e.g. units, packs' },
+        ]}
+      />
+    </Section>
   );
 }
