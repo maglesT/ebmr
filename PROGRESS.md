@@ -81,24 +81,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 - Phase 4 (review, release and India specifics): plan `docs/build-plan/phase-4/phase-4-plan.md`, seven slices; slice 1
   (record review and evidence epochs) on `phase-4/slice-1`: 1-0 (contract `review`, epochs, review register, GB-T-01
   baseline) pushed; 1a (review acts, audit-trail review, epochs' triggers, CORRECT_ENTRY route; recipe-core 0710 to
-  0717, tablets 1140; defaults D-1a-1 to D-1a-7 in the plan) on `phase-4/slice-1a`. Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
+  0721, tablets 1140 and 1141; defaults D-1a-1 to D-1a-7 in the plan); 1b (containers with a weighed or verified
+  close, release refused while the hold is open, the GMP sweeper, device readings to entries, TB-20@2 NO_PLAN;
+  recipe-core 0740 and 0741, tablets 1110 to 1113, site-services 0810); 1c (screens) in progress.
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
-- Slice 6c (`phase-3/slice-6c`, in progress): catalog-test clauses for the 16 Phase 3 exit controls; DI-04 clause 2,
-  PR-01 clause 2 and the DI-33 reprocessing scope tested; simulators for every process kind, packaging-line kinds in the
-  database (tablets 1060), instruments on the scale protocol, a demo gateway with press, coater, printer and line
-  devices; the GMP demo seed (shop-floor personas, the site gateway's identity, ERP catalogue, GB-T-01 lots tested and
-  released); the GB-T-01 worksheet and expected quantities; the golden CI job under libfaketime. **For the owner
-  (D-S6-10), re-deferred with reasons in the register:** IN-17 "release is blocked" and IN-39 "both departments are
-  notified" to Phase 4 (batch release and notification delivery are Phase 4). Open: TB20-NO-PLAN through deviation-lite
-  needs a TB-20@2 (block data schemas are fixed per version); a packaging family's identity holds no pack type (two pack
-  types of one product at one pack size cannot both exist; recipe-core 0110, for the planner).
-- Slice 6d (`phase-3/slice-6d`): the GB-T-01 golden batch. Template `gb-t-01.mbr.json`, approved through the routes
-  (MBR_TRANSITION signable, tablets 1090); a source batch and the happy and exception-rich variants driven over HTTP to
-  the release for packing on a frozen libfaketime clock; outputs equal `expected.json` (worksheet quantities; states,
-  exceptions, genealogy, signature counts and true-copy hashes from the first reviewed run). Fixes: formula on the base
-  for a base-stated TB-01 (recipe-core 0690), G-09@2 instrument uses (0691), loop iteration and operator choice as client
-  intents, hardness units in DATA-UNITS, TB-01 hydrate checks (tablets 1091); held compression cores are never coated
-  (tablets 1092); a GMP G-07 weighing consumes its lot (tablets 1093). Residuals in `test/golden/gb-t-01/README.md`.
+
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and
   orders need ERP.MASTER_WRITE (ERP interface only); a new code, or a change of reprocessing permission, shelf life,
   material kind or retest interval, takes effect only on QA's ERP_MASTER_CONFIRMED signature (site-services 0802, tablets
@@ -109,6 +96,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   of the same command; reservations revoked at batch end (0801, recipe-core 0700, tablets 1100). MEDIUM: TB-11 counter as
   bigint. GB-T-01 unchanged. Open for the owner: no screen yet for the bulk issue; packing steps in a GMP processing batch
   are now refused (stricter default); HTTP LOT_DECISION still offers only release and reject.
+- GB-T-01 date fix (`phase-4/golden-date-fix`, 12 October): the true-copy hashes changed with the day of the run, because
+  the normalisation took the seeded lots' fixed retest and expiry dates (2027 to 2029) for run instants and wrote them as
+  minutes from the issue; the exception-rich one also held the year in its deviation number. The lot dates now stay as
+  they are and the deviation year is a placeholder; hashes re-recorded and shown equal on runs started on different days
+  (`EBMR_GOLDEN_LATER_DAYS`). Test code only.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 

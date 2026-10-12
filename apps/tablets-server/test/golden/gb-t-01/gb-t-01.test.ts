@@ -59,6 +59,13 @@ const exceptionCounts = (r: BatchResults): Record<string, number> => {
   return Object.fromEntries(Object.entries(out).sort(([a], [b]) => a.localeCompare(b)));
 };
 
+/** Whole days to start the golden clock after the next midnight (EBMR_GOLDEN_LATER_DAYS; 0 when unset). */
+function laterDays(): number {
+  const text = process.env['EBMR_GOLDEN_LATER_DAYS'] ?? '0';
+  if (!/^\d{1,4}$/.test(text)) throw new Error(`EBMR_GOLDEN_LATER_DAYS must be a whole number of days, not ${JSON.stringify(text)}`);
+  return Number(text);
+}
+
 describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => {
   let w: GoldenWorld;
   let negatives: MasterNegatives;
@@ -102,8 +109,9 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
   it('runs the source batch, then 41 days later the happy and exception-rich variants to the release for packing', async () => {
     const p = await planAll(w);
     // The clock is frozen at the next midnight UTC (the same time of day on every run): each act then happens at an
-    // instant fixed by the driver's sequence.
-    const start = BigInt(Math.floor(Date.now() / 1000 / 86_400) + 1) * 86_400n;
+    // instant fixed by the driver's sequence. EBMR_GOLDEN_LATER_DAYS starts it that many whole days later still, to show
+    // that the hashes do not depend on the day of the run.
+    const start = BigInt(Math.floor(Date.now() / 1000 / 86_400) + 1 + laterDays()) * 86_400n;
     freezeAt(start);
     const { residue } = await runSource(w, p.source);
     advanceMinutes(SOURCE_AGE_MINUTES);

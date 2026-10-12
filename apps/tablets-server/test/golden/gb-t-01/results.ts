@@ -8,10 +8,11 @@
  *    batch_exception of the batch);
  *  - the SHA-256 of the normalised true copy: the batch's stored record head (recipe.execution_state), canonical JSON,
  *    with each UUID replaced by its ordinal of first appearance, each batch number by its ordinal, each instant of the
- *    run in epoch microseconds by its offset from the batch's issue in whole minutes, and each expiry month by a
- *    placeholder (see normalise).
+ *    run in epoch microseconds by its offset from the batch's issue in whole minutes, and each expiry month and the year
+ *    in each deviation number by a placeholder (see normalise).
  */
 import { canonicalJson, sha256Hex } from '@ebmr/expr';
+import { GBT01_LOTS } from '../../../src/features/execution/seed-gb-t-01.ts';
 import type { GoldenWorld } from './world.ts';
 
 type Json = Record<string, unknown>;
@@ -38,10 +39,22 @@ const MICROS = /^1[6-9][0-9]{14}$/;
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/** The year in a deviation number (DEV-<site>-<year>-<sequence>): the year the run raised it in. */
+const DEVIATION_YEAR = /\b(DEV-[A-Z0-9-]+?-)\d{4}(-\d+)\b/g;
+
+/**
+ * The seeded lots' fixed retest and expiry instants, in epoch microseconds. They lie years after any run, so "at or
+ * after the scenario's start" alone would take them for the run's instants, and as minutes from the issue they would
+ * change with the day of the run (and the hash with them). They are fixed data, kept as they are.
+ */
+const SEEDED_LOT_INSTANTS: ReadonlySet<string> = new Set(
+  GBT01_LOTS.flatMap((l) => (l.retestAt === undefined ? [l.expiresAt] : [l.expiresAt, l.retestAt])).map((t) => `${String(Date.parse(t))}000`),
+);
+
 /**
  * The normalised true copy of a record head: UUIDs and batch numbers by ordinal, the instants of the run (at or after
- * `sinceUs`, the scenario's start) as minutes from the issue, and an expiry month (derived from the run's dates) as a
- * placeholder. Instants before the scenario (the seeded lots' fixed retest and expiry dates) stay as they are.
+ * `sinceUs`, the scenario's start) as minutes from the issue, and an expiry month and a deviation number's year (both
+ * derived from the run's dates) as placeholders. Instants before the scenario and the seeded lots' fixed retest and expiry dates stay as they are.
  */
 export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly string[], sinceUs: bigint): string {
   const ids = new Map<string, string>();
@@ -54,11 +67,11 @@ export function normalise(head: unknown, issueUs: bigint, batchNumbers: readonly
     return x;
   };
   const text = (s: string): string => {
-    let out = s.replace(UUID_IN, (u) => idOf(u));
+    let out = s.replace(UUID_IN, (u) => idOf(u)).replace(DEVIATION_YEAR, '$1<year>$2');
     batchNumbers.forEach((b, i) => {
       out = out.split(b).join(`<batch-${String(i + 1)}>`);
     });
-    if (MICROS.test(out) && BigInt(out) >= sinceUs) out = `<t+${String((BigInt(out) - issueUs) / 60_000_000n)}m>`;
+    if (MICROS.test(out) && BigInt(out) >= sinceUs && !SEEDED_LOT_INSTANTS.has(out)) out = `<t+${String((BigInt(out) - issueUs) / 60_000_000n)}m>`;
     return out;
   };
   const walk = (v: unknown): unknown => {
