@@ -143,25 +143,27 @@ const marks = (e: EntryRecord, stream: string, test: Test): boolean =>
 
 /**
  * When the slot (stream, test) of the run in `entries` falls due, or undefined when it is not due (a sweep after the
- * first one without a repeat interval; nothing before the run's start); `suspended` while a stoppage runs.
+ * first one without a repeat interval; nothing before the run's start); `suspended` while a stoppage runs. A slot marked
+ * missed counts as dealt with at that moment, as a check does: the start sweep marked missed is not due again until its
+ * repeat interval (Phase 3 exit backlog; tablets 1110), so later entries do not raise IPC_CHECK_MISSED for it again. The
+ * sweep itself is still needed before the step is performed (TB11-NO-SWEEP).
  */
 export function dueOf(entries: readonly EntryRecord[], config: Readonly<Record<string, unknown>>, stream: string, test: Test): { dueUs?: bigint; suspended: boolean } {
   const start = entries.find((e) => e.kind === 'RUN_START');
   if (!start) return { suspended: false };
   let base = start.recordedAt;
-  let checked = false;
+  let seen = false;
   for (const e of entries) {
-    const own = checkTest(e) === test && e.data['stream'] === stream;
-    if (own || marks(e, stream, test)) {
+    if ((checkTest(e) === test && e.data['stream'] === stream) || marks(e, stream, test)) {
       if (e.recordedAt > base) base = e.recordedAt;
-      if (own) checked = true;
+      seen = true;
     }
   }
   let due: bigint | undefined;
   if (test === 'SWEEP') {
     const sweep = config['sweep'];
     const every = isRecord(sweep) ? durationUs(sweep['every']) : undefined;
-    due = !checked ? start.recordedAt : every !== undefined ? base + every : undefined;
+    due = !seen ? start.recordedAt : every !== undefined ? base + every : undefined;
   } else {
     const p = planOf(config).find((x) => x.test === test);
     if (!p) return { suspended: false };
