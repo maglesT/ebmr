@@ -11,9 +11,9 @@
 import { z } from 'zod';
 import { Base64Text, DecimalString, Instant, IntegerString, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
+import { DeviationClassificationInput, DeviationState, deviationRoutes } from './deviation.ts';
 
 const DeviationKind = z.enum(['DEVIATION', 'OOS', 'INVESTIGATION']);
-const DeviationState = z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CONCLUDED', 'CLOSED', 'CANCELLED']);
 const deviationParams = z.strictObject({ deviationId: Uuid });
 const lotParams = z.strictObject({ lotId: Uuid });
 const Code = z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/);
@@ -203,6 +203,7 @@ export const ErpPendingView = z.strictObject({
 export type ErpPendingView = z.infer<typeof ErpPendingView>;
 
 export const quality = {
+  ...deviationRoutes,
   raiseDeviation: defineRoute({
     id: 'quality.raiseDeviation',
     method: 'POST',
@@ -250,9 +251,9 @@ export const quality = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'Start the investigation of an OPEN record',
+    summary: 'Start the investigation of an OPEN record with QA\'s classification (IN-02; Phase 4 slice 2a)',
     params: deviationParams,
-    body: z.strictObject({}),
+    body: DeviationClassificationInput,
     response: DeviationView,
   }),
   recordFinding: defineRoute({
@@ -278,7 +279,7 @@ export const quality = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: true,
-    summary: 'Cancel an OPEN record or one UNDER_INVESTIGATION (QA other than the initiator, with the person\'s own reason)',
+    summary: 'Cancel an OPEN record (QA other than the initiator, with the person\'s own reason; L-21)',
     params: deviationParams,
     body: z.strictObject({ reason: z.string().trim().min(1).max(2000) }),
     response: DeviationView,

@@ -34,13 +34,16 @@ implemented_by:
 tests:
   - "apps/tablets-server/test/blocks/coating/blocks.test.ts > TB-20 inspection, sorting and AQL > [PR-50][PR-46] a foreign tablet found in sorting is critical: QA decides, release is blocked, a deviation is required"
   - "apps/tablets-server/test/blocks/coating/db-guards.test.ts > the coating and finishing blocks in the database (tablets 0910 to 0912) > [PR-46][PR-47][PR-50][IN-35][PR-29][INV-41][DI-10] TB-20: the sort reconciled into reject containers of this batch, a foreign tablet only with its exception, the AQL plan and the severity of the switching rule decided by the database, a rejected lot never sampled again; reject containers never charged; the destruction step closes only with every reject container destroyed under witness"
-  - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50][IN-20] a conclusion or closure by the initiator is refused; another QA person concludes and closes"
+  - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50][IN-20] the full path: QA other than the initiator classifies, the impact is signed before the conclusion, and neither the initiator nor the owner concludes or closes"
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] a conclusion signed before a new finding is refused: the new finding supersedes it"
-  - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] a cancellation is by QA other than the initiator, with a reason, while OPEN or UNDER_INVESTIGATION only"
+  - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] a cancellation is by QA other than the initiator, with a reason, while OPEN only (L-21)"
   - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50] the QA person who recorded the investigation's finding neither concludes nor closes the record"
   - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 inspection and sorting > [PR-50][PR-46] a foreign tablet found is critical: QA decides, release is blocked, a deviation is required; a zero count is not a finding"
   - "apps/tablets-server/test/blocks/coating/tb-20-edges.test.ts > TB-20 definition checks > [PR-46][PR-50][PR-29] the catalogue (each code once; a foreign tablet critical), the AQL, the vision recipe, residue only with a recovery step"
   - "packages/site-services/test/mutation/deviations.test.ts > each step refused on its own (site services 0730, 0753) > [PR-50][DI-35] a QA act is recorded by the person who signed it: a QA person outside the record cannot present another's signature"
+  - "apps/tablets-server/test/quality/routes.test.ts > signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [PR-50] the impact sign-off, the conclusion and the closure succeed through the ceremony and are refused for the initiator, the owner or changed content; the closure basis and the detail over HTTP (slice 2a)"
+  - "packages/site-services/test/quality/deviation-full.test.ts > PENDING_CLOSURE and CLOSED (PR-50, PR-51) > [PR-50] the closure basis names the root-cause method, a system-factor assessment for a human error, CAPA references, the regulatory-notification assessment and the other batches assessed; closure needs the impact current"
+  - "packages/site-services/test/quality/deviation-full.test.ts > links and release (INV-46, L-21) > [PR-50] a cancelled deviation is listed on the release checklist and does not block; its canceller does not sign the release of a linked lot (L-21)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

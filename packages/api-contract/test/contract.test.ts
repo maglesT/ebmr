@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { CONTAINER_ROUTE_IDS, EXAMPLES, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -261,6 +261,25 @@ describe('route table', () => {
     expect(ok(SignableAction, { kind: 'CONTAINER_ACT', act: 'VERIFY_CLOSE', containerId: t })).toBe(true);
     expect(ok(SignableAction, { kind: 'CONTAINER_ACT', act: 'RELEASE', containerId: t, reason: { code: 'IPC_INVESTIGATED', text: 'Deviation concluded' } })).toBe(true);
     expect(ok(SignableAction, { kind: 'CONTAINER_ACT', act: 'REJECT', containerId: t })).toBe(false);
+  });
+
+  it('the full deviation routes (Phase 4 slice 2a) are GMP quality routes, each with an example; QA classifies with a rationale; QUALITY_ACT signs the impact assessment', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of DEVIATION_ROUTE_IDS) {
+      expect(exampled.has(id), `${id} has an example`).toBe(true);
+      expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
+    }
+    const start = routes.quality.startInvestigation.body;
+    const owner = '3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e76';
+    expect(start?.safeParse({ classification: 'MINOR', riskRationale: 'No product contact at all', ownerPersonId: owner, dueDate: '2026-11-12' }).success).toBe(true);
+    expect(start?.safeParse({ classification: 'MINOR', riskRationale: '', ownerPersonId: owner, dueDate: '2026-11-12' }).success).toBe(false);
+    expect(start?.safeParse({}).success).toBe(false);
+    const basis = routes.quality.recordDeviationClosureBasis.body;
+    const good = { capaRefs: ['CAPA-1'], notificationRequired: false, notificationRationale: 'No licence condition affected', otherBatches: [{ subjectKind: 'BATCH', ref: 'B1', included: false, reason: 'Made before' }] };
+    expect(basis?.safeParse(good).success).toBe(true);
+    expect(basis?.safeParse({ ...good, otherBatches: [] }).success).toBe(false);
+    const d = '00000000-0000-4000-8000-000000000001';
+    expect(ok(SignableAction, { kind: 'QUALITY_ACT', act: 'DEVIATION_IMPACT_ASSESS', subjectId: d, input: {} })).toBe(true);
   });
 
   it('the review namespace (Phase 4 slice 1) is GMP only, each route with an example; its signed acts are REVIEW_ACT and CORRECTION_APPROVAL', () => {

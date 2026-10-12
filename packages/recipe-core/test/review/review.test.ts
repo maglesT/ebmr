@@ -578,7 +578,7 @@ describe('the correction of a loop reading (plan open question 1, default: count
     expect(await problem(correction({ approval: { approver: { id: supervisor.personId, kind: 'PERSON', roles: ['PRODUCTION_SUPERVISOR'] } } }), loop('EXHAUSTED'))).toMatch(/without the approval of QA/);
     expect(await problem(correction({ approval: qaApproval, evidence: { kind: 'PRINTOUT', sha256: sha } }), loop('CONTINUE'))).toMatch(/without a stored evidence document/);
     await w.run(operator, (c) =>
-      c.query('select site.register_evidence_document($1::jsonb)', [JSON.stringify({ sha256: sha, mediaType: 'image/png', sizeBytes: '2048', storageKey: `evidence/${randomUUID()}.png`, title: 'Moisture balance printout' })]),
+      c.query('select site.store_evidence_document($1::jsonb, $2)', [JSON.stringify({ mediaType: 'image/png', title: 'Moisture balance printout' }), Buffer.from(`moisture balance printout ${b.batchId}`)]),
     );
     expect(await problem(correction({ approval: qaApproval, evidence: { kind: 'PRINTOUT', sha256: sha } }), loop('CONTINUE'))).toBeNull();
     // The reading of the iteration that met the endpoint (EXIT) keeps the ordinary rule: no requirement without a failure.

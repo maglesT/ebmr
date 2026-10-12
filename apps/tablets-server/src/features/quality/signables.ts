@@ -4,7 +4,8 @@
  * runs that command with the signature; the database decides (who may sign, the second person, the record's state) and a
  * refusal signs nothing (esig/db-acts.ts).
  *
- *   QUALITY_ACT  DEVIATION_CONCLUDE   deviation <id>              DEVIATION_CONCLUDED      site.conclude_deviation
+ *   QUALITY_ACT  DEVIATION_IMPACT_ASSESS  deviation <id>          DEVIATION_IMPACT_ASSESSED  site.assess_deviation_impact
+ *                DEVIATION_CONCLUDE   deviation <id>              DEVIATION_CONCLUDED      site.conclude_deviation
  *                DEVIATION_CLOSE      deviation <id>              DEVIATION_CLOSED         site.close_deviation
  *                LOT_RESULT_APPROVE   lot_test_result <id>        QC_RESULT_APPROVED       site.approve_lot_test_result
  *                QC_EXTRA_TESTING_DECISION  qc_extra_testing <batch>/<decision>/<tests>   QC_EXTRA_TESTING_DECIDED
@@ -35,6 +36,7 @@ export function extraTestingAggregateId(batchId: string, decision: string, tests
 }
 
 const QUALITY: Readonly<Record<QualityAct['act'], { aggregateType: string; meaning: string; uses: readonly (keyof QualityAct['input'])[] }>> = {
+  DEVIATION_IMPACT_ASSESS: { aggregateType: 'deviation', meaning: 'DEVIATION_IMPACT_ASSESSED', uses: [] },
   DEVIATION_CONCLUDE: { aggregateType: 'deviation', meaning: 'DEVIATION_CONCLUDED', uses: [] },
   DEVIATION_CLOSE: { aggregateType: 'deviation', meaning: 'DEVIATION_CLOSED', uses: [] },
   LOT_RESULT_APPROVE: { aggregateType: 'lot_test_result', meaning: 'QC_RESULT_APPROVED', uses: [] },
@@ -122,6 +124,9 @@ export function qualityActHandler(app: AppContext): SignableActionHandler<Qualit
     },
     async apply(client, _ctx, a, signatureId) {
       switch (a.act) {
+        case 'DEVIATION_IMPACT_ASSESS':
+          await client.query('select site.assess_deviation_impact($1, $2)', [a.subjectId, signatureId]);
+          break;
         case 'DEVIATION_CONCLUDE':
           await client.query('select site.conclude_deviation($1, $2)', [a.subjectId, signatureId]);
           break;

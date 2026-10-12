@@ -399,3 +399,11 @@ and a SITE-165 branch of `consume_reservation` can never fire (an earlier check 
 - Slice 6c: the packaging family's identity holds its pack type (D-P4-13; `recipe.mbr_family_pack`, recipe-core 0760).
 - Exit residual: packaging orders are planned over HTTP (`POST /api/planning/packaging-orders`) and their bulk is issued
   from a screen (`/planning/packaging/$batchId`, over `POST /api/batches/:id/bulk`).
+
+## Ticked in Phase 4 slice 2a (12 October 2026, branch phase-4/slice-2a)
+
+- Evidence documents self-attested (slice 5 backlog): the database stores the bytes and computes the SHA-256 and the
+  size (`site.store_evidence_document`, site-services 0823); the typed form is refused; a document is evidence only
+  while its stored bytes match its hash. Residual: recipe-core 0601 and 0716 still look a correction's evidence up by
+  hash in `site.evidence_document` directly, so a row stored before 0823 without bytes still matches there (call
+  `site.evidence_document_verified` in a recipe-core migration of slice 2c or 3).

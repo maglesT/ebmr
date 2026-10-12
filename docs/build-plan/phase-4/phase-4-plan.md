@@ -100,6 +100,21 @@ below; each builder ticks them off there.
   assessment, non-empty list of other batches assessed), CLOSED; cancellation rules (L-21); insert-only links ending
   only with "assessed, not affected" (INV-46); release-blocking at once on link; document service: evidence documents
   tied to stored bytes, hash computed by the server (backlog slice 5).
+- **2a defaults** (recorded; owner may change): D-2a-1 QA classifies when the investigation starts (DEVIATION.CLASSIFY:
+  QA shop floor, QA reviewer, AP), never the initiator; the rationale is always written; a reclassification is a new row
+  while UNDER_INVESTIGATION or IMPACT_ASSESSED; the classifier enters data in the record, so neither concludes nor closes
+  it (INV-03). D-2a-2 impact per link and market (IN, US, EU); every link needs IN before the sign-off (site services do
+  not know a batch's market set); release checks the market asked. D-2a-3 a new link or impact row takes the record back
+  to UNDER_INVESTIGATION until QA signs again; closure needs the sign-off current. D-2a-4 the closure basis: method for
+  MAJOR and CRITICAL; at least one CAPA for MAJOR, CRITICAL or a root cause not determined, otherwise the reason none is
+  needed; process, procedure and system factors for a human error; the conclusion and closure also exclude the owner
+  and the recorders of the finding and basis. D-2a-5 cancellation OPEN only (outline 5.2.5); the canceller never signs
+  the release of a linked lot or container (trigger), batch release calls `site.deviation_release_problem` with its
+  signer (slice 3). D-2a-6 release blocking at once on link for material lots (RELEASE, RELEASE_FOR_FURTHER_PROCESSING,
+  UNHOLD) and output containers linked directly; a batch link does not block a container release in process (the batch's
+  release is slice 3). D-2a-7 evidence bytes in the database (bytea, at most 16 MB, insert-only); the document row with
+  its hash is audited, the bytes are not copied into the audit trail. D-2a-8 the new tables bump the evidence epochs
+  through `site.deviation_epoch_hook`, which finds `recipe.bump_epoch` when it runs.
 - **2b, LIMS, lots and samples** (site-services 0840 to 0859, tablets 1150 to 1159; 1140 and 1141 were taken by slice 1a): approved specifications per
   material with pharmacopoeia edition (IN-33); limits from the specification, never typed; revising a RELEASE result
   needs an OOS link; required tests per material (a lot without results no longer passes); QC extra-testing decision

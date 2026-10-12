@@ -54,6 +54,7 @@ tests:
   - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] the form that names no content (the owner's only) records the justification against the version's latest revision and hash"
   - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] VALIDATOR evidence holds a justification to the latest one of its own key on its own version: not another key's later one, nor another version's"
   - "apps/tablets-server/test/quality/routes.test.ts > signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [IN-02] a deviation classified MINOR without a rationale is refused by the route and by the database"
+  - "packages/site-services/test/quality/deviation-full.test.ts > QA classification when the investigation starts (IN-02) > [IN-02] classifying a deviation as minor without a rationale is refused; the owner investigates and the due date is not past; the initiator does not classify"
 clauses:
   - clause: "classify a deviation as minor without a rationale; saving is refused."
     tests:

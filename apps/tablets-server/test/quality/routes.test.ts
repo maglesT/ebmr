@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 
 const quality = routes.quality;
-import { passwordActor, terminalOf } from '@ebmr/test-kit';
+import { passwordActor, personaOf, terminalOf } from '@ebmr/test-kit';
 import { randomUUID } from 'node:crypto';
 import { identity, withCommand } from '@ebmr/kernel';
 import type { Result, SignatureCredentials } from '@ebmr/api-contract';
@@ -19,6 +19,9 @@ import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 
 let w: GmpBatchWorld;
 let gmp: TestServer;
+
+/** A due date a month ahead (YYYY-MM-DD), for QA's classification. */
+const dueDate = (): string => new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
 
 /** The shape apps/simulators/src/erp posts (apps never import each other): one product, one material, `orders` orders. */
 function erpCatalogue(opts: { orders: number; firstOrder?: number }) {
@@ -46,10 +49,14 @@ describe('quality routes (GMP)', () => {
     const d = valueOf(await qa.call(quality.raiseDeviation, { body: { kind: 'DEVIATION', title: 'Label roll mix-up', classification: 'MINOR', riskRationale: 'Caught at line clearance; no product affected' } }));
     expect(d.ref).toMatch(/^DEV-SITE-1-\d{4}-\d{5}$/);
     expect(d.state).toBe('OPEN');
-    const started = valueOf(await qa.call(quality.startInvestigation, { params: { deviationId: d.deviationId }, body: {} }));
-    expect(started.state).toBe('UNDER_INVESTIGATION');
     // The initiator cannot cancel their own record (S7): the database refuses it.
     expect(refusalOf(await qa.call(quality.cancelDeviation, { params: { deviationId: d.deviationId }, body: { reason: 'raised in error' } }))?.why).toMatch(/EBMR-SITE-307|other than the initiator/);
+    // QA other than the initiator classifies it and starts the investigation (IN-02; Phase 4 slice 2a).
+    const classification = { classification: 'MINOR' as const, riskRationale: 'Caught at line clearance; no product affected', ownerPersonId: personaOf(gmp.seed, 'qaInvestigator').personId, dueDate: dueDate() };
+    expect(refusalOf(await qa.call(quality.startInvestigation, { params: { deviationId: d.deviationId }, body: classification }))?.why).toMatch(/was raised by this person; QA other than the initiator classifies it/);
+    const qa2 = await gmp.asPersona('qaApprover2');
+    const started = valueOf(await qa2.call(quality.startInvestigation, { params: { deviationId: d.deviationId }, body: classification }));
+    expect(started.state).toBe('UNDER_INVESTIGATION');
 
     const erp = gmp.seed.services.find((s) => s.key === 'erpInterface');
     if (!erp) throw new Error('no ERP interface in the GMP seed');
@@ -145,20 +152,39 @@ describe('signed quality, lot, reprocessing and plant acts over HTTP (slice 6a)'
     expect(valueOf(await qa.call(quality.raiseDeviation, { body: { kind: 'DEVIATION', title: 'Label roll mix-up', classification: 'MINOR', riskRationale: 'Caught at line clearance; no product affected' } })).classification).toBe('MINOR');
   });
 
-  it('deviation conclusion and closure succeed through the ceremony and are refused for the initiator or changed content', async () => {
+  it('[PR-50] the impact sign-off, the conclusion and the closure succeed through the ceremony and are refused for the initiator, the owner or changed content; the closure basis and the detail over HTTP (slice 2a)', async () => {
     const [inv, qa2] = await Promise.all([gmp.asPersona('qaInvestigator'), gmp.asPersona('qaApprover2')]);
     const d = valueOf(await inv.call(quality.raiseDeviation, { body: { kind: 'DEVIATION', title: 'Granulation end point late', classification: 'MAJOR', riskRationale: 'End point reached after the validated time' } }));
-    valueOf(await inv.call(quality.startInvestigation, { params: { deviationId: d.deviationId }, body: {} }));
-    valueOf(await inv.call(quality.recordFinding, { params: { deviationId: d.deviationId }, body: { assignableCause: true, cause: 'Binder added slowly by a worn pump', rootCauseCategory: 'EQUIPMENT' } }));
+    const id = { deviationId: d.deviationId };
+    const owner = personaOf(gmp.seed, 'qaInvestigator').personId;
+    const qaFloor = await loginOf(gmp, await grantedPerson(gmp, 'QA_SHOP_FLOOR', 'Meera Pillai (QA classifier)'));
+    // QA who classifies enters data in the record: a performer, so neither concludes nor closes it (INV-03).
+    valueOf(await qaFloor.call(quality.startInvestigation, { params: id, body: { classification: 'MAJOR', riskRationale: 'End point outside the validated time; density at risk', ownerPersonId: owner, dueDate: dueDate() } }));
+    expect(valueOf(await qaFloor.call(quality.reclassifyDeviation, { params: id, body: { classification: 'CRITICAL', riskRationale: 'Dissolution failure possible on the retained samples', ownerPersonId: owner, dueDate: dueDate() } })).qaClassification).toMatchObject({ classification: 'CRITICAL', ownerPersonId: owner });
+    valueOf(await inv.call(quality.recordFinding, { params: id, body: { assignableCause: true, cause: 'Binder added slowly by a worn pump', rootCauseCategory: 'EQUIPMENT' } }));
+    expect(refusalOf(await inv.call(quality.recordDeviationImpact, { params: id, body: { linkId: randomUUID(), market: 'IN', impact: 'NONE', rationale: 'No subject of this record' } }))?.why).toMatch(/the impact names a subject linked to/);
+    const assess = { kind: 'QUALITY_ACT' as const, act: 'DEVIATION_IMPACT_ASSESS' as const, subjectId: d.deviationId, input: {} };
+    // The initiator is also the owner here: the database refuses the sign-off, and the record stays under investigation.
+    expect((await signAction(gmp, inv, 'qaInvestigator', assess)).ok).toBe(false);
+    await signedOk(signAction(gmp, qa2, 'qaApprover2', assess));
+    expect(valueOf(await inv.call(quality.deviation, { params: id })).state).toBe('IMPACT_ASSESSED');
+    const basis = valueOf(await inv.call(quality.recordDeviationClosureBasis, {
+      params: id,
+      body: { rootCauseMethod: 'Fishbone with production and engineering', capaRefs: ['CAPA-26-021'], notificationRequired: false, notificationRationale: 'No registered detail or licence condition is affected', otherBatches: [{ subjectKind: 'PRODUCT', ref: 'Paracetamol 500 mg since the pump service', included: false, reason: 'Pump replaced before them' }] },
+    }));
+    expect(basis.closureBasis).toMatchObject({ capaRefs: ['CAPA-26-021'], recordedBy: owner });
     const conclude = { kind: 'QUALITY_ACT' as const, act: 'DEVIATION_CONCLUDE' as const, subjectId: d.deviationId, input: {} };
     expect((await signAction(gmp, inv, 'qaInvestigator', conclude)).ok).toBe(false);
     expect((await signAction(gmp, qa2, 'qaApprover2', conclude, { tamper: true })).ok).toBe(false);
-    expect(valueOf(await inv.call(quality.deviation, { params: { deviationId: d.deviationId } })).state).toBe('UNDER_INVESTIGATION');
+    expect(valueOf(await inv.call(quality.deviation, { params: { deviationId: d.deviationId } })).state).toBe('IMPACT_ASSESSED');
     await signedOk(signAction(gmp, qa2, 'qaApprover2', conclude));
+    expect(valueOf(await inv.call(quality.deviation, { params: id })).state).toBe('PENDING_CLOSURE');
     const close = { kind: 'QUALITY_ACT' as const, act: 'DEVIATION_CLOSE' as const, subjectId: d.deviationId, input: {} };
     expect((await signAction(gmp, inv, 'qaInvestigator', close)).ok).toBe(false);
     await signedOk(signAction(gmp, qa2, 'qaApprover2', close));
     expect(valueOf(await inv.call(quality.deviation, { params: { deviationId: d.deviationId } })).state).toBe('CLOSED');
+    expect(valueOf(await inv.call(quality.deviationDetail, { params: id }))).toMatchObject({ state: 'CLOSED', impactCurrent: true, finding: { rootCauseCategory: 'EQUIPMENT' }, cancelReason: null });
+    expect(valueOf(await inv.call(quality.deviationRelease, { query: { subjectKind: 'LOT', subjectId: randomUUID() } }))).toEqual({ items: [], problem: null });
     // An act that carries what another act takes is refused before anything is signed.
     expect(refusalOf(await signAction(gmp, qa2, 'qaApprover2', { ...conclude, input: { decision: 'EXTRA_TESTS' } }))?.code).toBe('EBMR-API-ACT-INPUT');
   }, 180_000);

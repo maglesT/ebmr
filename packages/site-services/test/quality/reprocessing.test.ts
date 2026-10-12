@@ -9,19 +9,17 @@
  * The parent GMP batches are arranged as fixtures by the superuser with triggers off (their issue is slice 2b's); every
  * rule under test runs as the application role.
  */
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
-  concludeDeviation,
   erpReceiveProduct,
   linkDeviation,
   raiseDeviation,
-  recordDeviationFinding,
-  registerEvidenceDocument,
-  startDeviationInvestigation,
+  storeEvidenceDocument,
 } from '../../src/index.ts';
 import { createTestDatabase, signerActor, type TestDatabase } from '../helpers.ts';
 import { QualityWorld, refusal, seedQualityCast, unique, type GmpBatch } from './support.ts';
+import { investigateDeviation } from './deviation-path.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 
 let db: TestDatabase;
@@ -35,7 +33,6 @@ let processingFamily: string;
 let parents: GmpBatch[];
 let risk: string;
 
-const sha = (s: string): string => createHash('sha256').update(s).digest('hex');
 
 /** A GMP parent batch: 5a's planned batch with its allocation, issued (batch record and control recipe) as a fixture. */
 async function parent(status = 'EXECUTION_COMPLETE'): Promise<GmpBatch> {
@@ -66,10 +63,9 @@ async function investigation(batches: GmpBatch[], conclude = true): Promise<stri
   const d = await w.run(w.cast.operator, (c) => raiseDeviation(c, { kind: 'INVESTIGATION', title: 'Dissolution failure of the coated tablets', classification: 'MAJOR', riskRationale: 'Release specification failure' }));
   for (const b of batches) await w.run(w.cast.operator, (c) => linkDeviation(c, d.deviationId, 'BATCH', b.id));
   if (conclude) {
-    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
-    await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: true, cause: 'Coating too thick', rootCauseCategory: 'PROCESS' }));
-    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
-    await w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig));
+    await investigateDeviation({ run: (a, work) => w.run(a, work), sign: (a, agg, m, st) => w.sign(a, agg, m, st) }, d.deviationId,
+      { classifier: w.cast.qa, owner: w.cast.qa, assessor: w.cast.qa2, concluder: w.cast.qa2 },
+      { finding: { assignableCause: true, cause: 'Coating too thick', rootCauseCategory: 'PROCESS' }, impact: 'CONFIRMED' });
   }
   return d.ref;
 }
@@ -102,7 +98,7 @@ beforeAll(async () => {
   family = await familyOf('REPROCESSING');
   processingFamily = await familyOf('PROCESSING');
   parents = [await parent(), await parent()];
-  risk = await w.run(w.cast.qa, (c) => registerEvidenceDocument(c, { sha256: sha(`risk ${PRODUCT}`), mediaType: 'application/pdf', sizeBytes: '20480', storageKey: `evidence/${unique('D')}.pdf`, title: 'Risk evaluation of the reprocessing' }));
+  risk = await w.run(w.cast.qa, (c) => storeEvidenceDocument(c, { mediaType: 'application/pdf', title: 'Risk evaluation of the reprocessing', bytes: Buffer.from(`risk ${PRODUCT} ${unique('D')}`) }));
 }, 300_000);
 afterAll(async () => {
   await db.drop();

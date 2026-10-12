@@ -1,7 +1,8 @@
 /**
- * One deviation-lite record (Phase 3 slice 6): link a batch, a lot or an output container; start the investigation;
- * record the finding; QA's signed conclusion and closure (QUALITY_ACT, through the ceremony); cancel with the person's
- * own reason. What may happen in which state, and by whom, is the database's: a refusal is shown in its words.
+ * One deviation record (Phase 3 slice 6; Phase 4 slice 2a, the full stand-in): link a batch, a lot or an output
+ * container; QA classifies and starts the investigation (IN-02); record the finding; QA's signed impact assessment,
+ * conclusion and closure (QUALITY_ACT, through the ceremony); cancel an OPEN record with the person's own reason. The
+ * impact per market and the closure basis have their routes (contract ns/deviation.ts); their screens come with slice 2c. What may happen in which state, and by whom, is the database's: a refusal is shown in its words.
  */
 import { useState } from 'react';
 import { routes, type DeviationView } from '@ebmr/api-contract';
@@ -24,7 +25,8 @@ export function DeviationPage() {
 
 function DeviationRecord({ d }: { d: DeviationView }) {
   const qa = useOffered('QA');
-  const open = d.state === 'OPEN' || d.state === 'UNDER_INVESTIGATION';
+  const open = d.state !== 'CLOSED' && d.state !== 'CANCELLED';
+  const investigating = d.state === 'UNDER_INVESTIGATION' || d.state === 'IMPACT_ASSESSED';
   return (
     <>
       <h1>
@@ -45,7 +47,7 @@ function DeviationRecord({ d }: { d: DeviationView }) {
         {open ? <LinkForm deviationId={d.deviationId} /> : null}
       </Section>
       {d.state === 'OPEN' ? <StartInvestigation deviationId={d.deviationId} /> : null}
-      {d.state === 'UNDER_INVESTIGATION' ? (
+      {investigating ? (
         <Section title="Finding" testId="finding">
           <DefineForm
             title="Record the finding"
@@ -61,8 +63,8 @@ function DeviationRecord({ d }: { d: DeviationView }) {
           />
         </Section>
       ) : null}
-      {qa && (d.state === 'UNDER_INVESTIGATION' || d.state === 'CONCLUDED') ? <SignedActs d={d} /> : null}
-      {qa && open ? <CancelForm deviationId={d.deviationId} /> : null}
+      {qa && (investigating || d.state === 'PENDING_CLOSURE') ? <SignedActs d={d} /> : null}
+      {qa && d.state === 'OPEN' ? <CancelForm deviationId={d.deviationId} /> : null}
     </>
   );
 }
@@ -103,11 +105,21 @@ function LinkForm({ deviationId }: { deviationId: string }) {
 }
 
 function StartInvestigation({ deviationId }: { deviationId: string }) {
-  const cmd = useCommand(routes.quality.startInvestigation, DEVIATION_READS);
   return (
     <Section title="Investigation" testId="investigation">
-      <ActButton label="Start the investigation" onPress={() => cmd.run({ params: { deviationId }, body: {} })} disabled={cmd.busy} />
-      <ActResult error={cmd.error} done={cmd.done} label="Investigation started." />
+      <DefineForm
+        title="Classify and start the investigation"
+        route={routes.quality.startInvestigation}
+        params={{ deviationId }}
+        refresh={DEVIATION_READS}
+        submitLabel="Start the investigation"
+        fields={[
+          { name: 'classification', label: 'QA classification', kind: 'choice', options: ['MINOR', 'MAJOR', 'CRITICAL'] },
+          { name: 'riskRationale', label: 'Risk rationale', kind: 'text', description: 'At least 10 characters' },
+          { name: 'ownerPersonId', label: 'Owner (person id)', kind: 'text' },
+          { name: 'dueDate', label: 'Due date', kind: 'text', description: 'YYYY-MM-DD' },
+        ]}
+      />
     </Section>
   );
 }
@@ -117,9 +129,16 @@ function SignedActs({ d }: { d: DeviationView }) {
   return (
     <Section title="QA decision" testId="qa-decision">
       {d.state === 'UNDER_INVESTIGATION' ? (
+        <ActButton
+          label="Sign the impact assessment (QA signature)"
+          onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'DEVIATION_IMPACT_ASSESS', subjectId: d.deviationId, input: {} }, `Impact of ${d.ref}: ${d.title}`)}
+          disabled={signed.busy}
+        />
+      ) : null}
+      {d.state === 'IMPACT_ASSESSED' ? (
         <ActButton label="Conclude (QA signature)" onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'DEVIATION_CONCLUDE', subjectId: d.deviationId, input: {} }, `Conclude ${d.ref}: ${d.title}`)} disabled={signed.busy} />
       ) : null}
-      {d.state === 'CONCLUDED' ? (
+      {d.state === 'PENDING_CLOSURE' ? (
         <ActButton label="Close (QA signature)" onPress={() => signed.sign({ kind: 'QUALITY_ACT', act: 'DEVIATION_CLOSE', subjectId: d.deviationId, input: {} }, `Close ${d.ref}: ${d.title}`)} disabled={signed.busy} />
       ) : null}
       <ActResult error={signed.error} outcome={signed.outcome} />

@@ -9,7 +9,8 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { concludeDeviation, linkDeviation, raiseDeviation, recordDeviationFinding, startDeviationInvestigation, type NewDeviation } from '../../src/index.ts';
+import { assessDeviationImpact, concludeDeviation, linkDeviation, raiseDeviation, recordDeviationClosureBasis, recordDeviationFinding, startDeviationInvestigation, type NewDeviation } from '../../src/index.ts';
+import { closureBasis, dueDate } from '../quality/deviation-path.ts';
 import { createTestDatabase, type TestDatabase } from '../helpers.ts';
 import { QualityWorld, refusal, seedQualityCast } from '../quality/support.ts';
 
@@ -53,17 +54,20 @@ describe('a record is raised rule by rule (site services 0730)', () => {
   });
 });
 
+/** QA's classification with qa as the owner (site services 0821). */
+const cls = () => ({ classification: 'MAJOR' as const, riskRationale: 'Classified by QA on the facts', ownerPersonId: w.cast.qa.personId, dueDate: dueDate() });
+
 describe('each step refused on its own (site services 0730, 0753)', () => {
   it('[IN-20][PR-49] an unknown record, an unknown subject kind, an investigation started twice, a finding while OPEN or with a short cause, a close before the conclusion', async () => {
-    expect(await refusal(w.run(w.cast.qa, (c) => startDeviationInvestigation(c, randomUUID())))).toMatch(/EBMR-SITE-302 unknown deviation-lite record/);
+    expect(await refusal(w.run(w.cast.qa, (c) => startDeviationInvestigation(c, randomUUID(), cls())))).toMatch(/EBMR-SITE-302 unknown deviation-lite record/);
     const d = await raise();
     expect(await refusal(w.run(w.cast.operator, (c) => c.query("select site.link_deviation($1, 'TANK', gen_random_uuid())", [d.deviationId])))).toMatch(/EBMR-SITE-304 TANK is not a subject kind/);
     expect(await refusal(w.run(w.cast.operator, (c) => c.query('select site.link_deviation($1, null, gen_random_uuid())', [d.deviationId])))).toMatch(/EBMR-SITE-304 NULL is not a subject kind/);
     const finding = { assignableCause: true, cause: '0123456789', rootCauseCategory: 'HUMAN_ERROR' } as const;
     expect(await refusal(w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, finding)))).toMatch(/EBMR-SITE-306 .* is OPEN; a finding is recorded while/);
-    expect(await refusal(w.run(w.cast.qa2, (c) => c.query('select site.close_deviation($1, gen_random_uuid())', [d.deviationId])))).toMatch(/EBMR-SITE-310 .* is OPEN; QA closes a CONCLUDED record/);
-    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
-    expect(await refusal(w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId)))).toMatch(/EBMR-SITE-305 .* is UNDER_INVESTIGATION; only an OPEN record/);
+    expect(await refusal(w.run(w.cast.qa2, (c) => c.query('select site.close_deviation($1, gen_random_uuid())', [d.deviationId])))).toMatch(/EBMR-SITE-310 .* is OPEN; QA closes a record PENDING_CLOSURE/);
+    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId, cls()));
+    expect(await refusal(w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId, cls())))).toMatch(/EBMR-SITE-305 .* is UNDER_INVESTIGATION; only an OPEN record/);
     expect(await refusal(w.run(w.cast.qa, (c) => c.query('select site.record_deviation_finding($1, null)', [d.deviationId])))).toMatch(/EBMR-SITE-306 a finding states/);
     expect(await refusal(w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { ...finding, cause: '012345678' })))).toMatch(/EBMR-SITE-306 a finding states/);
     expect(await refusal(w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, finding)))).toBe('');
@@ -71,9 +75,12 @@ describe('each step refused on its own (site services 0730, 0753)', () => {
 
   it('[PR-50][DI-35] a QA act is recorded by the person who signed it: a QA person outside the record cannot present another\'s signature', async () => {
     const d = await raise();
-    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId));
+    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, d.deviationId, cls()));
     await w.run(w.cast.qa, (c) => recordDeviationFinding(c, d.deviationId, { assignableCause: false, cause: 'No cause found after the review', rootCauseCategory: 'NOT_DETERMINED' }));
-    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'UNDER_INVESTIGATION');
+    const impact = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
+    await w.run(w.cast.qa2, (c) => assessDeviationImpact(c, d.deviationId, impact));
+    await w.run(w.cast.qa, (c) => recordDeviationClosureBasis(c, d.deviationId, closureBasis({ assignableCause: false, cause: 'x', rootCauseCategory: 'NOT_DETERMINED' })));
+    const sig = await w.sign(w.cast.qa2, { type: 'deviation', id: d.deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
     // qa3 neither raised the record nor recorded its finding: only the signer rule refuses.
     expect(await refusal(w.run(w.cast.qa3, (c) => concludeDeviation(c, d.deviationId, sig)))).toMatch(/^EBMR-SITE-308 DEVIATION_CONCLUDED is recorded by the QA person who signed it$/);
     expect(await refusal(w.run(w.cast.qa2, (c) => concludeDeviation(c, d.deviationId, sig)))).toBe('');
@@ -81,17 +88,18 @@ describe('each step refused on its own (site services 0730, 0753)', () => {
 });
 
 describe('the signed content and the subject resolver (site services 0730)', () => {
-  it('[DI-24] a record\'s content version counts its own links, events, findings and conclusion', async () => {
+  it('[DI-24] a record\'s content version counts its own links, events, findings, classification and conclusion', async () => {
     const busy = await raise();
     const lot = await w.lot();
     await w.run(w.cast.operator, (c) => linkDeviation(c, busy.deviationId, 'LOT', lot.lotId));
-    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, busy.deviationId));
+    await w.run(w.cast.qa, (c) => startDeviationInvestigation(c, busy.deviationId, cls()));
     await w.run(w.cast.qa, (c) => recordDeviationFinding(c, busy.deviationId, { assignableCause: false, cause: 'No cause found after the review', rootCauseCategory: 'NOT_DETERMINED' }));
     const quiet = await raise();
     const content = async (id: string) =>
       (await db.admin.query<{ c: { content_version: number; content: { links: unknown[]; events: unknown[] } } }>('select site.deviation_content($1) as c', [id])).rows[0]?.c;
     expect(await content(quiet.deviationId)).toMatchObject({ content_version: 1, content: { links: [], events: [] } });
-    expect(await content(busy.deviationId)).toMatchObject({ content_version: 4 });
+    // 1 + the link + INVESTIGATION_STARTED + QA's classification + the finding.
+    expect(await content(busy.deviationId)).toMatchObject({ content_version: 5 });
     expect((await content(busy.deviationId))?.content.links).toHaveLength(1);
   });
 
