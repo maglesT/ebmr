@@ -116,8 +116,8 @@ select kernel.register_audited_table('recipe.pqr_signoff', 'pqr_extract', 'extra
 create function recipe.pqr_extract_v1(p_product text, p_from date, p_to date) returns jsonb
 language sql stable security definer set search_path = pg_catalog, recipe, site, pg_temp as $$
   with bx as (
-    select b.id, b.batch_number, b.site_code, sb.markets as markets, sb.family_id, (b.issued_at at time zone b.site_zone)::date as issued_on
-      from recipe.batch_execution b join recipe.stub_batch sb on sb.id = b.id
+    select b.id, b.batch_number, b.site_code, b.market_set as markets, (recipe.batch_master_version(b.id)).family_id as family_id, (b.issued_at at time zone b.site_zone)::date as issued_on
+      from recipe.batch_execution b
      where b.installation = 'GMP' and b.purpose = 'GMP_BATCH'
        and recipe.batch_product(b.id) ->> 'code' = p_product
        and (b.issued_at at time zone b.site_zone)::date between p_from and p_to),
@@ -151,7 +151,7 @@ language sql stable security definer set search_path = pg_catalog, recipe, site,
     select v.change_record_id from recipe.mbr_version v join recipe.mbr_family f on f.id = v.family_id
      where f.product_code = p_product and v.change_record_id is not null and (v.effective_from at time zone 'UTC')::date between p_from and p_to),
   batch_rows as (
-    select bx.*, fam.record_kind, recipe.batch_purpose(bx.id) as purpose, s.status as status,
+    select bx.*, coalesce(fam.record_kind, 'UNKNOWN') as record_kind, recipe.batch_purpose(bx.id) as purpose, s.status as status,
            (exists (select 1 from lots x where x.batch_id = bx.id) and not exists (select 1 from lots x where x.batch_id = bx.id and 'IN' = any (x.markets))) as export_only,
            coalesce((select jsonb_agg(jsonb_build_object('lot_id', x.lot_id, 'lot_code', x.lot_code,
                                                          'markets', to_jsonb(array(select unnest(x.markets) order by 1)), 'export_only', not ('IN' = any (x.markets)),
@@ -165,7 +165,7 @@ language sql stable security definer set search_path = pg_catalog, recipe, site,
              where c.id = (select b.control_recipe_id from recipe.batch_execution b where b.id = bx.id)) as change_record,
            (s.status in ('ABORTED', 'CANCELLED')
             or exists (select 1 from lots x where x.batch_id = bx.id and x.release_state in ('REJECTED', 'REJECTED_AFTER_RELEASE', 'RECALLED'))) as failed
-      from bx join recipe.mbr_family fam on fam.id = bx.family_id left join recipe.execution_state s on s.batch_id = bx.id)
+      from bx left join recipe.mbr_family fam on fam.id = bx.family_id left join recipe.execution_state s on s.batch_id = bx.id)
   select jsonb_build_object(
     'query_version', 1,
     'product_code', p_product,
