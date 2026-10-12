@@ -7,7 +7,7 @@
 --     qp_certification), the EU importer (EU_IMPORTER_APPROVED) and the QP register (QP_REGISTERED) (recipe-core 0821
 --     to 0824).
 --   * tab.aggregate_read_class: CREATE OR REPLACE from its latest definition (1179): the lot-level aggregates are
---     RECORD-class records; eu_importer and qp_register are GOVERNANCE.
+--     RECORD-class records; eu_importer and qp_register are GOVERNANCE. 4b: qp_package (TRUE_COPY_VERIFIED, RECORD class).
 -- Nothing else changes.
 
 set local role ebmr_owner;
@@ -28,7 +28,9 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
                                         -- Phase 4 slice 3a: the manufacturer release and its release-side acts
                                         'manufacturer_release', 'post_change_evaluation', 'ppq_outcome', 'investigation_justification',
                                         -- Phase 4 slice 4a: the market dispositions, certifications and market changes
-                                        'us_disposition', 'market_change', 'qp_transcription', 'qp_transcription_check', 'qp_certification')
+                                        'us_disposition', 'market_change', 'qp_transcription', 'qp_transcription_check', 'qp_certification',
+                                        -- Phase 4 slice 4b: the EU QP batch package (a signed true-copy bundle; kernel 1160)
+                                        'qp_package')
               then 'RECORD' else 'GOVERNANCE' end
 $$;
 
@@ -78,6 +80,8 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
            when 'qp_certification' then array['QP_CERTIFIED']
            when 'eu_importer' then array['EU_IMPORTER_APPROVED']
            when 'qp_register' then array['QP_REGISTERED']
+           -- Phase 4 slice 4b: the EU QP batch package, qp_package <package id>, expected state ASSEMBLED (kernel 1160).
+           when 'qp_package' then array['TRUE_COPY_VERIFIED']
            else '{}'::text[]
          end
 $$;
