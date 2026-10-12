@@ -6,8 +6,8 @@
  *    production's close, which holds the bulk left over and locks the record;
  *  - QA's AMENDMENT_OPEN of a locked record under a linked open deviation or a change record, with the person's reason;
  *    the released lots it will suspend are listed before it is signed;
- *  - the open amendment's appended entries (records.appendAmendmentEntry: never an edit of the record), and QA's
- *    AMENDMENT_CLOSE with a closing statement, which locks the record again;
+ *  - the open amendment's entries, appended by production (records.appendAmendmentEntry: never an edit of the record),
+ *    and QA's AMENDMENT_CLOSE with a closing statement, which locks the record again;
  *  - every amendment with its basis, the lots it suspended and the authorised person's market-impact tasks.
  * Every state, gate and meaning is the server's; signed acts go through esig.describe and the ceremony (RECORD_LOCK_ACT).
  */
@@ -197,8 +197,13 @@ function OpenAmendment({ view: v }: { view: RecordLockView }) {
 
 const ENTRY_KINDS = ['LATE_ENTRY', 'CORRECTION', 'NOTE'] as const;
 
+/**
+ * The open amendment: production appends its entries (RECORD.PRODUCTION_APPROVE in the database), and QA, who appended
+ * none of them, signs the close (AMENDMENT_CLOSED excludes the performers).
+ */
 function OpenAmendmentWork({ view: v, a }: { view: RecordLockView; a: AmendmentView }) {
   const qa = useOffered('QA');
+  const production = useOffered('PRODUCTION_HEAD');
   const append = useCommand(routes.records.appendAmendmentEntry, RECORDS_READS, 'an amendment entry');
   const signed = useSignedAct(RECORDS_READS);
   const [kind, setKind] = useState<(typeof ENTRY_KINDS)[number]>('LATE_ENTRY');
@@ -207,12 +212,13 @@ function OpenAmendmentWork({ view: v, a }: { view: RecordLockView; a: AmendmentV
   const [value, setValue] = useState('');
   const [reason, setReason] = useState('');
   const [statement, setStatement] = useState('');
-  if (!qa) return null;
+  if (!qa && !production) return null;
   const entryOk = target.trim() !== '' && text.trim() !== '' && reason.trim().length >= 10;
   const closing = statement.trim().length >= 10 ? statement.trim() : null;
   return (
     <>
-      <Section title={`Append to amendment ${a.number}`} testId="amendment-append">
+      {production ? (
+        <Section title={`Append to amendment ${a.number}`} testId="amendment-append">
         <p>An entry is appended to the amendment; the record itself is never edited.</p>
         <floor.ChoiceGroup label="Kind of entry" options={ENTRY_KINDS.map((k) => ({ value: k, label: words(k) }))} value={kind} onChange={(x) => setKind(ENTRY_KINDS.find((k) => k === x) ?? 'LATE_ENTRY')} />
         <Field name="entryTarget" label="What it amends (step, data point or document)" value={target} onChange={setTarget} />
@@ -232,8 +238,10 @@ function OpenAmendmentWork({ view: v, a }: { view: RecordLockView; a: AmendmentV
           disabled={!entryOk || append.busy}
         />
         <ActResult error={append.error} done={append.done} label="Appended." />
-      </Section>
-      <Section title={`Close amendment ${a.number}`} testId="amendment-close">
+        </Section>
+      ) : null}
+      {qa ? (
+        <Section title={`Close amendment ${a.number}`} testId="amendment-close">
         <p>Closing the amendment locks the record again. The suspended lots stay suspended until the authorised person decides each market.</p>
         <Field name="closingStatement" label="Closing statement (at least 10 characters)" value={statement} onChange={setStatement} />
         <ActButton
@@ -245,7 +253,8 @@ function OpenAmendmentWork({ view: v, a }: { view: RecordLockView; a: AmendmentV
           disabled={closing === null || signed.busy}
         />
         <ActResult error={signed.error} outcome={signed.outcome} />
-      </Section>
+        </Section>
+      ) : null}
     </>
   );
 }

@@ -26,13 +26,24 @@
  * What this lot cannot reach (its manufacturer release is never RELEASED here): the QCU's US release and the two-row
  * release (D-P4-5), the EU transcription with its second person's verification (DI-30) and the in-system QP (PR-55),
  * and the EU package delivery. They wait for the golden batch GB-T-02 (slice 7), which brings a lot to release.
+ *
+ * Phase 4 slice 5c, after the rejection (the third test, on the same lot after the first two; on its own office PC
+ * PC-QA-05 and the unused inspection kiosk KIOSK-INSP-1, so no other test shares their device rate limit):
+ *  1. QA records the destruction of the rejected lot on its "After release" tab (DISPOSAL_RECORDED, PR-46): the disposal
+ *     waits for its witness; the performer is not offered anything more;
+ *  2. QA on the shop floor witnesses it on a kiosk (DESTRUCTION_WITNESSED, an independent person): the disposal is
+ *     RECORDED with both signatures and no second disposal can be recorded;
+ *  3. the lot's packaging record locked at the rejection (its first manufacturer disposition, D-5-7): QA opens an
+ *     amendment under a change record (AMENDMENT_OPENED; INV-21), the head of production appends a late entry (never an
+ *     edit of the record), and a second QA person closes it with a statement (AMENDMENT_CLOSED): the record is LOCKED again.
+ * The suspension, re-confirmation and recall of a released lot wait for GB-T-02 (slice 7): no seed releases a lot.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { openDatabase } from '@ebmr/test-kit';
 import { expect, signIn, test } from '../../fixtures/index.ts';
-import { officeSign } from '../../fixtures/slice6.ts';
-import { choose } from '../journey/support.ts';
+import { gmpKiosk, officeSign } from '../../fixtures/slice6.ts';
+import { choose, sign as kioskSign } from '../journey/support.ts';
 
 interface ReleaseSeed {
   lotId: string;
@@ -204,4 +215,98 @@ test('market tabs: the market-add evaluation, a signed addition and removal of U
     const ack = box.getByTestId('qp-ack');
     return { acknowledgement: (await ack.textContent()) ?? '' };
   }, page);
+});
+
+test('after the rejection: a witnessed destruction of the lot, and an amendment of its locked packaging record @office', async ({ browser, e2e, officePage, persona, evidence }) => {
+  const r = releaseSeed(e2e.state.keysDir);
+  const base = e2e.url('GMP');
+  const performer = persona('GMP', 'qaInvestigator');
+  const witness = persona('GMP', 'qa1');
+  const head = persona('GMP', 'head1');
+  const closer = persona('GMP', 'qaApprover2');
+  const lot = r.lotCode.replace(/[/]/g, '\\/');
+
+  // The change record the amendment is made under (looked up, never written).
+  const db = openDatabase(e2e.state.databases.GMP, 'GMP');
+  let changeRecordId: string;
+  try {
+    const any = await db.admin.query<{ id: string }>('select id from recipe.change_record order by recorded_at, id limit 1');
+    const id = any.rows[0]?.id;
+    if (!id) throw new Error('the seed holds no change record');
+    changeRecordId = id;
+  } finally {
+    await db.close();
+  }
+
+  const page = await officePage('GMP', 'PC-QA-05');
+  await signIn.office(page, performer);
+  await evidence.step('QA records the destruction of the rejected lot', 'DISPOSAL_RECORDED through the office ceremony; the destruction waits for an independent witness', async () => {
+    await page.goto(`${base}/release/${r.lotId}?tab=AFTER`);
+    await expect(page.getByTestId('after-release-state')).toContainText('Rejected');
+    const box = page.getByTestId('disposal');
+    await expect(box.getByRole('button', { name: 'Sign the destruction as performer' })).toBeDisabled();
+    await box.getByRole('textbox', { name: "Quantity disposed of (in the lot's unit)" }).fill('1');
+    await box.getByRole('textbox', { name: 'Destruction record reference (optional)' }).fill(`DR-E2E-${r.lotCode}`);
+    await box.getByRole('button', { name: 'Sign the destruction as performer' }).click();
+    await officeSign(page, new RegExp(`^Dispose of lot ${lot} by witnessed destruction`), performer);
+    await expect(page.getByTestId('disposal-state')).toHaveAttribute('data-state', 'AWAITING_WITNESS');
+    await expect(page.getByTestId('disposal-recorded')).toContainText(`Performed and signed by ${performer.legalName}`);
+    return { state: 'AWAITING_WITNESS' };
+  }, page);
+
+  const kiosk = await gmpKiosk(browser, e2e, 'KIOSK-INSP-1');
+  await signIn.kiosk(kiosk, witness);
+  await evidence.step('QA on the shop floor witnesses the destruction', 'DESTRUCTION_WITNESSED by an independent person through the kiosk ceremony; the disposal is RECORDED with both signatures', async () => {
+    await kiosk.goto(`${base}/release/${r.lotId}?tab=AFTER`);
+    const box = kiosk.getByTestId('disposal-witness');
+    await box.getByRole('button', { name: 'Sign as the witness of the destruction' }).click();
+    await kioskSign(kiosk, witness);
+    await expect(kiosk.getByTestId('disposal-state')).toHaveAttribute('data-state', 'RECORDED');
+    await expect(kiosk.getByTestId('disposal-recorded')).toContainText(`Witnessed and signed by ${witness.legalName}`);
+    await expect(kiosk.getByTestId('disposal')).toHaveCount(0);
+    return { state: 'RECORDED' };
+  }, kiosk);
+
+  await evidence.step('QA opens an amendment of the locked packaging record under a change record', 'The record locked at the rejection; AMENDMENT_OPENED through the office ceremony; the record is UNDER_AMENDMENT', async () => {
+    await page.goto(`${base}/records/${r.orderBatchId}`);
+    await expect(page.getByTestId('record-lock-state')).toHaveAttribute('data-state', 'LOCKED');
+    await expect(page.getByTestId('record-lock-state')).toContainText('first disposition');
+    const box = page.getByTestId('amendment-open');
+    await choose(box.getByRole('radio', { name: 'A change record' }));
+    await box.getByRole('textbox', { name: 'Change record (id)' }).fill(changeRecordId);
+    await box.getByRole('textbox', { name: 'Reason code' }).fill('LATE_ENTRY');
+    await box.getByRole('textbox', { name: 'Reason for the amendment (at least 10 characters)' }).fill('A line clearance check was found on paper after the rejection');
+    await box.getByRole('button', { name: /^Sign the opening of amendment / }).click();
+    await officeSign(page, /^Open amendment \d+ of the record of batch /, performer);
+    await expect(page.getByTestId('record-lock-state')).toHaveAttribute('data-state', 'UNDER_AMENDMENT');
+    await expect(page.locator('[data-testid^="amendment-"][data-state="OPEN"]')).toBeVisible();
+    return { state: 'UNDER_AMENDMENT' };
+  }, page);
+
+  const production = await officePage('GMP', 'PC-PLAN-01');
+  await signIn.office(production, head);
+  await evidence.step('The head of production appends a late entry to the amendment', 'The entry is appended to the open amendment; the record itself is never edited', async () => {
+    await production.goto(`${base}/records/${r.orderBatchId}`);
+    const box = production.getByTestId('amendment-append');
+    await box.getByRole('textbox', { name: 'What it amends (step, data point or document)' }).fill('Line clearance before packaging');
+    await box.getByRole('textbox', { name: 'Entry', exact: true }).fill('Line clearance checked and found clear, transcribed from the paper log');
+    await box.getByRole('textbox', { name: 'Reason (at least 10 characters)' }).fill('The check was recorded on paper only');
+    await box.getByRole('button', { name: 'Append the entry' }).click();
+    await expect(box.getByText('Appended.')).toBeVisible();
+    await expect(production.locator('[data-testid^="amendment-"][data-state="OPEN"]')).toContainText('transcribed from the paper log');
+    return { appendedBy: head.loginName };
+  }, production);
+
+  const second = await officePage('GMP', 'PC-QA-05');
+  await signIn.office(second, closer);
+  await evidence.step('A second QA person closes the amendment', 'AMENDMENT_CLOSED with a closing statement through the office ceremony; the record is LOCKED again', async () => {
+    await second.goto(`${base}/records/${r.orderBatchId}`);
+    const box = second.getByTestId('amendment-close');
+    await box.getByRole('textbox', { name: 'Closing statement (at least 10 characters)' }).fill('One late entry appended from the paper log; nothing else is missing');
+    await box.getByRole('button', { name: /^Sign the close of amendment / }).click();
+    await officeSign(second, /^Close amendment \d+ of the record of batch /, closer);
+    await expect(second.getByTestId('record-lock-state')).toHaveAttribute('data-state', 'LOCKED');
+    await expect(second.locator('[data-testid^="amendment-"][data-state="CLOSED"]')).toContainText(`Closed by ${closer.legalName}`);
+    return { state: 'LOCKED' };
+  }, second);
 });

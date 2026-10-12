@@ -77,8 +77,12 @@ describe('one record', () => {
     expect(screen.queryByTestId('amendment-open')).toBeNull();
   });
 
-  it('[INV-21] QA appends an entry to the open amendment (never an edit of the record)', async () => {
-    const ui = renderOffice(`/records/${B}`, { role: 'QA_REVIEWER' });
+  it('[INV-21] production appends an entry to the open amendment (never an edit of the record); QA is offered the close, not the entry', async () => {
+    renderOffice(`/records/${B}`, { role: 'QA_REVIEWER' });
+    await screen.findByTestId('amendment-close');
+    expect(screen.queryByTestId('amendment-append')).toBeNull();
+    cleanup();
+    const ui = renderOffice(`/records/${B}`, { role: 'HEAD_OF_PRODUCTION' });
     const box = await screen.findByTestId('amendment-append');
     await userEvent.type(within(box).getByRole('textbox', { name: 'What it amends (step, data point or document)' }), 'Line clearance');
     await userEvent.type(within(box).getByRole('textbox', { name: 'Entry' }), 'Check transcribed from the paper log');
@@ -134,6 +138,7 @@ describe('one record', () => {
     await screen.findByTestId('record-lock-state');
     expect(screen.queryByTestId('amendment-open')).toBeNull();
     expect(screen.queryByTestId('amendment-close')).toBeNull();
+    expect(screen.queryByTestId('amendment-append')).toBeNull();
   });
 });
 
