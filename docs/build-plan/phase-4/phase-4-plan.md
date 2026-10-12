@@ -401,6 +401,38 @@ below; each builder ticks them off there.
   release path, which is in GB-T-02 (slice 7). The suspension, reconfirm and recall browser flow moves there too; until
   then the server route tests cover it. The slice 5 e2e covers disposal of the lot `release-flow.spec.ts` rejects, and
   the amendment of its locked packaging record.
+- **Slice 5b defaults (builder 5b, 12 October; decision 0004; owner may change):** built on `phase-4/slice-5b`
+  (recipe-core 0870 to 0873, tablets 1190 and 1199; contract `ns/records-lock.ts`, routes `/api/records/*`,
+  `RECORD_LOCK_ACT`).
+  - **D-5b-1** Bright stock for the Tablets edition is the processing batch's closed bulk containers; the hold runs from
+    each container's close. It is checked per container at issue and, at packaging start (a TB-21 RUN_START or the first
+    entry of a TB-23 or TB-24 step), over every container issued to the order.
+  - **D-5b-2** The maximum hold lives in a recipe-side product parameter (`recipe.bright_stock_max_hold`, insert-only
+    versions, latest wins), set by master data (MASTERDATA.CHANGE, with a reason), not in the ERP feed (site-services is
+    outside 5b's ranges). A product with no maximum set checks none (stricter would refuse every existing product,
+    GB-T-01 included); the owner may want it required before Phase 4 exits.
+  - **D-5b-3** "A linked deviation approved by QA" is a deviation linked to the packaging order, its processing batch or
+    the container whose state is IMPACT_ASSESSED, PENDING_CLOSURE or CLOSED.
+  - **D-5b-4** Bulk across orders: a container is issued whole to one order (0701); the database checks that each issue
+    records the container's closed net in its unit and that the batch's issued sum never exceeds what it produced. Partial
+    containers across orders are not offered (a residual if the owner wants it).
+  - **D-5b-5** The bulk reconciliation is closed by production approval (RECORD.PRODUCTION_APPROVE), unsigned (no meaning
+    was fixed for it), with a reason when bulk is left; the closure itself is the formal hold of the bulk left (it is
+    never packed afterwards: the record is locked). Only a processing or reprocessing record whose execution is
+    EXECUTION_COMPLETE closes one; a planned packaging order counts as open until cancelled.
+  - **D-5b-6** Amendment entries (LATE_ENTRY, CORRECTION, NOTE) are appended by production's responsible person
+    (RECORD.PRODUCTION_APPROVE) in the office; QA opens (AMENDMENT_OPENED) and closes (AMENDMENT_CLOSED, excluding every
+    entry author) with RECORD.QA_REVIEW. A change record (no state of its own) is accepted as a basis whenever it exists.
+  - **D-5b-7** The amendment's AP market-impact tasks cover IN (manufacturer RELEASED), US RELEASED and EU CERTIFIED of
+    each lot made from the record; a task reads DONE once the amendment is closed and the market is no longer
+    RELEASE_SUSPENDED. `recipe.suspend_release` is called once per manufacturer-released lot with the cause
+    `{"kind": "RECORD_AMENDMENT", batch_id, batch_number, amendment_id, amendment_number, basis_kind, basis_id,
+    signature_id}`; while it is the 4-0 stub the opening is refused whole (fail closed).
+  - **D-5b-8** A locked record refuses writes to the engine's tables, consumption, the exception register, abort
+    checklists, reprocessing additions and step starts, bulk issued to or from it, its containers, closes, charges and
+    in-process checks, and the edition's record tables (tablets 1190). QA's container holds, plant logbooks, review acts
+    and device-side rows are not part of the record and stay writable. The first manufacturer disposition locks the
+    finished lot's own batch record, whatever its kind.
 
 ### Slice 6: India specifics, records and the PQR extract
 - **6a, India fields** (site-services 0870 to 0889, recipe-core 0890 to 0909): manufacturing licences (Form 25 or 28,

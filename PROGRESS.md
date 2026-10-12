@@ -125,6 +125,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   DISPOSAL (witnessed destruction, reprocessing, return; PR-46) through RELEASE_ACT; material_lot v3 (recipe-core 0840,
   0841; site services 0880, 0881); routes release.suspended and release.afterRelease. Defaults D-5a-1 to D-5a-9 in the
   plan. The HTTP signing test waits for 5b's tablets 1199 mapping.
+- Phase 4 slice 5b (`phase-4/slice-5b`, 12 October): record locking and amendment, bulk across orders and the bright-stock
+  maximum hold (recipe-core 0870 to 0873, tablets 1190, 1199; contract `ns/records-lock.ts`, routes `/api/records/*`,
+  `RECORD_LOCK_ACT`). A processing record locks at its bulk reconciliation closure, a finished lot's record at its first
+  manufacturer disposition; a locked record refuses every write in the database; QA opens (AMENDMENT_OPENED, calling
+  `recipe.suspend_release` per released lot and opening AP market-impact tasks) and closes (AMENDMENT_CLOSED) an
+  appending amendment (INV-21, R-04); PR-38 checked at issue and packaging start. Defaults D-5b-1 to D-5b-8 in the plan.
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 
 - Phase 3 exit fixes (`phase-3/exit-fix`, 11 October): the review's four highs and one medium. HIGH-1: ERP masters and

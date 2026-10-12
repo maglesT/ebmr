@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RECORDS_LOCK_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -210,7 +210,7 @@ describe('route table', () => {
       'execution.issue', 'execution.planBatch', 'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'quality.receiveLot',
-      'quality.registerEvidenceDocument', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
+      'quality.registerEvidenceDocument', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
     ]);
     for (const r of fresh) {
@@ -336,6 +336,19 @@ describe('route table', () => {
     expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment }).success).toBe(true);
     expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment: { ...shipment, quantity: 120.5 } }).success).toBe(false);
     expect(routes.erpShipping.check.body?.safeParse({ ...creds, shipment: { ...shipment, market: 'UK' } }).success).toBe(false);
+  });
+
+  it('the records namespace (Phase 4 slice 5b) is GMP only, each route with an example; RECORD_LOCK_ACT opens or closes an amendment of a batch record', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of RECORDS_LOCK_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of Object.values(routes.records)) expect(r.installation, r.id).toBe('GMP');
+    const batchId = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    expect(ok(SignableAction, { kind: 'RECORD_LOCK_ACT', act: 'AMENDMENT_OPEN', batchId, input: { deviationId: batchId, reason: { code: 'LATE_ENTRY', text: 'Untranscribed check found' } } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RECORD_LOCK_ACT', act: 'AMENDMENT_CLOSE', batchId, input: { statement: 'The late entry restores the check' } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'RECORD_LOCK_ACT', act: 'AMENDMENT_EDIT', batchId, input: {} })).toBe(false);
+    expect(ok(SignableAction, { kind: 'RECORD_LOCK_ACT', act: 'AMENDMENT_OPEN', batchId, input: { lotId: batchId } })).toBe(false);
+    expect(routes.records.setBrightStockHold.body?.safeParse({ productCode: 'GBT01', strength: '500 mg', maxHoldHours: 720, reason: 'Hold study HS-1' }).success).toBe(false);
+    expect(routes.records.setBrightStockHold.body?.safeParse({ productCode: 'GBT01', strength: '500 mg', maxHoldHours: '720', reason: 'Hold study HS-1' }).success).toBe(true);
   });
 
   it('the release namespace (Phase 4 slice 3) is GMP only (office routes), each route with an example; RELEASE_ACT names its act, lot and input', () => {

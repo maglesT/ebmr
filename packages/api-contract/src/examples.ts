@@ -52,6 +52,7 @@ import lm from '../fixtures/lims.json' with { type: 'json' };
 import rl from '../fixtures/release.json' with { type: 'json' };
 import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
+import rk from '../fixtures/records-lock.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -287,7 +288,19 @@ export const EXAMPLES = {
   'erp-shipping-check-refused': { schema: r.erpShipping.check.response, data: qs.checkRefused },
   'erp-shipping-record': { schema: r.erpShipping.record.response, data: qs.shipment, routeId: r.erpShipping.record.id },
   'erp-shipping-lot': { schema: r.erpShipping.lot.response, data: qs.shipments, routeId: r.erpShipping.lot.id },
+  // Phase 4 slice 5b: record locking and amendment, the bulk reconciliation and the bright-stock maximum hold (screens of 5c).
+  'records-locks': { schema: r.records.locks.response, data: rk.locks, routeId: r.records.locks.id },
+  'records-lock': { schema: r.records.lock.response, data: rk.lock, routeId: r.records.lock.id },
+  'records-lock-closed': { schema: r.records.lock.response, data: { ...rk.lock, state: 'LOCKED', amendments: [rk.amendmentClosed], openAmendmentNumber: null } },
+  'records-bulk': { schema: r.records.bulk.response, data: rk.bulk, routeId: r.records.bulk.id },
+  'records-close-bulk': { schema: r.records.closeBulk.response, data: rk.bulkClosed, routeId: r.records.closeBulk.id },
+  'records-append-amendment-entry': { schema: r.records.appendAmendmentEntry.response, data: rk.amendment, routeId: r.records.appendAmendmentEntry.id },
+  'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
+  'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
 } as const satisfies Record<string, Example>;
+
+/** Phase 4 slice 5b: the record-lock routes, each with an example above (checked by the contract test). */
+export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records).map((route) => route.id);
 
 /** Phase 4 slice 4b: the QP package and ERP shipping routes, each with an example above (checked by the contract test). */
 export const QP_SHIPPING_ROUTE_IDS: readonly string[] = [...Object.values(r.qpPackage), ...Object.values(r.erpShipping)].map((route) => route.id);
