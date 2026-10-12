@@ -25,3 +25,12 @@ Backlog:
 - Residuals: MBR IPC limits are not part of the pharmacopoeia-edition review; API retention "one year after the last
   product lot containing it" and the US annual visual examination of reserve samples are not built; return to stock
   and the chemical-recovery act of returned goods wait for the release model and reprocessing.
+
+## Slice 2c open items (builder report, 12 October 2026)
+
+- The e2e demo seed `--gmp-packaging` marks its second batch released for packing with a demo shortcut (a superuser
+  update with triggers off and a placeholder hold-point signature in the stored state). It is test data only, but it
+  must be replaced by the real H-PACK signature through the routes in slice 3 (with the release cockpit) so no demo
+  record carries a placeholder signature.
+- The deviation screens take the owner as a typed person id; the deviation contract needs person names (slice 3
+  screens).
