@@ -97,7 +97,7 @@ describe('release cockpit, manufacturer tab', () => {
       kind: 'RELEASE_ACT',
       act: 'MANUFACTURER_REJECT',
       lotId: L,
-      input: { reason: { code: 'OOS', text: 'Assay out of specification, confirmed' }, delegationId: 'f0e1d2c3-b4a5-4968-8776-655443322110' },
+      input: { expectedEpoch: lot.grel.epoch, reason: { code: 'OOS', text: 'Assay out of specification, confirmed' }, delegationId: 'f0e1d2c3-b4a5-4968-8776-655443322110' },
     });
   });
 

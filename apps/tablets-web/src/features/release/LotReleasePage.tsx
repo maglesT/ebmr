@@ -324,13 +324,18 @@ function ReleaseDecision({ view: v, offered }: { view: LotReleaseView; offered: 
       </Section>
       <Section title="Manufacturer rejection" testId="manufacturer-reject">
         <GateProblems gate={v.gates.reject} testId="reject-problems" />
+        <p>The rejection is signed on the checklist above as it stands now (evidence epoch {g.epoch}).</p>
         <Field name="rejectCode" label="Reason code" value={code} onChange={setCode} isDisabled={!v.gates.reject.ready} />
         <Field name="rejectText" label="Reason for the rejection" value={reasonText} onChange={setReasonText} isDisabled={!v.gates.reject.ready} />
         <ActButton
           primary={false}
           label="Sign the rejection"
-          onPress={() => reason && reject.sign({ kind: 'RELEASE_ACT', act: 'MANUFACTURER_REJECT', lotId: v.lotId, input: { reason, ...delegationId } }, `Reject lot ${v.lotCode} (batch ${v.batchNumber}): ${reason.text}`)}
-          disabled={!v.gates.reject.ready || reason === null || reject.busy}
+          onPress={() =>
+            reason &&
+            epochSigned &&
+            reject.sign({ kind: 'RELEASE_ACT', act: 'MANUFACTURER_REJECT', lotId: v.lotId, input: { expectedEpoch: epochSigned, reason, ...delegationId } }, `Reject lot ${v.lotCode} (batch ${v.batchNumber}) at evidence epoch ${g.epoch}: ${reason.text}`)
+          }
+          disabled={!v.gates.reject.ready || reason === null || epochSigned === null || reject.busy}
         />
         <ActResult error={reject.error} outcome={reject.outcome} />
       </Section>
