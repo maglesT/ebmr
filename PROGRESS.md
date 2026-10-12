@@ -105,6 +105,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   of the same command; reservations revoked at batch end (0801, recipe-core 0700, tablets 1100). MEDIUM: TB-11 counter as
   bigint. GB-T-01 unchanged. Open for the owner: no screen yet for the bulk issue; packing steps in a GMP processing batch
   are now refused (stricter default); HTTP LOT_DECISION still offers only release and reject.
+- GB-T-01 date fix (`phase-4/golden-date-fix`, 12 October): the true-copy hashes changed with the day of the run, because
+  the normalisation took the seeded lots' fixed retest and expiry dates (2027 to 2029) for run instants and wrote them as
+  minutes from the issue; the exception-rich one also held the year in its deviation number. The lot dates now stay as
+  they are and the deviation year is a placeholder; hashes re-recorded and shown equal on runs started on different days
+  (`EBMR_GOLDEN_LATER_DAYS`). Test code only.
 
 ## Next: Phase 3, Tablets edition (outline section 11)
 

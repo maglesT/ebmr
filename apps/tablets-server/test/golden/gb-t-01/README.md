@@ -92,9 +92,14 @@ The golden test's PostgreSQL runs under libfaketime with a timestamp file the dr
 (`FAKETIME_TIMESTAMP_FILE`, `FAKETIME_NO_CACHE=1`); nothing in the GMP code reads a test clock. GB-T-01 freezes the
 clock at the next midnight UTC and ticks it one second before each act, so every time and duration the server measures
 is the same on each run (blend 601 s, lubrication 181 s). The hash's normalisation (`results.ts`) turns the run's
-instants into minutes from the batch's issue and an expiry month into a placeholder; the seeded lots' fixed retest and
-expiry instants, which precede the run, stay as they are. CI runs it in the `golden` job on its own cluster, one file at a time
-(`.github/workflows/ci.yml`); a run takes about 20 minutes.
+instants into minutes from the batch's issue, and an expiry month and the year in a deviation number
+(DEV-SITE-1-&lt;year&gt;-00001) into placeholders; the seeded lots' fixed retest and expiry dates (2027 to 2029, after the
+run) stay as they are. Until 12 October 2026 those lot dates were taken for the run's instants and became offsets from
+the issue, so the hashes changed with the day of the run (and the exception-rich one with the year).
+`EBMR_GOLDEN_LATER_DAYS=<n>` starts the clock n days after the next midnight, to check that the hashes do not depend on
+the day; keep n under about 45, since the personas' passwords are set at the real time and age out after 90 days
+(DI-19), and the variants run 41 days after the start. CI runs it in the `golden` job on its own cluster, one file at a
+time (`.github/workflows/ci.yml`); a run takes about 20 minutes.
 
 ## Residuals (Phase 3; for the owner)
 
