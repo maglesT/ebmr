@@ -77,7 +77,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 - Phase 3 exit (decision 0009, `docs/build-plan/phase-3/exit-plan.md`, branch `phase-3/exit`): one Opus review pass
   (no critical; five high, four fixed with tests, the fifth decided by ADR-0019), SQL and TypeScript mutation runs by
   Opus (results and residuals in the review backlog), and the final run green. Open for the owner: the drying-loop
-  correction question and the India subdivision rule (review backlog). Next: Phase 4 (outline section 11). Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
+  correction question and the India subdivision rule (review backlog). Merged (PR #18); Phase 3 complete.
+- Phase 4 (review, release and India specifics): plan `docs/build-plan/phase-4/phase-4-plan.md`, seven slices; slice 1
+  (record review and evidence epochs) on `phase-4/slice-1`. Next: slice 5 (TB-08 reprocessing, ERP stub, LIMS-lite, deviation-lite).
 - CI runs the tests in four shards (the single job had reached 58 of its 60 minutes); see REPO-GUIDE.md.
 - Slice 6c (`phase-3/slice-6c`, in progress): catalog-test clauses for the 16 Phase 3 exit controls; DI-04 clause 2,
   PR-01 clause 2 and the DI-33 reprocessing scope tested; simulators for every process kind, packaging-line kinds in the
