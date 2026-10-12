@@ -73,3 +73,13 @@ Backlog:
   is not checked; finished lots posted before material-lot machine version 2 cannot be released (the gate says why).
 - Kernel note: `esig.signature_state` does not return the signer role or delegation; the release act reads them from
   `esig.signature`.
+
+## Slice 3a open items (builder report, 12 October 2026)
+
+- Open for the owner (D-P4-6): with India treated as the EU, a process-validation (PPQ) batch's manufacturer release
+  always waits for the validation outcome; concurrent release applies to US-only batches.
+- Residuals: ancestor intermediates are not in the G-REL evidence set (the packaging batch and its processing parent
+  are); critical alarms (DI-49) are not read by G-REL; the extra sampling for linked changes and deviations (11.3.9 (f))
+  is not checked; finished lots posted before material-lot machine version 2 cannot be released (the gate says why).
+- Kernel note: `esig.signature_state` does not return the signer role or delegation; the release act reads them from
+  `esig.signature`.
