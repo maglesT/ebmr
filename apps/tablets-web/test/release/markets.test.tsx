@@ -175,6 +175,15 @@ describe('EU tab', () => {
     expect(within(box).getByText('Message accepted; acknowledgement sent')).toBeTruthy();
   });
 
+  it('[DI-39] with EU never in the lot\'s set, a message is still taken in (it names its own lot); no transcription is offered', async () => {
+    renderOffice(`/release/${L}`, { role: 'QA_REVIEWER', fixtures: { 'release.markets': withMarkets([US], ['IN', 'US']) } });
+    await openTab(/^EU$/);
+    expect((await screen.findByTestId('market-state-EU')).textContent).toContain('not in the lot\'s market set');
+    expect(screen.getByTestId('qp-message')).toBeTruthy();
+    expect(screen.queryByTestId('qp-transcribe')).toBeNull();
+    expect(screen.queryByTestId('eu-certifications')).toBeNull();
+  });
+
   it('[DI-39] a refused message shows the database\'s reason in the acknowledgement', async () => {
     const refused = { ...example('release-qp-message'), outcome: 'REFUSED', reason: 'the signature does not verify with the key of importer EUIMP-DE-01', certificationId: null };
     renderOffice(`/release/${L}`, { role: 'QA_REVIEWER', fixtures: { 'release.markets': withMarkets([US, euAwaiting]), 'release.qpMessage': refused } });

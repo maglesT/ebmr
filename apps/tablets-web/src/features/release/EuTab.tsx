@@ -23,16 +23,17 @@ const QP_OUTCOMES = ['CERTIFIED', 'REJECTED_BY_QP'] as const;
 type QpOutcome = (typeof QP_OUTCOMES)[number];
 const SIGNATURE = /^[A-Za-z0-9+/]{86}==$/;
 
-export function EuTab({ lot, d }: { lot: LotReleaseView; d: MarketDispositionView }) {
+/** `d` is null when EU was never in the lot's set: a structured message names its own lot, so it is taken in all the same. */
+export function EuTab({ lot, d }: { lot: LotReleaseView; d: MarketDispositionView | null }) {
   const qa = useOffered('QA');
   const qp = useOffered('EU_QP');
   return (
     <>
       <Importer lot={lot} />
-      <Certifications lot={lot} d={d} offered={qa} />
+      {d ? <Certifications lot={lot} d={d} offered={qa} /> : null}
       {qa ? <MessageIntake /> : null}
-      {qa ? <TranscribedIntake lot={lot} /> : null}
-      {d.inSystemQp && qp ? <InSystemCertification lot={lot} d={d} /> : null}
+      {d && qa ? <TranscribedIntake lot={lot} /> : null}
+      {d?.inSystemQp && qp ? <InSystemCertification lot={lot} d={d} /> : null}
     </>
   );
 }

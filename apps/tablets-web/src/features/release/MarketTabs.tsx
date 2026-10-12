@@ -60,7 +60,7 @@ export function MarketTab({ lot, market }: { lot: LotReleaseView; market: Export
         </>
       ) : null}
       {market === 'US' && d ? <UsParts lot={lot} d={d} inSet={inSet} /> : null}
-      {market === 'EU' && d ? <EuTab lot={lot} d={d} /> : null}
+      {market === 'EU' ? <EuTab lot={lot} d={d} /> : null}
       <MarketChanges lot={lot} market={market} d={d} inSet={inSet} />
     </>
   );
