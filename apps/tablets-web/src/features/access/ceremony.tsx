@@ -16,6 +16,10 @@
  *     fresh device proof; a wrong one returns to the entry (the kernel counts it toward lockout);
  *  5. a lost answer never re-sends the credentials: the dialog reloads the record's signatures and reports
  *     SIGNED only when a matching signature is found, otherwise NOT_CONFIRMED.
+ * A two-row act (D-P4-5, Phase 4 slice 4: the manufacturer and US release in one ceremony) names a companion record and
+ * meaning: its content is loaded and checked against its hash too and shown with the first (meaning and title), a
+ * challenge is opened for each (on a kiosk each with its own attribution from the one tap), and the credentials are
+ * sent once with `companionChallengeId`; the server writes both rows in one command or neither.
  * Secrets live in refs until the request is built, then are wiped; they never enter machine context, React
  * state, query caches or storage.
  */
@@ -23,7 +27,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useMachine } from '@xstate/react';
 import { fromPromise } from 'xstate';
 import { sha256Hex } from '@ebmr/expr';
-import { routes, type RefusalEnvelope, type SignatureCredentials } from '@ebmr/api-contract';
+import { routes, type RefusalEnvelope, type SignableContentView, type SignatureCredentials } from '@ebmr/api-contract';
 import { identity, machines } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { callWithDeadline, SEND_DEADLINE_MS } from '../../api/deadline.ts';
@@ -61,6 +65,9 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
   const [switching, setSwitching] = useState(false);
   // One frozen copy of the request for the whole ceremony: preview, challenge and sign carry the same action.
   const [req] = useState(() => frozenRequest(job.request));
+  // The companion's verified content and its open challenge (a two-row act only).
+  const [companionContent] = useState(() => new Latest<SignableContentView | null>(null));
+  const [companionChallenge] = useState(() => new Latest<string | null>(null));
 
   const [machine] = useState(() =>
       machines.ceremonyMachine.provide({
@@ -68,7 +75,16 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
           loadContent: fromPromise(async () => {
             const r = await api.call(routes.esig.content, { query: { aggregateType: req.aggregateType, aggregateId: req.aggregateId, intent: previewIntent(req.meaning, req.action) } });
             if (!r.ok) throw callError(r.error);
-            return r.value;
+            const comp = req.companion;
+            if (!comp) return r.value;
+            const c = await api.call(routes.esig.content, { query: { aggregateType: comp.aggregateType, aggregateId: comp.aggregateId, intent: comp.meaning } });
+            if (!c.ok) throw callError(c.error);
+            // The second text is checked as the first is (the machine checks the first): never challenged unverified.
+            if (sha256Hex(c.value.canonicalText) !== c.value.contentHash) throw localError('the text of the second signature does not match its hash');
+            companionContent.set(c.value);
+            // Shown with the first: the signer sees both meanings before anything is challenged (display only; the
+            // first text and its hash are unchanged).
+            return { ...r.value, meaningText: `${r.value.meaningText} In the same ceremony you also sign ${c.value.title}: ${c.value.meaning}: ${c.value.meaningText}` };
           }),
           createChallenge: fromPromise(async ({ input }) => {
             const c = input.content;
@@ -80,7 +96,12 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
               clientContentHash: sha256Hex(c.canonicalText),
               action: req.action,
             };
+            const cc = companionContent.get();
+            const companionBody = cc
+              ? { aggregateType: cc.aggregateType, aggregateId: cc.aggregateId, contentVersion: cc.contentVersion, meaning: cc.meaning, clientContentHash: sha256Hex(cc.canonicalText), action: req.action }
+              : null;
             let attribution;
+            let companionAttribution;
             if (job.kiosk) {
               const uid = tapUid.peek();
               const pin = tapPin.take();
@@ -92,6 +113,15 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
                 throw machines.ceremonyError(built.failure);
               }
               attribution = built.value;
+              if (companionBody) {
+                // The same tap confirms the second challenge, with a proof over its own request.
+                const second = await buildAttribution(key, uid, pin ?? undefined, { method: 'POST', path: '/api/esig/challenges', body: companionBody });
+                if (!second.ok) {
+                  tapUid.clear();
+                  throw machines.ceremonyError(second.failure);
+                }
+                companionAttribution = second.value;
+              }
             }
             const r = await api.call(routes.esig.createChallenge, { body, ...(attribution ? { attribution } : {}) });
             if (!r.ok) {
@@ -101,13 +131,20 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
               throw machines.ceremonyError(f);
             }
             tapUid.clear();
+            companionChallenge.set(null);
+            if (companionBody) {
+              const c = await api.call(routes.esig.createChallenge, { body: companionBody, ...(companionAttribution ? { attribution: companionAttribution } : {}) });
+              if (!c.ok) throw callError(c.error);
+              companionChallenge.set(c.value.challengeId);
+            }
             return r.value;
           }),
           sign: fromPromise(async ({ input }) => {
             const credentials = secret.take();
             const key = latestBoot.get().deviceKey;
             if (!credentials || !key) throw localError('no credentials were entered');
-            const body = { challengeId: input.challenge.challengeId, credentials, action: req.action };
+            const second = companionChallenge.get();
+            const body = { challengeId: input.challenge.challengeId, credentials, action: req.action, ...(second ? { companionChallengeId: second } : {}) };
             const proof = await deviceProof(key, 'POST', '/api/esig/sign', body);
             // No proof: nothing was sent, so the answer is a refusal, never a lost answer to reconcile (F08).
             if (!proof.ok) throw callError(proof.error);

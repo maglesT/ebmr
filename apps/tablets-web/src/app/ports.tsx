@@ -14,6 +14,11 @@ export interface SignRequest {
   action: SignableAction;
   /** What the dialog says is being signed, e.g. "Sign step 2.1.4 Blend as performed". */
   title: string;
+  /**
+   * Phase 4 slice 4 (D-P4-5): the second record and meaning signed in the same ceremony, as esig.describe names it (the
+   * two-row release); the ceremony shows both, opens a challenge for each and signs once with the companion challenge.
+   */
+  companion?: { aggregateType: string; aggregateId: string; meaning: string };
 }
 
 export type SignOutcome =
