@@ -35,6 +35,16 @@ catalog_test: A QA reviewer, a supervisor and an admin each try to certify. All 
 implemented_by: {}
 tests:
   - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][DI-39] an EU lot ships only to the importer the technical agreement names, as quarantined goods until the QP certified it"
+  - "apps/tablets-server/test/release/market-routes.test.ts > the structured certification message (DI-39) > [DI-39] the database verifies the importer's signature and acknowledges every message: a forged one, an unknown importer and a lot not awaiting certification are refused with their reason; a resend gets its first acknowledgement"
+  - "apps/tablets-web/test/release/markets.test.tsx > EU tab > [DI-39] a structured message is taken in as received with the importer's signature; the acknowledgement sent back is shown"
+  - "apps/tablets-web/test/release/markets.test.tsx > EU tab > [DI-39] with EU never in the lot's set, a message is still taken in (it names its own lot); no transcription is offered"
+  - "apps/tablets-web/test/release/markets.test.tsx > EU tab > [DI-39] a refused message shows the database's reason in the acknowledgement"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition (outline 5.2.6; PR-54, INV-39, DI-39) > [PR-54][INV-39][DI-39] the QCU releases a lot for the US only once the manufacturer release is RELEASED; QA, the AP and an administrator cannot; the checklist is stored with the signature"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39][INV-39] a transcribed certification counts only once a second QA person verifies it, never the transcriber, and only while the lot awaits certification"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55][DI-39] in-system certification is off by default; switched on, only a registered QP certifies, never QA or the AP, and the register entry is written at signature"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-39][PR-56] a signed certification message is taken in only while the lot awaits certification, from the importer's QP: acknowledged ACCEPTED, then CERTIFIED; a QP rejection is visible to the US until its investigation is linked"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-39] a resend of a refused message is evaluated afresh (a bad signature, a lot not yet awaiting certification); only an accepted one is answered with its acknowledgement; a lock timeout is raised, never acknowledged"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39] one outcome path at a time: while a transcription waits for its second person, a message and an in-system QP are refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

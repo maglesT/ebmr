@@ -64,9 +64,10 @@ export function dbActHandler<A extends SignableAction>(app: AppContext, spec: Db
       return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
     },
     async dryRun(client, ctx, a) {
-      const t = await targetOf(client, a);
+      // Input refusals come before any read of the record (DI-37: an act missing what it needs queries nothing).
       const pre = spec.precheck ? await spec.precheck(client, ctx, a) : null;
       if (pre) return pre;
+      const t = await targetOf(client, a);
       const c = await recordContentForSigning(client, t.aggregateType, t.aggregateId);
       if (!c.exists || !c.contentHash || !c.contentVersion) {
         return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${t.aggregateType} ${t.aggregateId} does not exist.`, ['DI-37'], ['Reload the screen.']);

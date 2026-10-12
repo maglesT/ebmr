@@ -232,6 +232,7 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-sessions.test.ts > tab.consume_device_nonce: a device proof's nonce (tablets 0001) > [DI-20][DI-38] a nonce is good once and only before it expires; an expired one is used up all the same"
   - "packages/kernel/test/mutation/signing-failure-and-reasons.test.ts > esig.signing_misuse: what a logged refusal accuses (DI-19, kernel 0950) > [DI-19][DI-38] an authentication recorded at the very instant of the challenge is not pre-signing: the attempt is logged without misuse, and such an event signs"
   - "packages/kernel/test/mutation/signing-failure-and-reasons.test.ts > esig.signing_misuse: what a logged refusal accuses (DI-19, kernel 0950) > [DI-19][DI-38] the components a signing needs come from the challenge's own signature type and version: the private component alone is misuse for a version that needs all components, not for one the relaxation covers"
+  - "apps/tablets-web/test/access/two-row-ceremony.test.tsx > the two-row ceremony (D-P4-5) > [D-P4-5][DI-38] office: both texts loaded and both meanings shown, a challenge for each, the credentials sent once with the companion challenge"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

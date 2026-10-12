@@ -482,6 +482,9 @@ tests:
   - "packages/recipe-core/test/containers/net-and-release.test.ts > a typed net quantity is checked by a second person (recipe-core 0740) > [DI-30][INV-03] the closer never verifies their own close: refused by the signature service, the command and the row guard"
   - "packages/recipe-core/test/containers/net-and-release.test.ts > a typed net quantity is checked by a second person (recipe-core 0740) > [DI-30] the application role cannot write a close with a forged basis nor call the internal close; a close without a basis is refused by the table"
   - "apps/tablets-server/test/review/weighed-close-and-scope.test.ts > weighed close, involvement and scope (slice 1 quick review) > [DI-30][DI-32] a weighed close reads the tare and the gross on one balance, both received while the container is open; nothing is closed otherwise"
+  - "apps/tablets-web/test/release/markets.test.tsx > EU tab > [DI-30] a transcribed certification is signed with every detail as entered; a QP rejection needs its reason"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39][INV-39] a transcribed certification counts only once a second QA person verifies it, never the transcriber, and only while the lot awaits certification"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39] one outcome path at a time: while a transcription waits for its second person, a message and an in-system QP are refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

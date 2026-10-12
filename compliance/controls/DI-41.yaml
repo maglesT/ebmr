@@ -39,6 +39,8 @@ tests:
   - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41][DI-35] QA issues the package with a TRUE_COPY_VERIFIED signature of this package, made by the person who records it, once"
   - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14][DI-41] no package of a lot is served or opened to a QP while its release is suspended or its EU market removed"
   - "packages/kernel/test/records/qp-package.test.ts > package sections belong to the lot (review 4b-2) > [DI-41] a true copy of another lot's record, or of a subject no module answers for, is refused"
+  - "apps/tablets-web/test/release/qp-package.test.tsx > EU QP batch package (QA) > [DI-41] lists the package with its sections and hashes as the server answers; the database's reasons stop the assembly"
+  - "apps/tablets-web/test/release/qp-package.test.tsx > EU QP batch package (QA) > [DI-41] QA assembles the package, then issues it by signing TRUE_COPY_VERIFIED through esig.describe and the ceremony"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

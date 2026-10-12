@@ -34,7 +34,11 @@ behaviour: |-
   - QP outside the eBMR: typically the EU importer's QP for an Indian site. The eBMR then records the external certification reference, and the lot's EU status cannot change until that reference is recorded.
 catalog_test: A non-QP attempt to certify is refused. An open OOS blocks certification. A register entry is created at signature and cannot be edited.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-web/test/release/markets.test.tsx > EU tab > [PR-55] the in-system certification is offered to the registered QP only while its switch is on"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55][DI-39] in-system certification is off by default; switched on, only a registered QP certifies, never QA or the AP, and the register entry is written at signature"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55] an open OOS linked to the lot blocks the EU certification"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55] an in-system QP rejection is signed QP_REJECTED, never with the certification meaning; the QA fallback of an acknowledgement still works with the switch on"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
