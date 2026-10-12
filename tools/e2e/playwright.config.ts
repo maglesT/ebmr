@@ -31,7 +31,12 @@ export default defineConfig({
     timezoneId: 'Asia/Kolkata',
   },
   projects: [
-    { name: 'office', grep: /@office/, use: { browserName: 'chromium', viewport: { width: 1440, height: 900 } } },
+    // Office specs run one at a time (the kiosk specs run beside them on the second worker). Every browser of the
+    // stack connects from one address, and a fresh page asks its first device nonce without a proof ticket, so it counts
+    // against the address's shared allowance for such requests (DEVICE_NONCE_RATE_LIMIT, X34). Two heavy office specs
+    // signing in parallel exceed it, a pace no office reaches; the limit is not changed. One at a time also keeps the
+    // review spec and the release spec, which act on the same demo batch, from changing the record the other signs.
+    { name: 'office', grep: /@office/, workers: 1, use: { browserName: 'chromium', viewport: { width: 1440, height: 900 } } },
     { name: 'kiosk', grep: /@kiosk/, use: { browserName: 'chromium', viewport: { width: 1280, height: 800 } } },
   ],
 });
