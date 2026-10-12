@@ -161,9 +161,15 @@ export const ShelfLifeBasisView = z.strictObject({
 });
 export type ShelfLifeBasisView = z.infer<typeof ShelfLifeBasisView>;
 
+/**
+ * A hazard record's approval (recipe-core 0912, IN-27): RECORDED until a second QA person approves it (INDIA_ACT
+ * HAZARD_APPROVE or DEDICATION_APPROVE), SUPERSEDED once a later record of the same product (or area and class) exists.
+ * Only an approved record lifts a restriction; a recorded upgrade or withdrawal restricts at once.
+ */
+export const HazardRecordState = z.enum(['RECORDED', 'APPROVED', 'SUPERSEDED']);
 export const HazardView = z.strictObject({
-  products: z.array(z.strictObject({ productCode: z.string(), hazardClass: HazardClass, riskAssessmentRef: z.string(), recordedAt: Instant })),
-  areas: z.array(z.strictObject({ areaCode: z.string(), hazardClass: HazardClass, dedicated: z.boolean(), breathingAir: z.enum(['NOT_USED', 'BACKED_UP']), justification: z.string(), recordedAt: Instant })),
+  products: z.array(z.strictObject({ recordId: Uuid, productCode: z.string(), hazardClass: HazardClass, riskAssessmentRef: z.string(), recordedAt: Instant, state: HazardRecordState })),
+  areas: z.array(z.strictObject({ recordId: Uuid, areaCode: z.string(), hazardClass: HazardClass, dedicated: z.boolean(), breathingAir: z.enum(['NOT_USED', 'BACKED_UP']), justification: z.string(), recordedAt: Instant, state: HazardRecordState })),
 });
 export type HazardView = z.infer<typeof HazardView>;
 

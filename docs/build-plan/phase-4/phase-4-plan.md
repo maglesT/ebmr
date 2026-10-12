@@ -543,6 +543,13 @@ below; each builder ticks them off there.
   - **D-6c-6** The single re-creation of `tab.kernel_signing_meanings` and `tab.aggregate_read_class` is tablets 1200, not
     1198: the runner applies a source's files in name order, so on a new database 1198 would run before 1199 and be
     overwritten by it. 1200 is in no builder's range; slice 7b keeps 1190 to 1199.
+  - **D-6c-7** (quick-review fix, recipe-core 0912, tablets 1209; IN-27) Every hazard classification and area dedication
+    takes effect only on a second QA person's signature (HAZARD_CLASSIFICATION_APPROVED, AREA_DEDICATION_APPROVED;
+    HAZARD.APPROVE for QA MBR approver and QA reviewer; never the recorder; only the latest record approved), except that
+    an unsigned record restricting more counts at once (a pending upgrade to a hazard class, a pending withdrawal of a
+    dedication): fail-safe. Hazard records have no web screen yet (route and INDIA_ACT only; residual for the screens).
+  - **D-6c-8** (quick-review check, recipe-core 0913; IN-18) `recipe.allocation_register` requires RECORD.READ for the
+    site itself; the route reads it inside the person's own command (it checked only for a session before).
   - Residuals (owner): the new-supplier flag of IN-01 (b), the management-review extract (c) and the CAPA register with
     effectiveness checks (d); typed yields and IPC results in the extract (PR-58 data types); a refused run is not
     recorded; one product code per extract (no recorded product grouping).

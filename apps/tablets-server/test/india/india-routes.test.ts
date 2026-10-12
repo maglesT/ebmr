@@ -145,4 +145,16 @@ describe('the record side over HTTP (Phase 4 slice 6a)', () => {
     expect((refusalOf(await operator.call(I.recordHazard, { body: { product: { productCode: p, hazardClass: 'NONE', riskAssessmentRef: 'x' } } }))).code).toMatch(/EBMR-IAM/);
     expect((refusalOf(await qa.call(I.recordHazard, { body: {} }))).code).toBe('EBMR-IND-037');
   });
+
+  it('[IN-27] a recorded hazard class waits for a second QA person: the recorder\'s own approval signs nothing; another QA person approves it through the ceremony (INDIA_ACT HAZARD_APPROVE)', async () => {
+    const qa = await gmp.asPersona('approver');
+    const qa2 = await gmp.asPersona('qaInvestigator');
+    const p = code();
+    const h = valueOf(await qa.call(I.recordHazard, { body: { product: { productCode: p, hazardClass: 'NONE', riskAssessmentRef: 'RA-NONE-2026-02 (reassessed)' } } }));
+    const rec = h.products.find((x) => x.productCode === p)!;
+    expect(rec.state).toBe('RECORDED');
+    expect((await signAction(gmp, qa, 'approver', { kind: 'INDIA_ACT', act: 'HAZARD_APPROVE', subjectId: rec.recordId })).ok).toBe(false);
+    valueOf(await signAction(gmp, qa2, 'qaInvestigator', { kind: 'INDIA_ACT', act: 'HAZARD_APPROVE', subjectId: rec.recordId }));
+    expect(valueOf(await qa.call(I.hazards)).products.find((x) => x.recordId === rec.recordId)?.state).toBe('APPROVED');
+  });
 });

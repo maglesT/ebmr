@@ -254,17 +254,20 @@
   "hazards": {
     "products": [
       {
+        "recordId": "3a7c9e1f-2b4d-4c6e-8f0a-1b2c3d4e5f60",
         "productCode": "MTX2.5",
         "hazardClass": "CYTOTOXIC",
         "riskAssessmentRef": "RA-ONC-2026-03 (OEB 4)",
         "recordedAt": {
           "us": "1791600000000000",
           "text": "10 Oct 2026, 08:10 IST"
-        }
+        },
+        "state": "APPROVED"
       }
     ],
     "areas": [
       {
+        "recordId": "4b8d0f2a-3c5e-4d7f-9a1b-2c3d4e5f6a71",
         "areaCode": "LINE-C1",
         "hazardClass": "CYTOTOXIC",
         "dedicated": true,
@@ -273,7 +276,8 @@
         "recordedAt": {
           "us": "1791600000000000",
           "text": "10 Oct 2026, 08:10 IST"
-        }
+        },
+        "state": "RECORDED"
       }
     ]
   }

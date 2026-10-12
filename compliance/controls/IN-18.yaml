@@ -88,6 +88,7 @@ tests:
   - "apps/tablets-web/test/office/india.test.tsx > the allocation register and the label particulars > [IN-18] the register shows every number with its date, product, batch size and use, a voided one with its reason"
   - "packages/api-contract/test/india.test.ts > the india namespace (Phase 4 slice 6a) > [IN-30][IN-18][IN-31] every india route lives under /api/india on the GMP installation and has an example that parses"
   - "packages/recipe-core/test/release/india.test.ts > the allocation register with the use of every number (recipe-core 0895) > [IN-18] export the register: every number with its allocation date, product identity, batch size and its use (issued with its licence, planned, voided with the reason, unused)"
+  - "packages/recipe-core/test/release/india.test.ts > the allocation register with the use of every number (recipe-core 0895) > [IN-18][DI-17] the register is read only by a person holding RECORD.READ for the site: no actor, or the ERP interface, is refused (recipe-core 0913)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
