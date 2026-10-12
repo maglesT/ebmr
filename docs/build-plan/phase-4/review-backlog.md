@@ -51,3 +51,11 @@ Backlog:
 - Low: `tab.post_finished_lot` does not check the posted quantity against the packed counts (slice 3, with
   reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
   declared immutable but calls recipe functions.
+
+## Slice 3b open items (builder report, 12 October 2026)
+
+- `since_review` is false on every Tablets edition item until slice 3a's epoch comparison feeds it.
+- No server route or screen yet for the compendial rule-set verification (slice 3c or slice 4 screens).
+- IN-17 clause 2 stays deferred in its control file; the slice 7a mapping cites `grel-tablets-items.test.ts`.
+- Test names carry the tags [L-30] and [TB-11], which are not control files (outline rule and block ids); the register
+  ignores them. Keep or retitle at the slice 7a mapping.
