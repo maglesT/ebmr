@@ -12,3 +12,4 @@ export * from './incidents.ts';
 export * from './investigations.ts';
 export * from './lossless-json.ts';
 export * from './true-copy.ts';
+export * from './qp-package.ts';
