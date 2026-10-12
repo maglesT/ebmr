@@ -34,3 +34,20 @@ Backlog:
   record carries a placeholder signature.
 - The deviation screens take the owner as a typed person id; the deviation contract needs person names (slice 3
   screens).
+
+## Slice 2 quick review (12 October 2026)
+
+Fixed in slice 2 with regression tests: evidence matched by hash alone in recipe-core 0601 and 0716 (now the stored
+bytes must match, DI-24); the deviation classifier and the impact recorder excluded from concluding, closing and
+signing the impact; the demo-shortcut seeds refuse a non-demo database; a link with CONFIRMED impact keeps release
+blocked after the deviation closes (D-2a-9, open for the owner); the OOS cited on a RELEASE-result revision must be
+about that test.
+
+Backlog:
+- Medium: `packaging_master_problem` (recipe-core 0761) accepts TB-24 anywhere in the procedure, including an optional
+  branch; require it on every completing path (slice 3 or the flow validator).
+- Medium (Injectables): `recipe.packaging_completion_block` has only the Tablets row, so an Injectables packaging order
+  is refused until its edition adds one (Phase 5).
+- Low: `tab.post_finished_lot` does not check the posted quantity against the packed counts (slice 3, with
+  reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
+  declared immutable but calls recipe functions.
