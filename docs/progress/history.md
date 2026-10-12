@@ -2431,6 +2431,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   1190, 1199); screens and one browser flow (disposal and amendment after the rejection). Integration: an amendment
   counts lots already suspended and its cause resolves at its close (D-5b-9). Quick review: one high (the amendment's
   cause lacked its reference, so every opening was refused) and one core medium (a cause linked again after a
-  re-confirmation did not suspend again) fixed with tests. The review spec moved to its own terminals (PC-QA-06,
-  PC-PLAN-03): it shared PC-QA-02 with the heavier release spec and hit the terminal's rate limit. Full suite 5,771
+  re-confirmation did not suspend again) fixed with tests. Browser suite: office specs now run one at a time
+  (kiosk specs beside them). Two causes, both test-side: the review and release specs act on the same demo batch, so
+  each changed the record the other was signing (rightly refused, DI-37); and every fresh page's first device nonce
+  carries no proof ticket, so parallel heavy office specs exceeded the address's shared allowance for such requests
+  (X34). The limit is unchanged. The review spec also has its own terminals (PC-QA-06, PC-PLAN-03). Full suite 5,771
   passed, E2E 35 of 35, trace ok, register synced. The suspension browser flow waits for GB-T-02 (slice 7).
