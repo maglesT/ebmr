@@ -629,6 +629,8 @@ export function signedSubject(state: engine.BatchState | undefined, intent: Sign
       return { aggregateType: 'batch_stage', key: intent.stageKey, target: { type: 'SIGN_OFF_STAGE' }, expectedState: 'AWAITING_SIGN_OFF' };
     case 'DISPOSITION_EXCEPTION':
       return { aggregateType: 'batch_exception', key: intent.exception, target: { type: 'DISPOSITION_EXCEPTION' }, expectedState: 'OPEN' };
+    case 'CORRECT_ENTRY':
+      return { aggregateType: 'batch_point', key: intent.point, target: { type: 'CORRECT_ENTRY' }, expectedState: 'VALID' };
   }
 }
 
@@ -660,11 +662,21 @@ export function signedMeaning(def: engine.BatchDefinition | undefined, state: en
       return engine.MEANINGS.STAGE_SIGNED_OFF;
     case 'DISPOSITION_EXCEPTION':
       return engine.MEANINGS.EXCEPTION_DISPOSITIONED;
+    case 'CORRECT_ENTRY':
+      return engine.MEANINGS.CORRECTED;
   }
 }
 
 /** The engine command of a signed intent with a signature (the placeholder for the dry run, the real one to apply). */
-export function signedCommand(state: engine.BatchState, intent: SignedIntent, actor: engine.Actor, signature: engine.SignatureRef, commandId: string, expectedVersion: number): engine.Command {
+export function signedCommand(
+  state: engine.BatchState,
+  intent: SignedIntent,
+  actor: engine.Actor,
+  signature: engine.SignatureRef,
+  commandId: string,
+  expectedVersion: number,
+  approval?: engine.Approval,
+): engine.Command {
   const base = { commandId, actor, expectedVersion };
   switch (intent.type) {
     case 'SIGN_PERFORMED': {
@@ -686,5 +698,36 @@ export function signedCommand(state: engine.BatchState, intent: SignedIntent, ac
     }
     case 'DISPOSITION_EXCEPTION':
       return { ...base, type: 'DISPOSITION_EXCEPTION', exception: intent.exception, outcome: intent.outcome, justification: intent.justification, signature };
+    case 'CORRECT_ENTRY':
+      return {
+        ...base,
+        type: 'CORRECT_ENTRY',
+        point: intent.point,
+        value: dataValueOf(intent.value),
+        reason: intent.reason,
+        signature,
+        ...(intent.evidence ? { evidence: intent.evidence } : {}),
+        ...(approval ? { approval } : {}),
+      };
   }
+}
+
+/**
+ * The approval a CORRECT_ENTRY names (Phase 4 slice 1a; S25, INV-41): the approver's valid CORRECTION_APPROVED signature on
+ * the corrected data point (signable action CORRECTION_APPROVAL), with the engine roles of the role it was signed in. The
+ * engine and the database decide whether it is the approval the correction needs (another person; QA for fail to pass and
+ * for a loop reading that missed its endpoint).
+ */
+export async function correctionApproval(client: pg.PoolClient, batchId: string, point: string, signatureId: string): Promise<engine.Approval> {
+  const { rows } = await client.query<{ signature_id: string; signer_person: string; manifestation: Record<string, unknown>; valid: boolean }>(
+    'select * from tab.signatures_of($1, $2)',
+    ['batch_point', `${batchId}:${point}`],
+  );
+  const sig = rows.find((r) => r.signature_id === signatureId && r.valid && (r.manifestation['meaning_code'] ?? r.manifestation['meaning']) === engine.MEANINGS.CORRECTION_APPROVED);
+  if (!sig) {
+    throw refuse('EBMR-API-CORRECTION-NOT-APPROVED', 'The approval named is not a valid approval of this correction. Nothing was saved.', `Signature ${signatureId} is not a valid CORRECTION_APPROVED signature on data point ${point}.`, ['DI-24', 'DI-30'], ['Ask for the approval of this correction, then send it again.']);
+  }
+  const role = typeof sig.manifestation['role_code'] === 'string' ? sig.manifestation['role_code'] : '';
+  const { rows: map } = await client.query<{ engine_role: string }>('select engine_role from tab.engine_role_map where kernel_role = $1 order by engine_role', [role]);
+  return { approver: { id: sig.signer_person, kind: 'PERSON', roles: map.map((m) => m.engine_role) }, signature: { id: sig.signature_id, meaning: engine.MEANINGS.CORRECTION_APPROVED, signer: sig.signer_person } };
 }

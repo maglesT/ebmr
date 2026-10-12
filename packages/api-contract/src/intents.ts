@@ -184,6 +184,18 @@ export const SignedIntent = z.discriminatedUnion('type', [
     outcome: z.enum(['NO_IMPACT', 'DEVIATION_RAISED']),
     justification: z.string().min(1).max(4000),
   }),
+  // Phase 4 slice 1a (path (a), outline 5.2.3; DI-24): the correction of a manually entered value, signed CORRECTED by the
+  // corrector with the person's own reason. A stored evidence document (its SHA-256) and the approval (the approver's
+  // CORRECTION_APPROVED signature on the point, signable action CORRECTION_APPROVAL) are named when the rules need them:
+  // critical data (S25); a failing value made passing, or a loop reading that missed its endpoint (QA, evidence).
+  z.strictObject({
+    type: z.literal('CORRECT_ENTRY'),
+    point: z.string().min(1).max(256),
+    value: DataValueWire,
+    reason: z.string().trim().min(1).max(2000),
+    evidence: z.strictObject({ kind: z.enum(['DEVICE_RAW', 'PRINTOUT', 'PHOTO']), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).optional(),
+    approvalSignatureId: Uuid.optional(),
+  }),
 ]);
 export type SignedIntent = z.infer<typeof SignedIntent>;
 
@@ -210,7 +222,7 @@ export const ENGINE_COMMAND_CLASSES = {
   CHOOSE_REPLICATE_COUNT: 'LATER',
   COMPLETE_LOOP_ITERATION: 'CLIENT_PLAIN',
   REQUEST_SKIP: 'LATER',
-  CORRECT_ENTRY: 'LATER',
+  CORRECT_ENTRY: 'CLIENT_SIGNED',
   // Phase 3 slice 6: the void of an attempt, with its reason and the QA approval of the proposed act.
   VOID_ATTEMPT: 'CLIENT_PLAIN',
   INVALIDATE_RESULT: 'LATER',

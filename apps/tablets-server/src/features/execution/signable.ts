@@ -48,7 +48,7 @@ import type { DryRunOutcome, SignableActionHandler, SignableContext } from '../.
 import type { EsigSignableContext } from '../esig/content.ts';
 import { meaningInfo } from '../esig/views.ts';
 import { engineRefusal } from './guidance.ts';
-import { signedCommand, signedMeaning, signedSubject, stepRoomRefusal, stepTarget, wireOf } from './intents.ts';
+import { correctionApproval, signedCommand, signedMeaning, signedSubject, stepRoomRefusal, stepTarget, wireOf } from './intents.ts';
 import { peopleText } from './people-text.ts';
 import { displayPermissions, displayRoles, engineActor, engineRoles } from './roles.ts';
 import { loadRowFacts, notFound, runCache, runContext, type Db, type RunContext } from './runs.ts';
@@ -767,7 +767,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const actor = engineActor(ctx.actor.personId, roles);
       await o.tx.prepare(o.subject.target, actor, roles, o.meaning);
       const placeholder: engine.SignatureRef = { id: engine.PLACEHOLDER_SIGNATURE_ID, meaning: o.meaning, signer: actor.id };
-      const command = signedCommand(o.tx.state, a.intent, actor, placeholder, `ESIG-DRY:${randomUUID()}`, a.expectedVersion);
+      const approval = a.intent.type === 'CORRECT_ENTRY' && a.intent.approvalSignatureId ? await correctionApproval(client, a.runId, a.intent.point, a.intent.approvalSignatureId) : undefined;
+      const command = signedCommand(o.tx.state, a.intent, actor, placeholder, `ESIG-DRY:${randomUUID()}`, a.expectedVersion, approval);
       const dry = o.tx.dryRun(command);
       if (!dry.accepted) {
         // The refusal is part of the record: a refused COMMAND row with the placeholder (never a signature).
@@ -795,7 +796,8 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const roles = await engineRoles(client);
       const actor = engineActor(ctx.actor.personId, roles);
       const before = signedHash(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
-      const command = signedCommand(o.tx.state, a.intent, actor, { id: signature.signatureId, meaning: signature.meaning, signer: signature.signer }, `ESIG:${signature.signatureId}`, a.expectedVersion);
+      const approval = a.intent.type === 'CORRECT_ENTRY' && a.intent.approvalSignatureId ? await correctionApproval(client, a.runId, a.intent.point, a.intent.approvalSignatureId) : undefined;
+      const command = signedCommand(o.tx.state, a.intent, actor, { id: signature.signatureId, meaning: signature.meaning, signer: signature.signer }, `ESIG:${signature.signatureId}`, a.expectedVersion, approval);
       const r = await o.tx.command(command, roles, { signatureId: signature.signatureId });
       if (!r.accepted) throw new Error(`EBMR-EXE-082 the signed command was refused after its dry run was accepted (${r.refusal?.code ?? '?'}: ${r.refusal?.message ?? ''}); nothing is kept`);
       const after = signedHash(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);

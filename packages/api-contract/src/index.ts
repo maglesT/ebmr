@@ -100,3 +100,14 @@ export {
   TestPieceView,
   ToolingSetView,
 } from './ns/plant.ts';
+export {
+  AbortChecklistInput,
+  AuditTrailReportView,
+  BatchReviewView,
+  ItemDetailView,
+  RecordKind,
+  RegisterView,
+  ReviewItemView,
+  ReviewState,
+  ReviewSummaryView,
+} from './ns/review.ts';

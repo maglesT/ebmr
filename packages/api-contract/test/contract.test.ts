@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { EXAMPLES, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { EXAMPLES, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -241,6 +241,30 @@ describe('route table', () => {
       expect(exampled.has(id), `${id} has an example`).toBe(true);
       expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
     }
+  });
+
+  it('the review namespace (Phase 4 slice 1) is GMP only, each route with an example; its signed acts are REVIEW_ACT and CORRECTION_APPROVAL', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of REVIEW_ROUTE_IDS) {
+      expect(exampled.has(id), `${id} has an example`).toBe(true);
+      expect(allRoutes(routes).find((r) => r.id === id)?.installation, id).toBe('GMP');
+    }
+    const batchId = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'PRODUCTION_APPROVE', batchId, input: {} })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'QA_REVIEW', batchId, input: { expectedEpoch: '7' } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'QA_REVIEW', batchId, input: { expectedEpoch: 7 } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId, input: { items: ['EX-1', 'EX-2'], disposition: 'ACCEPT', justification: 'Both share DEV-1; no impact.' } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId, input: { items: [], disposition: 'ACCEPT' } })).toBe(false);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'RELEASE', batchId, input: {} })).toBe(false);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'REOPEN', batchId, input: { reason: { code: 'CORRECTION', text: 'A keying error in the LOD' } } })).toBe(true);
+    expect(ok(SignableAction, { kind: 'REVIEW_ACT', act: 'REOPEN', batchId, input: {}, signer: 'x' })).toBe(false);
+    expect(ok(SignableAction, { kind: 'CORRECTION_APPROVAL', batchId, point: 'p1' })).toBe(true);
+    const correct = { type: 'CORRECT_ENTRY', point: 'p1', value: { kind: 'DECIMAL', value: '3.0', unit: '%' }, reason: 'Keyed 4.1 for 3.1' };
+    expect(ok(SignedIntent, correct)).toBe(true);
+    expect(ok(SignedIntent, { ...correct, reason: ' ' })).toBe(false);
+    expect(ok(SignedIntent, { ...correct, value: { kind: 'DECIMAL', value: 3, unit: '%' } })).toBe(false);
+    expect(ok(SignedIntent, { ...correct, evidence: { kind: 'PRINTOUT', sha256: 'a'.repeat(64) }, approvalSignatureId: batchId })).toBe(true);
+    expect(ok(ClientIntent, correct)).toBe(false);
   });
 
   it('[DI-24] no route of the contract deletes anything, and the void of an attempt carries the person\'s reason', () => {
