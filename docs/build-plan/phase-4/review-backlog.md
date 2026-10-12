@@ -52,6 +52,7 @@ Backlog:
   reconciliation at release); pharmacopoeia edition marking is a role check without a signature; `tab.reels_in_use` is
   declared immutable but calls recipe functions.
 
+<<<<<<< HEAD
 ## Slice 3b open items (builder report, 12 October 2026)
 
 - `since_review` is false on every Tablets edition item until slice 3a's epoch comparison feeds it.
@@ -59,3 +60,19 @@ Backlog:
 - IN-17 clause 2 stays deferred in its control file; the slice 7a mapping cites `grel-tablets-items.test.ts`.
 - Test names carry the tags [L-30] and [TB-11], which are not control files (outline rule and block ids); the register
   ignores them. Keep or retitle at the slice 7a mapping.
+=======
+## Slice 3a (builder report, 12 October 2026)
+
+- Ticked: the slice 2b items for slice 3 (extra testing, samples, finished lot out of quarantine through the release).
+- Open: `tab.post_finished_lot` quantity against the packed counts stays with 3b's reconciliation item (group 4).
+>>>>>>> origin/phase-4/slice-3a
+
+## Slice 3a open items (builder report, 12 October 2026)
+
+- Open for the owner (D-P4-6): with India treated as the EU, a process-validation (PPQ) batch's manufacturer release
+  always waits for the validation outcome; concurrent release applies to US-only batches.
+- Residuals: ancestor intermediates are not in the G-REL evidence set (the packaging batch and its processing parent
+  are); critical alarms (DI-49) are not read by G-REL; the extra sampling for linked changes and deviations (11.3.9 (f))
+  is not checked; finished lots posted before material-lot machine version 2 cannot be released (the gate says why).
+- Kernel note: `esig.signature_state` does not return the signer role or delegation; the release act reads them from
+  `esig.signature`.

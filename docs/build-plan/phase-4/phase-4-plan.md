@@ -186,6 +186,40 @@ below; each builder ticks them off there.
   `recipe.register_grel_edition_hook`); an edition answers groups 4, 9 and 10, and the core keeps 4 and 9 RED until it
   does (fails closed); `recipe.manufacturer_release_state(lot)`. Tablets 1160: `tab.grel_edition_items` stub (no items),
   registered; 3b replaces it from 1161. Server feature `release` (3-0: G-REL read only).
+- **3a built (12 October; recipe-core 0781, 0782, site-services 0860, 0861, tablets 1179;
+  `apps/tablets-server/src/features/release/**`).** Database-enforced: G-REL items 1 to 9 over the lot's evidence set
+  (packaging batch and the processing batch it packs), each with its evidence and a since-review flag; the epoch is the
+  SHA-256 of the evidence versions (BATCH, LOT, consumed lots, DEVIATION, kernel blocker epochs) and the items; the
+  manufacturer release act takes every lock, re-evaluates and refuses a moved epoch or a signed checklist that is not
+  the current one (INV-05), needs the AP role with a delegation still valid at recording, no involved signer (INV-35), no
+  cancelled-deviation signer (L-21), every since-review item acknowledged by the signer at that epoch, and stores the
+  checklist with the decision (IN-05 (d)); REJECT with a reason from NOT_READY or READY; the finished lot leaves
+  quarantine only in that transaction (material_lot v2, guard `material_lot.manufacturer_decision`). Wired: slice 2's
+  deviation items (CONFIRMED blocks, IN needs an assessment) and signer problem, extra testing, reserve samples, LIMS with
+  every RELEASE result approved under role HEAD_OF_QC, `recipe.reprocessing_release_problem` (3b need not wire it again),
+  incidents and DI holds (DI-12), registration-relevant exceptions listed (PR-08). Codes EBMR-REL-010 to 051. Defaults:
+  - **D-3a-1** Evidence set: the packaging batch and its processing parent; ancestor intermediates, reprocessing parents
+    and added residue batches are not yet in it (residual).
+  - **D-3a-2** IN-03: the first GMP batch issued on a master version above 1 needs QA's signed post-change evaluation (after
+    its QA review); that batch's change record needs a regulatory assessment for the market. Changes to master data,
+    limit tables, software or configuration do not yet flag a batch (residual).
+  - **D-3a-3** PR-09: a batch issued with purpose PPQ or VALIDATION needs its signed outcome PASSED; CONCURRENT_RELEASE
+    (after its QA review) counts for US only, so the manufacturer release (always IN) waits for the outcome (D-P4-6); an
+    outcome PASSED or FAILED is final.
+  - **D-3a-4** PR-53: switch `release.open_investigation_path` (platform setting, default OFF, PROCESS_OWNER). With it ON
+    the AP's OPEN_INVESTIGATION_JUSTIFIED signature makes an open, assessed record green for the lot and market; never an
+    OOS record, a record linked to a registration-relevant exception or to a yield or reconciliation exception. The
+    justification lapses when the investigation's state moves (its signature's content).
+  - **D-3a-5** Validation basis: the batch's master version cites at least one validation reference in its change
+    record. Licence and export permission (item 6) and the market-add evaluation (item 8) are NA until slices 6a and 4.
+  - **D-3a-6** "AP or delegate": the signer signs in role AUTHORISED_PERSON (the kernel requires RELEASE.MANUFACTURER and
+    checks a cited delegation at signing); a named delegate holds that role and cites the delegation.
+  - **D-3a-7** Head-of-QC approval is the approval of every current RELEASE result signed in role HEAD_OF_QC.
+  - **D-3a-8** A decided release provides the stored checklist as its signed content, so the release signature stays valid.
+  - **D-3a-9** MANUFACTURER_REJECT also carries `expectedEpoch` (contract comment updated).
+  Residuals: critical alarms (DI-49) are not read; "additional sampling for linked changes and deviations carried out"
+  (11.3.9 (f)) is not checked; lots posted before material_lot v2 cannot leave quarantine through the release (gate says
+  so); the release cockpit's facts compute G-REL per lot in the queue (fine for the stand-in volume).
 - **3b, Tablets items** (tablets 1160 to 1179 (1150 to 1159 were used by slice 2)): `tab.grel_edition_items` behind the 3-0 hook: printed-tablet QC
   approval (IN-37), held containers dispositioned, container release state, `recipe.reprocessing_release_problem`
   wired (PR-47), finished-pack examination from TB-24, reconciliation outside limits blocks release (IN-17 clause 2),

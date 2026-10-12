@@ -424,3 +424,11 @@ and a SITE-165 branch of `consume_reservation` can never fire (an earlier check 
   on that path (0842).
 - Reel quarantined mid-run (slice 4 review, low): the next person's entry of a running TB-21 run is refused while a reel
   on the machine is not released and unexpired (tablets 1151, EBMR-TAB-853).
+
+## Ticked in Phase 4 slice 3a (12 October 2026, branch phase-4/slice-3a)
+
+- The release model wires `site.extra_testing_problem` and `recipe.reprocessing_release_problem` (G-REL G3.EXTRA_TESTING,
+  recipe-core 0781), the required LIMS results with head-of-QC approval (G3.LIMS) and the reserve samples (G3.SAMPLES); a
+  finished lot leaves quarantine only through the signed manufacturer release (material_lot v2, site-services 0860, 0861).
+- The disposition-screen checks of DI-12 (open incidents and DI holds block until assessed) and PR-08 (registration-relevant
+  deviations shown on the release checklist) are G-REL items G7.INCIDENTS and G2.REGISTRATION.

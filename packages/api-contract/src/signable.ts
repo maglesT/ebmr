@@ -80,7 +80,7 @@ export type ReviewActInput = z.infer<typeof ReviewActInput>;
 
 /** What a release act carries besides its lot; members an act does not use are refused by the handler (422). */
 export const ReleaseActInput = z.strictObject({
-  /** MANUFACTURER_RELEASE (and the market acts): the G-REL epoch the signer evaluated (INV-05: a later change refuses it). */
+  /** MANUFACTURER_RELEASE, MANUFACTURER_REJECT (and the market acts): the G-REL epoch the signer evaluated (INV-05: a later change refuses it). */
   expectedEpoch: z.string().regex(/^[0-9a-f]{64}$/).optional(),
   /** MANUFACTURER_RELEASE, MANUFACTURER_REJECT: the delegation a named delegate of the AP cites (checked at signing). */
   delegationId: Uuid.optional(),
