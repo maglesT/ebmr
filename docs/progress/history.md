@@ -2411,3 +2411,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   catalogued permission (DI-17, DI-18); browser specs spread over more office terminals (PC-QA-02, PC-QA-03,
   PC-PLAN-02) so parallel specs stay under each terminal's device rate limit. Full suite (5,646 passed before the two
   fixes, which then pass), E2E 33, register synced.
+- 2026-10-12: PHASE 4 SLICE 4 (branch phase-4/slice-4; builders 4a, 4b, 4c). US disposition by the QCU, the two-row
+  release (D-P4-5), the EU outcome (signed message, verified transcription or in-system QP), INELIGIBLE, market add and
+  removal, packaging orders only for the parent's markets, the manufacturer rejection cascading (recipe-core 0820 to
+  0826, tablets 1180, 1189); the EU QP batch package with time-boxed QP access (kernel 1160 to 1162) and the ERP shipping
+  interlock (site-services 0870, 0871; INV-42); the market and EU screens. Quick review fixes in 4a and 4b. Integration:
+  the signing dry run refuses bad input before it reads the record (DI-37). Full suite 5,724 passed, trace ok, register
+  synced; E2E 32 of 34 in the full run, the two others (review flow, cookie-planting security spec) timed out on their
+  first page under load and passed when re-run alone.
