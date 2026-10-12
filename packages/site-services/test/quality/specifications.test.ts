@@ -226,6 +226,29 @@ describe('results against the specification (IN-33, IN-20, PR-45)', () => {
     expect(await lotState(third.lotId)).toBe('RELEASED');
   });
 
+  it('[IN-20][DI-33] a revision of a RELEASE result cites an OOS record about its own test: one tied to another test of the lot is refused, so another test\'s laboratory error never unblocks it (slice 2 quick review)', async () => {
+    const { lotId, materialCode } = await bareLot();
+    await approveSpec((await draft(materialCode, [test('ASSAY'), test('WATER', { lowerLimit: undefined, upperLimit: '0.5' })])).specificationId);
+    // WATER failed and was approved; its OOS record is linked to that result and concluded a laboratory error.
+    const water = await result(lotId, { testCode: 'WATER', purpose: 'RELEASE', value: '0.9' });
+    await approveResult(water.resultId);
+    const waterOos = await oos(lotId);
+    await w.sql(w.cast.analyst, 'select site.link_lot_test_oos($1, $2)', [water.resultId, waterOos]);
+    const assay = await result(lotId, { testCode: 'ASSAY', purpose: 'RELEASE', value: '96.0' });
+    const revise = (oosId: string, by: SeededActor = w.cast.analyst) =>
+      result(lotId, { testCode: 'ASSAY', purpose: 'RELEASE', value: '99.0', revises: assay.resultId, revisionReason: 'Dilution factor entered wrongly', oosDeviationId: oosId }, by);
+    expect(await refusal(revise(waterOos))).toMatch(/EBMR-SITE-416 OOS record .* is about another test than ASSAY/);
+    // A record another revision tied to WATER is refused too.
+    const water2 = await result(lotId, { testCode: 'WATER', purpose: 'RELEASE', value: '0.3', revises: water.resultId, revisionReason: 'Re-run', oosDeviationId: await oos(lotId) });
+    await approveResult(water2.resultId);
+    const tied = (await db.app.query<{ d: string }>('select revision_oos::text as d from site.lot_test_result where id = $1', [water2.resultId])).rows[0]?.d ?? '';
+    expect(await refusal(revise(tied))).toMatch(/EBMR-SITE-416/);
+    // The ASSAY's own record is accepted, and only its conclusion unblocks the revised ASSAY failure.
+    const own = await oos(lotId);
+    await approveResult((await revise(own)).resultId);
+    expect(await limsProblem(lotId)).toMatch(/(ASSAY result 96.0|WATER result 0.9) % of the lot failed its limits/);
+  });
+
   it('[PR-47] the extra tests QC decided for a batch are checked against the tests run on its lot: named in the specification, with a current approved passing result', async () => {
     const b = await w.gmpBatch();
     const lot = await w.lot();
