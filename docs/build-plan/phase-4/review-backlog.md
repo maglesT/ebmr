@@ -83,3 +83,16 @@ Backlog:
   is not checked; finished lots posted before material-lot machine version 2 cannot be released (the gate says why).
 - Kernel note: `esig.signature_state` does not return the signer role or delegation; the release act reads them from
   `esig.signature`.
+
+## Slice 3 quick review (12 October 2026)
+
+No critical or high findings: RED items block every release path, the evaluation and signing race is closed by the
+epoch locks, the signer, delegation, involvement and since-review rules hold, a finished lot leaves quarantine only
+through the release decision, the edition hook fails closed, PPQ concurrent release is US-only, and no signing meaning
+or guard was lost. Fixed in slice 3 with tests: every deviation link checked structurally under PR-53 (no message-text
+matching); CONFIRMED impact never justifiable (D-3a-10, open for the owner); escalated exceptions count as linked;
+Tablets items carry since_review; the printed-tablet QC reads the live signature state; rule sets, printed tablets in a
+library call and a printing master without a G-21 instance fail closed (RED) instead of NA.
+
+Backlog (low): G6.PPQ and `record_ppq_outcome` default the purpose to COMMERCIAL when the header has none (the
+validator should require it); `recipe.release_lots` and `release_lot_facts` are readable by any session (read-only).
