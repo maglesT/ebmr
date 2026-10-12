@@ -54,6 +54,7 @@ import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
+import ar from '../fixtures/archive.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -303,6 +304,19 @@ export const EXAMPLES = {
   'pqr-extract': { schema: r.pqr.extract.response, data: pq.extract, routeId: r.pqr.extract.id },
   'pqr-extract-signed-off': { schema: r.pqr.extract.response, data: pq.signedOff },
   'pqr-run': { schema: r.pqr.run.response, data: pq.extract, routeId: r.pqr.run.id },
+  // Phase 4 slice 6b: retention, contingency packs, evidence export and the inspection workspace.
+  'archive-batches': { schema: r.archive.batches.response, data: ar.batches, routeId: r.archive.batches.id },
+  'archive-batch': { schema: r.archive.batch.response, data: ar.batch, routeId: r.archive.batch.id },
+  'archive-sync-retention': { schema: r.archive.syncRetention.response, data: ar.retention, routeId: r.archive.syncRetention.id },
+  'archive-request-disposal': { schema: r.archive.requestDisposal.response, data: ar.disposal, routeId: r.archive.requestDisposal.id },
+  'archive-issue-pack': { schema: r.archive.issuePack.response, data: ar.forms, routeId: r.archive.issuePack.id },
+  'archive-form-event': { schema: r.archive.formEvent.response, data: ar.forms, routeId: r.archive.formEvent.id },
+  'archive-pdf': { schema: r.archive.pdf.response, data: ar.pdf, routeId: r.archive.pdf.id },
+  'archive-assemble-export': { schema: r.archive.assembleExport.response, data: { ...ar.export, state: 'ASSEMBLED', certifiedBy: null, certifiedAt: null, reads: 0 }, routeId: r.archive.assembleExport.id },
+  'archive-inspection': { schema: r.archive.inspection.response, data: { exports: [ar.export] }, routeId: r.archive.inspection.id },
+  'archive-export-file': { schema: r.archive.exportFile.response, data: ar.file, routeId: r.archive.exportFile.id },
+  'archive-verify': { schema: r.archive.verify.response, data: ar.verifyOk, routeId: r.archive.verify.id },
+  'archive-verify-altered': { schema: r.archive.verify.response, data: ar.verifyBad },
 } as const satisfies Record<string, Example>;
 
 /** Phase 4 slice 5b: the record-lock routes, each with an example above (checked by the contract test). */
@@ -310,6 +324,8 @@ export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records
 
 /** Phase 4 slice 6c: the PQR routes, each with an example above (checked by the contract test). */
 export const PQR_ROUTE_IDS: readonly string[] = Object.values(r.pqr).map((route) => route.id);
+/** Phase 4 slice 6b: the archive routes, each with an example above (checked by the contract test). */
+export const ARCHIVE_ROUTE_IDS: readonly string[] = Object.values(r.archive).map((route) => route.id);
 
 /** Phase 4 slice 4b: the QP package and ERP shipping routes, each with an example above (checked by the contract test). */
 export const QP_SHIPPING_ROUTE_IDS: readonly string[] = [...Object.values(r.qpPackage), ...Object.values(r.erpShipping)].map((route) => route.id);

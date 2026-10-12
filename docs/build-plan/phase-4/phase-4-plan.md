@@ -516,6 +516,46 @@ below; each builder ticks them off there.
     effectiveness checks (d); typed yields and IPC results in the extract (PR-58 data types); a refused run is not
     recorded; one product code per extract (no recorded product grouping).
 
+- **Slice 6b defaults and residuals (builder 6b, 12 October; decision 0004, owner may change).** Kernel 1170 contingency
+  packs, 1171 evidence export and inspection, 1172 logged deletion requests, 1173 true-copy table names (a 4b fix: a copy
+  of a chain held in the records schema named its tables unlike the audit trail, so its rows did not verify).
+  - **D-6b-1** A contingency form is reconciled when VERIFIED (returned, transcribed with a reference to the back-entered
+    entries, verified by a second person) or VOIDED (unused or spoilt, with a reason); a form reported missing is voided
+    only with the reference of the deviation raised for it. The reconciliation is signed FORMS_RECONCILED (QA on the
+    floor or a QA reviewer; a verifier meaning, so performers are excluded). After signing no pack is issued and no form
+    changes. A batch with no form issued reconciles trivially.
+  - **D-6b-2** The licence form in the retention inputs is FORM_25 until the licence register of 6a is read (lead).
+  - **D-6b-3** Retention facts of a batch: manufacture date = the issue date in the site zone; expiry = the latest expiry
+    of the finished lots made from it; EU CERTIFIED with the latest QP certification date, FINALLY_REJECTED when the QP
+    rejected or the EU disposition is REJECTED or INELIGIBLE, else PENDING (OPEN); aborted and cancelled batches carry
+    their abort date. A processing record is linked as supporting the packaging records packed from it (it inherits
+    their longer period). QA stores the schedule on demand (needs an approved record type with the BATCH_RECORD key);
+    until then the screen shows the database's preview.
+  - **D-6b-4** A deletion request is answered and logged by the database (records.request_disposal: REFUSED with the
+    refusals, or ELIGIBLE for the existing QA disposal approval); nothing deletes (D-6-5).
+  - **D-6b-5** The evidence export of a batch holds the true copies of its chains (batch, batch_review,
+    form_reconciliation), the PDF/A-3 true copy of the batch record and a summary; the database checks every section,
+    that each chain belongs to the batch and that the PDF carries its content SHA-256; QA certifies it
+    (EVIDENCE_EXPORT_CERTIFIED, a verifier meaning).
+  - **D-6b-6** The inspection workspace serves every certified export to ARCHIVE.INSPECT (the new read-only role
+    INSPECTION_READER and QA reviewers); every download is logged. A per-inspection scope and time box is a residual.
+  - **D-6b-7** PDF/A-3: pdf-lib 1.17.1 with @pdf-lib/fontkit 1.1.1 (regenerator-runtime 0.14.1 for its Devanagari
+    shaper), Noto Sans and Noto Sans Devanagari from @fontsource 5.3.0 (SIL OFL 1.1, embedding allowed), all pinned; an
+    sRGB ICC v2 profile built in code (sRGB primaries, D50, the sRGB curve); a character neither font draws prints as
+    "?". The document date is the time of the chain's last audit event; the file carries no clock.
+  - **R-6b-1 (lead)** The EXECUTION_COMPLETE gate: kernel migrations run before recipe-core, so the kernel cannot add the
+    trigger. One row trigger on recipe.execution_state (recipe-core or tablets range) must refuse a row whose status
+    becomes EXECUTION_COMPLETE while records.form_reconciliation_problem(batch_id) is not NULL (as tab.serial_completion_check
+    does for PR-42). Existing seeds and GB-T-01 issue no forms, so they reconcile trivially. The automatic deviation for
+    a missing form (site services) is part of the same residual.
+  - **R-6b-2** The ceremony mapping of evidence_export and form_reconciliation (tab.kernel_signing_meanings, 6c): the HTTP
+    signing tests and the e2e certification step skip until it is installed.
+  - **R-6b-3** The verify route takes files up to the 2 MB request limit; larger exports verify offline with the kernel
+    verifier. Printing the numbered forms and reprint control, the downtime drill and back-entry flags in execution are
+    not built (DI-43 clauses for 7a). Component lots are not declared for retention (the dependency covers processing to
+    packaging). The purge check of a cited true copy (F34) still compares unqualified names for records-schema
+    aggregates. veraPDF conformance stays a deployment check (D-P4-7).
+
 ### Slice 7: trace, golden batches, residual kill tests (then the Phase 4 exit)
 - **7a, trace** (`compliance/**`): `clauses` for all 95 phase-4 controls and the Phase 3 deferrals; a clause the
   build cannot test is deferred to 6 or 7 only with its reason, listed for the owner (D-S6-10 rule); the `editions`

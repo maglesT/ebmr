@@ -4,9 +4,10 @@
  * batches stay sandbox-only, the GMP batch issue GMP-only, by the contract's route installations; each installation has its
  * own gateways and scales). A module replaces only its own index.ts. Phase 3 slice 6: planning, master-data
  * (formulation library) and plant on GMP; the GMP batch family `/api/batches/*` is bound by execution (D-S6-1). Phase 4
- * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP.
+ * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP. Phase 4 slice 6b: archive (retention, contingency packs, evidence export, inspection) on GMP.
  */
 import * as access from './access/index.ts';
+import * as archive from './archive/index.ts';
 import * as audit from './audit/index.ts';
 import * as containers from './containers/index.ts';
 import * as designer from './designer/index.ts';
@@ -51,6 +52,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'erp-shipping', installations: ['GMP'], module: erpShipping satisfies FeatureModule },
   { name: 'records', installations: ['GMP'], module: records satisfies FeatureModule },
   { name: 'pqr', installations: ['GMP'], module: pqr satisfies FeatureModule },
+  { name: 'archive', installations: ['GMP'], module: archive satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

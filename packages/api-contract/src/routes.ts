@@ -3,6 +3,7 @@
  * Frozen by the lead at A0; changed only by the lead, and only additively.
  */
 import { access } from './ns/access.ts';
+import { archive } from './ns/archive.ts';
 import { audit } from './ns/audit.ts';
 import { batches } from './ns/batches.ts';
 import { containers } from './ns/containers.ts';
@@ -26,7 +27,7 @@ import { samples } from './ns/samples.ts';
 import { session } from './ns/session.ts';
 import { specifications } from './ns/specifications.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr } as const;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive } as const;
 export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
@@ -56,4 +57,5 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   erpShipping: 'P4',
   records: 'P4',
   pqr: 'P4',
+  archive: 'P4',
 };

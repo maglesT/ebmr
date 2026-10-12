@@ -22,7 +22,8 @@ behaviour: |-
   - Retiring the system requires a documented migration plan or a read-only retention plan.
 catalog_test: Archive a batch and run a fixity check. Upgrade the test environment, then retrieve and render the record. Content, audit trail and signatures are intact and the hashes match.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [DI-47][DI-46] an aborted batch is kept like a completed one, and the record a kept batch depends on inherits the longer period"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
