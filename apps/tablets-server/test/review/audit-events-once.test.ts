@@ -1,5 +1,5 @@
 /**
- * Tablets 1210 (Phase 4 slice 7b, performance re-measure): recipe.audit_review_events reads the review window's end once
+ * Recipe-core 0931 (Phase 4 slice 7b, performance re-measure): recipe.audit_review_events reads the review window's end once
  * (its CTE materialized), so an audit-trail review of a long record no longer takes minutes; the function stays a hardened
  * definer and gives the same events as its own query evaluated with the window read beforehand.
  */
@@ -17,7 +17,7 @@ afterAll(async () => {
   await w?.close();
 });
 
-describe('the audit-trail review\'s event list (tablets 1210)', () => {
+describe('the audit-trail review\'s event list (recipe-core 0931)', () => {
   it('[INV-48][DI-25] reads the window\'s end once and stays a hardened definer owned by the owner, executable by the application role only', async () => {
     const { rows } = await w.gmp.db.admin.query<{ def: string; owner: string; config: string[] | null; definer: boolean; app: boolean; pub: boolean }>(
       `select pg_get_functiondef(p.oid) as def, pg_get_userbyid(p.proowner) as owner, p.proconfig as config, p.prosecdef as definer,

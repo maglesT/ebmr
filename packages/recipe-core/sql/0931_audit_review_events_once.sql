@@ -1,4 +1,4 @@
--- Tablets server, Phase 4 slice 7b (golden batches; performance re-measure against the 1-0 baseline): the audit-trail
+-- Recipe core, Phase 4 slice 7b (golden batches; performance re-measure against the 1-0 baseline): the audit-trail
 -- review's event list was 80 times slower than its query (controls INV-48, DI-25; recipe-core 0711).
 --
 -- recipe.audit_review_events (CREATE OR REPLACE from recipe-core 0711, its latest and only definition) reads the review
@@ -6,8 +6,7 @@
 -- into the select list, so that function ran once per audit event: 27 s for the 3,700 events of GB-T-01's happy variant,
 -- and the signing ceremony of an audit-trail review computes the report several times (about 12 minutes for one review).
 -- The CTE is now MATERIALIZED and evaluated once: 0.3 s. Nothing else changes: the same rows, columns and report hash.
--- A recipe-core function re-created in this builder's Tablets range; the lead may move it to a recipe-core migration so
--- every edition has it. CREATE OR REPLACE keeps the owner, the grants and the pinned search path (SECURITY DEFINER,
+-- Moved by the lead from the Tablets range (it was tablets 1210 before merge) so every edition has it. CREATE OR REPLACE keeps the owner, the grants and the pinned search path (SECURITY DEFINER,
 -- pg_temp last). Applied as a new migration because applied migrations are checksummed and never edited.
 
 set local role ebmr_owner;

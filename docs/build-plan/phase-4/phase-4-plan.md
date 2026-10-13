@@ -638,7 +638,7 @@ below; each builder ticks them off there.
     MATERIAL.QA_DISPOSITION).
   - **D-7b-4** GB-T-02's bottle line is PL-1 (the plant has one packaging line), cleaned before each order; the
     packaging kiosk is KIOSK-PACK-1.
-  - **D-7b-5** Tablets 1210 re-creates `recipe.audit_review_events` (recipe-core 0711) with its review-end set
+  - **D-7b-5** Recipe-core 0931 (moved by the lead from tablets 1210) re-creates `recipe.audit_review_events` (recipe-core 0711) with its review-end set
     materialised once per call instead of once per event: the audit-trail review of the GB-T-01 batch took 12 minutes
     and now takes seconds. Same result set (tested); the lead may move it into recipe-core's range.
   - **D-7b-6** The set-up's release path (release-path.ts, DEMO-ONLY) runs on the real clock, so it uses DEMO-ONLY
