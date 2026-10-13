@@ -20,3 +20,23 @@
 4. Phase 7 consolidates the handbook into the final technical reference, beside the validation pack.
 5. Generated parts (function catalogue, control-to-code map, OpenAPI) are produced by scripts with a test that they are
    current, so they cannot drift from the code.
+
+## Owner's requirements for the handbook (13 October 2026)
+
+The owner added: the handbook must be very exhaustive, user friendly and in easy language; the developers do not know
+pharma, so it gives the pharma context, explains it and links each pharma rule to the code that carries it; and it
+must hold what developers need to understand the project's logic and code. So:
+
+- **Easy language** throughout: short sentences, plain words, each technical or pharma term explained the first time
+  it appears, with examples from the demo data (GB-T-01, GB-T-02).
+- **Pharma for developers**: a primer (what a batch record is, why GMP, who signs what and why, what release means,
+  why records are locked, what a deviation, an OOS, a recall is), a glossary of every pharma and regulatory term used
+  in the code (G-REL, AP, QP, QCU, INV-xx, PR-xx, ...), and the regulations paraphrased in plain words (never pasted).
+- **Pharma-to-code links**: every module guide and every guard has a "why this exists" box: the pharma reason, the
+  control ID, the code (file and function) that enforces it, and the tests that prove it.
+- **Walkthroughs**: the life of a batch from master record to release, recall and archive, step by step, showing the
+  screens, the routes, the database functions and triggers each step passes through.
+- **Logic and code depth**: data model and state machines with diagrams, the signing and epoch mechanisms, the locking
+  and audit design, the error-code catalogue, how to add a feature safely (a worked example), how to debug a failing
+  guard, and the testing guide.
+- **History**: the defect and lessons log and the "removed and replaced" section from git history and the docs.
