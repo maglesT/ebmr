@@ -7,7 +7,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../../kernel/src/db/command.ts';
-import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedAdministration, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, signFor, type TestDatabase } from '../helpers.ts';
 import { QualityWorld, refusal, seedQualityCast, SPEC_TESTS, unique } from './support.ts';
 import { investigateDeviation } from './deviation-path.ts';
@@ -141,6 +141,34 @@ describe('specifications (IN-33)', () => {
     await w.sql(w.cast.qa, "select site.mark_edition_effective('IP', '2026', '2026-07-01T00:00:00Z')", []);
     expect(await refusal(w.sql(w.cast.qa, "select site.mark_edition_effective('IP', '2026', '2026-08-01T00:00:00Z')", []))).toMatch(/EBMR-SITE-406 .* already recorded/);
     expect(await review()).toEqual([expect.objectContaining({ materialCode: a.materialCode, testCode: 'ASSAY', pharmacopoeia: 'IP', cited: '2022', effective: '2026' })]);
+  });
+
+  it('[DI-09] the system administrator cannot change a specification limit: drafting, approving and writing the limits directly are all refused, and the limits in effect stay as approved', async () => {
+    const { admin } = await seedAdministration(db);
+    const { materialCode } = await bareLot();
+    const v1 = await draft(materialCode, [test('ASSAY')]);
+    await approveSpec(v1.specificationId);
+    const limits = async () =>
+      (await db.app.query<{ id: string; lo: string; hi: string }>(
+        "select t.specification_id as id, t.lower_limit::text as lo, t.upper_limit::text as hi from site.specification_test t where t.specification_id = site.specification_in_effect('SITE-1', $1) and t.test_code = 'ASSAY'",
+        [materialCode],
+      )).rows;
+    expect(await limits()).toEqual([{ id: v1.specificationId, lo: '98.0', hi: '102.0' }]);
+    // Through the commands: the administrator holds neither SPECIFICATION.DRAFT nor SPECIFICATION.APPROVE.
+    expect(await refusal(draft(materialCode, [test('ASSAY', { lowerLimit: '90.0', upperLimit: '110.0' })], admin))).toMatch(/EBMR-IAM/);
+    const v2 = await draft(materialCode, [test('ASSAY', { lowerLimit: '90.0', upperLimit: '110.0' })]);
+    expect(await refusal(w.sql(admin, 'select site.approve_specification($1, $2)', [v2.specificationId, randomUUID()]))).toMatch(/EBMR-IAM/);
+    expect(await refusal(w.sql(admin, "select site.mark_edition_effective('IP', '2031', '2031-01-01T00:00:00Z')", []))).toMatch(/EBMR-IAM/);
+    // Bypass: the limits written directly, in the administrator's own command on the application role.
+    for (const sql of [
+      'update site.specification_test set lower_limit = 90, upper_limit = 110 where specification_id = $1',
+      'insert into site.specification_test (specification_id, test_code, method_reference, unit, lower_limit, upper_limit, required, pharmacopoeia, edition, sample_quantity, sample_unit) values ($1, \'WIDE\', \'STP-WIDE\', \'%\', 0, 200, true, \'IP\', \'2022\', 0.01, \'kg\')',
+      'delete from site.specification_test where specification_id = $1',
+    ]) {
+      expect(await refusal(w.run(admin, (c) => c.query(sql, [v1.specificationId])))).toMatch(/permission denied/);
+    }
+    // The approved limits are still the ones in effect; the unapproved draft changed nothing.
+    expect(await limits()).toEqual([{ id: v1.specificationId, lo: '98.0', hi: '102.0' }]);
   });
 });
 

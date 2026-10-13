@@ -168,6 +168,7 @@ tests:
   - "packages/recipe-core/test/release/release.test.ts > deviations and open investigations (PR-53, PR-08) > [PR-08] registration-relevant deviations of the records are shown on the release checklist; the application role cannot clear the flag"
   - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification"
   - "apps/tablets-server/test/mutation/exception-register-sync.test.ts > the exception register follows the state (recipe-core 0440, 0441) > [PR-08][INV-41] a deviation is linked only by the exception's own accepted ATTACH_DEVIATION, by the person it names, with a reference; the link is never changed or taken away"
+  - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [PR-08] the release screen shows each registration-relevant deviation of the lot's records with its flag and deviation, and offers nothing that clears the flag"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:
@@ -175,9 +176,9 @@ clauses:
       - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"
       - "packages/recipe-core/test/execution/sql-guards.test.ts > a limit exception as the value and the MBR's limits give it (P25 round-2 verification; recipe-core 0305) > [PR-08][PR-49][DI-26][INV-41] a limit exception stored with other facts than its verdict gives it, left out, not marked on its value, or added where nothing is judged, is refused (EBMR-EXE-044); the honest ones are recorded"
   - clause: "and it is visible on the release screen."
-    deferred:
-      phase: 4
-      reason: "Phase 2 has no release screen; release screens come with review and release in Phase 4 (build outline 11; decision F13.1). The breach is classified as a registration-relevant deviation that only QA dispositions and that blocks the stage sign-off (clause 1)."
+    tests:
+      - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [PR-08] the release screen shows each registration-relevant deviation of the lot's records with its flag and deviation, and offers nothing that clears the flag"
+      - "packages/recipe-core/test/release/release.test.ts > deviations and open investigations (PR-53, PR-08) > [PR-08] registration-relevant deviations of the records are shown on the release checklist; the application role cannot clear the flag"
   - clause: "The operator cannot clear the flag."
     tests:
       - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-08][PR-49] a registered-limit breach needs a registration-relevant deviation that only QA dispositions; the operator cannot clear it; the stage cannot be signed off before"

@@ -90,6 +90,7 @@ tests:
   - "packages/site-services/test/mutation/erp-interfaces.test.ts > a lot receipt (site services 0750) > [PR-17][PR-18][INV-13] each refusal on its own: no details, an unknown material, a kind, name or unit the master does not hold, a quantity that is not a decimal, no or a past expiry"
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > a retest decision (site services 0752) > [PR-18] a lot without a retest date, a rejected lot, no results, or results that are not the lot's are refused"
   - "apps/tablets-server/test/mutation/due-times-and-holds.test.ts > the held-granulation check (tablets 0851) > [PR-18][PR-19][INV-12] true only for an exception the new row raised at this step, of this type, ACTION, a deviation required, holding downstream until a deviation is linked"
+  - "apps/tablets-server/test/devices/refused-weighing-readings.test.ts > F59: the readings of a refused weighing (DI-32, PR-19) > [PR-46][PR-18] dispensing a rejected lot is blocked: the weighing naming it is refused (G07-LOT-STATUS), nothing is dispensed from it, and a released lot of the material is then accepted"
 clauses:
   - clause: "Scanning a quarantined lot is blocked."
     tests:

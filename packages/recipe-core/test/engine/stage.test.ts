@@ -92,6 +92,27 @@ describe('G-02 stage frame and summary', () => {
     run.ok({ type: 'SIGN_OFF_STAGE', actor: HEAD1, stage: 'S', signature: sig('STAGE_SIGNED_OFF', HEAD1) });
     expect(run.state.status).toBe('EXECUTION_COMPLETE');
   });
+
+  it('[PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again', () => {
+    const mbr = mbrWith(seq('o', phase('a', { records: ['x'] }), phase('b')), { parameters: [param('x', { capture: 'MANUAL', evidence: 'NONE', accuracyCheck: 'SECOND_PERSON', criticality: 'NON_CRITICAL' })] });
+    const run = Run.issue(define(mbr));
+    run.start('a');
+    run.record('a', 'x', kg('1.00'), { source: { mode: 'MANUAL' } });
+    run.perform('a');
+    run.verify('a');
+    done(run, 'b');
+    // The checker's signature on step a is removed (a correction invalidates it): the step awaits its check again.
+    const p = Object.values(run.state.points)[0]?.id ?? '';
+    run.ok({ type: 'CORRECT_ENTRY', actor: OP1, point: p, value: kg('1.10'), reason: 'misread scale', signature: sig('CORRECTED', OP1) });
+    expect(run.state.steps['a@']?.signatures.filter((s) => s.role === 'CHECKED' && s.valid)).toEqual([]);
+    const refusal = run.refused({ type: 'SIGN_OFF_STAGE', actor: HEAD1, stage: 'S', signature: sig('STAGE_SIGNED_OFF', HEAD1) }, 'ENG-STAGE-STEPS');
+    expect(refusal.message).toBe('Stage S@ has steps that are not finished or await re-verification: a@ (ENG-STAGE-STEPS; PR-16, IN-15)');
+    expect(refusal.controls).toContain('PR-16');
+    expect(run.state.status).toBe('IN_PROGRESS');
+    run.verify('a', [], { id: 'VER2', kind: 'PERSON', roles: ['VERIFIER'] }, 'RE_VERIFIED_AFTER_CORRECTION');
+    run.ok({ type: 'SIGN_OFF_STAGE', actor: HEAD1, stage: 'S', signature: sig('STAGE_SIGNED_OFF', HEAD1) });
+    expect(run.state.status).toBe('EXECUTION_COMPLETE');
+  });
 });
 
 function holdMbr(): MbrContent {

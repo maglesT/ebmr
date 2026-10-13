@@ -136,6 +136,8 @@ tests:
   - "packages/site-services/test/quality/deviation-full.test.ts > evidence documents tied to their stored bytes (site services 0823) > [DI-24][DI-22] the database computes the hash and size from the bytes it stores; the bytes never change; a document without matching bytes is not evidence"
   - "packages/recipe-core/test/lifecycle/gmp-references.test.ts > the evidence of a correction is a document stored with its bytes (slice 2 quick review, recipe-core 0770) > [DI-24][INV-41] a document row without stored bytes (the self-attested form of before site services 0823) is not evidence of a fail-to-pass or loop-reading correction"
   - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+  - "apps/tablets-server/test/review/review-routes.test.ts > the CORRECT_ENTRY route (outline 5.2.3 path (a); S25) > [DI-25][DI-24][DI-07] a value changed after entry, on a field classed non-critical, shows with its original in the checker's step view, in the exception register with both values and the reason, and in the audit-trail review list"
+  - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [PR-12][DI-24] a signed weight is corrected only with a reason: the original stays in the record, the step's signatures no longer stand until it is signed again, and the exception report lists the correction"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
     tests:
@@ -147,9 +149,9 @@ clauses:
       - "apps/tablets-server/test/execution/db-guards-corrections.test.ts > P24: a correction carries its own signature and the approval of another person > [DI-24][DI-35][INV-10][S25] a correction of critical data without an approval, approved by the corrector or by no person, or signed with another meaning is refused; the signed and approved correction is recorded"
       - "packages/kernel/test/audit/audit-trail.test.ts > [DI-22][DI-24] a change after first entry needs a reason and records old and new values"
   - clause: "in the review list and in the PDF, alongside the corrector's signature and reason."
-    deferred:
-      phase: 4
-      reason: "The review list and the PDF true copy come with production and QA review and the PDF/A-3 true copy in Phase 4 (build outline 11)."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+      - "apps/tablets-server/test/review/review-routes.test.ts > the CORRECT_ENTRY route (outline 5.2.3 path (a); S25) > [DI-25][DI-24][DI-07] a value changed after entry, on a field classed non-critical, shows with its original in the checker's step view, in the exception register with both values and the reason, and in the audit-trail review list"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

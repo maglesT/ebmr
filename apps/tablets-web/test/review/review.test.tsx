@@ -120,6 +120,20 @@ describe('exception register', () => {
     expect(nextItem(register.items.map((i) => ({ ...i, reviewStatus: 'ACCEPTED' as const })), null, 1)).toBeNull();
   });
 
+  it('[DI-26] a clean record shows "no exception" with its summary, on the register and on the record review, and offers no item to review', async () => {
+    const clean = { ...register, items: [], noExceptions: true, byCategory: {} };
+    const ui = renderOffice(path, { role: 'QA_REVIEWER', fixtures: { 'review.register': clean } });
+    const summary = await screen.findByTestId('register-summary');
+    expect(summary.textContent).toBe(`The record has no exception. List shown to you ${register.shownAt.text}.`);
+    expect(ui.posts(`/api/review/batches/${B}/register`).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByTestId('item-EX-1')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next item (N)' }).hasAttribute('disabled')).toBe(true);
+    cleanup();
+    // The record review's summary of the register says the same: no item, none open, none critical.
+    renderOffice(`/review/${B}`, { role: 'QA_REVIEWER', fixtures: { 'review.batch': { ...batch, items: { total: 0, open: 0, concluded: 0, critical: 0 } } } });
+    expect((await screen.findByRole('link', { name: /^Exception register/ })).textContent).toBe('Exception register (0 items: 0 open, 0 concluded, 0 critical)');
+  });
+
   it('records the showing, moves to the next item with the keyboard and opens its detail (recorded)', async () => {
     const ui = renderOffice(path, { role: 'QA_REVIEWER' });
     expect((await screen.findByTestId('register-summary')).textContent).toContain('3 items');

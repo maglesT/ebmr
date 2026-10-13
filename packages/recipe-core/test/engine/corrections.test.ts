@@ -85,6 +85,36 @@ describe('path (a): entry-error correction (DI-24)', () => {
     run.verify('y', [], VER2, 'RE_VERIFIED_AFTER_CORRECTION');
   });
 
+  it('[PR-12][DI-24] a signed weight is corrected only with a reason: the original stays in the record, the step\'s signatures no longer stand until it is signed again, and the exception report lists the correction', () => {
+    const run = runYield('10.00', '9.80');
+    const signedBefore = run.state.steps['in@']?.signatures.filter((s) => s.valid).map((s) => s.role);
+    expect(signedBefore).toEqual(['PERFORMED', 'CHECKED']);
+    const original = Object.values(run.state.points).find((p) => p.item === 'charged');
+    const correction = { type: 'CORRECT_ENTRY' as const, actor: SUP1, point: original?.id ?? '', value: kg('10.20'), signature: sig('CORRECTED', SUP1), approval: { approver: QA1, signature: sig('CORRECTION_APPROVED', QA1) } };
+    // A correction without a reason (none, empty or blank) is refused, and nothing changes.
+    for (const reason of ['', '   ']) expect(run.refused({ ...correction, reason }, 'ENG-REASON').controls).toContain('DI-24');
+    expect(Object.values(run.state.points).filter((p) => p.item === 'charged').map((p) => p.status)).toEqual(['VALID']);
+    expect(run.exceptions('POST_ENTRY_CORRECTION')).toEqual([]);
+    run.ok({ ...correction, reason: 'Transcription error: the printout reads 10.20 kg' });
+    // The original stays visible beside the corrected value, which names the reason and the corrector's signature.
+    const points = Object.values(run.state.points).filter((p) => p.item === 'charged');
+    expect(points.map((p) => [p.value?.kind === 'DECIMAL' ? p.value.value : '', p.status])).toEqual([
+      ['10.00', 'SUPERSEDED'],
+      ['10.20', 'VALID'],
+    ]);
+    expect(points[0]?.supersededBy).toBe(points[1]?.id);
+    expect(points[1]?.correction).toMatchObject({ reason: 'Transcription error: the printout reads 10.20 kg', signature: correction.signature.id, approvedBy: QA1.id });
+    // The step must be signed again: its signatures are invalid and it waits for re-verification.
+    expect(run.state.steps['in@']?.signatures.filter((s) => s.valid)).toEqual([]);
+    expect(run.status('in')).toBe('AWAITING_VERIFICATION');
+    // The exception report lists the correction with the original, the new value and the reason.
+    const listed = run.exceptions('POST_ENTRY_CORRECTION');
+    expect(listed.map((e) => [e.source.stepKey, e.source.item, e.source.point])).toEqual([['in@', 'charged', points[1]?.id]]);
+    expect(listed[0]?.title).toMatch(/charged in in@ was corrected from 10\.00 kg to 10\.20 kg: Transcription error: the printout reads 10\.20 kg/);
+    run.verify('in', [], VER2, 'RE_VERIFIED_AFTER_CORRECTION');
+    expect(run.status('in')).toBe('COMPLETED');
+  });
+
   it('[DI-24][DI-29] a device-captured value can never be corrected, only invalidated', () => {
     const run = runYield('10.00', '9.80');
     const good = Object.values(run.state.points).find((p) => p.item === 'good');
