@@ -63,6 +63,33 @@ describe('release cockpit, manufacturer tab', () => {
     expect(ui.posts(`/api/release/lots/${L}/acknowledgements`)[0]?.body).toEqual({ market: 'IN', itemId: 'G3.LIMS', epoch: lot.grel.epoch });
   });
 
+  it('[PR-08] the release screen shows each registration-relevant deviation of the lot\'s records with its flag and deviation, and offers nothing that clears the flag', async () => {
+    const flagged = {
+      ...lot,
+      registrationRelevant: [
+        { batchId: lot.batchId, exceptionId: 'EX-4', title: 'Assay of the blend outside its registered limit', deviationRef: 'DEV-2026-0042' },
+        { batchId: lot.batchId, exceptionId: 'EX-7', title: 'Tablet hardness outside its registered limit', deviationRef: null },
+      ],
+    };
+    renderOffice(`/release/${L}`, { ...AP, fixtures: { 'release.lot': flagged } });
+    const list = await screen.findByTestId('release-registration-relevant');
+    const banner = list.closest('[role="alert"], [role="status"], section, div') ?? list;
+    expect(banner.textContent).toContain('Registration-relevant deviations (PR-08)');
+    expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'Assay of the blend outside its registered limit (EX-4), deviation DEV-2026-0042',
+      'Tablet hardness outside its registered limit (EX-7), no deviation linked',
+    ]);
+    // The flag is the record's: the screen offers no button, link or field on it.
+    expect(within(banner as HTMLElement).queryAllByRole('button')).toEqual([]);
+    expect(within(list).queryAllByRole('textbox')).toEqual([]);
+    expect(within(list).queryAllByRole('checkbox')).toEqual([]);
+    cleanup();
+    // A lot without such a deviation shows no flag.
+    renderOffice(`/release/${L}`, { ...AP, fixtures: { 'release.lot': { ...lot, registrationRelevant: [], incidents: [] } } });
+    await screen.findByTestId('grel-checklist');
+    expect(screen.queryByTestId('release-registration-relevant')).toBeNull();
+  });
+
   it('the release cannot be pressed while its gate stands; the reasons are the server\'s', async () => {
     renderOffice(`/release/${L}`, AP);
     const box = await screen.findByTestId('manufacturer-release');

@@ -213,3 +213,47 @@ describe('the CORRECT_ENTRY route (outline 5.2.3 path (a); S25)', () => {
     }
   }, 600_000);
 });
+
+describe('an out-of-limit value is committed before its warning (DI-28)', () => {
+  it('[DI-28] an out-of-limit value is in the audit trail as committed before the limit warning: the command that stored it is audited first in the commit, the warning is raised by that stored row, and the answer shows it with the committed value', async () => {
+    const g = await startGmpBatchWorld(gmpContent(earlyBlendTime));
+    try {
+      const issuer = await g.gmp.asPersona('issuer');
+      const runId = await g.issued(issuer);
+      const d = new RunDriver(g.gmp, runId, { issuer, operator1: await g.gmp.asPersona('operator1') });
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-time@' });
+      // 19 min: inside the registered 10-20 min, outside the internal action limits 12-18 min.
+      const answer = await d.ok('operator1', { type: 'RECORD_DATA', stepKey: 'p-early-time@', item: 'blendTime', value: { kind: 'DECIMAL', value: '19', unit: 'min' }, source: { mode: 'MANUAL' } });
+      // The warning the operator sees is the committed record's, returned with the answer.
+      const attempt = answer.step?.fields.find((f) => f.item === 'blendTime')?.attempts.at(-1);
+      expect(attempt).toMatchObject({ value: { kind: 'DECIMAL', value: '19', unit: 'min' }, status: 'VALID' });
+      expect(attempt?.verdict?.tier).toBe('INTERNAL_ACTION');
+      const { rows: cmds } = await g.gmp.db.admin.query<{ seq: string; command_id: string }>(
+        "select seq::text, command_id from recipe.execution_command where batch_id = $1 and command_type = 'RECORD_DATA' and accepted",
+        [runId],
+      );
+      expect(cmds).toHaveLength(1);
+      const { rows: warnings } = await g.gmp.db.admin.query<{ row_seq: string; tier: string; raised_at: Date }>(
+        'select row_seq::text, tier, raised_at from recipe.exception_register where batch_id = $1',
+        [runId],
+      );
+      // The warning is raised by the row that stored the value, never before it.
+      expect(warnings.map((x) => [x.row_seq, x.tier])).toEqual([[cmds[0]?.seq, 'INTERNAL_ACTION']]);
+      // The audit trail of that commit (one transaction, one correlation): the stored command, with its value, is audited
+      // before the register row of the warning.
+      const { rows: events } = await g.gmp.db.admin.query<{ seq: string; kind: string; recorded_at: Date }>(
+        `select e.seq::text, case when e.table_name = 'recipe.exception_register' then 'WARNING' else 'VALUE' end as kind, e.recorded_at
+           from kernel.audit_event e
+          where e.chain_key = $1 and e.action = 'INSERT' and e.table_name in ('recipe.execution_command', 'recipe.exception_register')
+            and e.correlation_id = (select b.correlation_id from kernel.audit_event b where b.chain_key = $1 and b.action = 'BUSINESS' and b.payload #>> '{body,details,command_id}' = $2)
+          order by e.seq`,
+        [`batch:${runId}`, cmds[0]?.command_id],
+      );
+      expect(events.map((e) => e.kind)).toEqual(['VALUE', 'WARNING']);
+      expect(Number(events[0]?.seq)).toBeLessThan(Number(events[1]?.seq));
+      expect(events[0]!.recorded_at.getTime()).toBeLessThanOrEqual(events[1]!.recorded_at.getTime());
+    } finally {
+      await g.close();
+    }
+  }, 600_000);
+});
