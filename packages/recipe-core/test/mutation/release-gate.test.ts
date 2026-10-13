@@ -21,7 +21,7 @@ import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
-import { cell, reason, seedCast, uniqueContent, World } from '../lifecycle/support.ts';
+import { cell, reason, seedCast, uniqueContent, withSecondRole, World } from '../lifecycle/support.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -617,6 +617,97 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     const us = await grel((await readyLot({ markets: ['IN', 'US'] })).lotId, 'US');
     expect(item(us, 'G8.MARKET_ADD').status).toBe('NA');
     expect(us.items.filter((i) => i.group === '8' || i.group === '11').filter((i) => i.since_review).map((i) => i.id)).toEqual([]);
+  });
+
+  it('[IN-05][INV-05] the manufacturer release refuses a decision that is neither RELEASE nor REJECT, and an open investigation is justified here for IN only', async () => {
+    const lot = await readyLot();
+    const g = await grel(lot.lotId);
+    const sig = await signDecision(ap, lot.lotId, 'RELEASE');
+    for (const decision of ['APPROVE', null]) {
+      expect(await messageOf(w.run(ap, (c) => c.query('select recipe.record_manufacturer_release($1, $2, $3, $4, $5)', [lot.lotId, decision, sig, g.epoch, null])))).toMatch(/EBMR-REL-011/);
+    }
+    for (const market of ['US', null]) {
+      expect(await messageOf(w.run(ap, (c) => c.query('select recipe.justify_open_investigation($1, $2, $3, $4, $5)', [lot.lotId, market, randomUUID(), 'Justified', randomUUID()]))))
+        .toMatch(/EBMR-REL-040/);
+    }
+  });
+
+  it('[IN-05][INV-05] each since-review item is acknowledged by the signer, for this lot and market, at the current epoch: another person\'s acknowledgement or the signer\'s on another item or lot does not count; acknowledging twice returns the first', async () => {
+    const lot = await readyLot();
+    const other = await readyLot();
+    const g = await grel(lot.lotId);
+    const go = await grel(other.lotId);
+    expect(g.items.filter((i) => i.since_review).map((i) => i.id)).toEqual(['G3.LIMS', 'G3.SAMPLES']);
+    const ack = (who: SeededActor, lotId: string, itemId: string, epoch: string): Promise<string> =>
+      w.run(who, async (c) => (await c.query<{ id: string }>("select recipe.acknowledge_release_item($1, 'IN', $2, $3) as id", [lotId, itemId, epoch])).rows[0]!.id);
+    const delegateAp = await seedActor(db, { roleCode: 'AUTHORISED_PERSON', legalName: 'Devika Delegate' });
+    for (const i of ['G3.LIMS', 'G3.SAMPLES']) await ack(delegateAp, lot.lotId, i, g.epoch);
+    for (const i of ['G3.LIMS', 'G3.SAMPLES']) await ack(ap, other.lotId, i, go.epoch);
+    const first = await ack(ap, lot.lotId, 'G3.LIMS', g.epoch);
+    expect(await ack(ap, lot.lotId, 'G3.LIMS', g.epoch)).toBe(first);
+    const sig = await signDecision(ap, lot.lotId, 'RELEASE');
+    expect(await messageOf(record(ap, lot.lotId, 'RELEASE', sig, g.epoch))).toMatch(/EBMR-REL-021 item G3\.SAMPLES/);
+    await ack(ap, lot.lotId, 'G3.SAMPLES', g.epoch);
+    await record(ap, lot.lotId, 'RELEASE', sig, g.epoch);
+    expect(await releaseState(lot.lotId)).toBe('RELEASED');
+  });
+
+  it('[IN-05][L-21] a signer who cancelled a deviation linked to the lot or its batch does not release it', async () => {
+    for (const subject of ['LOT', 'BATCH'] as const) {
+      const lot = await readyLot();
+      const signer = await seedActor(db, { roleCode: 'AUTHORISED_PERSON', legalName: `Asha Authorised ${subject}` });
+      const signerAsQa = await withSecondRole(db, signer, 'QA_REVIEWER');
+      const d = await deviationOn('DEVIATION', subject, subject === 'LOT' ? lot.lotId : lot.batchId);
+      await w.run(signerAsQa, (c) => c.query('select site.cancel_deviation($1, $2)', [d.deviationId, 'Raised against the wrong lot']));
+      const g = await grel(lot.lotId);
+      await acknowledgeAll(signer, lot.lotId, g);
+      const sig = await signDecision(signer, lot.lotId, 'RELEASE');
+      expect(await messageOf(record(signer, lot.lotId, 'RELEASE', sig, g.epoch)), subject).toMatch(/EBMR-REL-017 .*this person cancelled deviation/);
+    }
+  });
+
+  it('[INV-05] the release locks the evidence of its own lot only: rows and epochs of another lot held by a concurrent transaction do not block it', async () => {
+    const lot = await readyLot();
+    const other = await readyLot();
+    const mine = await apiLot();
+    const theirs = await apiLot();
+    await consumed(mine, lot.batchId);
+    await consumed(theirs, other.batchId);
+    const g = await grel(lot.lotId);
+    await acknowledgeAll(ap, lot.lotId, g);
+    const sig = await signDecision(ap, lot.lotId, 'RELEASE');
+    const holder = await db.admin.connect();
+    try {
+      await holder.query('begin');
+      await holder.query('select 1 from recipe.execution_state where batch_id = $1 for update', [other.batchId]);
+      await holder.query("select recipe.lock_epoch('LOT', $1)", [theirs]);
+      await w.run(ap, async (c) => {
+        await c.query("set local lock_timeout = '5s'");
+        await c.query('select recipe.record_manufacturer_release($1, $2, $3, $4, $5)', [lot.lotId, 'RELEASE', sig, g.epoch, null]);
+      });
+    } finally {
+      await holder.query('rollback');
+      holder.release();
+    }
+    expect(await releaseState(lot.lotId)).toBe('RELEASED');
+  });
+
+  it('[INV-05] a reserve sample pulled or disposed of moves the epoch of its own lot', async () => {
+    const lot = await readyLot();
+    const other = await readyLot();
+    const epoch = async (lotId: string): Promise<string> => (await db.app.query<{ e: string }>("select recipe.epoch_of('LOT', $1)::text as e", [lotId])).rows[0]!.e;
+    const before = await epoch(lot.lotId);
+    await w.run(analyst, (c) => c.query('select site.pull_lot_sample($1, $2::jsonb)', [lot.lotId, JSON.stringify({ kind: 'RESERVE', quantity: '5', container: 'Carton', storageLocation: 'Reserve room R-2' })]));
+    const pulled = await epoch(lot.lotId);
+    expect(pulled).not.toBe(before);
+    const otherBefore = await epoch(other.lotId);
+    // TEST FIXTURE: the disposal row as site.dispose_lot_sample writes it (its retention period is years), with its triggers.
+    const sampleId = (await sampleIds(lot.lotId))[0];
+    await withCommand(db.admin, await cmd(db, qaReviewer), (c) =>
+      c.query('insert into site.lot_sample_disposal (sample_id, reason, disposed_by_person, disposed_by_account) values ($1, $2, $3, $3)',
+              [sampleId, 'fixture: retention period over', qaReviewer.personId]));
+    expect(await epoch(lot.lotId)).not.toBe(pulled);
+    expect(await epoch(other.lotId)).toBe(otherBefore);
   });
 
   // Last in the file: the fixture below widens a role's permissions for every later test.

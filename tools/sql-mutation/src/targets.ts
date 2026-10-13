@@ -861,7 +861,7 @@ export const TARGETS: Target[] = [
                 'recipe.investigation_justification_content', 'recipe.investigation_justification_of',
                 'recipe.record_post_change_evaluation', 'recipe.post_change_evaluation_content', 'recipe.post_change_record',
                 'recipe.record_ppq_outcome', 'recipe.ppq_outcome_content', 'recipe.ppq_statement_hash'],
-    tests: [r('release/release.test.ts'), r('release/dispositions.test.ts')],
+    tests: [r('release/release.test.ts'), r('release/dispositions.test.ts'), r('mutation/release-gate.test.ts')],
     threshold: 90,
   },
   {
