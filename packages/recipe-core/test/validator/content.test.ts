@@ -560,6 +560,20 @@ describe('risk-based reductions (IN-02)', () => {
     }
   });
 
+  it('[PR-31] a yield step without a verifier cannot be approved: each yield and reconciliation step of the master needs a checker who is not the performer', () => {
+    const base = loadFixture('tablet-granulation-compression');
+    expect(errors(validate(base))).toEqual([]);
+    for (const [step, name] of [
+      ['p-gran-yield', 'Granulation and drying yield'],
+      ['p-blend-yield', 'Blending yield'],
+      ['p-comp-yield', 'Compression yield'],
+    ] as const) {
+      const m = clone(base);
+      delete findPhase(m, step).signatures.check;
+      expect(errors(validate(m)).map((f) => f.message)).toContainEqual(expect.stringMatching(new RegExp(`"${name}" \\(${step}\\) is a significant step \\(yield and reconciliation\\) and needs a checker who is not the performer`)));
+    }
+  });
+
   it('[IN-02] changing a parameter to critical changes its verification requirements (a checker becomes mandatory)', () => {
     const m = clone(loadFixture('tablet-blister-packaging'));
     const p = m.parameters.find((x) => x.id === 'bulkRemaining');
