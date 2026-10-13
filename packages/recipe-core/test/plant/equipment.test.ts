@@ -24,7 +24,7 @@ afterAll(async () => {
 });
 
 describe('cleanliness and the use guard of PROCESS equipment', () => {
-  it('[IN-25][PR-23][INV-12] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time', async () => {
+  it('[IN-25][PR-23][INV-12][PR-24] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time', async () => {
     const press = await w.press();
     const product = await w.product();
     expect(await w.state('equipment', press.id)).toBe('DIRTY');

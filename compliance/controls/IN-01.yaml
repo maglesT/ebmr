@@ -34,6 +34,15 @@ tests:
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01] a person without the AP's sign-off permission cannot sign or record a sign-off"
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][INV-35] a person involved in the reviewed batches' records never signs off their review: the production approver holding the AP role is refused"
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][PR-58] the AP signs off a reproducing, reconciled extract once; the signed content carries the hash and the reconciliation"
+clauses:
+  - clause: "run the PQR extract for a product with domestic and export-only batches; all appear."
+    tests:
+      - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [IN-01][PR-58] the extract of a product and period includes domestic and export-only batches, their lots, market removals, deviations with CAPA as recorded and the change records, and reconciles to the registers"
+      - "apps/tablets-web/test/pqr/pqr.test.tsx > PQR extract screens (IN-01, PR-58) > [IN-01][PR-58] an extract shows its hash, that it reproduces, the reconciliation, the export-only batch and the market removal, and the deviations with CAPA"
+  - clause: "Create a CAPA with a 90-day effectiveness check; it appears as overdue on day 91."
+    deferred:
+      phase: 6
+      reason: "There is no CAPA register with effectiveness checks yet (CAPA references only, slice 6c residual d); it is built in Phase 6 (owner decision 0011)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

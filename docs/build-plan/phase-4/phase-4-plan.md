@@ -607,6 +607,62 @@ below; each builder ticks them off there.
   due-time functions (IPC, leak, packing line), the held-granulation check, G-24@2, the exception-register sync guards;
   drop `recipe.reprocessing_start_problem` (recipe-core 0930, new migration).
 
+- **Slice 7 build notes (lead, 12 October).** Three builders, then the lead raises `phase.yaml` to 4 last:
+  - 7a trace (`compliance/**`, `tools/register/**` tests only): clauses for every phase-4 control and the Phase 3
+    deferrals; a clause the build cannot test is deferred only with its reason and listed for the owner; the `editions`
+    filter in `phase.yaml` with its `[meta]` test (decision 0010). 7a runs `pnpm trace` with the phase set to 4 in a
+    scratch copy to list every gap, and hands the lead that list; it does not raise the phase on its branch.
+  - 7b golden batches and demo (`apps/tablets-server/test/golden/**`, the set-up CLI seeds, tools/e2e; tablets 1210
+    to 1219 if a migration is needed): GB-T-01 continued through packaging to release (D-P4-15) and GB-T-02 (direct
+    compression, bottle, US added after vendor history refused, INELIGIBLE); exact outputs per D-S6-7; the green
+    release path through real signed acts, which replaces the demo H-PACK shortcut and gives the e2e a released lot; the
+    browser flows moved here by slices 3 to 5 (green release, suspension then reconfirm or recall, QP package and EU
+    certification intake, US disposition); performance re-measured against the 1-0 baseline (no golden test above 30
+    minutes). GB-T-01 quantities never change; hashes are re-recorded only after the lead reviews the difference.
+  - 7c kill tests (new test files only; recipe-core 0930 to 0939): the "not twins" list above, and recipe-core 0930
+    drops `recipe.reprocessing_start_problem`.
+  - Each builder its own spare cluster and office terminals (7b: PC-QA-10, PC-PLAN-04 and kiosks it adds).
+
+- **Slice 7b defaults (builder, 13 October; recorded, the owner or lead may change them).**
+  - **D-7b-1** Both GB-T-01 blister orders are India-only (D-P4-15 asked for one India order and one US and EU order).
+    GB-T-01's masters are authorised for India only; authorising them for US and EU changes the master content and so
+    the recorded hashes of the existing GB-T-01 tests, which this slice must not re-record. The US and EU paths run on
+    GB-T-02 (the US-add negative) and on the set-up's release path (a lot for IN, US and EU released in the browser).
+    To meet D-P4-15 literally, the lead re-records GB-T-01 with a three-market master after reviewing the difference.
+  - **D-7b-2** The bulk for packing: TB-20 accepts the inspected tablets as a count but puts them in no plant container,
+    and the coating pan's load does not charge the compression containers; the continuation posts four drums of
+    49,201 tablets as INSPECTION containers counted in units (the worksheet's split), each closed and verified by a
+    second person. Finding for the owner: the inspection stage should hand its accepted tablets on in containers.
+  - **D-7b-3** GB-T-02's vendor-history lot (MAT-MCC-102, GBT2-MCC-V01) is released on the route QA enabled with a
+    signed statistical justification in the GMP seed (proposed by the QA investigator: the route needs
+    MATERIAL.QA_DISPOSITION).
+  - **D-7b-4** GB-T-02's bottle line is PL-1 (the plant has one packaging line), cleaned before each order; the
+    packaging kiosk is KIOSK-PACK-1.
+  - **D-7b-5** Recipe-core 0931 (moved by the lead from tablets 1210) re-creates `recipe.audit_review_events` (recipe-core 0711) with its review-end set
+    materialised once per call instead of once per event: the audit-trail review of the GB-T-01 batch took 12 minutes
+    and now takes seconds. Same result set (tested); the lead may move it into recipe-core's range.
+  - **D-7b-6** The set-up's release path (release-path.ts, DEMO-ONLY) runs on the real clock, so it uses DEMO-ONLY
+    variants of the GB-T-02 masters (blend 60 to 180 s, lubrication 30 to 120 s, orders of 100 bottles) and a small
+    batch split; every act is real and signed, H-PACK included. The review batch's labelled completion shortcut (step 5)
+    stays: the review demo needs a complete record with exceptions to dispose of, which only a long run produces.
+  - **D-7b-7** Release tests and reserve samples are recorded before QA's review of the records (a result recorded after
+    the review is a "since review" change the AP must acknowledge, G3.LIMS); the release flow paces its signatures to
+    the per-session signing limit (a fresh session every 15 signatures).
+  - **D-7b-8** The browser suspension flow ends with a recall from India: a re-confirmation needs the late deviation
+    closed with no confirmed impact, a long quality flow already proven in recipe-core's after-release tests.
+  - **Performance (13 October, the development container, libfaketime cluster).** 1-0 baseline: the GB-T-01 file
+    898 s. Before 7b on this branch: 1069 s. With the continuation (two orders, reviews, release): 1327 s (the
+    continuation itself 289 s; the original run 934 s); GB-T-02: 348 s. No golden test reaches 30 minutes. The 1210
+    fix took the happy variant's audit-trail review from 12 minutes to seconds. The set-up's release path adds about
+    10 minutes to the E2E set-up here (real-clock blending, signature pacing).
+  - **Phase-4 trace gaps (7a list).** IN-16: two packaging orders from one bulk are proven by the GB-T-01 continuation
+    test `[IN-16]...`; the coded start, middle and end print specimens are not built (G-21 keeps a specimen only with a
+    printer's first print): residual for the owner. PR-22: the unit and line identifiers in each order's PDF/A-3 true
+    copy are proven by `[PR-22]...`; an equipment-status display has no screen or route: residual. PR-35 clause 2 (a
+    line-station display) has no screen or route: residual, not built.
+  - **D-7b-9** The NOT_READY demo lot (second bottle order) carries an open deviation on its record, so the market-tab
+    spec has a deviation the release gate names when it removes US.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - `recipe.evidence_epoch(subject_kind text, subject_id uuid, version bigint)`; `recipe.bump_epoch(kind, id)` called by

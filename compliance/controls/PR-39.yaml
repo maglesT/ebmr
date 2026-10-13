@@ -41,6 +41,18 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][INV-32] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39] E.RECONCILIATION_YIELD: a yield outside its limits in the processing batch blocks until its deviation is closed"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-17][PR-39] E.RECONCILIATION_PRINTED: when the packaging master prints but the record holds no G-21 step instance it is red, never NA"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [IN-17][PR-39][PR-31][PR-37] each order reconciles its printed foil and cartons with nothing unexplained, packs the worksheet's cartons into shippers and reaches the worksheet's packaging yield"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-39][PR-37][PR-38] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
+clauses:
+  - clause: "12 labels unaccounted for against a limit of 0 creates a deviation and blocks close and release."
+    tests:
+      - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-39][IN-17][INV-32] the reconciliation is computed from what was issued, judged against the item's limits (absolute or percent), raises a release-blocking exception that waits for a deviation when outside, runs once per item and always: the step is not performed without it"
+      - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 reconciliation > [INV-32][IN-17][PR-39] unexplained = issued - accounted, at the finest scale; inside both limits (equal allowed) or a release-blocking exception"
+      - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][INV-32] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved"
+  - clause: "Enabling the waiver without a 211.122(g)(2) device is refused."
+    deferred:
+      phase: 6
+      reason: "There is no reconciliation waiver for 100% electronic inspection yet; it is built in Phase 6 (owner decision 0011)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

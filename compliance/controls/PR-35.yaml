@@ -23,6 +23,15 @@ tests:
   - "apps/tablets-server/test/blocks/blister/db-guards.test.ts > the blister blocks in the database (tablets 0970 to 0972) > [IN-38][PR-34][PR-35] the run and the leak test start only after a completed independent line check of the same machine (performed, then verified by another person), on the line the order still occupies"
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-34][PR-35][IN-38] review 4b: a TB-23 or TB-24 entry is stored only on a line occupied now by this batch's packaging order, on a passed and verified clearance for it and for the artwork set its G-21 step names; a potent product only on a line flagged isolated"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][IN-26][PR-34][PR-35] a start names its batch and stage, a line start its order and artwork set, a room start neither"
+clauses:
+  - clause: "Starting product Y on an unsegregated adjacent line while product X runs is blocked."
+    deferred:
+      phase: 6
+      reason: "Lines have no adjacency or segregation between them yet; built in Phase 6 (owner decision 0011)."
+  - clause: "The station display shows the product and batch."
+    deferred:
+      phase: 6
+      reason: "There is no line station display yet; built in Phase 6 (owner decision 0011)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

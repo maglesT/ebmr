@@ -28,6 +28,14 @@ tests:
   - "apps/tablets-web/test/release/markets.test.tsx > US tab > [PR-56] a US rejection needs the person's reason, both halves, and the investigation every other market sees"
   - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition (outline 5.2.6; PR-54, INV-39, DI-39) > [PR-56] a US rejection states its reason and names the investigation linked to the lot; the EU sees it and assesses that record for itself"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-39][PR-56] a signed certification message is taken in only while the lot awaits certification, from the importer's QP: acknowledged ACCEPTED, then CERTIFIED; a QP rejection is visible to the US until its investigation is linked"
+  - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][PR-56] a US consignee receives the lot only after the US disposition RELEASED, and only for a market in the lot's set"
+  - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][DI-39][PR-56] an EU lot ships only to the importer the technical agreement names, as quarantined goods until the QP certified it"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [INV-43][IN-24][PR-56] the US added after the vendor-history lot was consumed is INELIGIBLE on the recorded evidence, and the US disposition is refused"
+clauses:
+  - clause: "A batch certified for the EU but not yet released by the US QCU cannot be shipped to the US, and the reverse also holds."
+    tests:
+      - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][PR-56] a US consignee receives the lot only after the US disposition RELEASED, and only for a market in the lot's set"
+      - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][DI-39][PR-56] an EU lot ships only to the importer the technical agreement names, as quarantined goods until the QP certified it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

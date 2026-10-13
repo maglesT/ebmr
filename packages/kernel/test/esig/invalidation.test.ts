@@ -174,7 +174,7 @@ describe('INV-09 bypass', () => {
       c.query('update esig.stub_signable set content_version = 1 where id = $1', [id])));
   });
 
-  it('[INV-09] a disabled invalidation trigger stops all signing, and a change made behind it is detected', async () => {
+  it('[INV-09][IN-10] a disabled invalidation trigger stops all signing, and a change made behind it is detected', async () => {
     const op = await testActor(db);
     const id = await createStub(db, op);
     const sig = await signStub(db, op, id, { meaning: 'PERFORMED' });

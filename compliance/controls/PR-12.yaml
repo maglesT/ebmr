@@ -19,6 +19,11 @@ catalog_test: Correct a signed weight. The original stays visible, a reason is r
 implemented_by: {}
 tests:
   - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > CORRECT_ENTRY from fail to pass (INV-41) > [INV-41][PR-12][IN-06][DI-24] a failing value corrected to a passing one needs objective evidence and the approval of QA; its exception stays open"
+  - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [PR-12][DI-24] a signed weight is corrected only with a reason: the original stays in the record, the step's signatures no longer stand until it is signed again, and the exception report lists the correction"
+clauses:
+  - clause: "Correct a signed weight. The original stays visible, a reason is required, the step must be re-signed, and the correction is listed in the exception report. A correction without a reason is refused."
+    tests:
+      - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [PR-12][DI-24] a signed weight is corrected only with a reason: the original stays in the record, the step's signatures no longer stand until it is signed again, and the exception report lists the correction"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

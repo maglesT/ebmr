@@ -273,6 +273,23 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][DI-10] NO_PLAN is refused while the scheme has a plan for the lot: such a lot is sampled and judged as in TB-20@1"
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][PR-49] the TB-20@2 golden fixture: a lot of one accepted tablet leaves through its deviation with AQL_NO_PLAN"
   - "apps/tablets-server/test/blocks/coating/blocks.test.ts > golden fixtures of the coating blocks > [DI-34][PR-29][PR-49][INV-41] TB-20 Inspection, sorting and AQL: TB-20@2, the NO_PLAN path (D-P4-11): a manual belt sort of 3 tablets (0.003 kg) leaves 1 accepted tablet and 2 chipped ones for destruction; the sampling scheme has no plan for a lot of 1, so the AQL result is NO_PLAN with its deviation DEV-SITE-1-2026-00042 and raises AQL_NO_PLAN for QA"
+clauses:
+  - clause: "Taking fewer units than the plan requires creates a deviation."
+    tests:
+      - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-29] G-12 Sampling: A plan of 2 locations x 3 units with one location short: a sampling-shortfall exception (PR-29 catalog test)"
+  - clause: "Both results of a repeated IPC are visible."
+    tests:
+      - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [PR-29][IN-20][DI-29] a failing categorical IPC stops the step until a deviation is linked, and a passing re-test never replaces it"
+      - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-15 disintegration > [IN-35][PR-29][DI-29] the bath temperature is verified before the start; the time is measured between the entries, never typed; 1 or 2 units failing ask for 12 more and at least 16 of 18 pass; a first run never replaces a due retest"
+  - clause: "An expired pH buffer is blocked."
+    deferred:
+      phase: 6
+      reason: "There is no reagent or buffer lot with an expiry at an IPC step yet; it is built in Phase 6 (owner decision 0011)."
+  - clause: "[T] A skipped hardness check puts output since the last passing check on hold."
+    tests:
+      - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29][PR-07] TB-11: the run starts only on a plant press in use for the batch; a passing check is recorded for its stream and vouches for the containers closed before it; a failing check holds every container of the press since the last passing check (the slice 1 hold), and a passing check cannot be recorded past the scheduler"
+      - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29][DI-28] TB-11 missed check at database time: the overdue checks are read at an instant (catalogue test: the alarm fires once the interval and grace have passed), recorded once as an alarm by the server sweeper job without any operator entry, and the next entry must list them with IPC_CHECK_MISSED, the database recording MISSED for each stream and holding its containers"
+      - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29] review 3c finding 4: a person who records the overdue alarm holds the stream's containers at that moment (MISSED through the container command), before any entry of the run"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

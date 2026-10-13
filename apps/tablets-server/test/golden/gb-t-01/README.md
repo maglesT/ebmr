@@ -122,3 +122,49 @@ Fixed after the first review (coordinator): the coating pan load is refused whil
 batch is on hold (tablets 1092, EBMR-TAB-390); a GMP G-07 weighing of a lot is consumed from the batch's reservation in
 its command and the database refuses one without it (tablets 1093, EBMR-TAB-391), so the dispenser now weighs the other
 materials too and the driver no longer consumes them itself.
+
+## Continued to the release (Phase 4 slice 7b; D-P4-15)
+
+After the outputs above are read, the happy variant's bulk goes on to its release (`release.ts`, `packing.ts`; outputs in
+`expected-release.json`, recorded once; `expected.json` is not touched). Every act is a persona's, over HTTP where a route
+exists (the residuals above apply: master definition, reservations, equipment uses and occupancies, output containers are
+the persona's own database commands).
+
+Worksheet (computed by hand before the first run):
+
+| What | Quantity |
+|---|---|
+| Accepted tablets of the happy variant (TB-20) | 196,804, put in four drums of 49,201 (units) |
+| Order PO-GBT01-PK-0001 / -0002 (blister master, PK-98K: 98,000 tablets) | two drums each: 98,402 tablets issued |
+| Blisters formed | 9,840 = 9,800 good + 8 rejects (5 empty, 2 broken pocket, 1 vision) + 12 set-up waste + 20 leak-test samples (2 tests x 10) |
+| Tablets packed | 9,800 blisters x 10 = 98,000; packaging yield 98,000 / 98,402 = 99.5915 %, shown 99.59 % (limits 97.0 to 100.0) |
+| Printed lidding foil (impressions) | issued 10,000 (need 9,900 + 2 % = 10,098 at most) = 9,840 used + 30 set-up waste + 130 returned uncoded; unexplained 0 |
+| Printed cartons | issued 990 (980 + 2 % = 999.6 at most) = 980 used + 6 coded destroyed (witnessed, G-23) + 2 returned uncoded + 2 specimens; unexplained 0 |
+| Cartons and shippers | 980 cartons of 10 blisters in 14 shippers of 70 (SSCCs issued by the database); finished lot posted 980 packs |
+| Finished lot | release results ASSAY 99.6 % (95.0 to 105.0) and DISSOLUTION 93 % (at least 80), approved by the head of QC; 4 reserve packs (twice one pack per test) |
+
+Between the orders the line and its units are cleaned (MAJOR) and verified, and the second order starts on its own
+verified PACKAGING_ORDER clearance with its artwork set (outline 9.1: "full clearance between them"). QC tests and
+samples each lot before QA reviews the records, so nothing G-REL reads changes after the review; QA concludes each register
+item in review one by one (no two share a deviation), the audit trail is reviewed by a person not involved, the AP
+evaluates G-REL for India (every item GREEN or NA from signed records) and signs MANUFACTURER_RELEASE on the epoch shown.
+
+Findings for the lead and the owner (defaults D-7b-1 to D-7b-3 in the phase plan):
+
+- Both blister orders are for India. The processing master's market set is India only (`expected.json`'s master), so an
+  order for the US and the EU cannot be planned from this bulk (EBMR-DSP-016), and the US cannot be added to the batch
+  afterwards (MA.MBR_AUTHORISATION is final: the master never held the market). Packing GB-T-01 for the US and the EU
+  needs the processing master authorised for them, which changes its content hash and so both recorded hashes of
+  `expected.json` (mbrHash and, for batches planned for them, header.marketSet). Not done: the lead decides. The US and
+  EU release paths are proven by GB-T-02's markets and by the release specs.
+- The accepted tablets of TB-20 are in no plant container in the processing run, and the pan load (TB-18 PAN_LOAD) does not
+  charge the compression containers it coats, so those core containers stay CLOSED and usable: the database would let a
+  packaging order issue the uncoated cores as bulk. The continuation puts the accepted tablets in four drums at the
+  inspection stage after the run (INSPECTION containers, typed counts verified by a second person, DI-30) and issues those;
+  the cores are never issued. Doing this inside the run (and charging the cores at the pan load) changes the processing
+  outputs of `expected.json` (containers and hashes): for the lead.
+- The coded-carton start, mid and end print specimens of IN-16 are not built: G-21 keeps a specimen only with a printer's
+  first print (FIRST_PRINT), and the blister master runs no printer. The two linked packaging records of one bulk are proven.
+
+Performance (the 1-0 baseline: 898 s for the file): see the phase plan's slice 7b notes. Tablets 1210 makes the audit-trail
+review's event list read its window once (the review of the happy variant took 12 minutes before, 22 s after).

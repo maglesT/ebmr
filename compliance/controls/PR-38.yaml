@@ -31,6 +31,16 @@ tests:
   - "packages/recipe-core/test/lifecycle/record-lock.test.ts > the maximum hold of bright stock (PR-38; recipe-core 0871) > [PR-38] master data sets the product's maximum hold (a whole number of hours, with a reason; never an operator or an administrator); bulk past it is not issued until a deviation linked to the order is assessed by QA; no maximum set checks none; packaging start reads the same rule"
   - "apps/tablets-web/test/records/records.test.tsx > locked records > [PR-38] the maximum hold of bright stock is listed and set as a new version with a reason"
   - "apps/tablets-web/test/records/records.test.tsx > bulk reconciliation > [PR-38] shows produced, issued and left bulk per order and container; the close waits for the server's problems"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-39][PR-37][PR-38] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
+clauses:
+  - clause: "Labelling trays of batch A under an order for batch B is rejected."
+    tests:
+      - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-38] bright stock is identified by the record (product, strength, batch, bottles) and labelled back only by the scan of this batch and product, never more than is left: a forged engine is refused"
+      - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 bottle line > [PR-38][IN-17][IN-22] bright stock is set aside only where the MBR allows it, tagged and identified, and labelled back only by the scan of this batch and product, never more than is left; a stopped line counts no output"
+  - clause: "The unlabelled inventory reconciles to the labelling run."
+    tests:
+      - "apps/tablets-server/test/blocks/bottle/tb-23-edges.test.ts > TB-23 bottle line > [PR-37][PR-38][IN-17] PERFORMED: every stream checked and passing, the good output, no bright stock left unlabelled"
+      - "packages/recipe-core/test/lifecycle/record-lock.test.ts > bulk across packaging orders and the bulk reconciliation (PR-38, INV-21; recipe-core 0870, 0871) > [INV-21][PR-38] the bulk reconciliation closes only with the batch complete, every packaging order closed, no container open and a reason for the bulk left; by production approval, never an operator or an administrator; it records produced, issued and left and locks the record once"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

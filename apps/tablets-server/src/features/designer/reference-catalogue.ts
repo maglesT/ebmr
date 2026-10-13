@@ -128,6 +128,30 @@ function gbt01ReferenceDocuments(): ReferenceDocumentSeed[] {
     doc('EQUIPMENT_CLASS', 'EQC-PRESS-GBT', 'Double-rotary tablet press', 'Equipment class of the tablet press (process equipment).'),
     doc('EQUIPMENT_CLASS', 'EQC-COATER', 'Perforated coating pan', 'Equipment class of the coater (process equipment).'),
     doc('HOLD_STUDY', 'HS-GBT01', 'Hold-time study: GB-T-01 intermediates', 'Maximum hold of the dried granules, the lubricated blend and the coated tablets.'),
+    // The packaging of the golden batches (Phase 4 slice 7b): GB-T-01 in Alu-PVC blisters, GB-T-02 in HDPE bottles.
+    doc('SOP', 'SOP-PACK-BL', 'Blister packaging: line clearance, set-up, sealing, leak test, cartoning', 'Packaging-order line clearance, independent line check, sealing and leak tests, cartons and shippers, reconciliation.'),
+    doc('SOP', 'SOP-PACK-BT', 'Bottle packaging: line clearance, counting, closure, induction seal, labelling', 'Count, desiccant, torque and seal checks, roll labels, cartons and shippers, reconciliation.'),
+    doc('MATERIAL', 'MAT-PVC-250', 'PVC forming film 250 micron', 'Primary packaging specification (forming film).'),
+    doc('MATERIAL', 'MAT-ALU-GBT01', 'Printed aluminium lidding foil, GB-T-01', 'Printed primary packaging specification (lidding foil, artwork controlled).'),
+    doc('MATERIAL', 'MAT-CTN-GBT01', 'Printed carton, GB-T-01 10 x 10', 'Printed secondary packaging specification (carton, artwork controlled).'),
+    doc('COMPUTERISED_SYSTEM', 'SYS-BL', 'Blister machine controller', 'Validated configuration of the blister machine controller (forming and sealing values).'),
+    doc('EQUIPMENT_CLASS', 'EQC-BLISTER', 'Thermoform blister machine', 'Equipment class of the blister machine (process equipment).'),
+    doc('EQUIPMENT_CLASS', 'EQC-CARTONER', 'Cartoner with checkweigher', 'Equipment class of the cartoning line (process equipment).'),
+    doc('VALIDATION_REPORT', 'VR-GBT01-PK', 'Packaging validation report: GB-T-01 blister (invented)', 'Sealing and forming ranges, leak-test method and the packaging yield.'),
+    doc('RISK_ASSESSMENT', 'QRM-GBT01-LEAK', 'Risk assessment of the GB-T-01 leak-test frequency', 'Leak tests at the start and the end of each run and every two hours.'),
+    // GB-T-02 (direct compression, HDPE bottles; invented).
+    doc('SOP', 'SOP-GBT02-DC', 'GB-T-02 direct compression and in-process checks', 'Dispensing, blending and lubrication, compression with left and right weight checks, bulk containers.'),
+    doc('MATERIAL', 'MAT-EXF', 'Exemplafen (invented active), direct-compression grade', 'Active substance specification (invented): identity and assay as is.'),
+    doc('MATERIAL', 'MAT-MCC-102', 'Microcrystalline cellulose PH 102', 'Excipient specification (direct-compression filler).'),
+    doc('MATERIAL', 'MAT-HDPE-60', 'HDPE bottle 60 mL with child-resistant induction-seal cap', 'Primary packaging specification (bottle and cap).'),
+    doc('MATERIAL', 'MAT-LBL-GBT02', 'Printed bottle label, GB-T-02', 'Printed primary packaging specification (roll label, artwork controlled).'),
+    doc('MATERIAL', 'MAT-CTN-GBT02', 'Printed carton, GB-T-02 bottle', 'Printed secondary packaging specification (carton, artwork controlled).'),
+    doc('REGISTRATION', 'REG-GBT02', 'Exemplafen tablets 100 mg: registered process and specification (invented)', 'Registered process ranges and specification of the second invented golden-batch product.'),
+    doc('VALIDATION_REPORT', 'VR-GBT02', 'Process validation report: GB-T-02 (invented)', 'Proven acceptable ranges of the blend and lubrication times and the stage yields.'),
+    doc('VALIDATION_REPORT', 'VR-GBT02-PK', 'Packaging validation report: GB-T-02 bottle (invented)', 'Count, torque and seal checks and the packaging yield.'),
+    doc('RISK_ASSESSMENT', 'QRM-GBT02-IPC', 'Risk assessment of the GB-T-02 in-process check frequency', 'Weight checks of each press side every 25 minutes.'),
+    doc('HOLD_STUDY', 'HS-GBT02', 'Hold-time study: GB-T-02 intermediates', 'Maximum hold of the lubricated blend and the compressed bulk.'),
+    doc('EQUIPMENT_CLASS', 'EQC-BOTTLE', 'Bottle filling, capping and labelling line', 'Equipment class of the bottle line (process equipment).'),
   ];
 }
 

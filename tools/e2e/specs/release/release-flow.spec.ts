@@ -1,7 +1,8 @@
 /**
  * Phase 4 slice 3c through the real screens and the live server, on the DEMO-ONLY release demo the set-up builds
- * (set-up CLI --gmp-packaging, step 7: a packaging order of the review batch planned and issued, its record marked
- * complete by the labelled DEMO SHORTCUT, its finished lot posted by the warehouse and in quarantine, NOT_READY):
+ * (set-up CLI --gmp-packaging; since slice 7b through real signed acts, release-path.ts: the second bottle order of the
+ * GB-T-02 batch run to its end, an open deviation on its record, its finished lot posted by the warehouse and in
+ * quarantine, NOT_READY):
  *  1. the authorised person finds the lot in the release cockpit's queue, opens it and sees the release checklist
  *     (G-REL, market IN) with red and green items in the database's words and links to their evidence; any "since
  *     review" item is acknowledged one by one; the release cannot be signed while items are red;
@@ -9,7 +10,7 @@
  *     on the epoch shown); the lot is REJECTED and the decision is shown;
  *  3. both departments are notified (IN-39 clause 2): QA and the head of production each acknowledge their
  *     department's notification in the notification centre.
- * The green-items release path waits for the slice 7 golden batch GB-T-02 (review backlog, slice 3c residual).
+ * The green-items release path is release-green.spec.ts (slice 7b), on the set-up's READY lot.
  *
  * Phase 4 slice 4c, the market tabs (the second test, on the same lot after the first: tests of a file run in order, so no
  * market change moves the lot's evidence while the rejection is signed; on its own office PC PC-QA-04, so no other test
@@ -23,9 +24,9 @@
  *     deviation and the "removed after failure" flag, and US reads REMOVED;
  *  4. QA takes in a certification message on the EU tab whose signature does not verify: the database refuses it and the
  *     acknowledgement sent back to the importer carries its reason (DI-39).
- * What this lot cannot reach (its manufacturer release is never RELEASED here): the QCU's US release and the two-row
- * release (D-P4-5), the EU transcription with its second person's verification (DI-30) and the in-system QP (PR-55),
- * and the EU package delivery. They wait for the golden batch GB-T-02 (slice 7), which brings a lot to release.
+ * What this lot cannot reach (its manufacturer release is never RELEASED here): the QCU's US release, the EU package and
+ * the EU transcription with its second person's verification (DI-30) are release-green.spec.ts (slice 7b), on the READY
+ * lot; the two-row release (D-P4-5) and the in-system QP (PR-55) stay with their unit and integration tests.
  *
  * Phase 4 slice 5c, after the rejection (the third test, on the same lot after the first two; on its own office PC
  * PC-QA-05 and the unused inspection kiosk KIOSK-INSP-1, so no other test shares their device rate limit):
@@ -36,7 +37,7 @@
  *  3. the lot's packaging record locked at the rejection (its first manufacturer disposition, D-5-7): QA opens an
  *     amendment under a change record (AMENDMENT_OPENED; INV-21), the head of production appends a late entry (never an
  *     edit of the record), and a second QA person closes it with a statement (AMENDMENT_CLOSED): the record is LOCKED again.
- * The suspension, re-confirmation and recall of a released lot wait for GB-T-02 (slice 7): no seed releases a lot.
+ * The suspension and recall of a released lot are release-green.spec.ts (slice 7b).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

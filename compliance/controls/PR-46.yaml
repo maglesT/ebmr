@@ -46,6 +46,15 @@ tests:
   - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] a return names to whom and its reference; a reprocessing names its authorisation"
   - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] a destruction waiting for its witness is signed by the witness on the same record (the disposal id only)"
   - "apps/tablets-web/test/release/after-release.test.tsx > disposal > [PR-46] a recorded disposal shows the route, quantity and both signatures, and nothing more to sign"
+  - "apps/tablets-server/test/devices/refused-weighing-readings.test.ts > F59: the readings of a refused weighing (DI-32, PR-19) > [PR-46][PR-18] dispensing a rejected lot is blocked: the weighing naming it is refused (G07-LOT-STATUS), nothing is dispensed from it, and a released lot of the material is then accepted"
+clauses:
+  - clause: "Dispensing a rejected lot is blocked."
+    tests:
+      - "apps/tablets-server/test/devices/refused-weighing-readings.test.ts > F59: the readings of a refused weighing (DI-32, PR-19) > [PR-46][PR-18] dispensing a rejected lot is blocked: the weighing naming it is refused (G07-LOT-STATUS), nothing is dispensed from it, and a released lot of the material is then accepted"
+  - clause: "Moving rejected stock to a released-stock location is blocked."
+    deferred:
+      phase: 6
+      reason: "There are no stock locations in the eBMR (they are the ERP's), so a move to a released-stock location cannot be refused until the Phase 6 ERP/WMS adapter (owner decision 0011)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

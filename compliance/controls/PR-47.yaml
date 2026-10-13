@@ -119,6 +119,23 @@ tests:
   - "packages/site-services/test/quality/interfaces.test.ts > QC decision on extra testing (D-S5-9) > [PR-47] the tests are ordered by code point whatever collation they arrive in, so the signed id matches the server's on any database (site-services 0810)"
   - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [PR-47] the extra tests QC decided for a batch are checked against the tests run on its lot: named in the specification, with a current approved passing result"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-47][INV-33] E.WHOLE_BATCH_PARENTS: NA without a whole-batch parent; red while the parent has a container that is not rejected; green once it is"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the happy variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
+  - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][IN-19][INV-33] a G-24@2 step starts only on an unused signed STEP authorisation of this batch, step and case by another person; a validated re-treatment, a G-24@1 step, a step already started and a batch without G-24@2 take none"
+  - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][PR-14][INV-33] at a G-24@2 step: no start data; an ADDITION stores exactly what its block writes from the command and needs the step's second-person check, then the database's addition rules; entries already in the row and other steps' entries are left alone"
+clauses:
+  - clause: "Starting reprocessing without QCU approval or a risk evaluation is blocked."
+    tests:
+      - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19] recovered material cannot be added without prior authorisation citing an investigation and a risk evaluation"
+      - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47][IN-19] G-24@2: a recovery step starts only under the quality unit's signed authorisation of that step; its addition of QA-released material stands on the database's facts and is recorded"
+  - clause: "Recovering material from a different product is blocked."
+    tests:
+      - "packages/recipe-core/test/blocks/reprocessing.test.ts > G-24@2 reprocessing and recovery gate on the database facts > [PR-47][IN-19][DI-33] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused"
+      - "apps/tablets-server/test/blocks/reprocessing/blocks.test.ts > TB-08@1 rework or recovered-material addition > [PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused"
+      - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused by the database, past a forged engine"
+  - clause: "A missing QC decision on additional testing blocks release."
+    tests:
+      - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47] the release reader reports a batch with reprocessed or recovered material added and no QC decision on additional testing, and nothing once QC has decided; a batch without additions has no reprocessing basis"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -22,7 +22,7 @@ import { BATCH_SIZE_ID, LINE, SITE, type GoldenWorld } from './world.ts';
 
 type Json = Record<string, unknown>;
 
-export const KIOSK: Record<Room, string> = { 'DISP-1': 'KIOSK-DISP-1', 'GRAN-1': 'KIOSK-GRAN-1', 'BLEND-1': 'KIOSK-BLEND-1', 'COMP-1': 'KIOSK-COMP-1', 'COAT-1': 'KIOSK-COAT-1', 'INSP-1': 'KIOSK-INSP-1' };
+export const KIOSK: Record<Room | 'PL-1', string> = { 'DISP-1': 'KIOSK-DISP-1', 'GRAN-1': 'KIOSK-GRAN-1', 'BLEND-1': 'KIOSK-BLEND-1', 'COMP-1': 'KIOSK-COMP-1', 'COAT-1': 'KIOSK-COAT-1', 'INSP-1': 'KIOSK-INSP-1', 'PL-1': 'KIOSK-PACK-1' };
 const kiosk = (b: TestBrowser): boolean => b.terminal.includes('KIOSK');
 
 /** The tap limiter runs on the monotonic clock: a long run advances it before every badge tap (as the block tests do). */
@@ -86,7 +86,7 @@ export const entry = (stepKey: string, entryKind: string, data: Json): ClientInt
 /** One GMP batch of the gb-t-01 master. */
 export class GoldenBatch {
   d!: RunDriver;
-  room: Room | null = null;
+  room: Room | 'PL-1' | null = null;
   /** Equipment uses and room occupancies started for the batch, by unit or room code. */
   readonly uses = new Map<string, string>();
   readonly occupancies = new Map<string, string>();
@@ -103,25 +103,31 @@ export class GoldenBatch {
     return Object.assign(this.w.server, { exchangeDir: this.w.keysDir });
   }
 
+  /** A batch planned elsewhere (a packaging order, Phase 4 slice 7b), driven the same way. */
+  static of(w: GoldenWorld, batchId: string, batchNumber: string): GoldenBatch {
+    return new GoldenBatch(w, batchId, batchNumber);
+  }
+
   /** The issuer plans a batch of the effective version against the oldest open ERP order. */
-  static async plan(w: GoldenWorld): Promise<GoldenBatch> {
+  static async plan(w: GoldenWorld, opts: { familyId?: string; markets?: string[]; batchSize?: string } = {}): Promise<GoldenBatch> {
     const issuer = await w.server.asPersona('issuer');
-    const p = ok(await issuer.call(routes.execution.planBatch, { body: { familyId: w.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE_ID } }), 'the plan');
+    const body = { familyId: opts.familyId ?? w.familyId, markets: opts.markets ?? ['IN'], site: SITE, line: LINE, batchSize: opts.batchSize ?? BATCH_SIZE_ID };
+    const p = ok(await issuer.call(routes.execution.planBatch, { body }), 'the plan');
     return new GoldenBatch(w, p.batchId, p.batchNumber);
   }
 
   /** The issuer's ISSUED signature with the batch's own inputs (2,00,000 tablets). */
-  async issue(): Promise<void> {
-    const action: SignableAction = { kind: 'GMP_BATCH_ISSUE', batchId: this.batchId, reason: { code: 'PRODUCTION_PLAN', text: 'Issued for the production plan' }, variants: {}, inputs: { tabletsPerBatch: { kind: 'COUNT', value: '200000' } } };
+  async issue(tablets = '200000'): Promise<void> {
+    const action: SignableAction = { kind: 'GMP_BATCH_ISSUE', batchId: this.batchId, reason: { code: 'PRODUCTION_PLAN', text: 'Issued for the production plan' }, variants: {}, inputs: { tabletsPerBatch: { kind: 'COUNT', value: tablets } } };
     ok(await signAct(this.w, await this.office('issuer'), 'issuer', action), 'the issue');
   }
 
   /** Browsers of the floor personas at the kiosk of `room` (a new session each; the operator of dispensing as DISPENSER). */
-  async floor(room: Room): Promise<RunDriver> {
+  async floor(room: Room | 'PL-1'): Promise<RunDriver> {
     const t = KIOSK[room];
     const s = this.w.server;
     const browsers: Record<string, TestBrowser> = {
-      operator1: room === 'DISP-1' ? await asPersonaInRole(s, 'operator1', 'DISPENSER', t) : await s.asPersona('operator1', t),
+      operator1: room === 'DISP-1' || room === 'PL-1' ? await asPersonaInRole(s, 'operator1', 'DISPENSER', t) : await s.asPersona('operator1', t),
       operator2: await s.asPersona('operator2', t),
       verifier1: await s.asPersona('verifier1', t),
       supervisor1: await s.asPersona('supervisor1', t),
@@ -149,28 +155,31 @@ export class GoldenBatch {
   }
 
   /** The room cleared by operator1 and verified by verifier1 (PLANT_VERIFY), and occupied for `stage` by operator1. */
-  async clearAndOccupy(room: Room, stage: string, operator = 'operator1', type: 'PRODUCT_CHANGE' | 'CAMPAIGN' = 'PRODUCT_CHANGE'): Promise<string> {
+  async clearAndOccupy(room: Room | 'PL-1', stage: string, operator = 'operator1', type: 'PRODUCT_CHANGE' | 'CAMPAIGN' | 'PACKAGING_ORDER' = 'PRODUCT_CHANGE', artworkSet?: string): Promise<string> {
     const op = this.b(operator);
     tapAdvance();
-    const body = { areaCode: room, type, batchId: this.batchId, result: 'PASSED' as const };
+    const line = type === 'PACKAGING_ORDER' ? { order: this.batchNumber, artworkSet: artworkSet ?? '' } : {};
+    const body = { areaCode: room, type, batchId: this.batchId, result: 'PASSED' as const, ...line };
     const c = ok(await op.call(routes.plant.recordClearance, { body, attribution: await tapFor(op, personaOf(this.w.seed, operator), 'POST', '/api/plant/clearances', body) }), `the clearance of ${room}`);
     ok(await signAct(this.w, this.b('verifier1'), 'verifier1', { kind: 'PLANT_VERIFY', act: 'CLEARANCE', id: c.clearanceId }), `the verification of the clearance of ${room}`);
-    const id = await dbAs<string>(this.w, op, operator, 'select plant.start_area_occupancy($1, $2, $3) as r', [room, this.batchId, stage]);
+    const id = type === 'PACKAGING_ORDER'
+      ? await dbAs<string>(this.w, op, operator, 'select plant.start_area_occupancy($1, $2, $3, $4, $5) as r', [room, this.batchId, stage, this.batchNumber, artworkSet])
+      : await dbAs<string>(this.w, op, operator, 'select plant.start_area_occupancy($1, $2, $3) as r', [room, this.batchId, stage]);
     this.occupancies.set(room, id);
     return id;
   }
 
   /** The use of a process unit for the batch (operator1), planned for `hours`. */
-  async startUse(unit: UnitRef, hours = 12): Promise<string> {
-    const code = UNITS[unit].code;
+  async startUse(unit: UnitRef | { code: string }, hours = 12): Promise<string> {
+    const code = typeof unit === 'string' ? UNITS[unit].code : unit.code;
     const id = await dbAs<string>(this.w, this.b('operator1'), 'operator1', `select plant.start_equipment_use($1, $2, clock_timestamp() + make_interval(hours => $3)) as r`, [code, this.batchId, hours]);
     this.uses.set(code, id);
     return id;
   }
 
   /** The balance of `room`: its per-use check and its use for the batch (operator1), planned for `hours`. */
-  async balanceUse(room: Room, operator = 'operator1', hours = 12): Promise<string> {
-    const code = BALANCE[room];
+  async balanceUse(room: Room | 'PL-1', operator = 'operator1', hours = 12): Promise<string> {
+    const code = room === 'PL-1' ? 'BAL-PL-01' : BALANCE[room];
     const op = this.b(operator);
     await dbAs(this.w, op, operator, "select plant.record_instrument_check($1, 'PASS', $2, $3::uuid) as r", [code, `${code} per-use check`, this.batchId]);
     const id = await dbAs<string>(this.w, op, operator, `select plant.record_instrument_use($1, $2::uuid, clock_timestamp() + make_interval(hours => $3)) as r`, [code, this.batchId, hours]);
@@ -189,9 +198,9 @@ export class GoldenBatch {
   }
 
   /** Stores reserve every GB-T-01 lot's quantity for the batch (MATERIAL.HANDLE), for 30 days. */
-  async reserveLots(quantities: Record<string, string>): Promise<void> {
+  async reserveLots(quantities: Record<string, string>, lots: readonly { lotCode: string; materialCode: string }[] = GBT01_LOTS): Promise<void> {
     const stores = await this.office('stores');
-    for (const lot of GBT01_LOTS) {
+    for (const lot of lots) {
       const q = quantities[lot.materialCode];
       if (!q) continue;
       const { rows } = await this.w.server.db.app.query<{ id: string }>('select id from site.material_lot where lot_code = $1', [lot.lotCode]);

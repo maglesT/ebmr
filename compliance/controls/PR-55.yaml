@@ -39,6 +39,16 @@ tests:
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55][DI-39] in-system certification is off by default; switched on, only a registered QP certifies, never QA or the AP, and the register entry is written at signature"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55] an open OOS linked to the lot blocks the EU certification"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55] an in-system QP rejection is signed QP_REJECTED, never with the certification meaning; the QA fallback of an acknowledgement still works with the switch on"
+clauses:
+  - clause: "A non-QP attempt to certify is refused."
+    tests:
+      - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55][DI-39] in-system certification is off by default; switched on, only a registered QP certifies, never QA or the AP, and the register entry is written at signature"
+  - clause: "An open OOS blocks certification."
+    tests:
+      - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55] an open OOS linked to the lot blocks the EU certification"
+  - clause: "A register entry is created at signature and cannot be edited."
+    tests:
+      - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55][DI-39] in-system certification is off by default; switched on, only a registered QP certifies, never QA or the AP, and the register entry is written at signature"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

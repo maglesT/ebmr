@@ -372,10 +372,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
 // ---------------------------------------------------------------------------------------------
 // Demo seed (DEMO-ONLY; never production)
 
-/** The demo products and their export markets: PCM500 (dc-mini) and GB-T-01's product (D-P4-15: IN, US and EU). */
+/** The demo products and their export markets: PCM500 (dc-mini), GB-T-01's and GB-T-02's products (D-P4-15: IN, US and EU). */
 export const DEMO_LICENSED_PRODUCTS: readonly { productCode: string; strength: string; destinations: readonly string[] }[] = [
   { productCode: 'PCM500', strength: '500 mg', destinations: ['US', 'EU'] },
   { productCode: 'GBT01-250', strength: '250 mg', destinations: ['US', 'EU'] },
+  // Phase 4 slice 7b: GB-T-02's product (direct compression, bottles), made for India and authorised for the US and the EU.
+  { productCode: 'GBT02-100', strength: '100 mg', destinations: ['US', 'EU'] },
 ];
 
 export async function seed(ctx: FeatureSeedContext): Promise<void> {

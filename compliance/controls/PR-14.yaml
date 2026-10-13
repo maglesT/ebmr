@@ -35,7 +35,7 @@ implemented_by:
     - "INV-03"
 tests:
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-14] G-16 Verification / witness: An independent line check confirmed and witnessed by a second person"
-  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
   - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-03][PR-14] every checked step was verified by a person who neither performed nor entered data in it, and the involvement facts were emitted"
   - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][PR-14] the person who performed a step cannot verify it, even when they hold the checker role"
   - "apps/tablets-server/test/designer/roles.test.ts > who releases a QA hold point, and roles outside the engine vocabulary (F48, F49) > [INV-26][PR-14] a role outside the engine vocabulary fails the gate (FLOW-ROLES), wherever the master names it"
@@ -159,6 +159,16 @@ tests:
   - "packages/recipe-core/test/engine/hand-over.test.ts > hand-over of a step in progress (L-07) > [PR-14][DI-17] the incoming performer and the QA approver are persons, never a system, and the incoming one has a name (mutation follow-up)"
   - "packages/recipe-core/test/engine/hand-over.test.ts > hand-over of a step in progress (L-07) > [PR-14][DI-34] once taken over, a step is handed over by any performer still on it, not only by the last incoming one (mutation follow-up)"
   - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > recipe.check_approver_roles (recipe-core 0462): an approval is signed in the role the command asks > [PR-14][DI-17][DI-35] a hand-over is signed by a production supervisor and approved by the quality unit"
+  - "apps/tablets-server/test/mutation/process-devices-gateway.test.ts > setpoint downloads (tablets 0820) > [PR-14][DI-31] a step asks for a setpoint its MBR approves (the first with that tag), of the device the step is bound to, a setpoint tag of its kind in the approved unit, one waiting download per tag and device"
+  - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][PR-14][INV-33] at a G-24@2 step: no start data; an ADDITION stores exactly what its block writes from the command and needs the step's second-person check, then the database's addition rules; entries already in the row and other steps' entries are left alone"
+  - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-14][IN-02] automated (one-verifier) mode on a labelling step is refused at configuration time: the visual check of the codes and the issue of printed labels keep their two persons"
+clauses:
+  - clause: "With the scale disconnected during an automated dispense, the step demands a second, different user."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - clause: "Enabling automated mode on a 211.122(g)(3) step is refused at configuration time."
+    tests:
+      - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-14][IN-02] automated (one-verifier) mode on a labelling step is refused at configuration time: the visual check of the codes and the issue of printed labels keep their two persons"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

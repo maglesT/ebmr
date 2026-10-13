@@ -159,6 +159,22 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/common-edges.test.ts > IPC test entries > [DI-32][DI-28][PR-29][IN-35] capture and verdict exceptions: keyed by hand, late, failed (holding output, waiting for a deviation) and alert, each naming its stream"
   - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 when a slot falls due > [IN-35][PR-29][DI-28] a running stoppage suspends a slot due at or after its start, not one due before it"
   - "apps/tablets-server/test/blocks/ipc/tb-11-edges.test.ts > TB-11 entries > [PR-29][PR-07][DI-28] a check is of a planned test, gives the press counter when its interval is by count, and the counter never goes back (equal allowed)"
+  - "apps/tablets-server/test/review/review-routes.test.ts > an out-of-limit value is committed before its warning (DI-28) > [DI-28] an out-of-limit value is in the audit trail as committed before the limit warning: the command that stored it is audited first in the commit, the warning is raised by that stored row, and the answer shows it with the committed value; a new browser reads the value back with its timestamp"
+  - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [DI-28][IN-25] a back-dated logbook entry is impossible: the application role writes no logbook row, and a row written below it with a past time is stored at the database time, which never changes after"
+clauses:
+  - clause: "Enter a value, then kill the browser. The value persists with its timestamp."
+    tests:
+      - "apps/tablets-server/test/review/review-routes.test.ts > an out-of-limit value is committed before its warning (DI-28) > [DI-28] an out-of-limit value is in the audit trail as committed before the limit warning: the command that stored it is audited first in the commit, the warning is raised by that stored row, and the answer shows it with the committed value; a new browser reads the value back with its timestamp"
+  - clause: "Enter an out-of-limit value. The audit trail shows the value committed before any warning appeared."
+    tests:
+      - "apps/tablets-server/test/review/review-routes.test.ts > an out-of-limit value is committed before its warning (DI-28) > [DI-28] an out-of-limit value is in the audit trail as committed before the limit warning: the command that stored it is audited first in the commit, the warning is raised by that stored row, and the answer shows it with the committed value; a new browser reads the value back with its timestamp"
+      - "apps/tablets-web/test/floor/step-screen.test.tsx > value entry (G-04) and the pendingEntry path > [DI-28] the limit verdict is absent until the server's commit response, then shown from the returned view; the field is cleared (never pre-filled)"
+  - clause: "Submit a late entry without a reason. Blocked."
+    tests:
+      - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-28][PR-11] a late entry records both times, needs a reason and is flagged; an event time before the step started is impossible"
+  - clause: "Try to insert a back-dated logbook entry. Blocked."
+    tests:
+      - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [DI-28][IN-25] a back-dated logbook entry is impossible: the application role writes no logbook row, and a row written below it with a past time is stored at the database time, which never changes after"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -96,15 +96,16 @@ function withSecondaryPacking(content: unknown): unknown {
 }
 
 /** An effective master of `name` for IN at SITE-1/L1 with a numbering rule of its kind; the product given or its own. */
-async function master(name: Fixture, product?: string, opts: { secondaryPacking?: boolean; packType?: string; markets?: ('IN' | 'US' | 'EU')[] } = {}): Promise<{ familyId: string; product: string; versionId: string }> {
+async function master(name: Fixture, product?: string, opts: { secondaryPacking?: boolean; packType?: string; markets?: ('IN' | 'US' | 'EU')[]; packSize?: { id: string; count: string } } = {}): Promise<{ familyId: string; product: string; versionId: string }> {
   const m = uniqueContent(name, opts.markets ?? ['IN']);
   m.header.product = { ...m.header.product, code: (product ?? m.header.product.code).toUpperCase() };
   if (opts.packType) m.header.packType = opts.packType;
+  if (opts.packSize) m.header.batchSizes = [{ id: opts.packSize.id, quantity: { value: opts.packSize.count, unit: '{tbl}' } }];
   const stripped = without(m, ['G-09', 'G-10']);
   const content = (name === 'tablet-blister-packaging' && opts.secondaryPacking !== false ? withSecondaryPacking(stripped) : stripped) as MbrContent;
   const v = await w.approvedVersion(content);
   for (const market of opts.markets ?? ['IN']) {
-    const def: lc.MarketAuthorisationDefinition = { versionId: v.versionId, market, kind: 'CURRENT', cells: [cell(SITE, 'L1', SIZE[name])], regulatoryBasis: `${market}: registration on file` };
+    const def: lc.MarketAuthorisationDefinition = { versionId: v.versionId, market, kind: 'CURRENT', cells: [cell(SITE, 'L1', opts.packSize?.id ?? SIZE[name])], regulatoryBasis: `${market}: registration on file` };
     await w.authorise(def);
   }
   const kind = name === 'tablet-blister-packaging' ? 'PACKAGING' : 'PROCESSING';
@@ -392,6 +393,43 @@ describe('planning a packaging order (Phase 4 slice 2c; recipe-core 0760 to 0762
     const a = await plan(randomUUID(), { familyId: pvc.familyId, batchSize: SIZE['tablet-blister-packaging'], parentBatch: parent });
     const b = await plan(randomUUID(), { familyId: alu.familyId, batchSize: SIZE['tablet-blister-packaging'], parentBatch: parent });
     expect([a.batchNumber, b.batchNumber]).toEqual([expect.stringMatching(/\/P01$/), expect.stringMatching(/\/P02$/)]);
+  });
+
+  it('[IN-14][PR-01] two pack sizes of one product each need their own approved packaging master: an order for a pack size is planned only on an approved, authorised master listing it, never on the other pack size\'s master, and a second family of the same pack size and type is refused', async () => {
+    const proc = await master('tablet-granulation-compression');
+    const parent = randomUUID();
+    await plan(parent, { familyId: proc.familyId, batchSize: SIZE['tablet-granulation-compression'] });
+    await issue(parent, 'tablet-granulation-compression');
+    const small = await master('tablet-blister-packaging', proc.product, { packType: 'ALU-PVC-BLISTER', packSize: { id: 'PO-20K', count: '20000' } });
+    // The second pack size of the product: its own family; while its master is only drafted no order of that size is planned,
+    // and the first pack size's approved master never plans it.
+    const bigContent = (): MbrContent => {
+      const m = uniqueContent('tablet-blister-packaging', ['IN']);
+      m.header.product = { ...m.header.product, code: proc.product };
+      m.header.packType = 'ALU-PVC-BLISTER';
+      m.header.batchSizes = [{ id: 'PO-30K', quantity: { value: '30000', unit: '{tbl}' } }];
+      return withSecondaryPacking(without(m, ['G-09', 'G-10'])) as MbrContent;
+    };
+    const bigDraft = bigContent();
+    const drafted = await w.newVersion(bigDraft);
+    const order = 'ERP-NOT-REACHED';
+    expect({
+      bigOnSmallMaster: await codeOf(plan(randomUUID(), { familyId: small.familyId, batchSize: 'PO-30K', parentBatch: parent, erpOrder: order })),
+      bigDraftOnly: await codeOf(plan(randomUUID(), { familyId: drafted.familyId, batchSize: 'PO-30K', parentBatch: parent, erpOrder: order })),
+    }).toEqual({ bigOnSmallMaster: 'EBMR-EXE-192', bigDraftOnly: 'EBMR-EXE-192' });
+    // The same pack size and pack type of the product a second time is refused: one packaging master family per pack size.
+    expect(await codeOf(w.run(w.cast.author, (c) => lc.defineFamily(c, familyDef(bigContent()))))).toMatch(/mbr_family_pack_identity/);
+    // With its own master approved and authorised, each pack size plans its own order on its own master.
+    await w.prepare(drafted.versionId, bigDraft);
+    await w.startVerification(drafted.versionId);
+    await w.submit(drafted.versionId);
+    await w.check(drafted.versionId);
+    await w.approve(drafted.versionId);
+    await w.authorise({ versionId: drafted.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, 'L1', 'PO-30K')], regulatoryBasis: 'IN: registration on file' });
+    const a = await plan(randomUUID(), { familyId: small.familyId, batchSize: 'PO-20K', parentBatch: parent });
+    const b = await plan(randomUUID(), { familyId: drafted.familyId, batchSize: 'PO-30K', parentBatch: parent });
+    expect([a.batchNumber, b.batchNumber]).toEqual([expect.stringMatching(/\/P01$/), expect.stringMatching(/\/P02$/)]);
+    expect(await codeOf(plan(randomUUID(), { familyId: drafted.familyId, batchSize: 'PO-20K', parentBatch: parent, erpOrder: order }))).toBe('EBMR-EXE-192');
   });
 
   it('[PR-37][IN-16] a packaging order whose master has no secondary-packaging step (TB-24 for tablets) is refused and nothing is planned; an edition with no completion block plans none', async () => {

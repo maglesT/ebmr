@@ -28,6 +28,15 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [INV-15][PR-26][IN-21] clean, clear, start, end: the next batch needs a new clearance recorded after the previous occupancy; the clearance records the previous product and batch"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][PR-26][IN-26] a room start takes a clearance of the required type, recorded for this batch: a CAMPAIGN clearance does not stand for a product change"
+clauses:
+  - clause: "Starting compounding while the prior batch is not cleared is blocked."
+    tests:
+      - "packages/recipe-core/test/plant/area.test.ts > starting in a room needs a passed clearance of the required type (INV-15, IN-21, PR-26) > [INV-15][PR-26][IN-21] clean, clear, start, end: the next batch needs a new clearance recorded after the previous occupancy; the clearance records the previous product and batch"
+      - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][PR-26][IN-26] a room start takes a clearance of the required type, recorded for this batch: a CAMPAIGN clearance does not stand for a product change"
+  - clause: "Scanning a hose to the wrong destination blocks the transfer."
+    deferred:
+      phase: 5
+      reason: "Hose and transfer-route scanning belongs to liquid transfers of the Injectables edition (Phase 5, decision 0010); the Tablets edition moves material in labelled containers, whose wrong-destination scan is refused (IN-26, PR-21 container tests)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

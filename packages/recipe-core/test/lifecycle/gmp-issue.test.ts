@@ -211,7 +211,7 @@ describe('the GMP issue (INV-01, INV-02, INV-28, PR-04, IN-18)', () => {
 });
 
 describe('the boundary of the GMP issue (DI-05, INV-18)', () => {
-  it('[DI-05][INV-18][INV-01][INV-28][PR-04][IN-13] a GMP batch is never created without an effective MBR version: no family, a market set without India, a market no version is authorised for, a batch size not approved; nothing is planned and no number is taken', async () => {
+  it('[DI-05][INV-18][INV-01][INV-28][PR-04][IN-13][PR-10][IN-06] a GMP batch is never created without an effective MBR version: no family, a market set without India, a market no version is authorised for, a batch size not approved; nothing is planned and no number is taken', async () => {
     const m = await effectiveMaster(['IN']);
     const allocations = async () => (await q<{ n: string }>('select count(*)::text as n from site.batch_number_allocation where product_code = $1', [m.product]))[0]?.n;
     const before = await allocations();

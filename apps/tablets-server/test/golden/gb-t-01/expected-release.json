@@ -1,0 +1,199 @@
+{
+ "worksheet": {
+  "drums": [
+   "49201",
+   "49201",
+   "49201",
+   "49201"
+  ],
+  "bulkIssued": [
+   [
+    "INSPECTION/- 49201 units",
+    "INSPECTION/- 49201 units"
+   ],
+   [
+    "INSPECTION/- 49201 units",
+    "INSPECTION/- 49201 units"
+   ]
+  ],
+  "order": {
+   "reconciliations": [
+    {
+     "item": "CARTON",
+     "unit": "1",
+     "used": "980",
+     "issued": "990",
+     "counted": "TYPED",
+     "damaged": "0",
+     "specimens": "2",
+     "setupWaste": "0",
+     "unexplained": "0",
+     "withinLimits": true,
+     "codedDestroyed": "6",
+     "uncodedReturned": "2"
+    },
+    {
+     "item": "FOIL",
+     "unit": "1",
+     "used": "9840",
+     "issued": "10000",
+     "counted": "TYPED",
+     "damaged": "0",
+     "specimens": "0",
+     "setupWaste": "30",
+     "unexplained": "0",
+     "withinLimits": true,
+     "codedDestroyed": "0",
+     "uncodedReturned": "130"
+    }
+   ],
+   "shippers": 14,
+   "packYield": "99.59"
+  },
+  "lot": {
+   "state": "RELEASED"
+  }
+ },
+ "fromTheRun": {
+  "orders": [
+   {
+    "states": {
+     "batch": "EXECUTION_COMPLETE",
+     "stages": {
+      "S-PACK@": "SIGNED_OFF"
+     },
+     "containers": {},
+     "notCompleted": []
+    },
+    "exceptions": {
+     "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT": 1,
+     "PROCESS_MANUAL_FALLBACK ALERT NO_IMPACT": 4
+    },
+    "consumptions": [
+     "GBT-PVC-001 6 kg"
+    ],
+    "signatures": 28,
+    "normalisedTrueCopySha256": "84e7e5dd56c4b36bb838a374a9b234571f1de9db038cd774215939131adf3dcf"
+   },
+   {
+    "states": {
+     "batch": "EXECUTION_COMPLETE",
+     "stages": {
+      "S-PACK@": "SIGNED_OFF"
+     },
+     "containers": {},
+     "notCompleted": []
+    },
+    "exceptions": {
+     "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT": 1,
+     "PROCESS_MANUAL_FALLBACK ALERT NO_IMPACT": 4
+    },
+    "consumptions": [
+     "GBT-PVC-001 6 kg"
+    ],
+    "signatures": 28,
+    "normalisedTrueCopySha256": "8f07940fe378f0c6f6374b824d825dc68b6f2e69f36e23f31af7b2828544ca7c"
+   }
+  ],
+  "lots": [
+   {
+    "state": "RELEASED",
+    "quantity": "980 packs",
+    "markets": [
+     "IN"
+    ],
+    "dispositions": {
+     "IN": "RELEASED",
+     "US": null,
+     "EU": null
+    },
+    "results": [
+     "ASSAY 99.6 % PASS APPROVED",
+     "DISSOLUTION 93 % PASS APPROVED"
+    ],
+    "samples": [
+     "RESERVE 4 packs"
+    ],
+    "grel": {
+     "IN": [
+      "G1.REVIEW_1 GREEN",
+      "G1.REVIEW_2 GREEN",
+      "G2.DEVIATIONS GREEN",
+      "G2.REGISTRATION NA",
+      "G2.CHANGE_NOTIFICATION NA",
+      "G3.LIMS GREEN",
+      "G3.EXTRA_TESTING GREEN",
+      "G3.SAMPLES GREEN",
+      "G5.MATERIALS GREEN",
+      "G6.VALIDATION_BASIS GREEN",
+      "G6.POST_CHANGE NA",
+      "G6.PPQ NA",
+      "G6.LICENCE GREEN",
+      "G7.INCIDENTS GREEN",
+      "G8.MARKET_ADD NA",
+      "E.RECONCILIATION_PRINTED GREEN",
+      "E.RECONCILIATION_PACKS GREEN",
+      "E.RECONCILIATION_SERIAL GREEN",
+      "E.RECONCILIATION_YIELD GREEN",
+      "E.POSTED_QUANTITY GREEN",
+      "E.FINISHED_PACK_EXAMINATION GREEN",
+      "E.PRINTED_TABLETS_QC NA",
+      "E.HELD_CONTAINERS GREEN",
+      "E.CONTAINER_RELEASE GREEN",
+      "E.RULE_SETS_VERIFIED NA",
+      "E.WHOLE_BATCH_PARENTS NA"
+     ]
+    }
+   },
+   {
+    "state": "RELEASED",
+    "quantity": "980 packs",
+    "markets": [
+     "IN"
+    ],
+    "dispositions": {
+     "IN": "RELEASED",
+     "US": null,
+     "EU": null
+    },
+    "results": [
+     "ASSAY 99.6 % PASS APPROVED",
+     "DISSOLUTION 93 % PASS APPROVED"
+    ],
+    "samples": [
+     "RESERVE 4 packs"
+    ],
+    "grel": {
+     "IN": [
+      "G1.REVIEW_1 GREEN",
+      "G1.REVIEW_2 GREEN",
+      "G2.DEVIATIONS GREEN",
+      "G2.REGISTRATION NA",
+      "G2.CHANGE_NOTIFICATION NA",
+      "G3.LIMS GREEN",
+      "G3.EXTRA_TESTING GREEN",
+      "G3.SAMPLES GREEN",
+      "G5.MATERIALS GREEN",
+      "G6.VALIDATION_BASIS GREEN",
+      "G6.POST_CHANGE NA",
+      "G6.PPQ NA",
+      "G6.LICENCE GREEN",
+      "G7.INCIDENTS GREEN",
+      "G8.MARKET_ADD NA",
+      "E.RECONCILIATION_PRINTED GREEN",
+      "E.RECONCILIATION_PACKS GREEN",
+      "E.RECONCILIATION_SERIAL GREEN",
+      "E.RECONCILIATION_YIELD GREEN",
+      "E.POSTED_QUANTITY GREEN",
+      "E.FINISHED_PACK_EXAMINATION GREEN",
+      "E.PRINTED_TABLETS_QC NA",
+      "E.HELD_CONTAINERS GREEN",
+      "E.CONTAINER_RELEASE GREEN",
+      "E.RULE_SETS_VERIFIED NA",
+      "E.WHOLE_BATCH_PARENTS NA"
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -22,7 +22,16 @@ behaviour: |-
   [I] Gowning and APS qualification for aseptic areas come from Annex 1 and the FDA 2004 aseptic guidance, not from 211.28 (see sterile catalog).
 catalog_test: A user whose training has lapsed is refused on the step. A user without area authorisation cannot sign a step in the filling suite.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/identity/authority.test.ts > qualification at the moment of action (DI-21, INV-26) > [DI-21][INV-26][PR-15] expiring a user's SOP training blocks both execution and verification and names the missing item"
+clauses:
+  - clause: "A user whose training has lapsed is refused on the step."
+    tests:
+      - "packages/kernel/test/identity/authority.test.ts > qualification at the moment of action (DI-21, INV-26) > [DI-21][INV-26][PR-15] expiring a user's SOP training blocks both execution and verification and names the missing item"
+  - clause: "A user without area authorisation cannot sign a step in the filling suite."
+    deferred:
+      phase: 6
+      reason: "Persons have no area authorisation yet (the filling suite itself is Injectables); built in Phase 6 (owner decision 0011)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

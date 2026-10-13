@@ -17,10 +17,12 @@
  *    list is every test that proves the control, titles built from data included, so it cannot drift as tests are
  *    added; `register sync-tests` adds them from the run (sync.ts);
  *  - a DONT_FOLLOW control still has tests proving active enforcement.
+ * A control none of whose editions the gate covers (phase.yaml `editions`, decision 0010) is not due and its deferrals
+ * are not checked; a test tagged with it is still checked (unknown IDs, failures, the tests list).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
-import { ROOT, type ClauseRecord, type ControlRecord } from './register.ts';
+import { inGateEditions, ROOT, type ClauseRecord, type ControlRecord, type EditionName } from './register.ts';
 import { declaredIn, entryOf, fileOfEntry, names, reportedPath, type DeclaredTest, type TestPath } from './test-index.ts';
 
 const CONTROL_TAG = /\[((?:DI|PR|ST|IN)-\d{2})\]/g;
@@ -136,6 +138,8 @@ export interface TraceOptions {
   e2e?: boolean;
   /** The tests a file declares (default: read from the repository), which say whether a test may be skipped. */
   declared?: (file: string) => readonly DeclaredTest[] | null;
+  /** The editions the gate covers (phase.yaml `editions`, decision 0010); default both. */
+  editions?: readonly EditionName[];
 }
 
 const isE2e = (entry: string): boolean => fileOfEntry(entry).startsWith(E2E_DIR);
@@ -184,8 +188,13 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
   for (const row of byId.values()) {
     const c = row.control;
     const rejected = c.expert_decision.status === 'DONT_FOLLOW';
-    const due = !rejected && c.target_phase <= phase;
-    if (due && row.passing.length === 0) {
+    const gated = inGateEditions(c, options.editions ?? ['tablets', 'injectables']);
+    const due = gated && !rejected && c.target_phase <= phase;
+    // Owner decision 0011: a control every clause of whose catalog test is deferred, each with its reason, to a phase
+    // that has not started has nothing due to prove yet; it shows DEFERRED in the matrix. One clause not deferred, or
+    // deferred to a phase that has started (refused below), and it needs its passing tests again.
+    const fullyDeferred = (c.clauses ?? []).length > 0 && (c.clauses ?? []).every((k) => k.deferred !== undefined && k.deferred.phase > phase && k.deferred.reason.trim() !== '');
+    if (due && row.passing.length === 0 && !fullyDeferred) {
       errors.push(`${c.id} (target phase ${c.target_phase}) has no passing test`);
     }
     if (rejected && row.passing.length > 0) errors.push(`${c.id} is DONT_FOLLOW but tests still prove enforcement`);
@@ -213,11 +222,11 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     });
     if (due && !c.clauses) errors.push(`${c.id} (target phase ${c.target_phase}) does not map its catalog test to clauses with tests or deferrals`);
     for (const d of c.deferred_scope ?? []) {
-      if (d.phase <= phase) errors.push(`${c.id} scope "${d.scope}" is deferred to phase ${d.phase}, which has started`);
+      if (gated && d.phase <= phase) errors.push(`${c.id} scope "${d.scope}" is deferred to phase ${d.phase}, which has started`);
     }
     row.clauses.forEach((k, i) => {
       const deferred = k.clause.deferred;
-      if (deferred && deferred.phase <= phase) {
+      if (gated && deferred && deferred.phase <= phase) {
         errors.push(`${c.id} clause ${i + 1} is deferred to phase ${deferred.phase}, which has started: "${k.clause.clause}"`);
       } else if (due && k.state === 'NO_TEST') {
         const onlyE2e = (k.clause.tests ?? []).every(isE2e) && options.e2e !== true;
@@ -237,12 +246,12 @@ function clauseSummary(r: TraceRow): string {
   return [`${n('TESTED')} tested`, n('DEFERRED') ? `${n('DEFERRED')} deferred` : '', n('NO_TEST') ? `${n('NO_TEST')} with no test` : ''].filter(Boolean).join(', ') + scope;
 }
 
-export function writeMatrix(report: TraceReport, phase: number, file: string): void {
+export function writeMatrix(report: TraceReport, phase: number, file: string, editions?: readonly EditionName[]): void {
   const mapped = report.rows.filter((r) => r.clauses.length > 0);
   const lines = [
     '# Traceability matrix',
     '',
-    `Generated from the control register and the test run. Current phase: ${phase}.`,
+    `Generated from the control register and the test run. Current phase: ${phase}.${editions ? ` Editions in the gate: ${editions.join(', ')}.` : ''}`,
     '',
     '| Control | Title | Editions | Target phase | Expert decision | Build status | Passing tests | Catalog-test clauses |',
     '|---|---|---|---|---|---|---|---|',

@@ -41,6 +41,11 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39] E.RECONCILIATION_YIELD: a yield outside its limits in the processing batch blocks until its deviation is closed"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-42][IN-17] E.RECONCILIATION_SERIAL: an open serial reconciliation blocks until its deviation is closed"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-17][PR-39] E.RECONCILIATION_PRINTED: when the packaging master prints but the record holds no G-21 step instance it is red, never NA"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the happy variant > [IN-17][PR-31] records the worksheet's quantities and yields at every stage, (A + B)/T beside A/T"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [IN-17][PR-31] records the worksheet's quantities and yields at every stage, (A + B)/T beside A/T"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [IN-17][PR-39][PR-31][PR-37] each order reconciles its printed foil and cartons with nothing unexplained, packs the worksheet's cartons into shippers and reaches the worksheet's packaging yield"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-31] dispenses, blends and compresses the worksheet's quantities, with its yields"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-39][PR-37][PR-38] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
 clauses:
   - clause: "enter a carton reconciliation with a 2% unexplained loss above the configured limit; a deviation opens"
     tests:
@@ -48,9 +53,10 @@ clauses:
       - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-33][PR-36][PR-37][PR-39][PR-42][IN-17][IN-22][INV-32] G-21 Printed materials, coding, challenges, serialisation: Cartons issued by manual count (two persons) from a released lot with the master artwork and reconciled with 12 unexplained against a limit of 0 (release-blocking exception); the printer's first print approved; the vision system challenged at start and end; a serial pool reconciled with zero unexplained"
       - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > TB-24 secondary packaging (examination, samples, unusual events, shippers, reconciliation) > [PR-37][IN-17] the reconciliation is computed from the step's counts, set-aside units not re-entered counted apart; outside its limit PACK_RECONCILIATION blocks release; nothing is counted after it; the step is performed only with both examinations and the reconciliation"
   - clause: "and release is blocked."
-    deferred:
-      phase: 4
-      reason: "The reconciliation exception is release-blocking now (its flag is tested with the clause above), but batch release (QA disposition of a finished batch, the release gate) is built in Phase 4 (build outline 11); the block on release is proven there."
+    tests:
+      - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][INV-32] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved"
+      - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39] E.RECONCILIATION_YIELD: a yield outside its limits in the processing batch blocks until its deviation is closed"
+      - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > TB-24 secondary packaging (examination, samples, unusual events, shippers, reconciliation) > [PR-37][IN-17] the reconciliation is computed from the step's counts, set-aside units not re-entered counted apart; outside its limit PACK_RECONCILIATION blocks release; nothing is counted after it; the step is performed only with both examinations and the reconciliation"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

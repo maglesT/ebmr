@@ -35,6 +35,15 @@ behaviour: |-
 catalog_test: A support engineer tries to log in without a customer-approved time-boxed grant. Refused. A full tenant export re-opens in the stand-alone viewer with audit trails and signature manifestations intact.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
+    deferred:
+      phase: 6
+      reason: "No vendor support account and no customer-approved, time-boxed support grant exist yet, so there is no support login to refuse; they come with the Phase 6 integrations and extras (owner decision 0011)."
+  - clause: "A full tenant export re-opens in the stand-alone viewer with audit trails and signature manifestations intact."
+    deferred:
+      phase: 7
+      reason: "The stand-alone viewer for a full tenant export and its hosting documentation are built with the Phase 7 validation pack (owner decision 0011; Phase 4 plan, slice 7)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

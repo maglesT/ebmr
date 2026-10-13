@@ -37,16 +37,25 @@ tests:
   - "apps/tablets-server/test/mutation/execution-steps-and-order.test.ts > F67 and F01: a stage sign-off keeps its minimum and records the summary its signature covers (0308, 0320; INV-20, PR-30, DI-37, IN-15, PR-16) > [DI-37][IN-15][PR-16] a refused sign-off is recorded as the refusal it is; a sign-off recording another statement, stage or start than the summary its signature covers is refused (EBMR-EXE-135); the engine's own is accepted"
   - "apps/tablets-server/test/mutation/signed-content.test.ts > a stage sign-off is read as signed off, on the text with its summary (recipe-core 0319) > [DI-37][IN-15][PR-16][DI-23] once signed off, the stage reads SIGNED_OFF and its text keeps its summary, also when other sign-offs are listed as made before 0319; its signature stays VALID"
   - "packages/recipe-core/test/mutation/signed-content.test.ts > the summary a stage sign-off signs (recipe-core 0319) > [DI-37][IN-15][PR-16] a stage frame that names no stage has no summary; an exception raised at a step instance of the stage, named by its key alone, is part of the stage's summary as the engine derives it"
-  - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16][IN-07] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
   - "apps/tablets-server/test/blocks/compression/db-guards.test.ts > the compression blocks in the database (tablets 0870 to 0874) > [PR-13][PR-16] the database never lets a Tablets edition step be skipped (TB-09, TB-10, TB-17 and every later TB block), even one the MBR marks skippable that moves no material"
   - "apps/tablets-server/test/mutation/tablets-core-checks.test.ts > recipe.skip_problem (tablets 0874) > [PR-13][PR-16] a skippable phase that moves nothing, checks nothing and writes nothing another step reads is skipped; each single reason refuses it"
   - "apps/tablets-server/test/mutation/tablets-core-checks.test.ts > recipe.skip_problem (tablets 0874) > [PR-13][PR-16] never a step outside the MBR, a hold point, a step not declared skippable, or a step of a material-moving or tablet block"
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify"
-  - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][PR-16] issue 3 contingency sheets and return 2: completion is blocked and the message names the sheet not reconciled"
+  - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][PR-16][PR-11] issue 3 contingency sheets and return 2: completion is blocked and the message names the sheet not reconciled"
   - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][PR-16] every sheet used and verified or voided, then the signed reconciliation: the batch may complete"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] a batch with no contingency form issued completes as before"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] completion is refused while a form is issued and not returned, returned and not verified, or reported missing without its deviation reference; it passes once every form is reconciled and FORMS_RECONCILED is signed"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] the application role cannot write the completion around the gate nor switch the gate off"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again"
+clauses:
+  - clause: "Removing one label specimen"
+    deferred:
+      phase: 6
+      reason: "The batch record has no labelling-specimen item checked at completion (specimens are checked on the master only, GMP-SPECIMENS); it is built in Phase 6 (owner decision 0011)."
+  - clause: "or one checker signature blocks completion, and the message names the gap."
+    tests:
+      - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

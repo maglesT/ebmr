@@ -24,6 +24,15 @@ catalog_test: Archive a batch and run a fixity check. Upgrade the test environme
 implemented_by: {}
 tests:
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [DI-47][DI-46] an aborted batch is kept like a completed one, and the record a kept batch depends on inherits the longer period"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-46] export a batch; alter one byte; hash verification fails"
+clauses:
+  - clause: "Archive a batch and run a fixity check."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-46] export a batch; alter one byte; hash verification fails"
+  - clause: "Upgrade the test environment, then retrieve and render the record. Content, audit trail and signatures are intact and the hashes match."
+    deferred:
+      phase: 7
+      reason: "An upgrade of the test environment followed by retrieval is the upgrade and restore drill of Phase 7 (validation pack and hardening, build outline 11)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

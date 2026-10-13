@@ -47,6 +47,7 @@ tests:
   - "packages/recipe-core/test/mutation/signed-content.test.ts > the summary a stage sign-off signs (recipe-core 0319) > [DI-37][IN-15][PR-16] a stage frame that names no stage has no summary; an exception raised at a step instance of the stage, named by its key alone, is part of the stage's summary as the engine derives it"
   - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [IN-15][PR-31][PR-49] an out-of-limit stage yield: the yield step is blocked and the next step waits until a deviation is linked; \"no impact\" is refused and the disposition needs a comment"
   - "packages/recipe-core/test/engine/time.test.ts > time constraints (INV-20) > [INV-20][IN-13][IN-15] an intermediate held beyond its hold time: the consuming step is blocked until QA dispositions the exception"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again"
 clauses:
   - clause: "exceed a hold time; the system blocks the next step or opens a deviation."
     tests:

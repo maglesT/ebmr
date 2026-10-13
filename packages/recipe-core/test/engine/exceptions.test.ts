@@ -3,6 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { ENGINE_EXCEPTION_RULES } from '../../src/engine/exceptions.ts';
+import type { Actor } from '../../src/engine/types.ts';
 import type { FlowNode, MbrContent } from '../../src/flow/model.ts';
 import type { LimitSpec } from '../../src/limits/model.ts';
 import { mbrWith, phase } from '../flow/support.ts';
@@ -127,6 +128,49 @@ describe('limit tiers at execution (PR-08)', () => {
     run.perform('y');
     run.verify('y');
     run.start('next');
+  });
+
+  it('[PR-31] the yield step does not complete without its verifier (the performer cannot verify it, the next step waits), and an independent recalculation from the recorded quantities matches the yield the record shows', () => {
+    const yieldLimits: LimitSpec = { unit: '%', ranges: [range('INTERNAL_ACTION', '95.0', '101.0')] };
+    const def = define(
+      mbrWith(seq('ops', phase('in', { records: ['charged'] }), phase('out', { records: ['good'] }), phase('y', { block: { type: 'G-20', version: '1' }, computes: ['yld'], yieldCheckpoint: 'Y1' }), phase('next')), {
+        parameters: [param('charged'), param('good')],
+        calculations: [{ id: 'yld', name: 'Yield', expression: 'yield(good, charged)', output: { valueType: 'DECIMAL', unit: '%', semanticTag: 'yield' }, criticality: 'CRITICAL', riskClass: 'HIGH' }],
+        yieldCheckpoints: [{ id: 'Y1', name: 'Stage yield', kind: 'YIELD', theoretical: 'charged', result: 'yld', basis: 'AS_IS', limits: yieldLimits }],
+      }),
+    );
+    const run = Run.issue(def);
+    done(run, 'in', { charged: '97.35' });
+    done(run, 'out', { good: '95.12' });
+    // The performer also holds the verifier role: still not the step's verifier.
+    const both: Actor = { id: 'OV1', kind: 'PERSON', roles: ['OPERATOR', 'VERIFIER'] };
+    run.start('y', [], both);
+    run.perform('y', [], both);
+    // Performed only: the step waits for its verifier; the next step does not start, and the performer is no verifier.
+    expect(run.status('y')).toBe('AWAITING_VERIFICATION');
+    run.refused({ type: 'START_STEP', actor: OP1, step: 'next' });
+    expect(run.status('next')).not.toBe('IN_PROGRESS');
+    run.refused({ type: 'VERIFY', actor: both, step: 'y', signature: sig('VERIFIED', both) }, 'ENG-SEGREGATION');
+    expect(run.status('y')).toBe('AWAITING_VERIFICATION');
+    run.verify('y');
+    expect(run.status('y')).toBe('COMPLETED');
+    run.start('next');
+    // The independent recalculation, in exact integers: shown yield x charged equals good x 100 to within 1e-30 of the charge.
+    const shown = Object.values(run.state.derived).filter((d) => d.status === 'CURRENT').map((d) => d.value);
+    expect(shown).toHaveLength(1);
+    const yieldShown = shown[0]?.kind === 'DECIMAL' ? shown[0].value : '';
+    expect(yieldShown).toMatch(/^97\.7092\d*$/);
+    const dec = (s: string): { n: bigint; s: number } => {
+      const [i = '', f = ''] = s.split('.');
+      return { n: BigInt(i + f), s: f.length };
+    };
+    const [v, c, g] = [dec(yieldShown), dec('97.35'), dec('95.12')];
+    const scale = Math.max(v.s + c.s, g.s);
+    const lhs = v.n * c.n * 10n ** BigInt(scale - (v.s + c.s));
+    const rhs = g.n * 100n * 10n ** BigInt(scale - g.s);
+    const diff = lhs > rhs ? lhs - rhs : rhs - lhs;
+    expect(diff * 10n ** 30n < c.n * 10n ** BigInt(scale - c.s)).toBe(true);
+    expect(run.exceptions('YIELD_OUT_OF_LIMITS')).toEqual([]);
   });
 
   it('[DI-26] every engine exception type maps to a review-by-exception category of the mandatory set', () => {

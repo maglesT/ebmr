@@ -490,7 +490,7 @@ describe('ABORT_BATCH: two signatures by the head of production and QA, the chec
 const cancelCmd = (actor: engine.Actor, signature?: engine.SignatureRef): engine.Command => ({ type: 'CANCEL_BATCH', commandId: randomUUID(), actor, reason: 'The order was withdrawn by planning', signature: signature ?? { id: randomUUID(), meaning: 'BATCH_CANCELLED', signer: actor.id } });
 
 describe('CANCEL_BATCH: only before anything started, signed by a supervisor', () => {
-  it('[PR-10][DI-35] an issued batch is cancelled with the supervisor\'s signature; once a step started it is refused, and nothing else cancels a batch', async () => {
+  it('[PR-10][DI-35][DI-42] an issued batch is cancelled with the supervisor\'s signature; once a step started it is refused, and nothing else cancels a batch', async () => {
     const started = await newRun(dcMini());
     await started.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-clear@' });
     expect(await act(started, 'supervisor1', cancelCmd, { own: { meaning: 'BATCH_CANCELLED' } })).toBe('refused ENG-BATCH-STATUS');

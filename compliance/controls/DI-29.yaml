@@ -91,6 +91,18 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/tb-14-edges.test.ts > TB-14 friability runs > [INV-41][DI-29] a doubtful first run is repeated twice; the mean of the three is judged (equal to the limit passes); repeats never replace it"
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24][INV-41] voids repeat while no valid result exists (an invalidated one is none); an invalidation is approved by another person, never a system, and its investigation is recorded trimmed"
   - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] a result of another item of the step does not stop a void of this one (mutation follow-up)"
+clauses:
+  - clause: "Take three readings on one sample where the first two fail. All three are stored and flagged."
+    tests:
+      - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][INV-41] three readings where the first two fail: all kept and flagged; the first failing result governs until it is invalidated"
+  - clause: "Try to invalidate a value without an investigation link. Blocked."
+    tests:
+      - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][IN-20] invalidating a result needs an investigation and QA approval; the original stays, the next attempt governs"
+      - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > INVALIDATE_RESULT: only with a linked investigation and its assignable cause, approved by the quality unit > [DI-29][INV-41][DI-37] an invalidation approved by the QA reviewer keeps the original and reopens the step, invalidating its signatures; without a cause, by the requester, or storing another cause, it is refused"
+  - clause: "Abort a weighing. A reason is required and the attempt appears in review."
+    tests:
+      - "packages/recipe-core/test/engine/corrections.test.ts > paths (b) void and (c) invalidation; repeats (DI-29, INV-41) > [DI-29][DI-24] an attempt is voided only before a result exists, with a reason and QA approval; the attempt stays in the record"
+      - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > VOID_ATTEMPT: a void only before a result exists, approved by QA (S28) > [DI-29][DI-24] a void approved by QA is recorded and the voided attempt kept; without the approval, approved by the requester or a supervisor, naming a result or storing another attempt, it is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

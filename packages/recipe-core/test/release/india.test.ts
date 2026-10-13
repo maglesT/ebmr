@@ -269,7 +269,7 @@ describe('the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2)', ()
     expect(missing.problem).toMatch(/no manufacturing or loan licence recorded at its issue/);
   });
 
-  it('[IN-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each', async () => {
+  it('[IN-27][PR-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each', async () => {
     const m = await effective(['IN'], true);
     expect(await messageOf(sqlAs(admin, 'select plant.record_product_hazard($1::jsonb) as r', [JSON.stringify({ productCode: m.product, hazardClass: 'CYTOTOXIC', riskAssessmentRef: 'RA-1' })]))).toMatch(/administrator|EBMR-IAM/i);
     expect(await messageOf(sqlAs(w.cast.qa, 'select plant.record_product_hazard($1::jsonb) as r', [JSON.stringify({ productCode: m.product, hazardClass: 'RADIOACTIVE', riskAssessmentRef: 'RA-1' })]))).toMatch(/EBMR-IND-035/);

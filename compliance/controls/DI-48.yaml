@@ -27,6 +27,11 @@ behaviour: |-
 catalog_test: In a migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "In a migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged."
+    deferred:
+      phase: 7
+      reason: "There is no legacy data migration in the build; a migration dry run belongs to deployment validation and the Phase 7 validation pack (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

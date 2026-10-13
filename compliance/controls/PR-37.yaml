@@ -92,6 +92,20 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-37] E.FINISHED_PACK_EXAMINATION: red without an end-of-run examination and while a failed one is unresolved; green once it passed or its failure is resolved"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][PR-37] E.RECONCILIATION_PACKS: red without the reconciliation entry and while a pack reconciliation outside its limit has no closed deviation (release is blocked); green once the deviation is closed"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > a packaging master completes only through its secondary packaging step (slice 3b, recipe-core 0800) > [PR-37][IN-16] TB-24 in a sequence, a parallel branch, every branch of an alternative or a loop body completes the master; in one branch of an alternative, a replicate that may run none or a hold point only, it does not"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [IN-17][PR-39][PR-31][PR-37] each order reconciles its printed foil and cartons with nothing unexplained, packs the worksheet's cartons into shippers and reaches the worksheet's packaging yield"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-39][PR-37][PR-38] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
+clauses:
+  - clause: "Skipping the end-of-run examination prevents order completion."
+    tests:
+      - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > TB-24 secondary packaging (examination, samples, unusual events, shippers, reconciliation) > [PR-37] finished packs are examined during finishing and a representative sample at completion, each of the MBR's size at least; a failing examination raises LINE_CHECK_FAILED, a late in-run one LINE_CHECK_MISSED; nothing is examined after the end-of-run sample"
+      - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-17][PR-42] TB-24: the examinations and the reconciliation are the database's (a forged verdict or balance is refused); the step closes only with an in-run and a passing end-of-run examination, the reconciliation, and shippers that hold exactly the serials the G-21 step commissioned"
+  - clause: "Adding samples back to good output is impossible."
+    tests:
+      - "apps/tablets-server/test/blocks/bottle/blocks.test.ts > TB-24 secondary packaging (examination, samples, unusual events, shippers, reconciliation) > [PR-37][IN-22] samples never return to good output; units of an unusual event are set aside under its event with UNUSUAL_EVENT (QA decides before the step completes) and re-enter only after a passing special inspection, with the investigation, checked by a second person, never more than were set aside"
+      - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-22] samples never return to good output, and packs of an unusual event re-enter only after the event's exception carries the investigation and QA's disposition: before that, or naming another deviation, the database refuses the re-entry"
+  - clause: "Reintroducing 40 jammed units without approval is blocked."
+    tests:
+      - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [PR-37][IN-22] samples never return to good output, and packs of an unusual event re-enter only after the event's exception carries the investigation and QA's disposition: before that, or naming another deviation, the database refuses the re-entry"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

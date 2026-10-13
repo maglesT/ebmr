@@ -32,10 +32,21 @@ behaviour: |-
 catalog_test: Export a batch and compare it field by field with the database. Correct a value, then print. The release printout flags the change and shows the original. A records package for 5 batches includes their audit trails.
 implemented_by: {}
 tests:
-  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-28] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-11] a records package for 5 batches includes their audit trails, each export verifying against its registered hash"
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][DI-18] an administrator does not read the inspection workspace (refused before the permission check)"
+  - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+clauses:
+  - clause: "Export a batch and compare it field by field with the database."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+  - clause: "Correct a value, then print. The release printout flags the change and shows the original."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+  - clause: "A records package for 5 batches includes their audit trails."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-11] a records package for 5 batches includes their audit trails, each export verifying against its registered hash"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

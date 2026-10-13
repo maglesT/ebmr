@@ -24,7 +24,20 @@ behaviour: |-
   - A spreadsheet or electronic worksheet used to create CGMP data is a controlled form. An uncontrolled attachment is allowed only as labelled supporting information, never as the source of a GMP result.
 catalog_test: Change the MBR after issuing a batch. The issued instance is unchanged and its hash still matches its source version. Void an instance. It stays retrievable with its reason. The reconciliation report has no gaps.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > CANCEL_BATCH: only before anything started, signed by a supervisor > [PR-10][DI-35][DI-42] an issued batch is cancelled with the supervisor's signature; once a step started it is refused, and nothing else cancels a batch"
+  - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-10][DI-10][DI-42] header and master-data inputs are typed at issue with their source; the MBR hash is pinned; nothing is issued without them"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][DI-42] export the register: allocation date, product identity and batch size are present for every entry"
+clauses:
+  - clause: "Change the MBR after issuing a batch. The issued instance is unchanged and its hash still matches its source version."
+    tests:
+      - "packages/recipe-core/test/engine/stage.test.ts > G-01 issuance and header > [PR-10][DI-10][DI-42] header and master-data inputs are typed at issue with their source; the MBR hash is pinned; nothing is issued without them"
+  - clause: "Void an instance. It stays retrievable with its reason."
+    tests:
+      - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > CANCEL_BATCH: only before anything started, signed by a supervisor > [PR-10][DI-35][DI-42] an issued batch is cancelled with the supervisor's signature; once a step started it is refused, and nothing else cancels a batch"
+  - clause: "The reconciliation report has no gaps."
+    tests:
+      - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][DI-42] export the register: allocation date, product identity and batch size are present for every entry"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

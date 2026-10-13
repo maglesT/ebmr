@@ -49,7 +49,7 @@ tests:
   - "apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts > the command row and the identifiers of a test run (recipe-core 0300, tablets 0370, 0380, 0390) > [DI-20][PR-23] a step of a stage that names no room is accepted from the terminal of any room: its start from the DISP-1 and the BLEND-1 kiosks is recorded"
   - "packages/recipe-core/test/mutation/entry-references-and-schema.test.ts > recipe-core 0328: an entry names only what its step's node in the MBR names (DI-05, DI-30, PR-18, PR-21, PR-23) > [DI-05][PR-23] an equipment status names equipment its step lists for a status check: any equipment where the step lists none, and one that names no equipment where it does is refused"
   - "packages/recipe-core/test/mutation/entry-references-and-schema.test.ts > recipe-core 0330: the checklists, the lot and the entry its block builds (DI-05, DI-10, DI-30, PR-14, PR-18, PR-23, PR-29, PR-34, PR-47) > [PR-23][PR-34] a step's checks and checklist are its configuration's when it lists any, else the block's defaults, as the blocks read them (status.ts statusChecks, clearanceChecklist)"
-  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23][INV-12] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23][INV-12][PR-24] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time"
   - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23] wait past a press's clean-hold: the next batch cannot use it until it is cleaned again"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] a balance with calibration past due is blocked; a calibration that does not cover the planned end is blocked too"
   - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] one hardness tester serves two presses at once (no occupancy); each use needs its own passing per-use check"
@@ -87,6 +87,20 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] an as-found failure lists exactly the uses of its own unit since the unit's last as-found PASS, and a PASS lists none"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] an instrument rests on its own passing daily check of today, or on its own unused passing per-use check for this batch"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] a use that ends inside its clean-hold, calibration and plan crosses nothing"
+clauses:
+  - clause: "A Dirty unit is blocked."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23][INV-12][PR-24] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time"
+  - clause: "An expired clean-hold is blocked."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23] wait past a press's clean-hold: the next batch cannot use it until it is cleaned again"
+  - clause: "A balance with overdue calibration is blocked."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] a balance with calibration past due is blocked; a calibration that does not cover the planned end is blocked too"
+  - clause: "A failed as-found calibration produces the list of affected batches."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > fitness: qualification, calibration, maintenance, failure (IN-25 (b)(d), PR-23) > [IN-25][PR-23] an as-found calibration failure lists every batch since the last good calibration"
+      - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] an as-found failure lists exactly the uses of its own unit since the unit's last as-found PASS, and a PASS lists none"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

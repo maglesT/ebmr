@@ -33,7 +33,16 @@ behaviour: |-
   - Retirement is planned, so records stay readable after decommissioning (DI-46).
 catalog_test: In a test environment, change a DB row outside the application. The integrity job alarms and names the record. Try to execute a GMP batch on a release that has no approved validation summary in that tenant. It is refused.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
+clauses:
+  - clause: "In a test environment, change a DB row outside the application. The integrity job alarms and names the record."
+    tests:
+      - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
+  - clause: "Try to execute a GMP batch on a release that has no approved validation summary in that tenant. It is refused."
+    deferred:
+      phase: 7
+      reason: "The validation summary report is generated with the validation pack in Phase 7 (build outline 11); until a release carries one there is nothing for the GMP execution check to read (Phase 4 plan, slice 7: documentation-type controls deferred to 7)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -12,7 +12,7 @@
  */
 import { importCatalogs } from './import.ts';
 import { checkPins, readManifests } from './pins.ts';
-import { currentPhase, loadControls } from './register.ts';
+import { currentPhase, gateEditions, loadControls } from './register.ts';
 import { existsSync } from 'node:fs';
 import { appendListedTests, testsToAdd } from './sync.ts';
 import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from './trace.ts';
@@ -40,7 +40,14 @@ function runResults(): { results: TestResult[]; e2e: boolean } {
   const e2e = pwFile && existsSync(pwFile) ? readPlaywrightResults(pwFile) : [];
   if (args.includes('--require-playwright') && e2e.length === 0) fail(command ?? 'register', [`--require-playwright: no end-to-end results in ${pwFile ?? '(no --playwright file given)'}`]);
   if (pwFile && e2e.length) console.log(`including ${e2e.length} end-to-end results from ${pwFile}`);
-  return { results: [...readVitestResults(file), ...e2e], e2e: e2e.length > 0 };
+  // Optional golden-batch results (the CI golden job's own Vitest report, run on its libfaketime cluster): the golden
+  // tests skip themselves in every other run, so a clause only a golden batch proves needs this report. Read beside
+  // the main report, never merged into it: a skipped copy of a test cannot hide the golden job's passing one.
+  const goldenFile = option('--golden');
+  if (args.includes('--require-golden') && !(goldenFile && existsSync(goldenFile))) fail(command ?? 'register', [`--require-golden: no golden-batch report at ${goldenFile ?? '(no --golden file given)'}`]);
+  const golden = goldenFile && existsSync(goldenFile) ? readVitestResults(goldenFile) : [];
+  if (golden.length) console.log(`including ${golden.length} golden-batch results from ${goldenFile}`);
+  return { results: [...readVitestResults(file), ...golden, ...e2e], e2e: e2e.length > 0 };
 }
 
 switch (command) {
@@ -63,17 +70,18 @@ switch (command) {
   }
   case 'trace': {
     const phase = currentPhase();
+    const editions = gateEditions();
     const { results, e2e } = runResults();
     // Listed end-to-end tests are checked against the run only when the Playwright report is part of it.
-    const report = buildTrace(loadControls(), results, phase, { e2e });
-    writeMatrix(report, phase, '.reports/trace-matrix.md');
+    const report = buildTrace(loadControls(), results, phase, { e2e, editions });
+    writeMatrix(report, phase, '.reports/trace-matrix.md', editions);
     if (report.skipped.length) {
       console.log(`${report.skipped.length} listed test(s) skipped themselves in this run, as their source allows (they prove nothing here):`);
       for (const s of report.skipped) console.log(`  - ${s}`);
     }
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;
-    console.log(`traceability ok for phase ${phase}: ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);
+    console.log(`traceability ok for phase ${phase} (editions: ${editions.join(', ')}): ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);
     break;
   }
   case 'sync-tests': {
@@ -84,5 +92,5 @@ switch (command) {
     break;
   }
   default:
-    fail('usage', ['register <import|validate|pins|trace --results file [--playwright file] [--require-playwright]|sync-tests --results file [--playwright file]>']);
+    fail('usage', ['register <import|validate|pins|trace --results file [--golden file] [--require-golden] [--playwright file] [--require-playwright]|sync-tests --results file [--golden file] [--playwright file]>']);
 }

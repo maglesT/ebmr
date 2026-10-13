@@ -99,6 +99,20 @@ tests:
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26] a reopen supersedes the item dispositions of the closed cycle: the item is open again and is dispositioned again in the new cycle"
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26][DI-34] on a GMP batch an unsigned escalation is refused, a query waits for the QA review, an escalation stands only while its deviation is linked, and a critical item is escalated only after its detail was opened"
   - "apps/tablets-server/test/review/register-routes.test.ts > the register routes record the showing and the opening (PR-52, DI-26) > [PR-52][DI-26] grouped acceptance stands on a recorded showing of the full list; a critical item is accepted only after its recorded opening"
+  - "apps/tablets-server/test/mutation/exception-register-sync.test.ts > the exception register follows the state (recipe-core 0440, 0441) > [INV-41][DI-26] a row the state names must be recorded; an exception arrives open, unlinked, undecided, and is registered; one the state held without the register is refused; its raised facts never change; it is never removed"
+  - "apps/tablets-web/test/review/review.test.tsx > exception register > [DI-26] a clean record shows \"no exception\" with its summary, on the register and on the record review, and offers no item to review"
+clauses:
+  - clause: "Seed a batch with one instance of every exception type. All are listed."
+    tests:
+      - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [DI-26] every engine exception type maps to a review-by-exception category of the mandatory set"
+      - "apps/tablets-server/test/execution/db-guards-exception-register.test.ts > the exception register (recipe-core 0440) > [PR-08][DI-26][INV-41] every exception is registered with the row that raises it: tier, type, raising step, raiser, database time and mandatory flag; the register and the state never disagree"
+  - clause: "A clean batch shows \"no exceptions\" with its summary."
+    tests:
+      - "apps/tablets-web/test/review/review.test.tsx > exception register > [DI-26] a clean record shows \"no exception\" with its summary, on the register and on the record review, and offers no item to review"
+  - clause: "Try to edit an RBE rule without a change record. Blocked."
+    deferred:
+      phase: 6
+      reason: "Review-by-exception rules are fixed in code; an editable RBE rule under a change record is not built yet and comes in Phase 6 (owner decision 0011)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"
