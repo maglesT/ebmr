@@ -692,6 +692,28 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     expect(await releaseState(lot.lotId)).toBe('RELEASED');
   });
 
+  it('[IN-05] a decision recorded for one lot does not let another lot leave quarantine in the same transaction; the release records are recorded by their signer', async () => {
+    const lot = await readyLot();
+    const other = await readyLot();
+    const g = await grel(lot.lotId);
+    await acknowledgeAll(ap, lot.lotId, g);
+    const sig = await signDecision(ap, lot.lotId, 'RELEASE');
+    const version = (await db.app.query<{ v: string }>("select version::text as v from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [other.lotId])).rows[0]!.v;
+    expect(await messageOf(w.run(ap, async (c) => {
+      await c.query('select recipe.record_manufacturer_release($1, $2, $3, $4, $5)', [lot.lotId, 'RELEASE', sig, g.epoch, null]);
+      await c.query("select platform.transition('material_lot', 'material_lot', $1, 'MANUFACTURER_RELEASE', $2::bigint, '{}'::jsonb)", [other.lotId, version]);
+    }))).toMatch(/leaves quarantine only through the signed manufacturer release/);
+    expect(await releaseState(lot.lotId)).toBe('READY');
+
+    // A PPQ outcome signed by one QA person and recorded by another is refused (assert_release_signature).
+    const ppq = await readyLot({ purpose: 'PPQ' });
+    const h = (await db.app.query<{ h: string }>('select recipe.ppq_statement_hash($1, $2) as h', ['PV-PROT-11', 'All protocol results within limits'])).rows[0]!.h;
+    const outcome = await signFor(db, qaReviewer3, { type: 'ppq_outcome', id: `${ppq.batchId}/PASSED/${h}` }, 'VALIDATION_OUTCOME_RECORDED', await reviewState(ppq.batchId));
+    const recorder = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Quinn Recorder' });
+    expect(await messageOf(w.run(recorder, (c) => c.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [ppq.batchId, 'PASSED', 'PV-PROT-11', 'All protocol results within limits', outcome]))))
+      .toMatch(/EBMR-REL-013 .*is recorded by the person who signed it/);
+  });
+
   it('[INV-05] a reserve sample pulled or disposed of moves the epoch of its own lot', async () => {
     const lot = await readyLot();
     const other = await readyLot();
