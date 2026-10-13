@@ -1,8 +1,8 @@
 /**
  * Phase 4 slice 2c through the real screens and the live server, on the DEMO-ONLY packaging demo the set-up builds
- * (set-up CLI --gmp-packaging: a packaging master of GB-T-01 with pack type ALU-PVC-BLISTER and its TB-24 step, approved
- * and authorised, its numbering rule and an open ERP order; a second GB-T-01 batch issued with two output containers
- * closed with a typed net and verified by a second person, released for packing by a DEMO SHORTCUT):
+ * (set-up CLI --gmp-packaging; since slice 7b through real signed acts, release-path.ts: the GB-T-02 bottle master with
+ * pack type HDPE-BOTTLE and its TB-24 step, approved and authorised, its numbering rule and an open ERP order; the GB-T-02
+ * batch run to QA's release for packing at its H-PACK hold point, two of its compression containers still unissued):
  *  1. the batch issuer sees the packaging order's card (its pack type, the processing batches it may pack, each with the
  *     database's words on its release for packing), plans the packaging order of the released batch (the register gives
  *     the packaging number of that batch) and issues it through the office ceremony;
@@ -64,7 +64,9 @@ test('packaging order: planned from a processing batch released for packing, iss
 
   await evidence.step('Issue the packaging order', 'The issuer signs ISSUED with their own reason; the order is listed ISSUED with its processing batch', async () => {
     const issue = page.getByTestId(`order-${p.orderNo}`).getByTestId('issue-form');
-    await issue.getByRole('textbox', { name: 'Batch size in tablets' }).fill('100000');
+    // Only a master whose issue asks for its tablets per batch shows this input (the slice 7b bottle master does not).
+    const size = issue.getByRole('textbox', { name: 'Batch size in tablets' });
+    if ((await size.count()) > 0) await size.fill('100000');
     await issue.getByRole('textbox', { name: 'Reason code' }).fill('PACKING_PLAN');
     await issue.getByRole('textbox', { name: 'Reason', exact: true }).fill(`Packaging order of batch ${p.parentBatchNumber} for the India market`);
     await issue.getByRole('button', { name: 'Sign and issue' }).click();

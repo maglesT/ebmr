@@ -52,6 +52,11 @@ export const TERMINALS: readonly TerminalSpec[] = [
   { code: 'KIOSK-COMP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'COMP-1', description: 'Shop-floor kiosk, compression room COMP-1 (GMP batches)', key: 'BROWSER' },
   { code: 'KIOSK-COAT-1', installation: 'GMP', deviceClass: 'SHARED', room: 'COAT-1', description: 'Shop-floor kiosk, coating room COAT-1 (GMP batches)', key: 'BROWSER' },
   { code: 'KIOSK-INSP-1', installation: 'GMP', deviceClass: 'SHARED', room: 'INSP-1', description: 'Shop-floor kiosk, inspection room INSP-1 (GMP batches)', key: 'BROWSER' },
+  // Phase 4 slice 7b: the packaging line of the golden batches' packaging orders, and two office PCs of the release,
+  // after-release and market specs (their own terminals, so each spec stays under the device rate limit).
+  { code: 'KIOSK-PACK-1', installation: 'GMP', deviceClass: 'SHARED', room: 'PL-1', description: 'Shop-floor kiosk, packaging line PL-1 (GMP packaging orders)', key: 'BROWSER' },
+  { code: 'PC-QA-10', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Tenth QA office PC (green release, suspension and recall, QP package and certification intake, US disposition)', key: 'BROWSER' },
+  { code: 'PC-PLAN-04', installation: 'GMP', deviceClass: 'PERSONAL', description: 'Fourth production office PC (production approval and packaging-order planning of the release specs)', key: 'BROWSER' },
   { code: 'GW-01', installation: 'GMP', deviceClass: 'SERVER', description: 'Site gateway (scales, instruments and process equipment), GMP installation', key: 'SERVICE' },
   // Phase 4 slice 1b (D-P4-9): the GMP server's in-process time sweeper, so missed-check holds run on GMP too.
   { code: 'SRV-SWEEPER-01', installation: 'GMP', deviceClass: 'SERVER', description: 'GMP server: in-process time sweeper identity (time limits, overdue in-process checks, interface losses)', key: 'SERVICE' },
@@ -115,6 +120,10 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'technician1', installation: 'GMP', legalName: 'Ravi Shetty', loginName: 'ravi.shetty', roleCode: 'MAINTENANCE_TECHNICIAN', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Maintenance and cleaning technician', demo: { password: 'Demo-GmpTechnician1-2026!' } },
   { key: 'technician2', installation: 'GMP', legalName: 'Anita Desai', loginName: 'anita.desai', roleCode: 'MAINTENANCE_TECHNICIAN', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Maintenance and cleaning technician (verifier)', demo: { password: 'Demo-GmpTechnician2-2026!' } },
   { key: 'head1', installation: 'GMP', legalName: 'Lakshmi Iyengar', loginName: 'lakshmi.iyengar', roleCode: 'HEAD_OF_PRODUCTION', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Head of production', demo: { password: 'Demo-GmpHeadProd1-2026!' } },
+  // Phase 4 slice 7b: the US quality-control unit's signer (US dispositions, PR-54) and the EU qualified person (in-system
+  // certification, PR-55), for the golden batches and the release specs.
+  { key: 'usQcu', installation: 'GMP', legalName: 'Nandini Rao', loginName: 'nandini.rao', roleCode: 'US_QCU_SIGNER', kiosk: false, homeTerminal: 'PC-QA-10', title: 'US quality-control unit (dispositions)', demo: { password: 'Demo-GmpUsQcu-2026!' } },
+  { key: 'euQp', installation: 'GMP', legalName: 'Joachim Weber', loginName: 'joachim.weber', roleCode: 'EU_QP', kiosk: false, homeTerminal: 'PC-QA-10', title: 'EU qualified person (certification)', demo: { password: 'Demo-GmpEuQp-2026!' } },
   // Sandbox (test runs on the shop floor)
   { key: 'issuer', installation: 'SANDBOX', legalName: 'TEST-Rohan Gupta', loginName: 'test-issuer', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Batch issuer', demo: { password: 'Demo-Issuer-2026!' } },
   { key: 'steward', installation: 'SANDBOX', legalName: 'TEST-Neha Joshi', loginName: 'test-steward', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Master-data steward (test lots)', demo: { password: 'Demo-Steward-2026!' } },

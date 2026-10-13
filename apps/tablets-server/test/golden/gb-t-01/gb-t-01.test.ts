@@ -18,6 +18,9 @@ import { setUpPlant } from './plant.ts';
 import { resultsOf, type BatchResults } from './results.ts';
 import { planAll, runSource, runVariant, SOURCE_AGE_MINUTES } from './scenario.ts';
 import { startGoldenWorld, type GoldenWorld } from './world.ts';
+import { DRUMS, ORDER_PLAN, PRODUCT_TESTS, RESERVE_PACKS, runContinuation, TIMINGS, type Continuation } from './release.ts';
+import { lotFacts, orderFacts, reportNames, type LotFacts, type OrderFacts } from './release-results.ts';
+import type { GoldenBatch } from './driver.ts';
 
 type Json = Record<string, unknown>;
 const expected = JSON.parse(readFileSync(new URL('./expected.json', import.meta.url), 'utf8')) as Json & {
@@ -30,6 +33,11 @@ const expected = JSON.parse(readFileSync(new URL('./expected.json', import.meta.
   coating: Record<string, string>;
   inspection: Record<string, string>;
   fromTheRun: Json & { master: Json; happy: RunExpectation; exceptionRich: RunExpectation };
+};
+/** The continuation to the release (Phase 4 slice 7b): its own file, recorded once; GB-T-01's outputs above never move. */
+const release = JSON.parse(readFileSync(new URL('./expected-release.json', import.meta.url), 'utf8')) as {
+  worksheet: Json & { order: Json; lot: Json; drums: string[] };
+  fromTheRun: { orders: Json[]; lots: Json[] };
 };
 
 interface RunExpectation {
@@ -69,7 +77,7 @@ function laterDays(): number {
 describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => {
   let w: GoldenWorld;
   let negatives: MasterNegatives;
-  const run: { happy?: BatchResults; exception?: BatchResults; notes?: { happy: Json; exception: Json } } = {};
+  const run: { happy?: BatchResults; exception?: BatchResults; notes?: { happy: Json; exception: Json }; happyBatch?: GoldenBatch; numbers?: string[]; start?: bigint } = {};
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ['performance'] });
     w = await startGoldenWorld();
@@ -121,6 +129,9 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
     run.happy = await resultsOf(w, p.happy.batchId, numbers, start * 1_000_000n);
     run.exception = await resultsOf(w, p.exception.batchId, numbers, start * 1_000_000n);
     run.notes = { happy: p.happy.notes, exception: p.exception.notes };
+    run.happyBatch = p.happy;
+    run.numbers = numbers;
+    run.start = start;
     const dump = process.env['EBMR_GOLDEN_DUMP'];
     if (dump) writeFileSync(dump, JSON.stringify({ notes: run.notes, happy: run.happy, exception: run.exception, negatives, masterChecks: w.masterChecks }, null, 1));
     expect(run.happy.states.batch).toBe('EXECUTION_COMPLETE');
@@ -217,6 +228,79 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
     it('has the expected number of signatures and the hash of its normalised true copy', () => {
       expect(r().signatures).toBe(want().signatures);
       expect(r().trueCopy.sha256).toBe(want().normalisedTrueCopySha256);
+    });
+  });
+
+  // Phase 4 slice 7b (D-P4-15): GB-T-01 continued from the release for packing to the release. Its outputs are recorded in
+  // expected-release.json; nothing it does comes before the outputs above are read.
+  describe('continued to the release: two blister orders from one bulk', () => {
+    const cont: { c?: Continuation; orders: BatchResults[]; facts: OrderFacts[]; lots: LotFacts[]; units: string[][] } = { orders: [], facts: [], lots: [], units: [] };
+    const c = (): Continuation => {
+      if (!cont.c) throw new Error('the continuation did not run');
+      return cont.c;
+    };
+
+    it('packs the happy variant\'s bulk in two blister orders, reviews the records, tests and samples the lots and releases them through G-REL', async () => {
+      const happy = run.happyBatch;
+      if (!happy || !run.numbers || run.start === undefined) throw new Error('the scenario did not run');
+      cont.c = await runContinuation(w, happy);
+      const numbers = [...run.numbers, ...cont.c.orders.map((o) => o.batchNumber)];
+      const qa = await w.server.asPersona('qaInvestigator');
+      for (const o of cont.c.orders) {
+        cont.orders.push(await resultsOf(w, o.batchId, numbers, run.start * 1_000_000n));
+        cont.facts.push(await orderFacts(w, o.batchId));
+        cont.units.push(await reportNames(qa, o.batchId, ['BLISTER-01', 'CTN-01', 'BAL-PL-01', 'PL-1']));
+      }
+      for (const l of cont.c.lots) cont.lots.push(await lotFacts(w, l.lotId, numbers));
+      const dump = process.env['EBMR_GOLDEN_DUMP'];
+      if (dump) writeFileSync(dump.replace(/(\.json)?$/, '-release.json'), JSON.stringify({ orders: cont.orders, facts: cont.facts, lots: cont.lots, units: cont.units, grel: cont.c.grel, timings: TIMINGS }, null, 1));
+      expect(cont.c.decisions).toEqual(['RELEASED', 'RELEASED']);
+    }, 3_600_000);
+
+    it('[IN-16][INV-27][PR-34][L-30] two packaging records of the one bulk batch: each linked to it, each started on its own verified PACKAGING_ORDER clearance of the line, the line and its units cleaned between them', () => {
+      const happy = run.happyBatch?.batchNumber ?? '';
+      expect(cont.facts.map((f) => f.parent)).toEqual([happy, happy]);
+      expect(cont.facts.map((f) => f.clearance)).toEqual(['PACKAGING_ORDER PASSED VERIFIED', 'PACKAGING_ORDER PASSED VERIFIED']);
+      expect(cont.facts.map((f) => f.bulkIssued)).toEqual(release.worksheet['bulkIssued']);
+      expect(c().drums.length).toBe(DRUMS.length);
+    });
+
+    it('[IN-17][PR-39][PR-31][PR-37] each order reconciles its printed foil and cartons with nothing unexplained, packs the worksheet\'s cartons into shippers and reaches the worksheet\'s packaging yield', () => {
+      const o = release.worksheet.order;
+      for (const [i, f] of cont.facts.entries()) {
+        expect(f.reconciliations, `order ${String(i + 1)}`).toEqual(o['reconciliations']);
+        expect({ packs: f.shipperPacks, shippers: f.shippers }).toEqual({ packs: ORDER_PLAN.packs, shippers: o['shippers'] });
+        const v = cont.orders[i]?.values ?? {};
+        expect(Dec.parse(String(v['packYield@p-pk-yield@'])).toFixed(2, 'HALF_UP')).toBe(o['packYield']);
+        expect([v['tabletsIssued@p-pk-count@'], v['tabletsPacked@p-pk-count@']].map((x) => Dec.parse(String(x)).toString())).toEqual([ORDER_PLAN.tabletsIssued, ORDER_PLAN.tabletsPacked]);
+      }
+    });
+
+    it('[PR-22] the batch report of each order (its PDF/A-3 true copy) names the line and the units it ran on', () => {
+      expect(cont.units).toEqual([['BLISTER-01', 'CTN-01', 'BAL-PL-01', 'PL-1'], ['BLISTER-01', 'CTN-01', 'BAL-PL-01', 'PL-1']]);
+    });
+
+    it('[INV-05][IN-05][PR-45][PR-44][PR-53] each finished lot: the worksheet\'s packs, release results approved by the head of QC, reserve samples, G-REL for India green with every item read from signed records, RELEASED by the AP', () => {
+      const l = release.worksheet.lot;
+      for (const x of cont.lots) {
+        expect(x.quantity).toBe(`${ORDER_PLAN.packs} packs`);
+        expect(x.results).toEqual(PRODUCT_TESTS.map((t) => `${t.testCode} ${t.result} ${t.unit} PASS APPROVED`).sort());
+        expect(x.samples).toEqual([`RESERVE ${RESERVE_PACKS} packs`]);
+        expect(x.state).toBe(l['state']);
+      }
+      expect(cont.lots).toEqual(release.fromTheRun.lots);
+    });
+
+    it.each([0, 1])('order %i ends in the expected states, exceptions and dispositions, with its signature count and the hash of its normalised true copy', (i) => {
+      const x = cont.orders[i];
+      if (!x) throw new Error('the continuation did not run');
+      const want = release.fromTheRun.orders[i] as Json;
+      const notCompleted = Object.entries(x.states.steps).filter(([, st]) => st !== 'COMPLETED').map(([k, st]) => `${k} ${st}`);
+      expect({ batch: x.states.batch, stages: x.states.stages, containers: x.states.containers, notCompleted }).toEqual(want['states']);
+      expect(exceptionCounts(x)).toEqual(want['exceptions']);
+      expect(x.genealogy.consumptions).toEqual(want['consumptions']);
+      expect(x.signatures).toBe(want['signatures']);
+      expect(x.trueCopy.sha256).toBe(want['normalisedTrueCopySha256']);
     });
   });
 });

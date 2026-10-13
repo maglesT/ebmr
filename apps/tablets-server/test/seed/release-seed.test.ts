@@ -1,9 +1,9 @@
 /**
- * The release demo of the set-up CLI (`--gmp-packaging`, Phase 4 slice 3c, step 7 of review-batch.ts): a finished lot in
- * quarantine, posted by the warehouse from an issued packaging order of the review batch; the database computes it
- * NOT_READY (its records are not reviewed) and evaluates its release gate, so the cockpit and the e2e release spec have a
- * lot to show and to reject. No placeholder signature: the only shortcut is the labelled completion of the order's
- * record (as for the review batch).
+ * The release demo of the set-up CLI (`--gmp-packaging`, Phase 4 slice 3c; since slice 7b through real signed acts,
+ * release-path.ts, no DEMO SHORTCUT on the release path): a GB-T-02 batch released for packing by QA at its hold point and
+ * two bottle orders run to their end. The first order's finished lot is tested, sampled and its records reviewed, so the
+ * database computes it READY with no red G-REL item for IN, US and EU (the green release specs); the second order's lot,
+ * posted in quarantine with an open deviation on its record, is NOT_READY (the rejection specs).
  */
 import { randomBytes } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -46,7 +46,19 @@ describe('the release demo of the set-up CLI (demo seed)', () => {
     expect(g?.ready).toBe(false);
     expect(g?.items.some((i) => i.status === 'RED')).toBe(true);
     expect(g?.items.some((i) => i.status === 'GREEN')).toBe(true);
-    expect(r?.orderBatchNumber).toBe(`${batch.batchNumber}/P01`);
+    expect(r?.orderBatchNumber).toBe(`${batch.packaging?.parentBatchNumber ?? ''}/P02`);
+  }, 120_000);
+
+  it('[IN-05][INV-05] the ready lot, tested, sampled and reviewed through real signed acts, is READY with no red G-REL item for IN, US and EU', async () => {
+    const r = batch.readyLot;
+    expect(r).toBeDefined();
+    const db = server.db.app;
+    expect((await db.query<{ s: string }>('select recipe.manufacturer_release_state($1) as s', [r?.lotId])).rows[0]?.s).toBe('READY');
+    for (const market of ['IN', 'US', 'EU']) {
+      const g = (await db.query<{ g: { ready: boolean; items: { id: string; status: string }[] } }>('select recipe.grel_evaluate($1, $2) as g', [r?.lotId, market])).rows[0]?.g;
+      expect(g?.items.filter((i) => i.status === 'RED').map((i) => i.id), market).toEqual([]);
+    }
+    expect(r?.orderBatchNumber).toBe(`${batch.packaging?.parentBatchNumber ?? ''}/P01`);
   }, 120_000);
 
   it('[PR-43] the finished lot expires at the end of recipe.batch_expiry\'s date in the site\'s zone (tablets 1201); the application can neither type an expiry nor change one', async () => {

@@ -22,6 +22,8 @@
  *     in-process check on the press puts a hold on it (it is HELD once closed);
  *  5. DEMO SHORTCUT, never a GMP code path: the record's execution status is set to EXECUTION_COMPLETE by a superuser
  *     update (the remaining steps of the master are not run; the engine's completeness is proven by the golden batch).
+ * With --gmp-packaging, steps 6 and 7 (slice 7b, release-path.ts) run a GB-T-02 batch and its bottle orders through real
+ * signed acts only: H-PACK signed by QA, no shortcut; one finished lot READY, one NOT_READY, and an open bottle order.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
@@ -30,13 +32,13 @@ import { canonicalJson, sha256Hex } from '@ebmr/expr';
 import { lifecycle } from '@ebmr/recipe-core';
 import { esig, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { createApiClient, routes, type ApiClient, type ClientIntent, type DeviceProof, type FetchLike, type FormulaLineInput, type Result, type SignableAction, type SignedIntent } from '@ebmr/api-contract';
-import { freshTap, openPersonaSession, openServiceSession, personaOf, signDeviceProof, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
+import { freshTap, openPersonaSession, personaOf, signDeviceProof, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
 import { buildApp, type BuiltApp } from '../app.ts';
 import { parseConfig } from '../config.ts';
 import { loadValidationContext } from '../features/designer/adapters/expressions.ts';
 import { recordContentForSigning } from '../features/esig/content.ts';
 import { GBT01_PRODUCT } from '../features/execution/seed-gb-t-01.ts';
-import { PACK_SIZE_ID, PACK_TYPE, packagingMasterContent } from './packaging-master.ts';
+import { seedReleasePath } from './release-path.ts';
 import { newSessionToken, tokenHash } from '../platform/auth/session.ts';
 
 const ORIGIN = 'http://localhost:3001';
@@ -75,7 +77,7 @@ export interface PackagingSeed {
   familyCode: string;
   packType: string;
   line: string;
-  /** The second GB-T-01 batch, issued, released for packing by the DEMO SHORTCUT, with usable containers. */
+  /** The GB-T-02 batch released for packing by QA at its hold point (slice 7b), with usable containers. */
   parentBatchId: string;
   parentBatchNumber: string;
   containers: string[];
@@ -90,13 +92,15 @@ export interface ReviewBatchSeed {
   packaging?: PackagingSeed;
   /** The release demo (step 7, with --gmp-packaging): a finished lot in quarantine, NOT_READY. */
   release?: ReleaseSeed;
+  /** The release specs' lot (slice 7b, with --gmp-packaging): tested, sampled and reviewed, G-REL green, READY. */
+  readyLot?: ReleaseSeed;
 }
 
 /** DEMO-ONLY data of the release demo (step 7). */
 export interface ReleaseSeed {
   lotId: string;
   lotCode: string;
-  /** The packaging order the lot was posted from (its record marked complete by the DEMO SHORTCUT). */
+  /** The packaging order the lot was posted from (run to its end through real acts, slice 7b). */
   orderBatchId: string;
   orderBatchNumber: string;
 }
@@ -406,142 +410,16 @@ async function run(built: BuiltApp, opts: ReviewBatchSeedOptions, log: (m: strin
   const out: ReviewBatchSeed = { batchId, batchNumber: planned.batchNumber, containerId: container.containerId, containerLabel: container.label };
   if (!opts.packaging) return out;
 
-  // 6. The packaging-order demo (Phase 4 slice 2c): a packaging master of GB-T-01 (pack type ALU-PVC-BLISTER, with its
-  //    TB-24 step), approved and authorised like the processing master, its numbering rule and an open ERP order; a
-  //    second GB-T-01 batch issued from the second ERP order, with two output containers opened, closed with a typed net
-  //    and verified by a second person (usable for packing); its release for packing by the DEMO SHORTCUT below.
-  log('packaging demo: the packaging master of GB-T-01');
-  const packCode = `GBT01-BL10-${tag}`;
-  const packContent = packagingMasterContent(packCode);
-  const packFamily = await withCommand(db.app, { ...o('author').actor, correlationId: randomUUID() }, (c) => lifecycle.defineFamily(c, lifecycle.familyOf(packContent)));
-  const packVersion = (
-    await withCommand(db.app, { ...o('author').actor, correlationId: randomUUID() }, (c) => lifecycle.createVersion(c, packFamily, packContent, 'Packaging master of GB-T-01 (DEMO-ONLY)'))
-  ).versionId;
-  const packCr = await withCommand(db.app, { ...o('approver').actor, correlationId: randomUUID() }, (c) =>
-    lifecycle.recordChangeRecord(c, { number: `CC-GBT01-PK-${tag}`, title: 'New pack GB-T-01 Alu-PVC blister (invented)', changeClass: 'MAJOR', processImpacting: true, validationRef: 'VR-GBT01-PK' }),
-  );
-  await withCommand(db.app, { ...o('author').actor, correlationId: randomUUID(), reasonCode: 'NEW_MASTER', reasonText: 'GB-T-01 packaging master: change record, review date and risk assessment' }, async (c) => {
-    await lifecycle.setDraftAttributes(c, packVersion, { changeRecordId: packCr, effectiveFrom: '2026-01-01T00:00:00Z', reviewDue: '2028-12-31' });
-    await lifecycle.linkRiskAssessment(c, packVersion, ra);
-  });
-  const packStored = (await lifecycle.loadContent(db.app, packVersion)).content;
-  await withCommand(db.app, { ...o('author').actor, correlationId: randomUUID() }, (c) =>
-    lifecycle.recordEvidence(c, packVersion, 'SANDBOX_RUN', lifecycle.sandboxRunEvidence(packStored, { runId: `SBX-GBT01-PK-${tag}`, sandbox: 'ebmr_sandbox_tablets', coverage: { steps: '100%' }, passed: true })),
-  );
-  const packHead = value(await o('author').api.call(routes.designer.version, { params: { versionId: packVersion } }), 'the packaging version');
-  const packStarted = value(await o('author').api.call(routes.designer.startVerification, { params: { versionId: packVersion }, body: { baseRevision: packHead.revision } }), 'the start of the packaging verification');
-  const packContext = (await loadValidationContext(db.app, packStored)).context;
-  const packVerification = lifecycle.createVerificationPort(packContext).verify(packStored, []);
-  await withCommand(db.app, { ...o('author').actor, correlationId: randomUUID() }, (c) => lifecycle.recordVerification(c, packVersion, packVerification, [], personaOf(seed, 'author').personId));
-  const pt = (transition: 'SUBMIT' | 'CHECK' | 'APPROVE' | 'REGULATORY_CONFIRM') => ({ kind: 'MBR_TRANSITION' as const, versionId: packVersion, transition, baseRevision: packStarted.revision });
-  await sign(o('author'), pt('SUBMIT'), 'PREPARED (packaging)');
-  await sign(o('checker'), pt('CHECK'), 'CHECKED (packaging)');
-  await sign(o('regulatory'), pt('REGULATORY_CONFIRM'), 'REGULATORY_CONFIRMED (packaging)');
-  await sign(o('approver'), pt('APPROVE'), 'APPROVED (packaging)');
-  const packDef: lifecycle.MarketAuthorisationDefinition = { versionId: packVersion, market: 'IN', kind: 'CURRENT', cells: [{ site: SITE, line: LINE, batch_size: PACK_SIZE_ID }], regulatoryBasis: 'IN: registration on file (invented product)' };
-  const packMa = await withCommand(db.app, { ...o('approver').actor, correlationId: randomUUID() }, (c) => lifecycle.proposeMarketAuthorisation(c, packDef));
-  const packQa = await signDirect(o('approver'), lifecycle.MARKET_AUTHORISATION_AGGREGATE, packMa, 'MBR_MARKET_AUTHORISED', 'PROPOSED');
-  const packReg = await signDirect(o('regulatory'), lifecycle.MARKET_AUTHORISATION_AGGREGATE, packMa, 'REGULATORY_CONFIRMED', 'PROPOSED');
-  await withCommand(db.app, { ...o('approver').actor, correlationId: randomUUID(), reasonCode: 'MARKET_AUTHORISED', reasonText: 'IN: GB-T-01 Alu-PVC blister authorised at SITE-1 L1' }, (c) =>
-    lifecycle.activateMarketAuthorisation(c, packMa, packQa, packReg),
-  );
-  await dbAs(
-    o('steward'),
-    'select site.define_batch_number_rule($1::jsonb) as r',
-    [JSON.stringify({ rule_code: `GBT01-PACK-${tag}`, site_code: SITE, product_code: GBT01_PRODUCT.productCode, batch_kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}', site_zone: 'Asia/Kolkata', reason: 'Numbering SOP-QA-017 rev 3' })],
-    { reasonCode: 'NEW_PRODUCT', reasonText: 'Packaging numbering of GB-T-01' },
-  );
-  const packSize = packContent.header.batchSizes.find((b) => b.id === PACK_SIZE_ID);
-  if (!packSize) throw new Error(`the packaging master has no batch size ${PACK_SIZE_ID}`);
-  const erp = await openServiceSession(db, seed, 'erpInterface');
-  /** An open ERP order of the packaging master. */
-  const postPackOrder = async (no: string): Promise<string> => {
-    await withCommand(db.app, { ...erp, correlationId: randomUUID() }, (c) =>
-      c.query('select site.erp_receive_order($1::jsonb)', [
-        JSON.stringify({
-          orderNo: no,
-          siteCode: SITE,
-          productCode: GBT01_PRODUCT.productCode,
-          strength: GBT01_PRODUCT.strength,
-          batchSize: packSize.quantity.value,
-          batchSizeUnit: packSize.quantity.unit,
-          bom: packContent.bom.map((b) => ({ materialCode: b.material, quantity: b.quantity.value, unit: b.quantity.unit })),
-          erpReference: `SAP-PP-${no}`,
-        }),
-      ]),
-    );
-    return no;
-  };
-  const orderNo = await postPackOrder(`PO-GBT01-PK-${tag}`);
-
-  log('packaging demo: a second GB-T-01 batch with two usable containers');
-  const second = value(await o('issuer').api.call(routes.execution.planBatch, { body: { familyId: created.familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE_ID } }), 'the plan of the second batch');
-  await sign(
-    o('issuer'),
-    { kind: 'GMP_BATCH_ISSUE', batchId: second.batchId, reason: { code: 'PRODUCTION_PLAN', text: 'Issued for the production plan' }, variants: {}, inputs: { tabletsPerBatch: { kind: 'COUNT', value: '200000' } } },
-    'the issue of the second batch',
-  );
-  const checker = await browserOf('verifier1', 'KIOSK-COMP-1');
-  const labels: string[] = [];
-  for (const net of ['40.500', '40.250']) {
-    const body = { batchId: second.batchId, stage: 'COMPRESSION', unit: 'kg' as const };
-    const opened = value(await press.api.call(routes.containers.open, { body, attribution: await tapOf(press, '/api/containers', body) }), 'a container of the second batch');
-    const closeBody = { expectedVersion: opened.version, typed: { net } };
-    const closePath = `/api/containers/${opened.containerId}/close`;
-    value(await press.api.call(routes.containers.close, { params: { containerId: opened.containerId }, body: closeBody, attribution: await tapOf(press, closePath, closeBody) }), `the close of ${opened.label}`);
-    await sign(checker, { kind: 'CONTAINER_ACT', act: 'VERIFY_CLOSE', containerId: opened.containerId }, `the verification of ${opened.label}`);
-    labels.push(opened.label);
-  }
-  // DEMO SHORTCUT (never a GMP code path): the second batch's hold point H-PACK ("bulk released for packing") is set
-  // APPROVED in its stored state by a superuser update, as QA's hold-point disposition would leave it, so its bulk can be
-  // issued to a packaging order without running the rest of the master here (GB-T-01 runs it for real in the golden batch).
-  // The state guards refuse a step the token has not reached, so the update runs with the triggers off (replica), as the
-  // recipe-core bulk-issue tests arrange it.
-  log('packaging demo: DEMO SHORTCUT, H-PACK of the second batch set APPROVED by the superuser (triggers off)');
-  await assertDemoInstallation(db, opts.database);
-  const shortcut = await db.admin.connect();
-  try {
-    await shortcut.query('begin');
-    await shortcut.query("set local session_replication_role = 'replica'");
-    await shortcut.query("update recipe.execution_state set state = jsonb_set(state, '{steps,H-PACK@}', $2::jsonb) where batch_id = $1", [
-      second.batchId,
-      JSON.stringify({ key: 'H-PACK@', step: 'H-PACK', status: 'COMPLETED', disposition: { value: 'APPROVED', positive: true }, signatures: [{ id: randomUUID(), meaning: 'QA_HOLD_POINT', role: 'HOLD_POINT', valid: true }], demoShortcut: true }),
-    ]);
-    await shortcut.query('commit');
-  } catch (e) {
-    await shortcut.query('rollback');
-    throw e;
-  } finally {
-    shortcut.release();
-  }
-  log(`packaging demo: order ${orderNo} of ${packCode} open; batch ${second.batchNumber} released for packing with containers ${labels.join(', ')}`);
-
-  // 7. The release demo (Phase 4 slice 3c): a finished lot in quarantine for the release cockpit. A packaging order of the
-  //    review batch is planned against its own ERP order and issued by the issuer through the ceremony; DEMO SHORTCUT, as
-  //    in step 5, its record is marked complete by a superuser update (its packing steps are not run here); the
-  //    warehouse posts its finished lot through the edition's definer. The lot is NOT_READY (its records are not
-  //    reviewed and the packing items are red), so the cockpit shows red and green items and the AP may reject it.
-  log('release demo: a packaging order of the review batch and its finished lot');
-  const releaseOrderNo = await postPackOrder(`PO-GBT01-PK2-${tag}`);
-  const order = value(
-    await o('issuer').api.call(routes.planning.planPackagingOrder, { body: { familyId: packFamily, markets: ['IN'], site: SITE, line: LINE, batchSize: PACK_SIZE_ID, erpOrder: releaseOrderNo, parentBatchId: batchId } }),
-    'the plan of the release demo packaging order',
-  );
-  await sign(
-    o('issuer'),
-    { kind: 'GMP_BATCH_ISSUE', batchId: order.batchId, reason: { code: 'PACKING_PLAN', text: `Packaging order of batch ${planned.batchNumber} for the India market` }, variants: {}, inputs: { tabletsPerBatch: { kind: 'COUNT', value: '100000' } } },
-    'the issue of the release demo packaging order',
-  );
-  log('release demo: DEMO SHORTCUT, the packaging order set EXECUTION_COMPLETE by the superuser');
-  await assertDemoInstallation(db, opts.database);
-  await db.admin.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [order.batchId]);
-  const stores = await browserOf('stores');
-  const lotId = await dbAs<string>(stores, 'select tab.post_finished_lot($1, $2, $3) as r', [order.batchId, '1000', 'packs'], { reasonCode: 'PACKING_COMPLETE', reasonText: 'Finished packs of the packaging order posted' });
-  const lotCode = (await db.app.query<{ c: string }>('select lot_code as c from site.material_lot where id = $1', [lotId])).rows[0]?.c ?? '';
-  log(`release demo: finished lot ${lotCode} (${lotId}) of packaging order ${order.batchNumber} in quarantine`);
+  // 6 and 7. The packaging-order demo (Phase 4 slice 2c) and the release demo (slice 3c), through real signed acts since
+  //    slice 7b (release-path.ts): a GB-T-02 batch run to QA's release for packing at H-PACK (no DEMO SHORTCUT of the hold
+  //    point), its bottle orders run to their end, one finished lot tested and its records reviewed (READY, for the release
+  //    specs), one posted and NOT_READY (the rejection demo), and an open bottle order with the batch's last containers
+  //    (the packaging-order demo).
+  const rp = await seedReleasePath({ database: opts.database, keysDir: opts.keysDir, exchangeDir: opts.exchangeDir, seed, db, log, tag });
   return {
     ...out,
-    packaging: { orderNo, familyCode: packCode, packType: PACK_TYPE, line: LINE, parentBatchId: second.batchId, parentBatchNumber: second.batchNumber, containers: labels },
-    release: { lotId, lotCode, orderBatchId: order.batchId, orderBatchNumber: order.batchNumber },
+    packaging: rp.packaging,
+    release: rp.notReadyLot,
+    readyLot: rp.readyLot,
   };
 }
