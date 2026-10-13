@@ -71,7 +71,7 @@ describe('contingency packs (kernel 1170)', () => {
     );
   });
 
-  it('[DI-43][PR-16] issue 3 contingency sheets and return 2: completion is blocked and the message names the sheet not reconciled', async () => {
+  it('[DI-43][PR-16][PR-11] issue 3 contingency sheets and return 2: completion is blocked and the message names the sheet not reconciled', async () => {
     const batch = randomUUID();
     const forms = await pack(batch, 3);
     expect(forms.map((f) => `${f.pageNo}/${f.pageCount}`)).toEqual(['1/3', '2/3', '3/3']);

@@ -35,7 +35,7 @@ implemented_by:
     - "INV-03"
 tests:
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-14] G-16 Verification / witness: An independent line check confirmed and witnessed by a second person"
-  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
   - "packages/recipe-core/test/engine/golden.test.ts > golden run: granulation, drying loop, sub-lots, blending, compression (tablet-granulation-compression) > [INV-03][PR-14] every checked step was verified by a person who neither performed nor entered data in it, and the involvement facts were emitted"
   - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][PR-14] the person who performed a step cannot verify it, even when they hold the checker role"
   - "apps/tablets-server/test/designer/roles.test.ts > who releases a QA hold point, and roles outside the engine vocabulary (F48, F49) > [INV-26][PR-14] a role outside the engine vocabulary fails the gate (FLOW-ROLES), wherever the master names it"

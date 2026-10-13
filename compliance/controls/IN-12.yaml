@@ -16,6 +16,11 @@ behaviour: "The vendor ships a validation package usable in the customer's valid
 catalog_test: the package contains each listed artefact and the SMF paragraph.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "the package contains each listed artefact and the SMF paragraph."
+    deferred:
+      phase: 7
+      reason: "The validation package and the site master file paragraph are generated with the validation pack in Phase 7 (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -58,6 +58,13 @@ tests:
   - "packages/site-services/test/mutation/reprocessing.test.ts > the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem) > [PR-47][IN-19] the total added at the step against the MBR percentage of the batch size: the limit included, g and kg converted, other steps not counted"
   - "packages/site-services/test/mutation/reprocessing.test.ts > the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem) > [PR-47][IN-19] the authorisation: signed, of this batch, use, step, container and case; used once"
   - "packages/site-services/test/mutation/reprocessing.test.ts > the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem) > [PR-47][IN-19] the facts of a source: none for a container not closed; residue reserved and closed, or released by QA; no case once charged or poured into another"
+clauses:
+  - clause: "add recovered material without prior authorisation; the step is blocked."
+    tests:
+      - "packages/recipe-core/test/blocks/process.test.ts > G-24 reprocessing and recovery gate > [PR-47][IN-19] recovered material cannot be added without prior authorisation citing an investigation and a risk evaluation"
+      - "packages/recipe-core/test/blocks/reprocessing.test.ts > G-24@2 reprocessing and recovery gate on the database facts > [PR-47][IN-19][DI-33] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused"
+      - "apps/tablets-server/test/blocks/reprocessing/blocks.test.ts > TB-08@1 rework or recovered-material addition > [PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused"
+      - "apps/tablets-server/test/blocks/reprocessing/db-guards.test.ts > reprocessing and recovery additions in the database (recipe-core 0620 to 0622, tablets 1020, 1021) > [PR-47][IN-19] an addition without prior authorisation, by its authoriser, of another product, over the MBR percentage, age or source-batch count, from a source holding recovered material, from material of another status, or from ad-hoc material is refused by the database, past a forged engine"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

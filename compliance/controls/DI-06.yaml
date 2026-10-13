@@ -23,6 +23,15 @@ behaviour: |-
 catalog_test: Enable an interface that is not in the approved description. The drift alarm fires. Every critical limit shows boundary-test evidence in the matrix.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "Enable an interface that is not in the approved description. The drift alarm fires."
+    deferred:
+      phase: 7
+      reason: "The approved system description and requirements traceability are part of the generated validation pack (URS, specifications, trace matrix) of Phase 7 (build outline 11; Phase 4 plan, slice 7: documentation-type control); the interface adapters it would describe arrive in Phase 6."
+  - clause: "Every critical limit shows boundary-test evidence in the matrix."
+    deferred:
+      phase: 7
+      reason: "The trace matrix of the validation pack, with boundary-test evidence per critical limit, is generated in Phase 7 (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -31,6 +31,14 @@ tests:
   - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-42][INV-32][IN-17][PR-39][PR-40][IN-22] serial pools and reports are the L3 system's as recorded; the release gate and the step close fail closed until the pool closes with zero unexplained; the reconciliation always runs, outside its limits only with its exception; coded surplus is destroyed, never returned"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 reconciliation > [INV-32][PR-40] limits as an amount and as a percentage of the issued; an uncoded item has nothing coded; typed counts need a second person"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
+clauses:
+  - clause: "No transaction exists to return batch-coded cartons to stock."
+    tests:
+      - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-40] G-23 Returns, rejects, destruction: Batch-coded cartons destroyed and witnessed; a return of batch-coded cartons to stock is refused"
+      - "packages/recipe-core/test/blocks/material.test.ts > G-23 returns, rejects and destruction > [PR-40] batch-coded leftovers can only be destroyed, never returned to stock; destruction records its method and is witnessed"
+  - clause: "A return of uncoded labels updates stock only after a count verification."
+    tests:
+      - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 reconciliation > [INV-32][PR-40] limits as an amount and as a percentage of the issued; an uncoded item has nothing coded; typed counts need a second person"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

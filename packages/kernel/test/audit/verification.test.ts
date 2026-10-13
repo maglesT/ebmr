@@ -63,7 +63,7 @@ describe('the verification job (DI-23)', () => {
     expect(rows).toEqual([{ problem_count: 0, alarm_severity: null, run_by: 'ebmr_app' }]);
   });
 
-  it('[DI-23][INV-08] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed', async () => {
+  it('[DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed', async () => {
     const altered = await chainOf(3);
     const headless = await chainOf(2);
     const listener = new pg.Client({ connectionString: urlFor(db.name, { name: 'ebmr_app', password: 'ebmr_app' }) });

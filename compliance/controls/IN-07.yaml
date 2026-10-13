@@ -16,7 +16,16 @@ sources: Schedule M Part I section 1 PQS list (records during manufacture show e
 behaviour: (a) Each step is recorded at the time of the action with a server timestamp; entries by hand, by instrument interface, or both, are supported. (b) A batch cannot be completed while any mandatory step is unexecuted; skipped or not-applicable steps need a reasoned, signed justification. (c) Significant deviations are captured at the point of occurrence (IN-20). (d) Full backward genealogy (every input lot) and forward genealogy (packaging batches, distribution records) is queryable per batch. (e) The complete record renders in a human-readable form for the whole retention period (IN-08).
 catalog_test: skip a step; completion is refused. From a finished batch, list every input lot and every customer shipment.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16][IN-07] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
+clauses:
+  - clause: "skip a step; completion is refused."
+    tests:
+      - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16][IN-07] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
+  - clause: "From a finished batch, list every input lot and every customer shipment."
+    deferred:
+      phase: 6
+      reason: "Customer shipments are the ERP/WMS adapter's, and the genealogy explorer with its forward and backward lists comes in Phase 6 (build outline 11, whose exit names PR-57 and IN-29); Phase 4 has the ERP shipping stub only."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

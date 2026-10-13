@@ -20,6 +20,14 @@ catalog_test: give one user production-head and QA-head roles on one batch; the 
 implemented_by: {}
 tests:
   - "packages/kernel/test/review/f79.test.ts > F79: site-scoped qualification requirements are skipped when the request has no site (INV-26, DI-21, IN-04) > [INV-26][IN-04] esig.sign: an unqualified verifier cannot sign VERIFIED on an entry whose provider returns no site"
+  - "packages/recipe-core/test/engine/approvals-edges.test.ts > abort approvals > [DI-34][PR-13][IN-04] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once"
+clauses:
+  - clause: "give one user production-head and QA-head roles on one batch; the conflict is refused."
+    tests:
+      - "packages/recipe-core/test/engine/approvals-edges.test.ts > abort approvals > [DI-34][PR-13][IN-04] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once"
+  - clause: "Remove a user from the approved-staff register; they can no longer sign as production supervisor."
+    tests:
+      - "packages/kernel/test/review/f79.test.ts > F79: site-scoped qualification requirements are skipped when the request has no site (INV-26, DI-21, IN-04) > [INV-26][IN-04] esig.sign: an unqualified verifier cannot sign VERIFIED on an entry whose provider returns no site"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

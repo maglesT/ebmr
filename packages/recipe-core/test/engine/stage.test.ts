@@ -26,7 +26,7 @@ describe('G-01 issuance and header', () => {
     expect(run.state.header.marketSet).toEqual(['IN', 'US']);
   });
 
-  it('[PR-10][DI-10] header and master-data inputs are typed at issue with their source; the MBR hash is pinned; nothing is issued without them', () => {
+  it('[PR-10][DI-10][DI-42] header and master-data inputs are typed at issue with their source; the MBR hash is pinned; nothing is issued without them', () => {
     const missing = omit(inputs, 'labelClaim');
     expect(() => Run.issue(def, { inputs: missing })).toThrow(/labelClaim/);
     expect(() => Run.issue(def, { inputs: { ...inputs, batchSizeTablets: { value: { kind: 'DECIMAL', value: '1.5', unit: '1' }, source: 'h' } } })).toThrow(/declared type/);

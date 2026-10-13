@@ -24,7 +24,16 @@ behaviour: |-
   - Access to the data is maintained for the whole retention period, including across upgrades.
 catalog_test: The periodic readability report lists the sampled records, each opened with its audit trail. Deliberately corrupt a record in a test environment. The check detects it.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
+clauses:
+  - clause: "The periodic readability report lists the sampled records, each opened with its audit trail."
+    deferred:
+      phase: 7
+      reason: "The periodic readability report is part of the periodic evaluation pack (DI-11) generated in Phase 7 (build outline 11); Phase 4 has the integrity checks it would sample."
+  - clause: "Deliberately corrupt a record in a test environment. The check detects it."
+    tests:
+      - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

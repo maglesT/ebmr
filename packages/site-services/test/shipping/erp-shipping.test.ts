@@ -115,7 +115,7 @@ const problems = (s: Ship) =>
   ]);
 
 describe('ERP shipping interlock (INV-42, IN-05 (a))', () => {
-  it('[INV-42][IN-05] nothing ships without a current manufacturer release: a lot in quarantine, then held after its release, is refused; a released lot ships', async () => {
+  it('[INV-42][IN-05][PR-45] nothing ships without a current manufacturer release: a lot in quarantine, then held after its release, is refused; a released lot ships', async () => {
     const lot = await finishedLot(['IN']);
     expect((await problems({ lotId: lot, market: 'IN' })).join(' ')).toMatch(/no current manufacturer release \(release (NOT_READY|READY), lot QUARANTINE\)/);
     expect(await refusal(ship({ lotId: lot, market: 'IN' }))).toMatch(/EBMR-SHP-002 .*no current manufacturer release/);
@@ -151,7 +151,7 @@ describe('ERP shipping interlock (INV-42, IN-05 (a))', () => {
     await ship({ lotId: lot, market: 'IN' });
   });
 
-  it('[INV-42] a US consignee receives the lot only after the US disposition RELEASED, and only for a market in the lot\'s set', async () => {
+  it('[INV-42][PR-56] a US consignee receives the lot only after the US disposition RELEASED, and only for a market in the lot\'s set', async () => {
     const lot = await finishedLot(['IN', 'US']);
     await released(lot);
     expect(await refusal(ship({ lotId: lot, market: 'US' }))).toMatch(/EBMR-SHP-002 .*US disposition of lot .* is NOT_READY/);
@@ -164,7 +164,7 @@ describe('ERP shipping interlock (INV-42, IN-05 (a))', () => {
     expect(await refusal(ship({ lotId: lot, market: 'US' }))).toMatch(/US disposition .* is RELEASE_SUSPENDED/);
   });
 
-  it('[INV-42][DI-39] an EU lot ships only to the importer the technical agreement names, as quarantined goods until the QP certified it', async () => {
+  it('[INV-42][DI-39][PR-56] an EU lot ships only to the importer the technical agreement names, as quarantined goods until the QP certified it', async () => {
     const product = unique('EUP');
     const lot = await finishedLot(['IN', 'EU'], product);
     await released(lot);

@@ -466,9 +466,11 @@ describe('catalog-test clauses (review F14)', () => {
     }
     const deferredTo = (id: string, part: string): number | undefined => control(id).clauses?.find((k) => k.clause.includes(part))?.deferred?.phase;
     const testedBy = (id: string, part: string): number => control(id).clauses?.find((k) => k.clause.includes(part))?.tests?.length ?? 0;
-    expect(deferredTo('DI-34', 'disposition before review')).toBe(4);
     expect(deferredTo('PR-08', 'release screen')).toBe(4);
-    expect(deferredTo('PR-07', 'Three deviations')).toBe(4);
+    // Two deferred to phase 4 are tested since the Phase 4 trace (slice 7a): DI-34's disposition before review and
+    // PR-07's re-review task.
+    expect(testedBy('DI-34', 'disposition before review')).toBeGreaterThan(0);
+    expect(testedBy('PR-07', 'Three deviations')).toBeGreaterThan(0);
     // The three deferred to phase 3 are tested since slice 6c: PR-01's packaging order, DI-04's PLC recipe version and
     // DI-33's reprocessing scope (its tests carry the tag; no scope stays deferred).
     expect(testedBy('PR-01', 'packaging order')).toBeGreaterThan(0);

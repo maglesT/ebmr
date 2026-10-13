@@ -446,7 +446,7 @@ describe('numbering rules, rendering, allocation, registration and voids (IN-18,
     expect(await numbered('ERP-ZONE-1')).toBe(0);
   });
 
-  it('[IN-18][INV-27] a number already in the register is refused before anything else is checked (EBMR-SITE-013), voided numbers included', async () => {
+  it('[IN-18][INV-27][PR-10] a number already in the register is refused before anything else is checked (EBMR-SITE-013), voided numbers included', async () => {
     const id = await register(external('ERP-800'));
     for (const over of [{}, { edition: 'INJECTABLES', product_code: 'INJ1' }, { batch_kind: 'PACKAGING', parent_batch_number: 'NO-SUCH-PARENT' }]) {
       await expect(register(external('ERP-800', over)), JSON.stringify(over)).rejects.toThrow(
