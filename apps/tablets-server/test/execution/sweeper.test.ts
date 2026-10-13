@@ -198,7 +198,7 @@ describe('time sweeper', () => {
 });
 
 describe('a time limit across a client and server restart (PR-30)', () => {
-  it('[PR-30][INV-20] the elapsed time of a running constraint survives a restart of the server and of the client: the restarted server shows the same start and maximum, and breaches the limit at the time counted from the original start', async () => {
+  it('[PR-30][INV-20] the elapsed time of a running constraint survives a restart of the server and of the client: the restarted server shows the same start and maximum, and breaches the limit at the time counted from the original start with the system\'s exception that needs a deviation and flags the batch', async () => {
     const window = (): flow.MbrContent =>
       dcMiniVariant((prep, content) => {
         (content['timeConstraints'] as Record<string, unknown>[]).push({
@@ -241,6 +241,10 @@ describe('a time limit across a client and server restart (PR-30)', () => {
       expect(raised).toHaveLength(1);
       expect(raised[0]?.source.constraint).toBe('TC-CLEAR-RESTART');
       expect(raised[0]!.raisedAt - startUs).toBeGreaterThan(15_000_000n);
+      // The breach is raised by the system, needs a deviation and flags the batch: it is a release-blocking item of the register.
+      expect(raised[0]).toMatchObject({ deviationRequired: true, releaseBlocking: true, status: 'OPEN', raisedBy: 'SYSTEM' });
+      const { rows: register } = await second.db.admin.query<{ t: string }>('select exception_type as t from recipe.exception_register where batch_id = $1 and exception_id = $2', [runId, raised[0]?.id]);
+      expect(register).toEqual([{ t: 'TIME_MAX_BREACH' }]);
       expect((await timerOf(d2))?.status).toBe('BREACHED');
     } finally {
       if (second) {

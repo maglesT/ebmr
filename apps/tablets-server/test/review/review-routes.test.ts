@@ -216,7 +216,7 @@ describe('the CORRECT_ENTRY route (outline 5.2.3 path (a); S25)', () => {
 });
 
 describe('an out-of-limit value is committed before its warning (DI-28)', () => {
-  it('[DI-28] an out-of-limit value is in the audit trail as committed before the limit warning: the command that stored it is audited first in the commit, the warning is raised by that stored row, and the answer shows it with the committed value', async () => {
+  it('[DI-28] an out-of-limit value is in the audit trail as committed before the limit warning: the command that stored it is audited first in the commit, the warning is raised by that stored row, and the answer shows it with the committed value; a new browser reads the value back with its timestamp', async () => {
     const g = await startGmpBatchWorld(gmpContent(earlyBlendTime));
     try {
       const issuer = await g.gmp.asPersona('issuer');
@@ -229,6 +229,10 @@ describe('an out-of-limit value is committed before its warning (DI-28)', () => 
       const attempt = answer.step?.fields.find((f) => f.item === 'blendTime')?.attempts.at(-1);
       expect(attempt).toMatchObject({ value: { kind: 'DECIMAL', value: '19', unit: 'min' }, status: 'VALID' });
       expect(attempt?.verdict?.tier).toBe('INTERNAL_ACTION');
+      // The browser is gone (its session is never used again): a new browser and session read the value back as stored, with its time.
+      const fresh = new RunDriver(g.gmp, runId, { operator1: await g.gmp.asPersona('operator1') });
+      const reread = (await fresh.stepView('operator1', 'p-early-time@')).fields.find((f) => f.item === 'blendTime')?.attempts;
+      expect(reread?.map((a) => [a.value, a.at.us, a.status])).toEqual([[{ kind: 'DECIMAL', value: '19', unit: 'min' }, attempt?.at.us, 'VALID']]);
       const { rows: cmds } = await g.gmp.db.admin.query<{ seq: string; command_id: string }>(
         "select seq::text, command_id from recipe.execution_command where batch_id = $1 and command_type = 'RECORD_DATA' and accepted",
         [runId],
