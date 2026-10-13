@@ -65,6 +65,19 @@ tests:
   - "apps/tablets-server/test/mutation/due-times-and-holds.test.ts > in-process check due times (tablets 0892, 1110) > [IN-35][PR-17] the overdue slots at an instant: every stream with every planned test and the sweep, past the grace, never a suspended one; the running in-process steps of a batch"
   - "apps/tablets-server/test/mutation/due-times-and-holds.test.ts > leak test due times (tablets 0971) > [IN-35][PR-17] each track falls due from the run start or its own last test or missed record plus the interval; sooner at a trigger event after it; at the run's end at the latest, never after a test at or after the end; overdue past the grace"
   - "apps/tablets-server/test/mutation/due-times-and-holds.test.ts > bottle and carton line checks (tablets 0986, 0989) > [IN-35][PR-17][IN-36] the last check of a stream (with a result); missed when later than the interval; the overdue line checks of TB-23 and TB-24 and device challenges from their last pass, except once ended"
+clauses:
+  - clause: "One delivery containing three supplier batches creates three lots."
+    deferred:
+      phase: 6
+      reason: "Receipt does not yet split a delivery into one lot per supplier batch; it comes with the Phase 6 receipt and ERP/WMS work (owner decision 0011)."
+  - clause: "A supplier label naming an unapproved manufacturer blocks the lot."
+    deferred:
+      phase: 6
+      reason: "There is no approved-manufacturer register to check a supplier label against yet; it is built in Phase 6 (owner decision 0011)."
+  - clause: "A lot with no complete receipt record cannot be issued."
+    deferred:
+      phase: 6
+      reason: "The receipt record is not yet complete (supplier and supplier lot optional; manufacturer, containers and examiner not recorded), so no completeness check gates issue; built in Phase 6 (owner decision 0011)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

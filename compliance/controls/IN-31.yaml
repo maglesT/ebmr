@@ -27,6 +27,14 @@ tests:
   - "packages/recipe-core/test/release/india.test.ts > India-domestic label particulars and the Schedule H2 payload stub (recipe-core 0894; IN-31, D-P4-14) > [IN-31] the label particulars and the H2 payload come from the record: plain manufacture and expiry dates, the manufacturer and its licence; refused without a licence basis or a shelf life"
   - "packages/recipe-core/test/release/india.test.ts > India-domestic label particulars and the Schedule H2 payload stub (recipe-core 0894; IN-31, D-P4-14) > [IN-31] H2 payload binding: only the payload computed from the batch record and issued for printing on that batch passes; another batch's, an altered or a never-issued payload is refused; an administrator issues none"
   - "apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts > print jobs and events at the gateway (tablets 0951) > [PR-36][IN-31][DI-31] the gateway fetches the released jobs of its own active printers; acknowledges a job of its own once, in form: LOADED only when the echo is the job's data (else REFUSED), MISMATCH and FAILED as reported; the same acknowledgement again is a duplicate"
+clauses:
+  - clause: "load an India-domestic template without a manufacturing-date field; approval fails."
+    deferred:
+      phase: 6
+      reason: "There is no label template with its own fields to approve (print data always carries the record's dates), so no template approval can fail; label templates come in Phase 6 (owner decision 0011)."
+  - clause: "Print an expiry one month off; the coding check fails."
+    tests:
+      - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-36][IN-31][PR-35][IN-16][PR-42] a print job carries only the record's data, bound to the packaging order and artwork set the line runs; the gateway's echo must equal it or the load is refused; the first print is approved by another person than the one who released the job; a batch-data change voids the job and holds the output since the last good check (L-29)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

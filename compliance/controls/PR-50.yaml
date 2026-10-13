@@ -45,6 +45,18 @@ tests:
   - "packages/site-services/test/quality/deviation-full.test.ts > PENDING_CLOSURE and CLOSED (PR-50, PR-51) > [PR-50] the closure basis names the root-cause method, a system-factor assessment for a human error, CAPA references, the regulatory-notification assessment and the other batches assessed; closure needs the impact current"
   - "packages/site-services/test/quality/deviation-full.test.ts > links and release (INV-46, L-21) > [PR-50] a cancelled deviation is listed on the release checklist and does not block; its canceller does not sign the release of a linked lot (L-21)"
   - "packages/site-services/test/quality/deviation-full.test.ts > slice 2 quick review (site services 0824) > [PR-50][INV-03] the classifier and an impact recorder are performers: neither signs the impact nor concludes; nobody approves an impact they recorded"
+clauses:
+  - clause: "An investigation cannot close without conclusions and follow-up."
+    tests:
+      - "packages/site-services/test/quality/deviation.test.ts > life cycle (S7) > [PR-50][IN-20] the full path: QA other than the initiator classifies, the impact is signed before the conclusion, and neither the initiator nor the owner concludes or closes"
+      - "packages/site-services/test/quality/deviation-full.test.ts > PENDING_CLOSURE and CLOSED (PR-50, PR-51) > [PR-50] the closure basis names the root-cause method, a system-factor assessment for a human error, CAPA references, the regulatory-notification assessment and the other batches assessed; closure needs the impact current"
+  - clause: "The impact query returns the expected batch set, checked against an independent query."
+    deferred:
+      phase: 6
+      reason: "There is no deviation impact query returning the affected batches; it comes with the Phase 6 genealogy explorer (owner decision 0011)."
+  - clause: "\"Human error\" without the system-factor assessment is blocked."
+    tests:
+      - "packages/site-services/test/quality/deviation-full.test.ts > PENDING_CLOSURE and CLOSED (PR-50, PR-51) > [PR-50] the closure basis names the root-cause method, a system-factor assessment for a human error, CAPA references, the regulatory-notification assessment and the other batches assessed; closure needs the impact current"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

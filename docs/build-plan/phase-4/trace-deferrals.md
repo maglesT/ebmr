@@ -94,3 +94,60 @@ PR-16 (the checker-signature half), PR-36 clause 1 (already proven by the listed
 | PR-50 | feature: no deviation impact query returning the affected batches (genealogy explorer, Phase 6) (clause 2) |
 | PR-51 | feature: no CAPA register (CAPA references only; 6c residual d) |
 | PR-52 | feature: a review-by-exception reduction needs a risk class and rationale but no validation reference (clause 2) |
+
+## Slice 7e: clauses deferred and mapped under decision 0011 (13 October 2026)
+
+Owner decision 0011 (docs/decisions/0011-phase-4-trace-deferrals.md) settles point 1 above: a control whose every clause
+is deferred with a reason to a phase not yet started shows as DEFERRED. Slice 7e mapped the gap controls' catalog tests
+to clauses: each clause needing a feature not yet built is deferred below (decision 0011), each clause a listed passing
+test already proves names that test. No control text, catalog test, target phase or `expert_decision` changed.
+
+| Control | Clause | Phase | Reason (decision 0011) |
+|---|---|---|---|
+| DI-08 | 1 | 6 | no vendor support account or customer-approved time-boxed support grant |
+| DI-08 | 2 | 7 | stand-alone viewer for a full tenant export (validation pack) |
+| DI-09 | 2 | 6 | **unsure**: no DI-09 test asserts a change without a change-record ID is rejected (the UNCHANGED-version test only supplies one); a tagged test is wanted |
+| DI-09 | 3 | 6 | no configuration diff as of a past date |
+| DI-26 | 3 | 6 | RBE rules fixed in code; no editable rule under a change record |
+| IN-01 | 2 | 6 | no CAPA register with effectiveness checks (6c residual d) |
+| IN-27 | 1 | 6 | the designer does not insert PPE and decontamination steps (6a residual) |
+| IN-30 | 2 | 6 | no read-only contract-giver reviewer (6a residual) |
+| IN-31 | 1 | 6 | no label template with its fields to approve |
+| IN-33 | 1 | 6 | edition review lists specifications only; MBR limits citing an edition are a 2a residual |
+| IN-39 | 2 | 6 | re-targeted from 4: the excursion notification is recorded in the run, never delivered to the departments |
+| PR-09 | 2 | 6 | typed CPP values not in the PQR extract (6c residual) |
+| PR-16 | 1 | 6 | no labelling-specimen item in the batch record checked at completion |
+| PR-17 | 1 | 6 | no receipt split per supplier batch |
+| PR-17 | 2 | 6 | no approved-manufacturer register |
+| PR-17 | 3 | 6 | receipt record incomplete, no completeness check before issue |
+| PR-25 | 3 | 6 | rooms carry no clean-hold time |
+| PR-29 | 3 | 6 | no reagent or buffer lot with an expiry at an IPC step |
+| PR-32 | 2 | 6 | no label store or label-store permission |
+| PR-34 | 2 | 6 | no post-use line inspection gating the close of an order |
+| PR-36 | 2 | 6 | vision check of a printed expiry is the device's; generic test unit only |
+| PR-36 | 3 | 6 | no cut-label option on a packaging master |
+| PR-39 | 2 | 6 | no reconciliation waiver for 100% electronic inspection |
+| PR-46 | 2 | 6 | no stock locations (ERP/WMS adapter) |
+| PR-49 | 2 | 6 | no recurrence count or warning on the certification screen |
+| PR-50 | 2 | 6 | no deviation impact query (genealogy explorer) |
+| PR-51 | 1 | 6 | no CAPA register (fully deferred control) |
+| PR-52 | 2 | 6 | RBE reduction carries no validation reference |
+
+Clauses newly mapped to listed passing tests: DI-09.1, DI-26.1 and .2, IN-01.1, IN-27.2 (issue only on a contained
+line), IN-30.1, IN-31.2 (gateway echo with another expiry refused), PR-09.1, PR-16.2, PR-25.1 and .2 (G-11 RH excursion
+is an ACTION exception needing a deviation), PR-29.1, .2 and .4 (TB-11 missed or failing check holds the stream's
+output), PR-32.1, PR-34.1, PR-36.1, PR-39.1, PR-46.1, PR-49.1, PR-50.1 and .3, PR-52.1.
+
+**Left without `clauses` (the trace at phase 4 still names them):**
+
+- PR-15: clause 1 (lapsed training refused) is proven by `packages/kernel/test/identity/authority.test.ts`
+  "[DI-21][INV-26] expiring a user's SOP training blocks ..." which carries no [PR-15] tag; clause 2 (area authorisation,
+  filling suite) is ready to defer to 6. Needs the tag on that test (a test-title change, not a register edit).
+- PR-27: clause 1 (potent product off its allowed equipment) is proven by the IN-27 dedicated-and-contained line test,
+  which carries no [PR-27] tag; clauses 2 (penicillin facility) and 3 (spill event) are ready to defer to 6.
+- IN-16, PR-22 (clauses 2 and 3), PR-35 (clause 2): 7b work in Phase 4 (golden batch GB-T-01, batch report unit IDs,
+  status and station displays), not missing features, so not deferred. PR-22.1 is proven by the "review backlog #5" unit
+  test; PR-35.1 (unsegregated adjacent line) is ready to defer to 6.
+
+**Phase 5 deferrals (point 2 above):** PR-26 clause (hose to wrong destination) and PR-28's two clauses stay deferred to
+phase 5; they must be re-targeted (or the tooling changed) when Phase 6 raises `current_phase` to 5 or more.

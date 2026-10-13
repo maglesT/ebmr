@@ -48,6 +48,14 @@ tests:
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] completion is refused while a form is issued and not returned, returned and not verified, or reported missing without its deviation reference; it passes once every form is reconciled and FORMS_RECONCILED is signed"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] the application role cannot write the completion around the gate nor switch the gate off"
   - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again"
+clauses:
+  - clause: "Removing one label specimen"
+    deferred:
+      phase: 6
+      reason: "The batch record has no labelling-specimen item checked at completion (specimens are checked on the master only, GMP-SPECIMENS); it is built in Phase 6 (owner decision 0011)."
+  - clause: "or one checker signature blocks completion, and the message names the gap."
+    tests:
+      - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
