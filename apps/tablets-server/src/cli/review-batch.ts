@@ -22,6 +22,8 @@
  *     in-process check on the press puts a hold on it (it is HELD once closed);
  *  5. DEMO SHORTCUT, never a GMP code path: the record's execution status is set to EXECUTION_COMPLETE by a superuser
  *     update (the remaining steps of the master are not run; the engine's completeness is proven by the golden batch).
+ * With --gmp-packaging, steps 6 and 7 (slice 7b, release-path.ts) run a GB-T-02 batch and its bottle orders through real
+ * signed acts only: H-PACK signed by QA, no shortcut; one finished lot READY, one NOT_READY, and an open bottle order.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { join } from 'node:path';

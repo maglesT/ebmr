@@ -4,7 +4,8 @@
  * released for packing by QA at H-PACK, a bottle order run to its end, the finished lot tested, sampled and its records
  * reviewed: G-REL green, READY). The tests of this file run in order on the same lot, on the office PCs PC-QA-10 and
  * PC-PLAN-04, which no other spec uses (no shared device rate limit):
- *  1. the authorised person signs the manufacturer release on a checklist with no red item (MANUFACTURER_RELEASE, IN-05,
+ *  1. QA signs the delta audit-trail review the earlier specs made due; the authorised person signs the manufacturer
+ *     release on a checklist with no red item (MANUFACTURER_RELEASE, IN-05,
  *     INV-05); the US quality-control unit then signs the US release on G-REL for US (US_DISPOSE, D-P4-5, INV-39);
  *  2. QA assembles the EU QP batch package and signs its issue (QP_PACKAGE_ACT ISSUE, a verified true copy); QA transcribes
  *     the QP's certification as received and a second QA person verifies it (QP_INTAKE, QP_INTAKE_VERIFY, DI-30): the EU
@@ -56,11 +57,10 @@ async function acknowledgeAll(page: Page, testId: string): Promise<number> {
 
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
-test('green release: the manufacturer release on a checklist with no red item, then the US release @office', async ({ e2e, officePage, persona, evidence }) => {
+test('green release: the delta audit-trail review where due, then the manufacturer release on a checklist with no red item @office', async ({ e2e, officePage, persona, evidence }) => {
   const r = readyLot(e2e.state.keysDir);
   const base = e2e.url('GMP');
   const ap = persona('GMP', 'qcuAuthoriser');
-  const qcu = persona('GMP', 'usQcu');
   const lot = escape(r.lotCode);
 
   // The processing record's audit-trail review covers all its packaging orders (recipe-core 0711): the specs that ran
@@ -107,6 +107,14 @@ test('green release: the manufacturer release on a checklist with no red item, t
     return { state: 'RELEASED' };
   }, page);
 
+});
+
+// Its own test (the test time limit): the US quality-control unit's release, after the manufacturer release above.
+test('green release: the US release on G-REL for US after the manufacturer release @office', async ({ e2e, officePage, persona, evidence }) => {
+  const r = readyLot(e2e.state.keysDir);
+  const base = e2e.url('GMP');
+  const qcu = persona('GMP', 'usQcu');
+  const lot = escape(r.lotCode);
   const us = await officePage('GMP', 'PC-QA-10');
   await signIn.office(us, qcu);
   await evidence.step('The US quality-control unit signs the US release', 'US_DISPOSE RELEASE on G-REL for US at the epoch shown; the US disposition is RELEASED', async () => {
