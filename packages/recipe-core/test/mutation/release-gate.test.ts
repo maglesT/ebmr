@@ -14,7 +14,7 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import { assessIncidentImpact, raiseIncident } from '../../../kernel/src/records/incidents.ts';
 import { challengeFor, cmd, signatureAuth, signWith } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
-import { seedActor, seedAdministration, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -33,6 +33,7 @@ let qaReviewer2: SeededActor;
 let qaReviewer3: SeededActor;
 let erp: SeededActor;
 let ap: SeededActor;
+let owner: SeededActor;
 let analyst: SeededActor;
 let qcHead: SeededActor;
 let warehouse: SeededActor;
@@ -244,7 +245,7 @@ async function productAndSpecification(content: MbrContent): Promise<void> {
 beforeAll(async () => {
   db = await createTestDatabase();
   w = new World(db, await seedCast(db));
-  await seedAdministration(db);
+  ({ owner } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator', roomCode: 'DISP-01' });
   head = await seedActor(db, { roleCode: 'HEAD_OF_PRODUCTION', legalName: 'Hari Head' });
@@ -712,6 +713,27 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     const recorder = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Quinn Recorder' });
     expect(await messageOf(w.run(recorder, (c) => c.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [ppq.batchId, 'PASSED', 'PV-PROT-11', 'All protocol results within limits', outcome]))))
       .toMatch(/EBMR-REL-013 .*is recorded by the person who signed it/);
+  });
+
+  it('[PR-53] a justification names an open deviation linked to the lot and states its reason; the justification content exists for a finished lot only', async () => {
+    const setPath = (value: 'ON' | 'OFF') => withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.open_investigation_path', $1)", [value]));
+    await setPath('ON');
+    try {
+      const lot = await readyLot();
+      const justify = (deviationId: string, text: string | null) =>
+        messageOf(w.run(ap, (c) => c.query("select recipe.justify_open_investigation($1, 'IN', $2, $3, $4)", [lot.lotId, deviationId, text, randomUUID()])));
+      const elsewhere = await deviationOn('DEVIATION', 'LOT', (await readyLot()).lotId);
+      expect(await justify(elsewhere.deviationId, 'Advanced enough')).toMatch(/EBMR-REL-042 the deviation is not linked/);
+      const cancelled = await deviationOn('DEVIATION', 'LOT', lot.lotId);
+      await w.run(qaReviewer, (c) => c.query('select site.cancel_deviation($1, $2)', [cancelled.deviationId, 'Raised against the wrong lot']));
+      expect(await justify(cancelled.deviationId, 'Advanced enough')).toMatch(/EBMR-REL-042 the deviation is CANCELLED/);
+      const open = await deviationOn('DEVIATION', 'LOT', lot.lotId);
+      await impactOn(open.deviationId, [{ kind: 'LOT', id: lot.lotId }]);
+      for (const text of [' ', null]) expect(await justify(open.deviationId, text)).toMatch(/EBMR-REL-044/);
+      expect(await one<unknown>('select recipe.investigation_justification_content($1) as r', [`${randomUUID()}/IN/${open.deviationId}/${'a'.repeat(64)}`])).toEqual({ exists: false });
+    } finally {
+      await setPath('OFF');
+    }
   });
 
   it('[INV-05] a reserve sample pulled or disposed of moves the epoch of its own lot', async () => {
