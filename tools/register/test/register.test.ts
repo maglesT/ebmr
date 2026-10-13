@@ -73,6 +73,23 @@ describe('traceability rules', () => {
     expect(buildTrace([{ ...control, target_phase: 4, tests: [] }], [], 1).errors).toEqual([]);
   });
 
+  it('[meta] decision 0011: a control whose every clause is deferred with a reason to a phase not started is DEFERRED, not failing; it fails again once that phase starts, or when one clause is not deferred or has no reason', () => {
+    const deferral = { phase: 6, reason: 'documentation-type control: the SOP set is written in Phase 6' };
+    const fully = { ...control, target_phase: 4, tests: [], clauses: [{ clause: control.catalog_test, deferred: deferral }, { clause: 'a second clause', deferred: deferral }] };
+    expect(buildTrace([fully], [], 4).errors).toEqual([]);
+    expect(buildTrace([fully], [], 4).rows[0]?.clauses.map((k) => k.state)).toEqual(['DEFERRED', 'DEFERRED']);
+    // The phase it is deferred to starts: the deferral is refused and the control needs its passing test again.
+    const started = buildTrace([fully], [], 6).errors.join('\n');
+    expect(started).toContain('DI-22 (target phase 4) has no passing test');
+    expect(started).toContain('deferred to phase 6, which has started');
+    // One clause not deferred: the control still needs a passing test, and the clause its own.
+    const partly = { ...fully, clauses: [{ clause: control.catalog_test, deferred: deferral }, { clause: 'a second clause', tests: [] }] };
+    expect(buildTrace([partly], [], 4).errors.join('\n')).toContain('DI-22 (target phase 4) has no passing test');
+    // A deferral without a reason defers nothing.
+    const noReason = { ...fully, clauses: [{ clause: control.catalog_test, deferred: { phase: 6, reason: '  ' } }] };
+    expect(buildTrace([noReason], [], 4).errors.join('\n')).toContain('DI-22 (target phase 4) has no passing test');
+  });
+
   it('[meta] rejects tests that cite an unknown control', () => {
     expect(buildTrace([control], [pass('[DI-99] nonsense')], 0).errors.join()).toContain('unknown control DI-99');
   });

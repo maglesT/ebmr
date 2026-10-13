@@ -190,7 +190,11 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     const rejected = c.expert_decision.status === 'DONT_FOLLOW';
     const gated = inGateEditions(c, options.editions ?? ['tablets', 'injectables']);
     const due = gated && !rejected && c.target_phase <= phase;
-    if (due && row.passing.length === 0) {
+    // Owner decision 0011: a control every clause of whose catalog test is deferred, each with its reason, to a phase
+    // that has not started has nothing due to prove yet; it shows DEFERRED in the matrix. One clause not deferred, or
+    // deferred to a phase that has started (refused below), and it needs its passing tests again.
+    const fullyDeferred = (c.clauses ?? []).length > 0 && (c.clauses ?? []).every((k) => k.deferred !== undefined && k.deferred.phase > phase && k.deferred.reason.trim() !== '');
+    if (due && row.passing.length === 0 && !fullyDeferred) {
       errors.push(`${c.id} (target phase ${c.target_phase}) has no passing test`);
     }
     if (rejected && row.passing.length > 0) errors.push(`${c.id} is DONT_FOLLOW but tests still prove enforcement`);
