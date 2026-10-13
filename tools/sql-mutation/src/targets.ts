@@ -850,7 +850,7 @@ export const TARGETS: Target[] = [
   {
     group: 'release-gate-market-items',
     functions: ['recipe.grel_market_items', 'recipe.grel_licence_item'],
-    tests: [r('release/dispositions.test.ts'), r('release/india.test.ts')],
+    tests: [r('release/dispositions.test.ts'), r('release/india.test.ts'), r('mutation/release-gate.test.ts')],
     threshold: 90,
   },
   {

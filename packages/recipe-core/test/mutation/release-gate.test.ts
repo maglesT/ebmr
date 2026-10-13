@@ -96,11 +96,11 @@ async function effective(): Promise<{ familyId: string; versionId: string; conte
   return { familyId: v.familyId, versionId: v.versionId, content };
 }
 
-async function issuedBatch(purpose?: 'PPQ', m: { familyId: string; content: MbrContent } = master): Promise<string> {
+async function issuedBatch(purpose?: 'PPQ', m: { familyId: string; content: MbrContent } = master, markets: string[] = ['IN']): Promise<string> {
   const batchId = randomUUID();
   const erpOrder = await gmpOrderFor(db, erp, m.content, BS);
   await cmd(db, w.cast.issuer).then((ctx) =>
-    withProtectedNumbers(db.app, ctx, ledger, (c) => execution.prepareGmpIssue(c, batchId, { familyId: m.familyId, markets: ['IN'], site: SITE, line: 'L1', batchSize: BS, erpOrder })),
+    withProtectedNumbers(db.app, ctx, ledger, (c) => execution.prepareGmpIssue(c, batchId, { familyId: m.familyId, markets, site: SITE, line: 'L1', batchSize: BS, erpOrder })),
   );
   const signatureId = await w.sign(w.cast.issuer, 'batch_issue', batchId, 'ISSUED', 'PLANNED');
   await w.run(
@@ -136,12 +136,12 @@ async function review(b: string): Promise<void> {
 
 
 /** The finished lot of batch `b`, posted as the edition's definer posts it (site.create_finished_lot is not granted). */
-async function finishedLot(b: string, m: { content: MbrContent } = master): Promise<string> {
+async function finishedLot(b: string, m: { content: MbrContent } = master, markets: string[] = ['IN']): Promise<string> {
   const number = (await db.app.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [b])).rows[0]!.n;
   return withCommand(db.admin, await cmd(db, warehouse), async (c) =>
     (await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
       JSON.stringify({ batchId: b, batchNumber: number, edition: 'TABLETS', siteCode: SITE, productCode: m.content.header.product.code, productName: 'Release test product',
-                       strength: '500 mg', markets: ['IN'], quantity: '1000', unit: 'units', expiresAt: '2029-06-30T23:59:59Z' }),
+                       strength: '500 mg', markets, quantity: '1000', unit: 'units', expiresAt: '2029-06-30T23:59:59Z' }),
     ])).rows[0]!.id,
   );
 }
@@ -164,10 +164,10 @@ async function testedAndSampled(lotId: string, opts: { approve?: boolean; sample
 }
 
 /** A reviewed batch, its finished lot, tested and sampled. */
-async function readyLot(opts: { purpose?: 'PPQ'; approve?: boolean; master?: { familyId: string; content: MbrContent } } = {}): Promise<Lot> {
-  const batchId = await issuedBatch(opts.purpose, opts.master);
+async function readyLot(opts: { purpose?: 'PPQ'; approve?: boolean; master?: { familyId: string; content: MbrContent }; markets?: string[] } = {}): Promise<Lot> {
+  const batchId = await issuedBatch(opts.purpose, opts.master, opts.markets);
   await review(batchId);
-  const lotId = await finishedLot(batchId, opts.master);
+  const lotId = await finishedLot(batchId, opts.master, opts.markets);
   await testedAndSampled(lotId, { approve: opts.approve ?? true });
   return { batchId, lotId };
 }
@@ -597,6 +597,26 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
         where x.change_record_id = (select (recipe.batch_master_version($1)).change_record_id) order by x.validation_ref`, [next.batchId])).rows.map((r) => r.ref);
     expect(own.length).toBeGreaterThan(0);
     expect(refs(item(nextGrel, 'G6.VALIDATION_BASIS'))).toEqual(own);
+  });
+
+  it('[PR-56][INV-43][IN-30] for a market the lot is not made for, the lot-set item is RED; no market item reads "since review"; the licence item names the batch, its licence and the export permission of the product', async () => {
+    // Both masters authorised for the US too (the test cast records the export permissions with the authorisation).
+    const another = await effective();
+    for (const v of [master.versionId, another.versionId]) await w.authorise({ ...auth(v), market: 'US', regulatoryBasis: 'US: registration on file' });
+    const lot = await readyLot();
+    const bn = await batchNumber(lot.batchId);
+    const g = await grel(lot.lotId, 'US');
+    expect(g.items.filter((i) => i.group === '8' || i.group === '11' || i.id === 'G6.LICENCE').filter((i) => i.since_review).map((i) => i.id)).toEqual([]);
+    expect(item(g, 'G11.MARKET_IN_SET').problem).toBe('US is not in the lot\'s market set');
+    const licence = item(g, 'G6.LICENCE');
+    expect(licence.evidence.find((e) => e.kind === 'LICENCE')?.label).toMatch(new RegExp(`^${bn}: licence \\S+ \\(Form [^)]+\\)$`));
+    const permission = await one<string>("select permission_number as r from site.export_permission where product_code = $1 and destination = 'US' order by valid_from desc limit 1",
+                                         [master.content.header.product.code]);
+    expect(licence.evidence.find((e) => e.kind === 'EXPORT_PERMISSION')?.label).toContain(`export permission ${permission} for `);
+    // A lot made for the US: the market-add item is NA, and still nothing reads "since review".
+    const us = await grel((await readyLot({ markets: ['IN', 'US'] })).lotId, 'US');
+    expect(item(us, 'G8.MARKET_ADD').status).toBe('NA');
+    expect(us.items.filter((i) => i.group === '8' || i.group === '11').filter((i) => i.since_review).map((i) => i.id)).toEqual([]);
   });
 
   // Last in the file: the fixture below widens a role's permissions for every later test.
