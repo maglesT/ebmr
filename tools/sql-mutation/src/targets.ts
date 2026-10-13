@@ -544,7 +544,8 @@ export const TARGETS: Target[] = [
                 'recipe.propose_act', 'recipe.batch_act_content', 'recipe.change_path_problem',
                 'recipe.hand_over_persons', 'recipe.person_engine_roles', 'recipe.hand_over_involvement',
                 'recipe.hand_over_problem', 'recipe.review_exception', 'recipe.execution_change_path_check'],
-    tests: [s('execution/db-guards-change-paths.test.ts'), s('execution/db-guards-exception-register.test.ts'), s('execution/db-guards-hand-over.test.ts'), r('lifecycle/gmp-references.test.ts'), s('blocks/compression/db-guards.test.ts')],
+    tests: [s('execution/db-guards-change-paths.test.ts'), s('execution/db-guards-exception-register.test.ts'), s('execution/db-guards-hand-over.test.ts'), r('lifecycle/gmp-references.test.ts'), s('blocks/compression/db-guards.test.ts'),
+            s('mutation/exception-register-sync.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: GMP batch issue and its record: allocation, ERP order link, packaging parent, product scope,
@@ -590,7 +591,9 @@ export const TARGETS: Target[] = [
                 'site.lot_lims_release_problem', 'site.record_signed_lot_retest', 'site.lot_retest_content',
                 // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
                 'site.lot_signed_decision', 'site.lot_event_meaning', 'site.propose_lot_decision', 'site.revoke_batch_reservations', 'recipe.claim_consumption', 'recipe.consumption_entries_record', 'recipe.consumption_named_check', 'recipe.batch_end_reservations', 'tab.g07_consumption_pairs'],
-    tests: [site('mutation/lots-and-lims.test.ts'), site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts'), site('lots/exit-review.test.ts'), s('blocks/dispensing/tb-01-db.test.ts')],
+    tests: [site('mutation/lots-and-lims.test.ts'), site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts'), site('lots/exit-review.test.ts'), s('blocks/dispensing/tb-01-db.test.ts'),
+            // Phase 4 slice 7c: the G-07 pairing and the lot-material entry check (not twins of an engine check).
+            s('mutation/lots-and-lims-g07.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: deviations: raise, link, investigate, conclude, close; QA signature; evidence documents;
@@ -637,13 +640,13 @@ export const TARGETS: Target[] = [
                 'recipe.source_addition_remaining_check', 'recipe.reprocessing_authorisation_content',
                 'recipe.reserve_residue', 'recipe.propose_reprocessing_authorisation', 'recipe.authorise_reprocessing',
                 'recipe.rpr_mass', 'recipe.addition_problem', 'recipe.record_source_addition',
-                'recipe.reprocessing_start_problem', 'recipe.source_batch_expiry', 'recipe.batch_contains_recovered',
+                'recipe.source_batch_expiry', 'recipe.batch_contains_recovered',
                 'recipe.batch_reprocessing_basis', 'recipe.reprocessing_request_content',
                 'recipe.propose_reprocessing_request', 'recipe.authorise_reprocessing_request',
                 'recipe.prepare_reprocessing_issue', 'recipe.reprocessing_parents_check', 'recipe.recovered_expiry_cap',
                 'recipe.batches_receiving_from', 'recipe.g24v2_check', 'recipe.source_container_charge_check',
                 'recipe.reprocessing_request_problem', 'recipe.reprocessing_start_take'],
-    tests: [site('mutation/reprocessing.test.ts'), site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts')],
+    tests: [site('mutation/reprocessing.test.ts'), site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts'), s('mutation/reprocessing-g24v2.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: the formulation library: versions, approval, MBR pin, base standard, who reads a composition
@@ -674,7 +677,8 @@ export const TARGETS: Target[] = [
                 'tab.record_interface_losses', 'tab.reading_use_purpose_check', 'tab.g06_exception_problem',
                 'tab.g06_exception_check', 'recipe.g06_max_age_us', 'recipe.g06_value_data',
                 'recipe.plant_status_entry_check', 'recipe.plant_status_entry_problem'],
-    tests: [s('devices/process-readings.test.ts'), s('blocks/granulation/db-guards.test.ts'), s('blocks/compression/db-guards.test.ts'), r('plant/status-blocks.test.ts')],
+    tests: [s('devices/process-readings.test.ts'), s('blocks/granulation/db-guards.test.ts'), s('blocks/compression/db-guards.test.ts'), r('plant/status-blocks.test.ts'),
+            s('mutation/process-devices-gateway.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: TB-01 dispensing: the potency calculation, the entry and close guards, first-expiring lot (tablets
@@ -694,7 +698,7 @@ export const TARGETS: Target[] = [
                 'tab.gran_batch_entries', 'tab.granulation_entry_problem', 'tab.granulation_computed_problem',
                 'tab.granulation_close_problem', 'tab.granulation_loop_problem', 'tab.granulation_state_check',
                 'recipe.granulation_block_item'],
-    tests: [s('blocks/granulation/db-guards.test.ts')],
+    tests: [s('blocks/granulation/db-guards.test.ts'), s('mutation/due-times-and-holds.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: compression, tooling and detector challenges (tablets 0871, 0872, 0874, 1040) ----
@@ -707,7 +711,7 @@ export const TARGETS: Target[] = [
                 'tab.comp_named', 'tab.comp_checklist', 'tab.comp_device', 'tab.compression_entry_problem',
                 'tab.compression_close_problem', 'tab.interface_loss_close_problem', 'tab.press_tooling_problem',
                 'tab.compression_state_check', 'tab.define_detector'],
-    tests: [s('blocks/compression/db-guards.test.ts')],
+    tests: [s('blocks/compression/db-guards.test.ts'), s('mutation/tablets-compression-registers.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: in-process checks: calculations, entry rules, scheduler and guards (tablets 0891-0893, 0989;
@@ -726,7 +730,7 @@ export const TARGETS: Target[] = [
                 'tab.ipc_values', 'tab.ipc_in_unit', 'tab.ipc_readings_problem', 'tab.ipc_plan_problem',
                 'tab.ipc_first_off_problem', 'tab.ipc_entry_problem', 'tab.ipc_close_problem', 'tab.ipc_apply_holds',
                 'tab.ipc_batch_has', 'tab.ipc_state_check', 'tab.ipc_overdue_at', 'tab.record_ipc_overdue'],
-    tests: [s('blocks/ipc/db-guards.test.ts')],
+    tests: [s('blocks/ipc/db-guards.test.ts'), s('mutation/due-times-and-holds.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: coating, AQL sorting and held cores (tablets 0911, 0912, 1021, 1092) ----
@@ -777,7 +781,7 @@ export const TARGETS: Target[] = [
                 'tab.record_serial_report', 'tab.serial_entry_of', 'tab.serialisation_release_problem',
                 'tab.g21_serial_entry_problem', 'tab.g21_serial_entry_check', 'tab.serial_completion_check',
                 'tab.record_packaging_batch_data'],
-    tests: [s('blocks/packaging/db-guards.test.ts'), s('blocks/packaging/completion.test.ts')],
+    tests: [s('blocks/packaging/db-guards.test.ts'), s('blocks/packaging/completion.test.ts'), s('mutation/packaging-print-serial-gateway.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: blister lines (tablets 0970-0972, 1002) ----
@@ -789,7 +793,7 @@ export const TARGETS: Target[] = [
                 'tab.blister_lot_problem', 'tab.blister_line_check_problem', 'tab.blister_hold',
                 'tab.blister_entry_problem', 'tab.blister_close_problem', 'tab.blister_apply_holds',
                 'tab.blister_state_check', 'tab.g21_pass_ok', 'tab.blister_isolation_problem'],
-    tests: [s('blocks/blister/db-guards.test.ts')],
+    tests: [s('blocks/blister/db-guards.test.ts'), s('mutation/due-times-and-holds.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: bottle lines, SSCC, line clearance and overdue checks (tablets 0985-0989) ----
@@ -802,7 +806,7 @@ export const TARGETS: Target[] = [
                 'tab.packline_close_problem', 'tab.packline_apply_holds', 'tab.packline_state_check',
                 'tab.packline_pass_check', 'tab.packline_artwork_set', 'tab.packline_line_problem',
                 'tab.packline_line_check', 'tab.packline_overdue'],
-    tests: [s('blocks/bottle/db-guards.test.ts')],
+    tests: [s('blocks/bottle/db-guards.test.ts'), s('mutation/due-times-and-holds.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: the platform scope hook: who may run a transition in which scope (kernel 1150; recipe-core 0523)

@@ -117,6 +117,7 @@ tests:
   - "packages/recipe-core/test/engine/approvals-edges.test.ts > abort approvals > [DI-34][PR-13] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once"
   - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > the register row of an exception record (DI-26) > [DI-26][PR-13] the row records the flags the record carries, false where it carries none"
   - "packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts > recipe.check_approver_roles (recipe-core 0462): an approval is signed in the role the command asks > [PR-13][DI-35] an abort is approved by the head of production and by QA; a correction by a supervisor or QA; a command the release does not check takes no approval"
+  - "apps/tablets-server/test/mutation/exception-register-sync.test.ts > the exception register follows the state (recipe-core 0440, 0441) > [INV-41][PR-13][INV-03] an exception closes only by its own accepted, signed DISPOSITION_EXCEPTION with an outcome and a justification, by the person it names; QA's when it is QA-only; never by the person who raised it; never reopened or changed after"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

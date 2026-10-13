@@ -55,6 +55,9 @@ tests:
   - "apps/tablets-server/test/blocks/granulation/tb-05-edges.test.ts > TB-05 drying and the LOD sample > [IN-36][PR-27][PR-29] PERFORMED: dried, sampled, and the bag checked after use (fluid bed only)"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [IN-26][PR-27] a unit or room has one open campaign; a campaign elsewhere does not block it; a campaign is closed once"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-26][PR-27] a campaign check reads the open campaign of this product on this unit or room, and the MAJOR cleaning and batches of that unit or room only"
+  - "apps/tablets-server/test/mutation/tablets-compression-registers.test.ts > the tooling register rules (tablets 0871) > [INV-24][IN-36][PR-27] cumulative strokes per set; fit (retired, latest inspection failed); issue (product, retired, open or uninspected last use, a fresh unused passing pre-use inspection after the return, strokes below the limit); use (returned, fit, its own passing pre-use inspection, strokes with the open use below the limit)"
+  - "apps/tablets-server/test/mutation/tablets-compression-registers.test.ts > the tooling register commands (tablets 0871) > [INV-24][PR-27] a set is defined by the master-data steward with whole-number counts and limit; a set is looked up by its code, locked or not"
+  - "apps/tablets-server/test/mutation/tablets-compression-registers.test.ts > the tooling register commands (tablets 0871) > [INV-24][IN-36][PR-27][PR-22] an issue: a press of the plant, a set the rules let issue, counts of at least one and at most the set holds; it records the set's latest (passing pre-use) inspection"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

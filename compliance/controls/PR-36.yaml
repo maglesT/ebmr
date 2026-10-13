@@ -45,6 +45,7 @@ tests:
   - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printing and challenges (K-20) > [PR-36][IN-16][IN-22] the step is performed only with each printer's first print approved by its role, each inspection device passed at start and end and not due"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 first print and challenges > [PR-36][IN-16] the first print of a printer, approved by the MBR's role (QA by default); a system records it"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [INV-32][PR-36][IN-22][PR-42] every item reconciled, every printer's first print approved, start and end challenges passed and none due, every pool closed at its last reconciliation"
+  - "apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts > print jobs and events at the gateway (tablets 0951) > [PR-36][IN-31][DI-31] the gateway fetches the released jobs of its own active printers; acknowledges a job of its own once, in form: LOADED only when the echo is the job's data (else REFUSED), MISMATCH and FAILED as reported; the same acknowledgement again is a duplicate"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

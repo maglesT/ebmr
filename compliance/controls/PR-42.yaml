@@ -49,6 +49,8 @@ tests:
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-42][IN-31] GTIN check digits, the configuration as read"
   - "packages/recipe-core/test/mutation/packaging-g21-rules.test.ts > recipe.g21_counted > [PR-42][INV-25] counts the reconciliations of G-21 steps that code the material in that unit, nothing else"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-42][IN-17] E.RECONCILIATION_SERIAL: an open serial reconciliation blocks until its deviation is closed"
+  - "apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts > serial pools, events and reports (tablets 0952) > [PR-42] a pool is asked and recorded for a serialised market of an open G-21 step: 1 to 100000 serials, the L3 answer a pool of exactly that quantity, once per step and market; the request and the row carry the record's order, L3 profile and GTIN"
+  - "apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts > serial pools, events and reports (tablets 0952) > [PR-42] serial events are counted per allowed state change as whole numbers and never move more serials out of a state than are in it; a report is in form, of this pool, counts the quantity issued and exactly the states and unexplained serials the server's own events leave"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
