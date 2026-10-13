@@ -37,7 +37,8 @@ describe('the GMP demo seed (slice 6c)', () => {
     expect(seed.services.map((s) => `${s.key}:${s.roleCode}:${s.terminal}`)).toEqual(['erpInterface:ERP_INTERFACE:SRV-ERP-01', 'gateway:SITE_GATEWAY:GW-01', 'sweeper:EXECUTION_SWEEPER:SRV-SWEEPER-01']);
   });
 
-  it('[PR-19][IN-24] the GB-T-01 lots (and its packaging lots, slice 7b) are released on the identity-tested route after a QC-approved, passing result; the active\'s assay comes from its LIMS results; the ERP orders are open', async () => {
+  // Slice 7b: the GB-T-01 packaging lots are checked here too.
+  it('[PR-19][IN-24] the GB-T-01 lots are released on the identity-tested route after a QC-approved, passing result; the active\'s assay comes from its LIMS results; the ERP orders are open', async () => {
     const { rows } = await pool.query<{ lot_code: string; state: string; route: string | null }>(
       `select l.lot_code, s.state, site.lot_release_route(l.id) as route
          from site.material_lot l join platform.aggregate_state s on s.aggregate_type = 'material_lot' and s.aggregate_id = l.id

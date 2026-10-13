@@ -89,7 +89,8 @@ describe.runIf(goldenClockAvailable)('GB-T-02, direct compression in HDPE bottle
     expect(asShown(v['packYield@p-pk-yield@'], b['packYield'] ?? '')).toBe(b['packYield']);
     expect(same(v['tabletsIssued@p-pk-count@'], BOTTLE_PLAN.tabletsIssued)).toBe(true);
     expect(same(v['tabletsPacked@p-pk-count@'], BOTTLE_PLAN.tabletsPacked)).toBe(true);
-    expect(run.orderFacts).toMatchObject({ shipperPacks: b['packs'], bulkIssued: expect.any(Array) });
+    expect(run.orderFacts?.shipperPacks).toBe(b['packs']);
+    expect(Array.isArray(run.orderFacts?.bulkIssued)).toBe(true);
   });
 
   it('[PR-45][IN-05][INV-05] the finished lot is released for India through G-REL green and the AP\'s signed release', () => {
@@ -103,7 +104,7 @@ describe.runIf(goldenClockAvailable)('GB-T-02, direct compression in HDPE bottle
 
   it.each(['batch', 'order'] as const)('the %s ends in the expected states, exceptions, genealogy, signatures and true-copy hash', (k) => {
     const x = r(k);
-    const want = expected.fromTheRun[k] as Json;
+    const want = expected.fromTheRun[k];
     const notCompleted = Object.entries(x.states.steps).filter(([, s]) => s !== 'COMPLETED').map(([s, st]) => `${s} ${st}`);
     expect({ batch: x.states.batch, stages: x.states.stages, containers: x.states.containers, notCompleted }).toEqual(want['states']);
     expect(x.genealogy.consumptions).toEqual(want['consumptions']);

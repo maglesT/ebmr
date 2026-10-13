@@ -6,11 +6,10 @@
 import { randomUUID } from 'node:crypto';
 import { createHash } from 'node:crypto';
 import { routes, type SignableAction } from '@ebmr/api-contract';
-import { identity, withCommand } from '@ebmr/kernel';
+import { identity } from '@ebmr/kernel';
 import { lifecycle } from '@ebmr/recipe-core';
-import { flow } from '@ebmr/recipe-core';
+import type { flow } from '@ebmr/recipe-core';
 import { passwordActor, personaOf, terminalOf } from '@ebmr/test-kit';
-import { recordContentForSigning } from '../../../src/features/esig/content.ts';
 import { loadValidationContext } from '../../../src/features/designer/adapters/expressions.ts';
 import { GBT01_PRODUCT } from '../../../src/features/execution/seed-gb-t-01.ts';
 import {
@@ -25,7 +24,7 @@ type Json = Record<string, unknown>;
 
 /** The line, its units and its balance, as the steward defines them; qualified, calibrated, cleaned and verified. */
 export async function setUpPackLine(w: GoldenWorld): Promise<void> {
-  for (const k of ['technician1', 'technician2', 'steward']) w.b[k] ??= await w.server.asPersona(k);
+  for (const k of ['technician1', 'technician2', 'steward']) w.b[k] = await w.server.asPersona(k); // fresh: earlier sessions may have lapsed
   const st = w.b['steward'] as TestBrowser;
   const p = routes.plant;
   ok(await st.call(p.defineArea, { body: { code: PACK_LINE, kind: 'LINE', name: 'Blister packaging line PL-1' } }), 'line PL-1');

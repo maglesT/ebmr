@@ -7,7 +7,7 @@ import { routes } from '@ebmr/api-contract';
 import { identity } from '@ebmr/kernel';
 import { passwordActor, personaOf } from '@ebmr/test-kit';
 import {
-  BOTTLE_ARTWORK_SET, BOTTLE_CARTON, BOTTLE_CARTONER, BOTTLE_CARTON_ARTWORK, BOTTLE_LINE, BOTTLE_SIZE_ID, BOTTLE_UNIT, BOTTLES, BOTTLES_KG, LABEL, LABEL_ARTWORK, TORQUE_TESTER,
+  BOTTLE_ARTWORK_SET, BOTTLE_CARTON, BOTTLE_CARTONER, BOTTLE_CARTON_ARTWORK, BOTTLE_LINE, BOTTLE_SIZE_ID, BOTTLE_UNIT, BOTTLES_KG, LABEL, LABEL_ARTWORK, TORQUE_TESTER,
 } from '../../../src/cli/golden-gb-t-02.ts';
 import { PACK_BALANCE } from '../../../src/cli/golden-packaging.ts';
 import { tapFor } from '../../esig/support.ts';

@@ -126,6 +126,6 @@ export async function packAndRelease(w: GoldenWorld, m: Gbt02Masters, batch: Gol
   const qcu = await w.server.asPersona('usQcu');
   const usGrel = ok(await qcu.call(routes.release.grel, { params: { lotId: lot.lotId }, query: { market: 'US' } }), 'G-REL for the US');
   const us = await signAct(w, qcu, 'usQcu', { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId: lot.lotId, input: { usDecision: 'RELEASE', expectedEpoch: usGrel.epoch } });
-  const usDispose = us.ok ? 'ok' : ((refusalOf(us as never) as { code?: string } | null)?.code ?? 'refused');
+  const usDispose = us.ok ? 'ok' : ((refusalOf(us) as { code?: string } | null)?.code ?? 'refused');
   return { order, lot, grel: released.grel, decision: released.decision, usAdd: { outcome: added['outcome'], items }, usDisposition: state, usDispose };
 }

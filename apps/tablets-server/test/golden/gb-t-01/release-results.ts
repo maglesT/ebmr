@@ -86,5 +86,6 @@ export async function reportNames(b: TestBrowser, batchId: string, codes: readon
   if (!pdf.ok) throw new Error(`the true copy of ${batchId} was refused: ${JSON.stringify(pdf.error)}`);
   const contents = await records.readPdfA3(new Uint8Array(Buffer.from(pdf.value.pdfBase64, 'base64')));
   const text = [...contents.attachments.values()].join('\n');
-  return codes.filter((c) => text.includes(`"${c}"`));
+  // records.json holds each row as canonical jsonb text, so the codes in the entries appear JSON-escaped (\"PL-1\").
+  return codes.filter((c) => text.includes(`\\"${c}\\"`));
 }

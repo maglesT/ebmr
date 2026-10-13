@@ -30,6 +30,12 @@ export const LABEL_ARTWORK = 'ART-GBT02-LBL-1';
 export const BOTTLE_CARTON_ARTWORK = 'ART-GBT02-CTN-1';
 export const BOTTLE_ARTWORK_SET = `LABEL:${LABEL_ARTWORK},CARTON:${BOTTLE_CARTON_ARTWORK}`;
 
+/** Bottles issued by weight: 12.5 g a bottle (3,200 bottles: 40.000 kg). */
+export const bottlesKg = (bottles: string): string => {
+  const g = BigInt(bottles) * 125n; // tenths of a gram
+  return `${(g / 10000n).toString()}.${(g % 10000n).toString().padStart(4, '0').slice(0, 3)}`;
+};
+
 const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
 
 function find(n: unknown, id: string): Json | undefined {
@@ -55,7 +61,17 @@ const validated = (low: string, high: string): Json => ({
 const kg = (id: string, name: string): Json => ({ id, name, valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' });
 
 /** The GB-T-02 direct-compression master (BS-100K: 20.000 kg, 1,00,000 tablets of 200 mg) for `markets`. */
-export function dcMasterContent(familyCode: string, markets: readonly string[] = ['IN', 'US', 'EU']): flow.MbrContent {
+export interface DemoTimes {
+  /** The validated blend and lubrication times in seconds (the demo seed runs on the real clock: a short validated range). */
+  blend: [string, string];
+  lube: [string, string];
+}
+
+/**
+ * The GB-T-02 direct-compression master (BS-100K: 20.000 kg, 1,00,000 tablets of 200 mg) for `markets`. `demoTimes` (the
+ * set-up CLI's DEMO-ONLY release seed, which runs on the real clock) replaces the validated blend and lubrication times.
+ */
+export function dcMasterContent(familyCode: string, markets: readonly string[] = ['IN', 'US', 'EU'], demoTimes?: DemoTimes): flow.MbrContent {
   const base = TEMPLATES.get('gb-t-01')?.content;
   if (!base) throw new Error('the gb-t-01 template is missing');
   const m = clone(base) as unknown as Json;
@@ -139,6 +155,20 @@ export function dcMasterContent(familyCode: string, markets: readonly string[] =
   (opBlend['body'] as Json)['children'] = blendSeq.filter((n) => n['id'] !== 'A-RPR');
   const blend = find(stages, 'p-blend') as Json;
   blend['name'] = 'Blending and lubrication';
+  if (demoTimes) {
+    blend['config'] = {
+      blendTime: { min: { value: demoTimes.blend[0], unit: 's' }, max: { value: demoTimes.blend[1], unit: 's' }, item: 'blendTime' },
+      lubrication: { min: { value: demoTimes.lube[0], unit: 's' }, max: { value: demoTimes.lube[1], unit: 's' }, item: 'lubeTime' },
+    };
+    for (const p of m['parameters'] as Json[]) {
+      const range = ((p['limits'] as Json | undefined)?.['ranges'] as Json[] | undefined)?.[0];
+      const times = p['id'] === 'blendTime' ? demoTimes.blend : p['id'] === 'lubeTime' ? demoTimes.lube : null;
+      if (range && times) {
+        range['low'] = { value: times[0], inclusive: true };
+        range['high'] = { value: times[1], inclusive: true };
+      }
+    }
+  }
   blend['uses'] = [];
   const tool = find(stages, 'p-tool') as Json;
   (tool['config'] as Json)['specification'] = { type: 'B', shape: 'Round 8 mm flat bevelled', upperEmbossing: 'F100', lowerEmbossing: 'PLAIN', score: 'NONE' };
@@ -164,11 +194,18 @@ export function dcMasterContent(familyCode: string, markets: readonly string[] =
   return parsed.mbr;
 }
 
-/** The GB-T-02 bottle master (PK-30: 3,200 bottles of 30 tablets) for `markets`. */
-export function bottleMasterContent(familyCode: string, markets: readonly string[] = ['IN', 'US', 'EU']): flow.MbrContent {
+/**
+ * The GB-T-02 bottle master (PK-30: 3,200 bottles of 30 tablets) for `markets`. `demoBottles` (the DEMO-ONLY release seed)
+ * makes an order of that many bottles (one shipper of them), so a demo order packs one small bulk container.
+ */
+export function bottleMasterContent(familyCode: string, markets: readonly string[] = ['IN', 'US', 'EU'], demoBottles?: string): flow.MbrContent {
+  const bottles = demoBottles ?? '3200';
+  const tablets = demoBottles ? (BigInt(demoBottles) * 30n).toString() : BOTTLE_TABLETS;
   const artwork = (v: string): Json => Object.fromEntries(markets.map((mk) => [mk, v]));
   const yp = packYieldParts('VR-GBT02-PK');
-  yp.goldenCases = [{ id: 'G-PACK', description: 'Packaging yield of 96,000 of 97,500 tablets', inputs: { tabletsIssued: { value: '97500', unit: '{tbl}' }, tabletsPacked: { value: '96000', unit: '{tbl}' } }, expected: { packYield: { value: '98.46', unit: '%' } } }];
+  yp.goldenCases = demoBottles
+    ? [{ id: 'G-PACK', description: `Packaging yield of ${tablets} of ${tablets} tablets`, inputs: { tabletsIssued: { value: tablets, unit: '{tbl}' }, tabletsPacked: { value: tablets, unit: '{tbl}' } }, expected: { packYield: { value: '100.00', unit: '%' } } }]
+    : [{ id: 'G-PACK', description: 'Packaging yield of 96,000 of 97,500 tablets', inputs: { tabletsIssued: { value: '97500', unit: '{tbl}' }, tabletsPacked: { value: '96000', unit: '{tbl}' } }, expected: { packYield: { value: '98.46', unit: '%' } } }];
   const content: Json = {
     format: 'ebmr.mbr-content',
     formatVersion: 1,
@@ -179,7 +216,7 @@ export function bottleMasterContent(familyCode: string, markets: readonly string
       recordKind: 'PACKAGING',
       packType: BOTTLE_PACK_TYPE,
       product: { code: GBT02_PRODUCT.productCode, name: 'Exemplafen tablets', strength: GBT02_PRODUCT.strength, dosageForm: 'Uncoated tablet, HDPE bottle' },
-      batchSizes: [{ id: BOTTLE_SIZE_ID, quantity: { value: BOTTLE_TABLETS, unit: '{tbl}' } }],
+      batchSizes: [{ id: BOTTLE_SIZE_ID, quantity: { value: tablets, unit: '{tbl}' } }],
       marketSet: [...markets],
       predicates: {},
       variants: [],
@@ -188,7 +225,7 @@ export function bottleMasterContent(familyCode: string, markets: readonly string
     references: pinned(['SOP-PACK-BT', BOTTLES, LABEL, BOTTLE_CARTON, 'SYS-WEIGH-01', 'REG-GBT02', 'VR-GBT02-PK', 'QRM-SCALE', 'EQC-BAL', 'EQC-BOTTLE', 'EQC-CARTONER']),
     library: [],
     inputs: [],
-    bom: [{ id: 'BOM-BTL', material: BOTTLES, role: 'PRIMARY_PACKAGING', quantity: { value: BOTTLES_KG, unit: 'kg' } }],
+    bom: [{ id: 'BOM-BTL', material: BOTTLES, role: 'PRIMARY_PACKAGING', quantity: { value: demoBottles ? bottlesKg(demoBottles) : BOTTLES_KG, unit: 'kg' } }],
     intermediates: [],
     parameters: [
       { id: 'pkBottles', name: 'Bottles issued by weight', valueType: 'DECIMAL', unit: 'kg', precision: { kind: 'DECIMALS', digits: 3 }, role: 'QUANTITY', criticality: 'CRITICAL', riskClass: 'HIGH', capture: 'DEVICE' },
@@ -231,8 +268,8 @@ export function bottleMasterContent(familyCode: string, markets: readonly string
               { kind: 'parallel', id: 'par-pack', branches: [
                 { id: 'br-g21', name: 'Printed materials', body: phase('p-g21', 'Roll labels and cartons: issue, coding and reconciliation', 'G-21', '1', {
                   items: [
-                    { id: 'LABEL', material: LABEL, artwork: artwork(LABEL_ARTWORK), unit: '1', issue: { need: '3200', allowancePercent: '2' }, counting: 'ROLL_COUNTER', limits: { maxUnexplained: '0' }, coded: true },
-                    { id: 'CARTON', material: BOTTLE_CARTON, artwork: artwork(BOTTLE_CARTON_ARTWORK), unit: '1', issue: { need: '3200', allowancePercent: '2' }, counting: 'MANUAL_COUNT', limits: { maxUnexplained: '0' }, coded: true },
+                    { id: 'LABEL', material: LABEL, artwork: artwork(LABEL_ARTWORK), unit: '1', issue: { need: bottles, allowancePercent: '2' }, counting: 'ROLL_COUNTER', limits: { maxUnexplained: '0' }, coded: true },
+                    { id: 'CARTON', material: BOTTLE_CARTON, artwork: artwork(BOTTLE_CARTON_ARTWORK), unit: '1', issue: { need: bottles, allowancePercent: '2' }, counting: 'MANUAL_COUNT', limits: { maxUnexplained: '0' }, coded: true },
                   ],
                   destructionStep: 'p-pk-destroy', shelfLifeMonths: GBT02_PRODUCT.shelfLifeMonths,
                 }) },
@@ -244,7 +281,7 @@ export function bottleMasterContent(familyCode: string, markets: readonly string
                 }, { equipment: [{ ref: 'BOTTLER', use: 'USE' }] }) },
                 { id: 'br-carton', name: 'Cartoning', body: phase('p-tb24', 'Cartoning, finished-pack examination and shippers', 'TB-24', '1', {
                   unit: BOTTLE_CARTONER, devices: [{ id: 'CW', kind: 'CHECKWEIGHER' }], examination: { every: { value: '1', unit: 'h' }, inRunSample: '5', endSample: '20' },
-                  cartonsPerShipper: '100', ssccPrefix: '089012345', printedStep: 'p-g21',
+                  cartonsPerShipper: demoBottles ?? '100', ssccPrefix: '089012345', printedStep: 'p-g21',
                   ...(markets.includes('EU') ? { atd: { every: { value: '1', unit: 'h' } } } : {}),
                 }, { equipment: [{ ref: 'CARTONER', use: 'USE' }] }) },
                 { id: 'br-destroy', name: 'Coded surplus', body: phase('p-pk-destroy', 'Witnessed destruction of coded surplus and rejects', 'G-23', '1', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } }) },
