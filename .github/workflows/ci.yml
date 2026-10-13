@@ -104,7 +104,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # One file at a time: the clock file is shared, and GB-T-01 (slice 6d) freezes it while the clock test reads it as
       # an offset. GB-T-01 runs about 20 minutes.
-      - run: pnpm vitest run apps/tablets-server/test/golden --reporter=default --no-file-parallelism
+      - run: pnpm vitest run apps/tablets-server/test/golden --reporter=default --no-file-parallelism --reporter=blob --outputFile.blob=.vitest-blobs/blob-golden.json
+      # The golden results go into the merged report, so a clause proven only by a golden batch counts in the trace
+      # (Phase 4 slice 7: GB-T-01 continued to release proves IN-16 and PR-22 clauses).
+      - name: Upload the golden blob report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-blob-golden
+          path: .vitest-blobs/blob-golden.json
+          include-hidden-files: true
+          if-no-files-found: error
 
   # Keeps the name of the single Phase 2 job, so a required status check still finds it; it passes only when the
   # static checks and every test shard passed and the trace accepts the merged report.
@@ -130,10 +140,10 @@ jobs:
           pattern: vitest-blob-*
           path: .vitest-blobs
           merge-multiple: true
-      # A missing shard fails here: the trace below must see every test of the suite.
+      # A missing shard fails here: the trace below must see every test of the suite (four shards and the golden job).
       - name: Merge the shard reports into .reports/vitest.json
         run: |
-          test "$(ls .vitest-blobs/blob-*.json | wc -l)" -eq 4
+          test "$(ls .vitest-blobs/blob-*.json | wc -l)" -eq 5
           mkdir -p .reports
           pnpm vitest run --mergeReports=.vitest-blobs --reporter=json --outputFile=.reports/vitest.json
       - name: Failed tests (summary)
