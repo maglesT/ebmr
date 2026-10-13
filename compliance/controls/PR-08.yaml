@@ -167,6 +167,7 @@ tests:
   - "packages/recipe-core/test/validator/data.test.ts > data gates > [PR-08][PR-03] DATA-UNITS: tablet hardness is a force (by its tag, the legacy alias or kp); the alias warns, a pressure is refused, its limits are a force (mutation follow-up)"
   - "packages/recipe-core/test/release/release.test.ts > deviations and open investigations (PR-53, PR-08) > [PR-08] registration-relevant deviations of the records are shown on the release checklist; the application role cannot clear the flag"
   - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification"
+  - "apps/tablets-server/test/mutation/exception-register-sync.test.ts > the exception register follows the state (recipe-core 0440, 0441) > [PR-08][INV-41] a deviation is linked only by the exception's own accepted ATTACH_DEVIATION, by the person it names, with a reference; the link is never changed or taken away"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:

@@ -58,6 +58,7 @@ tests:
   - "packages/site-services/test/mutation/reprocessing.test.ts > the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem) > [PR-47][IN-19] the total added at the step against the MBR percentage of the batch size: the limit included, g and kg converted, other steps not counted"
   - "packages/site-services/test/mutation/reprocessing.test.ts > the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem) > [PR-47][IN-19] the authorisation: signed, of this batch, use, step, container and case; used once"
   - "packages/site-services/test/mutation/reprocessing.test.ts > the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem) > [PR-47][IN-19] the facts of a source: none for a container not closed; residue reserved and closed, or released by QA; no case once charged or poured into another"
+  - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][IN-19][INV-33] a G-24@2 step starts only on an unused signed STEP authorisation of this batch, step and case by another person; a validated re-treatment, a G-24@1 step, a step already started and a batch without G-24@2 take none"
 clauses:
   - clause: "add recovered material without prior authorisation; the step is blocked."
     tests:
