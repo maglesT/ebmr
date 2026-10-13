@@ -25,6 +25,11 @@ behaviour: |-
 catalog_test: In the AI feature inventory, no feature changes GMP data without a human e-signature.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "In the AI feature inventory, no feature changes GMP data without a human e-signature."
+    deferred:
+      phase: 7
+      reason: "The build has no AI features; the AI feature inventory is a document of the Phase 7 validation pack (build outline 11; Phase 4 plan, slice 7: documentation-type control)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

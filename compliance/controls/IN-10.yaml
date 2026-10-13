@@ -18,7 +18,16 @@ sources: Schedule M Part I 17.3.9 (packaging-record entries identified by signat
 behaviour: "(a) Baseline for all signatures: unique user ID plus secret, re-authentication at the moment of signing, signature manifestation (printed name, date/time with time zone, meaning such as performed/verified/approved/released), cryptographic binding of the signature to a hash of the signed content so any later change shows the signature as broken, no shared or reused IDs. (b) Configurable option: for selected meanings (default proposal: MBR approval and AP release) require a Class 3 digital signature certificate from a licensed certifying authority, or an eSign (Second Schedule technique) instead of the password signature. (c) Any record can be printed or exported with signatures and audit trail on demand."
 catalog_test: sign a step, then alter the value directly in the test database; signature verification reports the record as altered. Sign a release with a DSC; it validates against the CCA root chain.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/esig/invalidation.test.ts > INV-09 bypass > [INV-09][IN-10] a disabled invalidation trigger stops all signing, and a change made behind it is detected"
+clauses:
+  - clause: "sign a step, then alter the value directly in the test database; signature verification reports the record as altered."
+    tests:
+      - "packages/kernel/test/esig/invalidation.test.ts > INV-09 bypass > [INV-09][IN-10] a disabled invalidation trigger stops all signing, and a change made behind it is detected"
+  - clause: "Sign a release with a DSC; it validates against the CCA root chain."
+    deferred:
+      phase: 6
+      reason: "The Class 3 DSC or eSign second signature is an interface that stays off until a licensed provider is configured after the legal opinion (build outline, India option and open decision 3); the provider integration comes with the Phase 6 adapters."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

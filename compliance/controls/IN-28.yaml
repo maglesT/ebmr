@@ -16,7 +16,12 @@ sources: "Schedule M Part I 10.1-10.8 (10.4: frequency set in the procedure, at 
 behaviour: A read-only auditor role with batch sampling and exports of deviation/CAPA status; findings link to batches and CAPA both ways; the self-inspection schedule reminds QA when 12 months since the last self-inspection are about to pass (frequency may be set shorter, never longer, for Indian sites). The approved-supplier list is master data used at receipt and dispensing.
 catalog_test: an auditor opens a closed batch record; edit functions are unavailable.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-28] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
+clauses:
+  - clause: "an auditor opens a closed batch record; edit functions are unavailable."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][IN-28] the inspection workspace reads certified exports only, with a read-only account, and logs every read"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

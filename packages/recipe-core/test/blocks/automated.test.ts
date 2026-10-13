@@ -80,7 +80,7 @@ describe('G-06@1 automated equipment phase (K-06)', () => {
     expect(run.refused({ type: 'RECORD_ENTRY', actor: OP1, step: 'cmp', entry: device(run, 'SETPOINT_READBACK', 'force.pre_kN', '2.00', 'kN') }).message).toMatch(/G06-NOT-A-SETPOINT/);
   });
 
-  it('[DI-31][DI-32] a device value of quality STALE or BAD, or received longer ago than the configured age (database time), is flagged unusable, raises PROCESS_DATA_UNUSABLE and does not satisfy the step', () => {
+  it('[DI-31][DI-32][IN-09] a device value of quality STALE or BAD, or received longer ago than the configured age (database time), is flagged unusable, raises PROCESS_DATA_UNUSABLE and does not satisfy the step', () => {
     const run = started({ ...CONFIG, maxAgeSeconds: 30 });
     run.entry('cmp', { kind: 'RECIPE_CHECK', recipe: 'RCP-COMP', recipeVersion: '5' });
     run.entry('cmp', device(run, 'SETPOINT_READBACK', 'force.main_kN', '12.50', 'kN'));

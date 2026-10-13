@@ -129,7 +129,7 @@ describe('batch-number register', () => {
     expect(skip.rows).toEqual([{ serial: '5', colliding_allocation_id: taken }]);
   });
 
-  it('[IN-18] export the register: allocation date, product identity and batch size are present for every entry', async () => {
+  it('[IN-18][DI-42] export the register: allocation date, product identity and batch size are present for every entry', async () => {
     await allocate({ ...atv, productCode: 'PCM500', productName: 'Paracetamol Injection 150 mg/mL', edition: 'INJECTABLES', batchSize: '150.125', batchSizeUnit: 'kg' });
     const rows = await exportBatchNumberRegister(db.app, { siteCode: SITE });
     expect(rows.length).toBeGreaterThanOrEqual(7);

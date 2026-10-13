@@ -28,6 +28,17 @@ catalog_test: Each batch appears in the logbook with its date, time, product and
 implemented_by: {}
 tests:
   - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-25][PR-24] the logbook of a room and of a press is written from the recorded acts, with persons and batches"
+  - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23][INV-12][PR-24] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time"
+clauses:
+  - clause: "Each batch appears in the logbook with its date, time, product and lot, consistent with the batch records."
+    tests:
+      - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-25][PR-24] the logbook of a room and of a press is written from the recorded acts, with persons and batches"
+  - clause: "The same user performing and verifying a manual cleaning is blocked."
+    tests:
+      - "packages/recipe-core/test/plant/equipment.test.ts > cleanliness and the use guard of PROCESS equipment > [IN-25][PR-23][INV-12][PR-24] a new press is DIRTY and blocked; cleaned, verified by a second person and within its clean-hold it is used by one batch at a time"
+  - clause: "A room logbook shows use and cleaning."
+    tests:
+      - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [IN-25][PR-24] the logbook of a room and of a press is written from the recorded acts, with persons and batches"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

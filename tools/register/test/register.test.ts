@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { controlTypes, coveredRows, parseCatalog, parseFields } from '../src/catalog-parser.ts';
 import { checkPins } from '../src/pins.ts';
 import { idsInText } from '../src/phases.ts';
-import { loadControls, loadRequirements } from '../src/register.ts';
+import { gateEditions, loadControls, loadRequirements, type ControlRecord } from '../src/register.ts';
 import { reportedPath } from '../src/test-index.ts';
 import { buildTrace, readPlaywrightResults, type TestResult } from '../src/trace.ts';
 import { validateRegister } from '../src/validate.ts';
@@ -121,5 +121,60 @@ describe('end-to-end results (Playwright JSON)', () => {
       { name: 'smoke/smoke.spec.ts smoke [DI-05] sandbox shows the watermark (kiosk)', status: 'passed', file: 'smoke/smoke.spec.ts' },
       { name: 'smoke/smoke.spec.ts smoke [DI-13] cookies (office)', status: 'failed', file: 'smoke/smoke.spec.ts' },
     ]);
+  });
+});
+
+describe('editions in the trace gate (decision 0010)', () => {
+  const all = loadControls();
+  const find = (id: string) => {
+    const c = all.find((x) => x.id === id);
+    if (!c) throw new Error(`${id} missing`);
+    return c;
+  };
+  const injectablesOnly = all.find((c) => c.editions.length === 1 && c.editions[0] === 'injectables');
+  if (!injectablesOnly) throw new Error('no injectables-only control');
+  const shared = find('DI-22');
+  const phaseFile = (body: string): string => {
+    const file = join(mkdtempSync(join(tmpdir(), 'ebmr-phase-')), 'phase.yaml');
+    writeFileSync(file, body);
+    return file;
+  };
+
+  it('[meta] with the gate on tablets, an injectables-only control at a started phase is not due, while a shared control still is', () => {
+    const bare = (c: ControlRecord): ControlRecord => {
+      const rest: ControlRecord = { ...c, target_phase: 5, tests: [] };
+      delete rest.clauses;
+      return rest;
+    };
+    const due = bare(injectablesOnly);
+    const both = bare(shared);
+    const tablets = buildTrace([due, both], [], 6, { editions: ['tablets'] }).errors.join('\n');
+    expect(tablets).not.toContain(injectablesOnly.id);
+    expect(tablets).toContain(`${shared.id} (target phase 5) has no passing test`);
+    // Without the filter (both editions) the injectables-only control is due again.
+    expect(buildTrace([due], [], 6).errors.join()).toContain(`${injectablesOnly.id} (target phase 5) has no passing test`);
+    expect(buildTrace([due], [], 6, { editions: ['tablets', 'injectables'] }).errors.join()).toContain(injectablesOnly.id);
+    // Its deferrals wait with the edition; a shared control's deferral to a started phase still fails.
+    const deferral = { phase: 5, reason: 'x' };
+    const clauses = [{ clause: injectablesOnly.catalog_test, deferred: deferral }];
+    expect(buildTrace([{ ...due, clauses }], [], 6, { editions: ['tablets'] }).errors).toEqual([]);
+    expect(buildTrace([{ ...both, target_phase: 4, clauses: [{ clause: shared.catalog_test, deferred: deferral }] }], [], 6, { editions: ['tablets'] }).errors.join()).toContain('deferred to phase 5, which has started');
+  });
+
+  it('[meta] the filter leaves out only the gate: a failing test tagged with an injectables-only control still fails the trace', () => {
+    const failing: TestResult = { name: `[${injectablesOnly.id}] fails`, status: 'failed', file: 'x' };
+    expect(buildTrace([injectablesOnly], [failing], 6, { editions: ['tablets'] }).errors.join()).toContain(`${injectablesOnly.id} has failing tests`);
+  });
+
+  it('[meta] phase.yaml lists the editions: absent means both, an empty list or an unknown edition is refused', () => {
+    expect(gateEditions()).toEqual(['tablets']);
+    expect(gateEditions(phaseFile('current_phase: 4\n'))).toEqual(['tablets', 'injectables']);
+    expect(gateEditions(phaseFile('current_phase: 4\neditions: [tablets, injectables]\n'))).toEqual(['tablets', 'injectables']);
+    expect(() => gateEditions(phaseFile('current_phase: 4\neditions: []\n'))).toThrow(/non-empty/);
+    expect(() => gateEditions(phaseFile('current_phase: 4\neditions: [tablet]\n'))).toThrow(/unknown edition tablet/);
+  });
+
+  it('[meta] every control due by phase 4 belongs to the tablets edition, so the filter changes nothing before the Phase 6 raise', () => {
+    expect(all.filter((c) => c.target_phase <= 4 && !c.editions.includes('tablets')).map((c) => c.id)).toEqual([]);
   });
 });

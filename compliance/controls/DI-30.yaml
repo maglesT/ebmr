@@ -45,7 +45,7 @@ implemented_by:
     - "INV-03"
 tests:
   - "packages/recipe-core/test/blocks/golden.test.ts > block registry and contract > [DI-30] configuration and entry schemas refuse unknown fields and numbers where decimals are required"
-  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
   - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [DI-41][DI-30] a scanned paper original attached as evidence makes a second-person verification mandatory"
   - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-30] a second performer who entered data cannot verify; each performer signs for their own entries before the step moves on"
   - "apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts > F12: a test run records only test identifiers and registered test lots (DI-05, PR-18) > [DI-05][INV-18][DI-30] an entry whose command names a test batch but whose stored state holds the real batch and product is refused (round 2): the record holds what was entered"
@@ -485,6 +485,17 @@ tests:
   - "apps/tablets-web/test/release/markets.test.tsx > EU tab > [DI-30] a transcribed certification is signed with every detail as entered; a QP rejection needs its reason"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39][INV-39] a transcribed certification counts only once a second QA person verifies it, never the transcriber, and only while the lot awaits certification"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39] one outcome path at a time: while a transcription waits for its second person, a message and an in-system QP are refused"
+clauses:
+  - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
+    tests:
+      - "apps/tablets-server/test/execution/evidence-source.test.ts > P34, P58 (round-1 residual a): the state stored beside the command is the one the command keyed > [DI-30][PR-14][INV-03] a PERFORMED signature stored as completing a step that needs the second person is refused, nothing is signed; signed honestly the step awaits verification"
+  - clause: "The same user tries to verify. Refused."
+    tests:
+      - "packages/recipe-core/test/engine/segregation.test.ts > verifier is never involved (INV-03) > [INV-03][DI-30] a second performer who entered data cannot verify; each performer signs for their own entries before the step moves on"
+  - clause: "Take the interface down. The manual value is flagged \"manual\" and needs verification."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+      - "apps/tablets-server/test/execution/evidence-source.test.ts > P34, P58 (round-1 residual a): the state stored beside the command is the one the command keyed > [DI-30][PR-14][PR-20] a hand-keyed value of a DEVICE-capture parameter stored without its MANUAL_FALLBACK flag, or without the second person, is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

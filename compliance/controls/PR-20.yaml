@@ -23,7 +23,7 @@ implemented_by:
   guards:
     - "G-07: manual weighing (scale offline) is flagged MANUAL_ENTRY_FALLBACK and needs a second, different person; the performer cannot verify (ENG-SEGREGATION)"
 tests:
-  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
   - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-30][DI-31][PR-20] a heartbeat whose not-ready reason holds U+0000 or a lone surrogate is refused by the database: answered 400 SCHEMA, its receipt lost (the next tick is unclean, so the manual path stays shut), the stored reason unchanged"
   - "apps/tablets-server/test/devices/gateway-free-text.test.ts > the gateway listener refuses text no record can hold (review F30-F33) > [DI-30][DI-31][PR-20] a heartbeat whose bytes are not UTF-8 (F0 9F 98 among them) is refused 400 SCHEMA before it is read, never recorded as U+FFFD; sent with the gateway token its arrival is lost, so the next tick is unclean (review F33 round 2)"
   - "apps/site-gateway/test/capture-readiness.test.ts > review P51: a scale is reported ONLINE only while the gateway can capture and deliver > [DI-30][PR-20][DI-31] while the gateway answers NOT_READY for a scale, its heartbeat does not report that scale ONLINE"
@@ -152,6 +152,13 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01.test.ts > TB-01@1 potency-adjusted dispensing (engine) > [PR-20][DI-30] a weighing keyed by hand (scale offline) flags the entry, raises MANUAL_ENTRY_FALLBACK and switches the step to two-person mode: the dispenser cannot check their own dispensing"
   - "apps/site-gateway/test/device-config.test.ts > gateway device configuration (slice 6c, D-S6-8) > [DI-31][PR-20] the IPC and packaging instruments are accepted on the scale protocol in a unit of their kind; another unit is refused, naming the device"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-edges.test.ts > TB-01 definition checks, each with its message and controls > [PR-19][PR-20] the step records a dispensed mass, is checked by a second person and performed by the designated dispenser"
+clauses:
+  - clause: "In manual mode, the same user dispensing and verifying is blocked."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - clause: "With the scale offline, the step switches to two-person mode."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

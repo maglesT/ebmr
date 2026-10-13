@@ -12,7 +12,7 @@
  */
 import { importCatalogs } from './import.ts';
 import { checkPins, readManifests } from './pins.ts';
-import { currentPhase, loadControls } from './register.ts';
+import { currentPhase, gateEditions, loadControls } from './register.ts';
 import { existsSync } from 'node:fs';
 import { appendListedTests, testsToAdd } from './sync.ts';
 import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from './trace.ts';
@@ -63,17 +63,18 @@ switch (command) {
   }
   case 'trace': {
     const phase = currentPhase();
+    const editions = gateEditions();
     const { results, e2e } = runResults();
     // Listed end-to-end tests are checked against the run only when the Playwright report is part of it.
-    const report = buildTrace(loadControls(), results, phase, { e2e });
-    writeMatrix(report, phase, '.reports/trace-matrix.md');
+    const report = buildTrace(loadControls(), results, phase, { e2e, editions });
+    writeMatrix(report, phase, '.reports/trace-matrix.md', editions);
     if (report.skipped.length) {
       console.log(`${report.skipped.length} listed test(s) skipped themselves in this run, as their source allows (they prove nothing here):`);
       for (const s of report.skipped) console.log(`  - ${s}`);
     }
     if (report.errors.length) fail(`traceability check failed for phase ${phase}`, report.errors);
     const covered = report.rows.filter((r) => r.passing.length > 0).length;
-    console.log(`traceability ok for phase ${phase}: ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);
+    console.log(`traceability ok for phase ${phase} (editions: ${editions.join(', ')}): ${covered}/${report.rows.length} controls have passing tests; matrix in .reports/trace-matrix.md`);
     break;
   }
   case 'sync-tests': {

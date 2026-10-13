@@ -30,7 +30,7 @@ tests:
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] a generated number follows its rule and is written to the register at once with date, product and batch size"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] cancel a batch: its number is never offered again"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] a number is unique across both editions at the site, and generation skips a number registered from outside"
-  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18] export the register: allocation date, product identity and batch size are present for every entry"
+  - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][DI-42] export the register: allocation date, product identity and batch size are present for every entry"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18] a product without its own rule uses the site-wide rule; without any rule no number is issued"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18] a packaging number is linked to its processing number by the packaging rule"
   - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [INV-27][IN-18] the application role cannot write the register, draw a serial or rewrite history directly"
@@ -58,7 +58,7 @@ tests:
   - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18] a registration needs its details as one JSON object: none or an array is refused (EBMR-SITE-002)"
   - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18] a registered number must already be a valid batch number; it is never changed for the caller (EBMR-SITE-002)"
   - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18][DI-27] a registered number names a time zone the database knows (EBMR-SITE-002)"
-  - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18][INV-27] a number already in the register is refused before anything else is checked (EBMR-SITE-013), voided numbers included"
+  - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18][INV-27][PR-10] a number already in the register is refused before anything else is checked (EBMR-SITE-013), voided numbers included"
   - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18] a registered packaging number links to an allocated, not voided processing number of the same site (EBMR-SITE-014)"
   - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18] a registration the register refuses (edition, batch size, unit) is refused as invalid (EBMR-SITE-002) and leaves no entry"
   - "packages/kernel/test/mutation/batch-number-register.test.ts > numbering rules, rendering, allocation, registration and voids (IN-18, INV-27) > [IN-18][INV-27] two registrations of one number at the same time: the second waits for the first and is refused (EBMR-SITE-013); the number is in the register once"
@@ -89,6 +89,13 @@ tests:
   - "packages/api-contract/test/india.test.ts > the india namespace (Phase 4 slice 6a) > [IN-30][IN-18][IN-31] every india route lives under /api/india on the GMP installation and has an example that parses"
   - "packages/recipe-core/test/release/india.test.ts > the allocation register with the use of every number (recipe-core 0895) > [IN-18] export the register: every number with its allocation date, product identity, batch size and its use (issued with its licence, planned, voided with the reason, unused)"
   - "packages/recipe-core/test/release/india.test.ts > the allocation register with the use of every number (recipe-core 0895) > [IN-18][DI-17] the register is read only by a person holding RECORD.READ for the site: no actor, or the ERP interface, is refused (recipe-core 0913)"
+clauses:
+  - clause: "cancel a batch; its number is never offered again."
+    tests:
+      - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][INV-27] cancel a batch: its number is never offered again"
+  - clause: "Export the register; the three fields are present."
+    tests:
+      - "packages/site-services/test/batch-number-register.test.ts > batch-number register > [IN-18][DI-42] export the register: allocation date, product identity and batch size are present for every entry"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

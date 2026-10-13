@@ -35,7 +35,16 @@ behaviour: |-
   - Values are stored locale-neutral (canonical number, unit code, UTC). Language and locale affect display only, never limits, units or meaning.
 catalog_test: Export a batch and restore it into an isolated environment. For 20 sampled values, confirm that unit, user, time, source ID, MBR/formula version and full change history are all present.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+clauses:
+  - clause: "Export a batch and restore it into an isolated environment."
+    deferred:
+      phase: 7
+      reason: "Restoring an export into an isolated environment is the restore drill of Phase 7 (validation pack and hardening, build outline 11); Phase 4 exports and verifies the certified evidence package (IN-11) but has no isolated restore environment."
+  - clause: "For 20 sampled values, confirm that unit, user, time, source ID, MBR/formula version and full change history are all present."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

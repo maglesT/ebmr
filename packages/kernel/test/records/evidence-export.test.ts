@@ -138,7 +138,7 @@ describe('PDF/A-3 true copy (D-6-4, D-P4-7)', () => {
     expect((await verifyTrueCopyPdf(out.pdf, bundle)).ok).toBe(true);
   });
 
-  it('[DI-41][DI-24] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason', async () => {
+  it('[DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason', async () => {
     const batch = await recordedBatch();
     await withCommand(db.app, { ...again(operator), reasonCode: 'CORRECTION', reasonText: 'speed set on the wrong scale' }, (c) =>
       c.query("update stub_ev.setting set value = '25 rpm' where batch_id = $1", [batch]),
@@ -176,7 +176,7 @@ describe('PDF/A-3 true copy (D-6-4, D-P4-7)', () => {
 });
 
 describe('certified evidence export (IN-11) and the inspection workspace (DI-40)', () => {
-  it('[IN-11] export a batch; alter one byte; hash verification fails', async () => {
+  it('[IN-11][DI-46] export a batch; alter one byte; hash verification fails', async () => {
     const batch = await recordedBatch();
     const { exp } = await exportOf(batch);
     const id = await run(qa, (c) => registerEvidenceExport(c, exp));
@@ -257,7 +257,7 @@ describe('certified evidence export (IN-11) and the inspection workspace (DI-40)
     expect(rows[0]?.s).toBe('CERTIFIED');
   });
 
-  it('[DI-40] the inspection workspace reads certified exports only, with a read-only account, and logs every read', async () => {
+  it('[DI-40][IN-28] the inspection workspace reads certified exports only, with a read-only account, and logs every read', async () => {
     const { exp } = await exportOf(await recordedBatch());
     const id = await run(qa, (c) => registerEvidenceExport(c, exp));
     await expectRefused(run(inspector, (c) => readEvidenceExport(c, id)), 'EBMR-REC-127');

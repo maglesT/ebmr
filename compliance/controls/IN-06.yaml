@@ -18,6 +18,15 @@ catalog_test: supersede MBR v1; new batches cannot start on it; v1 still opens. 
 implemented_by: {}
 tests:
   - "apps/tablets-server/test/execution/db-guards-change-paths.test.ts > CORRECT_ENTRY from fail to pass (INV-41) > [INV-41][PR-12][IN-06][DI-24] a failing value corrected to a passing one needs objective evidence and the approval of QA; its exception stays open"
+  - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the boundary of the GMP issue (DI-05, INV-18) > [DI-05][INV-18][INV-01][INV-28][PR-04][IN-13][PR-10][IN-06] a GMP batch is never created without an effective MBR version: no family, a market set without India, a market no version is authorised for, a batch size not approved; nothing is planned and no number is taken"
+clauses:
+  - clause: "supersede MBR v1; new batches cannot start on it; v1 still opens."
+    tests:
+      - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the boundary of the GMP issue (DI-05, INV-18) > [DI-05][INV-18][INV-01][INV-28][PR-04][IN-13][PR-10][IN-06] a GMP batch is never created without an effective MBR version: no family, a market set without India, a market no version is authorised for, a batch size not approved; nothing is planned and no number is taken"
+  - clause: "Correct a weight; the rendered BMR shows old and new values, who, when, why."
+    tests:
+      - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

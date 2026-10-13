@@ -89,6 +89,18 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-dispensing.test.ts > FEFO in the sandbox: the registered test lots (tablets 1000) > [PR-18][IN-24] a released test lot within its dates (its expiry and retest instants excluded), identity-tested unless every market of the batch is India or the markets are unknown"
   - "packages/site-services/test/mutation/erp-interfaces.test.ts > a lot receipt (site services 0750) > [PR-17][PR-18][INV-13] each refusal on its own: no details, an unknown material, a kind, name or unit the master does not hold, a quantity that is not a decimal, no or a past expiry"
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > a retest decision (site services 0752) > [PR-18] a lot without a retest date, a rejected lot, no results, or results that are not the lot's are refused"
+clauses:
+  - clause: "Scanning a quarantined lot is blocked."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-18][IN-23] a quarantined lot, an expired lot, a lot past retest and the wrong material are hard-blocked with no override"
+      - "apps/tablets-server/test/execution/commands.test.ts > commands > [PR-18][DI-05] lots are resolved by the server: an unknown lot writes nothing; a quarantined lot is refused by the block and recorded"
+  - clause: "A lot past its retest date is blocked."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-18][IN-23] a quarantined lot, an expired lot, a lot past retest and the wrong material are hard-blocked with no override"
+      - "packages/site-services/test/lots/lots.test.ts > consumption guard (INV-13, INV-14, PR-18) > [PR-18] a lot past its retest instant, or past expiry, is blocked at reservation and at consumption; the usage status shows RETEST_DUE / EXPIRED"
+  - clause: "Picking a newer lot demands a reason."
+    tests:
+      - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 end to end in a test run (sandbox) > [PR-18] picking a newer lot demands a reason: the MCC lot expiring later is refused without one, and recorded with one as FEFO_OVERRIDE; past the server the database refuses it without a reason"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

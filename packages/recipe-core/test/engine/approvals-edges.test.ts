@@ -18,7 +18,7 @@ const approval = (a: Actor) => ({ approver: a, signature: sig('BATCH_ABORT_APPRO
 const abort = (approvals: Actor[], actor: Actor = SUP1) => ({ type: 'ABORT_BATCH' as const, actor, reason: 'contamination', checklist: CHECKLIST, approvals: approvals.map(approval) });
 
 describe('abort approvals', () => {
-  it('[DI-34][PR-13] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once', () => {
+  it('[DI-34][PR-13][IN-04] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once', () => {
     const started = (): Run => {
       const run = Run.issue(define(mbr()));
       run.start('p1');

@@ -20,6 +20,10 @@ tests:
   - "packages/site-services/test/quality/specifications.test.ts > reserve and retention samples (PR-44, IN-32) > [PR-44][IN-32] a reserve sample is kept until the latest of India expiry + 3 months and US or EU expiry + 1 year; its required quantity is twice the full test plan; disposal before then is refused"
   - "packages/site-services/test/quality/specifications.test.ts > reserve and retention samples (PR-44, IN-32) > [IN-32] a starting material keeps a RETENTION sample until its expiry + 1 year; an intermediate keeps none"
   - "apps/tablets-server/test/quality/lims-routes.test.ts > finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year"
+clauses:
+  - clause: "batch with markets {India, US}: sample retention = expiry + 1 year; {India}: expiry + 3 months unless company policy is longer."
+    tests:
+      - "packages/site-services/test/quality/specifications.test.ts > reserve and retention samples (PR-44, IN-32) > [PR-44][IN-32] a reserve sample is kept until the latest of India expiry + 3 months and US or EU expiry + 1 year; its required quantity is twice the full test plan; disposal before then is refused"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

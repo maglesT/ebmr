@@ -57,9 +57,8 @@ clauses:
     tests:
       - "packages/kernel/test/records/incidents.test.ts > [DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open among the batch's disposition blockers (what the release module reads); closing it as critical without root cause and CAPA is blocked"
   - clause: "and shown as open on the disposition screen."
-    deferred:
-      phase: 4
-      reason: "Phase 1 records the open incident among the batch's disposition blockers (records.open_blockers, which the release module reads; kernel records incidents test); the disposition screen comes with review and release in Phase 4 (build outline 11)."
+    tests:
+      - "packages/recipe-core/test/release/release.test.ts > incidents, validation and change (DI-12, PR-09, IN-03) > [DI-12] an open incident linked to the batch is shown on the disposition checklist and blocks the release until it is assessed for the batch"
   - clause: "Try to close it as critical without a root cause and CAPA. Blocked."
     tests:
       - "packages/kernel/test/records/incidents.test.ts > [DI-12] killing the balance interface mid-weighing creates an incident linked to the batch, open among the batch's disposition blockers (what the release module reads); closing it as critical without root cause and CAPA is blocked"

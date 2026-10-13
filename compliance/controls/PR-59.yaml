@@ -42,6 +42,17 @@ tests:
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged"
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [PR-59] a 24-month batch certified on 2026-01-10 is kept to 2031-01-10; with a 60-month shelf life expiry + 1 year governs"
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [PR-59][DI-47] deleting a batch before its date is refused and logged; the request deletes nothing"
+clauses:
+  - clause: "A batch with a 24-month shelf life certified on 2026-01-10 gets a retention date of 2031-01-10."
+    tests:
+      - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [PR-59] a 24-month batch certified on 2026-01-10 is kept to 2031-01-10; with a 60-month shelf life expiry + 1 year governs"
+  - clause: "With a 60-month shelf life, expiry + 1 year governs."
+    tests:
+      - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [PR-59] a 24-month batch certified on 2026-01-10 is kept to 2031-01-10; with a 60-month shelf life expiry + 1 year governs"
+  - clause: "Deleting before the date is refused and logged."
+    tests:
+      - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged"
+      - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [PR-59][DI-47] deleting a batch before its date is refused and logged; the request deletes nothing"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

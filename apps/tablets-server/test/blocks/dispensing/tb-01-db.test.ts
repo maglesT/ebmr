@@ -470,7 +470,7 @@ describe('TB-01 review fixes: the exceptions a breach raises, superseded results
     expect(await problem({ ...cfg, compensation: { mode: 'EXCIPIENT', bomLine: 'BOM-MCC' } }, [lot])).toMatch(/approved range/);
   });
 
-  it('[PR-13][PR-16] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material', async () => {
+  it('[PR-13][PR-16][IN-07] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material', async () => {
     for (const type of ['TB-01', 'TB-02', 'TB-03', 'TB-04', 'TB-05', 'TB-06', 'TB-07']) {
       const node = { kind: 'phase', id: 'p-x', block: { type, version: '1' }, config: { skippable: true }, records: [], consumes: [], produces: [], uses: [] };
       const { rows } = await sbx.db.admin.query<{ p: string | null }>('select recipe.skip_problem($1::jsonb, $2::jsonb) as p', [JSON.stringify(withTb01()), JSON.stringify(node)]);

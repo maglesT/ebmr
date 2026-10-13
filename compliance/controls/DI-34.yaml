@@ -388,7 +388,7 @@ tests:
   - "apps/tablets-server/test/blocks/ipc/tb-13-edges.test.ts > TB-13 physical checks > [DI-34] nominal values sit in the middle of the action limits (one-sided limits at the limit; kp converted back), two decimals"
   - "apps/tablets-server/test/blocks/ipc/tb-15-edges.test.ts > TB-15 the step and its definition > [DI-34] the nominal path: one main run for most types; the gastro-resistant run starts with its acid stage"
   - "apps/tablets-server/test/execution/gmp-batch.test.ts > GMP batches on the GMP installation (slice 2b) > [DI-14][DI-35][INV-26][INV-01][DI-34] the database refuses a forged GMP issue, each with its own refusal: another number, a policy that does not hash as stated, a request of another person, another market set, a signature that is none, role evidence that is malformed or not behind a stored evaluation, a state that is not the initial one; the honest issue then succeeds"
-  - "packages/recipe-core/test/engine/approvals-edges.test.ts > abort approvals > [DI-34][PR-13] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once"
+  - "packages/recipe-core/test/engine/approvals-edges.test.ts > abort approvals > [DI-34][PR-13][IN-04] the head of production and QA, two persons, neither the recorder, never a system; one holding both roles counts once"
   - "packages/recipe-core/test/engine/hand-over.test.ts > hand-over of a step in progress (L-07) > [PR-14][DI-34] once taken over, a step is handed over by any performer still on it, not only by the last incoming one (mutation follow-up)"
   - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [DI-34] a disposition before the review is complete is refused: the review gate names the missing review until QA_REVIEWED, and QA cannot conclude an item before production approval nor accept one unsigned"
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26][DI-34] on a GMP batch an unsigned escalation is refused, a query waits for the QA review, an escalation stands only while its deviation is linked, and a critical item is escalated only after its detail was opened"
@@ -400,9 +400,8 @@ clauses:
       - "apps/tablets-server/test/execution/db-guards-step-order.test.ts > F66: the order of the steps holds in the database (DI-34, PR-13) > [DI-34][PR-13][INV-18] a row that brings in a step the token has not reached is refused, so the dispensing cannot start before the line clearance is done"
       - "packages/recipe-core/test/execution/step-order-sql.test.ts > F66: the database brings in a step instance only where the token can be (DI-34, PR-13) > [DI-34][PR-13][INV-19] a step instance the token cannot have reached is refused, with the reason: a step before it unfinished, frames the engine never gives, an untaken branch, an iteration that did not continue, a sub-lot beyond the count, a stage not signed off, a loop not ended, an alternative or replicate section not decided"
   - clause: "Try disposition before review is complete. Blocked."
-    deferred:
-      phase: 4
-      reason: "Phase 2 has no batch review or disposition: production and QA review and the manufacturer release come in Phase 4 (build outline 11)."
+    tests:
+      - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [DI-34] a disposition before the review is complete is refused: the review gate names the missing review until QA_REVIEWED, and QA cannot conclude an item before production approval nor accept one unsigned"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

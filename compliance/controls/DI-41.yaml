@@ -45,11 +45,20 @@ tests:
   - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][DI-41] the contingency forms of a batch are copied as a true copy that verifies offline (records-schema tables named as the audit trail names them)"
   - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41] the same record content renders to the same bytes whenever it is rendered; new content renders differently"
   - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41] the PDF carries the record as associated files, the content SHA-256 and the record date in its metadata, fonts embedded and an sRGB output intent"
-  - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+  - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
   - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41] the PDF verifier refuses a rendering whose embedded record was altered or that belongs to another record"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-41][IN-11] the database derives a PDF's content SHA-256 from its bundle exactly as the renderer does"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-41] an export whose bundle part was altered, even under a manifest made for it, is refused, so it can never be certified"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-41] a PDF without the audit trail, or whose content SHA-256 is not its bundle's, is refused"
+clauses:
+  - clause: "Scan a thermal printout. The copy carries a checksum, a verifier signature and a link to its step."
+    tests:
+      - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [DI-41][DI-30] a scanned paper original attached as evidence makes a second-person verification mandatory"
+  - clause: "Alter the file. The checksum check fails."
+    tests:
+      - "packages/kernel/test/records/qp-package.test.ts > the EU QP batch package (DI-41) > [DI-41] a package whose hash, sections or copies do not match is refused, and an altered byte fails the offline check"
+      - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification"
+      - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41] the PDF verifier refuses a rendering whose embedded record was altered or that belongs to another record"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

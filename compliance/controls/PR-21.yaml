@@ -42,6 +42,17 @@ tests:
   - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 definition checks > [PR-21][IN-26][PR-23] two or three layers, each id, hopper and blend its own; a press used; a set-up step in the MBR"
   - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [PR-21][IN-26] the charges' refusals name the layer, hopper and blend; nothing is charged after the run; the run starts with every layer charged"
   - "apps/tablets-server/test/blocks/forming/tb-16-edges.test.ts > TB-16 the run > [IN-35][PR-29][PR-21] PERFORMED lists each problem once across the layers"
+clauses:
+  - clause: "Omitting one container prevents completion."
+    tests:
+      - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-21] G-08 Identification and charge-in: Both containers of the kit are scanned and charged; the step completes only when none is missing"
+      - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21] a wrong container is rejected, a missing container blocks completion, and a container is charged only once"
+  - clause: "A wrong container is rejected."
+    tests:
+      - "packages/recipe-core/test/blocks/material.test.ts > G-08 identification and charge-in, G-22 output containers > [PR-21] a wrong container is rejected, a missing container blocks completion, and a container is charged only once"
+  - clause: "A verifier who is also the performer is blocked."
+    tests:
+      - "apps/tablets-server/test/blocks/forming/blocks.test.ts > TB-16 bilayer compression > [PR-21][IN-26] each layer's hopper is charged by scan with its own blend: another hopper (a swap) or another blend is refused; every charge needs a second person; the run cannot start while a layer is uncharged"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

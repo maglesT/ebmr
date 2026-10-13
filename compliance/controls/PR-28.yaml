@@ -22,6 +22,15 @@ behaviour: |-
 catalog_test: A failed autoclave cycle prevents issue of the load's items. An open EM excursion appears on the QP screen.
 implemented_by: {}
 tests: []
+clauses:
+  - clause: "A failed autoclave cycle prevents issue of the load's items."
+    deferred:
+      phase: 5
+      reason: "Autoclave loads and sterilisation cycles are Injectables edition functions (Phase 5, after Phase 7 per decision 0010); the Tablets edition has no sterile items."
+  - clause: "An open EM excursion appears on the QP screen."
+    deferred:
+      phase: 5
+      reason: "Environmental monitoring of clean areas (EM excursions) belongs to the Injectables edition (Phase 5, after Phase 7 per decision 0010); the Tablets edition's room conditions (IN-39) are tested on their own."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

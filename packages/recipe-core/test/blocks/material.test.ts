@@ -179,7 +179,7 @@ describe('G-07 weighing and dispensing', () => {
     run.refused({ type: 'START_STEP', actor: OP1, step: 'z' }, 'ENG-BLOCKED');
   });
 
-  it('[PR-20][PR-14][DI-30] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception', () => {
+  it('[PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception', () => {
     const mbr = dispensing({ signatures: { perform: { role: 'OPERATOR' } } });
     const run = Run.issue(define(mbr), { inputs: { target: { value: { kind: 'DECIMAL', value: '8.000', unit: 'kg' }, source: 'calc' } } }, T0);
     run.start('d');

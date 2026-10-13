@@ -49,6 +49,15 @@ tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > G-07 on the GMP installation (slice 6d: every dispensed lot is consumed, tablets 1093) > [INV-13][INV-14][PR-57] a G-07 weighing of a site lot on GMP is consumed from the batch's reservation in the same command, so the genealogy holds the lot"
   - "apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts > G-07 on the GMP installation (slice 6d: every dispensed lot is consumed, tablets 1093) > [INV-13][INV-14][PR-57] past the server, a GMP G-07 weighing of a lot without its consumption, or with a consumption of another quantity, is refused by the database (EBMR-TAB-391)"
   - "packages/recipe-core/test/release/after-release.test.ts > suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to D-5-3) > [L-19][IN-29][PR-57] a revised LIMS result suspends the lot and every released lot downstream of it through the genealogy; the suspension of 0820's interface does the same"
+clauses:
+  - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
+    deferred:
+      phase: 6
+      reason: "Genealogy edges are written and traced forward for additions and whole-batch rework (listed tests); the genealogy explorer and mock recall that query a seeded split, merge and rework scenario come in Phase 6, whose exit names PR-57 (build outline 11)."
+  - clause: "A forward trace from a component lot lists every consignee, matching an ERP extract."
+    deferred:
+      phase: 6
+      reason: "Consignees come from the ERP/WMS adapter, built with contract tests in Phase 6 (build outline 11, whose exit names PR-57); Phase 4 has only the ERP shipping stub."
 expert_decision:
   status: PENDING
   pack_version: "0.9"
