@@ -736,6 +736,18 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     }
   });
 
+  it('[PR-47][IN-05] an extra test QC decided for the batch and missing from the lot specification names the batch on the G-REL item', async () => {
+    const lot = await readyLot();
+    const bn = await batchNumber(lot.batchId);
+    // TEST FIXTURE: QC's signed extra-testing decision as site services' command writes it (proven there).
+    await asFixture(async (fx) => {
+      await fx.query(`insert into site.qc_extra_testing_decision (batch_id, batch_number, edition, site_code, decision, tests, signature_id, decided_by_person, decided_by_account)
+                      values ($1, $2, 'TABLETS', 'SITE-1', 'EXTRA_TESTS', array['XTRA'], gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`, [lot.batchId, bn]);
+    });
+    expect(item(await grel(lot.lotId), 'G3.EXTRA_TESTING').problem).toBe(
+      `batch ${bn}: QC decided the extra test XTRA for batch ${bn}, and it is no test of the specification in effect for the lot: no limits to judge it by (PR-47, IN-33)`);
+  });
+
   it('[INV-05] a reserve sample pulled or disposed of moves the epoch of its own lot', async () => {
     const lot = await readyLot();
     const other = await readyLot();

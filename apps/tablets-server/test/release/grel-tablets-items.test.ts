@@ -236,6 +236,27 @@ describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
   it('[INV-05][IN-05] the evidence set of a packaging order\'s lot is the order and its processing parent, in that order (recipe.release_batches)', async () => {
     const { rows } = await w.gmp.db.app.query<{ r: string[] }>('select recipe.release_batches($1) as r', [lotId]);
     expect(rows[0]!.r).toEqual([orderId, parentId]);
+    // G3.EXTRA_TESTING reads every batch of the set: an extra test decided for the parent only is found.
+    // TEST FIXTURE: QC's extra-testing decisions as site services' command writes them (proven there); the later one clears it.
+    const decide = async (decision: 'EXTRA_TESTS' | 'NONE_REQUIRED'): Promise<void> => {
+      const fx = await w.gmp.db.admin.connect();
+      try {
+        await fx.query('begin');
+        await fx.query("set local session_replication_role = 'replica'");
+        await fx.query(`insert into site.qc_extra_testing_decision (batch_id, batch_number, edition, site_code, decision, tests, signature_id, decided_by_person, decided_by_account)
+                        select id, batch_number, 'TABLETS', $2, $3, $4, gen_random_uuid(), gen_random_uuid(), gen_random_uuid() from recipe.batch_execution where id = $1`,
+                       [parentId, SITE, decision, decision === 'EXTRA_TESTS' ? ['XTRA'] : []]);
+        await fx.query('commit');
+      } finally {
+        fx.release();
+      }
+    };
+    const extra = async (): Promise<Item> =>
+      (await w.gmp.db.app.query<{ g: { items: Item[] } }>("select recipe.grel_evaluate($1, 'IN') as g", [lotId])).rows[0]!.g.items.find((i) => i.id === 'G3.EXTRA_TESTING')!;
+    await decide('EXTRA_TESTS');
+    expect((await extra()).problem).toMatch(/QC decided the extra test XTRA for batch/);
+    await decide('NONE_REQUIRED');
+    expect((await extra()).status).toBe('GREEN');
   });
 
   it('[meta] the Tablets hook answers well-formed items for groups 4, 9 and 10 through recipe.grel_evaluate; a lot that is no Tablets finished lot gets one red item', async () => {
