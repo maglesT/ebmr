@@ -48,7 +48,7 @@ async function grant(account: string, role: string, scope: object): Promise<void
 const plusSeconds = (iso: string, s: number): string => new Date(new Date(iso).getTime() + s * 1000).toISOString();
 
 describe('qualification at the moment of action (DI-21, INV-26)', () => {
-  it('[DI-21][INV-26] expiring a user\'s SOP training blocks both execution and verification and names the missing item', async () => {
+  it('[DI-21][INV-26][PR-15] expiring a user\'s SOP training blocks both execution and verification and names the missing item', async () => {
     const site = `SITE-Q${randomBytes(2).toString('hex')}`;
     const code = await requirement(site, ['STEP.EXECUTE', 'STEP.VERIFY']);
     const op = await seedActor(db, { scope: { site }, acknowledgeEsig: false });

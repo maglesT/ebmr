@@ -18,7 +18,7 @@ implemented_by: {}
 tests:
   - "apps/tablets-server/test/india/india-routes.test.ts > the record side over HTTP (Phase 4 slice 6a) > [PR-43][IN-27] the head of QC records a stability basis; QA records a hazard class; an operator records neither"
   - "apps/tablets-server/test/india/india-routes.test.ts > the record side over HTTP (Phase 4 slice 6a) > [IN-27] a recorded hazard class waits for a second QA person: the recorder's own approval signs nothing; another QA person approves it through the ceremony (INDIA_ACT HAZARD_APPROVE)"
-  - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
+  - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27][PR-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
   - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27] an unsigned downgrade or dedication does not take effect; the recorder cannot approve their own record; the approved change does"
 clauses:
   - clause: "classify a product as cytotoxic; the MBR designer adds PPE and decontamination steps"
@@ -27,7 +27,7 @@ clauses:
       reason: "The MBR designer does not yet insert PPE and decontamination steps for a hazardous product (slice 6a residual); it is built in Phase 6 (owner decision 0011)."
   - clause: "and offers only contained areas."
     tests:
-      - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
+      - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27][PR-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
