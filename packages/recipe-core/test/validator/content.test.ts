@@ -542,6 +542,24 @@ describe('risk-based reductions (IN-02)', () => {
     expect(errors(validate(m)).find((f) => f.rule === 'GMP-RISK')?.message).toMatch(/RR-BAD \(one verifier\) cannot apply to "Dispense atorvastatin calcium"/);
   });
 
+  it('[PR-14][IN-02] automated (one-verifier) mode on a labelling step is refused at configuration time: the visual check of the codes and the issue of printed labels keep their two persons', () => {
+    const base = loadFixture('tablet-blister-packaging');
+    expect(errors(validate(base))).toEqual([]);
+    for (const [step, name] of [
+      ['p-india-codes', 'Check dates, MRP and codes on India packs'],
+      ['p-carton-issue', 'Issue cartons and leaflets'],
+      ['p-foil-issue', 'Issue printed lidding foil'],
+    ] as const) {
+      // The reduction declared with a risk class and rationale, exactly as on the automated cartoner: refused on a labelling step.
+      const m = clone(base);
+      m.riskReductions.push({ id: 'RR-LABEL-1V', kind: 'ONE_VERIFIER', subjects: [step], riskClass: 'LOW', rationale: 'RA-CART-01' });
+      expect(errors(validate(m)).map((f) => f.message)).toContainEqual(expect.stringMatching(new RegExp(`RR-LABEL-1V \\(one verifier\\) cannot apply to "${name}"`)));
+      // Without its performer (the step reduced to one checker), the step is refused whatever the reduction says.
+      delete findPhase(m, step).signatures.perform;
+      expect(errors(validate(m)).map((f) => f.message)).toContainEqual(expect.stringMatching(new RegExp(`"${name}" \\(${step}\\) has no performer signature`)));
+    }
+  });
+
   it('[IN-02] changing a parameter to critical changes its verification requirements (a checker becomes mandatory)', () => {
     const m = clone(loadFixture('tablet-blister-packaging'));
     const p = m.parameters.find((x) => x.id === 'bulkRemaining');

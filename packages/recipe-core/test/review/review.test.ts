@@ -443,6 +443,39 @@ describe('the audit-trail review (outline 5.4; DI-25, INV-35, INV-48)', () => {
   });
 });
 
+describe('no configuration defers the audit-trail review (DI-25)', () => {
+  it('[DI-25] no setting, policy, rule key or e-signature or access policy of the installation offers to defer or skip the audit-trail review, the review gates read no configuration, and the QA review and the disposition wait for the signed review', async () => {
+    const { rows: keys } = await db.admin.query<{ catalogue: string; key: string; text: string }>(
+      `select 'platform.setting_definition' as catalogue, key, description as text from platform.setting_definition
+       union all select 'market.policy', code, title from market.policy
+       union all select 'market.rule_key', key, title from market.rule_key
+       union all select 'iam.policy_key', key, description from iam.policy_key
+       union all select 'esig.policy_key', key, description from esig.policy_key`,
+    );
+    expect(keys.length).toBeGreaterThan(10);
+    const deferral = /audit[ _.-]?trail|audit[ _.-]?review|defer|postpone|skip[ _.-]?review|review[ _.-]?(by[ _.-]?)?exception/i;
+    expect(keys.filter((k) => deferral.test(k.key) || deferral.test(k.text))).toEqual([]);
+    // The functions that decide the review gates and the disposition read no setting, policy or site value.
+    const { rows: defs } = await db.admin.query<{ name: string; d: string }>(
+      `select p.proname as name, pg_get_functiondef(p.oid) as d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'recipe' and p.proname in ('review_gate_problems', 'review_disposition_problem', 'audit_review_covered', 'audit_review_last', 'record_qa_review')`,
+    );
+    expect(defs.map((x) => x.name).sort()).toEqual(['audit_review_covered', 'audit_review_last', 'record_qa_review', 'review_disposition_problem', 'review_gate_problems']);
+    for (const f of defs) expect(f.d).not.toMatch(/setting_value|setting_definition|platform\.setting|policy_value|policy_text|policy_int|market\.policy|site_value/i);
+    // On a record: the QA review and the disposition wait for the signed audit-trail review, and the review is never
+    // recorded around its gate.
+    const { b, ex } = await approvedBatch();
+    await w.run(qaReviewer2, (c) => c.query('select recipe.show_review_register($1)', [b.batchId]));
+    await dispose(b, qaReviewer2, 'ACCEPT', [ex], null);
+    expect(await problems(b, 'QA_REVIEW')).toEqual([expect.stringMatching(/the audit-trail review of review cycle 1 is not signed \(DI-25\)/)]);
+    expect(await codeOf(qaReview(b))).toMatch(/EBMR-REV-0\d\d/);
+    expect(await state(b)).toBe('PRODUCTION_APPROVED');
+    expect(await dispositionProblem(b)).not.toBeNull();
+    await auditReview(b);
+    expect(await problems(b, 'QA_REVIEW')).toEqual([]);
+  });
+});
+
 describe('the evidence epoch (plan interface; write after evaluation)', () => {
   it('[INV-30][DI-26] the QA review names the evidence epoch it evaluated: a deviation linked to the batch after the evaluation refuses it; reloaded, it is recorded', async () => {
     const { b, ex } = await approvedBatch();

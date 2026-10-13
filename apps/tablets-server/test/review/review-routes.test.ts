@@ -141,4 +141,75 @@ describe('the CORRECT_ENTRY route (outline 5.2.3 path (a); S25)', () => {
       await g.close();
     }
   }, 600_000);
+
+  it('[DI-25][DI-24][DI-07] a value changed after entry, on a field classed non-critical, shows with its original in the checker\'s step view, in the exception register with both values and the reason, and in the audit-trail review list', async () => {
+    // The blend time classed non-critical under a declared risk-based reduction: its correction needs no approval (S25),
+    // never less than the reason, the CORRECTED signature, the audit trail and the review.
+    const informational = (m: Json): void => {
+      earlyBlendTime(m);
+      for (const p of m['parameters'] as Json[]) if (p['id'] === 'blendTime') p['criticality'] = 'NON_CRITICAL';
+      (m['references'] as Json[]).push({ id: 'RA-BLEND-TIME', kind: 'RISK_ASSESSMENT', code: 'RA-BLEND-TIME', version: '1', hash: 'a'.repeat(64), title: 'Risk assessment: blend time informational' });
+      m['riskReductions'] = [...((m['riskReductions'] as Json[] | undefined) ?? []), { id: 'RR-BLEND-TIME', kind: 'MINOR_CLASSIFICATION', subjects: ['blendTime'], riskClass: 'LOW', rationale: 'RA-BLEND-TIME' }];
+    };
+    const g = await startGmpBatchWorld(gmpContent(informational));
+    try {
+      const issuer = await g.gmp.asPersona('issuer');
+      const runId = await g.issued(issuer);
+      const browsers: Record<string, TestBrowser> = { issuer };
+      for (const p of ['operator1', 'verifier1', 'qaInvestigator']) browsers[p] = await g.gmp.asPersona(p);
+      const d = new RunDriver(g.gmp, runId, browsers);
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-time@' });
+      await d.ok('operator1', { type: 'RECORD_DATA', stepKey: 'p-early-time@', item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
+      await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-early-time@' });
+      const st = await execution.loadState(g.gmp.db.admin, runId);
+      const point = Object.values(st?.state.points ?? {}).find((x) => x.item === 'blendTime' && x.status === 'VALID')?.id ?? '';
+      const reasonText = 'Keyed 15 for 16 from the timer display';
+      const correct = { type: 'CORRECT_ENTRY' as const, point, value: { kind: 'DECIMAL' as const, value: '16', unit: 'min' }, reason: reasonText };
+      const corrected = await d.sign('operator1', correct);
+      const correctionSig = valueOf(corrected.result).manifestation.signatureId;
+
+      // The checker's step view: the original attempt beside the corrected one, flagged CORRECTED, both by the operator.
+      const view = await d.stepView('verifier1', 'p-early-time@');
+      const field = view.fields.find((f) => f.item === 'blendTime');
+      expect(field?.attempts.map((a) => [a.value?.kind === 'DECIMAL' ? a.value.value : null, a.status, a.by.personId])).toEqual([
+        ['15', 'SUPERSEDED', personaIn(g.gmp, 'operator1').personId],
+        ['16', 'VALID', personaIn(g.gmp, 'operator1').personId],
+      ]);
+      expect(field?.attempts.map((a) => a.flags)).toEqual([[], ['CORRECTED']]);
+      // The step's own signature no longer stands: the checker sees it waiting for its signatures again.
+      expect(view.step.status).toBe('AWAITING_VERIFICATION');
+      expect(view.signatures.map((x) => [x.meaning, x.valid])).toEqual([['PERFORMED', false]]);
+
+      // The review list: the exception register names the change with the original, the new value and the reason.
+      // The record's completion is set by the test as a fixture (triggers off: the engine's completeness is proven elsewhere).
+      const c = await g.gmp.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query("set local session_replication_role = 'replica'");
+        await c.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [runId]);
+        await c.query('commit');
+      } finally {
+        c.release();
+      }
+      const qaB = browsers['qaInvestigator'] as TestBrowser;
+      const register = valueOf(await qaB.call(routes.review.register, { params: { batchId: runId }, body: {} }));
+      expect(register.noExceptions).toBe(false);
+      const item = register.items.find((i) => i.type === 'POST_ENTRY_CORRECTION');
+      expect(item).toMatchObject({ stepKey: 'p-early-time@', reviewStatus: 'OPEN' });
+      expect(item?.title).toMatch(new RegExp(`blendTime in p-early-time@ was corrected from 15 min to 16 min: ${reasonText}`));
+
+      // The audit-trail review list holds the event of the accepted correction command, the one its CORRECTED signature recorded.
+      const report = valueOf(await qaB.call(routes.review.auditTrail, { params: { batchId: runId }, query: {} }));
+      const { rows: audited } = await g.gmp.db.admin.query<{ id: string }>(
+        `select e.id::text from kernel.audit_event e
+          where e.chain_key = $1 and e.action = 'BUSINESS' and e.payload #>> '{body,details,command_id}' = $2 and (e.payload #>> '{body,details,accepted}')::boolean`,
+        [`batch:${runId}`, `ESIG:${correctionSig}`],
+      );
+      expect(audited).toHaveLength(1);
+      expect(report.truncated).toBe(false);
+      expect(report.events.filter((e) => e.eventId === audited[0]?.id).map((e) => [e.chainKey, e.action])).toEqual([[`batch:${runId}`, 'BUSINESS']]);
+    } finally {
+      await g.close();
+    }
+  }, 600_000);
 });

@@ -452,6 +452,47 @@ describe('verification before submission (DI-04, PR-02)', () => {
     await expect(w.submit(v.versionId)).rejects.toThrow();
   });
 
+  it('[DI-07][IN-02] downgrading a critical field to non-critical without a risk-based reduction is refused on the stored content; with one, the downgrade still takes effect only with QA\'s approval signature', async () => {
+    const content = uniqueContent('tablet-granulation-compression');
+    const v1 = await w.approvedVersion(content);
+    const ref = await w.run(w.cast.author, (c) => lc.deriveVersion(c, v1.versionId, 'downgrade of the binder temperature'));
+    const downgraded = (await lc.loadContent(db.app, ref.versionId)).content;
+    const binder = downgraded.parameters.find((p) => p.id === 'binderTemp');
+    if (binder?.criticality !== 'CRITICAL') throw new Error('fixture changed: binderTemp is not critical');
+    binder.criticality = 'NON_CRITICAL';
+    await w.run(w.cast.author, (c) => lc.saveContent(c, ref.versionId, downgraded, 'binder temperature classed non-critical'));
+    await w.prepare(ref.versionId, downgraded, { evidence: 'none' });
+    let s = await w.state(ref.versionId);
+    const refused = await w.run(w.cast.author, (c) => lc.validateAndStartVerification(c, ref.versionId, s.version, realPort));
+    expect(refused.evidence.result).toBe('FAIL');
+    expect(refused.transition).toBeUndefined();
+    expect(realPort.validate(downgraded).findings.filter((f) => f.severity === 'ERROR').map((f) => f.message)).toContainEqual(
+      expect.stringMatching(/\(binderTemp\) is classified non-critical without a linked risk-based reduction/),
+    );
+    expect((await w.state(ref.versionId)).state).toBe('DRAFT');
+    await expect(w.startVerification(ref.versionId)).rejects.toThrow(/validator_passed/);
+    // With the risk-based reduction (risk class and the assessment's rationale) the content passes, but it is still a draft.
+    downgraded.riskReductions.push({ id: 'RR-BINDER-MINOR', kind: 'MINOR_CLASSIFICATION', subjects: ['binderTemp'], riskClass: 'LOW', rationale: 'RA-MINOR-01' });
+    await w.run(w.cast.author, (c) => lc.saveContent(c, ref.versionId, downgraded, 'risk-based reduction declared'));
+    s = await w.state(ref.versionId);
+    const passed = await w.run(w.cast.author, (c) => lc.validateAndStartVerification(c, ref.versionId, s.version, realPort));
+    expect(passed.evidence.result).toBe('PASS');
+    await w.recordEvidence(ref.versionId, downgraded, 'stub');
+    await w.submit(ref.versionId);
+    await w.check(ref.versionId);
+    await w.regulatoryConfirm(ref.versionId);
+    // Nobody outside QA signs the approval: the checker, the author and the regulatory signer are refused, and the
+    // version stays CHECKED with the predecessor (binder temperature critical) the approved one.
+    for (const who of [w.cast.checker2, w.cast.author, w.cast.regulatory]) {
+      await expect(w.signVersion(who, ref.versionId, 'APPROVED', 'CHECKED')).rejects.toThrow(/EBMR-ESIG-0/);
+    }
+    expect((await w.state(ref.versionId)).state).toBe('CHECKED');
+    expect((await w.state(v1.versionId)).state).toBe('APPROVED');
+    await w.approve(ref.versionId);
+    expect((await w.state(ref.versionId)).state).toBe('APPROVED');
+    expect((await lc.loadContent(db.app, ref.versionId)).content.parameters.find((p) => p.id === 'binderTemp')?.criticality).toBe('NON_CRITICAL');
+  });
+
   it('[DI-04] try to make a new MBR version effective without a verification record: it is blocked', async () => {
     const content = uniqueContent();
     const v = await w.newVersion(content);
