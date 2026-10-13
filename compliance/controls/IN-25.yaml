@@ -69,6 +69,7 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][INV-12] a use assessment names the open use of its own unit, and the clean-hold of its own last verified cleaning"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] a use that ends inside its clean-hold, calibration and plan crosses nothing"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25] the signed content of a cleaning: version 1 while started, 2 once completed; a manual cleaning names who entered it, a CIP cleaning nobody"
+  - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [DI-28][IN-25] a back-dated logbook entry is impossible: the application role writes no logbook row, and a row written below it with a past time is stored at the database time, which never changes after"
 clauses:
   - clause: "use a balance with calibration past due; the weighing step is blocked."
     tests:

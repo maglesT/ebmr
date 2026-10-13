@@ -79,6 +79,14 @@ tests:
   - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] the preparation is recorded once, at the database time, with its use-by; an appearance that does not comply holds with its title"
   - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] discards follow the preparation, in its unit, never above what was prepared in total (equal allowed)"
   - "apps/tablets-server/test/blocks/granulation/tb-03-edges.test.ts > TB-03 solutions > [IN-36][PR-30] PERFORMED needs the preparation; the MBR gives a positive use-by in whole microseconds"
+  - "apps/tablets-server/test/execution/sweeper.test.ts > a time limit across a client and server restart (PR-30) > [PR-30][INV-20] the elapsed time of a running constraint survives a restart of the server and of the client: the restarted server shows the same start and maximum, and breaches the limit at the time counted from the original start with the system's exception that needs a deviation and flags the batch"
+clauses:
+  - clause: "A simulated breach creates a deviation automatically and flags the batch."
+    tests:
+      - "apps/tablets-server/test/execution/sweeper.test.ts > a time limit across a client and server restart (PR-30) > [PR-30][INV-20] the elapsed time of a running constraint survives a restart of the server and of the client: the restarted server shows the same start and maximum, and breaches the limit at the time counted from the original start with the system's exception that needs a deviation and flags the batch"
+  - clause: "After a client and server restart, the elapsed time is still correct."
+    tests:
+      - "apps/tablets-server/test/execution/sweeper.test.ts > a time limit across a client and server restart (PR-30) > [PR-30][INV-20] the elapsed time of a running constraint survives a restart of the server and of the client: the restarted server shows the same start and maximum, and breaches the limit at the time counted from the original start with the system's exception that needs a deviation and flags the batch"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

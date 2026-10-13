@@ -99,6 +99,7 @@ tests:
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26] a reopen supersedes the item dispositions of the closed cycle: the item is open again and is dispositioned again in the new cycle"
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26][DI-34] on a GMP batch an unsigned escalation is refused, a query waits for the QA review, an escalation stands only while its deviation is linked, and a critical item is escalated only after its detail was opened"
   - "apps/tablets-server/test/review/register-routes.test.ts > the register routes record the showing and the opening (PR-52, DI-26) > [PR-52][DI-26] grouped acceptance stands on a recorded showing of the full list; a critical item is accepted only after its recorded opening"
+  - "apps/tablets-web/test/review/review.test.tsx > exception register > [DI-26] a clean record shows \"no exception\" with its summary, on the register and on the record review, and offers no item to review"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
