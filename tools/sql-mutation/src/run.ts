@@ -444,7 +444,11 @@ const VITEST = join(ROOT, 'node_modules/vitest/vitest.mjs');
 function runVitest(project: Project, tests: string[], env: Record<string, string>, limitMs: number): Promise<TestRun> {
   return new Promise((done) => {
     const started = process.hrtime.bigint();
-    const child = spawn(process.execPath, [VITEST, 'run', '--project', project, ...tests, '--bail=1', '--reporter=dot'], {
+    // EBMR_MUTATION_TEST_TIMEOUT (ms) raises the per-test and per-hook time-outs on a loaded machine, so a slow test is
+    // not taken for a mutant's kill (the default 30 s of vitest.config.ts stays when it is unset).
+    const slow = process.env['EBMR_MUTATION_TEST_TIMEOUT'];
+    const timeouts = slow && /^[1-9][0-9]*$/.test(slow) ? [`--testTimeout=${slow}`, `--hookTimeout=${slow}`] : [];
+    const child = spawn(process.execPath, [VITEST, 'run', '--project', project, ...tests, '--bail=1', '--reporter=dot', ...timeouts], {
       cwd: ROOT,
       env: { ...process.env, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
