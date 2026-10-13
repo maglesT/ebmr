@@ -747,4 +747,27 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     expect(item(await grel(lot.lotId), 'G3.LIMS').problem).toMatch(/is approved by QC_ANALYST, not by the head of QC/);
     expect(item(await grel(good.lotId), 'G3.LIMS').status).toBe('GREEN');
   });
+
+  it('[IN-05] the manufacturer release is signed as the authorised person, and decides a lot in quarantine only', async () => {
+    // TEST FIXTURE: a site that granted RELEASE.MANUFACTURER to QA_REVIEWER; the record still wants the AP's role.
+    await asFixture(async (fx) => {
+      await fx.query("insert into iam.role_permission (role_code, permission_code) values ('QA_REVIEWER', 'RELEASE.MANUFACTURER') on conflict do nothing");
+    });
+    const qaSigner = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Kiran Signer' });
+    const lot = await readyLot();
+    let g = await grel(lot.lotId);
+    await acknowledgeAll(qaSigner, lot.lotId, g);
+    const sig = await signDecision(qaSigner, lot.lotId, 'RELEASE');
+    expect(await messageOf(record(qaSigner, lot.lotId, 'RELEASE', sig, g.epoch))).toMatch(/EBMR-REL-014 .*not as QA_REVIEWER/);
+
+    // TEST FIXTURE: a finished lot no longer in quarantine without a decision (no command does this today).
+    const held = await readyLot();
+    g = await grel(held.lotId);
+    await acknowledgeAll(ap, held.lotId, g);
+    const heldSig = await signDecision(ap, held.lotId, 'RELEASE');
+    await asFixture(async (fx) => {
+      await fx.query("update platform.aggregate_state set state = 'ON_HOLD' where aggregate_type = 'material_lot' and aggregate_id = $1", [held.lotId]);
+    });
+    expect(await messageOf(record(ap, held.lotId, 'RELEASE', heldSig, g.epoch))).toMatch(/EBMR-REL-019 lot .* is ON_HOLD/);
+  });
 });
