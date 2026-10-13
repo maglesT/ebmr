@@ -225,7 +225,7 @@ describe('a time limit across a client and server restart (PR-30)', () => {
       // signs in again (a new session and browser).
       await first.built.close();
       second = await startServer('SANDBOX', { prepared: { database: first.database, seed: first.seed }, env: { EBMR_EXCHANGE_DIR: first.exchangeDir } });
-      const d2 = new RunDriver(second, runId, { operator1: await second.asPersona('operator1') });
+      const d2 = new RunDriver(Object.assign(second, { exchangeDir: first.exchangeDir }), runId, { operator1: await second.asPersona('operator1') });
       const after = await timerOf(d2);
       expect(after).toEqual(before);
       const breaches = async () => Object.values((await execution.loadState(second!.db.admin, runId))?.state.exceptions ?? {}).filter((e) => e.type === 'TIME_MAX_BREACH');

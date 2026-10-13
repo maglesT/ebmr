@@ -393,7 +393,9 @@ describe('G-REL and the manufacturer release (outline 5.2.6, 5.2.7; IN-05, INV-0
     const pull = (quantity: string) =>
       w.run(analyst, (c) => c.query('select site.pull_lot_sample($1, $2::jsonb)', [lotId, JSON.stringify({ kind: 'RESERVE', quantity, container: 'Marketed blister in carton', storageLocation: 'Reserve room R-2' })]));
     const samples = async () => item(await grel(lotId), 'G3.SAMPLES');
-    expect(await samples()).toMatchObject({ status: 'RED', problem: expect.stringMatching(new RegExp(`keeps 0 .*at least ${required.replace('.', '\\.')}.* \\(twice the full test plan\\)`)) });
+    const none = await samples();
+    expect(none.status).toBe('RED');
+    expect(none.problem).toMatch(new RegExp(`keeps 0 .*at least ${required.replace('.', '\\.')}.* \\(twice the full test plan\\)`));
     // One unit short of the computed quantity is still too few.
     const short = (await db.app.query<{ q: string }>('select ($1::numeric - 1)::text as q', [required])).rows[0]!.q;
     await pull(short);
