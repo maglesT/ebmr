@@ -104,15 +104,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # One file at a time: the clock file is shared, and GB-T-01 (slice 6d) freezes it while the clock test reads it as
       # an offset. GB-T-01 runs about 20 minutes.
-      - run: pnpm vitest run apps/tablets-server/test/golden --reporter=default --no-file-parallelism --reporter=blob --outputFile.blob=.vitest-blobs/blob-golden.json
-      # The golden results go into the merged report, so a clause proven only by a golden batch counts in the trace
-      # (Phase 4 slice 7: GB-T-01 continued to release proves IN-16 and PR-22 clauses).
-      - name: Upload the golden blob report
+      - run: pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism --reporter=default --reporter=json --outputFile.json=.reports/vitest-golden.json
+      # The golden results are read by the trace beside the shards' report (tools/register cli --golden), so a clause
+      # proven only by a golden batch counts (Phase 4 slice 7: GB-T-01 continued to release proves IN-16 and PR-22).
+      - name: Upload the golden report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vitest-blob-golden
-          path: .vitest-blobs/blob-golden.json
+          name: vitest-golden
+          path: .reports/vitest-golden.json
           include-hidden-files: true
           if-no-files-found: error
 
@@ -140,10 +140,10 @@ jobs:
           pattern: vitest-blob-*
           path: .vitest-blobs
           merge-multiple: true
-      # A missing shard fails here: the trace below must see every test of the suite (four shards and the golden job).
+      # A missing shard fails here: the trace below must see every test of the suite.
       - name: Merge the shard reports into .reports/vitest.json
         run: |
-          test "$(ls .vitest-blobs/blob-*.json | wc -l)" -eq 5
+          test "$(ls .vitest-blobs/blob-*.json | wc -l)" -eq 4
           mkdir -p .reports
           pnpm vitest run --mergeReports=.vitest-blobs --reporter=json --outputFile=.reports/vitest.json
       - name: Failed tests (summary)
@@ -158,7 +158,12 @@ jobs:
       - name: The static checks, every shard and the golden batches passed
         run: test "${{ needs.checks.result }}" = success && test "${{ needs.tests.result }}" = success && test "${{ needs.golden.result }}" = success
       # The Vitest report alone: listed end-to-end tests are checked against a run in the traceability job below.
-      - run: pnpm trace
+      - name: Golden-batch report of the golden job
+        uses: actions/download-artifact@v4
+        with:
+          name: vitest-golden
+          path: .reports
+      - run: pnpm trace --require-golden
       - name: OpenAPI document of the frozen contract
         run: pnpm openapi
       - name: Upload traceability matrix and OpenAPI
@@ -171,6 +176,7 @@ jobs:
           # downloads this artifact for vitest.json.
           path: |
             .reports/vitest.json
+            .reports/vitest-golden.json
             .reports/trace-matrix.md
             .reports/openapi.json
           if-no-files-found: ignore
