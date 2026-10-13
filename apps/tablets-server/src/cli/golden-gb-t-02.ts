@@ -18,7 +18,7 @@ export const BOTTLE_PACK_TYPE = 'HDPE-BOTTLE';
 export const BOTTLE_SIZE_ID = 'PK-30';
 /** A bottle order packs 3,200 bottles of 30 tablets (96,000 tablets). */
 export const BOTTLE_TABLETS = '96000';
-export const BOTTLE_LINE = 'PL-2';
+export const BOTTLE_LINE = 'PL-1';
 export const BOTTLE_UNIT = 'BTL-01';
 export const BOTTLE_CARTONER = 'CTN-02';
 export const TORQUE_TESTER = 'TQ-01';

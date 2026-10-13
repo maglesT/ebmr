@@ -120,6 +120,10 @@ export const PERSONAS: readonly PersonaSpec[] = [
   { key: 'technician1', installation: 'GMP', legalName: 'Ravi Shetty', loginName: 'ravi.shetty', roleCode: 'MAINTENANCE_TECHNICIAN', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Maintenance and cleaning technician', demo: { password: 'Demo-GmpTechnician1-2026!' } },
   { key: 'technician2', installation: 'GMP', legalName: 'Anita Desai', loginName: 'anita.desai', roleCode: 'MAINTENANCE_TECHNICIAN', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Maintenance and cleaning technician (verifier)', demo: { password: 'Demo-GmpTechnician2-2026!' } },
   { key: 'head1', installation: 'GMP', legalName: 'Lakshmi Iyengar', loginName: 'lakshmi.iyengar', roleCode: 'HEAD_OF_PRODUCTION', kiosk: false, homeTerminal: 'PC-PLAN-01', title: 'Head of production', demo: { password: 'Demo-GmpHeadProd1-2026!' } },
+  // Phase 4 slice 7b: the US quality-control unit's signer (US dispositions, PR-54) and the EU qualified person (in-system
+  // certification, PR-55), for the golden batches and the release specs.
+  { key: 'usQcu', installation: 'GMP', legalName: 'Nandini Rao', loginName: 'nandini.rao', roleCode: 'US_QCU_SIGNER', kiosk: false, homeTerminal: 'PC-QA-10', title: 'US quality-control unit (dispositions)', demo: { password: 'Demo-GmpUsQcu-2026!' } },
+  { key: 'euQp', installation: 'GMP', legalName: 'Joachim Weber', loginName: 'joachim.weber', roleCode: 'EU_QP', kiosk: false, homeTerminal: 'PC-QA-10', title: 'EU qualified person (certification)', demo: { password: 'Demo-GmpEuQp-2026!' } },
   // Sandbox (test runs on the shop floor)
   { key: 'issuer', installation: 'SANDBOX', legalName: 'TEST-Rohan Gupta', loginName: 'test-issuer', roleCode: 'BATCH_ISSUER', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Batch issuer', demo: { password: 'Demo-Issuer-2026!' } },
   { key: 'steward', installation: 'SANDBOX', legalName: 'TEST-Neha Joshi', loginName: 'test-steward', roleCode: 'MASTER_DATA_STEWARD', kiosk: false, homeTerminal: 'TEST-PC-01', title: 'Master-data steward (test lots)', demo: { password: 'Demo-Steward-2026!' } },

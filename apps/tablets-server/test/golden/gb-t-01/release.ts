@@ -50,24 +50,26 @@ async function signed(w: GoldenWorld, b: TestBrowser, key: string, action: Signa
 export async function reviewRecord(w: GoldenWorld, batchId: string): Promise<void> {
   const head = await w.server.asPersona('head1');
   const qa = await w.server.asPersona('qaInvestigator');
-  const qa2 = await w.server.asPersona('qaApprover2');
-  await signed(w, head, 'head1', { kind: 'REVIEW_ACT', act: 'PRODUCTION_APPROVE', batchId, input: {} }, 'the production approval');
+  let qa2 = await w.server.asPersona('qaApprover2');
+  await timed('  production approval', () => signed(w, head, 'head1', { kind: 'REVIEW_ACT', act: 'PRODUCTION_APPROVE', batchId, input: {} }, 'the production approval'));
   // QA concludes every register item in review (PR-52, DI-26): one by one (no two share a deviation here); a critical
   // item after its detail was opened, with a justification. Signing attempts are rate-limited per person: a human pace.
-  const register = ok(await qa2.call(routes.review.register, { params: { batchId }, body: {} }), 'the register');
+  const register = await timed('  register', async () => ok(await qa2.call(routes.review.register, { params: { batchId }, body: {} }), 'the register'));
   let n = 0;
   for (const item of register.items.filter((i) => i.reviewStatus === 'OPEN')) {
     if (n > 0 && n % 4 === 0) advanceMinutes(1);
+    // The signing route allows 20 signatures a minute per session: a long register is worked in several sittings.
+    if (n > 0 && n % 15 === 0) qa2 = await w.server.asPersona('qaApprover2');
     n += 1;
     if (item.critical) ok(await qa2.call(routes.review.openItem, { params: { batchId, exceptionId: item.exceptionId }, body: {} }), 'the item detail');
     const justification = item.critical ? `Reviewed with its disposition (${item.engineDisposition?.outcome ?? 'none'}): no impact on the batch` : undefined;
-    await signed(w, qa2, 'qaApprover2', { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId, input: { items: [item.exceptionId], disposition: 'ACCEPT', ...(justification ? { justification } : {}) } }, `the acceptance of ${item.exceptionId}`);
+    await timed(`  accept ${item.exceptionId}`, () => signed(w, qa2, 'qaApprover2', { kind: 'REVIEW_ACT', act: 'DISPOSE_ITEM', batchId, input: { items: [item.exceptionId], disposition: 'ACCEPT', ...(justification ? { justification } : {}) } }, `the acceptance of ${item.exceptionId}`));
   }
-  const report = ok(await qa.call(routes.review.auditTrail, { params: { batchId }, query: {} }), 'the audit-trail report');
-  await signed(w, qa, 'qaInvestigator', { kind: 'REVIEW_ACT', act: 'AUDIT_TRAIL_REVIEW', batchId, input: { reviewId: report.reviewId } }, 'the audit-trail review');
-  const view = ok(await qa2.call(routes.review.batch, { params: { batchId } }), 'the review view');
+  const report = await timed('  audit-trail report', async () => ok(await qa.call(routes.review.auditTrail, { params: { batchId }, query: {} }), 'the audit-trail report'));
+  await timed('  audit-trail review', () => signed(w, qa, 'qaInvestigator', { kind: 'REVIEW_ACT', act: 'AUDIT_TRAIL_REVIEW', batchId, input: { reviewId: report.reviewId } }, 'the audit-trail review'));
+  const view = await timed('  review view', async () => ok(await qa2.call(routes.review.batch, { params: { batchId } }), 'the review view'));
   if (!view.gates.qaReview.ready) throw new Error(`the QA review of ${batchId} is not ready: ${view.gates.qaReview.problems.join('; ')}`);
-  await signed(w, qa2, 'qaApprover2', { kind: 'REVIEW_ACT', act: 'QA_REVIEW', batchId, input: { expectedEpoch: view.epoch } }, 'the QA review');
+  await timed('  QA review', () => signed(w, qa2, 'qaApprover2', { kind: 'REVIEW_ACT', act: 'QA_REVIEW', batchId, input: { expectedEpoch: view.epoch } }, 'the QA review'));
 }
 
 /** QC drafts the finished-product specification; the head of QC approves it. */
@@ -138,18 +140,29 @@ export async function runPackaging(w: GoldenWorld, happy: GoldenBatch): Promise<
 
 /** The records reviewed, the finished lots posted, tested and sampled, and released by the AP for India. */
 export async function runRelease(w: GoldenWorld, happy: GoldenBatch, packed: Packed): Promise<Continuation> {
-  for (const b of [happy, ...packed.orders]) await reviewRecord(w, b.batchId);
-  await productSpecification(w, 'GBT01-250');
+  // QC tests the finished lots and pulls their reserve samples before QA reviews the records, so nothing the release
+  // rests on changes after the review (outline 5.2.7 item 1).
+  await timed('specification', () => productSpecification(w, 'GBT01-250'));
   const lots = [];
-  for (const o of packed.orders) lots.push(await finishedLot(w, o, ORDER_PLAN.packs));
+  for (const o of packed.orders) lots.push(await timed(`lot of ${o.batchNumber}`, () => finishedLot(w, o, ORDER_PLAN.packs)));
+  for (const b of [happy, ...packed.orders]) await timed(`review of ${b.batchNumber}`, () => reviewRecord(w, b.batchId));
   const grel: Json[] = [];
   const decisions: string[] = [];
   for (const l of lots) {
-    const r = await manufacturerRelease(w, l.lotId);
+    const r = await timed(`release of ${l.lotCode}`, () => manufacturerRelease(w, l.lotId));
     grel.push(r.grel);
     decisions.push(r.decision);
   }
   return { ...packed, lots, grel, decisions };
+}
+
+/** Wall time of each part of the continuation (the performance re-measure, README.md). */
+export const TIMINGS: string[] = [];
+export async function timed<T>(what: string, work: () => Promise<T>): Promise<T> {
+  const s = Date.now();
+  const r = await work();
+  TIMINGS.push(`${what}: ${String(((Date.now() - s) / 1000).toFixed(1))} s`);
+  return r;
 }
 
 export async function runContinuation(w: GoldenWorld, happy: GoldenBatch): Promise<Continuation> {

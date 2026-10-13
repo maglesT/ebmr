@@ -110,9 +110,10 @@ export interface Gbt02Release {
 /** The bottle order, the reviews, the finished lot and its release for India; then the US addition (INELIGIBLE). */
 export async function packAndRelease(w: GoldenWorld, m: Gbt02Masters, batch: GoldenBatch, bulk: { id: string; label: string }[]): Promise<Gbt02Release> {
   const order = await bottleOrder(w, m.bottle, batch, 'PO-GBT02-PK-0001', { ...BOTTLE_PLAN, labels: bulk.map((c) => c.label) });
-  for (const b of [batch, order]) await reviewRecord(w, b.batchId);
+  // QC tests the lot and pulls its reserve samples before QA reviews the records (nothing changes after the review).
   await productSpecification(w, GBT02_PRODUCT.productCode);
   const lot = await finishedLot(w, order, BOTTLE_PLAN.packs);
+  for (const b of [batch, order]) await reviewRecord(w, b.batchId);
   const released = await manufacturerRelease(w, lot.lotId);
   // The US added to the released lot under a change record: QA signs the addition with its market-add evaluation.
   const qa = await w.server.asPersona('qaApprover2');
@@ -121,10 +122,10 @@ export async function packAndRelease(w: GoldenWorld, m: Gbt02Masters, batch: Gol
   const added = (await w.server.db.app.query<{ e: Json }>("select evaluation as e from recipe.market_change where subject_kind = 'LOT' and subject_id = $1 and market = 'US'", [lot.lotId])).rows[0]?.e ?? {};
   const items = ((added['items'] as Json[] | undefined) ?? []).map((i) => `${String(i['id'])} ${String(i['outcome'])}`);
   const state = (await w.server.db.app.query<{ s: string }>("select recipe.disposition_state($1, 'US') as s", [lot.lotId])).rows[0]?.s ?? '';
-  // The AP's US disposition is refused on that evidence.
-  const ap = await w.server.asPersona('qcuAuthoriser');
-  const usGrel = ok(await ap.call(routes.release.grel, { params: { lotId: lot.lotId }, query: { market: 'US' } }), 'G-REL for the US');
-  const us = await signAct(w, ap, 'qcuAuthoriser', { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId: lot.lotId, input: { usDecision: 'RELEASE', expectedEpoch: usGrel.epoch } });
+  // The US quality-control unit's disposition is refused on that evidence.
+  const qcu = await w.server.asPersona('usQcu');
+  const usGrel = ok(await qcu.call(routes.release.grel, { params: { lotId: lot.lotId }, query: { market: 'US' } }), 'G-REL for the US');
+  const us = await signAct(w, qcu, 'usQcu', { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId: lot.lotId, input: { usDecision: 'RELEASE', expectedEpoch: usGrel.epoch } });
   const usDispose = us.ok ? 'ok' : ((refusalOf(us as never) as { code?: string } | null)?.code ?? 'refused');
   return { order, lot, grel: released.grel, decision: released.decision, usAdd: { outcome: added['outcome'], items }, usDisposition: state, usDispose };
 }

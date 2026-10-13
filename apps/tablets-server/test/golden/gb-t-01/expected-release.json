@@ -1,0 +1,13 @@
+{
+  "worksheet": {
+    "drums": ["49201", "49201", "49201", "49201"],
+    "bulkIssued": [["INSPECTION/- 49201 units", "INSPECTION/- 49201 units"], ["INSPECTION/- 49201 units", "INSPECTION/- 49201 units"]],
+    "order": {
+      "reconciliations": [],
+      "shippers": 14,
+      "packYield": "99.59"
+    },
+    "lot": { "state": "RELEASED" }
+  },
+  "fromTheRun": { "orders": [], "lots": [] }
+}

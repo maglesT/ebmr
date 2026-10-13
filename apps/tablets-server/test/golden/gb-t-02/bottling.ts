@@ -47,6 +47,11 @@ export async function setUpBottleLine(w: GoldenWorld): Promise<void> {
       c.query("select iam.register_device($1, 'INSTRUMENT', 'SITE-1', $2, null, $3, $4)", [code, BOTTLE_LINE, createHash('sha256').update(`${code}:${randomUUID()}`).digest('hex'), `${code} of PL-1 (not interfaced)`]),
     );
   }
+}
+
+/** The line's units and the line cleaned (MAJOR) and verified, on the golden clock, before an order. */
+export async function cleanBottleLine(w: GoldenWorld): Promise<void> {
+  for (const k of ['technician1', 'technician2']) w.b[k] = await w.server.asPersona(k);
   for (const code of [BOTTLE_UNIT, BOTTLE_CARTONER]) await clean(w, 'EQUIPMENT', code);
   await clean(w, 'AREA', BOTTLE_LINE);
 }
@@ -64,6 +69,7 @@ export interface BottleRun {
 
 /** One bottle order planned on the bulk of `parent`, issued, and run to its end. */
 export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenBatch, orderNo: string, plan: BottleRun, markets: string[] = ['IN']): Promise<GoldenBatch> {
+  await cleanBottleLine(w);
   const issuer = await w.server.asPersona('issuer');
   const p = ok(
     await issuer.call(routes.planning.planPackagingOrder, { body: { familyId: m.familyId, markets, site: SITE, line: LINE, batchSize: BOTTLE_SIZE_ID, erpOrder: orderNo, parentBatchId: parent.batchId } }),

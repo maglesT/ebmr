@@ -1,0 +1,206 @@
+{
+  "worksheet": {
+    "dispensing": {
+      "dispApi": "10.000",
+      "dispMcc": "8.400",
+      "dispCcs": "1.000",
+      "dispSio": "0.200",
+      "dispMgs": "0.400"
+    },
+    "blending": {
+      "dispRecon": "100.00",
+      "blendYield": "99.40"
+    },
+    "compression": {
+      "compT": "20.000",
+      "compYield": "97.50",
+      "compYieldAB": "98.25",
+      "compAcc": "99.85",
+      "coresNet": "19.500"
+    },
+    "bottling": {
+      "packYield": "98.46",
+      "packs": "3200"
+    }
+  },
+  "fromTheRun": {
+    "batch": {
+      "states": {
+        "batch": "EXECUTION_COMPLETE",
+        "stages": {
+          "S-BLEND@": "SIGNED_OFF",
+          "S-COMP@": "SIGNED_OFF",
+          "S-DISP@": "SIGNED_OFF"
+        },
+        "containers": {
+          "BLENDING/-/01": "CLOSED",
+          "COMPRESSION/L/01": "CLOSED",
+          "COMPRESSION/L/02": "CLOSED",
+          "COMPRESSION/L/03": "CLOSED",
+          "COMPRESSION/R/01": "CLOSED",
+          "COMPRESSION/R/02": "CLOSED",
+          "COMPRESSION/R/03": "CLOSED"
+        },
+        "notCompleted": []
+      },
+      "consumptions": [
+        "GBT2-CCS-001 1 kg",
+        "GBT2-EXF-001 10 kg",
+        "GBT2-MCC-V01 8.4 kg",
+        "GBT2-MGS-001 0.4 kg",
+        "GBT2-SIO-001 0.2 kg"
+      ],
+      "containers": [
+        "BLENDING/- 19.88",
+        "COMPRESSION/L 3.25",
+        "COMPRESSION/L 3.25",
+        "COMPRESSION/L 3.25",
+        "COMPRESSION/R 3.25",
+        "COMPRESSION/R 3.25",
+        "COMPRESSION/R 3.25"
+      ],
+      "exceptions": [
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT"
+      ],
+      "signatures": 59,
+      "normalisedTrueCopySha256": "b59054b62819f4e0c58172d97962dfcb60bca2065c883d097dc72948fee23b0e"
+    },
+    "order": {
+      "states": {
+        "batch": "EXECUTION_COMPLETE",
+        "stages": {
+          "S-PACK@": "SIGNED_OFF"
+        },
+        "containers": {},
+        "notCompleted": []
+      },
+      "consumptions": [
+        "GBT2-HDP-001 40 kg"
+      ],
+      "containers": [],
+      "exceptions": [
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT"
+      ],
+      "signatures": 20,
+      "normalisedTrueCopySha256": "8467d0bf79c07528e2369fe58c8db7be94244eb6ef9ba79fec44e5abe275e53b"
+    },
+    "lot": {
+      "state": "RELEASED",
+      "quantity": "3200 packs",
+      "markets": [
+        "IN",
+        "US"
+      ],
+      "dispositions": {
+        "IN": "RELEASED",
+        "US": "INELIGIBLE",
+        "EU": null
+      },
+      "results": [
+        "ASSAY 99.6 % PASS APPROVED",
+        "DISSOLUTION 93 % PASS APPROVED"
+      ],
+      "samples": [
+        "RESERVE 4 packs"
+      ],
+      "grel": {
+        "IN": [
+          "G1.REVIEW_1 GREEN",
+          "G1.REVIEW_2 GREEN",
+          "G2.DEVIATIONS GREEN",
+          "G2.REGISTRATION NA",
+          "G2.CHANGE_NOTIFICATION NA",
+          "G3.LIMS GREEN",
+          "G3.EXTRA_TESTING GREEN",
+          "G3.SAMPLES GREEN",
+          "G5.MATERIALS GREEN",
+          "G6.VALIDATION_BASIS GREEN",
+          "G6.POST_CHANGE NA",
+          "G6.PPQ NA",
+          "G6.LICENCE GREEN",
+          "G7.INCIDENTS GREEN",
+          "G8.MARKET_ADD NA",
+          "E.RECONCILIATION_PRINTED GREEN",
+          "E.RECONCILIATION_PACKS GREEN",
+          "E.RECONCILIATION_SERIAL GREEN",
+          "E.RECONCILIATION_YIELD GREEN",
+          "E.POSTED_QUANTITY GREEN",
+          "E.FINISHED_PACK_EXAMINATION GREEN",
+          "E.PRINTED_TABLETS_QC NA",
+          "E.HELD_CONTAINERS GREEN",
+          "E.CONTAINER_RELEASE GREEN",
+          "E.RULE_SETS_VERIFIED NA",
+          "E.WHOLE_BATCH_PARENTS NA"
+        ],
+        "US": [
+          "G1.REVIEW_1 GREEN",
+          "G1.REVIEW_2 GREEN",
+          "G2.DEVIATIONS GREEN",
+          "G2.REGISTRATION NA",
+          "G2.CHANGE_NOTIFICATION NA",
+          "G3.LIMS GREEN",
+          "G3.EXTRA_TESTING GREEN",
+          "G3.SAMPLES GREEN",
+          "G5.MATERIALS GREEN",
+          "G6.VALIDATION_BASIS GREEN",
+          "G6.POST_CHANGE NA",
+          "G6.PPQ NA",
+          "G6.LICENCE GREEN",
+          "G7.INCIDENTS GREEN",
+          "G8.MARKET_ADD RED",
+          "G11.MARKET_IN_SET RED",
+          "G11.REGISTRATION GREEN",
+          "G11.MARKET_REJECTIONS NA",
+          "G11.US_RELEASE_RATE NA",
+          "G11.US_CONTRACT_GIVER NA",
+          "E.RECONCILIATION_PRINTED GREEN",
+          "E.RECONCILIATION_PACKS GREEN",
+          "E.RECONCILIATION_SERIAL GREEN",
+          "E.RECONCILIATION_YIELD GREEN",
+          "E.POSTED_QUANTITY GREEN",
+          "E.FINISHED_PACK_EXAMINATION GREEN",
+          "E.PRINTED_TABLETS_QC NA",
+          "E.HELD_CONTAINERS GREEN",
+          "E.CONTAINER_RELEASE GREEN",
+          "E.RULE_SETS_VERIFIED NA",
+          "E.WHOLE_BATCH_PARENTS NA"
+        ]
+      }
+    },
+    "usAdd": {
+      "evaluation": {
+        "outcome": "UNMET_FINAL",
+        "items": [
+          "MA.MBR_AUTHORISATION MET",
+          "MA.IDENTITY_ROUTE UNMET_FINAL",
+          "MA.RELEASE_TESTS MET",
+          "MA.RESERVE_SAMPLES MET"
+        ]
+      },
+      "disposition": "INELIGIBLE",
+      "usDispose": "EBMR-DSP-032"
+    }
+  }
+}
