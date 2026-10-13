@@ -107,3 +107,29 @@ export const GBT01_LOTS: readonly SeedMaterialLot[] = [
   excipient('GBT-MGS-001', 'MAT-MGST', '3.000', '3.00', '6.0'),
   excipient('GBT-FCS-001', 'MAT-FCS-W', '9.000', '2.50', '5.0'),
 ];
+
+/**
+ * The packaging materials of GB-T-01's blister orders (Phase 4 slice 7b; D-P4-15): the forming film (weighed out by
+ * the order), the printed lidding foil and the printed cartons (issued and reconciled at the order's G-21 step, each lot
+ * with its artwork version recorded by QC at receipt). Invented specifications.
+ */
+export const GBT01_PACK_MATERIALS = [
+  { materialCode: 'MAT-PVC-250', materialName: 'PVC forming film 250 micron', materialKind: 'PRIMARY_PACKAGING', unit: 'kg', maxRetestMonths: 36, erpReference: 'SAP-MM-PM-PVC250' },
+  { materialCode: 'MAT-ALU-GBT01', materialName: 'Printed aluminium lidding foil, GB-T-01', materialKind: 'PRINTED_PACKAGING', unit: '1', maxRetestMonths: 36, erpReference: 'SAP-MM-PM-ALUGBT01' },
+  { materialCode: 'MAT-CTN-GBT01', materialName: 'Printed carton, GB-T-01 10 x 10', materialKind: 'PRINTED_PACKAGING', unit: '1', maxRetestMonths: 36, erpReference: 'SAP-MM-PM-CTNGBT01' },
+] as const;
+
+/** A lot of the seed with the artwork version QC records for it at receipt (printed packaging only). */
+export type SeedPackLot = SeedMaterialLot & { artwork?: string };
+
+const packLot = (lotCode: string, materialCode: string, quantity: string, test: SeedTestResult, artwork?: string): SeedPackLot => ({
+  lotCode, materialCode, quantity, expiresAt: '2029-06-30T00:00:00Z', identityMethod: 'VIS-PM-01', results: [test], ...(artwork ? { artwork } : {}),
+});
+const textCheck: SeedTestResult = { testCode: 'TEXT_CHECK', methodReference: 'STP-PM-TXT-01', value: '0', unit: '1', upperLimit: '0' };
+
+/** The packaging lots (enough for the two blister orders of GB-T-01; the artwork versions the blister master names). */
+export const GBT01_PACK_LOTS: readonly SeedPackLot[] = [
+  packLot('GBT-PVC-001', 'MAT-PVC-250', '80.000', { testCode: 'THICKNESS', methodReference: 'STP-PM-THK-01', value: '250', unit: 'um', lowerLimit: '240', upperLimit: '260' }),
+  packLot('GBT-ALU-001', 'MAT-ALU-GBT01', '25000', textCheck, 'ART-GBT01-FOIL-1'),
+  packLot('GBT-CTN-001', 'MAT-CTN-GBT01', '2500', textCheck, 'ART-GBT01-CTN-1'),
+];
