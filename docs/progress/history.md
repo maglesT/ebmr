@@ -2452,3 +2452,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   register needs RECORD.READ). Residuals: IN-31 (b) artwork approval and print binding; IN-30 planning party and
   contract-giver access; IN-27 step-start and PPE checks; no automatic deviation on a lapsed licence; hazard approval
   screen; a superuser-typed finished-lot expiry unchecked.
+- 2026-10-13: PHASE 4 SLICE 7 AND THE PHASE 4 EXIT (branch phase-4/slice-7; builders 7a to 7e). Trace: clauses for
+  every phase-4 control, the editions filter, the trace-deferrals list; owner decision 0011 (fully deferred controls
+  show DEFERRED; clauses needing missing features deferred to Phase 6 or 7). Golden: GB-T-01 continued to release, and
+  GB-T-02; exact outputs, existing hashes unchanged, no golden test above 30 minutes (GB-T-01 1,327 s, GB-T-02 348 s);
+  the CI golden job's results now join the report the trace reads. The set-up's release path uses real signed acts;
+  the browser flows moved from slices 3 to 5 now run (42 browser tests). Kill tests for the "not twins": 862 of 883
+  mutants killed, 19 equivalent (written up), 2 residual. The audit-review speed-up is recipe-core 0931. Exit review
+  (one pass): no critical or high; three low residuals (allocation_register, qp_reader_access and read_qp_package do
+  not refuse administrators first). phase.yaml at 4; the trace passes at phase 4 (143/241). E2E job timeout 45 minutes.

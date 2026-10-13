@@ -58,9 +58,20 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
     PQR extract (reproducible, reconciled to the registers, AP sign-off). Migrations: site-services 0885, 0886;
     recipe-core 0890 to 0895, 0910 to 0913; kernel 1170 to 1174; tablets 1200, 1201, 1209. Quick review: no high;
     core mediums (export certifiable without the database's own check, an unsigned hazard downgrade) fixed with tests.
-  - Moved to GB-T-02 (slice 7): the green release path, the released demo lot and the suspension browser flow, the demo
-    H-PACK shortcut, the e2e QP package and market release.
-  - Open for the owner (defaults stand): IN-18 "deferred clauses" read as the register export with each number's use
+  - Slice 7 (Phase 4 exit) on `phase-4/slice-7`: 7a clause mappings for every phase-4 control, the `editions`
+    filter (decision 0010) and docs/build-plan/phase-4/trace-deferrals.md; 7b GB-T-01 continued to release (two blister
+    orders from one bulk) and GB-T-02 (direct compression, bottles, US added after vendor history INELIGIBLE), exact
+    outputs, the release path in the set-up through real signed acts (demo H-PACK shortcut gone), the browser flows for
+    release, US disposition, EU QP package and certification intake, suspension then recall; 7c SQL kill tests for the
+    "not twins" (recipe-core 0930 drops reprocessing_start_problem); 7d and 7e tests and mappings for the remaining
+    clauses. Decision 0011 (owner): a control whose every clause is deferred with a reason shows DEFERRED; clauses that
+    need missing features are deferred to Phase 6 or 7 (listed in trace-deferrals.md). Exit review (one pass): no
+    critical or high. `phase.yaml` is at 4; the trace passes at phase 4 with the golden and browser results (143/241
+    controls with passing tests). Final run: 5,916 + 31 golden + 42 browser tests passed.
+  - Open for the owner (defaults stand): D-7b-1 (GB-T-01's two orders are India-only, since its master is authorised for
+    India only; meeting D-P4-15 literally means re-recording GB-T-01 with a three-market master after review); PR-30
+    (a breach raises the exception that needs a deviation and blocks release, but creates no deviation record by
+    itself); IN-18 "deferred clauses" read as the register export with each number's use
     (D-6a-7); D-2a-9 (CONFIRMED impact keeps release blocked after closure), D-P4-6 (India
     PPQ release waits for the validation outcome), D-3a-10 (CONFIRMED impact never justifiable), D-5b-2 (a product with
     no bright-stock maximum is not checked), the drying-loop correction and India subdivision questions (Phase 3 backlog).
@@ -69,9 +80,10 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-Phase 4 slices 6 (India specifics, records, PDF/A-3, retention, PQR extract) and 7 (trace to phase 4, golden batches
-GB-T-01 continued and GB-T-02, residual kill tests), then the Phase 4 exit (decision 0008: one review pass, full suite,
-golden batches, browser suite). Each slice: a plan, builders on branches, one quick review, PR merged on green CI.
+Phase 4 closes with the slice 7 PR. Then Phase 6 (decision 0010): integrations and extras for Tablets, and the clauses
+decision 0011 deferred to it; then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
+after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
+scripts) on a cloud server the owner provides.
 
 ## How to work here
 
