@@ -748,6 +748,19 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
       `batch ${bn}: QC decided the extra test XTRA for batch ${bn}, and it is no test of the specification in effect for the lot: no limits to judge it by (PR-47, IN-33)`);
   });
 
+  it('[IN-05][INV-39] with the in-system QP on, the QP acknowledges EU items only: an IN item still needs the manufacturer release permission', async () => {
+    const setQp = (value: 'ON' | 'OFF') => withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', $1)", [value]));
+    const lot = await readyLot();
+    const g = await grel(lot.lotId);
+    const qp = await seedActor(db, { roleCode: 'EU_QP', legalName: 'Lena Qualified' });
+    await setQp('ON');
+    try {
+      expect(await messageOf(w.run(qp, (c) => c.query("select recipe.acknowledge_release_item($1, 'IN', 'G3.LIMS', $2)", [lot.lotId, g.epoch])))).toMatch(/EBMR-IAM-040/);
+    } finally {
+      await setQp('OFF');
+    }
+  });
+
   it('[INV-05] a reserve sample pulled or disposed of moves the epoch of its own lot', async () => {
     const lot = await readyLot();
     const other = await readyLot();
