@@ -34,6 +34,11 @@ tests:
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01] a person without the AP's sign-off permission cannot sign or record a sign-off"
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][INV-35] a person involved in the reviewed batches' records never signs off their review: the production approver holding the AP role is refused"
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][PR-58] the AP signs off a reproducing, reconciled extract once; the signed content carries the hash and the reconciliation"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the register side of the reconciliation, source by source (recipe-core 0910, recipe.pqr_register_view) > [IN-01] [PR-58] a deviation of the product's lot only, the market additions of its batch and its lot and a successor effective in the period are in the extract and in the registers alike; another product's are in neither"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [IN-01] a period may be one day, and up to exactly three years; it has both ends, in order"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [IN-01] an unknown extract is not signed off; the sign-off of an extract is neither held by a lock on another extract nor refused by another's sign-off"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [IN-01] [INV-35] a signer who became involved in a reviewed batch after signing does not record the sign-off"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [IN-01] a PQR is signed off as the authorised person: a signature made in another role, even one granted the sign-off permission, is refused"
 clauses:
   - clause: "run the PQR extract for a product with domestic and export-only batches; all appear."
     tests:

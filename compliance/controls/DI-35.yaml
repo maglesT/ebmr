@@ -265,6 +265,11 @@ tests:
   - "packages/kernel/test/records/contingency-forms.test.ts > contingency packs (kernel 1170) > [DI-43][DI-35] the reconciliation is signed with FORMS_RECONCILED of the current forms by the person who records it"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-35] QA certifies the export with EVIDENCE_EXPORT_CERTIFIED of this export, made by the person who records it, once"
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the reconciliation and its signed content (kernel 1170) > [DI-43] [DI-35] the reconciliation names its batch; a signature of another batch is refused for its binding, before the content check"
+  - "packages/kernel/test/mutation/records-evidence-export.test.ts > the certification, the state and the signed content of one export among several (kernel 1171) > [IN-11] [DI-35] an unknown export is not certified; a signature of another export is refused for its binding"
+  - "packages/recipe-core/test/mutation/india-issue-gate.test.ts > the hazard classes of a product and the dedication of a line (recipe-core 0890, 0912) > [IN-27] [DI-35] an unknown record is not approved; a record is approved once and only while it is the latest; the approval is recorded by its signer"
+  - "packages/site-services/test/mutation/india-licences.test.ts > recording, approving and suspending a licence: the refusals (site services 0885) > [IN-30] [DI-35] a person who recorded a licence does not approve it, even holding the approval right and another person's signature"
+  - "packages/site-services/test/mutation/india-licences.test.ts > approving and suspending an export permission: the refusals (site services 0885) > [IN-30] [DI-35] the recorder of a permission does not approve it, even holding the approval right; the approval is recorded by the person who signed it"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

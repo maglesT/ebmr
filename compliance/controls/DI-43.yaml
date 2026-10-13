@@ -55,6 +55,15 @@ tests:
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] completion is refused while a form is issued and not returned, returned and not verified, or reported missing without its deviation reference; it passes once every form is reconciled and FORMS_RECONCILED is signed"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] the application role cannot write the completion around the gate nor switch the gate off"
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > what a contingency pack must name (kernel 1174, records.issue_contingency_pack) > [DI-43] a pack names its batch, label, template, destination and reason, each on its own"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > what a contingency pack must name (kernel 1174, records.issue_contingency_pack) > [DI-43] a pack is issued at the batch issue without a stage, or at a stage start naming it"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > what a contingency pack must name (kernel 1174, records.issue_contingency_pack) > [DI-43] a pack has 1 to 50 numbered forms"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the steps of a form (kernel 1170, records.record_contingency_form_event) > [DI-43] a form is returned only once, from ISSUED"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the steps of a form (kernel 1170, records.record_contingency_form_event) > [DI-43] [DI-30] the transcription a verifier may not have made is the form's own latest transcription, not another form's nor another step of it"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the steps of a form (kernel 1170, records.record_contingency_form_event) > [DI-43] once the reconciliation is signed no form of the batch changes, whatever its state"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the reconciliation and its signed content (kernel 1170) > [DI-43] the signed content of a batch's reconciliation lists its own forms only"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the reconciliation and its signed content (kernel 1170) > [DI-43] [DI-35] the reconciliation names its batch; a signature of another batch is refused for its binding, before the content check"
+  - "packages/recipe-core/test/mutation/records-contingency-forms.test.ts > a contingency pack for a batch that ended, and the completion gate (kernel 1174, recipe-core 0911) > [DI-43] [PR-16] a change of status other than completion is not held by open forms; no pack is issued once the batch ended"
 clauses:
   - clause: "Issue 3 contingency sheets and return 2. Batch closure is blocked and a deviation is raised."
     tests:

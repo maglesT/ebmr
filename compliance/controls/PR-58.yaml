@@ -39,6 +39,10 @@ tests:
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [IN-01][PR-58] a batch number register that does not match the issued batches fails the extract"
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][PR-58] changed data gives a different hash; the earlier extract no longer reproduces and is not signed off"
   - "packages/recipe-core/test/release/pqr-extract.test.ts > the AP sign-off (IN-01 (b), PR-58) > [IN-01][PR-58] the AP signs off a reproducing, reconciled extract once; the signed content carries the hash and the reconciliation"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the register side of the reconciliation, source by source (recipe-core 0910, recipe.pqr_register_view) > [IN-01] [PR-58] a deviation of the product's lot only, the market additions of its batch and its lot and a successor effective in the period are in the extract and in the registers alike; another product's are in neither"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the reconciliation itself (recipe-core 0910, recipe.pqr_reconciliation) > [PR-58] the counts must agree as well as the members: an entry counted twice on one side fails, with only the counts named"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [PR-58] an unknown query version is refused for what it is; an installed version other than 1 is not runnable here"
+  - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [PR-58] an unknown extract neither reproduces nor involves anyone, whatever extracts exist"
 clauses:
   - clause: "A product extract for a period reconciles to the batch list and the deviation and CAPA registers."
     tests:
