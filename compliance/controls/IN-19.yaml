@@ -60,6 +60,7 @@ tests:
   - "packages/site-services/test/mutation/reprocessing.test.ts > the limits of a reprocessing or recovery addition (recipe-core 0622, recipe.addition_problem) > [PR-47][IN-19] the facts of a source: none for a container not closed; residue reserved and closed, or released by QA; no case once charged or poured into another"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the happy variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
+  - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][IN-19][INV-33] a G-24@2 step starts only on an unused signed STEP authorisation of this batch, step and case by another person; a validated re-treatment, a G-24@1 step, a step already started and a batch without G-24@2 take none"
 clauses:
   - clause: "add recovered material without prior authorisation; the step is blocked."
     tests:

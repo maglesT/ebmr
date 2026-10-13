@@ -32,6 +32,7 @@ tests:
   - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-49] a GMP-critical alarm raises GMP_CRITICAL_ALARM; it is acknowledged only with a comment, once, and the step cannot be signed performed while any alarm is unacknowledged"
   - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-14][DI-31][DI-32][DI-49] G-06 Automated equipment phase: A press step: the main force setpoint read back equal, the turret speed collected; a GMP-critical force alarm acknowledged with a comment; the link lost and the tablet count keyed by hand under the MBR fallback (flagged, two persons); the recipe checked; performed and verified"
   - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 values > [DI-49] alarms: GMP-critical ones are flagged and acknowledged with a comment; each once; an unknown alarm is none; the value of an alarm carries no usable flag"
+  - "apps/tablets-server/test/mutation/process-devices-gateway.test.ts > alarm acknowledgements (tablets 0820) > [DI-49] a person acknowledges, once and with a comment, an ALARM of the step's device received in the step's window that an accepted ALARM entry of the step recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

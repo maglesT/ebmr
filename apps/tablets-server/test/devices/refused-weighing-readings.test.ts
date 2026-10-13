@@ -10,6 +10,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { execution } from '@ebmr/recipe-core';
 import { outcomeOf } from '../execution/support.ts';
 import { newRun, PCM, reachPcm, report, startRig, stopRig, type Rig } from './room-scales-support.ts';
 
@@ -72,6 +73,33 @@ describe('F59: the readings of a refused weighing (DI-32, PR-19)', () => {
       retry: outcomeOf(retry),
       usesAfterRetry: await usesOf([tare, gross]),
     }).toEqual({ badTap: '401:EBMR-IAM-140', badTapNames: null, usesAfterBadTap: 0, unknownLot: '422:EBMR-EXE-072', unknownLotNames: null, usesAfterUnknownLot: 0, retry: 'ok', usesAfterRetry: 2 });
+  }, 300_000);
+
+  it('[PR-46][PR-18] dispensing a rejected lot is blocked: the weighing naming it is refused (G07-LOT-STATUS), nothing is dispensed from it, and a released lot of the material is then accepted', async () => {
+    // A REJECTED test lot of the step's material in the sandbox register (written by the owner as a fixture).
+    const c = await rig.server.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query(
+        `insert into tab.sandbox_lot (lot_code, material_code, material_name, status, expires_at, retest_at, identity_tested, registered_by_person, registered_by_account, correlation_id)
+         values ('TEST-L26-0198', 'MAT-PCM', 'Paracetamol, direct-compression grade', 'REJECTED', now() + interval '400 days', null, true, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())`,
+      );
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    const d = await newRun(rig);
+    await reachPcm(d);
+    await report(rig, { 'TEST-BAL-01': 'ONLINE' });
+    const [tare, gross] = await twoReadings();
+    const refused = await d.command('operator1', weighing(tare, gross, 'TEST-L26-0198'));
+    expect(outcomeOf(refused)).toBe('422:G07-LOT-STATUS');
+    expect(JSON.stringify(refused.ok ? null : refused.error)).toMatch(/TEST-L26-0198 is rejected: only released lots/);
+    const state = JSON.stringify((await execution.loadState(rig.server.db.admin, d.runId))?.state ?? {}, (_k, v: unknown) => (typeof v === 'bigint' ? v.toString() : v));
+    expect(state).not.toContain('TEST-L26-0198');
+    const [tare2, gross2] = await twoReadings();
+    expect(outcomeOf(await d.command('operator1', weighing(tare2, gross2)))).toBe('ok');
   }, 300_000);
 
   it('[DI-32][PR-19] an engine refusal (a quarantined lot, G07-LOT-STATUS) is committed with the claims: its answer names both readings it used, and a resend of them is refused as used', async () => {

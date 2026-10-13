@@ -94,6 +94,11 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][DI-10] NO_PLAN is refused while the scheme has a plan for the lot: such a lot is sampled and judged as in TB-20@1"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > QA verification of a compendial rule set (slice 3b, tablets 1161; tablets spec E.1) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: NA when no entry cites a rule set; red while a cited rule set has no signed QA verification; green once QA records and signs it"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: an entry whose rule-set reference is malformed is red (\"cannot determine\"), never dropped to NA"
+  - "apps/tablets-server/test/review/review-routes.test.ts > a tightened limit leaves the completed record as it was (DI-10) > [DI-10] a specification limit tightened after the batch completed: the completed record still shows the limits of the version it ran under and its original evaluation, while a new batch takes the tightened version"
+clauses:
+  - clause: "Tighten a specification limit after a batch completes. The completed record still shows the original limit version and its original pass/fail evaluation."
+    tests:
+      - "apps/tablets-server/test/review/review-routes.test.ts > a tightened limit leaves the completed record as it was (DI-10) > [DI-10] a specification limit tightened after the batch completed: the completed record still shows the limits of the version it ran under and its original evaluation, while a new batch takes the tightened version"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

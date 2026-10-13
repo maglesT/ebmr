@@ -4,6 +4,7 @@
  * occupancy (INV-15, IN-21, PR-26, PR-34), one active packaging order per line (PR-35), room eligibility (IN-26 (b)(c),
  * PR-25) and the logbook view (IN-25 (a), PR-24). Every write runs as ebmr_app inside a validated command.
  */
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import * as plant from '../../src/plant/index.ts';
@@ -404,5 +405,37 @@ describe('out of service, bypass attempts and the logbook', () => {
     const lNumber = (await w.batch('L-1', product)).number;
     expect(pressLog.map((r) => r.entry)).toEqual(['QUALIFIED', 'CLEANING_STARTED', 'CLEANING_COMPLETED', 'CLEANING_VERIFIED', 'USE_STARTED', 'USE_ENDED']);
     expect(pressLog.filter((r) => r.batch_ref === lNumber).length).toBe(2);
+  });
+
+  it('[DI-28][IN-25] a back-dated logbook entry is impossible: the application role writes no logbook row, and a row written below it with a past time is stored at the database time, which never changes after', async () => {
+    const press = await w.press();
+    const past = '2020-01-01T00:00:00Z';
+    // As the application role, in a validated command: no direct write to the rows the logbook reads.
+    await expect(
+      w.run(w.cast.operator, (c) =>
+        c.query("insert into plant.equipment_event (equipment_id, kind, detail, person_id, account_id, recorded_at) values ($1, 'FAILURE_SIGNALLED', 'back-dated', gen_random_uuid(), gen_random_uuid(), $2)", [press.id, past]),
+      ),
+    ).rejects.toThrow(/permission denied/);
+    // Owner-level code naming a past time: the row takes the database time; changing it later keeps the stored time.
+    const fx = await db.admin.connect();
+    let id = '';
+    try {
+      await fx.query('begin');
+      await fx.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify({
+        person_id: '00000000-0000-0000-0000-000000000000', account_id: '00000000-0000-0000-0000-000000000000', role_code: 'TEST_FIXTURE',
+        session_id: '00000000-0000-0000-0000-000000000000', source: 'SYSTEM', site_zone: 'UTC', correlation_id: randomUUID(), legal_name: 'Test fixture',
+        reason_code: 'TEST_FIXTURE', reason_text: 'a back-dated logbook entry attempted below the application' })]);
+      id = (await fx.query<{ id: string }>("insert into plant.equipment_event (equipment_id, kind, detail, person_id, account_id, recorded_at) values ($1, 'FAILURE_SIGNALLED', 'back-dated', gen_random_uuid(), gen_random_uuid(), $2) returning id::text", [press.id, past])).rows[0]!.id;
+      await fx.query('commit');
+    } finally {
+      fx.release();
+    }
+    const stored = async () => (await db.admin.query<{ late: boolean; at: Date }>("select recorded_at > clock_timestamp() - interval '5 minutes' as late, recorded_at as at from plant.equipment_event where id = $1", [id])).rows[0];
+    const first = await stored();
+    expect(first?.late).toBe(true);
+    await db.admin.query('update plant.equipment_event set recorded_at = $2 where id = $1', [id, past]).catch(() => undefined);
+    expect((await stored())?.at.getTime()).toBe(first?.at.getTime());
+    const lines = (await db.app.query<{ at: Date }>("select at from plant.logbook where subject_code = $1 and at < '2021-01-01'", [press.code])).rows;
+    expect(lines).toEqual([]);
   });
 });

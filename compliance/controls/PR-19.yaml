@@ -177,6 +177,8 @@ tests:
   - "packages/site-services/test/quality/lims.test.ts > results, approval and revision (PR-19, DI-33, DI-37) > [IN-20][PR-19] an OOS record only impact-assessed is not a confirmed laboratory error: the failure stands until QA concludes it (site services 0859)"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the happy variant > [PR-19][DI-33] dispenses the worksheet's salt-to-base potency quantities and the compensating excipient"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [PR-19][DI-33] dispenses the worksheet's salt-to-base potency quantities and the compensating excipient"
+  - "apps/tablets-server/test/mutation/due-times-and-holds.test.ts > the held-granulation check (tablets 0851) > [PR-18][PR-19][INV-12] true only for an exception the new row raised at this step, of this type, ACTION, a deviation required, holding downstream until a deviation is linked"
+  - "apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts > the material of the lot an entry names (tablets 0801) > [PR-19][INV-25] a weighing or charge names a lot of a material the MBR names, in its bill of materials or through a reference; other entries are not checked"
 clauses:
   - clause: "An API lot assayed at 98.5% raises the target and lowers the filler, with an audit trail."
     tests:

@@ -11,7 +11,8 @@ import { execution } from '@ebmr/recipe-core';
 import { sha256Hex } from '@ebmr/expr';
 import { personaIn, pinOf, refusalOf, tapFor, valueOf } from '../esig/support.ts';
 import { RunDriver } from '../execution/support.ts';
-import { gmpContent, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { BATCH_SIZE, gmpContent, gmpLifecycleWorld, LINE, SITE, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { cell } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import type { TestBrowser } from '../support/harness.ts';
 import { describeAction, signAction } from '../support/signed-acts.ts';
 
@@ -141,4 +142,186 @@ describe('the CORRECT_ENTRY route (outline 5.2.3 path (a); S25)', () => {
       await g.close();
     }
   }, 600_000);
+
+  it('[DI-25][DI-24][DI-07] a value changed after entry, on a field classed non-critical, shows with its original in the checker\'s step view, in the exception register with both values and the reason, and in the audit-trail review list', async () => {
+    // The blend time classed non-critical under a declared risk-based reduction: its correction needs no approval (S25),
+    // never less than the reason, the CORRECTED signature, the audit trail and the review.
+    const informational = (m: Json): void => {
+      earlyBlendTime(m);
+      for (const p of m['parameters'] as Json[]) if (p['id'] === 'blendTime') p['criticality'] = 'NON_CRITICAL';
+      (m['references'] as Json[]).push({ id: 'RA-BLEND-TIME', kind: 'RISK_ASSESSMENT', code: 'RA-BLEND-TIME', version: '1', hash: 'a'.repeat(64), title: 'Risk assessment: blend time informational' });
+      m['riskReductions'] = [...((m['riskReductions'] as Json[] | undefined) ?? []), { id: 'RR-BLEND-TIME', kind: 'MINOR_CLASSIFICATION', subjects: ['blendTime'], riskClass: 'LOW', rationale: 'RA-BLEND-TIME' }];
+    };
+    const g = await startGmpBatchWorld(gmpContent(informational));
+    try {
+      const issuer = await g.gmp.asPersona('issuer');
+      const runId = await g.issued(issuer);
+      const browsers: Record<string, TestBrowser> = { issuer };
+      for (const p of ['operator1', 'verifier1', 'qaInvestigator']) browsers[p] = await g.gmp.asPersona(p);
+      const d = new RunDriver(g.gmp, runId, browsers);
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-time@' });
+      await d.ok('operator1', { type: 'RECORD_DATA', stepKey: 'p-early-time@', item: 'blendTime', value: { kind: 'DECIMAL', value: '15', unit: 'min' }, source: { mode: 'MANUAL' } });
+      await d.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-early-time@' });
+      const st = await execution.loadState(g.gmp.db.admin, runId);
+      const point = Object.values(st?.state.points ?? {}).find((x) => x.item === 'blendTime' && x.status === 'VALID')?.id ?? '';
+      const reasonText = 'Keyed 15 for 16 from the timer display';
+      const correct = { type: 'CORRECT_ENTRY' as const, point, value: { kind: 'DECIMAL' as const, value: '16', unit: 'min' }, reason: reasonText };
+      const corrected = await d.sign('operator1', correct);
+      const correctionSig = valueOf(corrected.result).manifestation.signatureId;
+
+      // The checker's step view: the original attempt beside the corrected one, flagged CORRECTED, both by the operator.
+      const view = await d.stepView('verifier1', 'p-early-time@');
+      const field = view.fields.find((f) => f.item === 'blendTime');
+      expect(field?.attempts.map((a) => [a.value?.kind === 'DECIMAL' ? a.value.value : null, a.status, a.by.personId])).toEqual([
+        ['15', 'SUPERSEDED', personaIn(g.gmp, 'operator1').personId],
+        ['16', 'VALID', personaIn(g.gmp, 'operator1').personId],
+      ]);
+      expect(field?.attempts.map((a) => a.flags)).toEqual([[], ['CORRECTED']]);
+      // The step's own signature no longer stands: the checker sees it waiting for its signatures again.
+      expect(view.step.status).toBe('AWAITING_VERIFICATION');
+      expect(view.signatures.map((x) => [x.meaning, x.valid])).toEqual([['PERFORMED', false]]);
+
+      // The review list: the exception register names the change with the original, the new value and the reason.
+      // The record's completion is set by the test as a fixture (triggers off: the engine's completeness is proven elsewhere).
+      const c = await g.gmp.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query("set local session_replication_role = 'replica'");
+        await c.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [runId]);
+        await c.query('commit');
+      } finally {
+        c.release();
+      }
+      const qaB = browsers['qaInvestigator'] as TestBrowser;
+      const register = valueOf(await qaB.call(routes.review.register, { params: { batchId: runId }, body: {} }));
+      expect(register.noExceptions).toBe(false);
+      const item = register.items.find((i) => i.type === 'POST_ENTRY_CORRECTION');
+      expect(item).toMatchObject({ stepKey: 'p-early-time@', reviewStatus: 'OPEN' });
+      expect(item?.title).toMatch(new RegExp(`blendTime in p-early-time@ was corrected from 15 min to 16 min: ${reasonText}`));
+
+      // The audit-trail review list holds the event of the accepted correction command, the one its CORRECTED signature recorded.
+      const report = valueOf(await qaB.call(routes.review.auditTrail, { params: { batchId: runId }, query: {} }));
+      const { rows: audited } = await g.gmp.db.admin.query<{ id: string }>(
+        `select e.id::text from kernel.audit_event e
+          where e.chain_key = $1 and e.action = 'BUSINESS' and e.payload #>> '{body,details,command_id}' = $2 and (e.payload #>> '{body,details,accepted}')::boolean`,
+        [`batch:${runId}`, `ESIG:${correctionSig}`],
+      );
+      expect(audited).toHaveLength(1);
+      expect(report.truncated).toBe(false);
+      expect(report.events.filter((e) => e.eventId === audited[0]?.id).map((e) => [e.chainKey, e.action])).toEqual([[`batch:${runId}`, 'BUSINESS']]);
+    } finally {
+      await g.close();
+    }
+  }, 600_000);
+});
+
+describe('an out-of-limit value is committed before its warning (DI-28)', () => {
+  it('[DI-28] an out-of-limit value is in the audit trail as committed before the limit warning: the command that stored it is audited first in the commit, the warning is raised by that stored row, and the answer shows it with the committed value; a new browser reads the value back with its timestamp', async () => {
+    const g = await startGmpBatchWorld(gmpContent(earlyBlendTime));
+    try {
+      const issuer = await g.gmp.asPersona('issuer');
+      const runId = await g.issued(issuer);
+      const d = new RunDriver(g.gmp, runId, { issuer, operator1: await g.gmp.asPersona('operator1') });
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-time@' });
+      // 19 min: inside the registered 10-20 min, outside the internal action limits 12-18 min.
+      const answer = await d.ok('operator1', { type: 'RECORD_DATA', stepKey: 'p-early-time@', item: 'blendTime', value: { kind: 'DECIMAL', value: '19', unit: 'min' }, source: { mode: 'MANUAL' } });
+      // The warning the operator sees is the committed record's, returned with the answer.
+      const attempt = answer.step?.fields.find((f) => f.item === 'blendTime')?.attempts.at(-1);
+      expect(attempt).toMatchObject({ value: { kind: 'DECIMAL', value: '19', unit: 'min' }, status: 'VALID' });
+      expect(attempt?.verdict?.tier).toBe('INTERNAL_ACTION');
+      // The browser is gone (its session is never used again): a new browser and session read the value back as stored, with its time.
+      const fresh = new RunDriver(g.gmp, runId, { operator1: await g.gmp.asPersona('operator1') });
+      const reread = (await fresh.stepView('operator1', 'p-early-time@')).fields.find((f) => f.item === 'blendTime')?.attempts;
+      expect(reread?.map((a) => [a.value, a.at.us, a.status])).toEqual([[{ kind: 'DECIMAL', value: '19', unit: 'min' }, attempt?.at.us, 'VALID']]);
+      const { rows: cmds } = await g.gmp.db.admin.query<{ seq: string; command_id: string }>(
+        "select seq::text, command_id from recipe.execution_command where batch_id = $1 and command_type = 'RECORD_DATA' and accepted",
+        [runId],
+      );
+      expect(cmds).toHaveLength(1);
+      const { rows: warnings } = await g.gmp.db.admin.query<{ row_seq: string; tier: string; raised_at: Date }>(
+        'select row_seq::text, tier, raised_at from recipe.exception_register where batch_id = $1',
+        [runId],
+      );
+      // The warning is raised by the row that stored the value, never before it.
+      expect(warnings.map((x) => [x.row_seq, x.tier])).toEqual([[cmds[0]?.seq, 'INTERNAL_ACTION']]);
+      // The audit trail of that commit (one transaction, one correlation): the stored command, with its value, is audited
+      // before the register row of the warning.
+      const { rows: events } = await g.gmp.db.admin.query<{ seq: string; kind: string; recorded_at: Date }>(
+        `select e.seq::text, case when e.table_name = 'recipe.exception_register' then 'WARNING' else 'VALUE' end as kind, e.recorded_at
+           from kernel.audit_event e
+          where e.chain_key = $1 and e.action = 'INSERT' and e.table_name in ('recipe.execution_command', 'recipe.exception_register')
+            and e.correlation_id = (select b.correlation_id from kernel.audit_event b where b.chain_key = $1 and b.action = 'BUSINESS' and b.payload #>> '{body,details,command_id}' = $2)
+          order by e.seq`,
+        [`batch:${runId}`, cmds[0]?.command_id],
+      );
+      expect(events.map((e) => e.kind)).toEqual(['VALUE', 'WARNING']);
+      expect(Number(events[0]?.seq)).toBeLessThan(Number(events[1]?.seq));
+      expect(events[0]!.recorded_at.getTime()).toBeLessThanOrEqual(events[1]!.recorded_at.getTime());
+    } finally {
+      await g.close();
+    }
+  }, 600_000);
+});
+
+describe('a tightened limit leaves the completed record as it was (DI-10)', () => {
+  it('[DI-10] a specification limit tightened after the batch completed: the completed record still shows the limits of the version it ran under and its original evaluation, while a new batch takes the tightened version', async () => {
+    const g = await startGmpBatchWorld(gmpContent(earlyBlendTime));
+    try {
+      const issuer = await g.gmp.asPersona('issuer');
+      const runId = await g.issued(issuer);
+      const d = new RunDriver(g.gmp, runId, { issuer, operator1: await g.gmp.asPersona('operator1') });
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-time@' });
+      // 17 min: within the internal action limits 12-18 min of version 1 (an alert-band breach only).
+      await d.ok('operator1', { type: 'RECORD_DATA', stepKey: 'p-early-time@', item: 'blendTime', value: { kind: 'DECIMAL', value: '17', unit: 'min' }, source: { mode: 'MANUAL' } });
+      const shown = async () => {
+        const field = (await d.stepView('operator1', 'p-early-time@')).fields.find((f) => f.item === 'blendTime');
+        return {
+          limits: field?.limits.map((l) => [l.tier, l.low?.value ?? null, l.high?.value ?? null]),
+          verdicts: field?.attempts.map((a) => [a.value?.kind === 'DECIMAL' ? a.value.value : null, a.verdict?.tier ?? null, a.verdict?.failed ?? null, a.verdict?.text ?? null]),
+          mbr: (await d.runView('operator1')).header.mbr,
+        };
+      };
+      const before = await shown();
+      expect(before.limits).toEqual([
+        ['REGISTERED', '10', '20'],
+        ['INTERNAL_ACTION', '12', '18'],
+        ['ALERT', '14', '16'],
+      ]);
+      expect(before.verdicts?.map((v) => v[1])).toEqual(['ALERT']);
+      const exceptionsBefore = (await g.gmp.db.admin.query<{ id: string; tier: string }>('select exception_id as id, tier from recipe.exception_register where batch_id = $1 order by exception_id', [runId])).rows;
+      expect(exceptionsBefore.map((e) => e.tier)).toEqual(['ALERT']);
+      // The batch completes (set by the test as a fixture, triggers off: completeness is proven elsewhere).
+      const c = await g.gmp.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query("set local session_replication_role = 'replica'");
+        await c.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [runId]);
+        await c.query("update recipe.stub_batch set status = 'COMPLETED' where id = $1", [runId]);
+        await c.query('commit');
+      } finally {
+        c.release();
+      }
+      // QA approves version 2 with the internal action limits tightened to 12-16 min, and it is authorised for IN.
+      const world = await gmpLifecycleWorld(g.gmp);
+      const v1 = (await g.gmp.db.admin.query<{ id: string }>('select id::text from recipe.mbr_version where family_id = $1 order by version_number', [g.familyId])).rows;
+      expect(v1).toHaveLength(1);
+      const v2 = await world.approvedSuccessor(v1[0]!.id, (m) => {
+        const p = m.parameters.find((x) => x.id === 'blendTime');
+        const action = p?.limits?.ranges.find((r) => r.tier === 'INTERNAL_ACTION');
+        if (!action?.high) throw new Error('fixture changed: blendTime has no internal action limit');
+        action.high = { ...action.high, value: '16' };
+      });
+      await world.authorise({ versionId: v2.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, BATCH_SIZE)], regulatoryBasis: 'IN: registration on file' });
+      // The completed record: the same limits, the same evaluation, the same pinned version and hash.
+      const after = await shown();
+      expect(after).toEqual(before);
+      expect((await g.gmp.db.admin.query<{ id: string; tier: string }>('select exception_id as id, tier from recipe.exception_register where batch_id = $1 order by exception_id', [runId])).rows).toEqual(exceptionsBefore);
+      // A new batch is planned on the tightened version.
+      const next = await g.plan(issuer);
+      expect([String(before.mbr.versionNumber), String(next.versionNumber)]).toEqual(['1', '2']);
+      expect(next.contentHash).not.toBe(before.mbr.contentHash);
+    } finally {
+      await g.close();
+    }
+  }, 900_000);
 });

@@ -26,6 +26,7 @@ tests:
   - "packages/api-contract/test/india.test.ts > the india namespace (Phase 4 slice 6a) > [IN-30][IN-18][IN-31] every india route lives under /api/india on the GMP installation and has an example that parses"
   - "packages/recipe-core/test/release/india.test.ts > India-domestic label particulars and the Schedule H2 payload stub (recipe-core 0894; IN-31, D-P4-14) > [IN-31] the label particulars and the H2 payload come from the record: plain manufacture and expiry dates, the manufacturer and its licence; refused without a licence basis or a shelf life"
   - "packages/recipe-core/test/release/india.test.ts > India-domestic label particulars and the Schedule H2 payload stub (recipe-core 0894; IN-31, D-P4-14) > [IN-31] H2 payload binding: only the payload computed from the batch record and issued for printing on that batch passes; another batch's, an altered or a never-issued payload is refused; an administrator issues none"
+  - "apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts > print jobs and events at the gateway (tablets 0951) > [PR-36][IN-31][DI-31] the gateway fetches the released jobs of its own active printers; acknowledges a job of its own once, in form: LOADED only when the echo is the job's data (else REFUSED), MISMATCH and FAILED as reported; the same acknowledgement again is a duplicate"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

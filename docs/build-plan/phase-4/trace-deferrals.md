@@ -54,56 +54,43 @@ The owner may move any of them. The reasons are paraphrased here; the control fi
    whose only edition is Injectables (91 controls, all target phase 5) is not due and its deferrals wait with the
    edition. Shared controls are always due. Tested by the `[meta]` tests in `tools/register/test/register.test.ts`.
 
-## Gaps: controls left without `clauses` (no test proves a clause yet)
+## Gaps: controls left without `clauses`
 
 7a writes no product code. A control with a clause that no test proves keeps no `clauses` mapping, so the trace at
-phase 4 names it; its other clauses are proven by listed tests and get mapped once the gap closes. Owner: 7b (golden
-batches, browser), 7c (a kill test or a missing tag), or a feature not built (the owner decides: build, or defer with a
-reason). Still open from the Phase 3 deferrals to phase 4: DI-24 clause 3 (the change and its original in the review
-list; the PDF part is proven), IN-39 clause 2 (the pressure-excursion notification delivered to both departments),
-PR-08 clause 2 (the registration flag on the release screen). The DI-12, DI-34, IN-17 and PR-07 deferrals now name
-their passing tests.
+phase 4 names it; its other clauses are proven by listed tests and get mapped once the gap closes.
+
+**Closed by 7d (tests of behaviour that exists, 13 October 2026).** Now mapped in full: DI-07, DI-10, DI-25, DI-28,
+IN-14, PR-12, PR-14, PR-30, PR-31, PR-44; the Phase 3 deferrals DI-24 clause 3 (review list) and PR-08 clause 2 (release
+screen) now name their tests. Proven but not mappable while another clause is open: DI-09 clause 1, DI-26 clause 2,
+PR-16 (the checker-signature half), PR-36 clause 1 (already proven by the listed G-21 print-job test), PR-46 clause 1.
 
 | Control | Missing |
 |---|---|
-| DI-07 | 7c: no test refuses a criticality downgrade of a field without QA approval |
-| DI-07 | 7c: the NON_CRITICAL correction test does not assert the audit trail and the review list |
 | DI-08 | feature: no vendor support account or customer-approved time-boxed support grant |
-| DI-09 | 7c: no DI-09 test that an administrator cannot change a specification limit |
 | DI-09 | feature: no configuration diff as of a past date |
-| DI-10 | 7c: no test that tightening a limit after completion leaves the completed record's limit version and verdict unchanged |
-| DI-25 | 7c: no test that a value changed after entry appears in the checker's step view and the audit-trail review list (D-P4-16) |
-| DI-25 | 7c: no test that no configuration defers the audit-trail review |
-| DI-26 | 7c: no test that a clean batch's review shows no exceptions with its summary |
 | DI-26 | feature: review-by-exception rules are fixed in code; no editable rule with a change record |
-| DI-28 | 7c: no test that an out-of-limit value is committed (audit trail) before the warning |
 | IN-01 | feature: no CAPA register with effectiveness checks (6c residual d) |
-| IN-14 | 7c: no test that each pack size of a product needs its own approved packaging master (D-P4-13) |
 | IN-16 | 7b: GB-T-01 two blister orders from one bulk (D-P4-15) with start/mid/end coding specimens |
 | IN-27 | feature: the designer's inserted PPE and decontamination steps (6a residual) |
 | IN-30 | feature: the contract giver's read-only access (6a residual) |
-| IN-31 | 7c: no test that an India-domestic label template without a manufacturing-date field fails approval |
+| IN-31 | feature: no label template with its fields; the print data always carries the record's dates, so there is no template approval to fail (clause 1) |
 | IN-33 | feature: the edition review lists specifications only; MBR limits citing an edition are a 2a residual |
+| IN-39 | feature: only manufacturer release decisions reach the departments' notification centre; the excursion's notification is recorded in the run, never delivered (clause 2, Phase 3 deferral) |
 | PR-09 | feature: typed CPP values (yields, IPC results) in the PQR extract are a 6c residual |
-| PR-12 | 7c: no test of correcting a signed weight (re-signature, exception-report listing), none for a correction without a reason tagged PR-12 |
-| PR-14 | 7c: no validator test refusing single-person automated checking on a step outside its allowed scope |
 | PR-15 | feature: no area authorisation of persons (the filling suite itself is Injectables) |
-| PR-16 | 7c: no test that a missing label specimen or checker signature blocks completion naming the gap |
-| PR-17 | feature: no receipt split per supplier batch and no approved-manufacturer register; 7c: a lot without a complete receipt record is not issued |
+| PR-16 | feature: no labelling-specimen item in the batch record checked at completion (specimens are checked on the master only, GMP-SPECIMENS) |
+| PR-17 | feature: no receipt split per supplier batch, no approved-manufacturer register, and no complete receipt record (supplier and supplier lot optional; manufacturer, containers and examiner not recorded) checked before issue |
 | PR-22 | 7b: the batch report (PDF) shows the unit IDs; the equipment status display after each transition |
-| PR-25 | 7c: no test that a room past its clean-hold is refused (presses only) |
-| PR-27 | 7c: no facility-level penicillin refusal (packing-line isolation only, IN-38); feature: no spill event on a room (clause 1 needs only a [PR-27] tag on the IN-27 line test) |
+| PR-25 | feature: rooms carry no clean-hold (only equipment classes do), so a room overdue for cleaning is not refused (clause 3) |
+| PR-27 | feature: no facility-level penicillin refusal (packing-line isolation only, IN-38); no spill event on a room (clause 1 needs only a [PR-27] tag on the IN-27 line test) |
 | PR-29 | feature: no reagent or buffer lot with an expiry at an IPC step |
-| PR-30 | 7c: no test that a constraint's elapsed time survives a client and server restart |
-| PR-31 | 7c: no test that the yield step needs its verifier, nor that an independent recalculation matches |
-| PR-32 | 7c: no test that a person without the label-store permission cannot issue printed material |
-| PR-34 | 7c: no test that a packaging order does not close without the post-use line inspection |
-| PR-35 | 7c: no test of adjacent packaging lines; 7b: the line station display |
-| PR-36 | 7c: a change of batch data after print set-up voids the job; a vision challenge with a wrong expiry; feature: no cut-label option |
+| PR-32 | feature: no label store or label-store permission; printed material is issued at the G-21 step by its performer role, stock locations are the ERP's (clause 2) |
+| PR-34 | feature: no post-use line inspection gating the close of a packaging order; the line clearance is recorded before the next order (clause 2) |
+| PR-35 | feature: lines have no adjacency or segregation between them (clause 1); 7b: the line station display |
+| PR-36 | feature: the vision check of a printed expiry is the device's (challenges record PASS/FAIL with a generic test unit) (clause 2); no cut-label option (clause 3) |
 | PR-39 | feature: no reconciliation waiver for 100% electronic inspection |
-| PR-44 | 7c: no test that packaging completion (or G-REL) waits for the reserve sample |
-| PR-46 | 7c: no test that a REJECTED lot cannot be dispensed; feature: no stock locations (ERP, Phase 6) |
+| PR-46 | feature: no stock locations (ERP, Phase 6) (clause 2) |
 | PR-49 | feature: no recurrence count or warning on the certification screen |
-| PR-50 | 7c: no test of the deviation impact query against an independent query |
+| PR-50 | feature: no deviation impact query returning the affected batches (genealogy explorer, Phase 6) (clause 2) |
 | PR-51 | feature: no CAPA register (CAPA references only; 6c residual d) |
-| PR-52 | 7c: no test refusing review by exception on a step without a validation reference |
+| PR-52 | feature: a review-by-exception reduction needs a risk class and rationale but no validation reference (clause 2) |

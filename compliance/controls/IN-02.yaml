@@ -55,6 +55,8 @@ tests:
   - "apps/tablets-server/test/mutation/designer-guards.test.ts > warning justifications are recorded for the version and content they name (IN-02, DI-04) > [IN-02][DI-04] VALIDATOR evidence holds a justification to the latest one of its own key on its own version: not another key's later one, nor another version's"
   - "apps/tablets-server/test/quality/routes.test.ts > signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [IN-02] a deviation classified MINOR without a rationale is refused by the route and by the database"
   - "packages/site-services/test/quality/deviation-full.test.ts > QA classification when the investigation starts (IN-02) > [IN-02] classifying a deviation as minor without a rationale is refused; the owner investigates and the due date is not past; the initiator does not classify"
+  - "packages/recipe-core/test/lifecycle/approval.test.ts > verification before submission (DI-04, PR-02) > [DI-07][IN-02] downgrading a critical field to non-critical without a risk-based reduction is refused on the stored content; with one, the downgrade still takes effect only with QA's approval signature"
+  - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-14][IN-02] automated (one-verifier) mode on a labelling step is refused at configuration time: the visual check of the codes and the issue of printed labels keep their two persons"
 clauses:
   - clause: "classify a deviation as minor without a rationale; saving is refused."
     tests:

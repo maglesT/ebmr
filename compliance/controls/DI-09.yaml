@@ -35,6 +35,7 @@ tests:
   - "packages/kernel/test/mutation/site-values-and-policies.test.ts > boundaries at the database clock > [DI-09][INV-47][INV-16] a version may take effect at the very instant it is recorded, as one set for \"now\" does: that instant is not in the past"
   - "packages/kernel/test/review/f24.test.ts > F24: approvals behind a loosening must be verified e-signatures, not free UUIDs > [IN-52][DI-35][DI-09][INV-47][ST-01] source correction, site-value loosening and policy loosening are refused without real signed approvals"
   - "packages/kernel/test/review/f26.test.ts > F26 concurrent policy tightenings on one batch > [INV-47] [DI-09] two concurrent applications to one batch never leave it on a looser position than one it already applied"
+  - "packages/site-services/test/quality/specifications.test.ts > specifications (IN-33) > [DI-09] the system administrator cannot change a specification limit: drafting, approving and writing the limits directly are all refused, and the limits in effect stay as approved"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
