@@ -11,7 +11,8 @@ import { execution } from '@ebmr/recipe-core';
 import { sha256Hex } from '@ebmr/expr';
 import { personaIn, pinOf, refusalOf, tapFor, valueOf } from '../esig/support.ts';
 import { RunDriver } from '../execution/support.ts';
-import { gmpContent, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { BATCH_SIZE, gmpContent, gmpLifecycleWorld, LINE, SITE, startGmpBatchWorld, type GmpBatchWorld } from '../support/gmp-world.ts';
+import { cell } from '../../../../packages/recipe-core/test/lifecycle/support.ts';
 import type { TestBrowser } from '../support/harness.ts';
 import { describeAction, signAction } from '../support/signed-acts.ts';
 
@@ -256,4 +257,67 @@ describe('an out-of-limit value is committed before its warning (DI-28)', () => 
       await g.close();
     }
   }, 600_000);
+});
+
+describe('a tightened limit leaves the completed record as it was (DI-10)', () => {
+  it('[DI-10] a specification limit tightened after the batch completed: the completed record still shows the limits of the version it ran under and its original evaluation, while a new batch takes the tightened version', async () => {
+    const g = await startGmpBatchWorld(gmpContent(earlyBlendTime));
+    try {
+      const issuer = await g.gmp.asPersona('issuer');
+      const runId = await g.issued(issuer);
+      const d = new RunDriver(g.gmp, runId, { issuer, operator1: await g.gmp.asPersona('operator1') });
+      await d.ok('operator1', { type: 'START_STEP', stepKey: 'p-early-time@' });
+      // 17 min: within the internal action limits 12-18 min of version 1 (an alert-band breach only).
+      await d.ok('operator1', { type: 'RECORD_DATA', stepKey: 'p-early-time@', item: 'blendTime', value: { kind: 'DECIMAL', value: '17', unit: 'min' }, source: { mode: 'MANUAL' } });
+      const shown = async () => {
+        const field = (await d.stepView('operator1', 'p-early-time@')).fields.find((f) => f.item === 'blendTime');
+        return {
+          limits: field?.limits.map((l) => [l.tier, l.low?.value ?? null, l.high?.value ?? null]),
+          verdicts: field?.attempts.map((a) => [a.value?.kind === 'DECIMAL' ? a.value.value : null, a.verdict?.tier ?? null, a.verdict?.failed ?? null, a.verdict?.text ?? null]),
+          mbr: (await d.runView('operator1')).header.mbr,
+        };
+      };
+      const before = await shown();
+      expect(before.limits).toEqual([
+        ['REGISTERED', '10', '20'],
+        ['INTERNAL_ACTION', '12', '18'],
+        ['ALERT', '14', '16'],
+      ]);
+      expect(before.verdicts?.map((v) => v[1])).toEqual(['ALERT']);
+      const exceptionsBefore = (await g.gmp.db.admin.query<{ id: string; tier: string }>('select exception_id as id, tier from recipe.exception_register where batch_id = $1 order by exception_id', [runId])).rows;
+      expect(exceptionsBefore.map((e) => e.tier)).toEqual(['ALERT']);
+      // The batch completes (set by the test as a fixture, triggers off: completeness is proven elsewhere).
+      const c = await g.gmp.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query("set local session_replication_role = 'replica'");
+        await c.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [runId]);
+        await c.query("update recipe.stub_batch set status = 'COMPLETED' where id = $1", [runId]);
+        await c.query('commit');
+      } finally {
+        c.release();
+      }
+      // QA approves version 2 with the internal action limits tightened to 12-16 min, and it is authorised for IN.
+      const world = await gmpLifecycleWorld(g.gmp);
+      const v1 = (await g.gmp.db.admin.query<{ id: string }>('select id::text from recipe.mbr_version where family_id = $1 order by version_number', [g.familyId])).rows;
+      expect(v1).toHaveLength(1);
+      const v2 = await world.approvedSuccessor(v1[0]!.id, (m) => {
+        const p = m.parameters.find((x) => x.id === 'blendTime');
+        const action = p?.limits?.ranges.find((r) => r.tier === 'INTERNAL_ACTION');
+        if (!action?.high) throw new Error('fixture changed: blendTime has no internal action limit');
+        action.high = { ...action.high, value: '16' };
+      });
+      await world.authorise({ versionId: v2.versionId, market: 'IN', kind: 'CURRENT', cells: [cell(SITE, LINE, BATCH_SIZE)], regulatoryBasis: 'IN: registration on file' });
+      // The completed record: the same limits, the same evaluation, the same pinned version and hash.
+      const after = await shown();
+      expect(after).toEqual(before);
+      expect((await g.gmp.db.admin.query<{ id: string; tier: string }>('select exception_id as id, tier from recipe.exception_register where batch_id = $1 order by exception_id', [runId])).rows).toEqual(exceptionsBefore);
+      // A new batch is planned on the tightened version.
+      const next = await g.plan(issuer);
+      expect([String(before.mbr.versionNumber), String(next.versionNumber)]).toEqual(['1', '2']);
+      expect(next.contentHash).not.toBe(before.mbr.contentHash);
+    } finally {
+      await g.close();
+    }
+  }, 900_000);
 });
