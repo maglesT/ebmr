@@ -68,15 +68,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
     need missing features are deferred to Phase 6 or 7 (listed in trace-deferrals.md). Exit review (one pass): no
     critical or high. `phase.yaml` is at 4; the trace passes at phase 4 with the golden and browser results (143/241
     controls with passing tests). Final run: 5,916 + 31 golden + 42 browser tests passed.
-  - Open for the owner (defaults stand): D-7b-1 (GB-T-01's two orders are India-only, since its master is authorised for
-    India only; meeting D-P4-15 literally means re-recording GB-T-01 with a three-market master after review); PR-30
-    (a breach raises the exception that needs a deviation and blocks release, but creates no deviation record by
-    itself); IN-18 "deferred clauses" read as the register export with each number's use
-    (D-6a-7); D-2a-9 (CONFIRMED impact keeps release blocked after closure), D-P4-6 (India
-    PPQ release waits for the validation outcome), D-3a-10 (CONFIRMED impact never justifiable), D-5b-2 (a product with
-    no bright-stock maximum is not checked), the drying-loop correction and India subdivision questions (Phase 3 backlog).
+  - Owner (13 October): the defaults stand for all open questions: D-7b-1 (GB-T-01's two orders India-only), PR-30
+    (a breach raises the exception that needs a deviation and blocks release; no deviation record by itself), IN-18
+    read as the register export with each number's use (D-6a-7), D-2a-9, D-P4-6, D-3a-10, D-5b-2, the drying-loop
+    correction and India subdivision questions. The web demo kit is deferred until the owner asks.
 - CI runs the tests in four shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;
-  run lint with `node --max-old-space-size=4096` and the rest of the chain separately.
+  lint now runs with an 8 GB heap.
 
 ## Next
 
