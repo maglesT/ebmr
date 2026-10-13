@@ -11,11 +11,12 @@ import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { identity, withCommand } from '@ebmr/kernel';
-import { execution } from '@ebmr/recipe-core';
+import { execution, type flow } from '@ebmr/recipe-core';
 import { openServiceSession, passwordActor, terminalOf } from '@ebmr/test-kit';
 import { openSweeperActor, sweepAll, sweeperCredentials } from '../../src/features/execution/sweeper.ts';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
-import { importAndIssue, rowsOf, RunDriver, startExecServer, violations, withShortWindow, writePackage, type ExecServer } from './support.ts';
+import { startServer, type TestServer } from '../support/harness.ts';
+import { dcMiniVariant, importAndIssue, rowsOf, RunDriver, startExecServer, violations, withShortWindow, writePackage, type ExecServer } from './support.ts';
 
 let server: ExecServer;
 beforeAll(async () => {
@@ -194,4 +195,58 @@ describe('time sweeper', () => {
     }
     expect(await violations(server)).toEqual([]);
   }, 120_000);
+});
+
+describe('a time limit across a client and server restart (PR-30)', () => {
+  it('[PR-30][INV-20] the elapsed time of a running constraint survives a restart of the server and of the client: the restarted server shows the same start and maximum, and breaches the limit at the time counted from the original start', async () => {
+    const window = (): flow.MbrContent =>
+      dcMiniVariant((prep, content) => {
+        (content['timeConstraints'] as Record<string, unknown>[]).push({
+          id: 'TC-CLEAR-RESTART', name: 'Booth clearance window across a restart', kind: 'PROCESS_WINDOW', from: { node: 'p-disp-clear', event: 'START' }, to: { node: 'p-disp-clear', event: 'END' },
+          max: { value: '15', unit: 's' }, source: { kind: 'VALIDATION_REPORT', ref: 'VR-BLEND-01' }, breach: 'EXCEPTION', pauses: 'INCLUDED',
+        });
+        return prep;
+      });
+    const first = await startExecServer();
+    let second: TestServer | undefined;
+    try {
+      const issuer = await first.asPersona('issuer');
+      const runId = await importAndIssue(first, issuer, writePackage(first, window()));
+      const d1 = new RunDriver(first, runId, { issuer, operator1: await first.asPersona('operator1') });
+      d1.beforeTap = () => vi.advanceTimersByTime(7_000);
+      await d1.ok('operator1', { type: 'START_STEP', stepKey: 'p-disp-clear@' });
+      const timerOf = async (d: RunDriver) => (await d.runView('operator1')).header.timers.find((t) => t.constraint === 'TC-CLEAR-RESTART');
+      const before = await timerOf(d1);
+      expect(before).toMatchObject({ kind: 'PROCESS_WINDOW', status: 'RUNNING' });
+      const startUs = BigInt(before?.startedAt?.us ?? '0');
+      expect(BigInt(before?.maxAt?.us ?? '0') - startUs).toBe(15_000_000n);
+
+      // The server stops (its database stays) and a new server process starts on the same installation; the client
+      // signs in again (a new session and browser).
+      await first.built.close();
+      second = await startServer('SANDBOX', { prepared: { database: first.database, seed: first.seed }, env: { EBMR_EXCHANGE_DIR: first.exchangeDir } });
+      const d2 = new RunDriver(second, runId, { operator1: await second.asPersona('operator1') });
+      const after = await timerOf(d2);
+      expect(after).toEqual(before);
+      const breaches = async () => Object.values((await execution.loadState(second!.db.admin, runId))?.state.exceptions ?? {}).filter((e) => e.type === 'TIME_MAX_BREACH');
+      expect(await breaches()).toEqual([]);
+
+      // Past the maximum counted from the original start (not from the restart), the restarted server's sweeper breaches it once.
+      const dbNowUs = async () => BigInt((await second!.db.admin.query<{ us: string }>("select (extract(epoch from clock_timestamp()) * 1000000)::bigint::text as us")).rows[0]!.us);
+      while ((await dbNowUs()) <= BigInt(before?.maxAt?.us ?? '0') + 500_000n) await sleep(500);
+      const sweeper = { ...(await openServiceSession(second.db, second.seed, 'sweeper')), correlationId: randomUUID() };
+      const swept = await sweepAll(second.built.ctx, sweeper);
+      expect(swept.failures).toEqual([]);
+      const raised = await breaches();
+      expect(raised).toHaveLength(1);
+      expect(raised[0]?.source.constraint).toBe('TC-CLEAR-RESTART');
+      expect(raised[0]!.raisedAt - startUs).toBeGreaterThan(15_000_000n);
+      expect((await timerOf(d2))?.status).toBe('BREACHED');
+    } finally {
+      if (second) {
+        await first.db.close();
+        await second.close();
+      } else await first.close();
+    }
+  }, 300_000);
 });
