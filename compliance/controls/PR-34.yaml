@@ -39,6 +39,7 @@ tests:
   - "packages/recipe-core/test/blocks/status-v2-edges.test.ts > G-10@2 area occupancy > [PR-34][IN-21] one occupied area, needed before PERFORMED; a clearance names its checker"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][IN-21][PR-34] a clearance records PASSED or FAILED in a CLEAN area (or alongside a batch in a segregated room), of the type its area takes"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][IN-26][PR-34][PR-35] a start names its batch and stage, a line start its order and artwork set, a room start neither"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [IN-16][INV-27][PR-34][L-30] two packaging records of the one bulk batch: each linked to it, each started on its own verified PACKAGING_ORDER clearance of the line, the line and its units cleaned between them"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

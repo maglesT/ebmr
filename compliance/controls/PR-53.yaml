@@ -23,6 +23,7 @@ tests:
   - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53] every link of an open record is read structurally: a link to the lot not assessed for the market refuses the justification, whatever the first blocking reason says"
   - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53] a CONFIRMED impact is never released under a justification (D-3a-10): refused at justification, and a justification made before the impact was confirmed no longer counts"
   - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [INV-05][IN-05][PR-45][PR-44][PR-53] each finished lot: the worksheet's packs, release results approved by the head of QC, reserve samples, G-REL for India green with every item read from signed records, RELEASED by the AP"
 clauses:
   - clause: "A batch with an open deviation cannot be released."
     tests:

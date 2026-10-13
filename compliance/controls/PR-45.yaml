@@ -125,6 +125,8 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: NA when the processing batch prints nothing; red until the QC hold point after printing is approved under a valid signature; green then"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: a library call whose element is not pinned is red (\"cannot determine\"); a printing step inlined from a pinned element needs the hold point after it in that element, under a valid signature"
   - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][IN-05][PR-45] nothing ships without a current manufacturer release: a lot in quarantine, then held after its release, is refused; a released lot ships"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [INV-05][IN-05][PR-45][PR-44][PR-53] each finished lot: the worksheet's packs, release results approved by the head of QC, reserve samples, G-REL for India green with every item read from signed records, RELEASED by the AP"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [PR-45][IN-05][INV-05] the finished lot is released for India through G-REL green and the AP's signed release"
 clauses:
   - clause: "Shipping a quarantined lot through the ERP interface is rejected."
     tests:

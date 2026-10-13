@@ -15,6 +15,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { Page } from '@playwright/test';
 import { expect, signIn, test } from '../../fixtures/index.ts';
 import { officeSign } from '../../fixtures/slice6.ts';
 import { choose } from '../journey/support.ts';
@@ -38,7 +39,22 @@ const parentBatchId = (keysDir: string): string => {
   return s.packaging.parentBatchId;
 };
 
-const escape =(s: string): string => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+/** Acknowledges, one by one, every item listed as changed since the QA review in the section `testId` (if shown). */
+async function acknowledgeAll(page: Page, testId: string): Promise<number> {
+  const box = page.getByTestId(testId);
+  if ((await box.count()) === 0) return 0;
+  let n = 0;
+  for (;;) {
+    const buttons = box.getByRole('button', { name: /^Acknowledge / });
+    const left = await buttons.count();
+    if (left === 0) return n;
+    await buttons.first().click();
+    await expect(buttons).toHaveCount(left - 1);
+    n += 1;
+  }
+}
+
+const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 
 test('green release: the manufacturer release on a checklist with no red item, then the US release @office', async ({ e2e, officePage, persona, evidence }) => {
   const r = readyLot(e2e.state.keysDir);
@@ -82,15 +98,7 @@ test('green release: the manufacturer release on a checklist with no red item, t
   }, page);
 
   await evidence.step('The authorised person signs the manufacturer release', 'MANUFACTURER_RELEASE on the epoch shown through the office ceremony; the lot is RELEASED', async () => {
-    const since = page.getByTestId('since-review');
-    if ((await since.count()) > 0) {
-      for (;;) {
-        const button = since.getByRole('button', { name: /^Acknowledge / }).first();
-        if ((await button.count()) === 0) break;
-        await button.click();
-        await expect(since.getByText('Acknowledged.')).toBeVisible();
-      }
-    }
+    await acknowledgeAll(page, 'since-review');
     const box = page.getByTestId('manufacturer-release');
     await box.getByRole('button', { name: 'Sign the manufacturer release' }).click();
     await officeSign(page, new RegExp(`^Release lot ${lot} \\(batch `), ap);
@@ -105,11 +113,14 @@ test('green release: the manufacturer release on a checklist with no red item, t
     await us.goto(`${base}/release/${r.lotId}`);
     await us.getByRole('tab', { name: 'US', exact: true }).click();
     const box = us.getByTestId('us-release');
+    await expect(box).toBeVisible();
+    // The delta review moved evidence after the QA review: the signer acknowledges each such item for US first.
+    const acknowledged = await acknowledgeAll(us, 'since-review-US');
     await box.getByRole('button', { name: 'Sign the US release' }).click();
     await officeSign(us, new RegExp(`^Release lot ${lot} for the US`), qcu);
     await expect(us.getByTestId('us-decision')).toContainText('Released');
     await expect(us.getByTestId('market-state-US')).toContainText('Released');
-    return { us: 'RELEASED' };
+    return { us: 'RELEASED', acknowledged };
   }, us);
 });
 
@@ -143,7 +154,8 @@ test('EU: the QP batch package assembled and issued, the certification transcrib
     await choose(box.getByRole('radio', { name: 'Certified', exact: true }));
     await box.getByRole('textbox', { name: 'Qualified person' }).fill('Dr. Example QP (DEMO-ONLY)');
     await box.getByRole('textbox', { name: 'MIA number' }).fill('DE-MIA-2026-007');
-    const at = new Date(Date.now() - 60_000).toISOString().replace(/\.\d{3}Z$/, '+00:00');
+    // As written by the QP: after the manufacturer release (test 1) and not in the future.
+    const at = new Date(Date.now() - 1_000).toISOString().replace(/\.\d{3}Z$/, '+00:00');
     await box.getByRole('textbox', { name: /^Certified at/ }).fill(at);
     await box.getByRole('textbox', { name: 'Certification reference' }).fill(reference);
     await box.getByRole('button', { name: 'Sign the transcription' }).click();
@@ -207,7 +219,7 @@ test('after release: a late deviation suspends the lot, its stock is blocked and
     await expect(row).toContainText('Recall assessment open');
     await row.getByRole('link', { name: r.lotCode }).click();
     await expect(production.getByTestId('after-release-market-IN')).toHaveAttribute('data-state', 'RELEASE_SUSPENDED');
-    await expect(production.getByTestId('suspension-causes')).toContainText(title);
+    await expect(production.getByTestId('suspension-causes')).toContainText(`linked to lot ${r.lotCode}`);
     await expect(production.getByTestId('stock-BLOCK')).toBeVisible();
     return { suspended: (await row.count()) > 0 };
   }, production);

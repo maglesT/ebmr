@@ -650,6 +650,16 @@ below; each builder ticks them off there.
     the per-session signing limit (a fresh session every 15 signatures).
   - **D-7b-8** The browser suspension flow ends with a recall from India: a re-confirmation needs the late deviation
     closed with no confirmed impact, a long quality flow already proven in recipe-core's after-release tests.
+  - **Performance (13 October, the development container, libfaketime cluster).** 1-0 baseline: the GB-T-01 file
+    898 s. Before 7b on this branch: 1069 s. With the continuation (two orders, reviews, release): 1327 s (the
+    continuation itself 289 s; the original run 934 s); GB-T-02: 348 s. No golden test reaches 30 minutes. The 1210
+    fix took the happy variant's audit-trail review from 12 minutes to seconds. The set-up's release path adds about
+    10 minutes to the E2E set-up here (real-clock blending, signature pacing).
+  - **Phase-4 trace gaps (7a list).** IN-16: two packaging orders from one bulk are proven by the GB-T-01 continuation
+    test `[IN-16]...`; the coded start, middle and end print specimens are not built (G-21 keeps a specimen only with a
+    printer's first print): residual for the owner. PR-22: the unit and line identifiers in each order's PDF/A-3 true
+    copy are proven by `[PR-22]...`; an equipment-status display has no screen or route: residual. PR-35 clause 2 (a
+    line-station display) has no screen or route: residual, not built.
   - **D-7b-9** The NOT_READY demo lot (second bottle order) carries an open deviation on its record, so the market-tab
     spec has a deviation the release gate names when it removes US.
 

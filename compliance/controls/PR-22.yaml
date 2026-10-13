@@ -30,6 +30,7 @@ tests:
   - "apps/tablets-server/test/blocks/compression/tb-09-edges.test.ts > TB-09 return > [IN-36][PR-22][INV-24][PR-23] a set returns once, raising a held exception for missing punches and for its usage limit, and is inspected after return once; a failure after use holds its tablets"
   - "apps/tablets-server/test/blocks/compression/tb-10-edges.test.ts > TB-10 set-up > [PR-08][PR-22][PR-23] definition checks: a press used, each setting range once and ordered (equal allowed)"
   - "packages/recipe-core/test/mutation/output-containers.test.ts > each refusal with its own code > [IN-21][PR-22] an unknown container, batch or label is refused as unknown"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [PR-22] the batch report of each order (its PDF/A-3 true copy) names the line and the units it ran on"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -96,7 +96,7 @@ async function run(app: DemoApp, opts: ReleasePathOptions): Promise<ReleasePathS
   if (!(await exists('select 1 from plant.product where code = $1', [GBT02_PRODUCT.productCode]))) {
     await app.dbAs(steward, 'select plant.define_product($1::jsonb) as r', [JSON.stringify({ code: GBT02_PRODUCT.productCode, name: GBT02_PRODUCT.productName, highlyPotent: false })], { reasonCode: 'NEW_PRODUCT', reasonText: 'GB-T-02 in the plant product list' });
   }
-  for (const [code, kind] of [['DISP-1', 'ROOM'], ['BLEND-1', 'ROOM'], ['COMP-1', 'ROOM'], [BOTTLE_LINE, 'LINE']] as const) {
+  for (const [code, kind] of [['DISP-1', 'ROOM'], ['BLEND-1', 'ROOM'], ['COMP-1', 'ROOM'], [BOTTLE_LINE, 'LINE'], [LINE, 'LINE']] as const) {
     if (!(await exists('select 1 from plant.area where code = $1', [code]))) await call(steward, p.defineArea, { body: { code, kind, name: `${kind === 'LINE' ? 'Line' : 'Room'} ${code}` } }, `area ${code}`);
   }
   const classes: [string, string, Json][] = [

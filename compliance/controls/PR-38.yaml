@@ -31,6 +31,7 @@ tests:
   - "packages/recipe-core/test/lifecycle/record-lock.test.ts > the maximum hold of bright stock (PR-38; recipe-core 0871) > [PR-38] master data sets the product's maximum hold (a whole number of hours, with a reason; never an operator or an administrator); bulk past it is not issued until a deviation linked to the order is assessed by QA; no maximum set checks none; packaging start reads the same rule"
   - "apps/tablets-web/test/records/records.test.tsx > locked records > [PR-38] the maximum hold of bright stock is listed and set as a new version with a reason"
   - "apps/tablets-web/test/records/records.test.tsx > bulk reconciliation > [PR-38] shows produced, issued and left bulk per order and container; the close waits for the server's problems"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-39][PR-37][PR-38] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
 clauses:
   - clause: "Labelling trays of batch A under an order for batch B is rejected."
     tests:
