@@ -383,6 +383,35 @@ describe('G-REL and the manufacturer release (outline 5.2.6, 5.2.7; IN-05, INV-0
     expect(await messageOf(db.app.query("update recipe.manufacturer_release_decision set decision = 'REJECTED' where lot_id = $1", [lot.lotId]))).toMatch(/permission denied/);
   });
 
+  it('[PR-44][IN-32] a packed lot is not released without reserve samples of at least the computed quantity (twice the full test plan): none and too few keep G3.SAMPLES red and refuse the release; the full quantity releases it', async () => {
+    const batchId = await issuedBatch();
+    await review(batchId);
+    const lotId = await finishedLot(batchId);
+    await testedAndSampled(lotId, { samples: false });
+    const required = (await db.app.query<{ q: string }>('select site.lot_sample_required($1)::text as q', [lotId])).rows[0]!.q;
+    expect(Number(required)).toBeGreaterThan(0);
+    const pull = (quantity: string) =>
+      w.run(analyst, (c) => c.query('select site.pull_lot_sample($1, $2::jsonb)', [lotId, JSON.stringify({ kind: 'RESERVE', quantity, container: 'Marketed blister in carton', storageLocation: 'Reserve room R-2' })]));
+    const samples = async () => item(await grel(lotId), 'G3.SAMPLES');
+    expect(await samples()).toMatchObject({ status: 'RED', problem: expect.stringMatching(new RegExp(`keeps 0 .*at least ${required.replace('.', '\\.')}.* \\(twice the full test plan\\)`)) });
+    // One unit short of the computed quantity is still too few.
+    const short = (await db.app.query<{ q: string }>('select ($1::numeric - 1)::text as q', [required])).rows[0]!.q;
+    await pull(short);
+    let g = await grel(lotId);
+    expect(red(g)).toEqual(['G3.SAMPLES']);
+    expect(g.ready).toBe(false);
+    // A second authorised person tries the release on the red checklist (the AP signs the release below).
+    await acknowledgeAll(delegate, lotId, g);
+    expect(await codeOf(record(delegate, lotId, 'RELEASE', await signDecision(delegate, lotId, 'RELEASE'), g.epoch))).toBe('EBMR-REL-020');
+    expect(await lotState(lotId)).toBe('QUARANTINE');
+    // The last unit makes the computed quantity: the item turns green and the lot is released.
+    await pull('1');
+    g = await grel(lotId);
+    expect(item(g, 'G3.SAMPLES').status).toBe('GREEN');
+    await release(ap, { batchId, lotId });
+    expect(await lotState(lotId)).toBe('RELEASED');
+  });
+
   it('[IN-05] the four refusals of the catalog test: an open deviation, no head-of-QC approval, an unsigned step (record not QA reviewed) and a signer who is no AP or delegate', async () => {
     // An open deviation on the batch blocks (deviation-lite, not assessed for IN).
     const open = await readyLot();
