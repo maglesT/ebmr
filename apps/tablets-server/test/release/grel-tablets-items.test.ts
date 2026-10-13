@@ -233,6 +233,11 @@ afterAll(async () => {
 });
 
 describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
+  it('[INV-05][IN-05] the evidence set of a packaging order\'s lot is the order and its processing parent, in that order (recipe.release_batches)', async () => {
+    const { rows } = await w.gmp.db.app.query<{ r: string[] }>('select recipe.release_batches($1) as r', [lotId]);
+    expect(rows[0]!.r).toEqual([orderId, parentId]);
+  });
+
   it('[meta] the Tablets hook answers well-formed items for groups 4, 9 and 10 through recipe.grel_evaluate; a lot that is no Tablets finished lot gets one red item', async () => {
     const { rows } = await w.gmp.db.app.query<{ g: { items: Item[] } }>("select recipe.grel_evaluate($1, 'IN') as g", [lotId]);
     const ours = rows[0]!.g.items.filter((i) => i.id.startsWith('E.'));

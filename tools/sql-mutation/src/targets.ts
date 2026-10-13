@@ -844,7 +844,7 @@ export const TARGETS: Target[] = [
                 'recipe.grel_edition_items', 'recipe.grel_versions', 'recipe.release_gate_problems', 'recipe.release_batches', 'recipe.release_deviations', 'recipe.release_scope',
                 'recipe.batch_purpose', 'recipe.batch_master_version', 'recipe.investigation_unjustifiable',
                 'recipe.investigation_unjustifiable_for', 'recipe.manufacturer_release_state', 'recipe.release_involvement'],
-    tests: [r('release/release.test.ts'), s('release/grel-interfaces.test.ts')],
+    tests: [r('release/release.test.ts'), s('release/grel-interfaces.test.ts'), s('release/grel-tablets-items.test.ts')],
     threshold: 90,
   },
   {

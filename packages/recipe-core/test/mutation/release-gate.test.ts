@@ -14,14 +14,14 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import { assessIncidentImpact, raiseIncident } from '../../../kernel/src/records/incidents.ts';
 import { challengeFor, cmd, signatureAuth, signWith } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
-import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedActor, seedAdministration, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
-import { cell, reason, seedCast, uniqueContent, withSecondRole, World } from '../lifecycle/support.ts';
+import { cell, reason, seedCast, uniqueContent, World } from '../lifecycle/support.ts';
 
 let db: TestDatabase;
 let w: World;
@@ -31,15 +31,12 @@ let head: SeededActor;
 let qaReviewer: SeededActor;
 let qaReviewer2: SeededActor;
 let qaReviewer3: SeededActor;
-let qaReviewer4: SeededActor;
 let erp: SeededActor;
 let ap: SeededActor;
-let delegate: SeededActor;
 let analyst: SeededActor;
 let qcHead: SeededActor;
 let warehouse: SeededActor;
 
-let owner: SeededActor;
 let master: { familyId: string; versionId: string; content: MbrContent };
 const dir = tempDir('release-gate');
 const ledger = tempLedger('release-gate', dir.path);
@@ -66,15 +63,6 @@ interface Lot {
   lotId: string;
 }
 
-async function codeOf(p: Promise<unknown>): Promise<string> {
-  try {
-    await p;
-    return 'ok';
-  } catch (e) {
-    const m = /\b(EBMR-[A-Z]+-\d{3})\b/.exec(e instanceof Error ? e.message : String(e));
-    return m?.[1] ?? (e instanceof Error ? e.message : String(e));
-  }
-}
 async function messageOf(p: Promise<unknown>): Promise<string> {
   try {
     await p;
@@ -146,12 +134,6 @@ async function review(b: string): Promise<void> {
   expect(await reviewState(b)).toBe('QA_REVIEWED');
 }
 
-/** The delta audit-trail review the evidence linked after the QA review needs (INV-48), by an uninvolved reviewer. */
-async function deltaReview(b: string): Promise<void> {
-  const id = (await db.app.query<{ id: string }>('select recipe.audit_review_next_id($1) as id', [b])).rows[0]!.id;
-  const sig = await w.sign(qaReviewer, 'batch_audit_review', id, 'DELTA_AUDIT_TRAIL_REVIEWED', 'QA_REVIEWED');
-  await w.run(qaReviewer, (c) => c.query('select recipe.record_audit_trail_review($1, $2)', [id, sig]));
-}
 
 /** The finished lot of batch `b`, posted as the edition's definer posts it (site.create_finished_lot is not granted). */
 async function finishedLot(b: string, m: { content: MbrContent } = master): Promise<string> {
@@ -197,9 +179,6 @@ const item = (g: Grel, id: string): Item => {
   return i;
 };
 const red = (g: Grel): string[] => g.items.filter((i) => i.status === 'RED').map((i) => i.id);
-const lotState = async (lotId: string): Promise<string> =>
-  (await db.app.query<{ s: string }>("select state as s from platform.aggregate_state where aggregate_type = 'material_lot' and aggregate_id = $1", [lotId])).rows[0]!.s;
-const deviationState = async (id: string): Promise<string> => (await db.app.query<{ s: string }>('select site.deviation_state($1) as s', [id])).rows[0]!.s;
 const releaseState = async (lotId: string): Promise<string> => (await db.app.query<{ s: string }>('select recipe.manufacturer_release_state($1) as s', [lotId])).rows[0]!.s;
 
 async function acknowledgeAll(who: SeededActor, lotId: string, g: Grel): Promise<void> {
@@ -236,35 +215,7 @@ async function deviationOn(kind: 'DEVIATION' | 'OOS', subject: 'BATCH' | 'LOT', 
   return d;
 }
 
-/**
- * The deviation path to an open record assessed for IN (site services 0820 to 0822, as site-services' own
- * deviation-path helper drives it): QA classifies, the owner records the finding and the impact on every link, another QA
- * person signs the impact, the basis is recorded and a fourth person concludes (PENDING_CLOSURE: still open).
- */
-async function concludedWithImpact(deviationId: string, impact: 'NONE' | 'POTENTIAL'): Promise<void> {
-  const q = (who: SeededActor, text: string, values: unknown[]) => w.run(who, (c) => c.query(text, values));
-  await q(qaReviewer, 'select site.start_deviation_investigation($1, $2::jsonb)', [
-    deviationId, JSON.stringify({ classification: 'MAJOR', riskRationale: 'QA classification after the first review of the facts', ownerPersonId: qaReviewer2.personId, dueDate: '2027-01-28' }),
-  ]);
-  await q(qaReviewer2, 'select site.record_deviation_finding($1, $2::jsonb)', [deviationId, JSON.stringify({ assignableCause: true, cause: 'A gasket wore out', rootCauseCategory: 'EQUIPMENT' })]);
-  const links = (await db.app.query<{ id: string }>('select id from site.deviation_link where deviation_id = $1 order by linked_at, id', [deviationId])).rows;
-  for (const l of links) {
-    await q(qaReviewer2, 'select site.record_deviation_impact($1, $2::jsonb)', [deviationId, JSON.stringify({ linkId: l.id, market: 'IN', impact, rationale: 'Assessed against the investigation findings' })]);
-  }
-  const assessed = await signFor(db, qaReviewer3, { type: 'deviation', id: deviationId }, 'DEVIATION_IMPACT_ASSESSED', 'UNDER_INVESTIGATION');
-  await q(qaReviewer3, 'select site.assess_deviation_impact($1, $2)', [deviationId, assessed]);
-  await q(qaReviewer2, 'select site.record_deviation_closure_basis($1, $2::jsonb)', [deviationId, JSON.stringify({
-    rootCauseMethod: 'Five whys with the investigation team', capaRefs: ['CAPA-TEST-001'], notificationRequired: false,
-    notificationRationale: 'No registered detail or licence condition is affected',
-    otherBatches: [{ subjectKind: 'PRODUCT', ref: 'All other batches of the product made since the last good check', included: false, reason: 'Checks passed on them' }],
-  })]);
-  const concluded = await signFor(db, qaReviewer4, { type: 'deviation', id: deviationId }, 'DEVIATION_CONCLUDED', 'IMPACT_ASSESSED');
-  await q(qaReviewer4, 'select site.conclude_deviation($1, $2)', [deviationId, concluded]);
-}
 
-async function setOpenInvestigationPath(value: 'ON' | 'OFF'): Promise<void> {
-  await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.open_investigation_path', $1)", [value]));
-}
 
 /** The product master (QA confirms a new code) and the finished product's specification: ASSAY 95 to 105 %, 20 units a run. */
 async function productAndSpecification(content: MbrContent): Promise<void> {
@@ -293,16 +244,14 @@ async function productAndSpecification(content: MbrContent): Promise<void> {
 beforeAll(async () => {
   db = await createTestDatabase();
   w = new World(db, await seedCast(db));
-  ({ owner } = await seedAdministration(db));
+  await seedAdministration(db);
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator', roomCode: 'DISP-01' });
   head = await seedActor(db, { roleCode: 'HEAD_OF_PRODUCTION', legalName: 'Hari Head' });
   qaReviewer = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Rhea Reviewer' });
   qaReviewer2 = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Ravi Reviewer' });
   qaReviewer3 = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Rani Reviewer' });
-  qaReviewer4 = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'Roshan Reviewer' });
   ap = await seedActor(db, { roleCode: 'AUTHORISED_PERSON', legalName: 'Anita Authorised' });
-  delegate = await seedActor(db, { roleCode: 'AUTHORISED_PERSON', legalName: 'Dev Delegate' });
   analyst = await seedActor(db, { roleCode: 'QC_ANALYST', legalName: 'Asha Analyst' });
   qcHead = await seedActor(db, { roleCode: 'HEAD_OF_QC', legalName: 'Hema QC-Head' });
   warehouse = await seedActor(db, { roleCode: 'WAREHOUSE_LABELLING', legalName: 'Wasim Warehouse' });
@@ -534,6 +483,23 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     // The other lot's disposed sample is not its evidence any more.
     expect(refs(item(await grel(other.lotId), 'G3.SAMPLES'))).toEqual([]);
 
+    // Item 5 reads the consumed lot's own results: a revision of another lot's result and an unrevised result of the
+    // consumed lot after its use leave it GREEN; a revision of the consumed lot's result after its use makes it RED.
+    const result = async (lot: string, revises: string | null = null): Promise<string> => {
+      const id = randomUUID();
+      await asFixture(async (fx) => {
+        await fx.query(`insert into site.lot_test_result (id, lot_id, test_code, method_reference, purpose, result_value, unit, lower_limit, revises, revision_reason,
+                                                         recorded_by_person, recorded_by_account, correlation_id)
+                        values ($1, $2, 'ID', 'STP-ID', 'RELEASE', 1, 'pct', 0, $3, $4, $5, $5, $5)`, [id, lot, revises, revises ? 'fixture: transcription corrected' : null, randomUUID()]);
+      });
+      return id;
+    };
+    await result(otherApi, await result(otherApi));
+    const apiResult = await result(api);
+    expect(item(await grel(lotId), 'G5.MATERIALS').status).toBe('GREEN');
+    await result(api, apiResult);
+    expect(item(await grel(lotId), 'G5.MATERIALS').problem).toMatch(/was revised after the lot was consumed/);
+
     // After the review: a release result not yet approved, a deviation on the consumed API lot and one on the lot.
     await sqlAs(analyst, 'select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, JSON.stringify({ testCode: 'ASSAY', purpose: 'RELEASE', value: '99.7' })]);
     await deviationOn('DEVIATION', 'LOT', api);
@@ -555,5 +521,97 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     expect(await why(b.lotId, shared.deviationId)).toMatch(/is not assessed for IN/);
     const own = await deviationOn('DEVIATION', 'LOT', a.lotId);
     expect(await why(a.lotId, own.deviationId)).toMatch(new RegExp(`its link to lot ${await lotCode(a.lotId)} is not assessed for IN`));
+  });
+
+  it('[PR-08][PR-53] the registration item lists the registration-relevant exceptions of the lot\'s records only, each with the deviation linked to it; a deviation linked to another exception of the batch stays justifiable', async () => {
+    const lot = await readyLot();
+    const other = await readyLot();
+    const linked = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
+    const plain = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
+    // Register rows and acts as the engine and the review write them (copied shapes; the acts' commands are fixtures).
+    await asFixture(async (fx) => {
+      const ex = (b: string, id: string, type: string, relevant: boolean, title: string) => fx.query(
+        `insert into recipe.exception_register (batch_id, exception_id, row_seq, exception_type, category, severity, tier, title, raising_step_key, raising_step, raised_at, raised_at_us,
+                                                raised_by, command_person, mandatory, qa_only, deviation_required, registration_relevant, release_blocking, blocks_until, raised_record, correlation_id)
+         values ($1, $2, 1, $3, 'OUT_OF_LIMIT', 'CRITICAL', $5, $4, null, null, now(), 0, 'test', gen_random_uuid(), true, true, true, $6, true, null, '{}'::jsonb, gen_random_uuid())`,
+        [b, id, type, title, relevant ? 'REGISTERED' : 'ALERT', relevant]);
+      const act = (b: string, id: string, kind: 'DEVIATION_LINKED' | 'ESCALATED', ref: string) => fx.query(
+        `insert into recipe.exception_register_act (batch_id, exception_id, act, row_seq, by_person, by_account, role_code, deviation_ref, note, correlation_id)
+         values ($1, $2, $3, $4, gen_random_uuid(), gen_random_uuid(), 'QA_REVIEWER', $5, $6, gen_random_uuid())`,
+        [b, id, kind, kind === 'DEVIATION_LINKED' ? 1 : null, ref, kind === 'ESCALATED' ? 'escalated in the review' : null]);
+      await ex(lot.batchId, 'EX-REG-1', 'LIMIT_BREACH', true, 'LOD above the registered limit');
+      await ex(lot.batchId, 'EX-STEP-1', 'STEP_SKIPPED', false, 'Optional step skipped');
+      await ex(other.batchId, 'EX-REG-1', 'LIMIT_BREACH', true, 'Other batch breach');
+      await act(lot.batchId, 'EX-REG-1', 'ESCALATED', 'DEV-ESCALATED');
+      await act(lot.batchId, 'EX-STEP-1', 'DEVIATION_LINKED', plain.ref);
+      await act(lot.batchId, 'EX-REG-1', 'DEVIATION_LINKED', linked.ref);
+      await act(other.batchId, 'EX-REG-1', 'DEVIATION_LINKED', 'DEV-OTHER');
+    });
+    expect(item(await grel(lot.lotId), 'G2.REGISTRATION').evidence).toEqual(
+      [{ kind: 'EXCEPTION', ref: `${lot.batchId}/EX-REG-1`, label: `EX-REG-1: LOD above the registered limit (${linked.ref})` }]);
+    const why = (deviationId: string): Promise<string | null> => one<string | null>('select recipe.investigation_unjustifiable($1, $2) as r', [lot.lotId, deviationId]);
+    expect(await why(plain.deviationId)).toBeNull();
+    expect(await why(linked.deviationId)).toMatch(/registered limit or a yield or reconciliation discrepancy/);
+  });
+
+  it('[PR-09] a protocol batch reads its own validation outcome: a FAILED outcome names the batch, and another batch\'s outcome does not stand for one not recorded', async () => {
+    const failed = await readyLot({ purpose: 'PPQ' });
+    const h = (await db.app.query<{ h: string }>('select recipe.ppq_statement_hash($1, $2) as h', ['PV-PROT-9', 'Assay out of the protocol limits'])).rows[0]!.h;
+    const sig = await signFor(db, qaReviewer3, { type: 'ppq_outcome', id: `${failed.batchId}/FAILED/${h}` }, 'VALIDATION_OUTCOME_RECORDED', await reviewState(failed.batchId));
+    await w.run(qaReviewer3, (c) => c.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [failed.batchId, 'FAILED', 'PV-PROT-9', 'Assay out of the protocol limits', sig]));
+    expect(item(await grel(failed.lotId), 'G6.PPQ').problem).toBe(`the validation outcome of batch ${await batchNumber(failed.batchId)} is FAILED (PR-09)`);
+    const waiting = await readyLot({ purpose: 'PPQ' });
+    expect(item(await grel(waiting.lotId), 'G6.PPQ').problem).toMatch(/its validation outcome is not recorded/);
+  });
+
+  it('[IN-03][INV-05] the change item reads the assessment of the market evaluated and names the change and the batch; the post-change item reads the batch\'s own evaluation', async () => {
+    const changedMaster = async (): Promise<{ familyId: string; versionId: string; content: MbrContent }> => {
+      const changed = await effective();
+      await productAndSpecification(changed.content);
+      const v2 = await w.approvedSuccessor(changed.versionId, (m) => {
+        m.header.title = `${m.header.title} (rev 2)`;
+      }, { regulatory: [{ market: 'IN', category: 'NOTIFICATION_LOW' }] });
+      await w.authorise(auth(v2.versionId));
+      return changed;
+    };
+    const lot = await readyLot({ master: await changedMaster() });
+    const bn = await batchNumber(lot.batchId);
+    expect(item(await grel(lot.lotId), 'G2.CHANGE_NOTIFICATION').status).toBe('GREEN');
+    const us = item(await grel(lot.lotId, 'US'), 'G2.CHANGE_NOTIFICATION');
+    expect(us.status).toBe('RED');
+    expect(us.problem).toContain(`change record ${us.evidence[0]!.label} of the master batch ${bn} `);
+    expect(us.problem).toMatch(/assessment for US/);
+
+    const text = 'Yield, IPC trends and release results of the first batch match the pre-change batches';
+    const hash = (await db.app.query<{ h: string }>("select encode(sha256(convert_to(btrim($1), 'UTF8')), 'hex') as h", [text])).rows[0]!.h;
+    const evaluation = await signFor(db, qaReviewer3, { type: 'post_change_evaluation', id: `${lot.batchId}/${hash}` }, 'POST_CHANGE_EVALUATED', await reviewState(lot.batchId));
+    await w.run(qaReviewer3, (c) => c.query('select recipe.record_post_change_evaluation($1, $2, $3)', [lot.batchId, text, evaluation]));
+    expect(item(await grel(lot.lotId), 'G6.POST_CHANGE')).toMatchObject({ status: 'GREEN', evidence: [{ kind: 'SIGNATURE', ref: evaluation, label: `post-change evaluation of ${bn}` }] });
+    // The first batch under another change waits for its own evaluation; the evaluation above does not stand for it.
+    const next = await readyLot({ master: await changedMaster() });
+    const nextGrel = await grel(next.lotId);
+    expect(item(nextGrel, 'G6.POST_CHANGE').status).toBe('RED');
+    // The validation basis lists the validation references of the batch's own master change only.
+    const own = (await db.admin.query<{ ref: string }>(
+      `select x.validation_ref as ref from recipe.change_record_validation x
+        where x.change_record_id = (select (recipe.batch_master_version($1)).change_record_id) order by x.validation_ref`, [next.batchId])).rows.map((r) => r.ref);
+    expect(own.length).toBeGreaterThan(0);
+    expect(refs(item(nextGrel, 'G6.VALIDATION_BASIS'))).toEqual(own);
+  });
+
+  // Last in the file: the fixture below widens a role's permissions for every later test.
+  it('[IN-05] a release result approved by anyone but the head of QC keeps G3.LIMS RED; another lot\'s approval counts neither for nor against a lot', async () => {
+    const good = await readyLot();
+    // TEST FIXTURE: a site that granted QC.RESULT_APPROVE to QC_ANALYST (the governed grant is proven in the kernel's access tests).
+    await asFixture(async (fx) => {
+      await fx.query("insert into iam.role_permission (role_code, permission_code) values ('QC_ANALYST', 'QC.RESULT_APPROVE') on conflict do nothing");
+    });
+    const analyst2 = await seedActor(db, { roleCode: 'QC_ANALYST', legalName: 'Arun Analyst' });
+    const lot = await readyLot({ approve: false });
+    const resultId = (await db.admin.query<{ id: string }>('select id from site.lot_test_result where lot_id = $1', [lot.lotId])).rows[0]!.id;
+    const sig = await signFor(db, analyst2, { type: 'lot_test_result', id: resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
+    await w.run(analyst2, (c) => c.query('select site.approve_lot_test_result($1, $2)', [resultId, sig]));
+    expect(item(await grel(lot.lotId), 'G3.LIMS').problem).toMatch(/is approved by QC_ANALYST, not by the head of QC/);
+    expect(item(await grel(good.lotId), 'G3.LIMS').status).toBe('GREEN');
   });
 });
