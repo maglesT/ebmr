@@ -37,3 +37,25 @@
    before release.
 7. **Demo data.** The synthetic demo data can test the pipeline, not train a meaningful model; real models are trained
    on a site's own history at deployment.
+
+## Additions (13 October 2026, same session)
+
+8. **Statistics first.** Inferential statistics are the foundation (control charts, capability, multivariate SPC,
+   deviation-rate comparisons with confidence intervals). The first risk model is a **Bayesian hierarchical logistic
+   regression** (interpretable, shares strength across products and equipment, works with little data, gives real
+   uncertainty). Gradient-boosted trees with SHAP are added only if they clearly beat it on held-out later batches.
+   A pattern found by a model or by SHAP is a hypothesis: it is confirmed statistically before any process change, and
+   any process change goes through change control.
+9. **Human-feedback (RLHF) layer, after v1.0.**
+   - **Risk alerts:** QA marks each alert a true risk or a false alarm, with the actual cause; the feedback is stored
+     with its audit trail and used (with active learning, asking QA about the least certain batches) to improve the
+     ranking and thresholds of alerts.
+   - **Investigation assistant:** a language-model assistant drafts a deviation investigation (likely root causes from
+     similar past deviations, linked parameter trends, affected batches, suggested actions); QA edits and approves.
+     QA's ratings, comparisons and edits are preference data used to tune the assistant (RLHF with a reward model, or
+     DPO).
+   - **Rules:** learning is offline and in batches; each tuned model is a new versioned, validated, change-controlled
+     release, never a model that updates itself in use. The layer is advisory only: it never changes a process
+     parameter, never releases, blocks or rejects a batch, and never writes to the batch record. No reinforcement
+     learning experiments on real batches.
+   - Checked against the then-current EU GMP Annex 22 and FDA guidance on AI before release.
