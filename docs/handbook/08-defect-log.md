@@ -813,7 +813,7 @@ decide whether the race is in the test or in the product (two of the entries abo
   fails a `[meta]` test. Merging two scopes of mutation groups once left a function in two SQL mutation groups (fixed
   by one group per function, commit 79a0e582).
 - **Renumbered migrations (commits 5685be5b, 0b4de0b7, 27b1efe2, ...):** when two branches pick the same migration
-  number, one is renumbered before the merge (see the reserved kill range in [REPO-GUIDE.md](../../REPO-GUIDE.md)).
+  number, one is renumbered before the merge.
 
 ## Tests that proved too little (Phase 2 exit, F13 to F29 and E2E claims)
 
