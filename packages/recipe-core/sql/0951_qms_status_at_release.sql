@@ -89,12 +89,14 @@ $$;
 create function recipe.qms_release_guard() returns trigger
 language plpgsql security definer set search_path = pg_catalog, recipe, site, pg_temp as $$
 declare
+  r      jsonb := to_jsonb(new);
   v_prob text;
 begin
-  if (tg_table_name in ('manufacturer_release_decision', 'us_disposition_decision') and new.decision = 'RELEASED')
-     or (tg_table_name = 'qp_certification' and new.source = 'IN_SYSTEM' and new.outcome = 'CERTIFIED')
-     or (tg_table_name = 'after_release_decision' and new.act = 'RECONFIRM') then
-    v_prob := site.qms_release_problem(new.lot_id);
+  -- The four tables have different columns: read the row as JSON so each branch names only its own.
+  if (tg_table_name in ('manufacturer_release_decision', 'us_disposition_decision') and r ->> 'decision' = 'RELEASED')
+     or (tg_table_name = 'qp_certification' and r ->> 'source' = 'IN_SYSTEM' and r ->> 'outcome' = 'CERTIFIED')
+     or (tg_table_name = 'after_release_decision' and r ->> 'act' = 'RECONFIRM') then
+    v_prob := site.qms_release_problem((r ->> 'lot_id')::uuid);
     if v_prob is not null then
       raise exception using errcode = 'P0001', message = v_prob;
     end if;

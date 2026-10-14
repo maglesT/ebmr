@@ -160,6 +160,7 @@ revoke all on site.capa_effectiveness_check from public;
 
 create table site.capa_effectiveness_result (
   check_id             uuid primary key references site.capa_effectiveness_check (id),
+  capa_id              uuid not null references site.capa (id),
   effective            boolean not null,
   evidence             text not null check (btrim(evidence) <> '' and length(evidence) <= 4000),
   recorded_by_person   uuid not null,
@@ -425,6 +426,11 @@ select kernel.set_actor_context(null);
 
 select esig.register_content_provider('capa', 'site.capa_content(text)',
   'A CAPA: reference, source, owner, due date, linked deviations, the master version it waits for, effectiveness checks and results, life-cycle events');
+-- A row added to the CAPA after a signature supersedes it (INV-09): a closure is signed over the CAPA as it stands.
+select esig.register_signed_table('site.capa_deviation', 'capa', 'capa_id');
+select esig.register_signed_table('site.capa_master_version', 'capa', 'capa_id');
+select esig.register_signed_table('site.capa_effectiveness_check', 'capa', 'capa_id');
+select esig.register_signed_table('site.capa_effectiveness_result', 'capa', 'capa_id');
 
 -- ---------------------------------------------------------------------------------------------
 -- Stand-in commands
@@ -677,8 +683,8 @@ begin
   if exists (select 1 from site.capa_effectiveness_result r where r.check_id = k.id) then
     raise exception using errcode = 'P0001', message = 'EBMR-CAPA-009 this effectiveness check already has its result';
   end if;
-  insert into site.capa_effectiveness_result (check_id, effective, evidence, recorded_by_person, recorded_by_account)
-  values (k.id, p_effective, btrim(p_evidence), (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid);
+  insert into site.capa_effectiveness_result (check_id, capa_id, effective, evidence, recorded_by_person, recorded_by_account)
+  values (k.id, k.capa_id, p_effective, btrim(p_evidence), (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'account_id')::uuid);
 end
 $$;
 
