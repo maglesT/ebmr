@@ -17,6 +17,7 @@ export { StepHeader, type StepHeaderProps } from './StepHeader.tsx';
 export { TimerChip, type TimerChipProps, type TimerData } from './TimerChip.tsx';
 export { PrimaryActionBar, type BarAction, type PrimaryActionBarProps } from './PrimaryActionBar.tsx';
 export { RefusalPanel, type RefusalPanelProps } from './RefusalPanel.tsx';
+export { StaleMirrorNotice, staleMirrorOf, type StaleMirror } from './StaleMirror.tsx';
 export { ExceptionBanner, type ExceptionBannerProps } from './ExceptionBanner.tsx';
 export { StatusOutline, type OutlineStage, type StatusOutlineProps } from './StatusOutline.tsx';
 export { AttemptList, valueText, type AttemptData, type AttemptListProps } from './AttemptList.tsx';

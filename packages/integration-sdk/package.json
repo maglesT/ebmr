@@ -9,7 +9,8 @@
     "./scale": "./src/scale/index.ts",
     "./process": "./src/process/index.ts",
     "./printer": "./src/printer/index.ts",
-    "./serialisation": "./src/serialisation/index.ts"
+    "./serialisation": "./src/serialisation/index.ts",
+    "./adapter": "./src/adapter/index.ts"
   },
   "dependencies": {
     "@ebmr/kernel": "workspace:0.1.0",

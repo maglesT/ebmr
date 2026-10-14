@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { Base64Text, DecimalString, Instant, IntegerString, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { DeviationClassificationInput, DeviationState, deviationRoutes } from './deviation.ts';
+import { receiptRoutes } from './receipt.ts';
 
 const DeviationKind = z.enum(['DEVIATION', 'OOS', 'INVESTIGATION']);
 const deviationParams = z.strictObject({ deviationId: Uuid });
@@ -204,6 +205,8 @@ export type ErpPendingView = z.infer<typeof ErpPendingView>;
 
 export const quality = {
   ...deviationRoutes,
+  // Phase 6 slice 6a builder A: receipt with supplier batches, the receipt record and the approved-manufacturer register.
+  ...receiptRoutes,
   raiseDeviation: defineRoute({
     id: 'quality.raiseDeviation',
     method: 'POST',

@@ -754,6 +754,84 @@ because the lesson is about structure.
   slice 4b fix); a table name bug in the archive (kernel 1173, commit 67babc7e). The evidence export is now recomputed
   by the database (kernel 1174).
 
+## Integrations (Phase 6)
+
+### P6a-A1: a feed gap kept a mirror looking fresh (slice 6a, builder A)
+- **What went wrong.** The ERP/WMS worker recorded each mirror's synchronisation whenever the source's heartbeat
+  answered, before it read the feed. With a feed gap (the source keeps changing its data but delivers nothing) the
+  heartbeat still answered, so ERP_LOT_STATUS looked fresh while the eBMR held an old lot status.
+- **Why it matters.** A stale mirror must fail closed (INV-26): a lot the WMS has blocked could still be reserved and
+  issued on the old status.
+- **Fix.** The worker records the synchronisation only when the heartbeat answers **and** it is caught up with the
+  source (its cursor reached the source's head):
+  [framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker). Found from
+  builder B's pull worker, which already kept this rule.
+- **Test.** `[DI-31] a feed gap keeps the mirror from looking fresh` in
+  [contract.test.ts](../../apps/tablets-server/test/integrations/erp-wms/contract.test.ts).
+- **Lesson:** freshness is about the data you hold, not about whether the other system answers.
+
+### P6a-I1: an LMS withdrawal would fail on builder A's worker (slice 6a, merge of the two workers)
+- **What went wrong.** Builder A's worker base ran each receiving command without a reason. Its ERP/WMS commands only
+  insert, so nothing showed it; an LMS REVOKED or EXPIRED message updates the live qualification row
+  (`iam.receive_lms_qualification`), and the audit trail refuses an update without a reason (EBMR-AUDIT-002). On A's
+  worker that refusal is unclassified, so the LMS adapter would block on the withdrawal and every later message.
+- **Why it matters.** A person whose training the LMS withdrew would stay qualified in the eBMR while the mirror aged;
+  the qualification check at signing must see the withdrawal.
+- **Fix.** The two workers were merged into one framework that runs every receiving command with the source's reason
+  (INBOUND_MESSAGE, naming the message type, record id and system, D-P6a-B-7):
+  [framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=sourceReason). Found by
+  builder B, whose pull worker already carried it.
+- **Test.** `[DI-31] LMS: a withdrawal through the worker framework carries the source reason into the audit trail
+  (defect P6a-I1)` in [feed-adapters.test.ts](../../apps/tablets-server/test/integrations/feed-adapters.test.ts); it
+  fails with EBMR-AUDIT-002 when the reason is taken out.
+- **Lesson:** a shared base is proven by its most demanding user, not its first one.
+
+### P6a-R1: the ERP/WMS adapter's functions hid their permission check (slice 6a, review)
+- **What went wrong.** Five functions the ERP_WMS adapter calls (outbound pending, delivered and failed, the receiving
+  command and the WMS location question) checked INTERFACE.WRITE only inside a helper (`site.require_erp_wms_adapter`)
+  or inside the kernel's inbound framework, and `site.location_move_problem`, a read, was declared VOLATILE. The DI-17
+  scan of every app-callable writer looks for the check in the function itself, so CI failed.
+- **Why it matters.** The scan is how a reviewer knows that no application-callable writer was added without a
+  permission; a check that lives one call away is one refactor away from disappearing.
+- **Fix.** Each of the five functions calls `platform.authorize('interface.write', ...)` where it is entered, as the
+  kernel's inbound functions do; the read is declared STABLE (site-services migration
+  [0916](../../packages/site-services/sql/0916_erp_wms_entry_authority.sql)). No exception was added to the test.
+- **Test.** `[DI-17] every function of market, records, continuity, site services and the platform that the
+  application may call and that can write checks a known permission` in
+  [authorization.test.ts](../../packages/kernel/test/integration/authorization.test.ts).
+- **Lesson:** run the kernel's authorization scan whenever a slice adds a function the application may call.
+
+### P6a-R2: a release could rely on a stale QMS mirror (slice 6a, review)
+- **What went wrong.** `site.record_qms_release_fetch` (site services 0925) takes the answer of the live QMS fetch from
+  the server and checks only that it equals the local mirror; neither it nor `site.qms_release_problem` asked whether
+  the QMS_STATUS mirror was fresh. A server that copied a stale mirror into the "fetch" passed every database check.
+- **Why it matters.** Release must see the QMS as it is at signing (D-P6a-3); a deviation opened after the QMS adapter
+  stopped would not stop the lot.
+- **Fix.** In MIRROR both refuse with EBMR-INT-010 when the mirror is stale, and the fetch is still required in the
+  same transaction (site services [0927](../../packages/site-services/sql/0927_qms_release_mirror_fresh.sql)). The HTTP
+  call itself is an accepted residual (the database cannot see it).
+- **Test.** `[DI-31] a release with a stale QMS mirror is refused even with a matching fetch record` in
+  [cmms-qms-release.test.ts](../../packages/recipe-core/test/integrations/cmms-qms-release.test.ts).
+- **Lesson:** a comparison with a local copy proves only as much as the copy is fresh.
+
+### P6a-R3: a heartbeat alone kept a blocking mirror fresh (slice 6a, review)
+- **What went wrong.** `platform.record_mirror_sync(class)` (kernel 1180) let any active adapter of the class's system
+  refresh the class's last synchronisation with nothing behind it. The worker only called it when caught up, but the
+  database did not check that, so any writer could keep LMS, CMMS, ERP lot-status or QMS mirrors fresh while the
+  adapter was behind its source.
+- **Why it matters.** A stale mirror must fail closed (INV-26): a withdrawn qualification, a failed calibration or a
+  WMS block that never arrived would not stop signing, equipment use or issue.
+- **Fix.** The function now takes the source's high-water mark and the database refuses the sync unless the adapter
+  holds it (EBMR-INT-019) and every number below it since the last proven mark, a missing run counting only once a
+  person acknowledged its gap alarm (EBMR-INT-024; D-P6a-F-1, kernel
+  [1182](../../packages/kernel/sql/1182_mirror_sync_caught_up.sql)). The one-argument form is dropped; the worker
+  passes the head it paged to.
+- **Test.** `[DI-31] a heartbeat from an adapter behind the source does not refresh its mirror` and `[DI-31] a
+  synchronisation from an adapter caught up with its source refreshes its mirror and keeps the source mark; a gap counts
+  once a person acknowledges it` in [inbound.test.ts](../../packages/kernel/test/inbound/inbound.test.ts).
+- **Lesson:** a freshness stamp written by the caller proves only that the caller called; make the database check what
+  the stamp claims.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

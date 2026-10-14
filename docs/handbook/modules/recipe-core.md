@@ -1659,6 +1659,23 @@ that silently misses a batch would hide a trend, so it must reconcile to the reg
 | [recipe.run_pqr_extract](../../../packages/recipe-core/sql/0910_pqr_extract.sql#sym=recipe.run_pqr_extract) | `EBMR-PQR-001` … is not a product code<br>`EBMR-PQR-002` the period runs from a first day to a last day on or after it<br>`EBMR-PQR-003` a review period is at most three years (normally twelve months; IN-01)<br>`EBMR-PQR-006` the extract for …, … to …, does not reconcile to the registers: …; nothing is stored (IN-01, PR-58) | [IN-01](../../../compliance/controls/IN-01.yaml), [PR-58](../../../compliance/controls/PR-58.yaml) | [pqr-extract.test.ts](../../../packages/recipe-core/test/mutation/pqr-extract.test.ts), [pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts) (+1) |
 | [recipe.sign_off_pqr](../../../packages/recipe-core/sql/0910_pqr_extract.sql#sym=recipe.sign_off_pqr) | `EBMR-PQR-006` the extract no longer reconciles to the registers; nothing is signed (IN-01, PR-58)<br>`EBMR-PQR-010` there is no PQR extract …<br>`EBMR-PQR-011` this extract is signed off already<br>`EBMR-PQR-012` the records changed after the extract was run (its SHA-256 differs now); run the extract again and sign …<br>`EBMR-PQR-013` a PQR is signed off by the authorised person, not as … (IN-01 (b))<br>`EBMR-PQR-014` a person involved in the records of the reviewed batches never signs off their quality review (INV-35)<br>`EBMR-PQR-015` the signed extract is not the current one; sign it again (DI-37) | [PR-58](../../../compliance/controls/PR-58.yaml), [IN-01](../../../compliance/controls/IN-01.yaml), [DI-37](../../../compliance/controls/DI-37.yaml), INV-35 | [pqr-extract.test.ts](../../../packages/recipe-core/test/mutation/pqr-extract.test.ts), [pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts) (+1) |
 
+## Mirrors at equipment use and release (Phase 6 slice 6a)
+
+- [0950_cmms_mirror_at_equipment_use.sql](../../../packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql):
+  the CMMS adapter's commands (`plant.receive_cmms_calibration` writes a `plant.calibration` row, traced to its message
+  in `plant.cmms_calibration_message`; ADJUSTED_PASS is as found FAIL, as left PASS, D-P6a-B-2; the due date is the start
+  of that day in the site's zone, D-P6a-B-3; `plant.receive_cmms_maintenance` keeps the work orders). `plant.fitness_problems`
+  (replaced, same signature) fails closed on a stale CMMS mirror (EBMR-INT-010) and adds the work orders that stop a use
+  (IN_PROGRESS, or a PREVENTIVE one past its due date, D-P6a-B-4); `plant.record_calibration` is refused in MIRROR
+  (EBMR-PLANT-025).
+- [0951_qms_status_at_release.sql](../../../packages/recipe-core/sql/0951_qms_status_at_release.sql): G-REL item
+  G2.QMS_STATUS (MIRROR only) and the BEFORE INSERT trigger `aaa_qms_release_guard` on the manufacturer release, the US
+  disposition, the in-system QP certification and the re-confirmation: no release without the live QMS fetch of the
+  same transaction (EBMR-QMS-013, -014, -015). The trigger reads the row as JSON because the four tables have different
+  columns (a PL/pgSQL `new.source` on a table without it fails at run time).
+- [0952_capa_master_resolver.sql](../../../packages/recipe-core/sql/0952_capa_master_resolver.sql): the CAPA's master
+  version is effective when APPROVED and its effective date has come (PR-02, PR-51).
+
 ## How to test recipe-core
 
 - Everything in the package: `pnpm vitest run --project db packages/recipe-core/test` (long; on a 4-CPU pod run only

@@ -53,6 +53,9 @@ import rl from '../fixtures/release.json' with { type: 'json' };
 import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
+import ig from '../fixtures/integrations.json' with { type: 'json' };
+import cp from '../fixtures/capa.json' with { type: 'json' };
+import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
@@ -298,6 +301,26 @@ export const EXAMPLES = {
   'records-bulk': { schema: r.records.bulk.response, data: rk.bulk, routeId: r.records.bulk.id },
   'records-close-bulk': { schema: r.records.closeBulk.response, data: rk.bulkClosed, routeId: r.records.closeBulk.id },
   'records-append-amendment-entry': { schema: r.records.appendAmendmentEntry.response, data: rk.amendment, routeId: r.records.appendAmendmentEntry.id },
+  // Phase 6 slice 6a-0: the integrations namespace (health page, alarms; screens of 6a).
+  'integrations-adapters': { schema: r.integrations.adapters.response, data: ig.adapters, routeId: r.integrations.adapters.id },
+  'integrations-adapter': { schema: r.integrations.adapter.response, data: ig.adapter, routeId: r.integrations.adapter.id },
+  'integrations-reconciliations': { schema: r.integrations.reconciliations.response, data: ig.reconciliations, routeId: r.integrations.reconciliations.id },
+  'integrations-mirrors': { schema: r.integrations.mirrors.response, data: ig.mirrors, routeId: r.integrations.mirrors.id },
+  'integrations-mirrors-stale': { schema: r.integrations.mirrors.response, data: ig.mirrorsStale },
+  'integrations-alarms': { schema: r.integrations.alarms.response, data: ig.alarms, routeId: r.integrations.alarms.id },
+  'integrations-acknowledge-alarm': { schema: r.integrations.acknowledgeAlarm.response, data: ig.alarmAcknowledged, routeId: r.integrations.acknowledgeAlarm.id },
+  // Phase 6 slice 6a (builder B): the CAPA register and detail (IN-01 (d), PR-51).
+  'capa-register': { schema: r.capa.register.response, data: cp.register, routeId: r.capa.register.id },
+  'capa-detail': { schema: r.capa.detail.response, data: cp.detail, routeId: r.capa.detail.id },
+  'capa-detail-closable': { schema: r.capa.detail.response, data: cp.detailClosable },
+  'capa-detail-mirror': { schema: r.capa.detail.response, data: cp.mirror },
+  'capa-raise': { schema: r.capa.raise.response, data: { ...cp.detail, state: 'OPEN', events: [] }, routeId: r.capa.raise.id },
+  'capa-link-deviation': { schema: r.capa.linkDeviation.response, data: cp.detail, routeId: r.capa.linkDeviation.id },
+  'capa-link-master-version': { schema: r.capa.linkMasterVersion.response, data: cp.detail, routeId: r.capa.linkMasterVersion.id },
+  'capa-implement': { schema: r.capa.implement.response, data: cp.detail, routeId: r.capa.implement.id },
+  'capa-schedule-check': { schema: r.capa.scheduleCheck.response, data: cp.detail, routeId: r.capa.scheduleCheck.id },
+  'capa-record-effectiveness': { schema: r.capa.recordEffectiveness.response, data: cp.detailClosable, routeId: r.capa.recordEffectiveness.id },
+  'capa-cancel': { schema: r.capa.cancel.response, data: { ...cp.detail, state: 'CANCELLED' }, routeId: r.capa.cancel.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
   // Phase 4 slice 6a: licences, export permissions, the issue check, the allocation register, label particulars and H2.
@@ -347,6 +370,17 @@ export const EXAMPLES = {
   'archive-export-file': { schema: r.archive.exportFile.response, data: ar.file, routeId: r.archive.exportFile.id },
   'archive-verify': { schema: r.archive.verify.response, data: ar.verifyOk, routeId: r.archive.verify.id },
   'archive-verify-altered': { schema: r.archive.verify.response, data: ar.verifyBad },
+  // Phase 6 slice 6a builder A: receipt with supplier batches, the receipt record and the approved-manufacturer register (PR-17).
+  'quality-approved-manufacturers': { schema: r.quality.approvedManufacturers.response, data: { manufacturers: [rc.approved, rc.proposed, rc.withdrawn] }, routeId: r.quality.approvedManufacturers.id },
+  'quality-propose-approved-manufacturer': { schema: r.quality.proposeApprovedManufacturer.response, data: rc.proposed, routeId: r.quality.proposeApprovedManufacturer.id },
+  'quality-withdraw-manufacturer-approval': { schema: r.quality.withdrawManufacturerApproval.response, data: rc.withdrawn, routeId: r.quality.withdrawManufacturerApproval.id },
+  'quality-receive-delivery': { schema: r.quality.receiveDelivery.response, data: rc.delivery, routeId: r.quality.receiveDelivery.id },
+  'quality-lot-receipt': { schema: r.quality.lotReceipt.response, data: rc.receipt, routeId: r.quality.lotReceipt.id },
+  'quality-lot-receipt-incomplete': { schema: r.quality.lotReceipt.response, data: rc.incomplete },
+  'quality-lot-receipt-blocked': { schema: r.quality.lotReceipt.response, data: rc.blocked },
+  'quality-record-lot-receipt': { schema: r.quality.recordLotReceipt.response, data: { ...rc.receipt, source: 'MANUAL', inboundMessageId: null, examination: null }, routeId: r.quality.recordLotReceipt.id },
+  'quality-examine-lot-receipt': { schema: r.quality.examineLotReceipt.response, data: rc.receipt, routeId: r.quality.examineLotReceipt.id },
+  'quality-correct-lot-receipt': { schema: r.quality.correctLotReceipt.response, data: rc.incomplete, routeId: r.quality.correctLotReceipt.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 4 slice 6a: the india routes, each with an example above (checked by the india contract test). */

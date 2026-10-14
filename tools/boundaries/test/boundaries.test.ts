@@ -48,6 +48,8 @@ const PHASE_2_RULES: Record<string, string> = {
   'product-never-imports-test-kit': 'apps/tablets-server/src/features/bad-test-kit.ts',
   'gateway-and-simulators-no-db': 'apps/site-gateway/src/index.ts',
   'e2e-imports': 'tools/e2e/specs/bad.spec.ts',
+  // Phase 6 slice 6a-0: the adapter subpath stays free of the kernel.
+  'integration-sdk-subpaths-no-kernel': 'packages/integration-sdk/src/adapter/bad-kernel.ts',
 };
 
 describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {

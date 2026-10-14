@@ -305,6 +305,11 @@ The screen never rewrites the reason. The words come from the database function 
 debug one: take the correlation id, find the server log line, then the code and the function that raises it
 ([Testing, how to debug a failing guard](../06-testing-and-debugging.md#how-to-debug-a-failing-guard)).
 
+A refusal over data mirrored from another system (EBMR-INT-010 at signing or equipment use, EBMR-QMS-0xx at release)
+also shows which mirror, how old it is against its bound and whom to call
+([StaleMirror.tsx](../../../packages/ui-kit/src/floor/StaleMirror.tsx), in both RefusalMessage and the floor's
+RefusalPanel; Phase 6 slice 6a). It reads the database's own words; it computes nothing but the display of the seconds.
+
 ## Office acts and forms
 
 Most office screens (planning, master data, plant, quality, review, release, ...) use three helpers from
@@ -829,6 +834,32 @@ payload are computed by the server from the record (never typed).
 [BatchLabelPage.tsx](../../../apps/tablets-web/src/features/india/BatchLabelPage.tsx) (`/india/batches/$batchId`).
 Routes `india.*`. Signature `INDIA_ACT`. Test [office/india.test.tsx](../../../apps/tablets-web/test/office/india.test.tsx);
 browser [india-flow.spec.ts](../../../tools/e2e/specs/india/india-flow.spec.ts).
+
+
+### capa: CAPA register and detail
+
+[features/capa](../../../apps/tablets-web/src/features/capa/) (Phase 6 slice 6a; IN-01 (d), PR-51): the register (open
+first, an overdue CAPA and an overdue effectiveness check flagged, an "overdue only" filter) with QA's form to raise a
+CAPA, and one CAPA with its deviations, the master version it waits for (effective or not), the checks with the due
+dates the database computed, events, and the closure through the ceremony (CAPA_ACT), disabled while the server gives
+a `closeProblem`. A QMS mirror row shows its version token and history and offers no act. Tests:
+[capa.test.tsx](../../../apps/tablets-web/test/capa/capa.test.tsx).
+### integrations: integration health and one adapter
+
+[features/integrations](../../../apps/tablets-web/src/features/integrations/) (Phase 6 slice 6a, builder A; DI-31):
+the health page (per adapter: last message with its sequence status, data age, open alarms, last reconciliation; the
+mirrors with their mode, age and bound, a stale blocking mirror named with whom to call; the open alarms, each
+acknowledged with a note, with a badge tap on a shared terminal) and one adapter (messages accepted, refusals with their
+class, reconciliation reports). Tests: [integrations.test.tsx](../../../apps/tablets-web/test/integrations/integrations.test.tsx).
+
+### quality: receipt with supplier batches, the receipt record, approved manufacturers
+
+In [features/quality](../../../apps/tablets-web/src/features/quality/) (Phase 6 slice 6a, builder A; PR-17):
+`/quality/receipt` receives a delivery with its supplier batches (one lot each; the lots the server numbered, with their
+manufacturer's approval), `/quality/lots/<id>/receipt` shows a lot's receipt record and the issue check as the server
+decides it, with stores' examination of the containers, a missing record, and corrections of WMS values with a reason
+(the original kept), and `/quality/approved-manufacturers` is QA's register (propose, approve through the ceremony with
+MATERIAL_SOURCE_ACT, withdraw with a reason). Tests: [receipt.test.tsx](../../../apps/tablets-web/test/receipt/receipt.test.tsx).
 
 ## How to test this app
 

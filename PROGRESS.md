@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 October 2026 (handbook).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 October 2026 (Phase 6 slice 6a-0).
 
 ## What this is
 
@@ -98,6 +98,21 @@ decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (br
 adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
 6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
 training mode, 6h Hindi and Gujarati, 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
+- Slice 6a (branch `phase-6/slice-6a`, 14 October): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to
+  1182: inbound messages accepted whole or not at all, de-duplicated, gaps alarmed; integration identities that never
+  sign; mirrors that fail closed, EBMR-INT-010), one worker framework started with the server for MIRROR systems;
+  ERP/WMS (receipt with one lot per supplier batch, approved manufacturers, stock-location rule, issue gate), QMS with
+  CAPA (live QMS fetch inside the release signature), LIMS, LMS, CMMS; simulators with nine faults; soak tests reconcile.
+  Quick review: no critical or high; two mediums fixed with tests (stale QMS mirror at release; a heartbeat cannot
+  refresh a mirror while the adapter is behind the source). Residuals: the live QMS fetch is enforced by the server,
+  not the database; a refusal resent after a restart is recorded twice (nothing lost). Defaults D-P6a-*.
+Slice 6a on `phase-6/slice-6a`: 6a-0 (interface commit) done: `@ebmr/integration-sdk/adapter` (envelope, error
+classes, retry rule, reconciliation, system contracts), kernel 1180 (integration adapters, `platform.accept_inbound`,
+integration alarms, reconciliation, `platform.mirror_fresh_or_raise`), namespace `integrations` with its server reads;
+signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-plan/phase-6/slice-6a-0-interfaces.md`.
+Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
+command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
+none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

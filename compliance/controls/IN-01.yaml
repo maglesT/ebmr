@@ -39,6 +39,12 @@ tests:
   - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [IN-01] an unknown extract is not signed off; the sign-off of an extract is neither held by a lock on another extract nor refused by another's sign-off"
   - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [IN-01] [INV-35] a signer who became involved in a reviewed batch after signing does not record the sign-off"
   - "packages/recipe-core/test/mutation/pqr-extract.test.ts > the period, the query version and one extract among several (recipe-core 0910) > [IN-01] a PQR is signed off as the authorised person: a signature made in another role, even one granted the sign-off permission, is refused"
+  - "apps/tablets-server/test/capa/capa-routes.test.ts > the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot"
+  - "apps/tablets-web/test/capa/capa.test.tsx > CAPA screens (IN-01 (d), PR-51) > [IN-01] the register flags an overdue CAPA and an overdue effectiveness check; QA raises a CAPA with its check"
+  - "apps/tablets-web/test/capa/capa.test.tsx > CAPA screens (IN-01 (d), PR-51) > [PR-51][IN-01] a CAPA shows its overdue check, the master version not yet effective and why it cannot close; the close button waits for the server"
+  - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [IN-01][PR-51] a CAPA from a deviation has a generated reference, its source, owner, due date and an effectiveness check, and links both ways"
+  - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [IN-01] a 90-day effectiveness check is overdue on day 91"
+  - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [PR-51][IN-01] a CAPA closes only once implemented and proven effective, by QA other than its initiator"
 clauses:
   - clause: "run the PQR extract for a product with domestic and export-only batches; all appear."
     tests:

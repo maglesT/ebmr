@@ -1067,6 +1067,20 @@ SIGNATURE hook of the state engine, [0920](../../../packages/kernel/sql/0920_int
 identifier guard on person and device labels, and [0930](../../../packages/kernel/sql/0930_esig_engine_meanings.sql)
 the signature meanings the recipe engine needs. Tests: [integration/wiring.test.ts](../../../packages/kernel/test/integration/wiring.test.ts).
 
+## Inbound overrides and the LMS mirror (kernel 1181)
+
+[1181_inbound_overrides_and_lms_mirror.sql](../../../packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql)
+(Phase 6 slice 6a, builder A; DI-31, DI-26, DI-14). `platform.inbound_override` is the register of manual overrides of
+interface-captured values: a domain correction command (for example `site.correct_lot_receipt_value`) calls the
+owner-only `platform.record_inbound_override` with the message, the record, the field, the original and the corrected
+value and unit and the person's reason; a SERVICE or INTEGRATION account is refused (EBMR-INT-020), as are an empty
+reason (021), an unknown message (022) and no new value (023). The rows are insert-only and audited on the adapter's
+chain, so the integration side shows every override. `iam.qualification_source_fresh` now reads, for LMS rows while the
+site runs LMS_QUALIFICATION as a MIRROR, the generic `platform.mirror_sync` with the data class's bound (STAND_IN keeps
+the 0130 heartbeat); `iam.lms_mirror_problem()` gives the EBMR-INT-010 words for a stale LMS mirror. Tests:
+[overrides-and-lms-mirror.test.ts](../../../packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts). The inbound
+framework itself (1180) is in [integrations](integrations.md#the-adapter-framework-phase-6-slice-6a-0).
+
 ## Installation
 
 [0001_bootstrap.sql](../../../packages/kernel/sql/0001_bootstrap.sql) creates the roles and schemas.

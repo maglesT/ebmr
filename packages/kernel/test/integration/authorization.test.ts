@@ -137,6 +137,8 @@ const checksAuthority = (src: string): boolean => src.includes('iam.require_perm
 /** App-callable functions that only delegate to an owner-only function, which checks authority (proven below, F78). */
 const DELEGATES: Record<string, string> = {
   'platform.create_aggregate_state(text,text,uuid)': 'platform.create_aggregate_state_at',
+  // Kernel 1180 (Phase 6 slice 6a-0): the uuid-returning form of accept_inbound_detail, which checks interface.write.
+  'platform.accept_inbound(jsonb)': 'platform.accept_inbound_detail',
 };
 async function delegateChecksAuthority(fn: string): Promise<boolean> {
   const target = DELEGATES[fn];

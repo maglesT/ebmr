@@ -54,6 +54,7 @@ export const EN = {
   'refusal.whatYouCanDo': 'What you can do',
   'refusal.whoCanHelp': 'Who can help',
   'refusal.why': 'Why',
+  'refusal.staleMirror': 'Data from another system',
 } as const;
 
 export type MessageKey = keyof typeof EN;

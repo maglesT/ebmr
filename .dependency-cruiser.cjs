@@ -136,6 +136,13 @@ module.exports = {
       },
     },
     {
+      name: 'integration-sdk-subpaths-no-kernel',
+      comment: 'The integration-sdk subpaths (scale, process, printer, serialisation, adapter) never import the kernel or a database driver: the gateway, the simulators and the adapters use them (Phase 6 slice 6a-0).',
+      severity: 'error',
+      from: { path: '^packages/integration-sdk/src/(?!index\\.ts$)' },
+      to: { path: `^packages/(kernel|site-services|recipe-core|test-kit)/|^packages/integration-sdk/src/index\\.ts$|${DB_DRIVERS}` },
+    },
+    {
       name: 'e2e-imports',
       comment: 'End-to-end tests import only packages and the demo tooling, never app internals.',
       severity: 'error',

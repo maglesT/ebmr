@@ -140,6 +140,14 @@ modules:
       packages/kernel/sql: ['^0900_']
     tests: ['packages/kernel/test/integration/**']
 
+  - id: kernel-inbound
+    title: Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness)
+    page: modules/integrations.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^118\d_']
+    tests: ['packages/kernel/test/inbound/**']
+
   - id: kernel-installation
     title: Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests
     page: modules/kernel.md
@@ -207,6 +215,22 @@ modules:
     src: [packages/site-services/src/lots]
     tests: ['packages/site-services/test/lots/**', 'packages/site-services/test/mutation/lots-and-lims.test.ts']
 
+  - id: ss-capa-qms
+    title: CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^092[5-9]_']
+    tests: ['packages/site-services/test/integrations/**']
+
+  - id: ss-receipt-erp-wms
+    title: Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^091\d_']
+    tests: ['packages/site-services/test/erp-wms/**']
+
   - id: ss-core
     title: Site services package entry and shared tests
     page: modules/site-services.md
@@ -239,6 +263,14 @@ modules:
       - 'packages/recipe-core/test/plant/**'
       - 'packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts'
       - 'packages/recipe-core/test/mutation/platform-scope.test.ts'
+
+  - id: rc-mirrors
+    title: CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^095\d_']
+    tests: ['packages/recipe-core/test/integrations/**']
 
   - id: rc-containers
     title: Output containers
@@ -540,10 +572,11 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^100[01]_', '^104[02]_', '^1150_']
+      apps/tablets-server/sql: ['^100[01]_', '^104[02]_', '^1150_', '^1259_']
     server: [apps/tablets-server/src/features/quality]
     contract:
       - packages/api-contract/src/ns/quality.ts
+      - packages/api-contract/src/ns/receipt.ts
       - packages/api-contract/src/ns/deviation.ts
       - packages/api-contract/src/ns/samples.ts
       - packages/api-contract/src/ns/specifications.ts
@@ -551,6 +584,7 @@ modules:
     tests:
       - 'apps/tablets-server/test/quality/**'
       - 'apps/tablets-web/test/office/quality*.test.tsx'
+      - 'apps/tablets-web/test/receipt/**'
       - 'apps/tablets-server/test/mutation/lots-and-lims.test.ts'
       - 'apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts'
 
@@ -631,6 +665,26 @@ modules:
     contract: [packages/api-contract/src/ns/records-lock.ts]
     screens: [apps/tablets-web/src/features/records]
     tests: ['apps/tablets-server/test/records/**', 'apps/tablets-web/test/records/**']
+
+  - id: ts-integrations
+    title: Integration health, mirrors and integration alarms
+    page: modules/integrations.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/integrations]
+    contract: [packages/api-contract/src/ns/integrations.ts]
+    screens: [apps/tablets-web/src/features/integrations]
+    tests: ['apps/tablets-server/test/integrations/**', 'apps/tablets-web/test/integrations/**']
+
+  - id: ts-capa
+    title: CAPA register and closure (Phase 6 slice 6a, builder B)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1229_']
+    server: [apps/tablets-server/src/features/capa]
+    contract: [packages/api-contract/src/ns/capa.ts]
+    screens: [apps/tablets-web/src/features/capa]
+    tests: ['apps/tablets-server/test/capa/**', 'apps/tablets-web/test/capa/**']
 
   - id: ts-pqr
     title: Product quality review

@@ -206,6 +206,9 @@ tests:
   - "apps/tablets-server/test/mutation/process-devices-gateway.test.ts > process-device bindings (tablets 0820) > [DI-31][DI-20] the system administrator binds an active INSTRUMENT of the registry to an active enrolment; ends an active binding once with a reason; a binding row starts active and never changes but by its end"
   - "apps/tablets-server/test/mutation/process-devices-gateway.test.ts > process readings from the gateway (tablets 0820) > [DI-31][DI-20] a request is an object with a session id and 1 to 200 readings, nothing else; each reading in its form; a device of this enrolment that is an active instrument; a tag of its kind in its unit, scale and counter rules; a read-back only of a setpoint tag; the next sequence, or the same one again with the same content"
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [DI-20] [IN-30] no India read answers without a session"
+  - "packages/kernel/test/inbound/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20] an unregistered adapter identity is refused"
+  - "packages/kernel/test/inbound/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20] only an INTEGRATION account on an active SERVER device is registered, by the device administrator, once per account"
+  - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20][DI-14] only the registered ERP_WMS adapter receives and delivers ERP/WMS messages, and it never issues stock"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

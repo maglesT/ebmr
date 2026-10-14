@@ -832,6 +832,103 @@ Defect: the [export permission reason text](../08-defect-log.md#export-permissio
 said "lapsed" for a permission not yet approved at the instant (0903, found by the SQL mutation run; only the text
 was wrong).
 
+## CAPA register and the QMS mirror (Phase 6 slice 6a)
+
+Code: [0925_capa_and_qms_mirror.sql](../../../packages/site-services/sql/0925_capa_and_qms_mirror.sql),
+[0926_lims_results_inbound.sql](../../../packages/site-services/sql/0926_lims_results_inbound.sql). Controls IN-01 (d),
+PR-51, DI-31; defaults D-P6a-5, D-P6a-6.
+
+**The CAPA stand-in** (QMS_STATUS in STAND_IN). `site.raise_capa` takes the source (DEVIATION, OOS, COMPLAINT, PQR,
+SELF_INSPECTION, MANAGEMENT_REVIEW; a DEVIATION or OOS source names the deviation-lite record and is linked at once),
+an owner, a due date, whether it needs a master change, and its first effectiveness check (criteria and a period in
+days). The reference `CAPA-<site>-<yyyy>-<nnnnn>` is generated. The check's due date is a generated column
+(`scheduled_on + period_days`, the site's date at scheduling): `site.capa_check_status(check, on)` answers OPEN up to
+and including the due date and OVERDUE from the next day, so a 90-day check is overdue on day 91. `site.capa_view`
+flags an overdue CAPA (after its own due date, not closed) for the register. Links go both ways
+(`site.capa_deviation`), and a CAPA that needs a master change names the MBR version it waits for
+(`site.link_capa_master_version`, checked by the resolver recipe-core 0952 registers, so site services never reads
+recipe tables). `site.close_capa` (CAPA_CLOSED, QA other than the initiator) is refused (EBMR-CAPA-010, the words of
+`site.capa_close_problem`) while the CAPA is not IMPLEMENTED, a check has no result or was not effective, or a named
+master version is not APPROVED and effective. Rows added after a signature supersede it (registered signed tables).
+Permissions CAPA.RECORD and CAPA.QA_APPROVE.
+
+**The QMS mirror** (QMS_STATUS in MIRROR). The QMS adapter's receiving commands keep insert-only histories with the
+QMS's version tokens: `site.qms_deviation_status` (the lots a QMS deviation names, refused when a lot is not held here),
+`site.qms_capa_state` (a CAPA mirror row, origin QMS, reference `QMS:<ref>`), `site.qms_change_control`. In MIRROR every
+stand-in CAPA write is refused (EBMR-CAPA-002). **At release** the server fetches the lot's QMS status live inside the
+signing transaction and records it with `site.record_qms_release_fetch` (refused when its tokens differ from the
+mirror's, EBMR-QMS-011); `site.qms_release_problem(lot)` is what the release decisions' trigger asks (recipe-core 0951).
+See [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b).
+
+**LIMS results** received from a LIMS are kept in `site.lims_sample_result` exactly as sent (decimal text and unit) and
+shown beside LIMS-lite; they do not feed G3.LIMS in slice 6a (D-P6a-B-6).
+
+## Receipt, approved manufacturers, stock locations and the ERP/WMS mirror (Phase 6 slice 6a)
+
+Code: [0910](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql) to
+[0915](../../../packages/site-services/sql/0915_wms_location_question.sql). Controls PR-17 (clauses 2 to 4), PR-46
+(clause 2), DI-31, DI-26, DI-14; defaults D-P6a-7 and D-P6a-A-1 to A-14 ([integrations](integrations.md#the-erpwms-adapter-and-the-worker-base-phase-6-slice-6a-builder-a)).
+
+**The receipt record (PR-17).** A delivery with several supplier batches becomes one lot per supplier batch
+(`site.receive_delivery` by stores, or the WMS's `wms.goods_receipt` through `site.erp_wms_receive`; both use
+`site.receive_supplier_batches`), each in QUARANTINE with a `site.lot_receipt` row: delivery, name on the delivery
+note, supplier, supplier (manufacturer's) batch, manufacturer, number of containers, the quantity exactly as received
+(decimal text and unit, never converted), whether the manufacturer was approved at receipt and, from the WMS, the
+inbound message. A lot received the old way (`site.receive_lot`) gets its record with `site.record_lot_receipt`. The
+examiner records `site.record_receipt_examination` (a person, every container, ACCEPTABLE or DEFECTS_FOUND with
+remarks). `site.receipt_problem(lot)` says why the record is not complete.
+
+**The approved-manufacturer register.** `site.propose_approved_manufacturer` (QA, MATERIAL.QA_DISPOSITION, with the
+basis of the approval), `site.approve_manufacturer` with QA's own MANUFACTURER_APPROVED signature (aggregate
+`approved_manufacturer`), `site.withdraw_manufacturer_approval` with a reason. A lot whose receipt names a manufacturer
+not approved now is not released (trigger `zz_manufacturer_approved` on `site.lot_status_command`, EBMR-SITE-918) and
+not issued.
+
+**Stock locations (PR-46).** `site.location_move_problem(lot, location_kind)` is the rule the WMS asks before a move
+(through `site.wms_location_question`, which answers an unknown lot with words instead of an error). A move the WMS
+reports is kept in `site.lot_location_move`; one that broke the rule (it already happened) raises an integration alarm
+and a `site.lot_location_exception` linked to the lot, which blocks its release (trigger `zz_location_exception_open`)
+and its issue until QA closes it with a deviation linked to the lot (`site.resolve_lot_location_exception`).
+
+**The WMS lot-status mirror and the outbound queue.** `site.erp_lot_status` holds what the WMS reported (a late report
+is refused STALE); in MIRROR, `site.erp_lot_status_problem` fails closed on a stale mirror (EBMR-INT-010) and refuses a
+lot the WMS does not hold RELEASED. `site.erp_outbound_message` is the ERP/WMS queue (stock blocks, lot statuses, goods
+issues, yields, each written by a trigger with its fact), delivered by the adapter (`site.erp_outbound_pending`,
+`site.erp_outbound_delivered`, `site.erp_outbound_failed`).
+
+**The issue gate.** Triggers `zz_issue_gate` and `zz_issue_by_person` on `site.lot_reservation` and
+`site.lot_consumption` refuse, whoever writes the row: an incomplete receipt record (EBMR-SITE-917), an unapproved
+manufacturer (918), an open location exception (920), the WMS mirror (EBMR-INT-010, SITE-922) and an account that is not
+a person's (924). `site.issue_gate_problem(lot)` answers the same question for the screens.
+
+**Corrections of WMS values (DI-31, DI-26).** `site.correct_lot_receipt_value(lot, field, value, reason)` (stores, a
+person, a reason) changes containers, supplier batch, manufacturer or delivery-note name of a WMS receipt through
+`platform.record_inbound_override` (kernel 1181); the stored row keeps the value as received and
+`site.lot_receipt_effective` shows both.
+
+### Guards: Receipt, approved manufacturers, locations, WMS mirror, issue gate
+
+| Function or trigger function | Migration | Codes and what they refuse |
+|---|---|---|
+| [`site.propose_approved_manufacturer`](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql#sym=site.propose_approved_manufacturer) | 0910 | `SITE-910` no basis (10 characters) or an unknown material |
+| [`site.approve_manufacturer`](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql#sym=site.approve_manufacturer) | 0910 | `SITE-911` unknown, already approved or a second approval; `SITE-912` the signature is not the recorder's or not valid |
+| [`site.withdraw_manufacturer_approval`](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql#sym=site.withdraw_manufacturer_approval) | 0910 | `SITE-913` not approved, or no reason |
+| [`site.receive_supplier_batches`](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql#sym=site.receive_supplier_batches) | 0910 | `SITE-914` delivery shape, a supplier batch twice, a delivery received again; `SITE-915` another unit or no quantity; `SITE-171`, `172`, `104`, `105` as a receipt |
+| [`site.record_lot_receipt`](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql#sym=site.record_lot_receipt) | 0910 | `SITE-914` shape; `SITE-915` a lot made here, a record already there, another supplier batch |
+| [`site.record_receipt_examination`](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql#sym=site.record_receipt_examination) | 0910 | `SITE-916` not a person, no receipt record, examined already, shape |
+| [`site.lot_release_manufacturer_check`](../../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql#sym=site.lot_release_manufacturer_check) | 0910 | `SITE-918` release of a lot from an unapproved manufacturer |
+| [`site.location_move_problem`](../../../packages/site-services/sql/0911_stock_locations.sql#sym=site.location_move_problem) | 0911 | `SITE-919` unknown kind or lot |
+| [`site.apply_wms_stock_move`](../../../packages/site-services/sql/0911_stock_locations.sql#sym=site.apply_wms_stock_move) | 0911 | `ERP-002` a lot this site does not hold; `ERP-003` another unit |
+| [`site.resolve_lot_location_exception`](../../../packages/site-services/sql/0911_stock_locations.sql#sym=site.resolve_lot_location_exception) | 0911 | `SITE-921` unknown, closed already, no deviation linked to the lot, no note |
+| [`site.lot_release_location_check`](../../../packages/site-services/sql/0911_stock_locations.sql#sym=site.lot_release_location_check) | 0911 | `SITE-920` release while a location exception is open |
+| [`site.apply_wms_lot_status`](../../../packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql#sym=site.apply_wms_lot_status) | 0912 | `ERP-002` unknown lot; `ERP-004` not newer than the status held |
+| [`site.require_erp_wms_adapter`](../../../packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql#sym=site.require_erp_wms_adapter) | 0912 | `ERP-010` an adapter of another system (and the kernel's `INT-002` for no adapter) |
+| [`site.erp_outbound_delivered`](../../../packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql#sym=site.erp_outbound_delivered) | 0912 | `ERP-011` unknown message, no ERP reference, a limit out of range |
+| [`site.erp_wms_receive`](../../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql#sym=site.erp_wms_receive) | 0913 | `ERP-001` a payload without its type's fields; the kernel's `INT-001` to `-006` |
+| [`site.correct_lot_receipt_value`](../../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql#sym=site.correct_lot_receipt_value) | 0913 | `SITE-923` not a WMS receipt, another field, an invalid value; the kernel's `INT-020` to `-023` |
+| [`site.issue_gate`](../../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql#sym=site.issue_gate) | 0913 | `SITE-917`, `918`, `920`, `922`, `INT-010` (see above) |
+| [`site.issue_by_person`](../../../packages/site-services/sql/0914_erp_wms_interface_role.sql#sym=site.issue_by_person) | 0914 | `SITE-924` a reservation or consumption by an account that is not a person's |
+
 ## Guard catalogue
 
 Every site-services function in force that names an `EBMR-` code, with the migration that holds the version in force and

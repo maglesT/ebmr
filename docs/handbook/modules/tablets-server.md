@@ -1421,6 +1421,50 @@ packaging batch data use the one expiry rule
 > - **Error:** `EBMR-IND-003` to `EBMR-IND-010`, `EBMR-IND-040` to `EBMR-IND-044`, `EBMR-IND-062`; `EBMR-IND-037`
 >   (server: a hazard record must name a product or an area).
 
+## ts-capa: CAPA register
+
+[features/capa](../../../apps/tablets-server/src/features/capa/) (contract [ns/capa.ts](../../../packages/api-contract/src/ns/capa.ts);
+site services 0925; IN-01 (d), PR-51). Reads `register` (open first, overdue flags; `overdue=true` for the ageing
+report) and `detail` (with `closeProblem`, the database's reason it cannot close yet); writes `raise`, `linkDeviation`,
+`linkMasterVersion`, `implement`, `scheduleCheck`, `recordEffectiveness`, `cancel`, each the person's own idempotent
+command through a site definer. The closure is the signable action CAPA_ACT CLOSE (CAPA_CLOSED on `capa <id>`, state
+IMPLEMENTED; [tablets 1229](../../../apps/tablets-server/sql/1229_signing_meanings_capa.sql) lets the ceremony preview
+and sign it). Guidance for EBMR-CAPA-* and EBMR-QMS-* names who to call.
+
+The release acts also ask the QMS: in MIRROR, [release/signables.ts](../../../apps/tablets-server/src/features/release/signables.ts)
+calls `qmsReleaseFetch` (adapters/qms) before the database act of a release, a US release disposition, an in-system QP
+certification and a re-confirmation; the QMS address is `EBMR_QMS_URL` (timeout `EBMR_QMS_TIMEOUT_MS`, default 2000 ms).
+The QMS, LIMS, LMS and CMMS adapters are in [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b);
+the integrations feature starts them with the server (ts-integrations below).
+
+## ts-integrations: integration health and the adapters
+
+[features/integrations](../../../apps/tablets-server/src/features/integrations/) (contract
+[ns/integrations.ts](../../../packages/api-contract/src/ns/integrations.ts); kernel 1180): the health page reads
+(`adapters`, `adapter`, `reconciliations`, `mirrors`, `alarms`) and the one act, `acknowledgeAlarm` (a person,
+ALARM.ACKNOWLEDGE, FRESH_ON_SHARED). The plugin starts, with
+[adapters/start.ts](../../../apps/tablets-server/src/features/integrations/adapters/start.ts#sym=startAdapters), every
+adapter the service-keys file configures (terminals `SRV-ERP-ADAPTER-01`, `SRV-WMS-ADAPTER-01`, `SRV-QMS-ADAPTER-01`,
+`SRV-LIMS-ADAPTER-01`, `SRV-LMS-ADAPTER-01`, `SRV-CMMS-ADAPTER-01`, each entry with an `endpoint`) whose system the site
+runs in MIRROR mode (a STAND_IN site starts none), all on the one worker framework
+[adapters/framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts); it stops them
+with the server and shows each worker's health as `worker` in the `adapters` and `adapter` reads; it also registers the signable action MATERIAL_SOURCE_ACT (QA's approval of a manufacturer,
+[quality/receipt.ts](../../../apps/tablets-server/src/features/quality/receipt.ts#sym=materialSourceActHandler)). The
+guidance names who to call for EBMR-INT-*, EBMR-ERP-* and the issue gate (EBMR-SITE-917, 918, 920, 922, 924). How the
+adapters work: [integrations](integrations.md#the-erpwms-adapter-and-the-worker-base-phase-6-slice-6a-builder-a).
+Tests: [test/integrations/](../../../apps/tablets-server/test/integrations/) (the routes with data, the ERP/WMS
+contract and soak tests and the QMS, LIMS, LMS and CMMS soak tests against the simulator processes, the start-up with
+the server in MIRROR and STAND_IN).
+
+**Receipt routes of the quality namespace** ([quality/receipt.ts](../../../apps/tablets-server/src/features/quality/receipt.ts),
+contract [ns/receipt.ts](../../../packages/api-contract/src/ns/receipt.ts); site services 0910 to 0915; PR-17):
+`approvedManufacturers`, `proposeApprovedManufacturer`, `withdrawManufacturerApproval`, `receiveDelivery`,
+`lotReceipt` (the receipt record as it stands, its examination, corrections, location and the database's issue check),
+`recordLotReceipt`, `examineLotReceipt`, `correctLotReceipt`; each command is the person's own idempotent command, and
+the approval is the ceremony (MANUFACTURER_APPROVED on `approved_manufacturer <id>`, state PROPOSED;
+[tablets 1259](../../../apps/tablets-server/sql/1259_signing_meanings_receipt.sql)). Tests:
+[receipt-routes.test.ts](../../../apps/tablets-server/test/quality/receipt-routes.test.ts).
+
 ## ts-meta: meta routes
 
 GET `/api/meta` (`meta.get`, contract [meta.ts](../../../packages/api-contract/src/ns/meta.ts)) tells the screens

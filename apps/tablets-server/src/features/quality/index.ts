@@ -17,6 +17,7 @@ import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
 import { deviationHandlers } from './deviation.ts';
+import { receiptHandlers } from './receipt.ts';
 import { deviationIds, erpMaterials, erpOrders, erpPending, erpProducts, extraTesting, lots } from './reads.ts';
 import { reprocessingAuthorisations, reprocessingRequests, residueContainers } from './reprocessing.ts';
 import { lotDecisionHandler, qualityActHandler, reprocessingActHandler } from './signables.ts';
@@ -104,6 +105,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     routes.quality,
     {
       ...deviationHandlers(pool),
+      // Phase 6 slice 6a builder A: receipt, the receipt record and the approved-manufacturer register (receipt.ts).
+      ...receiptHandlers(app, pool),
       raiseDeviation: async ({ body, actor, idempotencyKey, requestHash }) => {
         const d = body;
         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {

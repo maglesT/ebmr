@@ -154,6 +154,13 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     in the database; with a QMS the CAPA is a mirror.
   - **D-P6a-7** A WMS move that already happened against the rule (it cannot be refused after the fact) raises an
     alarm and an exception linked to the lot; the lot stays blocked in the eBMR.
+  - **D-P6a-F-1** (review fix, kernel 1182) A mirror synchronisation names the source's high-water mark (its highest
+    published sequence number); the database marks the class fresh only when the adapter holds that number and every
+    number below it since the last proven mark, a missing run counting only once a person acknowledged its
+    SEQUENCE_GAP alarm with a note. Why: a heartbeat from an adapter that has not caught up must not keep a blocking
+    mirror fresh; the worker pages on from its highest number, so a lost message is never asked for again and needs
+    a person's decision. The acknowledgment uses ALARM.ACKNOWLEDGE as for every integration alarm; whether accepting
+    a lost message should need a QA role is open for the owner.
 - **Migrations:** kernel 1180 to 1189 (inbound messages, integration identities, freshness function; LMS mirror
   heartbeat moves to the generic one), site-services 0910 to 0939 (receipt splits, approved manufacturers, location
   check, CAPA, mirror columns), recipe-core 0940 to 0949 (freshness calls in G-REL and equipment-use guards).
@@ -164,6 +171,18 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Agents:** lead (top model) writes 6a-0; builder A (top model) framework and kernel and site guards, ERP/WMS;
   builder B (top model) QMS, CAPA, LIMS, LMS, CMMS adapters and simulators; Haiku updates the handbook tables and test
   lists; Sonnet quick review.
+- **Residuals (accepted, review of 14 October):**
+  - The live QMS fetch at release: the database requires the fetch record in the release transaction, a fresh
+    QMS_STATUS mirror and an answer equal to it (site services 0927), but it cannot see that the server made the HTTP
+    call to the QMS rather than copying the mirror. Covered by the server's tests against the QMS simulator and by
+    review; a signed QMS answer (the QMS signing its response) would close it and needs a customer QMS that offers one.
+  - The source head named at a mirror sync (kernel 1182) is the adapter's claim: the database checks the adapter holds
+    everything up to it, not that the source has nothing beyond it. Reconciliation reports (counts and checksums from
+    the source) are the cross-check.
+  - A refused message resent unchanged after a server restart is recorded as a second REFUSED row with a second
+    alarm: the worker's memory of refused keys (`refusedKeys`, framework.ts) is lost on restart and the database does
+    not de-duplicate refusals by idempotency key. Nothing is lost and reconciliation counts refused keys once (count
+    distinct); the cost is a repeated alarm. A database de-duplication can follow with 6j's alarm work.
 
 ### Slice 6b: equipment data, alarms and dynamic data; plant rules
 
@@ -541,7 +560,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 | kernel (1174) | 1180-1189 | 1190-1194 | none | none | none | 1195-1209 | 1210-1214 | 1215-1219 | 1220-1229 | 1230-1239 |
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
-| tablets (1209) | none | 1210-1229 | 1230-1249 | none | 1250-1259 | none | none | none | none | 1260-1269 |
+| tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.
