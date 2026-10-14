@@ -541,7 +541,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 | kernel (1174) | 1180-1189 | 1190-1194 | none | none | none | 1195-1209 | 1210-1214 | 1215-1219 | 1220-1229 | 1230-1239 |
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
-| tablets (1209) | none | 1210-1229 | 1230-1249 | none | 1250-1259 | none | none | none | none | 1260-1269 |
+| tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.
