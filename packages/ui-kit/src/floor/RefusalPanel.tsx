@@ -8,6 +8,7 @@ import { AlertTriangle, Ban } from 'lucide-react';
 import { t } from '../i18n/index.ts';
 import { fcls } from './classes.ts';
 import { roleTitle } from './format.ts';
+import { StaleMirrorNotice, staleMirrorOf } from './StaleMirror.tsx';
 import { ft } from './messages.ts';
 
 export interface RefusalPanelProps {
@@ -20,6 +21,8 @@ const SERIOUS = new Set<Refusal['kind']>(['AUTH_FAILED', 'LOCKED', 'NOT_SAVED', 
 export function RefusalPanel({ refusal, correlationId }: RefusalPanelProps) {
   const serious = SERIOUS.has(refusal.kind);
   const Icon = serious ? Ban : AlertTriangle;
+  // Phase 6 slice 6a: a refusal over stale mirrored data says which mirror, how old and whom to call.
+  const mirror = staleMirrorOf(refusal.code, refusal.why);
   return (
     <div className={fcls('refusal')} data-tone={serious ? 'error' : 'warning'} role="alert" data-testid="refusal" data-code={refusal.code}>
       <p className={fcls('refusalTitle')}>
@@ -31,6 +34,7 @@ export function RefusalPanel({ refusal, correlationId }: RefusalPanelProps) {
           <strong>{t('refusal.why')}:</strong> {refusal.why}
         </p>
       ) : null}
+      {mirror ? <StaleMirrorNotice mirror={mirror} /> : null}
       {refusal.whatYouCanDo.length > 0 ? (
         <>
           <p className={fcls('sectionTitle')}>{t('refusal.whatYouCanDo')}</p>

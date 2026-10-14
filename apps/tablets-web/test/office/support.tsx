@@ -20,6 +20,7 @@ import * as plant from '../../src/features/plant/index.tsx';
 import * as quality from '../../src/features/quality/index.tsx';
 import * as records from '../../src/features/records/index.tsx';
 import * as pqr from '../../src/features/pqr/index.tsx';
+import * as capa from '../../src/features/capa/index.tsx';
 import * as india from '../../src/features/india/index.tsx';
 import * as notifications from '../../src/features/notifications/index.tsx';
 import * as release from '../../src/features/release/index.tsx';
@@ -85,7 +86,7 @@ export function renderOffice(path: string, opts: OfficeOptions = {}) {
   setTransport(transport);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
   const root = createRootRoute({ component: () => <Outlet /> });
-  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...review.routes(root), ...release.routes(root), ...notifications.routes(root), ...designer.routes(root), ...records.routes(root), ...pqr.routes(root), ...india.routes(root)]);
+  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...review.routes(root), ...release.routes(root), ...notifications.routes(root), ...designer.routes(root), ...records.routes(root), ...pqr.routes(root), ...india.routes(root), ...capa.routes(root)]);
   const router = createRouter({ routeTree: tree, history: createMemoryHistory({ initialEntries: [path] }) });
   const ceremony = opts.ceremony ?? signedCeremony();
   const tap = fakeTap();
