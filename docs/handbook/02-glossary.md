@@ -164,7 +164,7 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 
 ## E
 - **eBMR** — electronic batch manufacturing record: this product.
-- **EBMR-xxx-nnn codes** — the project's error codes, grouped by area (IAM identity, EXE execution, DEV deviation,
+- **EBMR-xxx-nnn codes** — the project's error codes, grouped by area (IAM identity, EXE execution, DEV devices and readings, SITE site services (deviations are SITE-3xx),
   MKT market, REC records, ESIG signatures, REV review, REL release, DSP disposition, LCK locking, IND India, SBX
   sandbox and so on). Full list: [error codes](reference/error-codes.md) (generated).
 - **Edition** — one of the two products: Tablets or Injectables. Controls list the editions they apply to; the trace gate
