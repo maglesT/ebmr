@@ -87,6 +87,7 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] an as-found failure lists exactly the uses of its own unit since the unit's last as-found PASS, and a PASS lists none"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] an instrument rests on its own passing daily check of today, or on its own unused passing per-use check for this batch"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] a use that ends inside its clean-hold, calibration and plan crosses nothing"
+  - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the CMMS mirror at equipment use (DI-31, IN-25, PR-23) > [DI-31][PR-23] CMMS calibrations reach the use guard: a FAIL blocks the unit, a PASS with a future due date frees it; manual entries are refused in MIRROR"
 clauses:
   - clause: "A Dirty unit is blocked."
     tests:
