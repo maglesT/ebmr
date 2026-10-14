@@ -159,10 +159,15 @@ async function sqlAs<T>(who: SeededActor, text: string, params: unknown[] = []):
   return w.run(who, async (c) => ((await c.query(text, params)).rows[0] as { r: T } | undefined)?.r as T);
 }
 
-async function result(lotId: string, testCode: string, value: string): Promise<void> {
+async function result(lotId: string, testCode: string, value: string, approve = true): Promise<string> {
   const r = await sqlAs<{ resultId: string }>(analyst, 'select site.record_lot_test_result($1, $2::jsonb) as r', [lotId, JSON.stringify({ testCode, purpose: 'RELEASE', value })]);
-  const sig = await signFor(db, qcHead, { type: 'lot_test_result', id: r.resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
-  await w.run(qcHead, (c) => c.query('select site.approve_lot_test_result($1, $2)', [r.resultId, sig]));
+  if (approve) await approveResult(r.resultId);
+  return r.resultId;
+}
+
+async function approveResult(resultId: string): Promise<void> {
+  const sig = await signFor(db, qcHead, { type: 'lot_test_result', id: resultId }, 'QC_RESULT_APPROVED', 'RECORDED');
+  await w.run(qcHead, (c) => c.query('select site.approve_lot_test_result($1, $2)', [resultId, sig]));
 }
 
 async function readyLot(m: Master = all, markets: string[] = ALL, lotMarkets: string[] = markets): Promise<Lot> {
@@ -396,7 +401,10 @@ describe('the US disposition (outline 5.2.6; PR-54, INV-39, DI-39)', () => {
     // The EU checklist has no US item: EU waits for its own certification.
     expect(red(await grel(lot.lotId, 'EU'))).toEqual([]);
 
-    await result(lot.lotId, 'RELEASE_RATE.MAT-ATV', '92');
+    // Recorded but not approved: still RED (the approval read is the result's own).
+    const rate = await result(lot.lotId, 'RELEASE_RATE.MAT-ATV', '92', false);
+    expect(item(await grel(lot.lotId, 'US'), 'G11.US_RELEASE_RATE').problem).toMatch(/release-rate result of active MAT-ATV is not approved/);
+    await approveResult(rate);
     g = await grel(lot.lotId, 'US');
     expect(item(g, 'G11.US_RELEASE_RATE').status).toBe('GREEN');
     await acknowledgeAll(qcu, lot.lotId, 'US', g);
@@ -676,6 +684,9 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     const rej = await take(qaReviewer3, { ...msg({ lotCode: other.lotCode, batchNumber: other.batchNumber, outcome: 'REJECTED_BY_QP', reason: 'Transport temperature excursion' }), certifiedAt: await now() });
     expect(rej.outcome).toBe('ACCEPTED');
     expect(await state(other.lotId, 'EU')).toBe('REJECTED_BY_QP');
+    expect(red(await grel(other.lotId, 'US'))).toContain('G11.MARKET_REJECTIONS');
+    // A deviation linked to another lot after the rejection is not this lot's investigation.
+    await deviationOnLot(lot.lotId);
     expect(red(await grel(other.lotId, 'US'))).toContain('G11.MARKET_REJECTIONS');
     await deviationOnLot(other.lotId);
     expect(item(await grel(other.lotId, 'US'), 'G11.MARKET_REJECTIONS').status).toBe('GREEN');

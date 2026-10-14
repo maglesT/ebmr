@@ -86,7 +86,8 @@ jobs:
                 deviations, erp-interfaces, reprocessing, formulas, process-devices-and-status, tablets-dispensing,
                 tablets-granulation, tablets-compression, tablets-ipc, tablets-coating, tablets-forming,
                 packaging-g21-rules, packaging-printing-and-serialisation, packaging-blister, packaging-bottle,
-                platform-scope, tablets-core-checks]
+                platform-scope, tablets-core-checks, release-gate, release-gate-market-items, manufacturer-release,
+                tablets-release-items, us-disposition, qp-certification, market-changes]
     services:
       postgres:
         image: postgres:16
