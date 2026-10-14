@@ -9,10 +9,11 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withProtectedNumbers } from '../../../kernel/src/continuity/numbers.ts';
+import { withCommand } from '../../../kernel/src/db/command.ts';
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
-import { seedActor, seedAdministration, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as containers from '../../src/containers/index.ts';
@@ -32,13 +33,14 @@ let head: SeededActor;
 let qa: SeededActor;
 let qa2: SeededActor;
 let admin: SeededActor;
+let owner: SeededActor;
 const dir = tempDir('record-lock');
 const ledger = tempLedger('record-lock', dir.path);
 
 beforeAll(async () => {
   db = await createTestDatabase();
   w = new World(db, await seedCast(db));
-  ({ admin } = await seedAdministration(db));
+  ({ admin, owner } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   erp = await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' });
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator', roomCode: 'DISP-01' });
@@ -258,6 +260,9 @@ describe('bulk across packaging orders and the bulk reconciliation (PR-38, INV-2
     ]);
     // A writer past the definer (a superuser) records a quantity other than the container's closed net: refused.
     const c = await container(parent, 'RELEASED_BY_QA', '10.000');
+    const foreign = await container(o1, 'RELEASED_BY_QA', '10.000');
+    const mergedAway = await container(parent, 'RELEASED_BY_QA', '10.000');
+    await arrange('insert into plant.container_merge (source_id, target_id, person_id, account_id) values ($1, $2, $1, $1)', [mergedAway.id, c.id]);
     const forged = await db.admin.connect();
     try {
       await forged.query('begin');
@@ -266,13 +271,35 @@ describe('bulk across packaging orders and the bulk reconciliation (PR-38, INV-2
         session_id: '00000000-0000-0000-0000-000000000000', source: 'SYSTEM', site_zone: 'UTC', correlation_id: randomUUID(), legal_name: 'Test fixture',
         reason_code: 'TEST_FIXTURE', reason_text: 'a writer past the definers' })]);
       const ch = (await forged.query<{ id: string }>("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id) values ($1, $2, 'PACKAGING', 'PACK', 'x', $2, $2) returning id", [c.id, o1])).rows[0]!.id;
-      expect(await codeOf(forged.query("insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id) values ($1, $2, $3, $4, 99, 'kg', $1, $1)", [o1, parent, c.id, ch]))).toBe('EBMR-LCK-014');
+      const tryIssue = async (containerId: string, quantity: string, unit: string): Promise<string> => {
+        await forged.query('savepoint forged');
+        try {
+          return await codeOf(forged.query('insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id) values ($1, $2, $3, $4, $5, $6, $1, $1)',
+            [o1, parent, containerId, ch, quantity, unit]));
+        } finally {
+          await forged.query('rollback to savepoint forged');
+        }
+      };
+      expect(await tryIssue(c.id, '99', 'kg')).toBe('EBMR-LCK-014');
+      // Nor its net in another unit, nor a container of another batch at its own net.
+      expect(await tryIssue(c.id, '10', 'g')).toBe('EBMR-LCK-014');
+      expect(await tryIssue(foreign.id, '10', 'kg')).toBe('EBMR-LCK-014');
+      // Its own net in its unit passes this check.
+      expect(await tryIssue(c.id, '10', 'kg')).toBe('ok');
+      // A container merged into another is no longer produced bulk of its own: issuing it too would issue more than the batch
+      // produced (PR-38).
+      await forged.query('savepoint merged');
+      await forged.query("insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id) values ($1, $2, $3, $4, 10, 'kg', $1, $1)", [o1, parent, c.id, ch]);
+      const ch2 = (await forged.query<{ id: string }>("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id) values ($1, $2, 'PACKAGING', 'PACK', 'x', $2, $2) returning id", [mergedAway.id, o1])).rows[0]!.id;
+      expect(await codeOf(forged.query("insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id) values ($1, $2, $3, $4, 10, 'kg', $1, $1)", [o1, parent, mergedAway.id, ch2])))
+        .toBe('EBMR-LCK-015');
+      await forged.query('rollback to savepoint merged');
     } finally {
       await forged.query('rollback');
       forged.release();
     }
     expect(await codeOf(db.app.query("insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id) values ($1, $2, $3, gen_random_uuid(), 10, 'kg', $1, $1)", [o1, parent, c.id]))).toMatch(/permission denied/);
-  });
+  }, 300_000);
 
   it('[INV-21][PR-38] the bulk reconciliation closes only with the batch complete, every packaging order closed, no container open and a reason for the bulk left; by production approval, never an operator or an administrator; it records produced, issued and left and locks the record once', async () => {
     const { parent, orders } = await processingWithOrders(2);
@@ -307,7 +334,123 @@ describe('bulk across packaging orders and the bulk reconciliation (PR-38, INV-2
     expect(await closeBulk(head, parent, 'Left over bulk held again').catch((e: Error) => e.message)).toMatch(/EBMR-LCK-011 .*already closed/);
     // A packaging record locks at its lot's disposition, never by a bulk reconciliation.
     expect(await closeBulk(head, o1, 'Left over bulk held for review').catch((e: Error) => e.message)).toMatch(/EBMR-LCK-011 .*packaging record/);
-  });
+  }, 300_000);
+
+  it('[PR-38][INV-21] each container of the bulk is accounted for once: issued, merged, charged, open, rejected or left; the totals add only the closed nets of the dispositions asked; a packaging order still planned keeps the reconciliation open', async () => {
+    const { parent, orders } = await processingWithOrders(1);
+    const [o1] = orders as [string];
+    const issued = await container(parent, 'RELEASED_BY_QA', '25.000');
+    await bulk(operator, o1, [issued.label]);
+    const merged = await container(parent, 'RELEASED_BY_QA', '3.000');
+    const charged = await container(parent, 'RELEASED_BY_QA', '4.000');
+    const open = await container(parent, 'OPEN', null);
+    const rejected = await container(parent, 'REJECTED', '2.000');
+    const left = await container(parent, 'RELEASED_BY_QA', '7.500');
+    // TEST FIXTURE: a merge and a charge as plant's commands record them (proven in the container tests).
+    await arrange('insert into plant.container_merge (source_id, target_id, person_id, account_id) values ($1, $2, $1, $1)', [merged.id, left.id]);
+    await arrange("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id) values ($1, $2, 'BLENDING', 'CHARGE', 'x', $1, $1)", [charged.id, parent]);
+    const disposition = async (id: string) => (await q<{ d: string }>('select recipe.bulk_container_disposition($1) as d', [id]))[0]!.d;
+    expect([await disposition(issued.id), await disposition(merged.id), await disposition(charged.id), await disposition(open.id), await disposition(rejected.id), await disposition(left.id)])
+      .toEqual(['ISSUED', 'MERGED', 'CHARGED', 'OPEN', 'REJECTED', 'LEFT']);
+    const totals = async (d: string[]) => (await q<{ t: unknown }>('select recipe.bulk_totals($1, $2) as t', [parent, d]))[0]!.t;
+    expect(await totals(['ISSUED', 'CHARGED', 'REJECTED', 'LEFT'])).toEqual([{ quantity: '38.500', unit: 'kg' }]);
+    expect(await totals(['LEFT'])).toEqual([{ quantity: '7.500', unit: 'kg' }]);
+    expect(await totals(['MERGED'])).toEqual([{ quantity: '3.000', unit: 'kg' }]);
+    expect(await totals(['OPEN'])).toEqual([]);
+    // Another batch's bulk is not this one's.
+    const other = (await processingWithOrders(0)).parent;
+    await container(other, 'RELEASED_BY_QA', '100.000');
+    expect(await totals(['LEFT'])).toEqual([{ quantity: '7.500', unit: 'kg' }]);
+    // A packaging order planned and not issued keeps the reconciliation open (its planned status), as an issued one does (its execution status).
+    const planned = randomUUID();
+    const fam = (await q<{ f: string }>('select family_id as f from recipe.stub_batch where id = $1', [o1]))[0]!.f;
+    await plan(planned, { familyId: fam, batchSize: SIZE['tablet-blister-packaging'], parentBatch: parent });
+    await setStatus(parent, 'EXECUTION_COMPLETE');
+    const plannedNumber = (await q<{ n: string }>('select batch_number as n from recipe.stub_batch where id = $1', [planned]))[0]!.n;
+    const o1Number = (await q<{ n: string }>('select batch_number as n from recipe.stub_batch where id = $1', [o1]))[0]!.n;
+    const problems = (await q<{ p: string[] }>('select recipe.bulk_close_problems($1) as p', [parent]))[0]!.p.join(' | ');
+    expect(problems).toContain(`packaging order ${plannedNumber} is PLANNED`);
+    expect(problems).toMatch(new RegExp(`packaging order ${o1Number} is (ISSUED|IN_PROGRESS)`));
+    expect(problems).toContain(`container ${open.label} is still open`);
+    expect((await q<{ k: string }>('select recipe.batch_family_kind($1) as k', [planned]))[0]!.k).toBe('PACKAGING');
+    expect((await q<{ k: string }>('select recipe.batch_family_kind($1) as k', [parent]))[0]!.k).toBe('PROCESSING');
+    const none = randomUUID();
+    expect((await q<{ p: string[] }>('select recipe.bulk_close_problems($1) as p', [none]))[0]!.p).toEqual([`${none} is no GMP batch`]);
+    // Bulk goes only to a packaging order that is issued or running: not to one only planned, nor to one complete, nor to the processing batch itself.
+    const toOrder = (order: string) => bulk(operator, order, [left.label]).catch((e: Error) => e.message);
+    expect(await toOrder(planned)).toMatch(new RegExp(`EBMR-PKG-001 batch ${planned} is no issued GMP batch`));
+    expect(await toOrder(parent)).toMatch(/EBMR-PKG-001 batch .* is no packaging order/);
+    expect(await toOrder(randomUUID())).toMatch(/EBMR-PKG-001 batch .* is no issued GMP batch/);
+    // The issue locks the container's state (a hold recorded concurrently is seen or waits): it waits for a transaction holding
+    // that container's state, and not for one holding another container's.
+    const spare = await container(parent, 'RELEASED_BY_QA', '1.000');
+    const unrelated = await container(parent, 'RELEASED_BY_QA', '1.000');
+    const issueWhileHeld = async (held: string, label: string): Promise<string> => {
+      const holder = await db.admin.connect();
+      try {
+        await holder.query('begin');
+        await holder.query("select 1 from platform.aggregate_state where aggregate_type = 'output_container' and aggregate_id = $1 for update", [held]);
+        return await w.run(operator, async (c) => {
+          await c.query("set local lock_timeout = '1s'");
+          await c.query('select recipe.issue_packaging_bulk($1, $2::text[])', [o1, [label]]);
+          return 'issued';
+        }).catch((e: Error & { code?: string }) => e.code ?? e.message);
+      } finally {
+        await holder.query('rollback');
+        holder.release();
+      }
+    };
+    expect(await issueWhileHeld(spare.id, spare.label)).toBe('55P03');
+    expect(await issueWhileHeld(unrelated.id, spare.label)).toBe('issued');
+    // The labels: one or more, each once, none missing.
+    const labels = (l: (string | null)[] | null) => codeOf(w.run(operator, (c) => c.query('select recipe.issue_packaging_bulk($1, $2::text[])', [o1, l])));
+    for (const l of [[], null, [left.label, left.label], [left.label, null]]) expect(await labels(l), JSON.stringify(l)).toBe('EBMR-PKG-003');
+    await setStatus(o1, 'EXECUTION_COMPLETE');
+    expect(await toOrder(o1)).toMatch(new RegExp(`EBMR-PKG-001 batch ${o1Number} is EXECUTION_COMPLETE`));
+  }, 300_000);
+
+  it('[INV-21][PR-38] the reconciliation closes with no reason when all the bulk went to packaging (none is kept then), with a reason of 10 characters when bulk is left; it serialises with the engine and the containers', async () => {
+    const ready = async (): Promise<{ parent: string; o1: string; number: string }> => {
+      const { parent, orders } = await processingWithOrders(1);
+      const a = await container(parent, 'RELEASED_BY_QA', '25.000');
+      await bulk(operator, orders[0]!, [a.label]);
+      await setStatus(parent, 'EXECUTION_COMPLETE');
+      await setStatus(orders[0]!, 'EXECUTION_COMPLETE');
+      return { parent, o1: orders[0]!, number: (await q<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [parent]))[0]!.n };
+    };
+    expect(await codeOf(closeBulk(head, randomUUID(), null))).toBe('EBMR-LCK-010');
+    const all = await ready();
+    // The problems name this batch.
+    const leftOpen = await container(all.parent, 'OPEN', null);
+    expect(await closeBulk(head, all.parent, null).catch((e: Error) => e.message)).toMatch(new RegExp(`EBMR-LCK-011 the bulk reconciliation of batch ${all.number} cannot be closed: container ${leftOpen.label} is still open`));
+    await arrange('delete from plant.output_container where id = $1', [leftOpen.id]);
+    // Serialised: while another transaction holds the batch's engine state, or one of its containers, the closure waits.
+    for (const lock of ['select 1 from recipe.execution_state where batch_id = $1 for update', 'select 1 from plant.output_container where batch_id = $1 for update']) {
+      const holder = await db.admin.connect();
+      try {
+        await holder.query('begin');
+        await holder.query(lock, [all.parent]);
+        const waited = await w.run(head, async (c) => {
+          await c.query("set local lock_timeout = '1s'");
+          return c.query('select recipe.close_bulk_reconciliation($1, null)', [all.parent]);
+        }).then(() => 'closed', (e: Error & { code?: string }) => e.code ?? e.message);
+        expect(waited, lock).toBe('55P03');
+      } finally {
+        await holder.query('rollback');
+        holder.release();
+      }
+    }
+    await closeBulk(head, all.parent, null);
+    expect(await q('select issued = produced as same, remaining, remaining_held_reason as reason from recipe.bulk_reconciliation where batch_id = $1', [all.parent])).toEqual([{ same: true, remaining: [], reason: null }]);
+    const reasoned = await ready();
+    await closeBulk(head, reasoned.parent, 'A reason given though nothing is left');
+    expect(await q('select remaining_held_reason as reason from recipe.bulk_reconciliation where batch_id = $1', [reasoned.parent])).toEqual([{ reason: null }]);
+    const left = await ready();
+    await container(left.parent, 'RELEASED_BY_QA', '5.000');
+    expect(await codeOf(closeBulk(head, left.parent, '123456789'))).toBe('EBMR-LCK-012');
+    await closeBulk(head, left.parent, '1234567890');
+    expect(await q('select remaining_held_reason as reason from recipe.bulk_reconciliation where batch_id = $1', [left.parent])).toEqual([{ reason: '1234567890' }]);
+  }, 300_000);
 
   it('[INV-21] a locked record refuses every write in the database: engine commands, entries and state, containers, closes and in-process checks, bulk issued from it and a new packaging order; for a superuser past the definers too; the role writes no lock', async () => {
     const { parent, orders } = await processingWithOrders(1);
@@ -334,7 +477,58 @@ describe('bulk across packaging orders and the bulk reconciliation (PR-38, INV-2
     expect(await codeOf(db.app.query("select recipe.record_lock_append($1, 'AMENDMENT_CLOSED', null, null, gen_random_uuid(), $1, $1)", [parent]))).toMatch(/permission denied/);
     expect(await superuserWrite('delete from recipe.record_lock_event where batch_id = $1', [parent])).not.toBe('ok');
     expect(await lockState(parent)).toBe('LOCKED');
-  });
+  }, 300_000);
+});
+
+describe('who closes an amendment (INV-21; outline 7.2 S10; recipe-core 0872)', () => {
+  it('[INV-21] a person who appended an entry does not close the amendment, even where the site lets one role do both (EBMR-LCK-043)', async () => {
+    const both = await seedActor(db, { roleCode: 'STAGE_RESPONSIBLE', legalName: 'Bala Both' });
+    const request = await withCommand(db.app, withReason(admin), async (c) =>
+      (await c.query<{ id: string }>("select iam.add_role_permission('STAGE_RESPONSIBLE', 'RECORD.QA_REVIEW', 'the site lets the stage responsible review records') as id")).rows[0]!.id);
+    await withCommand(db.app, withReason(owner), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the closing test')", [request]));
+    const { parent, orders } = await processingWithOrders(1);
+    await setStatus(parent, 'EXECUTION_COMPLETE');
+    await setStatus(orders[0]!, 'CANCELLED');
+    await closeBulk(head, parent, null);
+    const dev = await deviationOn(parent);
+    const aid = (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'OPEN', 'DEVIATION', $2) as a", [parent, dev]))[0]!.a;
+    const sig = await signFor(db, qa, { type: 'record_lock', id: aid }, 'AMENDMENT_OPENED', 'LOCKED');
+    await w.run(qa, (c) => c.query("select recipe.open_record_amendment($1, 'DEVIATION', $2, 'LATE_ENTRY', 'Untranscribed check found at review', $3)", [parent, dev, sig]));
+    await w.run(both, (c) => c.query("select recipe.append_amendment_entry($1, 1, 'NOTE', 'Step s-blend', 'Blend time read again', null, 'Read from the paper log PL-9')", [parent]));
+    expect(await codeOf(w.run(both, (c) => c.query("select recipe.close_record_amendment($1, 1, 'The note restores the record; no impact', $2)", [parent, randomUUID()])))).toBe('EBMR-LCK-043');
+    // Another person of that role passes this check (and meets the signature check next).
+    const other = await seedActor(db, { roleCode: 'STAGE_RESPONSIBLE', legalName: 'Bina Other' });
+    expect(await codeOf(w.run(other, (c) => c.query("select recipe.close_record_amendment($1, 1, 'The note restores the record; no impact', $2)", [parent, randomUUID()])))).toBe('EBMR-REL-013');
+  }, 300_000);
+});
+
+describe('the lock at the first disposition (INV-21; D-5-7; recipe-core 0870)', () => {
+  it('[INV-21] a manufacturer decision locks the record of the lot\'s own batch; a finished lot posted for a batch that is no record of this system locks nothing and is not refused', async () => {
+    const warehouse = await seedActor(db, { roleCode: 'WAREHOUSE_LABELLING', legalName: 'Wasim Warehouse' });
+    const ap = await seedActor(db, { roleCode: 'AUTHORISED_PERSON', legalName: 'Anita Authorised' });
+    const { parent } = await processingWithOrders(0);
+    const post = async (batchId: string, number: string) =>
+      withCommand(db.admin, await cmd(db, warehouse), async (c) =>
+        (await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
+          JSON.stringify({ batchId, batchNumber: number, edition: 'TABLETS', siteCode: SITE, productCode: 'LOCK-TEST', productName: 'Lock test product',
+                           strength: '500 mg', markets: ['IN'], quantity: '1000', unit: 'units', expiresAt: '2029-06-30T23:59:59Z' }),
+        ])).rows[0]!.id);
+    const number = (await q<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [parent]))[0]!.n;
+    const own = await post(parent, number);
+    const foreign = await post(randomUUID(), 'EXT-0042');
+    // TEST FIXTURE: the decision rows as the release act writes them (proven in the release tests), every trigger on but the departments' notice.
+    const decide = async (lotId: string) =>
+      withCommand(db.admin, await cmd(db, ap), async (c) => {
+        await c.query('alter table recipe.manufacturer_release_decision disable trigger zzzn_notify_departments');
+        await c.query(`insert into recipe.manufacturer_release_decision (lot_id, decision, signature_id, epoch, checklist, checklist_hash, content_hash, person_id, account_id, role_code, correlation_id)
+                       values ($1, 'RELEASED', gen_random_uuid(), repeat('0', 64), '{"items": []}', repeat('0', 64), 'fixture', $2, $3, 'AUTHORISED_PERSON', gen_random_uuid())`, [lotId, ap.personId, ap.accountId]);
+        await c.query('alter table recipe.manufacturer_release_decision enable trigger zzzn_notify_departments');
+      });
+    await decide(foreign);
+    await decide(own);
+    expect(await q('select event, cause, lot_id from recipe.record_lock_event where batch_id = $1', [parent])).toEqual([{ event: 'LOCKED', cause: 'FIRST_DISPOSITION', lot_id: own }]);
+    expect(await q('select count(*)::int as n from recipe.record_lock_event where lot_id = $1', [foreign])).toEqual([{ n: 0 }]);
+  }, 180_000);
 });
 
 describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', () => {
@@ -347,6 +541,8 @@ describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', ()
   }
   const openId = async (batch: string, kind: string, basis: string): Promise<string> => (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'OPEN', $2, $3) as a", [batch, kind, basis]))[0]!.a;
   const closeId = async (batch: string): Promise<string> => (await q<{ a: string }>("select recipe.record_lock_next_id($1, 'CLOSE', null, null) as a", [batch]))[0]!.a;
+  type Content = { exists: boolean; state?: string; content?: Record<string, unknown>; involved?: string[] };
+  const content = async (id: string): Promise<Content> => (await q<{ c: Content }>('select recipe.record_lock_content($1) as c', [id]))[0]!.c;
   const open = (who: SeededActor, batch: string, kind: string, basis: string, sig: string, text = 'Untranscribed check found at review') =>
     w.run(who, (c) => c.query("select recipe.open_record_amendment($1, $2, $3, 'LATE_ENTRY', $4, $5)", [batch, kind, basis, text, sig]));
   const entry = (who: SeededActor, batch: string, n: number, kind = 'LATE_ENTRY') =>
@@ -365,6 +561,40 @@ describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', ()
     expect(await codeOf(open(qa, batch, 'COMPLAINT', dev, fake))).toBe('EBMR-LCK-032');
     expect(await codeOf(open(qa, batch, 'CHANGE_RECORD', randomUUID(), fake))).toBe('EBMR-LCK-032');
     expect(await codeOf(open(qa, batch, 'DEVIATION', dev, fake, 'short'))).toBe('EBMR-LCK-034');
+    expect(await codeOf(open(qa, randomUUID(), 'DEVIATION', dev, fake))).toBe('EBMR-LCK-030');
+    // A deviation linked to a lot made from this record is a basis; one linked only to another lot is not.
+    const poster = await seedActor(db, { roleCode: 'WAREHOUSE_LABELLING', legalName: 'Lata Labeller' });
+    const lotOf = async (batchId: string, number: string) =>
+      withCommand(db.admin, await cmd(db, poster), async (c) =>
+        (await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
+          JSON.stringify({ batchId, batchNumber: number, edition: 'TABLETS', siteCode: SITE, productCode: 'LOCK-TEST', productName: 'Lock test product',
+                           strength: '500 mg', markets: ['IN'], quantity: '1000', unit: 'units', expiresAt: '2029-06-30T23:59:59Z' }),
+        ])).rows[0]!.id);
+    const lotDeviation = async (lotId: string): Promise<string> => {
+      const d = await w.run(operator, async (c) => (await c.query<{ r: { deviationId: string } }>('select site.raise_deviation($1::jsonb) as r', [
+        JSON.stringify({ kind: 'DEVIATION', title: 'Finding on a lot', classification: 'MINOR', riskRationale: 'Documentation finding; assessed by QA' }),
+      ])).rows[0]!.r.deviationId);
+      await w.run(operator, (c) => c.query("select site.link_deviation($1, 'LOT', $2)", [d, lotId]));
+      return d;
+    };
+    const batchNumber = (await q<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [batch]))[0]!.n;
+    expect(await codeOf(open(qa, batch, 'DEVIATION', await lotDeviation(await lotOf(randomUUID(), 'EXT-0043')), fake))).toBe('EBMR-LCK-033');
+    expect(await codeOf(open(qa, batch, 'DEVIATION', await lotDeviation(await lotOf(batch, batchNumber)), fake))).toBe('EBMR-REL-013');
+    // Only an open deviation is a basis: an unknown one, or one cancelled, is not.
+    expect(await codeOf(open(qa, batch, 'DEVIATION', randomUUID(), fake))).toBe('EBMR-LCK-032');
+    const cancelled = await deviationOn(batch);
+    await w.run(qa, (c) => c.query('select site.cancel_deviation($1, $2)', [cancelled, 'raised against the wrong batch record']));
+    expect(await codeOf(open(qa, batch, 'DEVIATION', cancelled, fake))).toBe('EBMR-LCK-032');
+    expect(await codeOf(open(qa, batch, 'CHANGE_RECORD', null as unknown as string, fake))).toBe('EBMR-LCK-032');
+    // The reason: a code of 1 to 64 characters and a text of at least 10; a valid one reaches the signature check (EBMR-REL-013).
+    const reasoned = (code: string | null, text: string | null) =>
+      codeOf(w.run(qa, (c) => c.query("select recipe.open_record_amendment($1, 'DEVIATION', $2, $3, $4, $5)", [batch, dev, code, text, fake])));
+    expect(await reasoned('  ', 'Untranscribed check found at review')).toBe('EBMR-LCK-034');
+    expect(await reasoned(null, 'Untranscribed check found at review')).toBe('EBMR-LCK-034');
+    expect(await reasoned('X'.repeat(65), 'Untranscribed check found at review')).toBe('EBMR-LCK-034');
+    expect(await reasoned('LATE_ENTRY', null)).toBe('EBMR-LCK-034');
+    expect(await reasoned('LATE_ENTRY', '123456789')).toBe('EBMR-LCK-034');
+    expect(await reasoned('X'.repeat(64), '1234567890')).toBe('EBMR-REL-013');
     expect(await codeOf(open(operator, batch, 'DEVIATION', dev, fake))).toBe('EBMR-IAM-040');
     expect(await codeOf(open(admin, batch, 'DEVIATION', dev, fake))).toBe('EBMR-IAM-042');
     const aid = await openId(batch, 'DEVIATION', dev);
@@ -382,10 +612,14 @@ describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', ()
     // A change record is a basis too (on another locked record).
     const other = await lockedProcessing();
     const cr = (await q<{ id: string }>('select id from recipe.change_record order by recorded_at limit 1'))[0]!.id;
-    const crSig = await signFor(db, qa2, { type: 'record_lock', id: await openId(other, 'CHANGE_RECORD', cr) }, 'AMENDMENT_OPENED', 'LOCKED');
+    const crId = await openId(other, 'CHANGE_RECORD', cr);
+    expect(await content(crId)).toMatchObject({ exists: true, state: 'LOCKED', content: { act: 'AMENDMENT_OPEN', amendment_number: 1, basis: { kind: 'CHANGE_RECORD', id: cr }, lock_state: 'LOCKED' } });
+    const crSig = await signFor(db, qa2, { type: 'record_lock', id: crId }, 'AMENDMENT_OPENED', 'LOCKED');
     await open(qa2, other, 'CHANGE_RECORD', cr, crSig);
     expect(await lockState(other)).toBe('UNDER_AMENDMENT');
-  });
+    expect(await content(crId)).toMatchObject({ exists: true, state: 'RECORDED' });
+    expect(await content(`${other}/1/OPEN/DEVIATION/${cr}`)).toEqual({ exists: false });
+  }, 300_000);
 
   it('[INV-21] the amendment appends numbered entries, never edits; production appends them (never an operator or an administrator); QA closes it with AMENDMENT_CLOSED over the entries as they stand, by a person who appended none: the record is LOCKED again', async () => {
     const batch = await lockedProcessing();
@@ -402,6 +636,10 @@ describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', ()
     expect(await codeOf(db.app.query("insert into recipe.record_amendment_entry (amendment_id, batch_id, seq, kind, target, body, reason, person_id, account_id) select id, batch_id, 9, 'NOTE', 't', 'b', 'reason text here', batch_id, batch_id from recipe.record_amendment where batch_id = $1", [batch]))).toMatch(/permission denied/);
     const cid = await closeId(batch);
     expect(cid).toBe(`${batch}/1/CLOSE`);
+    // The record QA signs to close it: the entries as they stand, the open amendment's state, the people who appended.
+    expect(await content(cid)).toMatchObject({ exists: true, state: 'UNDER_AMENDMENT', involved: [head.personId],
+                                              content: { act: 'AMENDMENT_CLOSE', amendment_number: 1, basis_kind: 'DEVIATION', basis_id: dev } });
+    expect(((await content(cid)).content!['entries'] as unknown[]).length).toBe(1);
     const stale = await signFor(db, qa2, { type: 'record_lock', id: cid }, 'AMENDMENT_CLOSED', 'UNDER_AMENDMENT');
     await entry(head, batch, 1, 'NOTE');
     expect(await close(qa2, batch, 1, stale).catch((e: Error) => e.message)).toMatch(/EBMR-REL-013 signature .* is CONTENT_MISMATCH/);
@@ -414,9 +652,63 @@ describe('the amendment of a locked record (INV-21, R-04; recipe-core 0872)', ()
     expect(await q('select event from recipe.record_lock_event where batch_id = $1 order by seq', [batch])).toEqual([{ event: 'LOCKED' }, { event: 'AMENDMENT_OPENED' }, { event: 'AMENDMENT_CLOSED' }]);
     expect(await codeOf(entry(head, batch, 1))).toBe('EBMR-LCK-040');
     expect(await superuserWrite("update recipe.execution_state set status = 'IN_PROGRESS' where batch_id = $1", [batch])).toBe('EBMR-LCK-001');
-    // The next amendment is number 2.
+    // The next amendment is number 2; nothing is open to close.
     expect(await openId(batch, 'DEVIATION', dev)).toBe(`${batch}/2/OPEN/DEVIATION/${dev}`);
-  });
+    expect(await closeId(batch)).toBeNull();
+    // Amendment 2: each part of an entry is checked on its own, at its limits; the entries are numbered within their amendment.
+    const sig2 = await signFor(db, qa, { type: 'record_lock', id: await openId(batch, 'DEVIATION', dev) }, 'AMENDMENT_OPENED', 'LOCKED');
+    await open(qa, batch, 'DEVIATION', dev, sig2);
+    const add = (b: string, kind: string | null, target: string | null, text: string | null, value: string | null, why: string | null) =>
+      codeOf(w.run(head, (c) => c.query('select recipe.append_amendment_entry($1, 2, $2, $3, $4, $5, $6)', [b, kind, target, text, value, why])));
+    const ok = ['NOTE', 'Step s-blend', 'Blend time read again', null, 'Read from the paper log'] as const;
+    expect(await add(randomUUID(), ...ok)).toBe('EBMR-LCK-030');
+    // The closed amendment 1 takes no entry while amendment 2 is open.
+    expect(await codeOf(entry(head, batch, 1))).toBe('EBMR-LCK-040');
+    for (const bad of [[null, ok[1], ok[2], ok[3], ok[4]], [ok[0], null, ok[2], ok[3], ok[4]], [ok[0], '  ', ok[2], ok[3], ok[4]], [ok[0], 'x'.repeat(201), ok[2], ok[3], ok[4]],
+                       [ok[0], ok[1], null, ok[3], ok[4]], [ok[0], ok[1], '  ', ok[3], ok[4]], [ok[0], ok[1], 'x'.repeat(4001), ok[3], ok[4]],
+                       [ok[0], ok[1], ok[2], '  ', ok[4]], [ok[0], ok[1], ok[2], 'x'.repeat(201), ok[4]], [ok[0], ok[1], ok[2], ok[3], null], [ok[0], ok[1], ok[2], ok[3], '123456789']] as [string | null, string | null, string | null, string | null, string | null][]) {
+      expect(await add(batch, ...bad), JSON.stringify(bad).slice(0, 80)).toBe('EBMR-LCK-041');
+    }
+    for (const good of [[ok[0], 'x'.repeat(200), ok[2], ok[3], ok[4]], [ok[0], ok[1], 'x'.repeat(4000), ok[3], ok[4]], [ok[0], ok[1], ok[2], 'x'.repeat(200), ok[4]],
+                        [ok[0], ok[1], ok[2], ok[3], '1234567890']] as [string, string, string, string | null, string][]) {
+      expect(await add(batch, ...good)).toBe('ok');
+    }
+    expect(await q('select seq from recipe.record_amendment_entry where batch_id = $1 and amendment_id = (select id from recipe.record_amendment where batch_id = $1 and number = 2) order by seq', [batch]))
+      .toEqual([{ seq: 1 }, { seq: 2 }, { seq: 3 }, { seq: 4 }]);
+    // The closing statement: at least 10 characters; a valid one reaches the signature check.
+    const closeWith = (statement: string | null) => codeOf(w.run(qa2, (c) => c.query('select recipe.close_record_amendment($1, 2, $2, $3)', [batch, statement, randomUUID()])));
+    expect(await closeWith(null)).toBe('EBMR-LCK-042');
+    expect(await closeWith('123456789')).toBe('EBMR-LCK-042');
+    expect(await closeWith('1234567890')).toBe('EBMR-REL-013');
+    expect(await codeOf(w.run(qa2, (c) => c.query("select recipe.close_record_amendment($1, 2, 'A statement long enough', $2)", [randomUUID(), randomUUID()])))).toBe('EBMR-LCK-030');
+    expect(await codeOf(w.run(qa2, (c) => c.query("select recipe.close_record_amendment($1, 1, 'A statement long enough', $2)", [batch, randomUUID()])))).toBe('EBMR-LCK-040');
+    // Appending and closing take the record's row lock (entries are numbered under it): while another transaction holds the
+    // record, both wait for it.
+    const holder = await db.admin.connect();
+    try {
+      await holder.query('begin');
+      await holder.query('select 1 from recipe.batch_execution where id = $1 for update', [batch]);
+      const waits = (who: SeededActor, sql: string) =>
+        w.run(who, async (c) => {
+          await c.query("set local lock_timeout = '1s'");
+          return c.query(sql, [batch, randomUUID()]);
+        }).then(() => 'ran', (e: Error & { code?: string }) => e.code ?? e.message);
+      expect(await waits(head, "select recipe.append_amendment_entry($1, 2, 'NOTE', 'Step s-blend', 'Blend time read again', null, 'Read from the paper log') where $2::uuid is not null")).toBe('55P03');
+      expect(await waits(qa2, "select recipe.close_record_amendment($1, 2, 'A statement long enough', $2)")).toBe('55P03');
+    } finally {
+      await holder.query('rollback');
+      holder.release();
+    }
+    // The records as signed stay readable; a number, act or basis that is not the record's is none.
+    expect(await content(`${batch}/1/OPEN/DEVIATION/${dev}`)).toMatchObject({ exists: true, state: 'RECORDED', content: { amendment_number: 1 } });
+    expect(await content(`${batch}/1/CLOSE`)).toMatchObject({ exists: true, state: 'RECORDED' });
+    expect(await content(`${batch}/2/OPEN/DEVIATION/${dev}`)).toMatchObject({ exists: true, state: 'RECORDED', content: { amendment_number: 2, basis: { kind: 'DEVIATION', id: dev } } });
+    expect(await content(`${batch}/3/OPEN/DEVIATION/${dev}`)).toMatchObject({ exists: true, state: 'UNDER_AMENDMENT', content: { amendment_number: 3 } });
+    for (const id of [`${batch}/1/OPEN/DEVIATION/${randomUUID()}`, `${batch}/1/OPEN/CHANGE_RECORD/${dev}`, `${batch}/1/OPEN`, `${batch}/1/CLOSE/DEVIATION/${dev}`,
+                      `${batch}/3/CLOSE`, `${batch}/4/OPEN/DEVIATION/${dev}`, `${randomUUID()}/1/CLOSE`, `${batch}/3/OPEN/DEVIATION/${randomUUID()}`]) {
+      expect(await content(id), id).toEqual({ exists: false });
+    }
+  }, 300_000);
 });
 
 describe('the maximum hold of bright stock (PR-38; recipe-core 0871)', () => {
@@ -435,6 +727,17 @@ describe('the maximum hold of bright stock (PR-38; recipe-core 0871)', () => {
     expect(await codeOf(set(admin, 24))).toBe('EBMR-IAM-042');
     expect(await codeOf(set(steward, 0))).toBe('EBMR-LCK-020');
     expect(await codeOf(set(steward, 24, 'short'))).toBe('EBMR-LCK-020');
+    // Each part on its own, at its limits.
+    const hold = (p: string | null, st: string | null, h: number | null, why: string | null) =>
+      codeOf(w.run(steward, (c) => c.query('select recipe.set_bright_stock_hold($1, $2, $3, $4)', [p, st, h, why])));
+    for (const bad of [[null, '1 mg', 24, 'Hold study HS-09'], ['lower-case', '1 mg', 24, 'Hold study HS-09'], ['HOLD-LIMITS', null, 24, 'Hold study HS-09'],
+                       ['HOLD-LIMITS', '   ', 24, 'Hold study HS-09'], ['HOLD-LIMITS', 'x'.repeat(65), 24, 'Hold study HS-09'], ['HOLD-LIMITS', '1 mg', null, 'Hold study HS-09'],
+                       ['HOLD-LIMITS', '1 mg', 100000, 'Hold study HS-09'], ['HOLD-LIMITS', '1 mg', 24, null], ['HOLD-LIMITS', '1 mg', 24, '123456789']] as [string | null, string | null, number | null, string | null][]) {
+      expect(await hold(...bad), JSON.stringify(bad).slice(0, 60)).toBe('EBMR-LCK-020');
+    }
+    for (const good of [['HOLD-LIMITS', 'x'.repeat(64), 1, '1234567890'], ['HOLD-LIMITS', '1 mg', 99999, 'Hold study HS-09']] as [string, string, number, string][]) {
+      expect(await hold(...good)).toBe('ok');
+    }
     await set(steward, 24);
     expect(await q('select max_hold_hours from recipe.bright_stock_max_hold where product_code = $1', [product])).toEqual([{ max_hold_hours: 24 }]);
     expect(await bulk(operator, o1, [old.label]).catch((e: Error) => e.message)).toMatch(/EBMR-PKG-006 container .* closed 50 hours ago, past the maximum hold of 24 hours/);
@@ -448,9 +751,37 @@ describe('the maximum hold of bright stock (PR-38; recipe-core 0871)', () => {
     await assessed(dev);
     await bulk(operator, o1, [old.label]);
     expect(await q('select count(*)::int as n from recipe.packaging_bulk_issue where order_batch_id = $1', [o1])).toEqual([{ n: 2 }]);
+    // The role kept with the act is the actor's own (DI-22): even a writer past the definer cannot claim another; none given, it is filled.
+    const holdAs = async (role: string | null): Promise<string> =>
+      withCommand(db.admin, await cmd(db, steward), async (c) =>
+        (await c.query<{ r: string }>("insert into recipe.bright_stock_max_hold (product_code, strength, max_hold_hours, reason, person_id, account_id, role_code) values ('HOLD-ROLE', '1 mg', 10, 'role test of the hold', $1, $2, $3) returning role_code as r",
+          [steward.personId, steward.accountId, role])).rows[0]!.r).catch((e: Error) => e.message);
+    expect(await holdAs('HEAD_OF_PRODUCTION')).toMatch(/EBMR-LCK-060/);
+    expect(await holdAs('MASTER_DATA_STEWARD')).toBe('MASTER_DATA_STEWARD');
+    expect(await holdAs(null)).toBe('MASTER_DATA_STEWARD');
+    // A deviation linked to the held container covers it once assessed (the link carries the container's batch); one linked to
+    // a container of another batch does not.
+    const onContainer = async (containerId: string): Promise<string> => {
+      const d = await w.run(operator, async (c) => (await c.query<{ r: { deviationId: string } }>('select site.raise_deviation($1::jsonb) as r', [
+        JSON.stringify({ kind: 'DEVIATION', title: 'Bulk held past its maximum', classification: 'MINOR', riskRationale: 'Hold assessed by QA' }),
+      ])).rows[0]!.r.deviationId);
+      await w.run(operator, (c) => c.query("select site.link_deviation($1, 'CONTAINER', $2)", [d, containerId]));
+      await assessed(d);
+      return d;
+    };
+    const elsewhere = await container((await processingWithOrders(0)).parent, 'RELEASED_BY_QA', '20.000', 1);
+    await onContainer(elsewhere.id);
+    expect((await q<{ p: string | null }>('select recipe.bright_stock_hold_problem($1) as p', [o2]))[0]!.p).toMatch(/past the maximum hold of 24 hours/);
+    const covering = await onContainer(older.id);
+    expect(await q('select batch_id from site.deviation_link where deviation_id = $1', [covering])).toEqual([{ batch_id: parent }]);
+    expect(await q('select recipe.bright_stock_hold_problem($1) as p', [o2])).toEqual([{ p: null }]);
     // The latest version wins.
     await set(steward, 100);
     expect(await q('select recipe.bright_stock_hold_problem($1) as p', [o2])).toEqual([{ p: null }]);
+    // A hold of another product of the same strength is not this product's.
+    await w.run(steward, (c) => c.query('select recipe.set_bright_stock_hold($1, $2, 1, $3)', ['OTHER-HOLD', strength, 'Hold study HS-10 of another product']));
+    expect(await q('select recipe.bright_stock_max_hold_of($1, $2) as h', [product, strength])).toEqual([{ h: 100 }]);
+    expect(await q('select recipe.bright_stock_hold_problem($1) as p', [o2])).toEqual([{ p: null }]);
     expect(await codeOf(db.app.query("insert into recipe.bright_stock_max_hold (product_code, strength, max_hold_hours, reason, person_id, account_id) values ($1, $2, 9999, 'reason text here', $3, $3)", [product, strength, steward.personId]))).toMatch(/permission denied/);
-  });
+  }, 180_000);
 });

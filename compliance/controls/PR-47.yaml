@@ -123,6 +123,7 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
   - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][IN-19][INV-33] a G-24@2 step starts only on an unused signed STEP authorisation of this batch, step and case by another person; a validated re-treatment, a G-24@1 step, a step already started and a batch without G-24@2 take none"
   - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][PR-14][INV-33] at a G-24@2 step: no start data; an ADDITION stores exactly what its block writes from the command and needs the step's second-person check, then the database's addition rules; entries already in the row and other steps' entries are left alone"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-47][IN-05] an extra test QC decided for the batch and missing from the lot specification names the batch on the G-REL item"
 clauses:
   - clause: "Starting reprocessing without QCU approval or a risk evaluation is blocked."
     tests:

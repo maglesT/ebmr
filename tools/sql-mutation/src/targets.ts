@@ -563,7 +563,7 @@ export const TARGETS: Target[] = [
                 'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue',
                 // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
                 'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check'],
-    tests: [r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
+    tests: [r('lifecycle/record-lock.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
             // The row checks 0502 replaced (recipe-core 0338, 0339, 0345): their Phase 2 tests.
             s('execution/db-guards-row-context.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-row-shape.test.ts'), s('execution/signed-content-hold-point.test.ts')],
     threshold: 90,
@@ -646,7 +646,9 @@ export const TARGETS: Target[] = [
                 'recipe.prepare_reprocessing_issue', 'recipe.reprocessing_parents_check', 'recipe.recovered_expiry_cap',
                 'recipe.batches_receiving_from', 'recipe.g24v2_check', 'recipe.source_container_charge_check',
                 'recipe.reprocessing_request_problem', 'recipe.reprocessing_start_take'],
-    tests: [site('mutation/reprocessing.test.ts'), site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts'), s('mutation/reprocessing-g24v2.test.ts')],
+    tests: [site('mutation/reprocessing.test.ts'), site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts'), s('mutation/reprocessing-g24v2.test.ts'),
+            // Recipe-core 0893 redefined recipe.source_batch_expiry (the shelf life in effect at issue): its edge tests.
+            r('mutation/india-expiry.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: the formulation library: versions, approval, MBR pin, base standard, who reads a composition
@@ -831,6 +833,213 @@ export const TARGETS: Target[] = [
             s('blocks/dispensing/tb-01-db.test.ts'), s('blocks/granulation/db-guards.test.ts'),
             s('execution/db-guards-change-paths.test.ts'), s('blocks/compression/db-guards.test.ts'),
             s('blocks/reprocessing/db-guards.test.ts'), s('blocks/coating/db-guards.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 4 (decision 0012, focused mutation A): the release gate G-REL and its items, the manufacturer release and
+  //     rejection, the market dispositions (US QCU, EU QP certification and message intake), market add and removal
+  //     (recipe-core 0780-0826, 0841, 0892; tablets 1162, 1163, 1180). Reads that only list or format are left out
+  //     (recipe.release_lots, recipe.release_lot_facts, recipe.grel_acknowledged, recipe.lot_market_changes,
+  //     recipe.lot_qp_certifications). ----
+  {
+    group: 'release-gate',
+    functions: ['recipe.grel_evaluate', 'recipe.grel_core_items', 'recipe.grel_item', 'recipe.grel_items_well_formed',
+                'recipe.grel_edition_items', 'recipe.grel_versions', 'recipe.release_gate_problems', 'recipe.release_batches', 'recipe.release_deviations', 'recipe.release_scope',
+                'recipe.batch_purpose', 'recipe.batch_master_version', 'recipe.investigation_unjustifiable',
+                'recipe.investigation_unjustifiable_for', 'recipe.manufacturer_release_state', 'recipe.release_involvement'],
+    tests: [r('release/release.test.ts'), s('release/grel-interfaces.test.ts'), s('release/grel-tablets-items.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'release-gate-market-items',
+    functions: ['recipe.grel_market_items', 'recipe.grel_licence_item'],
+    tests: [r('release/dispositions.test.ts'), r('release/india.test.ts'), r('mutation/release-gate.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'manufacturer-release',
+    functions: ['recipe.record_manufacturer_release', 'recipe.manufacturer_decision', 'recipe.manufacturer_decision_in_xact',
+                'recipe.assert_release_signature', 'recipe.acknowledge_release_item', 'recipe.release_review_time',
+                'recipe.manufacturer_release_content', 'recipe.epoch_on_release_evidence', 'recipe.justify_open_investigation',
+                'recipe.investigation_justification_content', 'recipe.investigation_justification_of',
+                'recipe.record_post_change_evaluation', 'recipe.post_change_evaluation_content', 'recipe.post_change_record',
+                'recipe.record_ppq_outcome', 'recipe.ppq_outcome_content', 'recipe.ppq_statement_hash'],
+    tests: [r('release/release.test.ts'), r('release/dispositions.test.ts'), r('mutation/release-gate.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'tablets-release-items',
+    functions: ['tab.grel_edition_items', 'tab.grel_batch_ev', 'tab.grel_container_ev', 'tab.grel_container_release',
+                'tab.grel_entries', 'tab.grel_held_containers', 'tab.grel_item_of', 'tab.grel_pack_examination',
+                'tab.grel_posted_quantity', 'tab.grel_printed_tablets', 'tab.grel_problem', 'tab.grel_recon_packs',
+                'tab.grel_recon_printed', 'tab.grel_recon_serial', 'tab.grel_recon_yield', 'tab.grel_rule_sets',
+                'tab.grel_steps', 'tab.grel_unresolved', 'tab.grel_whole_batch_parents', 'tab.grel_changed_since',
+                'tab.grel_master_blocks', 'tab.grel_next_hold'],
+    tests: [s('release/grel-tablets-items.test.ts'), s('release/grel-interfaces.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'us-disposition',
+    functions: ['recipe.disposition_state', 'recipe.check_us_disposition', 'recipe.us_disposition_gate_problems',
+                'recipe.record_us_disposition', 'recipe.insert_us_disposition', 'recipe.record_release_with_us_disposition',
+                'recipe.us_decision', 'recipe.us_disposition_content', 'recipe.cascade_market_dispositions',
+                'recipe.market_act_problem', 'recipe.market_added', 'recipe.market_ineligible_by', 'recipe.market_rejections',
+                'recipe.controlled_release_actives', 'recipe.eu_outcome', 'recipe.lock_release_evidence',
+                'recipe.epoch_on_market_decision', 'recipe.eu_importer_of'],
+    tests: [r('release/dispositions.test.ts'), r('release/after-release.test.ts'), s('release/disposition-interfaces.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'qp-certification',
+    functions: ['recipe.epoch_on_qp_outcome', 'recipe.eu_certification_gate_problems', 'recipe.eu_importer_canonical',
+                'recipe.eu_importer_content', 'recipe.eu_outcome_problem', 'recipe.lot_importer', 'recipe.parse_certified_at',
+                'recipe.qp_certification_content', 'recipe.qp_details_sha256', 'recipe.qp_effective', 'recipe.qp_register_content',
+                'recipe.qp_registration', 'recipe.qp_transcription_check_content', 'recipe.qp_transcription_content',
+                'recipe.record_qp_certification', 'recipe.record_qp_transcription', 'recipe.register_eu_importer',
+                'recipe.register_qp', 'recipe.take_qp_message', 'recipe.verify_qp_transcription',
+                'recipe.eu_pending_transcription_problem', 'tab.take_qp_certification_message'],
+    tests: [r('release/dispositions.test.ts'), s('release/market-routes.test.ts'), s('release/qp-shipping-routes.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'market-changes',
+    functions: ['recipe.market_add_evaluate', 'recipe.market_set', 'recipe.market_base_set', 'recipe.market_change_content',
+                'recipe.market_change_next_id', 'recipe.market_change_ref', 'recipe.market_change_scope', 'recipe.market_failed',
+                'recipe.market_subject_batches', 'recipe.lots_of_batch', 'recipe.packaging_children_of',
+                'recipe.packaging_order_markets_check', 'recipe.record_market_change'],
+    // recipe.market_removal_after_release_check is mutated in after-release-suspension (one group per function).
+    tests: [r('release/dispositions.test.ts'), r('release/after-release.test.ts'), s('release/disposition-interfaces.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 4 (decision 0012, part 2): after release and record integrity. Suspension and its cause triggers,
+  //     re-confirmation, recall, rejection after release and disposal (recipe-core 0840, 0841, 0874, 0875; site services
+  //     0880 with the ERP stock-block outbox), the shipping interlock (site services 0870, 0871), record locking and
+  //     amendment (recipe-core 0870, 0872 to 0874), the bulk reconciliation and bright-stock hold (recipe-core 0871) and
+  //     the EXECUTION_COMPLETE contingency-form gate (recipe-core 0911). recipe.manufacturer_release_state and
+  //     recipe.disposition_state (re-created by 0840) stay in the release groups; recipe.issue_packaging_bulk (0871) and
+  //     tab.packaging_run_problem (tablets 1190) stay in their Phase 3 group, with the Phase 4 test files added there. ----
+  {
+    group: 'after-release-suspension',
+    functions: ['recipe.genealogy_downstream_lots', 'recipe.market_decided_released', 'recipe.open_suspensions',
+                'recipe.after_release_state', 'recipe.suspension_cause_problem', 'recipe.suspend_lot', 'recipe.suspension_cause', 'recipe.suspend_release',
+                'recipe.suspend_affected', 'recipe.suspend_on_deviation_link', 'recipe.suspend_on_kernel_link',
+                'recipe.suspend_on_revised_result', 'recipe.suspend_on_calibration_failure', 'recipe.release_suspension_next_id',
+                'recipe.market_removal_after_release_check'],
+    tests: [r('release/after-release.test.ts'), r('release/record-amendment.test.ts'), s('release/disposition-interfaces.test.ts'),
+            r('release/dispositions.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'after-release-decisions',
+    functions: ['recipe.market_state_now', 'recipe.after_release_problems', 'recipe.release_suspension_content',
+                'recipe.after_release_settle', 'recipe.record_after_release_decision', 'recipe.after_release_lot_event_in_xact',
+                'recipe.disposal_details_sha256', 'recipe.disposal_problem', 'recipe.disposal_content', 'recipe.record_disposal',
+                'recipe.witness_disposal', 'recipe.disposal_lot_event_in_xact', 'site.guard_after_release_decision',
+                'site.guard_disposal_recorded', 'site.request_erp_stock_block', 'site.erp_stub_apply_stock_block',
+                'site.erp_stub_deliver_stock_blocks', 'site.erp_stock_state'],
+    tests: [r('release/after-release.test.ts'), r('release/record-amendment.test.ts'), site('lots/machine.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'shipping-interlock',
+    functions: ['site.release_model_text', 'site.shipment_problems', 'site.erp_shipment_interlock', 'site.erp_record_shipment',
+                'site.qp_package_subject'],
+    tests: [site('shipping/erp-shipping.test.ts'), r('release/after-release.test.ts'), k('records/qp-package.test.ts'), s('release/qp-shipping-routes.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'record-lock-and-amendment',
+    functions: ['recipe.record_lock_state', 'recipe.record_lock_append', 'recipe.assert_record_writable',
+                'recipe.refuse_locked_write', 'recipe.refuse_order_of_locked_record', 'recipe.lock_at_first_disposition',
+                'recipe.record_lock_ref', 'recipe.record_released_lots', 'recipe.record_lock_content', 'recipe.record_lock_next_id',
+                'recipe.open_record_amendment', 'recipe.append_amendment_entry', 'recipe.close_record_amendment',
+                'recipe.record_lock_actor_role'],
+    tests: [r('lifecycle/record-lock.test.ts'), r('release/record-amendment.test.ts'), s('records/records-routes.test.ts'), r('release/after-release.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'bulk-and-bright-stock',
+    functions: ['recipe.batch_family_kind', 'recipe.order_status', 'recipe.bulk_container_disposition', 'recipe.bulk_totals',
+                'recipe.bulk_close_problems', 'recipe.close_bulk_reconciliation', 'recipe.bulk_issue_within_produced',
+                'recipe.set_bright_stock_hold', 'recipe.bright_stock_max_hold_of', 'recipe.bright_stock_deviation_covers',
+                'recipe.bright_stock_container_problem', 'recipe.bright_stock_hold_problem'],
+    tests: [r('lifecycle/record-lock.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'execution-complete-forms',
+    functions: ['recipe.refuse_unreconciled_completion'],
+    tests: [r('lifecycle/execution-complete-forms.test.ts'), k('records/contingency-forms.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 4 (decision 0012, scope C): the India gate, expiry, records and signature binding. The licences, export
+  //     permissions and stability basis (site-services 0885, 0886); the India issue gate with hazard dedication and the
+  //     licence basis written at issue (recipe-core 0890, 0891, 0912; gmp_issue_problem's India part is a bare call of
+  //     recipe.india_issue_problem, which this group mutates); expiry (recipe-core 0893, tablets 1201; 0893's
+  //     recipe.source_batch_expiry stays in the reprocessing group, with this group's kill tests added there); the H2 payload
+  //     and the allocation register (recipe-core 0894, 0895, 0913); the evidence export and contingency forms (kernel
+  //     1170, 1171, 1174; recipe-core 0911); the PQR extract (recipe-core 0910). The record content functions are the
+  //     signed content, so a change there is a change of what a signature binds. ----
+  {
+    group: 'india-licences',
+    functions: ['site.india_record_immutable', 'site.licence_state', 'site.licence_current', 'site.licence_basis',
+                'site.licence_problem', 'site.export_permission_state', 'site.export_permission_current',
+                'site.export_permission_problem', 'site.manufacturing_licence_content', 'site.export_permission_content',
+                'site.india_instant', 'site.record_manufacturing_licence', 'site.approve_manufacturing_licence',
+                'site.suspend_manufacturing_licence', 'site.record_export_permission', 'site.approve_export_permission',
+                'site.suspend_export_permission', 'site.erp_product_effective_at', 'site.shelf_life_basis_of',
+                'site.shelf_life_change_check', 'site.record_shelf_life_basis'],
+    tests: [site('india/licences.test.ts'), r('release/india.test.ts'), site('mutation/india-licences.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'india-issue-gate',
+    functions: ['recipe.india_issue_problem', 'recipe.record_batch_licence_basis', 'plant.record_product_hazard',
+                'plant.record_area_dedication', 'plant.product_hazard_approved', 'plant.product_hazard_class',
+                'plant.product_hazard_classes', 'plant.area_dedicated', 'plant.hazard_area_problem',
+                'plant.hazard_record_state', 'plant.dedication_record_state', 'plant.hazard_classification_content',
+                'plant.area_dedication_content', 'plant.assert_hazard_approval', 'plant.approve_product_hazard',
+                'plant.approve_area_dedication'],
+    tests: [r('release/india.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'india-expiry',
+    functions: ['recipe.expiry_month_end', 'recipe.batch_shelf_life', 'recipe.batch_expiry',
+                'tab.post_finished_lot', 'tab.batch_data_expiry_check'],
+    tests: [r('release/india.test.ts'), s('india/india-routes.test.ts'), s('blocks/packaging/db-guards.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'india-h2-and-allocation',
+    functions: ['recipe.india_label_particulars', 'recipe.h2_layout', 'recipe.h2_payload', 'recipe.issue_h2_payload',
+                'recipe.h2_payload_problem', 'recipe.allocation_register'],
+    tests: [r('release/india.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'records-evidence-export',
+    functions: ['records.evidence_export_state', 'records.evidence_export_content', 'records.register_evidence_export',
+                'records.certify_evidence_export', 'records.read_evidence_export', 'records.batch_status',
+                'records.true_copy_content_text', 'records.true_copy_bundle_problem'],
+    tests: [k('records/evidence-export.test.ts'), k('records/true-copy.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'records-contingency-forms',
+    functions: ['records.contingency_form_state', 'records.contingency_forms_of', 'records.unreconciled_forms',
+                'records.form_reconciliation_state', 'records.form_reconciliation_problem',
+                'records.form_reconciliation_content', 'records.issue_contingency_pack',
+                'records.record_contingency_form_event', 'records.sign_form_reconciliation'],
+    // recipe.refuse_unreconciled_completion is mutated in execution-complete-forms (one group per function).
+    tests: [k('records/contingency-forms.test.ts'), r('lifecycle/execution-complete-forms.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'pqr-extract',
+    functions: ['recipe.pqr_extract_v1', 'recipe.pqr_register_view', 'recipe.pqr_reconciliation', 'recipe.pqr_query_problem',
+                'recipe.pqr_result_sha256', 'recipe.pqr_current_version', 'recipe.pqr_run_query', 'recipe.pqr_reproduces',
+                'recipe.pqr_involvement', 'recipe.run_pqr_extract', 'recipe.pqr_extract_content', 'recipe.sign_off_pqr'],
+    tests: [r('release/pqr-extract.test.ts')],
     threshold: 90,
   },
 ];

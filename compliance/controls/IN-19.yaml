@@ -61,6 +61,8 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the happy variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
   - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][IN-19][INV-33] a G-24@2 step starts only on an unused signed STEP authorisation of this batch, step and case by another person; a validated re-treatment, a G-24@1 step, a step already started and a batch without G-24@2 take none"
+  - "packages/recipe-core/test/mutation/india-expiry.test.ts > the shelf life and expiry of a batch (recipe-core 0893) > [PR-43] [IN-19] a shelf life of one month counts: the batch expires at the end of its month of manufacture, and the expiry of a source batch is its own"
+  - "packages/recipe-core/test/mutation/india-expiry.test.ts > the shelf life and expiry of a batch (recipe-core 0893) > [IN-19] a recovered input caps the expiry only when it expires before the month end: at the month end the batch is not capped"
 clauses:
   - clause: "add recovered material without prior authorisation; the step is blocked."
     tests:

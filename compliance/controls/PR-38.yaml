@@ -32,6 +32,8 @@ tests:
   - "apps/tablets-web/test/records/records.test.tsx > locked records > [PR-38] the maximum hold of bright stock is listed and set as a new version with a reason"
   - "apps/tablets-web/test/records/records.test.tsx > bulk reconciliation > [PR-38] shows produced, issued and left bulk per order and container; the close waits for the server's problems"
   - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-39][PR-37][PR-38] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
+  - "packages/recipe-core/test/lifecycle/record-lock.test.ts > bulk across packaging orders and the bulk reconciliation (PR-38, INV-21; recipe-core 0870, 0871) > [PR-38][INV-21] each container of the bulk is accounted for once: issued, merged, charged, open, rejected or left; the totals add only the closed nets of the dispositions asked; a packaging order still planned keeps the reconciliation open"
+  - "packages/recipe-core/test/lifecycle/record-lock.test.ts > bulk across packaging orders and the bulk reconciliation (PR-38, INV-21; recipe-core 0870, 0871) > [INV-21][PR-38] the reconciliation closes with no reason when all the bulk went to packaging (none is kept then), with a reason of 10 characters when bulk is left; it serialises with the engine and the containers"
 clauses:
   - clause: "Labelling trays of batch A under an order for batch B is rejected."
     tests:

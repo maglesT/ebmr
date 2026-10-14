@@ -48,6 +48,8 @@ tests:
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] completion is refused while a form is issued and not returned, returned and not verified, or reported missing without its deviation reference; it passes once every form is reconciled and FORMS_RECONCILED is signed"
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] the application role cannot write the completion around the gate nor switch the gate off"
   - "packages/recipe-core/test/engine/stage.test.ts > G-02 stage frame and summary > [PR-16][IN-15] a step whose checker signature no longer stands blocks completion: the stage sign-off is refused naming the step, and the record is not complete until it is checked again"
+  - "packages/recipe-core/test/mutation/records-contingency-forms.test.ts > a contingency pack for a batch that ended, and the completion gate (kernel 1174, recipe-core 0911) > [DI-43] [PR-16] a change of status other than completion is not held by open forms; no pack is issued once the batch ended"
+  - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] only the move into EXECUTION_COMPLETE is gated: another write of the status of a batch with a form still out passes"
 clauses:
   - clause: "Removing one label specimen"
     deferred:

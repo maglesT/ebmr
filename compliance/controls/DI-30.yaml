@@ -485,6 +485,7 @@ tests:
   - "apps/tablets-web/test/release/markets.test.tsx > EU tab > [DI-30] a transcribed certification is signed with every detail as entered; a QP rejection needs its reason"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39][INV-39] a transcribed certification counts only once a second QA person verifies it, never the transcriber, and only while the lot awaits certification"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39] one outcome path at a time: while a transcription waits for its second person, a message and an in-system QP are refused"
+  - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the steps of a form (kernel 1170, records.record_contingency_form_event) > [DI-43] [DI-30] the transcription a verifier may not have made is the form's own latest transcription, not another form's nor another step of it"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

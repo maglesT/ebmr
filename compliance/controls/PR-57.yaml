@@ -52,6 +52,8 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the happy variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > the exception-rich variant > [PR-47][IN-19][PR-57] adds the case-2 residue of the source batch within its caps, and holds the genealogy of every lot"
   - "apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts > the G-07 consumption pairing (tablets 1093, 1100) > [INV-13][INV-14][PR-57] each new G-07 weighing pairs in recorded order with the first unused consumption of this transaction, this batch, this lot of the batch's site and exactly its net, never one a TB-01 entry names; an unpaired one is refused; old entries, other steps and entries naming no lot are left alone"
+  - "packages/recipe-core/test/release/after-release.test.ts > a revised result as the cause (L-19; D-5-4) > [L-19][PR-57] a revised result resolves its cause only through its own latest revision: out of its limits it is a problem; revised again within them it is resolved"
+  - "packages/recipe-core/test/release/after-release.test.ts > the genealogy of a suspension (L-19, PR-57; recipe-core 0840) > [L-19][PR-57] every edge of the genealogy leads from its own source only: bulk issued, packaging orders, reprocessing children, source additions, lot consumption, returned goods; only finished lots are named, never the node itself"
 clauses:
   - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
     deferred:

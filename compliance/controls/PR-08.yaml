@@ -169,6 +169,7 @@ tests:
   - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification"
   - "apps/tablets-server/test/mutation/exception-register-sync.test.ts > the exception register follows the state (recipe-core 0440, 0441) > [PR-08][INV-41] a deviation is linked only by the exception's own accepted ATTACH_DEVIATION, by the person it names, with a reference; the link is never changed or taken away"
   - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [PR-08] the release screen shows each registration-relevant deviation of the lot's records with its flag and deviation, and offers nothing that clears the flag"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-08][PR-53] the registration item lists the registration-relevant exceptions of the lot's records only, each with the deviation linked to it; a deviation linked to another exception of the batch stays justifiable"
 clauses:
   - clause: "A value outside a registered limit creates a deviation with the registration flag,"
     tests:
