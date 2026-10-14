@@ -761,6 +761,31 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     }
   });
 
+  it('[PR-06][INV-05] a title-only revision keeps the validation basis of the version it was derived from (G6 GREEN); a process-impacting revision without its own basis stays RED, naming the batch (recipe-core 0932)', async () => {
+    const base = await effective();
+    await productAndSpecification(base.content);
+    const v2 = await w.approvedSuccessor(base.versionId, (m) => {
+      m.header.title = `${m.header.title} (rev 2)`;
+    }, { validationLink: false, regulatory: [{ market: 'IN', category: 'NOTIFICATION_LOW' }] });
+    await w.authorise(auth(v2.versionId));
+    const lot = await readyLot({ master: base });
+    expect((await db.admin.query<{ v: string }>('select (recipe.batch_master_version($1)).id::text as v', [lot.batchId])).rows[0]!.v).toBe(v2.versionId);
+    const parentRefs = (await db.admin.query<{ ref: string }>(
+      `select x.validation_ref as ref from recipe.change_record_validation x join recipe.mbr_version v on v.change_record_id = x.change_record_id
+        where v.id = $1 order by x.validation_ref`, [base.versionId])).rows.map((r) => r.ref);
+    expect(parentRefs.length).toBeGreaterThan(0);
+    let basis = item(await grel(lot.lotId), 'G6.VALIDATION_BASIS');
+    expect(basis.status).toBe('GREEN');
+    expect(refs(basis)).toEqual(parentRefs);
+    // TEST FIXTURE: the same revision as a process-impacting change without its own validation link (the approval guard
+    // refuses that, PR-06; the gate does not rely on it): the walk stops at it and the item is RED.
+    await asFixture(async (fx) => {
+      await fx.query('update recipe.change_record set process_impacting = true where id = (select change_record_id from recipe.mbr_version where id = $1)', [v2.versionId]);
+    });
+    basis = item(await grel(lot.lotId), 'G6.VALIDATION_BASIS');
+    expect(basis.problem).toMatch(new RegExp(`^the master of batch ${await batchNumber(lot.batchId)} \\(version \\d+\\) cites no validation report`));
+  });
+
   it('[INV-05] a reserve sample pulled or disposed of moves the epoch of its own lot', async () => {
     const lot = await readyLot();
     const other = await readyLot();

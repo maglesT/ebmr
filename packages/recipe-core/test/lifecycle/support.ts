@@ -269,7 +269,8 @@ export class World {
     const content = (await lc.loadContent(this.db.app, ref.versionId)).content;
     edit(content);
     await this.run(this.cast.author, (c) => lc.saveContent(c, ref.versionId, content, 'edited'));
-    const cr = await this.changeRecord({ ...(opts.regulatory ? { regulatory: opts.regulatory } : {}) });
+    // validationLink false: a change the owner classifies as not process-impacting, with no validation link (PR-06).
+    const cr = await this.changeRecord({ ...(opts.regulatory ? { regulatory: opts.regulatory } : {}), ...(opts.validationLink === false ? { validationRef: null, processImpacting: false } : {}) });
     const ra = await this.riskAssessment();
     await this.run(
       this.cast.author,
