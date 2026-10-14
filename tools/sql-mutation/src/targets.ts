@@ -563,7 +563,7 @@ export const TARGETS: Target[] = [
                 'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue',
                 // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
                 'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check'],
-    tests: [r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
+    tests: [r('lifecycle/record-lock.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
             // The row checks 0502 replaced (recipe-core 0338, 0339, 0345): their Phase 2 tests.
             s('execution/db-guards-row-context.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-row-shape.test.ts'), s('execution/signed-content-hold-point.test.ts')],
     threshold: 90,
@@ -905,6 +905,66 @@ export const TARGETS: Target[] = [
                 'recipe.market_subject_batches', 'recipe.lots_of_batch', 'recipe.packaging_children_of',
                 'recipe.packaging_order_markets_check', 'recipe.record_market_change', 'recipe.market_removal_after_release_check'],
     tests: [r('release/dispositions.test.ts'), r('release/after-release.test.ts'), s('release/disposition-interfaces.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 4 (decision 0012, part 2): after release and record integrity. Suspension and its cause triggers,
+  //     re-confirmation, recall, rejection after release and disposal (recipe-core 0840, 0841, 0874, 0875; site services
+  //     0880 with the ERP stock-block outbox), the shipping interlock (site services 0870, 0871), record locking and
+  //     amendment (recipe-core 0870, 0872 to 0874), the bulk reconciliation and bright-stock hold (recipe-core 0871) and
+  //     the EXECUTION_COMPLETE contingency-form gate (recipe-core 0911). recipe.manufacturer_release_state and
+  //     recipe.disposition_state (re-created by 0840) stay in the release groups; recipe.issue_packaging_bulk (0871) and
+  //     tab.packaging_run_problem (tablets 1190) stay in their Phase 3 group, with the Phase 4 test files added there. ----
+  {
+    group: 'after-release-suspension',
+    functions: ['recipe.genealogy_downstream_lots', 'recipe.market_decided_released', 'recipe.open_suspensions',
+                'recipe.after_release_state', 'recipe.suspension_cause_problem', 'recipe.suspend_lot', 'recipe.suspension_cause', 'recipe.suspend_release',
+                'recipe.suspend_affected', 'recipe.suspend_on_deviation_link', 'recipe.suspend_on_kernel_link',
+                'recipe.suspend_on_revised_result', 'recipe.suspend_on_calibration_failure', 'recipe.release_suspension_next_id',
+                'recipe.market_removal_after_release_check'],
+    tests: [r('release/after-release.test.ts'), r('release/record-amendment.test.ts'), s('release/disposition-interfaces.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'after-release-decisions',
+    functions: ['recipe.market_state_now', 'recipe.after_release_problems', 'recipe.release_suspension_content',
+                'recipe.after_release_settle', 'recipe.record_after_release_decision', 'recipe.after_release_lot_event_in_xact',
+                'recipe.disposal_details_sha256', 'recipe.disposal_problem', 'recipe.disposal_content', 'recipe.record_disposal',
+                'recipe.witness_disposal', 'recipe.disposal_lot_event_in_xact', 'site.guard_after_release_decision',
+                'site.guard_disposal_recorded', 'site.request_erp_stock_block', 'site.erp_stub_apply_stock_block',
+                'site.erp_stub_deliver_stock_blocks', 'site.erp_stock_state'],
+    tests: [r('release/after-release.test.ts'), r('release/record-amendment.test.ts'), site('lots/machine.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'shipping-interlock',
+    functions: ['site.release_model_text', 'site.shipment_problems', 'site.erp_shipment_interlock', 'site.erp_record_shipment',
+                'site.qp_package_subject'],
+    tests: [site('shipping/erp-shipping.test.ts'), r('release/after-release.test.ts'), k('records/qp-package.test.ts'), s('release/qp-shipping-routes.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'record-lock-and-amendment',
+    functions: ['recipe.record_lock_state', 'recipe.record_lock_append', 'recipe.assert_record_writable',
+                'recipe.refuse_locked_write', 'recipe.refuse_order_of_locked_record', 'recipe.lock_at_first_disposition',
+                'recipe.record_lock_ref', 'recipe.record_released_lots', 'recipe.record_lock_content', 'recipe.record_lock_next_id',
+                'recipe.open_record_amendment', 'recipe.append_amendment_entry', 'recipe.close_record_amendment',
+                'recipe.record_lock_actor_role'],
+    tests: [r('lifecycle/record-lock.test.ts'), r('release/record-amendment.test.ts'), s('records/records-routes.test.ts'), r('release/after-release.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'bulk-and-bright-stock',
+    functions: ['recipe.batch_family_kind', 'recipe.order_status', 'recipe.bulk_container_disposition', 'recipe.bulk_totals',
+                'recipe.bulk_close_problems', 'recipe.close_bulk_reconciliation', 'recipe.bulk_issue_within_produced',
+                'recipe.set_bright_stock_hold', 'recipe.bright_stock_max_hold_of', 'recipe.bright_stock_deviation_covers',
+                'recipe.bright_stock_container_problem', 'recipe.bright_stock_hold_problem'],
+    tests: [r('lifecycle/record-lock.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'execution-complete-forms',
+    functions: ['recipe.refuse_unreconciled_completion'],
+    tests: [r('lifecycle/execution-complete-forms.test.ts')],
     threshold: 90,
   },
 ];

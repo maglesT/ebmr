@@ -87,7 +87,9 @@ jobs:
                 tablets-granulation, tablets-compression, tablets-ipc, tablets-coating, tablets-forming,
                 packaging-g21-rules, packaging-printing-and-serialisation, packaging-blister, packaging-bottle,
                 platform-scope, tablets-core-checks, release-gate, release-gate-market-items, manufacturer-release,
-                tablets-release-items, us-disposition, qp-certification, market-changes]
+                tablets-release-items, us-disposition, qp-certification, market-changes, after-release-suspension,
+                after-release-decisions, shipping-interlock, record-lock-and-amendment, bulk-and-bright-stock,
+                execution-complete-forms]
     services:
       postgres:
         image: postgres:16

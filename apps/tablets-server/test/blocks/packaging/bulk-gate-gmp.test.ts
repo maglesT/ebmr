@@ -107,6 +107,23 @@ describe('a packing step needs bulk issued to its batch (exit review HIGH-3; tab
     expect(r.ok).toBe(false);
     expect(JSON.stringify(refusalOf(r))).toMatch(/EBMR-TAB-395.*past its maximum hold.*maximum hold of 24 hours/);
     expect(await d.version('operator1')).toBe(before);
+    // Which entries start packing (the check itself, asked directly with a content of one step of each kind): a TB-21 run
+    // start, every one; the first entry of a TB-23 or TB-24 step; nothing else.
+    const steps = { kind: 'sequence', children: [['s21', 'TB-21'], ['s24', 'TB-24'], ['s21b', 'G-21']].map(([id, type]) => ({ kind: 'phase', id, block: { type, version: '1' } })) };
+    const ask = async (batch: string, old: Json, add: Json): Promise<string | null> =>
+      (await w.gmp.db.admin.query<{ p: string | null }>('select tab.packaging_run_problem($1, $2::jsonb, $3::jsonb, $4::jsonb) as p', [
+        batch, JSON.stringify({ procedure: steps }), JSON.stringify({ entries: old }), JSON.stringify({ entries: { ...old, ...add } }),
+      ])).rows[0]!.p;
+    const e = (stepKey: string, kind: string, seq: number): Json => ({ stepKey, kind, recordedSeq: seq });
+    const past = /starts packing on bright stock past its maximum hold/;
+    expect(await ask(batchId, {}, { n1: e('s21@', 'RUN_START', 1) })).toMatch(past);
+    expect(await ask(batchId, { o1: e('s21@', 'RUN_START', 1) }, { n2: e('s21@', 'RUN_START', 2) })).toMatch(past);
+    expect(await ask(batchId, {}, { n1: e('s21@', 'COUNT', 1) })).toBeNull();
+    expect(await ask(batchId, {}, { n1: e('s21b@', 'RUN_START', 1) })).toBeNull();
+    expect(await ask(batchId, {}, { n1: e('s24@', 'CHALLENGE', 1) })).toMatch(past);
+    expect(await ask(batchId, { o1: e('s24@', 'CHALLENGE', 1) }, { n2: e('s24@', 'CHALLENGE', 2) })).toBeNull();
+    expect(await ask(batchId, { o1: e('s21@', 'RUN_START', 1) }, {})).toBeNull();
+    expect(await ask(randomUUID(), {}, { n1: e('s21@', 'RUN_START', 1) })).toMatch(/starts packing, and no bulk was issued to this batch/);
     // The latest version of the maximum wins: within 100 hours the line starts.
     await hold(100);
     const again = await d.command('operator1', entry);
