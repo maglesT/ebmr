@@ -51,6 +51,10 @@ tests:
   - "apps/tablets-server/test/release/after-release-acts.test.ts > after-release act records (L-19, PR-46) > [PR-46] the witness signs the recorded destruction's own record (its id as given), never a new disposal record"
   - "apps/tablets-server/test/release/after-release-routes.test.ts > after release over HTTP (slice 5a; L-19, IN-29) > [PR-46][IN-05] QA disposes of the recalled lot through the ceremony (a witnessed destruction) and an independent witness completes it; the view shows the record awaiting its witness, then recorded"
   - "packages/recipe-core/test/release/after-release.test.ts > recall, rejection after release and disposal (outline 5.2.6; L-19, PR-46, IN-05 (e); D-5-5, D-5-6) > [PR-46][IN-05] a disposal states a known route, a positive quantity up to the lot's, a return's party and reference, a reprocessing record of the lot's own product, and no blank note; each is checked before the signature"
+  - "apps/tablets-server/test/integrations/erp-wms/contract.test.ts > the ERP/WMS adapter against its simulators (DI-31) > [PR-46] the WMS asks before a move: a quarantined lot is refused a released-stock location; a move made without asking raises the alarm and the exception"
+  - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46] moving rejected stock to a released-stock location is blocked"
+  - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46][DI-31] an inbound move that already happened against the rule raises an alarm and an exception linked to the lot; the lot stays blocked until QA closes it with a deviation"
+  - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46] an open location exception blocks the issue of a released lot (reservation and consumption)"
 clauses:
   - clause: "Dispensing a rejected lot is blocked."
     tests:

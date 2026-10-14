@@ -208,6 +208,7 @@ tests:
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [DI-20] [IN-30] no India read answers without a session"
   - "packages/kernel/test/inbound/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20] an unregistered adapter identity is refused"
   - "packages/kernel/test/inbound/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20] only an INTEGRATION account on an active SERVER device is registered, by the device administrator, once per account"
+  - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20][DI-14] only the registered ERP_WMS adapter receives and delivers ERP/WMS messages, and it never issues stock"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

@@ -36,7 +36,7 @@ afterAll(async () => {
 });
 
 describe('ERP and WMS simulators (DI-31)', () => {
-  it('[DI-31] the feed serves contract envelopes whose hash is the payload as sent; each fault changes what the adapter sees', async () => {
+  it('[DI-31] the feed serves contract envelopes whose hash is the payload as sent; each fault changes what the adapter sees', () => {
     const f = new ErpWmsFeed('WMS', clock);
     const e1 = f.publish('wms.goods_receipt', 'D-1', receipt('D-1'));
     expect(InboundEnvelope.safeParse(e1).success).toBe(true);

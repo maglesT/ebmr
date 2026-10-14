@@ -101,6 +101,8 @@ tests:
   - "apps/tablets-server/test/review/register-routes.test.ts > the register routes record the showing and the opening (PR-52, DI-26) > [PR-52][DI-26] grouped acceptance stands on a recorded showing of the full list; a critical item is accepted only after its recorded opening"
   - "apps/tablets-server/test/mutation/exception-register-sync.test.ts > the exception register follows the state (recipe-core 0440, 0441) > [INV-41][DI-26] a row the state names must be recorded; an exception arrives open, unlinked, undecided, and is registered; one the state held without the register is refused; its raised facts never change; it is never removed"
   - "apps/tablets-web/test/review/review.test.tsx > exception register > [DI-26] a clean record shows \"no exception\" with its summary, on the register and on the record review, and offers no item to review"
+  - "packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts > overrides of interface-captured values (kernel 1181) > [DI-31][DI-26] the override register is written only through a domain correction: the application can neither call the function nor write the table"
+  - "packages/site-services/test/erp-wms/receipt.test.ts > corrections of WMS-captured receipt values (DI-31, DI-26) > [DI-31][DI-26] an interface-captured value changes only by an audit-trailed correction with a reason; the original stays and the override is registered"
 clauses:
   - clause: "Seed a batch with one instance of every exception type. All are listed."
     tests:
