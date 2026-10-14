@@ -31,6 +31,7 @@ import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
 import type { DryRunOutcome, SignableActionHandler } from '../../platform/ports.ts';
 import { dbActHandler, refusedOutcome, type ActTarget } from '../esig/db-acts.ts';
+import { qmsLinkFromEnv, qmsReleaseFetch } from '../integrations/adapters/qms/index.ts';
 
 type ReleaseAct = Extract<SignableAction, { kind: 'RELEASE_ACT' }>;
 type BuiltAct =
@@ -228,6 +229,12 @@ export function releaseActHandler(app: AppContext): SignableActionHandler<Releas
     precheck: (_client, _ctx, a) => Promise.resolve(inputRefusal(a)),
     async apply(client, _ctx, a, signatureId, companionSignatureId) {
       const i = a.input;
+      // Phase 6 slice 6a (D-P6a-3): with a QMS integrated, a release fetches the lot's QMS status live inside this signing
+      // transaction; the database's release guard requires that answer (recipe-core 0951). Rejections never ask the QMS.
+      if (a.act === 'MANUFACTURER_RELEASE' || a.act === 'RECONFIRM' || (a.act === 'US_DISPOSE' && i.usDecision === 'RELEASE') ||
+          (a.act === 'QP_CERTIFY' && i.qpOutcome !== 'REJECTED_BY_QP')) {
+        await qmsReleaseFetch(client, qmsLinkFromEnv(), a.lotId);
+      }
       switch (a.act) {
         case 'MANUFACTURER_RELEASE':
           if (i.usExpectedEpoch !== undefined) {

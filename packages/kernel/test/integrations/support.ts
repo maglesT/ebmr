@@ -5,8 +5,11 @@
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { activateAccount, createAccount, createPerson, decideRoleGrant, issueInitialSecret, registerDevice, requestRoleGrant } from '../../src/identity/admin.ts';
+import { authenticate, type AuthnDb } from '../../src/identity/authentication.ts';
+import { openSession } from '../../src/identity/sessions.ts';
 import type { TestDatabase } from '../support/db.ts';
-import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
+import { SEED_SITE, SEED_ZONE, seedAdministration, withReason, type SeededActor } from '../identity/seed.ts';
 
 export type SourceSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS';
 
@@ -27,10 +30,47 @@ export const ctxOf = (a: SeededActor, extra: Partial<ActorContext> = {}): ActorC
 
 export const sha256 = (s: string): string => createHash('sha256').update(s, 'utf8').digest('hex');
 
+/**
+ * The administrator (IAM.DEVICE_MANAGE, account creation) and the process owner (grant decisions, platform settings)
+ * the helpers act as: the kernel tests' seeded pair by default; a server test passes its installation's bootstrap pair.
+ */
+export interface Administration {
+  admin: ActorContext;
+  owner: ActorContext;
+  /** The authentication pool (default: the superuser pool in the ebmr_authn role, as the kernel seeds use). */
+  authn?: AuthnDb;
+}
+
+const administration = async (db: TestDatabase, given?: Administration): Promise<Administration> => given ?? (await seedAdministration(db));
+
+/** An INTEGRATION account (SERVICE_KEY, role SERVICE_ACCOUNT) with a session on its own SERVER device. */
+export async function integrationActor(db: TestDatabase, name: string, given?: Administration): Promise<SeededActor> {
+  const { admin, owner, authn } = await administration(db, given);
+  const lg = `svc-${randomBytes(5).toString('hex')}`;
+  const fp = randomBytes(32).toString('hex');
+  const created = await withCommand(db.app, withReason(admin), async (c) => {
+    const personId = await createPerson(c, 'SYSTEM', name);
+    const accountId = await createAccount(c, { personId, loginName: lg, kind: 'INTEGRATION' });
+    const { secret } = await issueInitialSecret(c, accountId, 'SERVICE_KEY');
+    await activateAccount(c, accountId);
+    const grantId = await requestRoleGrant(c, { accountId, roleCode: 'SERVICE_ACCOUNT', reason: 'test integration identity' });
+    await registerDevice(c, { code: `SRV-${randomBytes(5).toString('hex')}`, deviceClass: 'SERVER', site: SEED_SITE, fingerprint: fp, description: `test ${name} host` });
+    return { personId, accountId, secret, grantId };
+  });
+  await withCommand(db.app, withReason(owner), (c) => decideRoleGrant(c, created.grantId, true, 'approved for test'));
+  const ev = await authenticate(authn ?? { pool: db.admin, setRole: 'ebmr_authn' }, { method: 'SERVICE_KEY', identifier: lg, secret: created.secret, deviceFingerprint: fp, purpose: 'LOGIN' });
+  const s = await openSession(db.app, ev.authEventId, fp);
+  return {
+    personId: created.personId, accountId: created.accountId, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId, source: 'INTEGRATION',
+    siteZone: SEED_ZONE, legalName: name,
+    seed: { loginName: lg, password: created.secret, deviceFingerprint: fp, deviceClass: 'SERVER', grantId: created.grantId },
+  } as SeededActor;
+}
+
 /** An INTEGRATION account on its own SERVER device, registered for `system` by the device administrator. */
-export async function registerAdapter(db: TestDatabase, system: SourceSystem): Promise<TestAdapter> {
-  const { admin } = await seedAdministration(db);
-  const actor = await seedServiceActor(db, { kind: 'INTEGRATION', name: `${system} adapter ${randomBytes(2).toString('hex')}` });
+export async function registerAdapter(db: TestDatabase, system: SourceSystem, given?: Administration): Promise<TestAdapter> {
+  const { admin } = await administration(db, given);
+  const actor = await integrationActor(db, `${system} adapter ${randomBytes(2).toString('hex')}`, given);
   const code = `${system}-${randomBytes(3).toString('hex').toUpperCase()}`;
   const id = await withCommand(db.app, withReason(admin), async (c) =>
     (await c.query<{ id: string }>('select iam.register_integration_adapter($1, $2, $3, $4, $5) as id', [code, system, actor.accountId, actor.deviceId, `test ${system} adapter`])).rows[0]!.id,
@@ -89,8 +129,8 @@ export async function recordRefusal(db: TestDatabase, a: TestAdapter, envelope: 
   );
 }
 
-export async function setMirrorMode(db: TestDatabase, dataClass: string, mode: 'STAND_IN' | 'MIRROR'): Promise<void> {
-  const { owner } = await seedAdministration(db);
+export async function setMirrorMode(db: TestDatabase, dataClass: string, mode: 'STAND_IN' | 'MIRROR', given?: Administration): Promise<void> {
+  const { owner } = await administration(db, given);
   await withCommand(db.app, withReason(owner), (c) => c.query('select platform.set_setting($1, $2)', [`integration.mode.${dataClass.toLowerCase()}`, mode]));
 }
 
