@@ -223,9 +223,10 @@ acknowledges it; the messages of one lot keep their order). The WMS feed answers
 0915). The Phase 4 stub consumer of stock blocks (0880) stays for a demo without an ERP.
 
 **Defaults taken by builder A (decision 0004; recorded, the owner may change):**
-D-P6a-A-1 a manual override of an interface-captured value is a row of `platform.inbound_override` (kernel 1181), shown
-on the integration health side as the interface part of the exception report; linking it into a batch's engine-driven
-exception register is left to 6f or 6j; D-P6a-A-2 in STAND_IN the LMS rows keep the 0130 heartbeat, in MIRROR the LMS
+D-P6a-A-1 a manual override of an interface-captured value is a row of `platform.inbound_override` (kernel 1181),
+audited on the adapter's chain and shown with the original value on the lot's receipt page; a list of overrides on the
+integration health page needs a route in the lead's `integrations` contract, and linking an override into a batch's
+engine-driven exception register is left to 6f or 6j; D-P6a-A-2 in STAND_IN the LMS rows keep the 0130 heartbeat, in MIRROR the LMS
 freshness is the generic `platform.mirror_sync` with the data class's bound; D-P6a-A-3 receipt completeness (receipt
 record and an ACCEPTABLE examination of every container) is required for purchased kinds (API, excipients, packaging);
 lots made here (intermediates, finished, returned) have none; D-P6a-A-4 an unapproved manufacturer does not refuse the
