@@ -2,6 +2,7 @@
  * QMS contract (Phase 6 slice 6a; builder B). Inbound: deviation and CAPA status with a version token, change
  * controls. With a QMS integrated, CAPA rows are mirrors (D-P6a-6) and the release check reads the QMS status with a
  * version token inside the signing transaction (D-P6a-3, mirror data class QMS_STATUS).
+ * Receiving commands (site services 0925): site.receive_qms_deviation_status, site.receive_qms_capa, site.receive_qms_change_control.
  */
 import { z } from 'zod';
 import { CalendarDate, SourceCode, SourceText, type SystemContract } from '../contract.ts';
@@ -35,5 +36,11 @@ export const QMS: SystemContract = {
     'qms.change_control': { summary: 'The status of a change control', versions: { '1': QmsChangeControlV1 } },
   },
   outbound: ['qms.deviation_raised', 'qms.capa_requested'],
-  refusalCodes: {},
+  refusalCodes: {
+    'EBMR-QMS-001': 'MALFORMED',
+    'EBMR-QMS-002': 'WRONG_IDENTITY',
+    'EBMR-QMS-003': 'MALFORMED',
+    'EBMR-QMS-004': 'STALE',
+    'EBMR-QMS-005': 'WRONG_IDENTITY',
+  },
 };

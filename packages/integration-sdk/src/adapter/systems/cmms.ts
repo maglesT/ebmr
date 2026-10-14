@@ -1,6 +1,7 @@
 /**
  * CMMS contract (Phase 6 slice 6a; builder B). Inbound: calibrations and maintenance work orders with due dates (mirror
  * data classes CMMS_CALIBRATION and CMMS_MAINTENANCE; the equipment-use guard reads them).
+ * Receiving commands (recipe-core 0950): plant.receive_cmms_calibration, plant.receive_cmms_maintenance.
  */
 import { z } from 'zod';
 import { CalendarDate, SourceCode, type SystemContract } from '../contract.ts';
@@ -28,5 +29,12 @@ export const CMMS: SystemContract = {
     'cmms.maintenance': { summary: 'A maintenance work order and its due date', versions: { '1': CmmsMaintenanceV1 } },
   },
   outbound: ['cmms.equipment_fault'],
-  refusalCodes: {},
+  refusalCodes: {
+    'EBMR-CMMS-001': 'WRONG_IDENTITY',
+    'EBMR-CMMS-002': 'MALFORMED',
+    'EBMR-CMMS-003': 'WRONG_IDENTITY',
+    'EBMR-CMMS-004': 'STALE',
+    'EBMR-CMMS-005': 'DUPLICATE',
+    'EBMR-CMMS-006': 'OUT_OF_RANGE',
+  },
 };
