@@ -3,7 +3,7 @@
  * site (the product and material masters and open production orders, posted as the ERP interface's service identity),
  * then the approved specification of each GB-T-01 material (Phase 4 slice 2b) and the material lots of the GB-T-01 formula
  * received into quarantine by the warehouse, tested in LIMS-lite against it by the QC
- * analyst, the results approved by a second QC person (QC_RESULT_APPROVED) and the lots released on the identity-tested
+ * analyst (each with its receipt record, its manufacturer approved by QA and its containers examined), the results approved by a second QC person (QC_RESULT_APPROVED) and the lots released on the identity-tested
  * route (MATERIAL_LOT_RELEASED), each act through its own command and, where the database asks for one, a real
  * electronic signature of the persona. The active lot's assay is recorded from its approved LIMS results (tablets 1001).
  * Never run on a production installation.
@@ -88,6 +88,7 @@ async function seedLot(ctx: FeatureSeedContext, lot: SeedPackLot, route: 'IDENTI
   );
   const lotId = received?.lot_id;
   if (!lotId) throw new Error(`lot ${lot.lotCode} was not received`);
+  await completeReceipt(ctx, lotId, lot);
   const analyst = await ctx.actorFor('qcAnalyst');
   const resultIds: Record<string, string> = {};
   for (const t of lot.results) {
@@ -122,6 +123,44 @@ async function seedLot(ctx: FeatureSeedContext, lot: SeedPackLot, route: 'IDENTI
     await c.query("select site.change_lot_status($1, 'RELEASE', $2::bigint, $3, $4)", [lotId, v, sig, route]);
   });
   return lotId;
+}
+
+/** The demo manufacturer of every seeded material (approved by QA, PR-17). */
+const DEMO_MANUFACTURER = 'MFR-DEMO';
+
+/**
+ * QA approves the demo manufacturer for a material (site services 0910: the approved-manufacturer register, PR-17), with
+ * its MANUFACTURER_APPROVED signature, unless it is approved already.
+ */
+async function approveManufacturer(ctx: FeatureSeedContext, materialCode: string): Promise<void> {
+  const pool = ctx.pools.app;
+  const { rows } = await pool.query<{ ok: boolean }>('select site.manufacturer_approved($1, $2, $3) as ok', [SITE, materialCode, DEMO_MANUFACTURER]);
+  if (rows[0]?.ok) return;
+  const qa = await ctx.actorFor('qaInvestigator');
+  const id = await inCommand(pool, qa, async (c) =>
+    (await c.query<{ id: string }>('select site.propose_approved_manufacturer($1::jsonb) as id', [
+      JSON.stringify({ materialCode, manufacturerCode: DEMO_MANUFACTURER, manufacturerName: 'Demo Pharma Chem Pvt Ltd', basis: 'Demo supplier qualification file and on-site audit (DEMO-ONLY)' }),
+    ])).rows[0]?.id,
+  );
+  if (!id) throw new Error(`the manufacturer of ${materialCode} was not proposed`);
+  const sig = await ctx.signAs('qaInvestigator', { type: 'approved_manufacturer', id }, 'MANUFACTURER_APPROVED', 'PROPOSED');
+  await inCommand(pool, await ctx.actorFor('qaInvestigator'), (c) => c.query('select site.approve_manufacturer($1, $2)', [id, sig]));
+}
+
+/** The receipt record of a seeded lot (delivery, supplier, supplier batch, manufacturer, one container) and its examination by stores (PR-17). */
+async function completeReceipt(ctx: FeatureSeedContext, lotId: string, lot: SeedPackLot): Promise<void> {
+  const pool = ctx.pools.app;
+  await approveManufacturer(ctx, lot.materialCode);
+  const stores = await ctx.actorFor('stores');
+  await inCommand(pool, stores, (c) =>
+    c.query('select site.record_lot_receipt($1, $2::jsonb)', [
+      lotId,
+      JSON.stringify({ deliveryId: `GRN-${lot.lotCode}`, supplierCode: 'SUP-DEMO', supplierLot: `SB-${lot.lotCode}`, manufacturerCode: DEMO_MANUFACTURER, containers: '1', deliveryNoteName: lot.materialCode }),
+    ]),
+  );
+  await inCommand(pool, await ctx.actorFor('stores'), (c) =>
+    c.query('select site.record_receipt_examination($1, $2::jsonb)', [lotId, JSON.stringify({ containersExamined: '1', outcome: 'ACCEPTABLE' })]),
+  );
 }
 
 /**

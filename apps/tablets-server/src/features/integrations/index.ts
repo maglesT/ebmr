@@ -4,20 +4,29 @@
  * (contract ns/integrations.ts; kernel 1180; DI-31, DI-20). Every rule is the database's: the reads come from its
  * tables and platform.mirror_freshness, the acknowledgment is platform.acknowledge_integration_alarm (ALARM.ACKNOWLEDGE).
  * Slice 6a-0 fixes these routes; the adapter workers (builders A and B) live beside this file and hand data over
- * through the database under their integration identities, never through these routes.
+ * through the database under their integration identities, never through these routes. Slice 6a builder A: the plugin
+ * starts the ERP/WMS feeds the service-keys file configures (adapters/erp-wms; the worker base adapters/framework.ts).
  */
 import { routes } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
+import { startErpWmsAdapters } from './adapters/erp-wms/index.ts';
 import { INTEGRATIONS_GUIDANCE } from './guidance.ts';
 import { adapterDetail, adapterList, alarmList, alarmView, mirrorList, reconciliationList } from './reads.ts';
 
 export const guidance = INTEGRATIONS_GUIDANCE;
 
-export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
+export async function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
+  if (app.config.serviceKeysFile) {
+    const workers = await startErpWmsAdapters(app, scope.log).catch((e: unknown) => {
+      scope.log.warn({ err: e instanceof Error ? e.message : String(e) }, 'the ERP/WMS adapters could not start');
+      return [];
+    });
+    if (workers.length > 0) scope.addHook('onClose', async () => Promise.all(workers.map((w) => w.stop())).then(() => undefined));
+  }
   bindRoutes(scope, app, routes.integrations, {
     adapters: async ({ requireSession }) => {
       requireSession();
@@ -47,5 +56,4 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return alarmView(app, pool, params.alarmId);
     },
   });
-  return Promise.resolve();
 }

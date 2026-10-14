@@ -28,6 +28,7 @@ import type { TestDatabase } from '../../../../../packages/kernel/test/support/d
 import { cell, reason, World, type Cast } from '../../../../../packages/recipe-core/test/lifecycle/support.ts';
 import { postOrder } from '../../../../../packages/recipe-core/test/lifecycle/gmp-support.ts';
 import type { TestServer } from '../../support/harness.ts';
+import { arrangeCompleteReceipt } from '../../support/receipt-fixture.ts';
 import { recordContentForSigning } from '../../../src/features/esig/content.ts';
 import { engineActor, engineRoles } from '../../../src/features/execution/roles.ts';
 import { runContext } from '../../../src/features/execution/runs.ts';
@@ -252,6 +253,7 @@ beforeAll(async () => {
       );
       await c.query("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version) values ('material_lot', $1, 'material_lot', 1, $2, 1)", [id, l.state]);
       await c.query("insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account) values ($1, 'PASS', 'IR-01', 'T-01', gen_random_uuid(), gen_random_uuid())", [id]);
+      await arrangeCompleteReceipt(c, { id, site: SITE, material: l.material });
       if (l.assay) {
         // On GMP the assay is copied from an approved LIMS-lite result and names it (slice 5a; tablets 1001).
         const { rows: lims } = await c.query<{ id: string }>(
