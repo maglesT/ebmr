@@ -73,6 +73,9 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
   `AUDIT_TRAIL_REVIEW` act; [DI-25](../../compliance/controls/DI-25.yaml); INV-48.
 
 ## B
+- **B-xx** — rows of the India market-resolution table in the outline: how India-specific rules are resolved for a
+  batch. Where: `docs/outline/build-outline.md`.
+
 - **Badge and PIN** — a way to sign in or sign by presenting a card and a code, used on shop-floor terminals.
   `BADGE_PIN` is a signing method; the other is `PASSWORD`. Where: [kernel](modules/kernel.md).
 - **Batch** — one defined quantity of a medicine made in one run, treated as uniform; identified by a batch number.
@@ -250,8 +253,10 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
   `0170_batch_issue.sql`.
 
 ## K
-- **K-xx, KB-xx** — older numbering of the kernel's building blocks, kept as aliases of G-01 to G-25. The outline
-  holds the alias table.
+- **K-xx/TB-xx, KB-xx/IB-xx** — building-block numbers from the process specifications: K-xx and TB-xx from the
+  Tablets specification, KB-xx and IB-xx from the Injectables one. G-xx is the canonical generic list they map to
+  (outline section 6.6 holds the alias table). The Tablets edition's blocks live in `apps/tablets-server/src/blocks/`
+  (`tb-01.ts` to `tb-24.ts`).
 
 ## L
 - **Label reconciliation** — see *reconciliation*.
@@ -269,8 +274,10 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 - **LOD (loss on drying)** — the moisture content found by drying a sample. A loop in GB-T-01.
 - **Lot** — a defined quantity of one material or finished product received or made at one time. Material lots have a
   release route (`IDENTITY_TESTED` or `VENDOR_HISTORY`). Where: [site-services](modules/site-services.md); INV-13.
-- **L-xx** — numbered design notes in the outline that explain a decision, for example L-45 (evidence epoch), L-19
-  (after-release states), L-55 (database privileges). Code comments cite them. Where: `docs/outline/build-outline.md`.
+- **L-xx** — items L-01 to L-68 of the logic, usability and buildability review of the outline. Outline v0.2 resolved
+  each one (`resolution-log.md` records how), and the outline text carries the item number where the resolution
+  landed, for example L-19 (the after-release states) or L-25 (versioned switches). Code comments and test names cite
+  them as the design source. Where: `docs/outline/build-outline.md`.
 
 ## M
 - **MA (marketing authorisation)** — the regulator's approval to sell a product. Each MBR version must conform to it
@@ -365,8 +372,8 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 - **Role** — a set of permissions held by a person. Roles seen in code: `OPERATOR`, `SUPERVISOR`, `QA_REVIEWER`,
   `QA_MBR_APPROVER`, `QA_SHOP_FLOOR`, `QC_ANALYST`, `HEAD_OF_QC`, `AUTHORISED_PERSON`, `SYSTEM_ADMINISTRATOR`,
   `BREAK_GLASS_ADMIN`, `EU_QP_READER`.
-- **R-xx** — numbered references to the outline's requirement items, for example R-04 or R-05. Code comments cite them
-  next to the control. Where: `docs/outline/build-outline.md`.
+- **R-xx** — items R-01 to R-35 of the regulatory review of the outline, resolved in outline v0.2 (for example R-04).
+  Code comments and test names cite them next to the control. Where: `docs/outline/build-outline.md`.
 
 ## S
 - **Salt factor** — molecular weight of the salt form divided by that of the free base. GB-T-01: 322.33 / 300.35 =
@@ -395,7 +402,11 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 - **Step status** — `PENDING`, `ENABLED`, `IN_PROGRESS`, `ATTEMPT_HANDED_OVER`, `AWAITING_VERIFICATION`, `COMPLETED`,
   `NOT_APPLICABLE`, `SKIPPED`. Where: `StepStatus` in `ns/execution.ts`.
 - **Stricter rule wins** — the project principle: of all rule sets that apply, use the strictest; India's is the floor.
-- **Switch (S-xx)** — a configurable option listed in the outline (for example S4, S17, S32). Where: outline.
+- **S-numbers (S4, S17, ...)** — rows of the segregation-of-duties register (outline section 7.2): which roles must be
+  different people for an act. Some rows are configurable switches with a safe default (S4: may the checker also
+  approve an MBR; default no); others are locked and can never be switched off (S10 reviewer and disposition-signer
+  independence, S17 the approved-technical-staff gate). Not to be confused with "service S-3" in the building-block
+  table. Where: outline 7.2.
 
 ## T
 - **TB-xx** — Tablets-edition blocks TB-01 to TB-24 (dispensing TB-01, bulk-gate and bottle-line TB-23, finished-pack
