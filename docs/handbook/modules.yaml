@@ -30,7 +30,6 @@ pending:
   - 07-adding-a-feature.md
   - 10-runbooks.md
   - modules/site-services.md
-  - modules/api-contract.md
   - modules/integrations.md
   - modules/shared-kits.md
   - modules/injectables.md
