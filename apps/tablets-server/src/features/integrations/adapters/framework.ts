@@ -19,7 +19,7 @@
  *      a TRANSPORT failure (the source or the database unreachable, a cut answer, a late answer) ends the cycle without
  *      moving the cursor, and the next cycle retries after retryDelayMs(attempt) (1 s doubling to 5 min, never given up);
  *      an unclassified failure stops the worker on that message (health BLOCKED, retried with back-off, never skipped);
- *   4. the system's after-cycle work (the ERP's outbound delivery, the WMS's move questions).
+ *   4. the system's after-cycle work (the ERP's outbound delivery, the WMS's move questions), also when the feed failed.
  * Acknowledgment follows the commit (ACK_RULE): the feed protocol acknowledges by the cursor (the next page is asked
  * after the highest sequence handled), so a crash before the next page only causes a resend, which de-duplicates.
  *
@@ -216,6 +216,8 @@ export interface CycleReport {
   outcomes: MessageOutcome[];
   /** Set when the cycle stopped early: TRANSPORT (retried later) or UNCLASSIFIED (the worker is blocked on it). */
   stoppedBy: { kind: 'TRANSPORT' | 'UNCLASSIFIED'; error: string } | null;
+  /** The after-cycle work's failure, if any (retried next cycle). */
+  afterCycleError?: string;
 }
 
 export interface AdapterHealth {
@@ -309,7 +311,6 @@ export class AdapterWorker {
         const seq = outcome.sequenceNo ? BigInt(outcome.sequenceNo) : null;
         if (seq !== null && seq > this.cursor) this.cursor = seq;
       }
-      if (this.def.afterCycle) await this.def.afterCycle(this);
       this.healthState.state = 'IDLE';
       this.healthState.attempts = 0;
       this.healthState.lastError = null;
@@ -323,6 +324,16 @@ export class AdapterWorker {
       this.healthState.state = kind === 'UNCLASSIFIED' ? 'BLOCKED' : 'RETRYING';
       this.healthState.lastError = message;
       this.notBefore = Date.now() + retryDelayMs(this.healthState.attempts);
+    }
+    // The system's own work runs whatever happened to the feed (an ERP whose feed is cut may still take deliveries).
+    if (this.def.afterCycle) {
+      try {
+        await this.def.afterCycle(this);
+      } catch (error) {
+        report.afterCycleError = error instanceof Error ? error.message : String(error);
+        this.actor = null;
+        this.healthState.lastError = report.afterCycleError;
+      }
     }
     this.healthState.cursor = (this.cursor ?? 0n).toString();
     this.healthState.lastCycleAt = new Date().toISOString();
