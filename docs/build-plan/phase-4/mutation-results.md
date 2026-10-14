@@ -5,6 +5,19 @@ gate) and C (India gate, expiry, records, signature binding). Scope A comes firs
 deferrals follow. Scores were taken from the harness reports of the runs (`report.json`, `summary.md`); a score that no
 report holds is marked so and not estimated.
 
+## Summary (scopes A, B and C)
+
+| Scope | SQL groups run | First-run survivors | Outcome after the new tests | Real defects fixed |
+|---|---|---|---|---|
+| A, release gate and release | 4 of 7 (us-disposition stopped, 2 not run) | 298 | 232 aimed at by new tests (kill not confirmed), 6 equivalent, 60 residual with reasons | F-A1, G6.VALIDATION_BASIS (recipe-core 0932) |
+| B, after release, locking, shipping, form gate | 6 of 6 (691 mutants) | 152 | 26 equivalent, 8 killed in the confirmation run, 118 aimed at by new tests and unconfirmed | none |
+| C, India gate, expiry, records, signature binding | 7 of 7 | 214 | every non-equivalent survivor killed in the re-run (each group 100 %) | export permission reason text (site services 0903) |
+
+Stryker (TypeScript) ran once per feature in scopes B and C (scores in their sections); scope A's server release feature
+did not finish within an hour and is deferred. All new tests pass on the unmutated code in the final run of this branch
+(PROGRESS.md). What is left (kill confirmation, groups not run, Stryker survivor triage) is listed under "Deferred to
+deployment validation" at the end, as decision 0008 places validation-grade mutation work at deployment.
+
 ## Scope A, builder A
 
 Scope A: the release gate G-REL and its items, the manufacturer release and rejection, the market dispositions and market
@@ -13,7 +26,7 @@ changes. SQL harness groups in `tools/sql-mutation/src/targets.ts`; extra tests 
 `release/dispositions.test.ts` and `apps/tablets-server/test/release/grel-tablets-items.test.ts`. One run per group on a
 loaded spare cluster (3 workers, `EBMR_MUTATION_TEST_TIMEOUT=120000`), then survivors triaged once (owner's limit).
 
-## Group scores (first run, before the new tests)
+### Group scores (first run, before the new tests)
 
 | Group | Detected / mutants | Score | Survivors | Targeted by new tests | Equivalent | Residual |
 |---|---|---|---|---|---|---|
@@ -30,7 +43,7 @@ rule the confirmation pass (about 10 to 15 hours on this machine) belongs to dep
 the unmutated schema. Note that `recipe.grel_core_items` now has a later definition (recipe-core 0932, below), so its
 mutants are numbered from that definition in the next run.
 
-## Real defect fixed
+### Real defect fixed
 
 **F-A1, G6.VALIDATION_BASIS (recipe-core 0932; PR-06, PR-09, INV-05).** The item read only the change record of the
 batch's own master version. A revision approved as not process-impacting needs no validation link (PR-06), so every lot
@@ -40,14 +53,14 @@ master was derived from to the last process-impacting version (the change owner'
 `[PR-06][INV-05]` in `release-gate.test.ts`: a title-only revision is GREEN through its parent's basis; the same revision
 marked process-impacting without its own link is RED.
 
-## Equivalent mutants (recorded in `tools/sql-mutation/equivalent.json`)
+### Equivalent mutants (recorded in `tools/sql-mutation/equivalent.json`)
 
 - `recipe.grel_core_items#13`, `#125`, `#134`, `recipe.investigation_justification_of#8`: the `coalesce(..., false)`
   default on `esig.signature_state(...) ->> 'valid'` is never taken (the key is always a boolean).
 - `recipe.grel_core_items#145`: the G6.LICENCE placeholder is replaced in `recipe.grel_evaluate` before anything reads it.
 - `recipe.post_change_record#17`: the row comparison `<` to `<=` cannot differ when the ids already differ.
 
-## Residual survivors (reasons)
+### Residual survivors (reasons)
 
 - Time boundaries against the QA review time (`>` to `>=`): `grel_core_items` #41, #78, #83, #97, #107, #114, #151;
   `grel_market_items#32`. Equality needs the evidence written in the same instant as the review act.
@@ -66,7 +79,7 @@ marked process-impacting without its own link is RED.
   `tab.grel_item_of`: they need held, merged and charged container scenarios in the server fixture, not built within the
   limit.
 
-## Deferred to deployment validation
+### Deferred to deployment validation
 
 - Kill confirmation of the 232 targeted survivors (above).
 - us-disposition survivors (not triaged), qp-certification and market-changes (not run).
