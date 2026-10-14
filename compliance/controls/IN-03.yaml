@@ -18,6 +18,8 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/release/release.test.ts > incidents, validation and change (DI-12, PR-09, IN-03) > [IN-03] the first batch made under a changed master is released only after QA signs its post-change evaluation; the change's regulatory assessment for the market is checked"
   - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [IN-03][PR-09] QA signs a post-change evaluation and a PPQ outcome for the batch named, each with its own text"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [IN-03][INV-05] the change item reads the assessment of the market evaluated and names the change and the batch; the post-change item reads the batch's own evaluation"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-09][IN-03] validation outcomes and post-change evaluations refuse what the rules exclude; their signed content exists for GMP batches only"
 clauses:
   - clause: "approve MBR v2 under change CC-1, execute a batch; release is blocked until the post-change evaluation is signed."
     tests:

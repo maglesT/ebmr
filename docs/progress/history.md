@@ -2461,3 +2461,12 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   mutants killed, 19 equivalent (written up), 2 residual. The audit-review speed-up is recipe-core 0931. Exit review
   (one pass): no critical or high; three low residuals (allocation_register, qp_reader_access and read_qp_package do
   not refuse administrators first). phase.yaml at 4; the trace passes at phase 4 (143/241). E2E job timeout 45 minutes.
+- 2026-10-14: PHASE 4 FOCUSED MUTATION WORK (decision 0012; branch phase-4/mutation-final, scopes A, B and C merged).
+  Results and survivor reasons in docs/build-plan/phase-4/mutation-results.md. Real defects fixed: G6.VALIDATION_BASIS
+  now walks back to the last process-impacting master version (recipe-core 0932, PR-06); the export permission reason
+  text before approval (site services 0903). Scope C groups 100 % after the re-run; 232 scope A and 118 scope B
+  survivors aimed at by new tests, kill not confirmed. Merge fixes: one SQL mutation group per function
+  (market_removal_after_release_check, refuse_unreconciled_completion); register synced (41 tests, 18 controls). Final
+  run: 6,070 tests passed (the 2 [meta] failures above fixed and re-run), 31 golden, 42 browser, trace ok at phase 4
+  (143/241). Deferred to deployment validation: kill confirmation, the us-disposition, qp-certification and
+  market-changes groups, Stryker survivor triage.

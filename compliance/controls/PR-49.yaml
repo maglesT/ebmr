@@ -165,6 +165,7 @@ tests:
   - "packages/site-services/test/quality/deviation-full.test.ts > links and release (INV-46, L-21) > [INV-46][PR-49] a batch's release reads the links to the batch and to its output containers"
   - "packages/site-services/test/quality/deviation-full.test.ts > slice 2 quick review (site services 0824) > [INV-46][PR-49] a lot linked with a CONFIRMED impact stays unreleasable after the record is closed; one assessed POTENTIAL is released after closure (D-2a-9)"
   - "packages/recipe-core/test/release/after-release.test.ts > re-confirmation (outline 5.2.6; L-19, INV-05, INV-35, INV-39; D-5-4) > [L-19][PR-49] a deviation closed with a CONFIRMED impact for the market keeps it suspended (D-2a-9)"
+  - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][PR-49] a deviation linked after the release and closed stops the shipment only with a CONFIRMED impact on this lot's own link (D-2a-9); cancelled, of no impact, or confirmed for another lot, it does not"
 clauses:
   - clause: "A failure of a registered limit creates a deviation with the MA flag."
     tests:

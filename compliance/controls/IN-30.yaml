@@ -66,6 +66,7 @@ tests:
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played"
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none"
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-30] the signed approval (INDIA_ACT) answers with the act and the record it approved"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-56][INV-43][IN-30] for a market the lot is not made for, the lot-set item is RED; no market item reads \"since review\"; the licence item names the batch, its licence and the export permission of the product"
 clauses:
   - clause: "create a loan-licence batch; both licence numbers appear"
     tests:

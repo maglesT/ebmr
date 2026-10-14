@@ -31,6 +31,7 @@ tests:
   - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][PR-56] a US consignee receives the lot only after the US disposition RELEASED, and only for a market in the lot's set"
   - "packages/site-services/test/shipping/erp-shipping.test.ts > ERP shipping interlock (INV-42, IN-05 (a)) > [INV-42][DI-39][PR-56] an EU lot ships only to the importer the technical agreement names, as quarantined goods until the QP certified it"
   - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [INV-43][IN-24][PR-56] the US added after the vendor-history lot was consumed is INELIGIBLE on the recorded evidence, and the US disposition is refused"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-56][INV-43][IN-30] for a market the lot is not made for, the lot-set item is RED; no market item reads \"since review\"; the licence item names the batch, its licence and the export permission of the product"
 clauses:
   - clause: "A batch certified for the EU but not yet released by the US QCU cannot be shipped to the US, and the reverse also holds."
     tests:

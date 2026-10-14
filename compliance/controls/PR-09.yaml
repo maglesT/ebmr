@@ -25,6 +25,8 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/release/release.test.ts > incidents, validation and change (DI-12, PR-09, IN-03) > [PR-09] a PPQ batch waits for its validation outcome; concurrent release counts for the US only (India treated as the EU, D-P4-6); QA records the outcome once"
   - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [IN-03][PR-09] QA signs a post-change evaluation and a PPQ outcome for the batch named, each with its own text"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-09] a protocol batch reads its own validation outcome: a FAILED outcome names the batch, and another batch's outcome does not stand for one not recorded"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-09][IN-03] validation outcomes and post-change evaluations refuse what the rules exclude; their signed content exists for GMP batches only"
 clauses:
   - clause: "A PPQ-flagged batch cannot be released or certified until the validation outcome is entered."
     tests:

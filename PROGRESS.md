@@ -72,7 +72,9 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
     `docs/build-plan/phase-4/mutation-results.md`. Two real defects fixed with tests: G6.VALIDATION_BASIS walks back to
     the last process-impacting version (recipe-core 0932, PR-06) and the export permission reason text (site services
     0903). Scope C groups all 100 % after the re-run; scope A 232 survivors and scope B 118 survivors aimed at by new
-    tests but not re-confirmed. Final run: @@FINAL@@.
+    tests but not re-confirmed. Final run: typecheck and lint clean; 6,070 tests passed and 2 [meta] failed (both from merging the
+    scopes: a function in two SQL mutation groups, and 41 tagged tests not yet in the control lists; fixed, re-run passes);
+    31 golden and 42 browser tests passed; trace ok at phase 4 (143/241).
     Deferred to deployment validation: kill confirmation of the A and B survivors, us-disposition, qp-certification and
     market-changes groups, Stryker survivor triage (server release, records, India, archive and PQR features), a whole
     SQL re-run under the decision 0009 organisation.
