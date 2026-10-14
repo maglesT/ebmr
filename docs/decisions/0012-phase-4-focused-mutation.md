@@ -31,3 +31,6 @@ suite) before the PR, and no repeated full runs.
 Standing rule from the owner (14 October 2026), for all later phases: testing itself is welcome, but tests are not run
 again and again when nothing serious was found. A suite or mutation group is run once; it is re-run only to confirm the
 fix of a serious finding (critical or high, or a real defect in a core control), and only the part that the fix touches.
+Later mutation work is organised as at the Phase 3 exit (decision 0009): one SQL stream that runs its groups one after
+another, one TypeScript (Stryker) stream and one review stream, so that at most one heavy test job runs on the shared
+machine at a time; not one combined SQL-and-TypeScript run per area in parallel, as in this Phase 4 run.
