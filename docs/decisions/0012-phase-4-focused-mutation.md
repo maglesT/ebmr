@@ -27,3 +27,7 @@ qp-certification and market-changes go to deployment validation under decision 0
 current group or run). Survivors are confirmed once, by re-running only those mutants; whatever still survives is
 written up with its reason (CLAUDE.md: at most 2 fix rounds). Then one final full run (suite, golden batches, browser
 suite) before the PR, and no repeated full runs.
+
+Standing rule from the owner (14 October 2026), for all later phases: testing itself is welcome, but tests are not run
+again and again when nothing serious was found. A suite or mutation group is run once; it is re-run only to confirm the
+fix of a serious finding (critical or high, or a real defect in a core control), and only the part that the fix touches.
