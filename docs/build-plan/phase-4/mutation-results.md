@@ -1,4 +1,11 @@
-# Phase 4 focused mutation results, builder A (decision 0012)
+# Phase 4 focused mutation results (decision 0012)
+
+Three builders ran in parallel: A (release gate, release, dispositions), B (after release, locking, shipping, the form
+gate) and C (India gate, expiry, records, signature binding). Scope A comes first; scopes B and C and the overall
+deferrals follow. Scores were taken from the harness reports of the runs (`report.json`, `summary.md`); a score that no
+report holds is marked so and not estimated.
+
+## Scope A, builder A
 
 Scope A: the release gate G-REL and its items, the manufacturer release and rejection, the market dispositions and market
 changes. SQL harness groups in `tools/sql-mutation/src/targets.ts`; extra tests in
@@ -14,7 +21,7 @@ loaded spare cluster (3 workers, `EBMR_MUTATION_TEST_TIMEOUT=120000`), then surv
 | release-gate-market-items | 38 / 51 | 74.5 % | 13 | 11 | 0 | 2 |
 | manufacturer-release | 105 / 165 | 63.6 % | 60 | 53 | 2 | 5 |
 | tablets-release-items | 150 / 253 | 59.3 % | 103 | 63 | 0 | 40 |
-| us-disposition | run finishing (score pending) | | not triaged | | | |
+| us-disposition | no score: run stopped by a container restart after about 100 of 146 mutants (51 survivors logged); no report written | | not triaged | | | |
 | qp-certification | not run | | | | | |
 | market-changes | not run | | | | | |
 
@@ -65,3 +72,73 @@ marked process-impacting without its own link is RED.
 - us-disposition survivors (not triaged), qp-certification and market-changes (not run).
 - Stryker on `apps/tablets-server/src/features/release`: with the server template set-up it does not finish in under an
   hour with one worker.
+
+## Scope B, builder B (after release, locking, shipping, the form gate)
+
+Builder B was stopped by a container restart; its last commit is saved work in progress. One full run of the six groups
+(`m3`, 14 October, 691 mutants), then the confirmation re-run of the 127 non-equivalent survivors with B's new tests
+(`--only`), which the restart stopped after 8 mutants (all 8 killed, in after-release-suspension).
+
+| Group | First run detected / valid | Score | Survivors | Equivalent | Killed in confirmation | Unconfirmed | After |
+|---|---|---|---|---|---|---|---|
+| after-release-suspension | 62 / 83 | 74.7 % | 21 | 2 | 8 | 11 | 70 / 81 (86.4 %) |
+| after-release-decisions | 151 / 197 (1 invalid) | 76.6 % | 46 | 5 | 0 | 41 | 151 / 192 (78.6 %) |
+| shipping-interlock | 65 / 89 | 73.0 % | 24 | 13 | 0 | 11 | 65 / 76 (85.5 %) |
+| record-lock-and-amendment | 139 / 166 | 83.7 % | 27 | 3 | 0 | 24 | 139 / 163 (85.3 %) |
+| bulk-and-bright-stock | 116 / 149 | 77.9 % | 33 | 2 | 0 | 31 | 116 / 147 (78.9 %) |
+| execution-complete-forms | 5 / 6 | 83.3 % | 1 | 1 | 0 | 0 | 5 / 5 (100 %) |
+
+"After" counts only kills a run has shown; the 118 unconfirmed survivors are aimed at by B's new tests, but whether
+each is killed is not known.
+
+- Tests added: `recipe-core/test/release/after-release.test.ts` (suspension causes, which markets a suspension covers,
+  re-confirmation, revised results), `recipe-core/test/lifecycle/record-lock.test.ts`,
+  `recipe-core/test/lifecycle/execution-complete-forms.test.ts`, `recipe-core/test/shipping/erp-shipping.test.ts`,
+  `tablets-server` `release/after-release-acts.test.ts`, `release/after-release-routes.test.ts`,
+  `records/records-routes.test.ts`, `blocks/packaging/bulk-gate-gmp.test.ts`.
+- Equivalents (26, `tools/sql-mutation/equivalent.json`): raises behind an earlier `recipe.assert_release_signature`
+  or content-hash check (ARL-017, ARL-037, ARL-044, LCK-035, LCK-044); the release-model presence checks in site services
+  that every built database satisfies; `>=` to `>` boundaries that differ only for events in the same instant as the
+  release; null-or-not-object input checks.
+- Stryker (TypeScript, `tablets-server`): the release feature (`after-release.ts`, `index.ts`, `signables.ts`) 90.3 %
+  (215 killed, 12 survived, 11 without coverage); the records feature (`index.ts`, `reads.ts`, `signables.ts`) 71.7 %
+  (235 killed, 26 survived, 67 without coverage). One run each; survivors not triaged.
+
+## Scope C, builder C (India gate, expiry, records, signature binding)
+
+Builder C committed its tests before the restart. One run per group, then one re-run of the survivors with the new tests.
+
+| Group | First run detected / valid | Score | Survivors | Equivalent | After the re-run |
+|---|---|---|---|---|---|
+| india-licences | 151 / 223 (3 invalid) | 67.7 % | 72 | 8 | 216 / 216 (100 %) |
+| india-issue-gate | 65 / 83 (2 invalid) | 78.3 % | 18 | 4 | 79 / 79 (100 %) |
+| india-expiry | 17 / 31 | 54.8 % | 14 | 2 | 29 / 29 (100 %) |
+| india-h2-and-allocation | 29 / 41 | 70.7 % | 12 | 0 | 41 / 41 (100 %) |
+| records-evidence-export | 61 / 114 | 53.5 % | 53 | 4 | 110 / 110 (100 %) |
+| records-contingency-forms | 73 / 89 | 82.0 % | 16 | 2 | 87 / 87 (100 %) |
+| pqr-extract | 107 / 136 | 78.7 % | 29 | 0 | 136 / 136 (100 %) |
+
+- Real defect fixed (site services 0903): `site.export_permission_problem` gave "it lapsed at <valid until>" for an
+  instant inside the permission's validity but before its approval; it now says "it is not current", as
+  `site.licence_problem` does. Only the reason text was wrong; the gate's answer was right.
+- Tests added: `site-services/test/mutation/india-licences.test.ts`; `recipe-core/test/mutation/` `india-issue-gate`,
+  `india-expiry`, `india-h2-and-allocation`, `pqr-extract`, `records-contingency-forms`; `kernel/test/mutation/`
+  `records-evidence-export`, `records-contingency-forms`; `kernel/test/records/evidence-export-offline.test.ts`; route
+  edges of the `tablets-server` India feature.
+- Equivalents (26, `tools/sql-mutation/equivalent.json`): raises behind an earlier signature-validity refusal
+  (IND-011, IND-018, IND-063, REC-105, REC-126); null-argument `or` to `and` where a null in one argument already makes
+  the result null; row comparisons whose equal case is filtered out before them; the India record immutability trigger's raise
+  on tables the kernel already registers as insert-only.
+- Stryker (TypeScript): kernel `src/records` (contingency, evidence export, PDF true copy, PDF/A) 88.6 % first run,
+  96.3 % after the offline tests (364 killed, 10 survived, 4 without coverage); `tablets-server` India feature 51.2 %,
+  then 64.6 % (193 killed, 37 survived, 69 without coverage), a third run stopped by the restart at 292 of 299 (no score);
+  `tablets-server` archive and PQR features 47.9 % (282 killed, 164 survived, 143 without coverage), one run, not triaged.
+
+## Deferred to deployment validation (all scopes, decision 0008 and the owner's limit of 14 October)
+
+- Scope A: kill confirmation of the 232 targeted survivors; us-disposition (no score), qp-certification and
+  market-changes (not run); Stryker on the server release feature.
+- Scope B: confirmation of the 118 unconfirmed survivors; triage of the Stryker survivors.
+- Scope C: the Stryker survivors and uncovered code in the server India, archive and PQR features.
+- The SQL groups of scopes A and B with the new tests as a whole re-run, under the decision 0009 organisation (one SQL
+  stream, one Stryker stream).
