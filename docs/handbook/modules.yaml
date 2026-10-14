@@ -27,7 +27,6 @@ migration_header_from:
 # Handbook pages linked from the README that are still being written. A link to one of these may point at a file that
 # does not exist yet; remove a page from this list as soon as it lands.
 pending:
-  - 10-runbooks.md
   - modules/site-services.md
   - modules/injectables.md
   - modules/tools.md
