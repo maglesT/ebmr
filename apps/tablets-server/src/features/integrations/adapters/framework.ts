@@ -9,8 +9,7 @@
  *   GET <base>/reconciliation?from&to   ReconciliationSubmission over [from, to) of source time
  *
  * One cycle (AdapterWorker.cycle):
- *   1. the heartbeat: when the source answers 200, platform.record_mirror_sync for each mirror data class the adapter
- *      keeps (a source whose synchronisation stopped keeps sending data, but its mirror goes stale and fails closed);
+ *   1. the heartbeat (200 while the source's own synchronisation runs);
  *   2. a page of the feed after the worker's cursor (the highest sequence number handled; at start, the database's);
  *   3. per message, in the order received: the envelope checked (InboundEnvelope), its hash checked against the payload
  *      as received, the payload checked with the contract's schema, then the system's receiving command in one database
@@ -19,7 +18,10 @@
  *      a TRANSPORT failure (the source or the database unreachable, a cut answer, a late answer) ends the cycle without
  *      moving the cursor, and the next cycle retries after retryDelayMs(attempt) (1 s doubling to 5 min, never given up);
  *      an unclassified failure stops the worker on that message (health BLOCKED, retried with back-off, never skipped);
- *   4. the system's after-cycle work (the ERP's outbound delivery, the WMS's move questions), also when the feed failed.
+ *   4. when the heartbeat answered and the worker is caught up (its cursor reached the source's head),
+ *      platform.record_mirror_sync for each mirror data class the adapter keeps: a source whose synchronisation stopped,
+ *      a feed gap or a backlog lets the mirror age past its bound and fail closed (EBMR-INT-010);
+ *   5. the system's after-cycle work (the ERP's outbound delivery, the WMS's move questions), also when the feed failed.
  * Acknowledgment follows the commit (ACK_RULE): the feed protocol acknowledges by the cursor (the next page is asked
  * after the highest sequence handled), so a crash before the next page only causes a resend, which de-duplicates.
  *
@@ -212,6 +214,8 @@ export interface MessageOutcome {
 
 export interface CycleReport {
   heartbeat: boolean;
+  /** The worker holds every message the source published (its cursor reached the source's head). */
+  caughtUp: boolean;
   received: number;
   outcomes: MessageOutcome[];
   /** Set when the cycle stopped early: TRANSPORT (retried later) or UNCLASSIFIED (the worker is blocked on it). */
@@ -293,16 +297,11 @@ export class AdapterWorker {
 
   /** One cycle (header). Never throws for a source or database failure: the report says what stopped it. */
   async cycle(): Promise<CycleReport> {
-    const report: CycleReport = { heartbeat: false, received: 0, outcomes: [], stoppedBy: null };
+    const report: CycleReport = { heartbeat: false, caughtUp: false, received: 0, outcomes: [], stoppedBy: null };
     this.healthState.state = 'RUNNING';
     try {
       this.cursor ??= await this.databaseCursor();
       report.heartbeat = await this.feed.heartbeat();
-      if (report.heartbeat && this.def.mirrorClasses.length > 0) {
-        await this.command(async (c) => {
-          for (const cls of this.def.mirrorClasses) await c.query('select platform.record_mirror_sync($1)', [cls]);
-        });
-      }
       const page = await this.feed.page(this.cursor, this.pageSize);
       this.healthState.head = page.head;
       report.received = page.messages.length;
@@ -311,6 +310,14 @@ export class AdapterWorker {
         report.outcomes.push(outcome);
         const seq = outcome.sequenceNo ? BigInt(outcome.sequenceNo) : null;
         if (seq !== null && seq > this.cursor) this.cursor = seq;
+      }
+      // The mirror is fresh only when the source's synchronisation runs (heartbeat) AND this worker holds everything the
+      // source has published (caught up): a feed gap or a backlog lets the mirror age and fail closed.
+      report.caughtUp = /^(0|[1-9][0-9]{0,17})$/.test(page.head) && this.cursor >= BigInt(page.head);
+      if (report.heartbeat && report.caughtUp && this.def.mirrorClasses.length > 0) {
+        await this.command(async (c) => {
+          for (const cls of this.def.mirrorClasses) await c.query('select platform.record_mirror_sync($1)', [cls]);
+        });
       }
       this.healthState.state = 'IDLE';
       this.healthState.attempts = 0;

@@ -133,6 +133,21 @@ describe('the ERP/WMS adapter against its simulators (DI-31)', () => {
     expect(await refusals()).toBe(refusedBefore);
   });
 
+  it('[DI-31] a feed gap keeps the mirror from looking fresh: the sync is recorded only when the worker is caught up with the source', async () => {
+    const synced = async () => (await rig.server.db.admin.query<{ t: string | null }>("select last_synced_at::text as t from platform.mirror_sync where data_class = 'ERP_LOT_STATUS'")).rows[0]?.t ?? null;
+    await drain(rig.wms.worker, rig.wms.sim);
+    const before = await synced();
+    await rig.wms.sim.fault('FEED_GAP', true);
+    await rig.wms.sim.publish('/lot-statuses', { lotNumber: 'ANY', status: 'RELEASED' });
+    const r = await rig.wms.worker.cycle();
+    expect(r).toMatchObject({ heartbeat: true, caughtUp: false, received: 0 });
+    expect(await synced()).toBe(before);
+    await rig.wms.sim.fault('FEED_GAP', false);
+    await drain(rig.wms.worker, rig.wms.sim);
+    expect((await rig.wms.worker.cycle()).caughtUp).toBe(true);
+    expect(await synced()).not.toBe(before);
+  });
+
   it('[DI-31] stale mirror: the WMS heartbeat stops while its data still arrives; after the bound a reservation is refused and names the mirror', async () => {
     const server = rig.server;
     const owner = await passwordActor(server.db, server.seed.bootstrap.owner, server.seed.bootstrap.owner.fingerprint);
