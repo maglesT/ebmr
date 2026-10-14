@@ -786,6 +786,21 @@ because the lesson is about structure.
   fails with EBMR-AUDIT-002 when the reason is taken out.
 - **Lesson:** a shared base is proven by its most demanding user, not its first one.
 
+### P6a-R1: the ERP/WMS adapter's functions hid their permission check (slice 6a, review)
+- **What went wrong.** Five functions the ERP_WMS adapter calls (outbound pending, delivered and failed, the receiving
+  command and the WMS location question) checked INTERFACE.WRITE only inside a helper (`site.require_erp_wms_adapter`)
+  or inside the kernel's inbound framework, and `site.location_move_problem`, a read, was declared VOLATILE. The DI-17
+  scan of every app-callable writer looks for the check in the function itself, so CI failed.
+- **Why it matters.** The scan is how a reviewer knows that no application-callable writer was added without a
+  permission; a check that lives one call away is one refactor away from disappearing.
+- **Fix.** Each of the five functions calls `platform.authorize('interface.write', ...)` where it is entered, as the
+  kernel's inbound functions do; the read is declared STABLE (site-services migration
+  [0916](../../packages/site-services/sql/0916_erp_wms_entry_authority.sql)). No exception was added to the test.
+- **Test.** `[DI-17] every function of market, records, continuity, site services and the platform that the
+  application may call and that can write checks a known permission` in
+  [authorization.test.ts](../../packages/kernel/test/integration/authorization.test.ts).
+- **Lesson:** run the kernel's authorization scan whenever a slice adds a function the application may call.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

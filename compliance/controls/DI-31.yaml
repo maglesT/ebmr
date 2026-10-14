@@ -278,6 +278,10 @@ tests:
   - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46][DI-31] an inbound move that already happened against the rule raises an alarm and an exception linked to the lot; the lot stays blocked until QA closes it with a deviation"
   - "packages/site-services/test/erp-wms/receipt.test.ts > one lot per supplier batch (PR-17 clause 2) > [PR-17][DI-31] one delivery with three supplier batches creates three lots"
   - "packages/site-services/test/erp-wms/receipt.test.ts > corrections of WMS-captured receipt values (DI-31, DI-26) > [DI-31][DI-26] an interface-captured value changes only by an audit-trailed correction with a reason; the original stays and the override is registered"
+  - "apps/tablets-server/test/integrations/adapter-startup.test.ts > the integration adapters start with the server (DI-31) > [DI-31] an LMS adapter in MIRROR mode starts with the server, shows its worker on the routes, keeps the mirror fresh and stops on close"
+  - "apps/tablets-server/test/integrations/adapter-startup.test.ts > the integration adapters start with the server (DI-31) > [DI-31] a STAND_IN site starts no adapter, even with one configured"
+  - "apps/tablets-server/test/integrations/erp-wms/contract.test.ts > the ERP/WMS adapter against its simulators (DI-31) > [DI-31] a feed gap keeps the mirror from looking fresh: the sync is recorded only when the worker is caught up with the source"
+  - "apps/tablets-server/test/integrations/feed-adapters.test.ts > the feed adapters against their simulators (DI-31) > [DI-31] LMS: a withdrawal through the worker framework carries the source reason into the audit trail (defect P6a-I1)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
