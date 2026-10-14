@@ -222,12 +222,12 @@ describe('platform.accept_inbound (DI-31)', () => {
   });
 
   it('[DI-31] a refusal is recorded with its alarm in its own command; a person acknowledges the alarm once, with a note', async () => {
-    const bad = { ...envelope(), payload: 'garbled' };
+    const bad: Record<string, unknown> = { ...envelope(), payload: 'garbled' };
     const id = await withCommand(db.app, ctxOf(erp), async (c) =>
       (await c.query<{ id: string }>("select platform.record_inbound_refusal($1::jsonb, 'MALFORMED', 'EBMR-INT-001 payload must be a JSON object') as id", [JSON.stringify(bad)])).rows[0]?.id ?? '');
     const { rows } = await db.app.query<{ alarm_id: string; kind: string; error_class: string; idempotency_key: string }>(
       'select alarm_id, kind, error_class, idempotency_key from platform.inbound_exception where id = $1', [id]);
-    expect(rows[0]).toMatchObject({ kind: 'REFUSED', error_class: 'MALFORMED', idempotency_key: bad.idempotencyKey });
+    expect(rows[0]).toMatchObject({ kind: 'REFUSED', error_class: 'MALFORMED', idempotency_key: bad['idempotencyKey'] });
     await expectRefused(
       withCommand(db.app, ctxOf(erp), (c) => c.query("select platform.record_inbound_refusal('{}'::jsonb, 'TRANSPORT', 'timeout')")),
       'EBMR-INT-014',

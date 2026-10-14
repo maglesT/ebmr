@@ -228,3 +228,16 @@ export {
   TrueCopyPdfView,
   VerificationView,
 } from './ns/archive.ts';
+export {
+  AdapterDetailView,
+  AdapterHealthView,
+  InboundErrorClass,
+  InboundMessageView,
+  InboundRefusalView,
+  IntegrationAlarmKind,
+  IntegrationAlarmView,
+  IntegrationSourceSystem,
+  MirrorDataClassName,
+  MirrorFreshnessView,
+  ReconciliationReportView,
+} from './ns/integrations.ts';

@@ -1,0 +1,385 @@
+{
+  "adapters": {
+    "adapters": [
+      {
+        "adapterCode": "ERP-MAIN",
+        "sourceSystem": "ERP_WMS",
+        "status": "ACTIVE",
+        "description": "ERP/WMS adapter, plant 1",
+        "lastMessage": {
+          "messageId": "4a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5e",
+          "messageType": "erp.production_order",
+          "sourceRecordId": "PO-4714",
+          "sourceTimestamp": {
+            "us": "1792000000000000",
+            "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+          },
+          "sequenceNo": "131",
+          "sequenceStatus": "GAP",
+          "receivedAt": {
+            "us": "1792000060000000",
+            "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+          }
+        },
+        "dataAgeSeconds": "60",
+        "openAlarms": "1",
+        "lastReconciliation": {
+          "reportId": "5b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+          "adapterCode": "ERP-MAIN",
+          "periodFrom": {
+            "us": "1791993600000000",
+            "text": "14-OCT-2026 21:30:00 +05:30 (Asia/Kolkata)"
+          },
+          "periodTo": {
+            "us": "1792000000000000",
+            "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+          },
+          "sourceCount": "42",
+          "receivedCount": "42",
+          "acceptedCount": "41",
+          "refusedCount": "1",
+          "matched": true,
+          "alarmId": null,
+          "recordedAt": {
+            "us": "1792000060000000",
+            "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+          }
+        },
+        "mirrors": [
+          {
+            "dataClass": "ERP_LOT_STATUS",
+            "sourceSystem": "ERP_WMS",
+            "mode": "STAND_IN",
+            "blocking": true,
+            "asOf": null,
+            "ageSeconds": null,
+            "boundSeconds": null,
+            "stale": false
+          },
+          {
+            "dataClass": "ERP_ITEM_MASTER",
+            "sourceSystem": "ERP_WMS",
+            "mode": "MIRROR",
+            "blocking": false,
+            "asOf": {
+              "us": "1792000000000000",
+              "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+            },
+            "ageSeconds": "60",
+            "boundSeconds": "86400",
+            "stale": false
+          },
+          {
+            "dataClass": "WMS_STOCK",
+            "sourceSystem": "ERP_WMS",
+            "mode": "MIRROR",
+            "blocking": false,
+            "asOf": {
+              "us": "1792000000000000",
+              "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+            },
+            "ageSeconds": "60",
+            "boundSeconds": "86400",
+            "stale": false
+          }
+        ]
+      },
+      {
+        "adapterCode": "LMS-MAIN",
+        "sourceSystem": "LMS",
+        "status": "ACTIVE",
+        "description": "LMS adapter",
+        "lastMessage": null,
+        "dataAgeSeconds": null,
+        "openAlarms": "0",
+        "lastReconciliation": null,
+        "mirrors": [
+          {
+            "dataClass": "LMS_QUALIFICATION",
+            "sourceSystem": "LMS",
+            "mode": "MIRROR",
+            "blocking": true,
+            "asOf": {
+              "us": "1792000000000000",
+              "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+            },
+            "ageSeconds": "60",
+            "boundSeconds": "3600",
+            "stale": false
+          }
+        ]
+      }
+    ]
+  },
+  "adapter": {
+    "health": {
+      "adapterCode": "ERP-MAIN",
+      "sourceSystem": "ERP_WMS",
+      "status": "ACTIVE",
+      "description": "ERP/WMS adapter, plant 1",
+      "lastMessage": {
+        "messageId": "4a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5e",
+        "messageType": "erp.production_order",
+        "sourceRecordId": "PO-4714",
+        "sourceTimestamp": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "sequenceNo": "131",
+        "sequenceStatus": "GAP",
+        "receivedAt": {
+          "us": "1792000060000000",
+          "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+        }
+      },
+      "dataAgeSeconds": "60",
+      "openAlarms": "1",
+      "lastReconciliation": {
+        "reportId": "5b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+        "adapterCode": "ERP-MAIN",
+        "periodFrom": {
+          "us": "1791993600000000",
+          "text": "14-OCT-2026 21:30:00 +05:30 (Asia/Kolkata)"
+        },
+        "periodTo": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "sourceCount": "42",
+        "receivedCount": "42",
+        "acceptedCount": "41",
+        "refusedCount": "1",
+        "matched": true,
+        "alarmId": null,
+        "recordedAt": {
+          "us": "1792000060000000",
+          "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+        }
+      },
+      "mirrors": [
+        {
+          "dataClass": "ERP_LOT_STATUS",
+          "sourceSystem": "ERP_WMS",
+          "mode": "STAND_IN",
+          "blocking": true,
+          "asOf": null,
+          "ageSeconds": null,
+          "boundSeconds": null,
+          "stale": false
+        },
+        {
+          "dataClass": "ERP_ITEM_MASTER",
+          "sourceSystem": "ERP_WMS",
+          "mode": "MIRROR",
+          "blocking": false,
+          "asOf": {
+            "us": "1792000000000000",
+            "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+          },
+          "ageSeconds": "60",
+          "boundSeconds": "86400",
+          "stale": false
+        },
+        {
+          "dataClass": "WMS_STOCK",
+          "sourceSystem": "ERP_WMS",
+          "mode": "MIRROR",
+          "blocking": false,
+          "asOf": {
+            "us": "1792000000000000",
+            "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+          },
+          "ageSeconds": "60",
+          "boundSeconds": "86400",
+          "stale": false
+        }
+      ]
+    },
+    "messages": [
+      {
+        "messageId": "4a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5e",
+        "messageType": "erp.production_order",
+        "sourceRecordId": "PO-4714",
+        "sourceTimestamp": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "sequenceNo": "131",
+        "sequenceStatus": "GAP",
+        "receivedAt": {
+          "us": "1792000060000000",
+          "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+        }
+      },
+      {
+        "messageId": "3f1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "messageType": "erp.production_order",
+        "sourceRecordId": "PO-4711",
+        "sourceTimestamp": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "sequenceNo": "128",
+        "sequenceStatus": "IN_ORDER",
+        "receivedAt": {
+          "us": "1792000060000000",
+          "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "refusals": [
+      {
+        "refusalId": "7d5e6f7a-8b9c-4d0e-9f2a-3b4c5d6e7f8a",
+        "errorClass": "WRONG_IDENTITY",
+        "idempotencyKey": "erp-PO-4712-1",
+        "sequenceNo": "129",
+        "detail": "order PO-4712 names material M-999, which this site does not hold",
+        "alarmId": "8e6f7a8b-9c0d-4e1f-8a3b-4c5d6e7f8a9b",
+        "recordedAt": {
+          "us": "1792000060000000",
+          "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  },
+  "reconciliations": {
+    "reports": [
+      {
+        "reportId": "5b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+        "adapterCode": "ERP-MAIN",
+        "periodFrom": {
+          "us": "1791993600000000",
+          "text": "14-OCT-2026 21:30:00 +05:30 (Asia/Kolkata)"
+        },
+        "periodTo": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "sourceCount": "42",
+        "receivedCount": "42",
+        "acceptedCount": "41",
+        "refusedCount": "1",
+        "matched": true,
+        "alarmId": null,
+        "recordedAt": {
+          "us": "1792000060000000",
+          "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  },
+  "mirrors": {
+    "mirrors": [
+      {
+        "dataClass": "ERP_LOT_STATUS",
+        "sourceSystem": "ERP_WMS",
+        "mode": "STAND_IN",
+        "blocking": true,
+        "asOf": null,
+        "ageSeconds": null,
+        "boundSeconds": null,
+        "stale": false
+      },
+      {
+        "dataClass": "ERP_ITEM_MASTER",
+        "sourceSystem": "ERP_WMS",
+        "mode": "MIRROR",
+        "blocking": false,
+        "asOf": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "ageSeconds": "60",
+        "boundSeconds": "86400",
+        "stale": false
+      },
+      {
+        "dataClass": "WMS_STOCK",
+        "sourceSystem": "ERP_WMS",
+        "mode": "MIRROR",
+        "blocking": false,
+        "asOf": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "ageSeconds": "60",
+        "boundSeconds": "86400",
+        "stale": false
+      },
+      {
+        "dataClass": "LMS_QUALIFICATION",
+        "sourceSystem": "LMS",
+        "mode": "MIRROR",
+        "blocking": true,
+        "asOf": {
+          "us": "1792000000000000",
+          "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "ageSeconds": "60",
+        "boundSeconds": "3600",
+        "stale": false
+      }
+    ]
+  },
+  "mirrorsStale": {
+    "mirrors": [
+      {
+        "dataClass": "LMS_QUALIFICATION",
+        "sourceSystem": "LMS",
+        "mode": "MIRROR",
+        "blocking": true,
+        "asOf": {
+          "us": "1791992800000000",
+          "text": "14-OCT-2026 21:16:40 +05:30 (Asia/Kolkata)"
+        },
+        "ageSeconds": "7260",
+        "boundSeconds": "3600",
+        "stale": true
+      }
+    ]
+  },
+  "alarms": {
+    "alarms": [
+      {
+        "alarmId": "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f",
+        "adapterCode": "ERP-MAIN",
+        "sourceSystem": "ERP_WMS",
+        "kind": "SEQUENCE_GAP",
+        "severity": "MAJOR",
+        "messageId": "4a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5e",
+        "summary": "Messages 129 to 130 missing: received 131 after 128",
+        "raisedAt": {
+          "us": "1792000060000000",
+          "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+        },
+        "acknowledgement": null
+      }
+    ]
+  },
+  "alarmAcknowledged": {
+    "alarmId": "6c4d5e6f-7a8b-4c9d-8e1f-2a3b4c5d6e7f",
+    "adapterCode": "ERP-MAIN",
+    "sourceSystem": "ERP_WMS",
+    "kind": "SEQUENCE_GAP",
+    "severity": "MAJOR",
+    "messageId": "4a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5e",
+    "summary": "Messages 129 to 130 missing: received 131 after 128",
+    "raisedAt": {
+      "us": "1792000060000000",
+      "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+    },
+    "acknowledgement": {
+      "by": {
+        "personId": "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
+        "legalName": "Asha Supervisor",
+        "loginName": "asha.sup",
+        "role": "SHIFT_SUPERVISOR"
+      },
+      "at": {
+        "us": "1792000060000000",
+        "text": "14-OCT-2026 23:17:40 +05:30 (Asia/Kolkata)"
+      },
+      "note": "ERP team re-sent 129 and 130"
+    }
+  }
+}

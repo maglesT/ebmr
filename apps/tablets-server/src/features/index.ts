@@ -17,6 +17,7 @@ import * as erpShipping from './erp-shipping/index.ts';
 import * as execution from './execution/index.ts';
 import * as india from './india/index.ts';
 import * as masterData from './master-data/index.ts';
+import * as integrations from './integrations/index.ts';
 import * as meta from './meta/index.ts';
 import * as planning from './planning/index.ts';
 import * as plant from './plant/index.ts';
@@ -55,6 +56,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'pqr', installations: ['GMP'], module: pqr satisfies FeatureModule },
   { name: 'archive', installations: ['GMP'], module: archive satisfies FeatureModule },
   { name: 'india', installations: ['GMP'], module: india satisfies FeatureModule },
+  { name: 'integrations', installations: ['GMP'], module: integrations satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

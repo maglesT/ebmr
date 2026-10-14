@@ -53,6 +53,7 @@ import rl from '../fixtures/release.json' with { type: 'json' };
 import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
+import ig from '../fixtures/integrations.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
@@ -298,6 +299,14 @@ export const EXAMPLES = {
   'records-bulk': { schema: r.records.bulk.response, data: rk.bulk, routeId: r.records.bulk.id },
   'records-close-bulk': { schema: r.records.closeBulk.response, data: rk.bulkClosed, routeId: r.records.closeBulk.id },
   'records-append-amendment-entry': { schema: r.records.appendAmendmentEntry.response, data: rk.amendment, routeId: r.records.appendAmendmentEntry.id },
+  // Phase 6 slice 6a-0: the integrations namespace (health page, alarms; screens of 6a).
+  'integrations-adapters': { schema: r.integrations.adapters.response, data: ig.adapters, routeId: r.integrations.adapters.id },
+  'integrations-adapter': { schema: r.integrations.adapter.response, data: ig.adapter, routeId: r.integrations.adapter.id },
+  'integrations-reconciliations': { schema: r.integrations.reconciliations.response, data: ig.reconciliations, routeId: r.integrations.reconciliations.id },
+  'integrations-mirrors': { schema: r.integrations.mirrors.response, data: ig.mirrors, routeId: r.integrations.mirrors.id },
+  'integrations-mirrors-stale': { schema: r.integrations.mirrors.response, data: ig.mirrorsStale },
+  'integrations-alarms': { schema: r.integrations.alarms.response, data: ig.alarms, routeId: r.integrations.alarms.id },
+  'integrations-acknowledge-alarm': { schema: r.integrations.acknowledgeAlarm.response, data: ig.alarmAcknowledged, routeId: r.integrations.acknowledgeAlarm.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
   // Phase 4 slice 6a: licences, export permissions, the issue check, the allocation register, label particulars and H2.

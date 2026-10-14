@@ -210,6 +210,7 @@ create table platform.integration_alarm_ack (
   adapter_code     text not null,
   note             text not null check (btrim(note) <> ''),
   acknowledged_by  uuid not null,
+  acknowledged_role text not null,
   acknowledged_at  timestamptz not null default clock_timestamp()
 );
 revoke all on platform.integration_alarm_ack from public;
@@ -493,8 +494,8 @@ begin
   if exists (select 1 from platform.integration_alarm_ack where alarm_id = p_alarm) then
     raise exception using errcode = 'P0001', message = format('EBMR-INT-007 integration alarm %s is already acknowledged', p_alarm);
   end if;
-  insert into platform.integration_alarm_ack (alarm_id, adapter_code, note, acknowledged_by)
-  values (p_alarm, v_alarm.adapter_code, p_note, (v_ctx ->> 'person_id')::uuid);
+  insert into platform.integration_alarm_ack (alarm_id, adapter_code, note, acknowledged_by, acknowledged_role)
+  values (p_alarm, v_alarm.adapter_code, p_note, (v_ctx ->> 'person_id')::uuid, v_ctx ->> 'role_code');
 end
 $$;
 
