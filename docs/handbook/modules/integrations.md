@@ -318,6 +318,12 @@ or with an open QMS deviation naming the lot (EBMR-QMS-015), whoever inserts it.
 G2.QMS_STATUS (MIRROR only; a stand-in site's checklist is unchanged), with the version tokens in its evidence, so the
 G-REL epoch moves whenever a token moves.
 
+Both the fetch record and the release check also refuse when the QMS_STATUS mirror itself is stale (EBMR-INT-010,
+site services [0927](../../../packages/site-services/sql/0927_qms_release_mirror_fresh.sql)), even with a matching fetch
+recorded earlier in the transaction. **Accepted residual (slice 6a):** the database sees the answer the server records,
+not the HTTP call; that the server really asked the QMS rather than copying the mirror is proven by the server's tests
+(`capa-routes.test.ts`, the QMS simulator with its faults) and by review, not by a database guard.
+
 **Stale mirrors fail closed.** Equipment use (`plant.fitness_problems`) calls `platform.mirror_fresh_or_raise` for
 CMMS_MAINTENANCE and, for a unit that needs calibration, CMMS_CALIBRATION; a stale MIRROR refuses the use with
 EBMR-INT-010. The qualification check at signing reads LMS_QUALIFICATION (kernel 1181, builder A). The screens show the

@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { withCommand } from '@ebmr/kernel';
 import { passwordActor } from '@ebmr/test-kit';
-import { setMirrorMode, type Administration } from '../../../../packages/kernel/test/integrations/support.ts';
+import { registerAdapter, setMirrorMode, syncMirror, type Administration, type TestAdapter } from '../../../../packages/kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { qmsReleaseFetch } from '../../src/features/integrations/adapters/qms/index.ts';
 import { HttpRefusal } from '../../src/platform/http/refusal.ts';
@@ -103,6 +103,13 @@ describe('the QMS status fetched at release (DI-31; D-P6a-3)', () => {
   const link = (over: { baseUrl?: string | null; timeoutMs?: number } = {}) => ({ baseUrl: qms.base, timeoutMs: 500, ...over });
   const post = (path: string, body: unknown) => qms.post(path, body);
   const fault = (f: string, on: boolean, slowMs?: number) => qms.fault(f, on, slowMs);
+  /** MIRROR with the QMS_STATUS mirror freshly synchronised by a QMS adapter (site services 0927 refuses a stale one). */
+  let qmsAdapter: TestAdapter | undefined;
+  const mirrorOn = async () => {
+    await setMirrorMode(db, 'QMS_STATUS', 'MIRROR', adm);
+    qmsAdapter ??= await registerAdapter(db, 'QMS', adm);
+    await syncMirror(db, qmsAdapter, 'QMS_STATUS');
+  };
 
   /** The release's transaction as the AP: the live fetch, then the database's release check, then rolled back. */
   async function inRelease(l: Parameters<typeof qmsReleaseFetch>[1]): Promise<string | null> {
@@ -125,7 +132,7 @@ describe('the QMS status fetched at release (DI-31; D-P6a-3)', () => {
   it('[DI-31] QMS unreachable at release: the release is refused and names the QMS', async () => {
     // STAND_IN: no QMS is asked.
     expect(await inRelease(link({ baseUrl: null }))).toBeNull();
-    await setMirrorMode(db, 'QMS_STATUS', 'MIRROR', adm);
+    await mirrorOn();
     try {
       expect(await refusalCode(inRelease(link({ baseUrl: null })))).toMatch(/^EBMR-QMS-020 The QMS system owner/);
       expect(await refusalCode(inRelease(link({ baseUrl: 'http://127.0.0.1:9' })))).toMatch(/^EBMR-QMS-020 The QMS system owner/);
@@ -143,7 +150,7 @@ describe('the QMS status fetched at release (DI-31; D-P6a-3)', () => {
   });
 
   it('[DI-31] a changed version token at signing refuses the release', async () => {
-    await setMirrorMode(db, 'QMS_STATUS', 'MIRROR', adm);
+    await mirrorOn();
     try {
       // The QMS opens a deviation naming the lot; the eBMR's mirror has not received it yet: the token differs.
       expect(await post('/qms/v1/deviations', { deviationRef: 'QD-REL-1', status: 'OPEN', lotNumbers: [lot.code] })).toBe(201);

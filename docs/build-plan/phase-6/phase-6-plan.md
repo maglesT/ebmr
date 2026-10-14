@@ -171,6 +171,14 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Agents:** lead (top model) writes 6a-0; builder A (top model) framework and kernel and site guards, ERP/WMS;
   builder B (top model) QMS, CAPA, LIMS, LMS, CMMS adapters and simulators; Haiku updates the handbook tables and test
   lists; Sonnet quick review.
+- **Residuals (accepted, review of 14 October):**
+  - The live QMS fetch at release: the database requires the fetch record in the release transaction, a fresh
+    QMS_STATUS mirror and an answer equal to it (site services 0927), but it cannot see that the server made the HTTP
+    call to the QMS rather than copying the mirror. Covered by the server's tests against the QMS simulator and by
+    review; a signed QMS answer (the QMS signing its response) would close it and needs a customer QMS that offers one.
+  - The source head named at a mirror sync (kernel 1182) is the adapter's claim: the database checks the adapter holds
+    everything up to it, not that the source has nothing beyond it. Reconciliation reports (counts and checksums from
+    the source) are the cross-check.
 
 ### Slice 6b: equipment data, alarms and dynamic data; plant rules
 

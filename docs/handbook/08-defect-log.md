@@ -801,6 +801,19 @@ because the lesson is about structure.
   [authorization.test.ts](../../packages/kernel/test/integration/authorization.test.ts).
 - **Lesson:** run the kernel's authorization scan whenever a slice adds a function the application may call.
 
+### P6a-R2: a release could rely on a stale QMS mirror (slice 6a, review)
+- **What went wrong.** `site.record_qms_release_fetch` (site services 0925) takes the answer of the live QMS fetch from
+  the server and checks only that it equals the local mirror; neither it nor `site.qms_release_problem` asked whether
+  the QMS_STATUS mirror was fresh. A server that copied a stale mirror into the "fetch" passed every database check.
+- **Why it matters.** Release must see the QMS as it is at signing (D-P6a-3); a deviation opened after the QMS adapter
+  stopped would not stop the lot.
+- **Fix.** In MIRROR both refuse with EBMR-INT-010 when the mirror is stale, and the fetch is still required in the
+  same transaction (site services [0927](../../packages/site-services/sql/0927_qms_release_mirror_fresh.sql)). The HTTP
+  call itself is an accepted residual (the database cannot see it).
+- **Test.** `[DI-31] a release with a stale QMS mirror is refused even with a matching fetch record` in
+  [cmms-qms-release.test.ts](../../packages/recipe-core/test/integrations/cmms-qms-release.test.ts).
+- **Lesson:** a comparison with a local copy proves only as much as the copy is fresh.
+
 ### P6a-R3: a heartbeat alone kept a blocking mirror fresh (slice 6a, review)
 - **What went wrong.** `platform.record_mirror_sync(class)` (kernel 1180) let any active adapter of the class's system
   refresh the class's last synchronisation with nothing behind it. The worker only called it when caught up, but the

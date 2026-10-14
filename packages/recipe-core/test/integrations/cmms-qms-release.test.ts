@@ -159,6 +159,7 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
     await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
     expect(await inRelease(lot.lotId, undefined, (c) => problem(c, lot.lotId))).toBeNull();
     await setMirrorMode(db, 'QMS_STATUS', 'MIRROR');
+    await syncMirror(db, qmsAdapter, 'QMS_STATUS');
     // MIRROR and no live answer in this transaction (the QMS could not be reached): refused, naming the QMS.
     expect(await inRelease(lot.lotId, undefined, (c) => problem(c, lot.lotId))).toMatch(/^EBMR-QMS-013 the QMS status of lot .* was not fetched from the QMS in this release.*call the QMS system owner/);
     // A fetch of an earlier transaction does not count: the status is fetched inside the signing transaction.
@@ -183,6 +184,7 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
 
   it('[DI-31] a changed version token at signing refuses the release; an open QMS deviation and a fetch older than the bound refuse it too', async () => {
     await setMirrorMode(db, 'QMS_STATUS', 'MIRROR');
+    await syncMirror(db, qmsAdapter, 'QMS_STATUS');
     const lot = await fixtureLot();
     const ref = unique('QD-');
     await receive(db, qmsAdapter, 'site.receive_qms_deviation_status', envelopeFor(qmsAdapter, 'qms.deviation_status', status(ref, 'OPEN', 'v1', [lot.lotCode])));
@@ -196,6 +198,7 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
     await expectRefused(inRelease(lot.lotId, [{ deviationRef: ref, status: 'CLOSED', versionToken: 'v2' }], (c) => problem(c, lot.lotId)), 'EBMR-QMS-011', /version tokens differ/);
     // A stale answer (an older token than the mirror holds, or a deviation the QMS no longer lists) is refused alike.
     await receive(db, qmsAdapter, 'site.receive_qms_deviation_status', envelopeFor(qmsAdapter, 'qms.deviation_status', status(ref, 'CLOSED', 'v2', [lot.lotCode])));
+    await syncMirror(db, qmsAdapter, 'QMS_STATUS');
     expect(await item()).toMatchObject({ status: 'GREEN', evidence: [{ label: `${ref} CLOSED (QMS version v2)` }] });
     await expectRefused(inRelease(lot.lotId, [{ deviationRef: ref, status: 'OPEN', versionToken: 'v1' }], () => Promise.resolve(undefined)), 'EBMR-QMS-011');
     await expectRefused(inRelease(lot.lotId, [], () => Promise.resolve(undefined)), 'EBMR-QMS-011');
@@ -211,5 +214,38 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
     });
     expect(aged).toMatch(/^EBMR-QMS-014 the QMS status of lot .* was fetched 1[12]\d s ago, more than the QMS_STATUS bound of 60 s/);
     await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
+  });
+
+  it('[DI-31] a release with a stale QMS mirror is refused even with a matching fetch record', async () => {
+    await setMirrorMode(db, 'QMS_STATUS', 'MIRROR');
+    try {
+      const lot = await fixtureLot();
+      // The QMS adapter stopped: the fetch cannot be compared with a mirror that says nothing about the QMS now.
+      await syncMirror(db, qmsAdapter, 'QMS_STATUS');
+      await ageMirror(db, 'QMS_STATUS', 120);
+      await expectRefused(inRelease(lot.lotId, [], () => Promise.resolve(undefined)), 'EBMR-INT-010', /QMS mirror QMS_STATUS is stale: last synchronised 1[12]\d s ago, more than its bound of 60 s/);
+      // The fetch matched a fresh mirror, then the mirror went stale before the decision: the release is refused, and
+      // a decision inserted directly meets the same check.
+      await syncMirror(db, qmsAdapter, 'QMS_STATUS');
+      const late = await inRelease(lot.lotId, [], async (c) => {
+        await ageMirror(db, 'QMS_STATUS', 120);
+        return problem(c, lot.lotId);
+      });
+      expect(late).toMatch(new RegExp(`^EBMR-INT-010 the QMS mirror QMS_STATUS is stale: last synchronised 1[12]\\d s ago, more than its bound of 60 s; lot ${lot.lotCode} is not released.*call the QMS system owner`));
+      await syncMirror(db, qmsAdapter, 'QMS_STATUS');
+      await expectRefused(
+        withCommand(db.admin, withReason(ap), async (c) => {
+          await c.query('select site.record_qms_release_fetch($1, $2::jsonb)', [lot.lotId, '[]']);
+          await ageMirror(db, 'QMS_STATUS', 120);
+          await c.query("insert into recipe.manufacturer_release_decision (lot_id, decision) values ($1, 'RELEASED')", [lot.lotId]);
+        }),
+        'EBMR-INT-010',
+      );
+      // With the mirror fresh again, the same fetch passes.
+      await syncMirror(db, qmsAdapter, 'QMS_STATUS');
+      expect(await inRelease(lot.lotId, [], (c) => problem(c, lot.lotId))).toBeNull();
+    } finally {
+      await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
+    }
   });
 });
