@@ -905,7 +905,8 @@ export const TARGETS: Target[] = [
     functions: ['recipe.market_add_evaluate', 'recipe.market_set', 'recipe.market_base_set', 'recipe.market_change_content',
                 'recipe.market_change_next_id', 'recipe.market_change_ref', 'recipe.market_change_scope', 'recipe.market_failed',
                 'recipe.market_subject_batches', 'recipe.lots_of_batch', 'recipe.packaging_children_of',
-                'recipe.packaging_order_markets_check', 'recipe.record_market_change', 'recipe.market_removal_after_release_check'],
+                'recipe.packaging_order_markets_check', 'recipe.record_market_change'],
+    // recipe.market_removal_after_release_check is mutated in after-release-suspension (one group per function).
     tests: [r('release/dispositions.test.ts'), r('release/after-release.test.ts'), s('release/disposition-interfaces.test.ts')],
     threshold: 90,
   },
@@ -923,7 +924,8 @@ export const TARGETS: Target[] = [
                 'recipe.suspend_affected', 'recipe.suspend_on_deviation_link', 'recipe.suspend_on_kernel_link',
                 'recipe.suspend_on_revised_result', 'recipe.suspend_on_calibration_failure', 'recipe.release_suspension_next_id',
                 'recipe.market_removal_after_release_check'],
-    tests: [r('release/after-release.test.ts'), r('release/record-amendment.test.ts'), s('release/disposition-interfaces.test.ts')],
+    tests: [r('release/after-release.test.ts'), r('release/record-amendment.test.ts'), s('release/disposition-interfaces.test.ts'),
+            r('release/dispositions.test.ts')],
     threshold: 90,
   },
   {
@@ -966,7 +968,7 @@ export const TARGETS: Target[] = [
   {
     group: 'execution-complete-forms',
     functions: ['recipe.refuse_unreconciled_completion'],
-    tests: [r('lifecycle/execution-complete-forms.test.ts')],
+    tests: [r('lifecycle/execution-complete-forms.test.ts'), k('records/contingency-forms.test.ts')],
     threshold: 90,
   },
   // ---- Phase 4 (decision 0012, scope C): the India gate, expiry, records and signature binding. The licences, export
@@ -1027,8 +1029,8 @@ export const TARGETS: Target[] = [
     functions: ['records.contingency_form_state', 'records.contingency_forms_of', 'records.unreconciled_forms',
                 'records.form_reconciliation_state', 'records.form_reconciliation_problem',
                 'records.form_reconciliation_content', 'records.issue_contingency_pack',
-                'records.record_contingency_form_event', 'records.sign_form_reconciliation',
-                'recipe.refuse_unreconciled_completion'],
+                'records.record_contingency_form_event', 'records.sign_form_reconciliation'],
+    // recipe.refuse_unreconciled_completion is mutated in execution-complete-forms (one group per function).
     tests: [k('records/contingency-forms.test.ts'), r('lifecycle/execution-complete-forms.test.ts')],
     threshold: 90,
   },
