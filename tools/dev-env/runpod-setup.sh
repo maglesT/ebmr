@@ -27,6 +27,7 @@ FAKETIME_DIR=/var/lib/postgresql/faketime-golden
 export DEBIAN_FRONTEND=noninteractive
 
 log() { printf '\n== %s\n' "$*"; }
+# Written for a root container (RunPod); $SUDO only helps where a non-root user has sudo.
 SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
 
 log "Base packages"
@@ -80,9 +81,13 @@ $SUDO install -d -m 0777 "$FAKETIME_DIR"
 $SUDO chmod 0666 "$FAKETIME_DIR/offset"
 if ! pg_lsclusters -h | awk '{print $2}' | grep -qx golden; then
   $SUDO pg_createcluster "$PG" golden --port 5435 --locale C.UTF-8 >/dev/null
+fi
+# Checked on every run, so a first run stopped half-way is repaired (and the running cluster restarted to load it).
+if ! grep -q '^LD_PRELOAD' "/etc/postgresql/${PG}/golden/environment"; then
   printf "LD_PRELOAD = '%s'\nFAKETIME_TIMESTAMP_FILE = '%s'\nFAKETIME_NO_CACHE = '1'\nDONT_FAKE_MONOTONIC = '1'\n" \
-    "$(ls /usr/lib/x86_64-linux-gnu/faketime/libfaketimeMT.so.1)" "$FAKETIME_DIR/offset" \
+    "$(ls /usr/lib/"$(uname -m)"-linux-gnu/faketime/libfaketimeMT.so.1)" "$FAKETIME_DIR/offset" \
     | $SUDO tee -a "/etc/postgresql/${PG}/golden/environment" >/dev/null
+  if pg_lsclusters -h | awk '$2=="golden" {print $4}' | grep -qx online; then $SUDO pg_ctlcluster "$PG" golden restart; fi
 fi
 
 log "Clusters"

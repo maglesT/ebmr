@@ -4,6 +4,8 @@
  * count as defining it. Objects created inside dynamic SQL (`execute format(...)`) are not seen.
  */
 
+import ts from 'typescript';
+
 export type DbKind = 'function' | 'procedure' | 'trigger' | 'view' | 'table' | 'type';
 
 export interface DbObject {
@@ -78,11 +80,32 @@ const SQL_DEF = new RegExp(
     NAME,
   'gim',
 );
-const TS_DEF = /(?:^|[\s;{(])(?:async\s+)?(?:function\*?|const|let|var|class|interface|type|enum)\s+([A-Za-z_$][\w$]*)/gm;
+/**
+ * The names a TypeScript file declares at its top level (functions, variables, classes, interfaces, types, enums), read
+ * with the compiler's parser so a word in a comment, a string or a regular expression never counts.
+ */
+export function tsTopLevelNames(file: string, text: string): string[] {
+  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false, kind);
+  const out: string[] = [];
+  for (const st of source.statements) {
+    if (ts.isVariableStatement(st)) {
+      for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name)) out.push(d.name.text);
+    } else if (
+      (ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st) || ts.isInterfaceDeclaration(st) ||
+        ts.isTypeAliasDeclaration(st) || ts.isEnumDeclaration(st)) &&
+      st.name !== undefined
+    ) {
+      out.push(st.name.text);
+    }
+  }
+  return out;
+}
 
 /**
  * The names a file defines: SQL `create [or replace] function|procedure|trigger|view|table|type <name>` (both the
- * schema-qualified name and the bare name), TypeScript `function|const|let|var|class|interface|type|enum <name>`.
+ * schema-qualified name and the bare name), TypeScript top-level `function|const|let|var|class|interface|type|enum
+ * <name>` outside comments and strings.
  */
 export function definedSymbols(file: string, text: string): Set<string> {
   const out = new Set<string>();
@@ -93,7 +116,7 @@ export function definedSymbols(file: string, text: string): Set<string> {
       if (name.includes('.')) out.add(name.slice(name.indexOf('.') + 1));
     }
   } else {
-    for (const m of text.matchAll(TS_DEF)) out.add(m[1] ?? '');
+    for (const name of tsTopLevelNames(file, text)) out.add(name);
   }
   return out;
 }

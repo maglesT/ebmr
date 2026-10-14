@@ -84,10 +84,17 @@ export function checkLinks(ctx: LinkContext, page: string, text: string, cache =
     const target = m[1] ?? '';
     if (/^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
     const hash = target.indexOf('#');
-    const pathPart = decodeURI(hash === -1 ? target : target.slice(0, hash));
-    const fragment = hash === -1 ? undefined : decodeURIComponent(target.slice(hash + 1));
-    const rel = pathPart === '' ? page : posix.normalize(posix.join(posix.dirname(page), pathPart)).replace(/\/+$/, '');
     const where = `${page}: link ${target}`;
+    let pathPart: string;
+    let fragment: string | undefined;
+    try {
+      pathPart = decodeURI(hash === -1 ? target : target.slice(0, hash));
+      fragment = hash === -1 ? undefined : decodeURIComponent(target.slice(hash + 1));
+    } catch {
+      problems.push(`${where}: malformed percent-encoding`);
+      continue;
+    }
+    const rel = pathPart === '' ? page : posix.normalize(posix.join(posix.dirname(page), pathPart)).replace(/\/+$/, '');
     if (rel.startsWith('../')) {
       problems.push(`${where} leaves the repository`);
       continue;

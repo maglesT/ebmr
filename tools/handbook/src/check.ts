@@ -75,7 +75,11 @@ export function headerProblems(model: Model): string[] {
   for (const mig of model.migrations) {
     const mark = model.manifest.migrationHeaderFrom[mig.source];
     const n = Number(/^(\d+)_/.exec(mig.name)?.[1] ?? NaN);
-    if (mark === undefined || !(n > mark)) continue;
+    if (mark === undefined) {
+      problems.push(`${mig.file}: its source ${mig.source} has no migration_header_from mark in modules.yaml`);
+      continue;
+    }
+    if (!(n > mark)) continue;
     const head = read(model.root, mig.file).split('\n').slice(0, 10);
     if (!head.some((l) => /^--\s*Handbook:\s*\S/.test(l))) {
       problems.push(`${mig.file}: a new migration names its handbook page in a "-- Handbook: <page>" line within its first 10 lines`);

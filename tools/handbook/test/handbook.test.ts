@@ -101,6 +101,33 @@ describe('handbook checker on a fixture', () => {
     expect(out.join('\n')).toMatch(/does not define bar/);
   });
 
+  it('[meta] a TypeScript symbol counts only as a top-level declaration, not in a comment, a string, a regular expression or a function body', () => {
+    const ts = [
+      '// const inComment = 1;',
+      "const s = 'const inString = 1'; const re = /['\"]+$/u;",
+      'export function outer(): number {',
+      '  const local = 1;',
+      '  return local;',
+      '}',
+      'export interface Shape { a: number }',
+      '',
+    ].join('\n');
+    expect(definesSymbol('x.ts', ts, 'outer')).toBe(true);
+    expect(definesSymbol('x.ts', ts, 'Shape')).toBe(true);
+    expect(definesSymbol('x.ts', ts, 're')).toBe(true);
+    for (const name of ['inComment', 'inString', 'local']) expect(definesSymbol('x.ts', ts, name)).toBe(false);
+  });
+
+  it('[meta] a link with a malformed percent-encoding is reported, not a crash', () => {
+    const out = problems({ 'docs/handbook/modules/a.md': '# Module a\n\nSee [bad](../../../packages/p/sql/0001_x.sql#sym=%E0%A4%A).\n' });
+    expect(out.join('\n')).toMatch(/malformed percent-encoding/);
+  });
+
+  it('[meta] a migration source without a header mark is reported', () => {
+    const out = problems({ 'docs/handbook/modules.yaml': YAML.replace('migration_header_from: {packages/p/sql: 2}', 'migration_header_from: {}') });
+    expect(out.join('\n')).toMatch(/0001_x\.sql: its source packages\/p\/sql has no migration_header_from mark/);
+  });
+
   it('[meta] the link checker catches a wrong anchor and accepts a right one', () => {
     const out = problems({
       'docs/handbook/README.md': '# Handbook\n\n| Page | Covers |\n|---|---|\n| [a](modules/a.md) | the package |\n\n[ok](modules/a.md#main-functions) [bad](modules/a.md#main-function) [line](../../packages/p/src/x.ts#L1)\n',

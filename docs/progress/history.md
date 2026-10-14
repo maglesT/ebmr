@@ -2496,3 +2496,9 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   exist yet; stale headers (site-services index.ts, devices "sandbox only", containers index.ts cites tablets 1111 for
   the rule now in 1141, ui-kit tokens.ts cites a missing test, test-kit's description); tools/regulatory scripts
   hard-code an old scratchpad path; edition spelt upper case in site-services 0710, lower case in recipe-core 0110.
+  Quick review (one pass): no blocker; an accuracy sample of 28 handbook claims checked against the code, all right.
+  Fixed: a TypeScript `#sym=` target is read with the compiler's parser (top-level declarations only, so a word in a
+  comment, string or regular expression no longer passes); a malformed percent-encoding in a link is reported instead
+  of crashing the check; a migration source without a header mark is reported; the setup script repairs the golden
+  cluster's libfaketime settings on every run. Left as low: reference-style links are not checked; a bare `#sym=`
+  SQL name matches any schema (qualified names are exact); orphaned generated pages are not detected.
