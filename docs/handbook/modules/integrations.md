@@ -240,6 +240,18 @@ CMMS_MAINTENANCE and, for a unit that needs calibration, CMMS_CALIBRATION; a sta
 EBMR-INT-010. The qualification check at signing reads LMS_QUALIFICATION (kernel 1181, builder A). The screens show the
 mirror, its age and whom to call ([StaleMirror.tsx](../../../packages/ui-kit/src/floor/StaleMirror.tsx)).
 
+**Defaults taken by builder B (decision 0004; recorded, the owner may change):**
+D-P6a-B-1 the four systems run on the pull worker above (mirror synced only when caught up) until it is merged with
+framework.ts; D-P6a-B-2 a CMMS ADJUSTED_PASS is recorded as found FAIL, as left PASS (the batches since the last good
+calibration are listed and released lots are suspended for assessment); D-P6a-B-3 a CMMS due date becomes the start of
+that day in the site's zone (the unit is not used on its due date); D-P6a-B-4 in MIRROR a unit is not used while a CMMS
+work order is IN_PROGRESS or a PREVENTIVE one is past its due date; D-P6a-B-5 G2.QMS_STATUS appears only in MIRROR (a
+stand-in checklist and the golden outputs stay exact); D-P6a-B-6 LIMS results are kept and shown, not used by G3.LIMS
+(no LIMS mirror class in 6a-0); D-P6a-B-7 a receiving command carries the source's reason (INBOUND_MESSAGE, naming the
+message); D-P6a-B-8 the CAPA signing meaning is tablets 1229 (6a has no tablets range); D-P6a-B-9 a CAPA closes only
+with every effectiveness check recorded effective, and a QMS mirror CAPA is never closed here; D-P6a-B-10 the four
+adapters hold SERVICE_ACCOUNT only (INTERFACE.WRITE; the receiving definers do the rest), no per-system role.
+
 ## site-gateway: the equipment gateway
 
 ### Start, identity and gateway keys
