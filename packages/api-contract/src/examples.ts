@@ -55,6 +55,7 @@ import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
 import ig from '../fixtures/integrations.json' with { type: 'json' };
 import cp from '../fixtures/capa.json' with { type: 'json' };
+import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
@@ -369,6 +370,17 @@ export const EXAMPLES = {
   'archive-export-file': { schema: r.archive.exportFile.response, data: ar.file, routeId: r.archive.exportFile.id },
   'archive-verify': { schema: r.archive.verify.response, data: ar.verifyOk, routeId: r.archive.verify.id },
   'archive-verify-altered': { schema: r.archive.verify.response, data: ar.verifyBad },
+  // Phase 6 slice 6a builder A: receipt with supplier batches, the receipt record and the approved-manufacturer register (PR-17).
+  'quality-approved-manufacturers': { schema: r.quality.approvedManufacturers.response, data: { manufacturers: [rc.approved, rc.proposed, rc.withdrawn] }, routeId: r.quality.approvedManufacturers.id },
+  'quality-propose-approved-manufacturer': { schema: r.quality.proposeApprovedManufacturer.response, data: rc.proposed, routeId: r.quality.proposeApprovedManufacturer.id },
+  'quality-withdraw-manufacturer-approval': { schema: r.quality.withdrawManufacturerApproval.response, data: rc.withdrawn, routeId: r.quality.withdrawManufacturerApproval.id },
+  'quality-receive-delivery': { schema: r.quality.receiveDelivery.response, data: rc.delivery, routeId: r.quality.receiveDelivery.id },
+  'quality-lot-receipt': { schema: r.quality.lotReceipt.response, data: rc.receipt, routeId: r.quality.lotReceipt.id },
+  'quality-lot-receipt-incomplete': { schema: r.quality.lotReceipt.response, data: rc.incomplete },
+  'quality-lot-receipt-blocked': { schema: r.quality.lotReceipt.response, data: rc.blocked },
+  'quality-record-lot-receipt': { schema: r.quality.recordLotReceipt.response, data: { ...rc.receipt, source: 'MANUAL', inboundMessageId: null, examination: null }, routeId: r.quality.recordLotReceipt.id },
+  'quality-examine-lot-receipt': { schema: r.quality.examineLotReceipt.response, data: rc.receipt, routeId: r.quality.examineLotReceipt.id },
+  'quality-correct-lot-receipt': { schema: r.quality.correctLotReceipt.response, data: rc.incomplete, routeId: r.quality.correctLotReceipt.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 4 slice 6a: the india routes, each with an example above (checked by the india contract test). */

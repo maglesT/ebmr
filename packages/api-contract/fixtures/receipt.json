@@ -1,0 +1,245 @@
+{
+  "approved": {
+    "approvedManufacturerId": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "materialCode": "MAT-PCM",
+    "manufacturerCode": "MFR-GRANULES",
+    "manufacturerName": "Granules India Ltd",
+    "manufacturingSite": "Gagillapur, Telangana",
+    "basis": "Supplier qualification file QF-2026-014; on-site audit AR-2026-07 (satisfactory)",
+    "state": "APPROVED",
+    "proposedBy": {
+      "personId": "6f1a2b3c-4d5e-4f60-8172-839405a6b7c8",
+      "legalName": "Divya Menon",
+      "loginName": "divya.menon",
+      "role": "QA_REVIEWER"
+    },
+    "proposedAt": {
+      "us": "1792000000000000",
+      "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+    },
+    "approvedBy": {
+      "personId": "6f1a2b3c-4d5e-4f60-8172-839405a6b7c8",
+      "legalName": "Divya Menon",
+      "loginName": "divya.menon",
+      "role": "QA_REVIEWER"
+    },
+    "approvedAt": {
+      "us": "1792000600000000",
+      "text": "14-OCT-2026 23:26:40 +05:30 (Asia/Kolkata)"
+    },
+    "withdrawal": null
+  },
+  "proposed": {
+    "approvedManufacturerId": "2d3e4f5a-6b7c-4d8e-9f0a-1b2c3d4e5f6a",
+    "materialCode": "MAT-PCM",
+    "manufacturerCode": "MFR-NEWCO",
+    "manufacturerName": "NewCo Fine Chemicals",
+    "manufacturingSite": null,
+    "basis": "Supplier qualification file QF-2026-014; on-site audit AR-2026-07 (satisfactory)",
+    "state": "PROPOSED",
+    "proposedBy": {
+      "personId": "6f1a2b3c-4d5e-4f60-8172-839405a6b7c8",
+      "legalName": "Divya Menon",
+      "loginName": "divya.menon",
+      "role": "QA_REVIEWER"
+    },
+    "proposedAt": {
+      "us": "1792000000000000",
+      "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+    },
+    "approvedBy": null,
+    "approvedAt": null,
+    "withdrawal": null
+  },
+  "withdrawn": {
+    "approvedManufacturerId": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "materialCode": "MAT-PCM",
+    "manufacturerCode": "MFR-GRANULES",
+    "manufacturerName": "Granules India Ltd",
+    "manufacturingSite": "Gagillapur, Telangana",
+    "basis": "Supplier qualification file QF-2026-014; on-site audit AR-2026-07 (satisfactory)",
+    "state": "WITHDRAWN",
+    "proposedBy": {
+      "personId": "6f1a2b3c-4d5e-4f60-8172-839405a6b7c8",
+      "legalName": "Divya Menon",
+      "loginName": "divya.menon",
+      "role": "QA_REVIEWER"
+    },
+    "proposedAt": {
+      "us": "1792000000000000",
+      "text": "14-OCT-2026 23:16:40 +05:30 (Asia/Kolkata)"
+    },
+    "approvedBy": {
+      "personId": "6f1a2b3c-4d5e-4f60-8172-839405a6b7c8",
+      "legalName": "Divya Menon",
+      "loginName": "divya.menon",
+      "role": "QA_REVIEWER"
+    },
+    "approvedAt": {
+      "us": "1792000600000000",
+      "text": "14-OCT-2026 23:26:40 +05:30 (Asia/Kolkata)"
+    },
+    "withdrawal": {
+      "reason": "Audit AR-2026-11 found data-integrity gaps at the manufacturing site",
+      "by": {
+        "personId": "6f1a2b3c-4d5e-4f60-8172-839405a6b7c8",
+        "legalName": "Divya Menon",
+        "loginName": "divya.menon",
+        "role": "QA_REVIEWER"
+      },
+      "at": {
+        "us": "1792000600000000",
+        "text": "14-OCT-2026 23:26:40 +05:30 (Asia/Kolkata)"
+      }
+    }
+  },
+  "receipt": {
+    "lotId": "3e4f5a6b-7c8d-4e9f-8a0b-2c3d4e5f6a7b",
+    "lotCode": "GR261014-0001",
+    "materialCode": "MAT-PCM",
+    "deliveryId": "GRN-77812",
+    "deliveryNoteName": "Paracetamol IP (DC grade)",
+    "supplierCode": "SUP-GRAN",
+    "supplierLot": "PCM2610A",
+    "manufacturerCode": "MFR-GRANULES",
+    "containers": "4",
+    "received": {
+      "value": "100.000",
+      "unit": "kg"
+    },
+    "source": "INTERFACE",
+    "inboundMessageId": "4f5a6b7c-8d9e-4f0a-9b1c-3d4e5f6a7b8c",
+    "manufacturerApprovedAtReceipt": true,
+    "manufacturerApprovedNow": true,
+    "examination": {
+      "containersExamined": "4",
+      "outcome": "ACCEPTABLE",
+      "remarks": null,
+      "by": {
+        "personId": "7a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9",
+        "legalName": "Manoj Pillai",
+        "loginName": "manoj.pillai",
+        "role": "WAREHOUSE_LABELLING"
+      },
+      "at": {
+        "us": "1792000600000000",
+        "text": "14-OCT-2026 23:26:40 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "corrections": [],
+    "location": {
+      "location": "WH-QRT-01",
+      "kind": "QUARANTINE"
+    },
+    "issueProblem": null
+  },
+  "incomplete": {
+    "lotId": "5a6b7c8d-9e0f-4a1b-8c2d-4e5f6a7b8c9d",
+    "lotCode": "GR261014-0002",
+    "materialCode": "MAT-PCM",
+    "deliveryId": "GRN-77812",
+    "deliveryNoteName": "Paracetamol IP (DC grade)",
+    "supplierCode": "SUP-GRAN",
+    "supplierLot": "PCM2610B",
+    "manufacturerCode": "MFR-GRANULES",
+    "containers": "3",
+    "received": {
+      "value": "100.000",
+      "unit": "kg"
+    },
+    "source": "INTERFACE",
+    "inboundMessageId": "4f5a6b7c-8d9e-4f0a-9b1c-3d4e5f6a7b8c",
+    "manufacturerApprovedAtReceipt": true,
+    "manufacturerApprovedNow": true,
+    "examination": null,
+    "corrections": [
+      {
+        "field": "containers",
+        "originalValue": "2",
+        "correctedValue": "3",
+        "reason": "Delivery note shows three drums; the WMS booked two",
+        "by": {
+          "personId": "7a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9",
+          "legalName": "Manoj Pillai",
+          "loginName": "manoj.pillai",
+          "role": "WAREHOUSE_LABELLING"
+        },
+        "at": {
+          "us": "1792000600000000",
+          "text": "14-OCT-2026 23:26:40 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "location": {
+      "location": "WH-QRT-01",
+      "kind": "QUARANTINE"
+    },
+    "issueProblem": "EBMR-SITE-917 the 3 containers of lot GR261014-0002 were not examined at receipt; the examiner records the examination before the lot is issued (PR-17)"
+  },
+  "blocked": {
+    "lotId": "6b7c8d9e-0f1a-4b2c-9d3e-5f6a7b8c9d0e",
+    "lotCode": "GR261014-0003",
+    "materialCode": "MAT-PCM",
+    "deliveryId": "GRN-77812",
+    "deliveryNoteName": "Paracetamol IP (DC grade)",
+    "supplierCode": "SUP-GRAN",
+    "supplierLot": "PCM2610C",
+    "manufacturerCode": "MFR-UNKNOWN",
+    "containers": "4",
+    "received": {
+      "value": "100.000",
+      "unit": "kg"
+    },
+    "source": "INTERFACE",
+    "inboundMessageId": "4f5a6b7c-8d9e-4f0a-9b1c-3d4e5f6a7b8c",
+    "manufacturerApprovedAtReceipt": false,
+    "manufacturerApprovedNow": false,
+    "examination": {
+      "containersExamined": "4",
+      "outcome": "ACCEPTABLE",
+      "remarks": null,
+      "by": {
+        "personId": "7a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9",
+        "legalName": "Manoj Pillai",
+        "loginName": "manoj.pillai",
+        "role": "WAREHOUSE_LABELLING"
+      },
+      "at": {
+        "us": "1792000600000000",
+        "text": "14-OCT-2026 23:26:40 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "corrections": [],
+    "location": {
+      "location": "WH-QRT-01",
+      "kind": "QUARANTINE"
+    },
+    "issueProblem": "EBMR-SITE-918 lot GR261014-0003 names manufacturer MFR-UNKNOWN, which is not on the approved-manufacturer register for MAT-PCM at site SITE-1; the lot is blocked and stays with QC (PR-17)"
+  },
+  "delivery": {
+    "deliveryId": "GRN-77812",
+    "lots": [
+      {
+        "lotId": "3e4f5a6b-7c8d-4e9f-8a0b-2c3d4e5f6a7b",
+        "lotCode": "GR261014-0001",
+        "supplierLot": "PCM2610A",
+        "manufacturerCode": "MFR-GRANULES",
+        "manufacturerApproved": true
+      },
+      {
+        "lotId": "5a6b7c8d-9e0f-4a1b-8c2d-4e5f6a7b8c9d",
+        "lotCode": "GR261014-0002",
+        "supplierLot": "PCM2610B",
+        "manufacturerCode": "MFR-GRANULES",
+        "manufacturerApproved": true
+      },
+      {
+        "lotId": "6b7c8d9e-0f1a-4b2c-9d3e-5f6a7b8c9d0e",
+        "lotCode": "GR261014-0003",
+        "supplierLot": "PCM2610C",
+        "manufacturerCode": "MFR-UNKNOWN",
+        "manufacturerApproved": false
+      }
+    ]
+  }
+}

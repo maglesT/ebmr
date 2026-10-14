@@ -12,11 +12,19 @@ import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
+import type { SignableActionRegistry } from '../../platform/ports.ts';
+import { materialSourceActHandler } from '../quality/receipt.ts';
 import { startErpWmsAdapters } from './adapters/erp-wms/index.ts';
 import { INTEGRATIONS_GUIDANCE } from './guidance.ts';
 import { adapterDetail, adapterList, alarmList, alarmView, mirrorList, reconciliationList } from './reads.ts';
 
 export const guidance = INTEGRATIONS_GUIDANCE;
+
+/** Slice 6a builder A: QA's approval of a manufacturer (MATERIAL_SOURCE_ACT; the receipt routes live in quality/receipt.ts). */
+export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
+  if (app.installation !== 'GMP') return;
+  registry.register(materialSourceActHandler(app));
+}
 
 export async function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;

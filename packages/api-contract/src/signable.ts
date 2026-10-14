@@ -358,6 +358,12 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.literal('CLOSE'),
     capaId: Uuid,
   }),
+  z.strictObject({
+    /** Phase 6 slice 6a (ns/receipt.ts): QA approves a manufacturer of a material (MANUFACTURER_APPROVED; site services 0910, PR-17). */
+    kind: z.literal('MATERIAL_SOURCE_ACT'),
+    act: z.literal('MANUFACTURER_APPROVE'),
+    approvedManufacturerId: Uuid,
+  }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
 export type SignableKind = SignableAction['kind'];
