@@ -513,9 +513,18 @@ describe('review P50, follow-up round 4: the gateway listener\'s own connections
     const runtime = runtimeOf(ctx);
     const { rows } = await runtime.receipts().query<{ pid: number }>('select pg_backend_pid() as pid');
     expect((await server.db.admin.query<{ ok: boolean }>('select pg_terminate_backend($1) as ok', [rows[0]?.pid])).rows).toEqual([{ ok: true }]);
-    expect(await eventually(async () => (await listenerBackends()) === RECEIPTS_POOL_MAX + WATCH_POOL_MAX && runtime.receipts().totalCount === RECEIPTS_POOL_MAX)).toBe(true);
-    const pids = await server.db.admin.query<{ pid: number }>("select pid from pg_stat_activity where datname = current_database() and usename = 'ebmr_sandbox_listener'");
-    expect(pids.rows.map((r) => r.pid)).not.toContain(rows[0]?.pid);
+    // pg_terminate_backend only sends the signal: until the backend has exited (and the pool has seen it), the old
+    // connection still counts, so the full count alone could be met before the replacement exists. Wait for both: the
+    // ended backend gone and the pool full again.
+    const listenerPids = async () =>
+      (await server.db.admin.query<{ pid: number }>("select pid from pg_stat_activity where datname = current_database() and usename = 'ebmr_sandbox_listener'")).rows.map((r) => r.pid);
+    expect(
+      await eventually(async () => {
+        const live = await listenerPids();
+        return !live.includes(rows[0]?.pid ?? -1) && live.length === RECEIPTS_POOL_MAX + WATCH_POOL_MAX && runtime.receipts().totalCount === RECEIPTS_POOL_MAX;
+      }),
+    ).toBe(true);
+    expect(await listenerPids()).not.toContain(rows[0]?.pid);
   }, 60_000);
 
   it('[DI-30][PR-20][DI-27] a request that is no gateway\'s heartbeat (no token, a body that is no heartbeat, a token nobody handed out) loses nothing; a heartbeat refused before its receipt because the site\'s time zone changed is lost, and the listener\'s next tick says so', async () => {
