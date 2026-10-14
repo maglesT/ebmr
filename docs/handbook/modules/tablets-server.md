@@ -1434,23 +1434,27 @@ and sign it). Guidance for EBMR-CAPA-* and EBMR-QMS-* names who to call.
 The release acts also ask the QMS: in MIRROR, [release/signables.ts](../../../apps/tablets-server/src/features/release/signables.ts)
 calls `qmsReleaseFetch` (adapters/qms) before the database act of a release, a US release disposition, an in-system QP
 certification and a re-confirmation; the QMS address is `EBMR_QMS_URL` (timeout `EBMR_QMS_TIMEOUT_MS`, default 2000 ms).
-The QMS, LIMS, LMS and CMMS workers are in [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b);
-starting them with the server (service identities in the service-keys file) is left to the integration feature's wiring.
+The QMS, LIMS, LMS and CMMS adapters are in [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b);
+the integrations feature starts them with the server (ts-integrations below).
 
 ## ts-integrations: integration health and the adapters
 
 [features/integrations](../../../apps/tablets-server/src/features/integrations/) (contract
 [ns/integrations.ts](../../../packages/api-contract/src/ns/integrations.ts); kernel 1180): the health page reads
 (`adapters`, `adapter`, `reconciliations`, `mirrors`, `alarms`) and the one act, `acknowledgeAlarm` (a person,
-ALARM.ACKNOWLEDGE, FRESH_ON_SHARED). The plugin starts the ERP/WMS feeds the service-keys file configures (terminals
-`SRV-ERP-ADAPTER-01`, `SRV-WMS-ADAPTER-01`, each entry with an `endpoint`) on the worker base
-[adapters/framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts) and stops them
-with the server; it also registers the signable action MATERIAL_SOURCE_ACT (QA's approval of a manufacturer,
+ALARM.ACKNOWLEDGE, FRESH_ON_SHARED). The plugin starts, with
+[adapters/start.ts](../../../apps/tablets-server/src/features/integrations/adapters/start.ts#sym=startAdapters), every
+adapter the service-keys file configures (terminals `SRV-ERP-ADAPTER-01`, `SRV-WMS-ADAPTER-01`, `SRV-QMS-ADAPTER-01`,
+`SRV-LIMS-ADAPTER-01`, `SRV-LMS-ADAPTER-01`, `SRV-CMMS-ADAPTER-01`, each entry with an `endpoint`) whose system the site
+runs in MIRROR mode (a STAND_IN site starts none), all on the one worker framework
+[adapters/framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts); it stops them
+with the server and shows each worker's health as `worker` in the `adapters` and `adapter` reads; it also registers the signable action MATERIAL_SOURCE_ACT (QA's approval of a manufacturer,
 [quality/receipt.ts](../../../apps/tablets-server/src/features/quality/receipt.ts#sym=materialSourceActHandler)). The
 guidance names who to call for EBMR-INT-*, EBMR-ERP-* and the issue gate (EBMR-SITE-917, 918, 920, 922, 924). How the
 adapters work: [integrations](integrations.md#the-erpwms-adapter-and-the-worker-base-phase-6-slice-6a-builder-a).
 Tests: [test/integrations/](../../../apps/tablets-server/test/integrations/) (the routes with data, the ERP/WMS
-contract and soak tests against the simulator processes).
+contract and soak tests and the QMS, LIMS, LMS and CMMS soak tests against the simulator processes, the start-up with
+the server in MIRROR and STAND_IN).
 
 **Receipt routes of the quality namespace** ([quality/receipt.ts](../../../apps/tablets-server/src/features/quality/receipt.ts),
 contract [ns/receipt.ts](../../../packages/api-contract/src/ns/receipt.ts); site services 0910 to 0915; PR-17):

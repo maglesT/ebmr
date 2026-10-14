@@ -770,6 +770,22 @@ because the lesson is about structure.
   [contract.test.ts](../../apps/tablets-server/test/integrations/erp-wms/contract.test.ts).
 - **Lesson:** freshness is about the data you hold, not about whether the other system answers.
 
+### P6a-I1: an LMS withdrawal would fail on builder A's worker (slice 6a, merge of the two workers)
+- **What went wrong.** Builder A's worker base ran each receiving command without a reason. Its ERP/WMS commands only
+  insert, so nothing showed it; an LMS REVOKED or EXPIRED message updates the live qualification row
+  (`iam.receive_lms_qualification`), and the audit trail refuses an update without a reason (EBMR-AUDIT-002). On A's
+  worker that refusal is unclassified, so the LMS adapter would block on the withdrawal and every later message.
+- **Why it matters.** A person whose training the LMS withdrew would stay qualified in the eBMR while the mirror aged;
+  the qualification check at signing must see the withdrawal.
+- **Fix.** The two workers were merged into one framework that runs every receiving command with the source's reason
+  (INBOUND_MESSAGE, naming the message type, record id and system, D-P6a-B-7):
+  [framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=sourceReason). Found by
+  builder B, whose pull worker already carried it.
+- **Test.** `[DI-31] LMS: a withdrawal through the worker framework carries the source reason into the audit trail
+  (defect P6a-I1)` in [feed-adapters.test.ts](../../apps/tablets-server/test/integrations/feed-adapters.test.ts); it
+  fails with EBMR-AUDIT-002 when the reason is taken out.
+- **Lesson:** a shared base is proven by its most demanding user, not its first one.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

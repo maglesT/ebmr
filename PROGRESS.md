@@ -102,6 +102,9 @@ Slice 6a on `phase-6/slice-6a`: 6a-0 (interface commit) done: `@ebmr/integration
 classes, retry rule, reconciliation, system contracts), kernel 1180 (integration adapters, `platform.accept_inbound`,
 integration alarms, reconciliation, `platform.mirror_fresh_or_raise`), namespace `integrations` with its server reads;
 signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-plan/phase-6/slice-6a-0-interfaces.md`.
+Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
+command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
+none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

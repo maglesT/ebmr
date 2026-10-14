@@ -185,11 +185,14 @@ decisions and the builders' split: [slice-6a-0-interfaces.md](../../build-plan/p
 
 ## The ERP/WMS adapter and the worker base (Phase 6, slice 6a, builder A)
 
-**The worker base** ([framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker)):
-one worker per feed, application code only (every rule it relies on is the database's). A cycle asks the source's
-heartbeat, reads a page of the feed after its cursor (the highest sequence number handled; at start the database's),
-and per message checks the envelope (`InboundEnvelope`), the hash against the payload as received and the payload
-against the contract's schema, then runs the system's receiving command in one database command. A refusal of a known
+**The worker framework** ([framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker)):
+the single base of every adapter (builder A's worker base merged with builder B's pull worker, which is removed;
+defect P6a-I1). One worker per feed, application code only (every rule it relies on is the database's). A cycle asks
+the source's heartbeat, reads pages of the feed after its cursor (the highest sequence number handled; at start the
+database's), up to ten a cycle while it is behind the source's head and the cursor moves, and per message checks the envelope (`InboundEnvelope`), the hash against the payload as received and the payload
+against the contract's schema, then runs the system's receiving command in one database command that carries the
+source's reason (reason code INBOUND_MESSAGE, text `<message type> <record id> from the <system>`, D-P6a-B-7: the audit
+trail refuses an update without a reason, so an LMS withdrawal needs it). A refusal of a known
 class is recorded with `platform.record_inbound_refusal` (its alarm) and the cursor moves on; TRANSPORT (the source or
 the database unreachable, a cut or late answer) ends the cycle without moving the cursor and is retried with
 `retryDelayMs` (1 s doubling to 5 min, never given up); an unclassified failure blocks the worker on that message
@@ -197,12 +200,26 @@ the database unreachable, a cut or late answer) ends the cycle without moving th
 **and** the worker is caught up with the source's head, so a stopped heartbeat, a feed gap or a backlog all let the
 mirror go stale and fail closed (defect P6a-A1 in the [defect log](../08-defect-log.md#integrations-phase-6)).
 `reconcile(from, to)` submits the source's count and checksum of a closed period. Back-off uses the monotonic clock
-(`performance.now`), never GMP time.
+(`performance.now`), never GMP time. A system that is only a map of message types to receiving commands (QMS, LIMS,
+LMS, CMMS) is a `FeedAdapterSpec` run by
+[feedWorker](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=feedWorker); a type with no
+command here is refused EBMR-INT-004 (MALFORMED), never accepted unapplied.
+
+**Start-up** ([start.ts](../../../apps/tablets-server/src/features/integrations/adapters/start.ts#sym=startAdapters)):
+the integrations feature starts, with the server, every adapter that has an entry in the service-keys file
+(`EBMR_SERVICE_KEYS_FILE`: terminal `SRV-ERP-ADAPTER-01`, `SRV-WMS-ADAPTER-01`, `SRV-QMS-ADAPTER-01`,
+`SRV-LIMS-ADAPTER-01`, `SRV-LMS-ADAPTER-01` or `SRV-CMMS-ADAPTER-01`, with login, service key, terminal fingerprint and
+the feed `endpoint`, e.g. `http://host:port/lms/v1`), whose account is registered ACTIVE for its system, and whose
+system the site runs in MIRROR mode (any of its data classes). A STAND_IN site starts none. The mode is read at start;
+a mode change takes effect at the next start. The workers stop (cycle finished, session ended) when the server closes.
+Each running worker's health (state IDLE, RUNNING, RETRYING or BLOCKED, cursor, the source's head, cycles, failed
+attempts, last error, counts) is `worker` in the adapter health of the `adapters` and `adapter` routes and on the
+adapter page; `worker` is null where none runs.
 
 **The ERP/WMS adapter** ([adapters/erp-wms](../../../apps/tablets-server/src/features/integrations/adapters/erp-wms/index.ts)):
 two feeds of the ERP_WMS system, each its own registered adapter (D-P6a-0-7), started by the integrations feature
 when the service-keys file has an entry for terminal `SRV-ERP-ADAPTER-01` or `SRV-WMS-ADAPTER-01` with an `endpoint`
-and the account is an ACTIVE ERP_WMS adapter. The account holds role ERP_WMS_INTERFACE (site services 0914:
+, the account is an ACTIVE ERP_WMS adapter and the site runs ERP_WMS in MIRROR mode (start-up above). The account holds role ERP_WMS_INTERFACE (site services 0914:
 INTERFACE.WRITE, ERP.MASTER_WRITE, MATERIAL.HANDLE; no SIGN or ACKNOWLEDGE). Both receive through
 `site.erp_wms_receive` ([site services 0913](../../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql)):
 
@@ -248,7 +265,7 @@ refuses a message without them as MALFORMED.
 
 ## QMS, LIMS, LMS and CMMS adapters (Phase 6, slice 6a, builder B)
 
-Each of these four systems is a thin mapping on the framework above: a receiving command in the database per message
+Each of these four systems is a thin mapping (a `FeedAdapterSpec`) on the worker framework above: a receiving command in the database per message
 type, a spec in [adapters/](../../../apps/tablets-server/src/features/integrations/adapters/) and a feed simulator.
 Every receiving command refuses administrators, checks INTERFACE.WRITE, calls `platform.accept_inbound_detail` and,
 when the outcome is ACCEPTED, applies the payload in the same transaction; a refusal names its EBMR code, which the
@@ -275,15 +292,11 @@ Rules every one of them keeps:
   code INBOUND_MESSAGE and a text naming the message type, record id and system: the audit trail refuses an update
   without a reason (EBMR-AUDIT-002).
 
-**The pull worker** ([feed-pull/worker.ts](../../../apps/tablets-server/src/features/integrations/adapters/feed-pull/worker.ts#sym=FeedPullWorker),
-D-P6a-B-1): one cycle reads the feed after the highest sequence number handled, sends each envelope to its receiving
-command, records a classified refusal with `platform.record_inbound_refusal` and moves on, and stops without moving its
-pointer on a TRANSPORT or unclassified failure (the next cycle fetches the same messages again; accepted ones come back
-DUPLICATE). It synchronises the system's mirror data classes only when it is **caught up** (pointer = the source's head)
-and the source's heartbeat answers, so a feed gap and a stopped heartbeat both let the mirror go stale. Builder A's
-[framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts) is the ERP/WMS worker; it
-now also syncs only when caught up (defect P6a-A1); its receiving commands only insert, so they carry no source reason.
-The four systems stay on the pull worker until the two are merged (owner of the merge: the lead).
+**The worker** is the framework above (D-P6a-B-1 as merged): the four specs run on `feedWorker`, which keeps what the
+pull worker did (the source's reason on each receiving command, reading until caught up, the mirror synchronised only
+when caught up and the heartbeat answers, a classified refusal recorded and passed, TRANSPORT retried without moving
+the cursor) and adds the framework's envelope, hash and schema checks, its health and its blocking on an unclassified
+failure. They start with the server as described under start-up.
 
 **The QMS status at release (D-P6a-3, D-P6a-0-11).** The release does not trust the QMS mirror alone. In MIRROR, the
 release acts (manufacturer release, US release disposition, in-system QP certification, re-confirmation) call
@@ -304,8 +317,8 @@ EBMR-INT-010. The qualification check at signing reads LMS_QUALIFICATION (kernel
 mirror, its age and whom to call ([StaleMirror.tsx](../../../packages/ui-kit/src/floor/StaleMirror.tsx)).
 
 **Defaults taken by builder B (decision 0004; recorded, the owner may change):**
-D-P6a-B-1 the four systems run on the pull worker above (mirror synced only when caught up) until it is merged with
-framework.ts; D-P6a-B-2 a CMMS ADJUSTED_PASS is recorded as found FAIL, as left PASS (the batches since the last good
+D-P6a-B-1 the four systems ran on a pull worker of their own until it was merged into framework.ts (done; the
+worker framework above); D-P6a-B-2 a CMMS ADJUSTED_PASS is recorded as found FAIL, as left PASS (the batches since the last good
 calibration are listed and released lots are suspended for assessment); D-P6a-B-3 a CMMS due date becomes the start of
 that day in the site's zone (the unit is not used on its due date); D-P6a-B-4 in MIRROR a unit is not used while a CMMS
 work order is IN_PROGRESS or a PREVENTIVE one is past its due date; D-P6a-B-5 G2.QMS_STATUS appears only in MIRROR (a
@@ -314,6 +327,12 @@ stand-in checklist and the golden outputs stay exact); D-P6a-B-6 LIMS results ar
 message); D-P6a-B-8 the CAPA signing meaning is tablets 1229 (6a has no tablets range); D-P6a-B-9 a CAPA closes only
 with every effectiveness check recorded effective, and a QMS mirror CAPA is never closed here; D-P6a-B-10 the four
 adapters hold SERVICE_ACCOUNT only (INTERFACE.WRITE; the receiving definers do the rest), no per-system role.
+
+**Defaults taken at the merge of the two workers (decision 0004; recorded, the owner may change):** D-P6a-I-1 an
+adapter starts only when its system is in MIRROR mode, read once at server start (a mode switch takes effect at the
+next start; meanwhile the database refuses a message for a STAND_IN data class); D-P6a-I-2 LIMS has no mirror data
+class, so its adapter starts when it is configured and the site runs any data class in MIRROR (a wholly STAND_IN site
+starts none); D-P6a-I-3 every receiving command carries the source's reason, including the insert-only ERP/WMS ones.
 
 ## site-gateway: the equipment gateway
 
