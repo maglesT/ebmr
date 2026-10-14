@@ -256,6 +256,7 @@ tests:
   - "apps/tablets-server/test/release/qp-shipping-routes.test.ts > the QP role closes every other route, whatever role the session chose (review 4b-1) > [DI-14] an account holding EU_QP_READER and another read-only role reaches only the QP package routes in either role"
   - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14] a QP account holds EU_QP_READER as its only role: an account that also holds another role, even a read-only one, gets no access"
   - "packages/kernel/test/records/qp-package.test.ts > the QP account: read-only, time-boxed, one lot (DI-14, DI-17) > [DI-14][DI-41] no package of a lot is served or opened to a QP while its release is suspended or its EU market removed"
+  - "packages/kernel/test/inbound/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-31][DI-14] an integration identity cannot sign"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

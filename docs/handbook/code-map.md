@@ -22,6 +22,7 @@ of each database function.
 | [kernel-authorization](#kernel-authorization) | Authorization (permission catalogue, scopes, signature requirements) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 1 | 9 |
 | [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 7 | 5 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
+| [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 1 | 0 | 1 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 79 | 38 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
@@ -68,6 +69,7 @@ of each database function.
 | [ts-qp-package](#ts-qp-package) | EU QP batch package and certification message intake | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 0 | 0 |
 | [ts-erp-shipping](#ts-erp-shipping) | ERP shipping interlock | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 0 | 0 | 0 |
 | [ts-records](#ts-records) | Record lock and bright stock | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 7 | 3 | 9 |
+| [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 1 | 0 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 2 |
 | [ts-archive](#ts-archive) | Archive, evidence export and inspection | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 11 | 0 | 0 |
 | [ts-india](#ts-india) | India features (licences, labels, expiry rule) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 15 | 5 | 8 |
@@ -77,7 +79,7 @@ of each database function.
 | [tablets-web](#tablets-web) | Tablets screens shell (app, API client, devices) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 0 | 8 | 13 |
 | [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 2 | 16 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
-| [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 6 | 3 |
+| [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 7 | 3 |
 | [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 10 | 7 |
 | [simulators](#simulators) | Device and ERP simulators | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 7 | 1 |
 | [ui-kit](#ui-kit) | UI kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 12 | 16 |
@@ -311,6 +313,22 @@ of each database function.
 **Tests** (2): [system-log.test.ts](../../packages/kernel/test/integration/system-log.test.ts), [wiring.test.ts](../../packages/kernel/test/integration/wiring.test.ts)
 
 **Controls** (3): [DI-13](../../compliance/controls/DI-13.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-37](../../compliance/controls/DI-37.yaml)
+
+## kernel-inbound
+
+**Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness).** Package `packages/kernel`. Handbook: [modules/integrations.md](modules/integrations.md).
+
+**Migrations** (1):
+
+- `packages/kernel/sql`: [1180_inbound_adapter_framework.sql](../../packages/kernel/sql/1180_inbound_adapter_framework.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (9): `iam.integration_adapter`, `platform.inbound_exception`, `platform.inbound_message`, `platform.inbound_schema`, `platform.integration_alarm`, `platform.integration_alarm_ack`, `platform.mirror_data_class`, `platform.mirror_sync`, `platform.reconciliation_report`
+- Functions (16): `iam.current_integration_adapter`, `iam.integration_adapter_guard`, `iam.register_integration_adapter`, `iam.set_integration_adapter_status`, `platform.accept_inbound`, `platform.accept_inbound_detail`, `platform.acknowledge_integration_alarm`, `platform.epoch_us_to_timestamptz`, `platform.inbound_envelope_problem`, `platform.mirror_fresh_or_raise`, `platform.mirror_freshness`, `platform.raise_integration_alarm`, `platform.record_inbound_refusal`, `platform.record_mirror_sync`, `platform.record_reconciliation`, `platform.timestamptz_to_epoch_us`
+- Triggers (1): `aa_integration_adapter_guard on iam.integration_adapter`
+
+**Tests** (1): [inbound.test.ts](../../packages/kernel/test/inbound/inbound.test.ts)
 
 ## kernel-installation
 
@@ -1358,6 +1376,27 @@ of each database function.
 
 **Controls** (9): [DI-35](../../compliance/controls/DI-35.yaml), [DI-40](../../compliance/controls/DI-40.yaml), [DI-41](../../compliance/controls/DI-41.yaml), [DI-43](../../compliance/controls/DI-43.yaml), [IN-08](../../compliance/controls/IN-08.yaml), [IN-11](../../compliance/controls/IN-11.yaml), [PR-16](../../compliance/controls/PR-16.yaml), [PR-38](../../compliance/controls/PR-38.yaml), [PR-59](../../compliance/controls/PR-59.yaml)
 
+## ts-integrations
+
+**Integration health, mirrors and integration alarms.** Package `apps/tablets-server`. Handbook: [modules/integrations.md](modules/integrations.md).
+
+**Server files** (3): [guidance.ts](../../apps/tablets-server/src/features/integrations/guidance.ts), [index.ts](../../apps/tablets-server/src/features/integrations/index.ts), [reads.ts](../../apps/tablets-server/src/features/integrations/reads.ts)
+
+**Contract** (1): [integrations.ts](../../packages/api-contract/src/ns/integrations.ts)
+
+**Routes** (6):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| GET | `/api/integrations/adapters` | `integrations.adapters` | [integrations.ts](../../packages/api-contract/src/ns/integrations.ts) |
+| GET | `/api/integrations/adapters/:adapterCode` | `integrations.adapter` | [integrations.ts](../../packages/api-contract/src/ns/integrations.ts) |
+| GET | `/api/integrations/adapters/:adapterCode/reconciliations` | `integrations.reconciliations` | [integrations.ts](../../packages/api-contract/src/ns/integrations.ts) |
+| GET | `/api/integrations/alarms` | `integrations.alarms` | [integrations.ts](../../packages/api-contract/src/ns/integrations.ts) |
+| POST | `/api/integrations/alarms/:alarmId/acknowledge` | `integrations.acknowledgeAlarm` | [integrations.ts](../../packages/api-contract/src/ns/integrations.ts) |
+| GET | `/api/integrations/mirrors` | `integrations.mirrors` | [integrations.ts](../../packages/api-contract/src/ns/integrations.ts) |
+
+**Tests** (1): [contract-enums.test.ts](../../apps/tablets-server/test/integrations/contract-enums.test.ts)
+
 ## ts-pqr
 
 **Product quality review.** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
@@ -1573,9 +1612,9 @@ of each database function.
 
 **Integration SDK (device drivers).** Package `packages/integration-sdk`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Source** (17): [index.ts](../../packages/integration-sdk/src/index.ts), [printer/index.ts](../../packages/integration-sdk/src/printer/index.ts), [printer/sim-protocol.ts](../../packages/integration-sdk/src/printer/sim-protocol.ts), [printer/wire.ts](../../packages/integration-sdk/src/printer/wire.ts), [process/index.ts](../../packages/integration-sdk/src/process/index.ts), [process/sim-protocol.ts](../../packages/integration-sdk/src/process/sim-protocol.ts), [process/tags.ts](../../packages/integration-sdk/src/process/tags.ts), [process/wire.ts](../../packages/integration-sdk/src/process/wire.ts), [scale/decimal.ts](../../packages/integration-sdk/src/scale/decimal.ts), [scale/index.ts](../../packages/integration-sdk/src/scale/index.ts), [scale/instruments.ts](../../packages/integration-sdk/src/scale/instruments.ts), [scale/mt-sics.ts](../../packages/integration-sdk/src/scale/mt-sics.ts), [scale/reading.ts](../../packages/integration-sdk/src/scale/reading.ts), [scale/wire.ts](../../packages/integration-sdk/src/scale/wire.ts), [serialisation/index.ts](../../packages/integration-sdk/src/serialisation/index.ts), [serialisation/market.ts](../../packages/integration-sdk/src/serialisation/market.ts), [serialisation/wire.ts](../../packages/integration-sdk/src/serialisation/wire.ts)
+**Source** (31): [adapter/contract.ts](../../packages/integration-sdk/src/adapter/contract.ts), [adapter/envelope.ts](../../packages/integration-sdk/src/adapter/envelope.ts), [adapter/errors.ts](../../packages/integration-sdk/src/adapter/errors.ts), [adapter/index.ts](../../packages/integration-sdk/src/adapter/index.ts), [adapter/mirror.ts](../../packages/integration-sdk/src/adapter/mirror.ts), [adapter/reconciliation.ts](../../packages/integration-sdk/src/adapter/reconciliation.ts), [adapter/systems/cmms.ts](../../packages/integration-sdk/src/adapter/systems/cmms.ts), [adapter/systems/ems.ts](../../packages/integration-sdk/src/adapter/systems/ems.ts), [adapter/systems/erp-wms.ts](../../packages/integration-sdk/src/adapter/systems/erp-wms.ts), [adapter/systems/l3.ts](../../packages/integration-sdk/src/adapter/systems/l3.ts), [adapter/systems/lims.ts](../../packages/integration-sdk/src/adapter/systems/lims.ts), [adapter/systems/lms.ts](../../packages/integration-sdk/src/adapter/systems/lms.ts), [adapter/systems/opcua.ts](../../packages/integration-sdk/src/adapter/systems/opcua.ts), [adapter/systems/qms.ts](../../packages/integration-sdk/src/adapter/systems/qms.ts), [index.ts](../../packages/integration-sdk/src/index.ts), [printer/index.ts](../../packages/integration-sdk/src/printer/index.ts), [printer/sim-protocol.ts](../../packages/integration-sdk/src/printer/sim-protocol.ts), [printer/wire.ts](../../packages/integration-sdk/src/printer/wire.ts), [process/index.ts](../../packages/integration-sdk/src/process/index.ts), [process/sim-protocol.ts](../../packages/integration-sdk/src/process/sim-protocol.ts), [process/tags.ts](../../packages/integration-sdk/src/process/tags.ts), [process/wire.ts](../../packages/integration-sdk/src/process/wire.ts), [scale/decimal.ts](../../packages/integration-sdk/src/scale/decimal.ts), [scale/index.ts](../../packages/integration-sdk/src/scale/index.ts), [scale/instruments.ts](../../packages/integration-sdk/src/scale/instruments.ts), [scale/mt-sics.ts](../../packages/integration-sdk/src/scale/mt-sics.ts), [scale/reading.ts](../../packages/integration-sdk/src/scale/reading.ts), [scale/wire.ts](../../packages/integration-sdk/src/scale/wire.ts), [serialisation/index.ts](../../packages/integration-sdk/src/serialisation/index.ts), [serialisation/market.ts](../../packages/integration-sdk/src/serialisation/market.ts), [serialisation/wire.ts](../../packages/integration-sdk/src/serialisation/wire.ts)
 
-**Tests** (6): [package.test.ts](../../packages/integration-sdk/test/package.test.ts), [printer/wire.test.ts](../../packages/integration-sdk/test/printer/wire.test.ts), [process/wire.test.ts](../../packages/integration-sdk/test/process/wire.test.ts), [scale/mt-sics.test.ts](../../packages/integration-sdk/test/scale/mt-sics.test.ts), [scale/reading.test.ts](../../packages/integration-sdk/test/scale/reading.test.ts), [serialisation/serialisation.test.ts](../../packages/integration-sdk/test/serialisation/serialisation.test.ts)
+**Tests** (7): [adapter/adapter.test.ts](../../packages/integration-sdk/test/adapter/adapter.test.ts), [package.test.ts](../../packages/integration-sdk/test/package.test.ts), [printer/wire.test.ts](../../packages/integration-sdk/test/printer/wire.test.ts), [process/wire.test.ts](../../packages/integration-sdk/test/process/wire.test.ts), [scale/mt-sics.test.ts](../../packages/integration-sdk/test/scale/mt-sics.test.ts), [scale/reading.test.ts](../../packages/integration-sdk/test/scale/reading.test.ts), [serialisation/serialisation.test.ts](../../packages/integration-sdk/test/serialisation/serialisation.test.ts)
 
 **Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [PR-42](../../compliance/controls/PR-42.yaml)
 

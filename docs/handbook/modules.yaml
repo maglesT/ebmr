@@ -140,6 +140,14 @@ modules:
       packages/kernel/sql: ['^0900_']
     tests: ['packages/kernel/test/integration/**']
 
+  - id: kernel-inbound
+    title: Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness)
+    page: modules/integrations.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^118\d_']
+    tests: ['packages/kernel/test/inbound/**']
+
   - id: kernel-installation
     title: Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests
     page: modules/kernel.md
@@ -631,6 +639,14 @@ modules:
     contract: [packages/api-contract/src/ns/records-lock.ts]
     screens: [apps/tablets-web/src/features/records]
     tests: ['apps/tablets-server/test/records/**', 'apps/tablets-web/test/records/**']
+
+  - id: ts-integrations
+    title: Integration health, mirrors and integration alarms
+    page: modules/integrations.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/integrations]
+    contract: [packages/api-contract/src/ns/integrations.ts]
+    tests: ['apps/tablets-server/test/integrations/**']
 
   - id: ts-pqr
     title: Product quality review
