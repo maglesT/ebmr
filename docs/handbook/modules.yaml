@@ -232,7 +232,10 @@ modules:
       packages/recipe-core/sql:
         ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_']
     src: [packages/recipe-core/src/lifecycle]
-    tests: ['packages/recipe-core/test/lifecycle/**']
+    tests:
+      - 'packages/recipe-core/test/lifecycle/**'
+      - 'packages/recipe-core/test/mutation/mbr-lifecycle.test.ts'
+      - 'packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts'
 
   - id: rc-plant
     title: Plant (equipment, areas, logbook, status, hazard dedication)
@@ -241,7 +244,10 @@ modules:
     migrations:
       packages/recipe-core/sql: ['^040\d_', '^0460_', '^052[1-3]_', '^0691_', '^0890_', '^0912_']
     src: [packages/recipe-core/src/plant]
-    tests: ['packages/recipe-core/test/plant/**']
+    tests:
+      - 'packages/recipe-core/test/plant/**'
+      - 'packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts'
+      - 'packages/recipe-core/test/mutation/platform-scope.test.ts'
 
   - id: rc-containers
     title: Output containers
@@ -250,7 +256,9 @@ modules:
     migrations:
       packages/recipe-core/sql: ['^042\d_', '^0540_', '^074\d_']
     src: [packages/recipe-core/src/containers]
-    tests: ['packages/recipe-core/test/containers/**']
+    tests:
+      - 'packages/recipe-core/test/containers/**'
+      - 'packages/recipe-core/test/mutation/output-containers.test.ts'
 
   - id: rc-consumption
     title: Batch side of material consumption
@@ -265,6 +273,10 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_']
+    tests:
+      - 'packages/recipe-core/test/mutation/gmp-batch-issue.test.ts'
+      - 'packages/recipe-core/test/mutation/erp-interfaces.test.ts'
+      - 'packages/recipe-core/test/mutation/india-expiry.test.ts'
 
   - id: rc-blocks
     title: Generic block versions (G-06, G-21 and others)
@@ -273,7 +285,9 @@ modules:
     migrations:
       packages/recipe-core/sql: ['^0520_', '^0541_', '^058[01]_']
     src: [packages/recipe-core/src/blocks]
-    tests: ['packages/recipe-core/test/blocks/**']
+    tests:
+      - 'packages/recipe-core/test/blocks/**'
+      - 'packages/recipe-core/test/mutation/packaging-g21-rules.test.ts'
 
   - id: rc-reprocessing
     title: Reprocessing and recovery
@@ -289,6 +303,8 @@ modules:
     migrations:
       packages/recipe-core/sql: ['^064\d_', '^0690_']
     src: [packages/recipe-core/src/formula]
+    tests:
+      - 'packages/recipe-core/test/mutation/formulas.test.ts'
 
   - id: rc-review
     title: Batch record review (production approval, QA review, audit-trail review, evidence epochs)
@@ -304,7 +320,9 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql: ['^078\d_', '^0892_', '^0932_']
-    tests: ['packages/recipe-core/test/release/**']
+    tests:
+      - 'packages/recipe-core/test/release/**'
+      - 'packages/recipe-core/test/mutation/release-gate.test.ts'
 
   - id: rc-notifications
     title: Notification centre
@@ -340,6 +358,9 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql: ['^0891_', '^0894_']
+    tests:
+      - 'packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts'
+      - 'packages/recipe-core/test/mutation/india-issue-gate.test.ts'
 
   - id: rc-pqr
     title: Product quality review extract
@@ -347,6 +368,8 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql: ['^0910_']
+    tests:
+      - 'packages/recipe-core/test/mutation/pqr-extract.test.ts'
 
   - id: rc-execution
     title: Execution store and engine (steps, entries, exceptions, change paths, hand-over, approvals)
@@ -355,7 +378,25 @@ modules:
     migrations:
       packages/recipe-core/sql: ['^0[23]\d\d_', '^04[4-9]\d_', '^0911_']
     src: [packages/recipe-core/src/execution, packages/recipe-core/src/engine]
-    tests: ['packages/recipe-core/test/execution/**', 'packages/recipe-core/test/engine/**', 'packages/recipe-core/test/integration/**']
+    tests:
+      - 'packages/recipe-core/test/execution/**'
+      - 'packages/recipe-core/test/engine/**'
+      - 'packages/recipe-core/test/integration/**'
+      - 'packages/recipe-core/test/mutation/change-paths-and-hand-over.test.ts'
+      - 'packages/recipe-core/test/mutation/entry-references-and-schema.test.ts'
+      - 'packages/recipe-core/test/mutation/evidence-source-and-entries.test.ts'
+      - 'packages/recipe-core/test/mutation/exception-source.test.ts'
+      - 'packages/recipe-core/test/mutation/exceptions-and-dispositions.test.ts'
+      - 'packages/recipe-core/test/mutation/execution-row-shape.test.ts'
+      - 'packages/recipe-core/test/mutation/execution-state-binding.test.ts'
+      - 'packages/recipe-core/test/mutation/execution-steps-and-order.test.ts'
+      - 'packages/recipe-core/test/mutation/involvement-and-independence.test.ts'
+      - 'packages/recipe-core/test/mutation/late-witness-and-step-times.test.ts'
+      - 'packages/recipe-core/test/mutation/limit-exceptions.test.ts'
+      - 'packages/recipe-core/test/mutation/records-contingency-forms.test.ts'
+      - 'packages/recipe-core/test/mutation/signed-content.test.ts'
+      - 'packages/recipe-core/test/mutation/system-facts-and-time.test.ts'
+      - 'packages/recipe-core/test/mutation/weighing.test.ts'
 
   - id: rc-flow
     title: Flows, validator and limits
@@ -372,7 +413,7 @@ modules:
     tests: ['packages/recipe-core/test/simulator/**']
 
   - id: rc-core
-    title: Recipe core package entry and SQL mutation tests
+    title: Recipe core package entry and tests not owned by one feature
     page: modules/recipe-core.md
     package: packages/recipe-core
     src: [packages/recipe-core/src/index.ts, packages/recipe-core/src/pure.ts]
@@ -388,14 +429,17 @@ modules:
     server: [apps/tablets-server/src/features/session]
     contract: [packages/api-contract/src/ns/session.ts]
     screens: [apps/tablets-web/src/features/session]
-    tests: ['apps/tablets-server/test/session/**', 'apps/tablets-web/test/session/**']
+    tests:
+      - 'apps/tablets-server/test/session/**'
+      - 'apps/tablets-web/test/session/**'
+      - 'apps/tablets-server/test/mutation/tablets-sessions.test.ts'
 
   - id: ts-access
     title: Kiosk access, attribution and governance read doors
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^0100_', '^04[346]0_', '^0540_', '^05[678]0_', '^0610_']
+      apps/tablets-server/sql: ['^0100_', '^04[36]0_', '^0540_', '^05[78]0_', '^0610_']
     server: [apps/tablets-server/src/features/access]
     contract: [packages/api-contract/src/ns/access.ts]
     screens: [apps/tablets-web/src/features/access]
@@ -406,11 +450,14 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^0420_', '^0470_', '^0490_', '^0530_']
+      apps/tablets-server/sql: ['^0420_', '^0440_', '^0470_', '^0490_', '^0530_', '^0560_']
     server: [apps/tablets-server/src/features/audit]
     contract: [packages/api-contract/src/ns/audit.ts]
     screens: [apps/tablets-web/src/features/audit]
-    tests: ['apps/tablets-server/test/audit/**', 'apps/tablets-web/test/audit/**']
+    tests:
+      - 'apps/tablets-server/test/audit/**'
+      - 'apps/tablets-web/test/audit/**'
+      - 'apps/tablets-server/test/mutation/read-authorisation.test.ts'
 
   - id: ts-esig
     title: Signing ceremony and signing meanings
@@ -431,7 +478,10 @@ modules:
     server: [apps/tablets-server/src/features/designer]
     contract: [packages/api-contract/src/ns/designer.ts]
     screens: [apps/tablets-web/src/features/designer]
-    tests: ['apps/tablets-server/test/designer/**', 'apps/tablets-web/test/designer/**']
+    tests:
+      - 'apps/tablets-server/test/designer/**'
+      - 'apps/tablets-web/test/designer/**'
+      - 'apps/tablets-server/test/mutation/designer-guards.test.ts'
 
   - id: ts-devices
     title: Devices and scale or process readings
@@ -443,7 +493,14 @@ modules:
     server: [apps/tablets-server/src/features/devices]
     contract: [packages/api-contract/src/ns/devices.ts, packages/api-contract/src/ns/device-readings.ts]
     screens: [apps/tablets-web/src/features/devices]
-    tests: ['apps/tablets-server/test/devices/**', 'apps/tablets-web/test/devices/**']
+    tests:
+      - 'apps/tablets-server/test/devices/**'
+      - 'apps/tablets-web/test/devices/**'
+      - 'apps/tablets-server/test/mutation/device-readings.test.ts'
+      - 'apps/tablets-server/test/mutation/process-devices-gateway.test.ts'
+      - 'apps/tablets-server/test/mutation/evidence-listener.test.ts'
+      - 'apps/tablets-server/test/mutation/manual-weighing-gate.test.ts'
+      - 'apps/tablets-server/test/mutation/stale-commands-and-readings.test.ts'
 
   - id: ts-blocks
     title: Tablets block versions (TB-01 to TB-24)
@@ -453,7 +510,18 @@ modules:
       apps/tablets-server/sql:
         ['^084[0-3]_', '^085\d_', '^087[1-4]_', '^089\d_', '^09[1-9]\d_', '^1002_', '^102\d_', '^109[12]_', '^111[03]_', '^1151_']
     server: [apps/tablets-server/src/features/edition-blocks.ts, apps/tablets-server/src/blocks]
-    tests: ['apps/tablets-server/test/blocks/**']
+    tests:
+      - 'apps/tablets-server/test/blocks/**'
+      - 'apps/tablets-server/test/mutation/packaging-blister.test.ts'
+      - 'apps/tablets-server/test/mutation/packaging-bottle.test.ts'
+      - 'apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts'
+      - 'apps/tablets-server/test/mutation/tablets-coating.test.ts'
+      - 'apps/tablets-server/test/mutation/tablets-compression.test.ts'
+      - 'apps/tablets-server/test/mutation/tablets-compression-registers.test.ts'
+      - 'apps/tablets-server/test/mutation/tablets-dispensing.test.ts'
+      - 'apps/tablets-server/test/mutation/tablets-ipc.test.ts'
+      - 'apps/tablets-server/test/mutation/due-times-and-holds.test.ts'
+      - 'apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts'
 
   - id: ts-containers
     title: Output container acts
@@ -489,7 +557,11 @@ modules:
       - packages/api-contract/src/ns/samples.ts
       - packages/api-contract/src/ns/specifications.ts
     screens: [apps/tablets-web/src/features/quality]
-    tests: ['apps/tablets-server/test/quality/**', 'apps/tablets-web/test/office/quality*.test.tsx']
+    tests:
+      - 'apps/tablets-server/test/quality/**'
+      - 'apps/tablets-web/test/office/quality*.test.tsx'
+      - 'apps/tablets-server/test/mutation/lots-and-lims.test.ts'
+      - 'apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts'
 
   - id: ts-planning
     title: Planning
@@ -498,7 +570,10 @@ modules:
     server: [apps/tablets-server/src/features/planning]
     contract: [packages/api-contract/src/ns/planning.ts]
     screens: [apps/tablets-web/src/features/planning]
-    tests: ['apps/tablets-web/test/office/planning.test.tsx', 'apps/tablets-web/test/office/packaging.test.tsx']
+    tests:
+      - 'apps/tablets-web/test/office/planning.test.tsx'
+      - 'apps/tablets-web/test/office/packaging.test.tsx'
+      - 'apps/tablets-server/test/execution/packaging-planning-routes.test.ts'
 
   - id: ts-plant
     title: Plant screens and routes
@@ -592,7 +667,11 @@ modules:
     server: [apps/tablets-server/src/features/india]
     contract: [packages/api-contract/src/ns/india.ts]
     screens: [apps/tablets-web/src/features/india]
-    tests: ['apps/tablets-server/test/india/**', 'apps/tablets-web/test/office/india.test.tsx', 'packages/api-contract/test/india.test.ts']
+    tests:
+      - 'apps/tablets-server/test/india/**'
+      - 'apps/tablets-web/test/office/india.test.tsx'
+      - 'packages/api-contract/test/india.test.ts'
+      - 'apps/tablets-server/test/mutation/india-expiry.test.ts'
 
   - id: ts-execution
     title: Execution on the shop floor (batches, entries, lots)
@@ -604,7 +683,23 @@ modules:
     server: [apps/tablets-server/src/features/execution]
     contract: [packages/api-contract/src/ns/execution.ts, packages/api-contract/src/ns/batches.ts]
     screens: [apps/tablets-web/src/features/floor]
-    tests: ['apps/tablets-server/test/execution/**', 'apps/tablets-web/test/floor/**']
+    tests:
+      - 'apps/tablets-server/test/execution/**'
+      - 'apps/tablets-web/test/floor/**'
+      - 'apps/tablets-server/test/mutation/entry-references-and-schema.test.ts'
+      - 'apps/tablets-server/test/mutation/evidence-source-and-entries.test.ts'
+      - 'apps/tablets-server/test/mutation/exception-register-sync.test.ts'
+      - 'apps/tablets-server/test/mutation/exception-source.test.ts'
+      - 'apps/tablets-server/test/mutation/exceptions-and-dispositions.test.ts'
+      - 'apps/tablets-server/test/mutation/execution-commands.test.ts'
+      - 'apps/tablets-server/test/mutation/execution-state-binding.test.ts'
+      - 'apps/tablets-server/test/mutation/execution-steps-and-order.test.ts'
+      - 'apps/tablets-server/test/mutation/involvement-and-independence.test.ts'
+      - 'apps/tablets-server/test/mutation/late-witness-and-step-times.test.ts'
+      - 'apps/tablets-server/test/mutation/signed-content.test.ts'
+      - 'apps/tablets-server/test/mutation/system-facts-and-time.test.ts'
+      - 'apps/tablets-server/test/mutation/tablets-core-checks.test.ts'
+      - 'apps/tablets-server/test/mutation/weighing.test.ts'
 
   - id: ts-meta
     title: Meta routes (health, version)
