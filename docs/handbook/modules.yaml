@@ -28,7 +28,6 @@ migration_header_from:
 # does not exist yet; remove a page from this list as soon as it lands.
 pending:
   - modules/site-services.md
-  - modules/injectables.md
   - modules/tools.md
 
 modules:
