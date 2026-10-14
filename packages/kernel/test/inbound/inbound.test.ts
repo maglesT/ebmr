@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
 import { requestRoleGrant } from '../../src/identity/admin.ts';
+import { heldHead } from '../integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedAuthn, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
@@ -278,7 +279,10 @@ describe('fail-closed mirrors (DI-31, INV-26, INV-38)', () => {
     withCommand(db.app, ctxOf(actor), async (c) => (await c.query<{ f: Record<string, unknown> }>('select platform.mirror_fresh_or_raise($1) as f', [cls])).rows[0]?.f);
   const setMode = (cls: string, mode: string) =>
     withCommand(db.app, withReason(owner), (c) => c.query('select platform.set_setting($1, $2)', [`integration.mode.${cls.toLowerCase()}`, mode]));
-  const sync = (cls: string, actor: SeededActor) => withCommand(db.app, ctxOf(actor), (c) => c.query('select platform.record_mirror_sync($1)', [cls]));
+  const sync = async (cls: string, actor: SeededActor, code = LMS) => {
+    const head = await heldHead(db, code);
+    return withCommand(db.app, ctxOf(actor), (c) => c.query('select platform.record_mirror_sync($1, $2)', [cls, head]));
+  };
 
   it('[DI-31] mirror_fresh_or_raise refuses a stale MIRROR and names it, and passes in STAND_IN', async () => {
     expect(await fresh('LMS_QUALIFICATION')).toMatchObject({ mode: 'STAND_IN', stale: false, asOfUs: null, boundSeconds: null });
@@ -298,6 +302,80 @@ describe('fail-closed mirrors (DI-31, INV-26, INV-38)', () => {
     expect(await fresh('WMS_STOCK')).toMatchObject({ mode: 'MIRROR', blocking: false, stale: true, boundSeconds: '86400' });
     await expectRefused(fresh('NO_SUCH_CLASS'), 'EBMR-INT-011');
     await expectRefused(setMode('WMS_STOCK', 'BOTH'), 'EBMR-PLAT-021');
+  });
+
+  /** A second ERP_WMS adapter with a feed of its own (sequence numbers from 1), so earlier tests leave no gaps on it. */
+  const freshFeed = async () => {
+    const actor = await seedServiceActor(db, { kind: 'INTEGRATION', name: `ERP adapter ${randomUUID().slice(0, 6)}` });
+    const code = `ERP-${randomBytes(3).toString('hex').toUpperCase()}`;
+    await register(actor, code, 'ERP_WMS');
+    const send = (n: number) => accept(envelope({ sequenceNo: n.toString() }), actor);
+    const acknowledgeGap = async (alarmId: string | null) => {
+      const operator = await testActor(db);
+      await withCommand(db.app, ctxOf(operator), (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [alarmId, 'message 4 was a test order cancelled in the ERP']));
+    };
+    const syncAt = (head: string) => withCommand(db.app, ctxOf(actor), (c) => c.query("select platform.record_mirror_sync('ERP_LOT_STATUS', $1)", [head]));
+    const mark = async () => (await db.admin.query<{ h: string | null }>("select source_head::text as h from platform.mirror_sync where data_class = 'ERP_LOT_STATUS'")).rows[0]?.h;
+    return { send, syncAt, mark, acknowledgeGap };
+  };
+  const ageLotStatus = () => db.admin.query("update platform.mirror_sync set last_synced_at = last_synced_at - interval '2 hours' where data_class = 'ERP_LOT_STATUS'");
+
+  it('[DI-31] a heartbeat from an adapter behind the source does not refresh its mirror', async () => {
+    await setMode('ERP_LOT_STATUS', 'MIRROR');
+    try {
+      const feed = await freshFeed();
+      await db.admin.query("delete from platform.mirror_sync where data_class = 'ERP_LOT_STATUS'");
+      await feed.send(1);
+      await feed.send(2);
+      // The source has published 3; the adapter holds 2: the heartbeat is refused and the mirror stays stale.
+      await expectRefused(feed.syncAt('3'), 'EBMR-INT-019', /behind its source: it holds sequence 2, the ERP_WMS source is at 3/);
+      await expectRefused(fresh('ERP_LOT_STATUS'), 'EBMR-INT-010', /it has never synchronised/);
+      // A heartbeat names the source's mark; one that is not a sequence number is refused.
+      await expectRefused(feed.syncAt(''), 'EBMR-INT-018');
+      await expectRefused(feed.syncAt('-1'), 'EBMR-INT-018');
+      // Message 4 arrives before 3 (a gap with its alarm): the highest number held reaches the head, but 3 is missing.
+      expect((await feed.send(4)).sequenceStatus).toBe('GAP');
+      await expectRefused(feed.syncAt('4'), 'EBMR-INT-024', /holds no message for 1 sequence number\(s\) up to the source's 4 \(the first is 3\)/);
+      await expectRefused(fresh('ERP_LOT_STATUS'), 'EBMR-INT-010');
+      // Fresh once 3 arrives; a later heartbeat of an adapter that fell behind keeps the old time, so the mirror ages.
+      await feed.send(3);
+      await feed.syncAt('4');
+      await ageLotStatus();
+      await expectRefused(feed.syncAt('6'), 'EBMR-INT-019');
+      await expectRefused(fresh('ERP_LOT_STATUS'), 'EBMR-INT-010', /last synchronised 720\d s ago/);
+      expect(await feed.mark()).toBe('4');
+    } finally {
+      await setMode('ERP_LOT_STATUS', 'STAND_IN');
+    }
+  });
+
+  it('[DI-31] a synchronisation from an adapter caught up with its source refreshes its mirror and keeps the source mark; a gap counts once a person acknowledges it', async () => {
+    await setMode('ERP_LOT_STATUS', 'MIRROR');
+    try {
+      const feed = await freshFeed();
+      // A source that has published nothing: caught up with nothing held.
+      await feed.syncAt('0');
+      expect(await fresh('ERP_LOT_STATUS')).toMatchObject({ mode: 'MIRROR', stale: false, ageSeconds: '0' });
+      for (const n of [1, 3, 2]) await feed.send(n);
+      await ageLotStatus();
+      // The late 2 filled the gap: every number up to the head is held, so the heartbeat refreshes the mirror.
+      await feed.syncAt('3');
+      expect(await fresh('ERP_LOT_STATUS')).toMatchObject({ mode: 'MIRROR', stale: false, ageSeconds: '0' });
+      expect(await feed.mark()).toBe('3');
+      // Message 4 never comes (the worker pages on from its highest number, so it is never asked again): the mirror is
+      // not refreshed until a person acknowledges the gap alarm with a note.
+      const gap = await feed.send(5);
+      expect(gap.sequenceStatus).toBe('GAP');
+      await expectRefused(feed.syncAt('5'), 'EBMR-INT-024', /\(the first is 4\)/);
+      await feed.acknowledgeGap(gap.alarmId);
+      await feed.syncAt('5');
+      expect(await feed.mark()).toBe('5');
+      // The application can neither write the mark itself nor call the old form that named no mark.
+      await expectPermissionDenied(withCommand(db.app, ctxOf(erp), (c) => c.query("update platform.mirror_sync set source_head = 99 where data_class = 'ERP_LOT_STATUS'")));
+      await expect(withCommand(db.app, ctxOf(erp), (c) => c.query("select platform.record_mirror_sync('ERP_LOT_STATUS')"))).rejects.toThrow(/does not exist/);
+    } finally {
+      await setMode('ERP_LOT_STATUS', 'STAND_IN');
+    }
   });
 
   it('[DI-31] only an adapter of the mirrored system records its synchronisation', async () => {

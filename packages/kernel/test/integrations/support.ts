@@ -9,6 +9,7 @@ import { activateAccount, createAccount, createPerson, decideRoleGrant, issueIni
 import { authenticate, type AuthnDb } from '../../src/identity/authentication.ts';
 import { openSession } from '../../src/identity/sessions.ts';
 import type { TestDatabase } from '../support/db.ts';
+import { testActor } from '../identity/helpers.ts';
 import { SEED_SITE, SEED_ZONE, seedAdministration, withReason, type SeededActor } from '../identity/seed.ts';
 
 export type SourceSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS';
@@ -134,8 +135,43 @@ export async function setMirrorMode(db: TestDatabase, dataClass: string, mode: '
   await withCommand(db.app, withReason(owner), (c) => c.query('select platform.set_setting($1, $2)', [`integration.mode.${dataClass.toLowerCase()}`, mode]));
 }
 
-export async function syncMirror(db: TestDatabase, a: TestAdapter, dataClass: string): Promise<void> {
-  await withCommand(db.app, ctxOf(a.actor), (c) => c.query('select platform.record_mirror_sync($1)', [dataClass]));
+/**
+ * The highest sequence number the database holds for adapter `code` (accepted, or received and refused): the source
+ * head that an adapter which is caught up names when it synchronises (kernel 1182).
+ */
+export async function heldHead(db: Pick<TestDatabase, 'admin'>, code: string): Promise<string> {
+  const { rows } = await db.admin.query<{ n: string }>(
+    `select coalesce(greatest((select max(m.sequence_no) from platform.inbound_message m where m.adapter_code = $1),
+                              (select max(e.sequence_no) from platform.inbound_exception e where e.adapter_code = $1 and e.kind = 'REFUSED')), 0)::text as n`,
+    [code],
+  );
+  return rows[0]?.n ?? '0';
+}
+
+/**
+ * A person acknowledges every open SEQUENCE_GAP alarm of adapter `code`. The tests' adapters skip numbers on purpose
+ * (a refused message whose refusal the test does not record); kernel 1182 refreshes a mirror over such a hole only once
+ * its gap is acknowledged (the rule itself is proven in packages/kernel/test/inbound/inbound.test.ts).
+ */
+export async function acknowledgeGaps(db: TestDatabase, code: string): Promise<void> {
+  const { rows } = await db.admin.query<{ id: string }>(
+    `select a.id from platform.integration_alarm a
+      where a.adapter_code = $1 and a.kind = 'SEQUENCE_GAP' and not exists (select 1 from platform.integration_alarm_ack k where k.alarm_id = a.id)`,
+    [code],
+  );
+  if (rows.length === 0) return;
+  const operator = await testActor(db);
+  for (const r of rows) {
+    await withCommand(db.app, { ...operator, correlationId: randomUUID() }, (c) =>
+      c.query('select platform.acknowledge_integration_alarm($1, $2)', [r.id, 'test feed: the skipped numbers were refused messages']));
+  }
+}
+
+/** A synchronisation of `dataClass` by an adapter caught up with its source, its test gaps acknowledged (or naming `sourceHead`). */
+export async function syncMirror(db: TestDatabase, a: TestAdapter, dataClass: string, sourceHead?: string): Promise<void> {
+  if (sourceHead === undefined) await acknowledgeGaps(db, a.code);
+  const head = sourceHead ?? a.seq.toString(); // the test source's head: the last number it published
+  await withCommand(db.app, ctxOf(a.actor), (c) => c.query('select platform.record_mirror_sync($1, $2)', [dataClass, head]));
 }
 
 /** The heartbeat stops while the data stays: the last synchronisation moved into the past (as the kernel tests do). */

@@ -7,6 +7,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
+import { heldHead } from '../integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
@@ -48,7 +49,7 @@ describe('the LMS qualification source on the generic mirror freshness (kernel 1
     try {
       expect(await fresh()).toBe(false);
       expect((await db.app.query<{ p: string | null }>('select iam.lms_mirror_problem() as p')).rows[0]?.p).toMatch(/^EBMR-INT-010 the LMS mirror LMS_QUALIFICATION is stale: it has never synchronised/);
-      await withCommand(db.app, ctxOf(lms), (c) => c.query("select platform.record_mirror_sync('LMS_QUALIFICATION')"));
+      await withCommand(db.app, ctxOf(lms), async (c) => c.query("select platform.record_mirror_sync('LMS_QUALIFICATION', $1)", [await heldHead(db, LMS)]));
       expect(await fresh()).toBe(true);
       expect((await db.app.query<{ p: string | null }>('select iam.lms_mirror_problem() as p')).rows[0]?.p).toBeNull();
       // The bound is the data class's (3600 s by default): two hours later the source is stale, and was fresh two hours ago.

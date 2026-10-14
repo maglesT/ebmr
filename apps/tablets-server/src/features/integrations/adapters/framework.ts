@@ -25,7 +25,8 @@
  *      moving the cursor, and the next cycle retries after retryDelayMs(attempt) (1 s doubling to 5 min, never given up);
  *      an unclassified failure stops the worker on that message (health BLOCKED, retried with back-off, never skipped);
  *   4. when the heartbeat answered and the worker is caught up (its cursor reached the source's head),
- *      platform.record_mirror_sync for each mirror data class the adapter keeps: a source whose synchronisation stopped,
+ *      platform.record_mirror_sync(class, source head) for each mirror data class the adapter keeps, which the database
+ *      refuses unless the adapter holds every sequence number up to that head (kernel 1182): a source whose synchronisation stopped,
  *      a feed gap or a backlog lets the mirror age past its bound and fail closed (EBMR-INT-010);
  *   5. the system's after-cycle work (the ERP's outbound delivery, the WMS's move questions), also when the feed failed.
  * Acknowledgment follows the commit (ACK_RULE): the feed protocol acknowledges by the cursor (the next page is asked
@@ -331,10 +332,12 @@ export class AdapterWorker {
     try {
       this.cursor ??= await this.databaseCursor();
       report.heartbeat = await this.feed.heartbeat();
+      let head = '0';
       for (let pageNo = 0; pageNo < this.maxPages; pageNo++) {
         const before: bigint = this.cursor;
         const page = await this.feed.page(before, this.pageSize);
         this.healthState.head = page.head;
+        head = page.head;
         report.received += page.messages.length;
         report.fetched = report.received;
         for (const m of page.messages) {
@@ -354,7 +357,8 @@ export class AdapterWorker {
       }
       if (report.heartbeat && report.caughtUp && this.def.mirrorClasses.length > 0) {
         await this.command(async (c) => {
-          for (const cls of this.def.mirrorClasses) await c.query('select platform.record_mirror_sync($1)', [cls]);
+          // The database checks the claim: the adapter holds every sequence number up to the source's head (kernel 1182).
+          for (const cls of this.def.mirrorClasses) await c.query('select platform.record_mirror_sync($1, $2)', [cls, head]);
         });
         report.synced = true;
       }

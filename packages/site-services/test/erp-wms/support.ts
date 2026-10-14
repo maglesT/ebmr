@@ -7,6 +7,7 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { withCommand } from '../../../kernel/src/db/command.ts';
 import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { acknowledgeGaps } from '../../../kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../helpers.ts';
 import { seedCast, World } from '../lots/support.ts';
 
@@ -106,9 +107,11 @@ export class ErpWorld extends World {
     await withCommand(this.db.app, withReason(owner), (c) => c.query('select platform.set_setting($1, $2)', [key, value]));
   }
 
-  /** The ERP_WMS adapter's mirror synchronisation (heartbeat) of `dataClass`. */
+  /** The ERP_WMS adapter's mirror synchronisation (heartbeat) of `dataClass`, caught up, the tests' gaps acknowledged (kernel 1182). */
   async sync(dataClass: string): Promise<void> {
-    await withCommand(this.db.app, { ...this.adapter, correlationId: randomUUID() }, (c) => c.query('select platform.record_mirror_sync($1)', [dataClass]));
+    await acknowledgeGaps(this.db, this.adapterCode);
+    const head = this.seq.toString(); // the test source's head: the last number it published
+    await withCommand(this.db.app, { ...this.adapter, correlationId: randomUUID() }, (c) => c.query('select platform.record_mirror_sync($1, $2)', [dataClass, head]));
   }
 }
 

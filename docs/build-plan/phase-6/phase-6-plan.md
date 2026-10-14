@@ -154,6 +154,13 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     in the database; with a QMS the CAPA is a mirror.
   - **D-P6a-7** A WMS move that already happened against the rule (it cannot be refused after the fact) raises an
     alarm and an exception linked to the lot; the lot stays blocked in the eBMR.
+  - **D-P6a-F-1** (review fix, kernel 1182) A mirror synchronisation names the source's high-water mark (its highest
+    published sequence number); the database marks the class fresh only when the adapter holds that number and every
+    number below it since the last proven mark, a missing run counting only once a person acknowledged its
+    SEQUENCE_GAP alarm with a note. Why: a heartbeat from an adapter that has not caught up must not keep a blocking
+    mirror fresh; the worker pages on from its highest number, so a lost message is never asked for again and needs
+    a person's decision. The acknowledgment uses ALARM.ACKNOWLEDGE as for every integration alarm; whether accepting
+    a lost message should need a QA role is open for the owner.
 - **Migrations:** kernel 1180 to 1189 (inbound messages, integration identities, freshness function; LMS mirror
   heartbeat moves to the generic one), site-services 0910 to 0939 (receipt splits, approved manufacturers, location
   check, CAPA, mirror columns), recipe-core 0940 to 0949 (freshness calls in G-REL and equipment-use guards).

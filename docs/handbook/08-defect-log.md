@@ -801,6 +801,24 @@ because the lesson is about structure.
   [authorization.test.ts](../../packages/kernel/test/integration/authorization.test.ts).
 - **Lesson:** run the kernel's authorization scan whenever a slice adds a function the application may call.
 
+### P6a-R3: a heartbeat alone kept a blocking mirror fresh (slice 6a, review)
+- **What went wrong.** `platform.record_mirror_sync(class)` (kernel 1180) let any active adapter of the class's system
+  refresh the class's last synchronisation with nothing behind it. The worker only called it when caught up, but the
+  database did not check that, so any writer could keep LMS, CMMS, ERP lot-status or QMS mirrors fresh while the
+  adapter was behind its source.
+- **Why it matters.** A stale mirror must fail closed (INV-26): a withdrawn qualification, a failed calibration or a
+  WMS block that never arrived would not stop signing, equipment use or issue.
+- **Fix.** The function now takes the source's high-water mark and the database refuses the sync unless the adapter
+  holds it (EBMR-INT-019) and every number below it since the last proven mark, a missing run counting only once a
+  person acknowledged its gap alarm (EBMR-INT-024; D-P6a-F-1, kernel
+  [1182](../../packages/kernel/sql/1182_mirror_sync_caught_up.sql)). The one-argument form is dropped; the worker
+  passes the head it paged to.
+- **Test.** `[DI-31] a heartbeat from an adapter behind the source does not refresh its mirror` and `[DI-31] a
+  synchronisation from an adapter caught up with its source refreshes its mirror and keeps the source mark; a gap counts
+  once a person acknowledges it` in [inbound.test.ts](../../packages/kernel/test/inbound/inbound.test.ts).
+- **Lesson:** a freshness stamp written by the caller proves only that the caller called; make the database check what
+  the stamp claims.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

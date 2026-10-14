@@ -183,6 +183,13 @@ what arrived. Data classes a GMP guard reads from another system run as STAND_IN
 [1180_inbound_adapter_framework.sql](../../../packages/kernel/sql/1180_inbound_adapter_framework.sql); signatures,
 decisions and the builders' split: [slice-6a-0-interfaces.md](../../build-plan/phase-6/slice-6a-0-interfaces.md).
 
+A mirror is refreshed only by an adapter that has caught up (D-P6a-F-1, kernel
+[1182](../../../packages/kernel/sql/1182_mirror_sync_caught_up.sql)): `platform.record_mirror_sync(class, source head)`
+names the source's highest published sequence number, and the database refuses it when the adapter holds less
+(EBMR-INT-019) or misses a number below it (EBMR-INT-024) that no acknowledged SEQUENCE_GAP alarm covers. A heartbeat
+alone never keeps a blocking mirror fresh; a lost message keeps the mirror ageing until it arrives or a person
+acknowledges its gap with a note on the integration health page.
+
 ## The ERP/WMS adapter and the worker base (Phase 6, slice 6a, builder A)
 
 **The worker framework** ([framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker)):

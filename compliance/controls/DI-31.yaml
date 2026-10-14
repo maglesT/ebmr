@@ -282,6 +282,8 @@ tests:
   - "apps/tablets-server/test/integrations/adapter-startup.test.ts > the integration adapters start with the server (DI-31) > [DI-31] a STAND_IN site starts no adapter, even with one configured"
   - "apps/tablets-server/test/integrations/erp-wms/contract.test.ts > the ERP/WMS adapter against its simulators (DI-31) > [DI-31] a feed gap keeps the mirror from looking fresh: the sync is recorded only when the worker is caught up with the source"
   - "apps/tablets-server/test/integrations/feed-adapters.test.ts > the feed adapters against their simulators (DI-31) > [DI-31] LMS: a withdrawal through the worker framework carries the source reason into the audit trail (defect P6a-I1)"
+  - "packages/kernel/test/inbound/inbound.test.ts > fail-closed mirrors (DI-31, INV-26, INV-38) > [DI-31] a heartbeat from an adapter behind the source does not refresh its mirror"
+  - "packages/kernel/test/inbound/inbound.test.ts > fail-closed mirrors (DI-31, INV-26, INV-38) > [DI-31] a synchronisation from an adapter caught up with its source refreshes its mirror and keeps the source mark; a gap counts once a person acknowledges it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
