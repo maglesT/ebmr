@@ -9,7 +9,7 @@
 import { QMS } from '@ebmr/integration-sdk/adapter';
 import type pg from 'pg';
 import { refusal } from '../../../../platform/http/refusal.ts';
-import type { FeedAdapterSpec } from '../feed-pull/worker.ts';
+import type { FeedAdapterSpec } from '../framework.ts';
 
 export const QMS_ADAPTER: FeedAdapterSpec = {
   system: 'QMS',
@@ -20,7 +20,7 @@ export const QMS_ADAPTER: FeedAdapterSpec = {
     'qms.change_control': 'site.receive_qms_change_control',
   },
   mirrorClasses: ['QMS_STATUS'],
-  refusalCodes: QMS.refusalCodes,
+  contract: QMS,
 };
 
 export interface QmsLink {

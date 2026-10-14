@@ -15,7 +15,7 @@ import { withReason } from '../../../../packages/kernel/test/identity/seed.ts';
 import { count, ctxOf, registerAdapter, setMirrorMode, type Administration, type TestAdapter } from '../../../../packages/kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { CMMS_ADAPTER } from '../../src/features/integrations/adapters/cmms/index.ts';
-import { FeedPullWorker, type CycleReport, type FeedAdapterSpec } from '../../src/features/integrations/adapters/feed-pull/worker.ts';
+import { feedWorker, type AdapterWorker, type CycleReport, type FeedAdapterSpec } from '../../src/features/integrations/adapters/framework.ts';
 import { LIMS_ADAPTER } from '../../src/features/integrations/adapters/lims/index.ts';
 import { LMS_ADAPTER } from '../../src/features/integrations/adapters/lms/index.ts';
 import { QMS_ADAPTER } from '../../src/features/integrations/adapters/qms/index.ts';
@@ -87,7 +87,7 @@ afterAll(async () => {
 interface Rig {
   sim: FeedSimProcess;
   adapter: TestAdapter;
-  worker: FeedPullWorker;
+  worker: AdapterWorker;
   post(path: string, body: unknown): Promise<number>;
   fault(f: FeedFault, on: boolean, slowMs?: number): Promise<void>;
 }
@@ -97,7 +97,7 @@ async function rig(spec: FeedAdapterSpec): Promise<Rig> {
   sims.push(sim);
   const adapter = await registerAdapter(db, spec.system, adm);
   const base = sim.base;
-  const worker = new FeedPullWorker(spec, { pool: db.app, baseUrl: base, timeoutMs: 400, openSession: () => Promise.resolve({ actor: ctxOf(adapter.actor), close: () => Promise.resolve() }) });
+  const worker = feedWorker(db.app, adapter.code, spec, () => Promise.resolve(ctxOf(adapter.actor)), { endpoint: `${base}/${spec.prefix}/v1`, timeoutMs: 400 });
   return {
     sim, adapter, worker,
     post: (path, body) => sim.post(path, body),
@@ -182,6 +182,23 @@ describe('the feed adapters against their simulators (DI-31)', () => {
       r.post('/lms/v1/qualifications', { personNumber, qualificationCode: QUALS[record], status: i % 3 === 2 ? 'REVOKED' : 'QUALIFIED', validFrom: '1700000000000000', validTo: null });
     await soak(r, publish, true);
     expect(await count(db, "select count(*) as n from iam.person_qualification where person_id = $1 and source_code = 'LMS'", [personId])).toBeGreaterThan(0);
+  });
+
+  it('[DI-31] LMS: a withdrawal through the worker framework carries the source reason into the audit trail (defect P6a-I1)', async () => {
+    const r = await rig(LMS_ADAPTER);
+    const code = QUALS[39] ?? '';
+    const post = (status: string) => r.post('/lms/v1/qualifications', { personNumber, qualificationCode: code, status, validFrom: '1700000000000000', validTo: null });
+    expect(await post('QUALIFIED')).toBe(201);
+    expect(await settle(r)).toMatchObject({ accepted: 1, stopped: null });
+    // The withdrawal updates the live row: the audit trail refuses an update without a reason (EBMR-AUDIT-002).
+    expect(await post('REVOKED')).toBe(201);
+    expect(await settle(r)).toMatchObject({ accepted: 1, refused: {}, stopped: null, caughtUp: true });
+    const rows = (withdrawn: boolean) =>
+      count(db, `select count(*) as n from iam.person_qualification where person_id = $1 and qualification_code = $2 and source_code = 'LMS' and withdrawn_at is ${withdrawn ? 'not ' : ''}null`, [personId, code]);
+    expect(await rows(false)).toBe(0);
+    expect(await rows(true)).toBe(1);
+    expect(await count(db, `select count(*) as n from kernel.audit_event where action = 'UPDATE' and table_name like '%person_qualification'
+                              and payload ->> 'reason_code' = 'INBOUND_MESSAGE' and payload ->> 'reason_text' like 'lms.qualification % from the LMS'`)).toBeGreaterThan(0);
   });
 
   it('[DI-31] QMS: deviation status, CAPA and change control reach the mirror; the soak with every fault in turn reconciles', async () => {

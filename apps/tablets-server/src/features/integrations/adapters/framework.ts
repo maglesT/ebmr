@@ -1,7 +1,10 @@
 /**
- * The adapter worker base (Phase 6 slice 6a, builder A; DI-31, DI-20; D-P6a-1, D-P6a-0-5): one worker per adapter
- * instance (one feed of one source system, D-P6a-0-7), shared by every system (ERP/WMS here; QMS, LIMS, LMS and CMMS
- * by builder B). It is application code (decision 0008 "Other"): every rule it relies on is the database's.
+ * The adapter worker framework (Phase 6 slice 6a; DI-31, DI-20; D-P6a-1, D-P6a-0-5, D-P6a-B-7): one worker per adapter
+ * instance (one feed of one source system, D-P6a-0-7), the single base of every system's adapter (ERP/WMS in
+ * ./erp-wms; QMS, LIMS, LMS and CMMS as a FeedAdapterSpec in ./qms, ./lims, ./lms, ./cmms; started with the server by
+ * ./start.ts). Builder A's worker merged with builder B's pull worker (defect P6a-I1): B's source reason, page loop
+ * and receive-by-message-type map on A's checks, health and blocking. It is application code (decision 0008 "Other"):
+ * every rule it relies on is the database's.
  *
  * The feed protocol (the simulators of apps/simulators serve it; a real system is mapped onto it at deployment):
  *   GET <base>/feed?after=N&limit=M     {messages: [envelope, ...], head}   the source's messages after sequence N
@@ -10,10 +13,13 @@
  *
  * One cycle (AdapterWorker.cycle):
  *   1. the heartbeat (200 while the source's own synchronisation runs);
- *   2. a page of the feed after the worker's cursor (the highest sequence number handled; at start, the database's);
+ *   2. pages of the feed after the worker's cursor (the highest sequence number handled; at start, the database's), up to
+ *      maxPages a cycle, until the worker is caught up, a page is empty or the cursor no longer moves;
  *   3. per message, in the order received: the envelope checked (InboundEnvelope), its hash checked against the payload
  *      as received, the payload checked with the contract's schema, then the system's receiving command in one database
- *      command (platform.accept_inbound_detail and the domain command, whole or not at all). A refusal of a known class
+ *      command (platform.accept_inbound_detail and the domain command, whole or not at all), carrying the source's
+ *      reason (reason code INBOUND_MESSAGE and a text naming the message type, record id and system, D-P6a-B-7): a
+ *      receiving command that updates an audited row (an LMS withdrawal) is refused by the audit trail without one. A refusal of a known class
  *      is recorded in its own command (platform.record_inbound_refusal, which raises the alarm) and the cursor moves on;
  *      a TRANSPORT failure (the source or the database unreachable, a cut answer, a late answer) ends the cycle without
  *      moving the cursor, and the next cycle retries after retryDelayMs(attempt) (1 s doubling to 5 min, never given up);
@@ -190,6 +196,11 @@ export interface ReceiveResult {
   applied?: unknown;
 }
 
+/** The source's reason a receiving command carries (D-P6a-B-7; the audit trail refuses an update without one). */
+export function sourceReason(e: Pick<InboundEnvelope, 'messageType' | 'sourceRecordId' | 'sourceSystem'>): { reasonCode: string; reasonText: string } {
+  return { reasonCode: 'INBOUND_MESSAGE', reasonText: `${e.messageType} ${e.sourceRecordId} from the ${e.sourceSystem}` };
+}
+
 export interface AdapterDefinition {
   /** The registered adapter's code (iam.integration_adapter). */
   code: string;
@@ -197,7 +208,8 @@ export interface AdapterDefinition {
   contract: SystemContract;
   /** The mirror data classes this feed keeps fresh (its heartbeat records their synchronisation). */
   mirrorClasses: readonly string[];
-  /** The system's receiving command for one checked envelope, inside the worker's command transaction. */
+  /** The system's receiving command for one checked envelope, inside the worker's command transaction (which carries
+   *  the source's reason). */
   receive(client: pg.PoolClient, envelope: InboundEnvelope): Promise<ReceiveResult>;
   /** Work after each cycle (outbound delivery, questions the source asks); runs as the adapter. */
   afterCycle?(worker: AdapterWorker): Promise<void>;
@@ -216,10 +228,23 @@ export interface CycleReport {
   heartbeat: boolean;
   /** The worker holds every message the source published (its cursor reached the source's head). */
   caughtUp: boolean;
+  /** The items the feed delivered this cycle (all pages). */
   received: number;
+  /** The same as `received` (the name builder B's reports used). */
+  fetched: number;
+  accepted: number;
+  duplicates: number;
+  /** Refusals recorded this cycle, by class. */
+  refused: Partial<Record<ErrorClass, number>>;
   outcomes: MessageOutcome[];
   /** Set when the cycle stopped early: TRANSPORT (retried later) or UNCLASSIFIED (the worker is blocked on it). */
   stoppedBy: { kind: 'TRANSPORT' | 'UNCLASSIFIED'; error: string } | null;
+  /** stoppedBy's error, or null. */
+  stopped: string | null;
+  /** The mirror data classes were synchronised this cycle. */
+  synced: boolean;
+  /** The cursor after the cycle. */
+  after: string;
   /** The after-cycle work's failure, if any (retried next cycle). */
   afterCycleError?: string;
 }
@@ -254,6 +279,7 @@ export class AdapterWorker {
   private actor: ActorContext | null = null;
   private cursor: bigint | null = null;
   private readonly pageSize: number;
+  private readonly maxPages: number;
   private timer: NodeJS.Timeout | null = null;
   private running: Promise<CycleReport> | null = null;
   private notBefore = 0;
@@ -261,12 +287,13 @@ export class AdapterWorker {
   private readonly refusedKeys = new Map<string, string>();
   readonly healthState: AdapterHealth;
 
-  constructor(pool: pg.Pool, def: AdapterDefinition, feed: FeedClient, openActor: () => Promise<ActorContext>, opts: { pageSize?: number } = {}) {
+  constructor(pool: pg.Pool, def: AdapterDefinition, feed: FeedClient, openActor: () => Promise<ActorContext>, opts: { pageSize?: number; maxPages?: number } = {}) {
     this.pool = pool;
     this.def = def;
     this.feed = feed;
     this.openActor = openActor;
     this.pageSize = opts.pageSize ?? 100;
+    this.maxPages = opts.maxPages ?? 10;
     this.healthState = { code: def.code, system: def.system, state: 'IDLE', cursor: '0', head: null, cycles: 0, attempts: 0, lastError: null, accepted: 0, duplicates: 0, refused: 0 };
   }
 
@@ -280,9 +307,9 @@ export class AdapterWorker {
     return this.actor;
   }
 
-  /** Runs `work` as the adapter in one database command. */
-  async command<T>(work: (client: pg.PoolClient) => Promise<T>): Promise<T> {
-    return withCommand(this.pool, { ...(await this.session()), correlationId: randomUUID() }, work);
+  /** Runs `work` as the adapter in one database command (`reason`: the source's reason of a receiving command). */
+  async command<T>(work: (client: pg.PoolClient) => Promise<T>, reason?: { reasonCode: string; reasonText: string }): Promise<T> {
+    return withCommand(this.pool, { ...(await this.session()), correlationId: randomUUID(), ...(reason ?? {}) }, work);
   }
 
   /** The highest sequence number the database holds for this adapter (accepted or recorded as refused). */
@@ -297,27 +324,39 @@ export class AdapterWorker {
 
   /** One cycle (header). Never throws for a source or database failure: the report says what stopped it. */
   async cycle(): Promise<CycleReport> {
-    const report: CycleReport = { heartbeat: false, caughtUp: false, received: 0, outcomes: [], stoppedBy: null };
+    const report: CycleReport = {
+      heartbeat: false, caughtUp: false, received: 0, fetched: 0, accepted: 0, duplicates: 0, refused: {}, outcomes: [], stoppedBy: null, stopped: null, synced: false, after: '0',
+    };
     this.healthState.state = 'RUNNING';
     try {
       this.cursor ??= await this.databaseCursor();
       report.heartbeat = await this.feed.heartbeat();
-      const page = await this.feed.page(this.cursor, this.pageSize);
-      this.healthState.head = page.head;
-      report.received = page.messages.length;
-      for (const m of page.messages) {
-        const outcome = await this.handle(m);
-        report.outcomes.push(outcome);
-        const seq = outcome.sequenceNo ? BigInt(outcome.sequenceNo) : null;
-        if (seq !== null && seq > this.cursor) this.cursor = seq;
+      for (let pageNo = 0; pageNo < this.maxPages; pageNo++) {
+        const before: bigint = this.cursor;
+        const page = await this.feed.page(before, this.pageSize);
+        this.healthState.head = page.head;
+        report.received += page.messages.length;
+        report.fetched = report.received;
+        for (const m of page.messages) {
+          const outcome = await this.handle(m);
+          report.outcomes.push(outcome);
+          if (outcome.result === 'ACCEPTED') report.accepted += 1;
+          else if (outcome.result === 'DUPLICATE') report.duplicates += 1;
+          else if (outcome.errorClass) report.refused[outcome.errorClass] = (report.refused[outcome.errorClass] ?? 0) + 1;
+          const seq = outcome.sequenceNo ? BigInt(outcome.sequenceNo) : null;
+          if (seq !== null && seq > this.cursor) this.cursor = seq;
+        }
+        // The mirror is fresh only when the source's synchronisation runs (heartbeat) AND this worker holds everything
+        // the source has published (caught up): a feed gap or a backlog lets the mirror age and fail closed.
+        report.caughtUp = /^(0|[1-9][0-9]{0,17})$/.test(page.head) && this.cursor >= BigInt(page.head);
+        // Another page only while it can bring something: not caught up, and this page moved the cursor.
+        if (report.caughtUp || page.messages.length === 0 || this.cursor <= before) break;
       }
-      // The mirror is fresh only when the source's synchronisation runs (heartbeat) AND this worker holds everything the
-      // source has published (caught up): a feed gap or a backlog lets the mirror age and fail closed.
-      report.caughtUp = /^(0|[1-9][0-9]{0,17})$/.test(page.head) && this.cursor >= BigInt(page.head);
       if (report.heartbeat && report.caughtUp && this.def.mirrorClasses.length > 0) {
         await this.command(async (c) => {
           for (const cls of this.def.mirrorClasses) await c.query('select platform.record_mirror_sync($1)', [cls]);
         });
+        report.synced = true;
       }
       this.healthState.state = 'IDLE';
       this.healthState.attempts = 0;
@@ -327,6 +366,7 @@ export class AdapterWorker {
       const message = error instanceof Error ? error.message : String(error);
       const kind = error instanceof UnclassifiedFailure ? 'UNCLASSIFIED' : 'TRANSPORT';
       report.stoppedBy = { kind, error: message };
+      report.stopped = message;
       this.actor = null; // a lapsed or broken session is reopened next time
       this.healthState.attempts += 1;
       this.healthState.state = kind === 'UNCLASSIFIED' ? 'BLOCKED' : 'RETRYING';
@@ -344,6 +384,7 @@ export class AdapterWorker {
       }
     }
     this.healthState.cursor = (this.cursor ?? 0n).toString();
+    report.after = this.healthState.cursor;
     this.healthState.cycles += 1;
     return report;
   }
@@ -375,7 +416,7 @@ export class AdapterWorker {
     }
     // An unknown type or version is left to the database, which refuses it (EBMR-INT-004) and so names it.
     try {
-      const r = await this.command((c) => this.def.receive(c, e));
+      const r = await this.command((c) => this.def.receive(c, e), sourceReason(e));
       if (r.outcome === 'ACCEPTED') this.healthState.accepted += 1;
       else this.healthState.duplicates += 1;
       return { sequenceNo: e.sequenceNo, idempotencyKey: e.idempotencyKey, result: r.outcome };
@@ -443,4 +484,59 @@ export class UnclassifiedFailure extends Error {
     super(message);
     this.name = 'UnclassifiedFailure';
   }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Systems that are a mapping of message types onto receiving commands (QMS, LIMS, LMS, CMMS)
+// ---------------------------------------------------------------------------------------------------------------
+
+export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS';
+
+/** A system whose adapter is only a map of message types to receiving commands of the database (builder B's four). */
+export interface FeedAdapterSpec {
+  system: FeedSystem;
+  contract: SystemContract;
+  /** The simulator's or system's path prefix, e.g. 'lms': the feed base is <root>/<prefix>/v1. */
+  prefix: string;
+  /** Receiving command per message type (a SECURITY DEFINER that calls platform.accept_inbound_detail and applies the
+   *  payload in the same transaction). */
+  receive: Readonly<Record<string, string>>;
+  /** Mirror data classes the system feeds (kernel 1180 platform.mirror_data_class). */
+  mirrorClasses: readonly string[];
+}
+
+/** The definition of a spec'd system's adapter registered as `code`. */
+export function feedAdapterDefinition(code: string, spec: FeedAdapterSpec): AdapterDefinition {
+  return {
+    code,
+    system: spec.system,
+    contract: spec.contract,
+    mirrorClasses: spec.mirrorClasses,
+    async receive(client, envelope) {
+      const fn = spec.receive[envelope.messageType];
+      // A type the contract and the database know but this adapter has no command for is refused as the database
+      // refuses an unknown type (EBMR-INT-004, MALFORMED), never accepted without being applied.
+      if (!fn) throw Object.assign(new Error(`EBMR-INT-004 ${spec.system} message type ${envelope.messageType} has no receiving command here`), { code: 'P0001' });
+      const { rows } = await client.query<{ r: Partial<ReceiveResult> | null }>(`select ${fn}($1::jsonb) as r`, [JSON.stringify(envelope)]);
+      const r = rows[0]?.r;
+      return {
+        messageId: r?.messageId ?? '',
+        outcome: r?.outcome === 'DUPLICATE' ? 'DUPLICATE' : 'ACCEPTED',
+        sequenceStatus: r?.sequenceStatus ?? '',
+        alarmId: r?.alarmId ?? null,
+      };
+    },
+  };
+}
+
+/** The worker of a spec'd system's feed at `endpoint` (<root>/<prefix>/v1), registered as adapter `code`. */
+export function feedWorker(
+  pool: pg.Pool,
+  code: string,
+  spec: FeedAdapterSpec,
+  openActor: () => Promise<ActorContext>,
+  opts: { endpoint: string; timeoutMs?: number; fetchFn?: FetchFn; pageSize?: number },
+): AdapterWorker {
+  const fetchOpts = { ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}), ...(opts.fetchFn ? { fetchFn: opts.fetchFn } : {}) };
+  return new AdapterWorker(pool, feedAdapterDefinition(code, spec), httpFeedClient(opts.endpoint, fetchOpts), openActor, opts.pageSize ? { pageSize: opts.pageSize } : {});
 }
