@@ -183,6 +183,63 @@ what arrived. Data classes a GMP guard reads from another system run as STAND_IN
 [1180_inbound_adapter_framework.sql](../../../packages/kernel/sql/1180_inbound_adapter_framework.sql); signatures,
 decisions and the builders' split: [slice-6a-0-interfaces.md](../../build-plan/phase-6/slice-6a-0-interfaces.md).
 
+## QMS, LIMS, LMS and CMMS adapters (Phase 6, slice 6a, builder B)
+
+Each of these four systems is a thin mapping on the framework above: a receiving command in the database per message
+type, a spec in [adapters/](../../../apps/tablets-server/src/features/integrations/adapters/) and a feed simulator.
+Every receiving command refuses administrators, checks INTERFACE.WRITE, calls `platform.accept_inbound_detail` and,
+when the outcome is ACCEPTED, applies the payload in the same transaction; a refusal names its EBMR code, which the
+system contract maps to an error class (`refusalCodes` in
+[systems/](../../../packages/integration-sdk/src/adapter/systems/)).
+
+| System | Message type | Receiving command | What it changes | Mirror data class |
+|---|---|---|---|---|
+| LMS | `lms.qualification` | `iam.receive_lms_qualification` ([kernel 1186](../../../packages/kernel/sql/1186_lms_qualification_inbound.sql)) | a qualification row with source LMS (QUALIFIED), or withdraws the live LMS rows (REVOKED, EXPIRED) | LMS_QUALIFICATION (read at signing) |
+| QMS | `qms.deviation_status`, `qms.capa`, `qms.change_control` | `site.receive_qms_*` ([site services 0925](../../../packages/site-services/sql/0925_capa_and_qms_mirror.sql)) | insert-only histories with the QMS's version tokens; a CAPA mirror row (origin QMS) | QMS_STATUS (release) |
+| LIMS | `lims.sample_result` | `site.receive_lims_sample_result` ([site services 0926](../../../packages/site-services/sql/0926_lims_results_inbound.sql)) | the result as the LIMS sent it (decimal text and unit, never converted) | none (LIMS-lite stays the stand-in, D-P6a-4) |
+| CMMS | `cmms.calibration`, `cmms.maintenance` | `plant.receive_cmms_*` ([recipe-core 0950](../../../packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql)) | a `plant.calibration` row; a work-order history | CMMS_CALIBRATION, CMMS_MAINTENANCE (equipment use) |
+
+Rules every one of them keeps:
+
+- **The modes never mix (D-P6a-5).** A message for a data class the site runs as STAND_IN is refused (WRONG_IDENTITY);
+  in MIRROR the built-in commands are refused (`site.raise_capa` and the other CAPA writes, EBMR-CAPA-002;
+  `plant.record_calibration`, EBMR-PLANT-025).
+- **A late state never overwrites a newer one.** A message whose source timestamp is not newer than the one already
+  applied for the same record is refused STALE (EBMR-LMS-004, EBMR-QMS-004, EBMR-LIMS-104, EBMR-CMMS-004; for a
+  calibration, by its performedAt).
+- **Wrong identity is refused.** An unknown person number, qualification, lot or equipment code: WRONG_IDENTITY.
+- **The source's reason (D-P6a-B-7).** A command that changes an audited row (an LMS withdrawal) carries the reason
+  code INBOUND_MESSAGE and a text naming the message type, record id and system: the audit trail refuses an update
+  without a reason (EBMR-AUDIT-002).
+
+**The pull worker** ([feed-pull/worker.ts](../../../apps/tablets-server/src/features/integrations/adapters/feed-pull/worker.ts#sym=FeedPullWorker),
+D-P6a-B-1): one cycle reads the feed after the highest sequence number handled, sends each envelope to its receiving
+command, records a classified refusal with `platform.record_inbound_refusal` and moves on, and stops without moving its
+pointer on a TRANSPORT or unclassified failure (the next cycle fetches the same messages again; accepted ones come back
+DUPLICATE). It synchronises the system's mirror data classes only when it is **caught up** (pointer = the source's head)
+and the source's heartbeat answers, so a feed gap and a stopped heartbeat both let the mirror go stale. Builder A's
+[framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts) is the ERP/WMS worker; it
+syncs on the heartbeat alone and carries no source reason, so the four systems stay on the pull worker until the two
+are merged (owner of the merge: the lead).
+
+**The QMS status at release (D-P6a-3, D-P6a-0-11).** The release does not trust the QMS mirror alone. In MIRROR, the
+release acts (manufacturer release, US release disposition, in-system QP certification, re-confirmation) call
+[qmsReleaseFetch](../../../apps/tablets-server/src/features/integrations/adapters/qms/index.ts#sym=qmsReleaseFetch)
+inside the signing transaction: it asks the QMS (`GET /qms/v1/lots/:lot/deviations`) and records the answer with
+`site.record_qms_release_fetch`, which refuses an answer that differs from the mirror the signer evaluated (a changed
+or stale version token, EBMR-QMS-011). An unreachable, slow or cut QMS refuses the release (EBMR-QMS-020, naming the QMS
+and its owner). A BEFORE INSERT trigger on the four release decision tables
+([recipe-core 0951](../../../packages/recipe-core/sql/0951_qms_status_at_release.sql)) refuses a release without a live
+fetch in the same transaction (EBMR-QMS-013), with one older than the 60 s QMS_STATUS bound (EBMR-QMS-014, a backstop)
+or with an open QMS deviation naming the lot (EBMR-QMS-015), whoever inserts it. G-REL shows the mirror as item
+G2.QMS_STATUS (MIRROR only; a stand-in site's checklist is unchanged), with the version tokens in its evidence, so the
+G-REL epoch moves whenever a token moves.
+
+**Stale mirrors fail closed.** Equipment use (`plant.fitness_problems`) calls `platform.mirror_fresh_or_raise` for
+CMMS_MAINTENANCE and, for a unit that needs calibration, CMMS_CALIBRATION; a stale MIRROR refuses the use with
+EBMR-INT-010. The qualification check at signing reads LMS_QUALIFICATION (kernel 1181, builder A). The screens show the
+mirror, its age and whom to call ([StaleMirror.tsx](../../../packages/ui-kit/src/floor/StaleMirror.tsx)).
+
 ## site-gateway: the equipment gateway
 
 ### Start, identity and gateway keys
@@ -326,6 +383,7 @@ test). They bind loopback addresses only unless told otherwise.
 | Line printer with reader and vision | [printer/main.ts](../../../apps/simulators/src/printer/main.ts) (4031) | `ebmr.sim-printer.v1` | OFFLINE, MISPRINT, READER_FAIL, JOB_MISMATCH, STALE ([model.ts](../../../apps/simulators/src/printer/model.ts)) |
 | Serialisation L3 stub | [serialisation/main.ts](../../../apps/simulators/src/serialisation/main.ts) (`EBMR_L3_HTTP`) | HTTP `/l3/v1/pools...` | in-memory pools; the same pool request answers the pool already issued |
 | ERP stub (DEMO-ONLY) | [erp/main.ts](../../../apps/simulators/src/erp/main.ts) | `POST /api/erp/import` once, then exits | catalogue of the demo product ([catalogue.ts](../../../apps/simulators/src/erp/catalogue.ts)) |
+| QMS, LIMS, LMS, CMMS feeds (DEMO-ONLY) | [qms/main.ts](../../../apps/simulators/src/qms/main.ts) (`EBMR_QMS_HTTP`, 4051), [lims](../../../apps/simulators/src/lims/main.ts) 4052, [lms](../../../apps/simulators/src/lms/main.ts) 4053, [cmms](../../../apps/simulators/src/cmms/main.ts) 4054 | HTTP `/<system>/v1/feed`, `/heartbeat`, `/reconciliation`; POST routes per message type; QMS `GET /qms/v1/lots/:lot/deviations` | [FEED_FAULTS](../../../apps/simulators/src/system-feed/feed.ts#sym=FEED_FAULTS): FEED_GAP, STALE_VALUE, MALFORMED, DUPLICATE, OUT_OF_ORDER, WRONG_BATCH, LINK_CUT, SLOW, STALE_MIRROR (`POST /api/fault`) |
 
 The ERP stub posts the product and material masters and the production orders of the demo MBR (dc-mini: paracetamol
 500 mg, batch sizes BS-100K and BS-50K), with BOMs scaled exactly as decimal text. The server's route
@@ -345,6 +403,10 @@ waits for QA's confirmation ([tablets-web, quality](tablets-web.md#quality-devia
 - Browser: [devices.spec.ts](../../../tools/e2e/specs/devices/devices.spec.ts) runs the gateway and the simulator in
   the real stack (`[DI-32][DI-20]`, and with the simulator OFFLINE only the manual two-person path is offered).
 - In the demo, open the simulator console (the `EBMR_SIM_HTTP` port) to put a load on the pan or switch a fault on.
+- QMS, LIMS, LMS, CMMS: the database rules in `packages/{kernel,site-services,recipe-core}/test/integrations/`; the
+  contract and soak tests run each adapter's worker against its simulator **process**
+  ([feed-adapters.test.ts](../../../apps/tablets-server/test/integrations/feed-adapters.test.ts): every fault in turn,
+  then the period reconciles and every received key is accepted or refused with an alarm).
 
 ## Pitfalls
 

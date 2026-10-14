@@ -832,6 +832,37 @@ Defect: the [export permission reason text](../08-defect-log.md#export-permissio
 said "lapsed" for a permission not yet approved at the instant (0903, found by the SQL mutation run; only the text
 was wrong).
 
+## CAPA register and the QMS mirror (Phase 6 slice 6a)
+
+Code: [0925_capa_and_qms_mirror.sql](../../../packages/site-services/sql/0925_capa_and_qms_mirror.sql),
+[0926_lims_results_inbound.sql](../../../packages/site-services/sql/0926_lims_results_inbound.sql). Controls IN-01 (d),
+PR-51, DI-31; defaults D-P6a-5, D-P6a-6.
+
+**The CAPA stand-in** (QMS_STATUS in STAND_IN). `site.raise_capa` takes the source (DEVIATION, OOS, COMPLAINT, PQR,
+SELF_INSPECTION, MANAGEMENT_REVIEW; a DEVIATION or OOS source names the deviation-lite record and is linked at once),
+an owner, a due date, whether it needs a master change, and its first effectiveness check (criteria and a period in
+days). The reference `CAPA-<site>-<yyyy>-<nnnnn>` is generated. The check's due date is a generated column
+(`scheduled_on + period_days`, the site's date at scheduling): `site.capa_check_status(check, on)` answers OPEN up to
+and including the due date and OVERDUE from the next day, so a 90-day check is overdue on day 91. `site.capa_view`
+flags an overdue CAPA (after its own due date, not closed) for the register. Links go both ways
+(`site.capa_deviation`), and a CAPA that needs a master change names the MBR version it waits for
+(`site.link_capa_master_version`, checked by the resolver recipe-core 0952 registers, so site services never reads
+recipe tables). `site.close_capa` (CAPA_CLOSED, QA other than the initiator) is refused (EBMR-CAPA-010, the words of
+`site.capa_close_problem`) while the CAPA is not IMPLEMENTED, a check has no result or was not effective, or a named
+master version is not APPROVED and effective. Rows added after a signature supersede it (registered signed tables).
+Permissions CAPA.RECORD and CAPA.QA_APPROVE.
+
+**The QMS mirror** (QMS_STATUS in MIRROR). The QMS adapter's receiving commands keep insert-only histories with the
+QMS's version tokens: `site.qms_deviation_status` (the lots a QMS deviation names, refused when a lot is not held here),
+`site.qms_capa_state` (a CAPA mirror row, origin QMS, reference `QMS:<ref>`), `site.qms_change_control`. In MIRROR every
+stand-in CAPA write is refused (EBMR-CAPA-002). **At release** the server fetches the lot's QMS status live inside the
+signing transaction and records it with `site.record_qms_release_fetch` (refused when its tokens differ from the
+mirror's, EBMR-QMS-011); `site.qms_release_problem(lot)` is what the release decisions' trigger asks (recipe-core 0951).
+See [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b).
+
+**LIMS results** received from a LIMS are kept in `site.lims_sample_result` exactly as sent (decimal text and unit) and
+shown beside LIMS-lite; they do not feed G3.LIMS in slice 6a (D-P6a-B-6).
+
 ## Guard catalogue
 
 Every site-services function in force that names an `EBMR-` code, with the migration that holds the version in force and

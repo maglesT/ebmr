@@ -1421,6 +1421,22 @@ packaging batch data use the one expiry rule
 > - **Error:** `EBMR-IND-003` to `EBMR-IND-010`, `EBMR-IND-040` to `EBMR-IND-044`, `EBMR-IND-062`; `EBMR-IND-037`
 >   (server: a hazard record must name a product or an area).
 
+## ts-capa: CAPA register
+
+[features/capa](../../../apps/tablets-server/src/features/capa/) (contract [ns/capa.ts](../../../packages/api-contract/src/ns/capa.ts);
+site services 0925; IN-01 (d), PR-51). Reads `register` (open first, overdue flags; `overdue=true` for the ageing
+report) and `detail` (with `closeProblem`, the database's reason it cannot close yet); writes `raise`, `linkDeviation`,
+`linkMasterVersion`, `implement`, `scheduleCheck`, `recordEffectiveness`, `cancel`, each the person's own idempotent
+command through a site definer. The closure is the signable action CAPA_ACT CLOSE (CAPA_CLOSED on `capa <id>`, state
+IMPLEMENTED; [tablets 1229](../../../apps/tablets-server/sql/1229_signing_meanings_capa.sql) lets the ceremony preview
+and sign it). Guidance for EBMR-CAPA-* and EBMR-QMS-* names who to call.
+
+The release acts also ask the QMS: in MIRROR, [release/signables.ts](../../../apps/tablets-server/src/features/release/signables.ts)
+calls `qmsReleaseFetch` (adapters/qms) before the database act of a release, a US release disposition, an in-system QP
+certification and a re-confirmation; the QMS address is `EBMR_QMS_URL` (timeout `EBMR_QMS_TIMEOUT_MS`, default 2000 ms).
+The QMS, LIMS, LMS and CMMS workers are in [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b);
+starting them with the server (service identities in the service-keys file) is left to the integration feature's wiring.
+
 ## ts-meta: meta routes
 
 GET `/api/meta` (`meta.get`, contract [meta.ts](../../../packages/api-contract/src/ns/meta.ts)) tells the screens
