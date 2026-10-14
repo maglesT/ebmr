@@ -62,6 +62,10 @@ tests:
   - "packages/site-services/test/mutation/india-licences.test.ts > why an export permission does not count at an instant (site services 0903, site.export_permission_problem) > [IN-30] within its validity but before its approval a permission \"is not current\", not \"lapsed\"; before its validity it is \"valid only from\"; at its end it lapsed"
   - "packages/site-services/test/mutation/india-licences.test.ts > why a licence does not count at an instant (site services 0885, site.licence_problem) > [IN-30] at the first instant of its validity a licence is not \"valid only from\" then; before its approval it is \"not current\", not \"lapsed\""
   - "packages/site-services/test/mutation/india-licences.test.ts > why a licence does not count at an instant (site services 0885, site.licence_problem) > [IN-30] at the instant its validity ends a licence has lapsed"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [DI-20] [IN-30] no India read answers without a session"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-30] the signed approval (INDIA_ACT) answers with the act and the record it approved"
 clauses:
   - clause: "create a loan-licence batch; both licence numbers appear"
     tests:

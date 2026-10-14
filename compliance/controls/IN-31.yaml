@@ -31,6 +31,7 @@ tests:
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the label particulars of a batch (recipe-core 0894, recipe.india_label_particulars) > [IN-31] [IN-30] a batch without a licence basis of its own takes its packaging parent's, never another batch's; without either it has no particulars"
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the H2 payload (recipe-core 0894, recipe.h2_payload, recipe.h2_payload_problem) > [IN-31] a value the payload cannot carry is refused: none, one that is not printable text, one with ; or ="
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the H2 payload (recipe-core 0894, recipe.h2_payload, recipe.h2_payload_problem) > [IN-31] an unknown batch has no payload; a payload computed now that was never issued fails although an earlier payload of the batch was issued"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period"
 clauses:
   - clause: "load an India-domestic template without a manufacturing-date field; approval fails."
     deferred:

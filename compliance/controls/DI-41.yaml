@@ -70,6 +70,7 @@ tests:
   - "packages/kernel/test/records/evidence-export-offline.test.ts > the PDF/A-3 true copy verified offline (kernel src/records/pdf-true-copy.ts, pdfa.ts) > [DI-41] a PDF whose audit chain does not verify is reported, though its content descriptor matches its parts"
   - "packages/kernel/test/records/evidence-export-offline.test.ts > the PDF/A-3 true copy verified offline (kernel src/records/pdf-true-copy.ts, pdfa.ts) > [DI-41] the reader reads a PDF with no embedded files and no associated files"
   - "packages/kernel/test/records/evidence-export-offline.test.ts > the PDF/A-3 true copy verified offline (kernel src/records/pdf-true-copy.ts, pdfa.ts) > [DI-41] the reader gives back every associated file by name, the content keyword, the output intent, the XMP metadata and the AF count"
+  - "packages/kernel/test/records/evidence-export-offline.test.ts > the PDF/A-3 true copy verified offline (kernel src/records/pdf-true-copy.ts, pdfa.ts) > [DI-41] the reader names an embedded file without its own file name by its place in the list"
 clauses:
   - clause: "Scan a thermal printout. The copy carries a checksum, a verifier signature and a link to its step."
     tests:

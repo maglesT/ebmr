@@ -25,6 +25,8 @@ tests:
   - "packages/recipe-core/test/mutation/india-issue-gate.test.ts > the hazard classes of a product and the dedication of a line (recipe-core 0890, 0912) > [IN-27] [DI-35] an unknown record is not approved; a record is approved once and only while it is the latest; the approval is recorded by its signer"
   - "packages/recipe-core/test/mutation/india-issue-gate.test.ts > the hazard classes of a product and the dedication of a line (recipe-core 0890, 0912) > [IN-27] a dedication record is superseded only by a later record of the same room or line and the same class"
   - "packages/recipe-core/test/mutation/india-issue-gate.test.ts > the hazard classes of a product and the dedication of a line (recipe-core 0890, 0912) > [IN-27] a dedication record names whether the line is dedicated, an existing room or line, a hazard class, the breathing air and its justification"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-27] a hazard record that names neither a product classification nor an area dedication is refused with what to do"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-27] a product classification alone or an area dedication alone is recorded and listed with all it says"
 clauses:
   - clause: "classify a product as cytotoxic; the MBR designer adds PPE and decontamination steps"
     deferred:

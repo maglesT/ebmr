@@ -92,6 +92,7 @@ tests:
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the allocation register (recipe-core 0913, recipe.allocation_register) > [IN-18] the register has one entry per allocation; a processing batch has no parent batch number"
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the allocation register (recipe-core 0913, recipe.allocation_register) > [IN-18] a packaging allocation names its own parent's batch number and appears once"
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the allocation register (recipe-core 0913, recipe.allocation_register) > [IN-18] a period includes an allocation made at its first instant and excludes one made at its end"
+  - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period"
 clauses:
   - clause: "cancel a batch; its number is never offered again."
     tests:
