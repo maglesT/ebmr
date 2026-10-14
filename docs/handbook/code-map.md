@@ -22,7 +22,7 @@ of each database function.
 | [kernel-authorization](#kernel-authorization) | Authorization (permission catalogue, scopes, signature requirements) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 1 | 9 |
 | [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 7 | 5 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
-| [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 3 | 0 | 2 | 4 |
+| [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 80 | 39 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
@@ -30,8 +30,8 @@ of each database function.
 | [ss-shipping](#ss-shipping) | Manufacturer release guard, shipping interlock and after-release lot exits | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 6 |
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 17 | 0 | 8 | 26 |
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 4 | 11 |
-| [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
-| [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 6 | 0 | 3 | 7 |
+| [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
+| [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
 | [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 2 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 17 | 0 | 18 | 35 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
@@ -322,9 +322,9 @@ of each database function.
 
 **Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness).** Package `packages/kernel`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Migrations** (3):
+**Migrations** (4):
 
-- `packages/kernel/sql`: [1180_inbound_adapter_framework.sql](../../packages/kernel/sql/1180_inbound_adapter_framework.sql), [1181_inbound_overrides_and_lms_mirror.sql](../../packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql), [1186_lms_qualification_inbound.sql](../../packages/kernel/sql/1186_lms_qualification_inbound.sql)
+- `packages/kernel/sql`: [1180_inbound_adapter_framework.sql](../../packages/kernel/sql/1180_inbound_adapter_framework.sql), [1181_inbound_overrides_and_lms_mirror.sql](../../packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql), [1182_mirror_sync_caught_up.sql](../../packages/kernel/sql/1182_mirror_sync_caught_up.sql), [1186_lms_qualification_inbound.sql](../../packages/kernel/sql/1186_lms_qualification_inbound.sql)
 
 **Database objects** created in these migrations:
 
@@ -475,9 +475,9 @@ of each database function.
 
 **CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
 
-**Migrations** (2):
+**Migrations** (3):
 
-- `packages/site-services/sql`: [0925_capa_and_qms_mirror.sql](../../packages/site-services/sql/0925_capa_and_qms_mirror.sql), [0926_lims_results_inbound.sql](../../packages/site-services/sql/0926_lims_results_inbound.sql)
+- `packages/site-services/sql`: [0925_capa_and_qms_mirror.sql](../../packages/site-services/sql/0925_capa_and_qms_mirror.sql), [0926_lims_results_inbound.sql](../../packages/site-services/sql/0926_lims_results_inbound.sql), [0927_qms_release_mirror_fresh.sql](../../packages/site-services/sql/0927_qms_release_mirror_fresh.sql)
 
 **Database objects** created in these migrations:
 
@@ -492,9 +492,9 @@ of each database function.
 
 **Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
 
-**Migrations** (6):
+**Migrations** (7):
 
-- `packages/site-services/sql`: [0910_receipt_record_and_approved_manufacturers.sql](../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql), [0911_stock_locations.sql](../../packages/site-services/sql/0911_stock_locations.sql), [0912_erp_lot_status_mirror_and_outbound.sql](../../packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql), [0913_erp_wms_inbound_and_issue_gate.sql](../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql), [0914_erp_wms_interface_role.sql](../../packages/site-services/sql/0914_erp_wms_interface_role.sql), [0915_wms_location_question.sql](../../packages/site-services/sql/0915_wms_location_question.sql)
+- `packages/site-services/sql`: [0910_receipt_record_and_approved_manufacturers.sql](../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql), [0911_stock_locations.sql](../../packages/site-services/sql/0911_stock_locations.sql), [0912_erp_lot_status_mirror_and_outbound.sql](../../packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql), [0913_erp_wms_inbound_and_issue_gate.sql](../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql), [0914_erp_wms_interface_role.sql](../../packages/site-services/sql/0914_erp_wms_interface_role.sql), [0915_wms_location_question.sql](../../packages/site-services/sql/0915_wms_location_question.sql), [0916_erp_wms_entry_authority.sql](../../packages/site-services/sql/0916_erp_wms_entry_authority.sql)
 
 **Database objects** created in these migrations:
 
