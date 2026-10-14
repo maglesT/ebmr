@@ -870,6 +870,10 @@ declare
   v_code  text;
   v_lot   uuid;
 begin
+  -- Never an administrator; the inbound permission of the adapter's service role (the adapter's identity is checked by
+  -- platform.accept_inbound_detail: DI-14, DI-20).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INTERFACE.WRITE', '{}'::jsonb);
   m := site.qms_accept(p_envelope, 'qms.deviation_status');
   if m.id is null then
     return jsonb_build_object('outcome', 'DUPLICATE', 'applied', 'NOTHING (duplicate)');
@@ -913,6 +917,10 @@ declare
   v_capa uuid;
   v_due  date;
 begin
+  -- Never an administrator; the inbound permission of the adapter's service role (the adapter's identity is checked by
+  -- platform.accept_inbound_detail: DI-14, DI-20).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INTERFACE.WRITE', '{}'::jsonb);
   m := site.qms_accept(p_envelope, 'qms.capa');
   if m.id is null then
     return jsonb_build_object('outcome', 'DUPLICATE', 'applied', 'NOTHING (duplicate)');
@@ -962,6 +970,10 @@ declare
   p      jsonb;
   v_prob text;
 begin
+  -- Never an administrator; the inbound permission of the adapter's service role (the adapter's identity is checked by
+  -- platform.accept_inbound_detail: DI-14, DI-20).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INTERFACE.WRITE', '{}'::jsonb);
   m := site.qms_accept(p_envelope, 'qms.change_control');
   if m.id is null then
     return jsonb_build_object('outcome', 'DUPLICATE', 'applied', 'NOTHING (duplicate)');

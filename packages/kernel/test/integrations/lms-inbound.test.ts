@@ -113,7 +113,7 @@ describe('LMS qualifications through the adapter (DI-31, INV-26)', () => {
   it('[DI-31][DI-14] a person cannot use the LMS command, and the application cannot write qualification rows directly', async () => {
     await expectRefused(
       withCommand(db.app, tc, (c) => c.query('select iam.receive_lms_qualification($1::jsonb)', [JSON.stringify(envelopeFor(lms, 'lms.qualification', qualification('QUALIFIED')))])),
-      'EBMR-INT-002',
+      'EBMR-IAM-040',
     );
     await expectPermissionDenied(
       withCommand(db.app, tc, (c) => c.query("insert into iam.person_qualification (person_id, qualification_code, source_code, valid_from, recorded_by_person, recorded_by_account) values ($1, $2, 'LMS', now(), $3, $4)", [op.personId, qual, tc.personId, tc.accountId])),

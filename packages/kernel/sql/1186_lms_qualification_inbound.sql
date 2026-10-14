@@ -88,6 +88,10 @@ declare
   v_same    boolean;
   v_applied text;
 begin
+  -- Never an administrator; the inbound permission of the adapter's service role (the adapter's identity is checked by
+  -- platform.accept_inbound_detail: DI-14, DI-20).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INTERFACE.WRITE', '{}'::jsonb);
   if p_envelope ->> 'messageType' is distinct from 'lms.qualification' then
     raise exception using errcode = 'P0001',
       message = format('EBMR-LMS-002 this command receives lms.qualification messages, not %s', coalesce(p_envelope ->> 'messageType', 'none'));

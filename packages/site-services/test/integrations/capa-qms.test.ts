@@ -192,7 +192,7 @@ describe('the QMS mirror (DI-31; D-P6a-5, D-P6a-6)', () => {
     await expectRefused(w.run(w.cast.qa, (x) => x.query('select site.record_capa_implemented($1, $2)', [standIn.capaId, 'x'])), 'EBMR-CAPA-002');
     await expectRefused(w.run(w.cast.qa, (x) => x.query('select site.record_capa_implemented($1, $2)', [capaId, 'x'])), 'EBMR-CAPA-002');
     // A person cannot post a QMS message (DI-14, DI-20).
-    await expectRefused(w.run(w.cast.qa, (x) => x.query('select site.receive_qms_capa($1::jsonb)', [JSON.stringify(envelopeFor(qms, 'qms.capa', capaMsg(ref, 'CLOSED', 'v9')))])), 'EBMR-INT-002');
+    await expectRefused(w.run(w.cast.qa, (x) => x.query('select site.receive_qms_capa($1::jsonb)', [JSON.stringify(envelopeFor(qms, 'qms.capa', capaMsg(ref, 'CLOSED', 'v9')))])), 'EBMR-IAM-040');
     await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
   });
 

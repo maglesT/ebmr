@@ -53,6 +53,10 @@ declare
   v_lot   uuid;
   v_newer timestamptz;
 begin
+  -- Never an administrator; the inbound permission of the adapter's service role (the adapter's identity is checked by
+  -- platform.accept_inbound_detail: DI-14, DI-20).
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('INTERFACE.WRITE', '{}'::jsonb);
   if p_envelope ->> 'messageType' is distinct from 'lims.sample_result' then
     raise exception using errcode = 'P0001',
       message = format('EBMR-LIMS-101 this command receives lims.sample_result messages, not %s', coalesce(p_envelope ->> 'messageType', 'none'));
