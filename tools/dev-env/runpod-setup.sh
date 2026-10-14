@@ -21,6 +21,8 @@
 #   ci     5433  spare, for parallel runs
 #   ci2    5434  spare, for parallel runs
 #   ci3    5436  spare; the fourth shard of the sharded run
+# main, ci, ci2 and ci3 run with fsync, synchronous_commit and full_page_writes off (test databases only; see
+# tune_test_cluster); golden keeps the defaults.
 #   golden 5435  under libfaketime (as the CI golden job, which uses 5433 on its own runner)
 #     EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5435/postgres \
 #     EBMR_FAKETIME_FILE=/var/lib/postgresql/faketime-golden/offset \
@@ -55,6 +57,19 @@ make_cluster() {
 
 SHARD_PORTS=(5432 5433 5434 5436)
 SHARD_WORKERS="${SHARD_WORKERS:-4}"
+
+# The shard clusters hold only throwaway test databases: no flush to disk, so a checkpoint is cheap. In PostgreSQL 16
+# DROP DATABASE and CREATE DATABASE wait for a checkpoint, and with a whole suite writing, that wait passed the tests'
+# 30 s timeouts (the drop tests sat in CheckpointStart/CheckpointDone). Durability only: no SQL result changes.
+# Never set on the golden cluster.
+tune_test_cluster() {
+  local name=$1 file="/etc/postgresql/${PG}/$1/conf.d/ebmr-test-cluster.conf"
+  if [ ! -f "$file" ]; then
+    printf "# tools/dev-env/runpod-setup.sh: a test-only cluster, no crash safety needed\nfsync = off\nsynchronous_commit = off\nfull_page_writes = off\n" \
+      | $SUDO tee "$file" >/dev/null
+    $SUDO pg_ctlcluster "$PG" "$name" reload
+  fi
+}
 
 # Starts any stopped cluster the shards use.
 shard_clusters_up() {
@@ -165,6 +180,7 @@ do_setup() {
   make_cluster ci2 5434
   make_cluster golden 5435
   make_cluster ci3 5436
+  for c in main ci ci2 ci3; do tune_test_cluster "$c"; done
   pg_lsclusters
 
   log "Dependencies"
