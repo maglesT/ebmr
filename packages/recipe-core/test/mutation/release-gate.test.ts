@@ -49,6 +49,7 @@ type Json = Record<string, unknown>;
 interface Item {
   id: string;
   group: string;
+  title: string;
   status: 'GREEN' | 'RED' | 'NA';
   problem: string | null;
   evidence: { kind: string; ref: string; label: string }[];
