@@ -168,6 +168,21 @@ code whose lot or expiry differs from the record's.
 >   [devices/reading-proof.test.ts](../../../apps/tablets-server/test/devices/reading-proof.test.ts).
 > - **Error:** server `EBMR-DEV-...` codes ([error codes](../reference/error-codes.md)).
 
+## The adapter framework (Phase 6, slice 6a-0)
+
+Systems of record (ERP/WMS, QMS, LIMS, LMS, CMMS; later EMS, OPC UA and L3) hand data to the eBMR through one framework
+(D-P6a-1). The adapter wraps every message in the envelope of
+[envelope.ts](../../../packages/integration-sdk/src/adapter/envelope.ts) and calls
+`platform.accept_inbound_detail` in the database under its own integration identity: an INTEGRATION account on its
+SERVER device, registered in `iam.integration_adapter` like a device (DI-20), which can never sign (DI-14). The
+database validates the envelope, de-duplicates by idempotency key, raises an integration alarm on a sequence gap or a
+late message, and commits the message together with the domain command that applies it, or neither (DI-31). A refusal
+is recorded with its alarm in its own command; reconciliation reports compare the source's counts and checksum with
+what arrived. Data classes a GMP guard reads from another system run as STAND_IN (the built-in register) or MIRROR;
+`platform.mirror_fresh_or_raise` fails closed on a stale blocking mirror (EBMR-INT-010). Code:
+[1180_inbound_adapter_framework.sql](../../../packages/kernel/sql/1180_inbound_adapter_framework.sql); signatures,
+decisions and the builders' split: [slice-6a-0-interfaces.md](../../build-plan/phase-6/slice-6a-0-interfaces.md).
+
 ## site-gateway: the equipment gateway
 
 ### Start, identity and gateway keys

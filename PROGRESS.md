@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 October 2026 (handbook).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 October 2026 (Phase 6 slice 6a-0).
 
 ## What this is
 
@@ -98,6 +98,10 @@ decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (br
 adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
 6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
 training mode, 6h Hindi and Gujarati, 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
+Slice 6a on `phase-6/slice-6a`: 6a-0 (interface commit) done: `@ebmr/integration-sdk/adapter` (envelope, error
+classes, retry rule, reconciliation, system contracts), kernel 1180 (integration adapters, `platform.accept_inbound`,
+integration alarms, reconciliation, `platform.mirror_fresh_or_raise`), namespace `integrations` with its server reads;
+signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-plan/phase-6/slice-6a-0-interfaces.md`.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

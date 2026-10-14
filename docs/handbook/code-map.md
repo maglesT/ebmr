@@ -22,7 +22,7 @@ of each database function.
 | [kernel-authorization](#kernel-authorization) | Authorization (permission catalogue, scopes, signature requirements) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 1 | 9 |
 | [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 7 | 5 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
-| [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 1 | 0 | 1 | 0 |
+| [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 1 | 0 | 1 | 3 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 79 | 38 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
@@ -329,6 +329,8 @@ of each database function.
 - Triggers (1): `aa_integration_adapter_guard on iam.integration_adapter`
 
 **Tests** (1): [inbound.test.ts](../../packages/kernel/test/inbound/inbound.test.ts)
+
+**Controls** (3): [DI-14](../../compliance/controls/DI-14.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-31](../../compliance/controls/DI-31.yaml)
 
 ## kernel-installation
 
