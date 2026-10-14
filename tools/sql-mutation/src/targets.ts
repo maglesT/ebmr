@@ -646,7 +646,9 @@ export const TARGETS: Target[] = [
                 'recipe.prepare_reprocessing_issue', 'recipe.reprocessing_parents_check', 'recipe.recovered_expiry_cap',
                 'recipe.batches_receiving_from', 'recipe.g24v2_check', 'recipe.source_container_charge_check',
                 'recipe.reprocessing_request_problem', 'recipe.reprocessing_start_take'],
-    tests: [site('mutation/reprocessing.test.ts'), site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts'), s('mutation/reprocessing-g24v2.test.ts')],
+    tests: [site('mutation/reprocessing.test.ts'), site('quality/reprocessing.test.ts'), s('blocks/reprocessing/db-guards.test.ts'), s('mutation/reprocessing-g24v2.test.ts'),
+            // Recipe-core 0893 redefined recipe.source_batch_expiry (the shelf life in effect at issue): its edge tests.
+            r('mutation/india-expiry.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: the formulation library: versions, approval, MBR pin, base standard, who reads a composition
@@ -965,6 +967,77 @@ export const TARGETS: Target[] = [
     group: 'execution-complete-forms',
     functions: ['recipe.refuse_unreconciled_completion'],
     tests: [r('lifecycle/execution-complete-forms.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 4 (decision 0012, scope C): the India gate, expiry, records and signature binding. The licences, export
+  //     permissions and stability basis (site-services 0885, 0886); the India issue gate with hazard dedication and the
+  //     licence basis written at issue (recipe-core 0890, 0891, 0912; gmp_issue_problem's India part is a bare call of
+  //     recipe.india_issue_problem, which this group mutates); expiry (recipe-core 0893, tablets 1201; 0893's
+  //     recipe.source_batch_expiry stays in the reprocessing group, with this group's kill tests added there); the H2 payload
+  //     and the allocation register (recipe-core 0894, 0895, 0913); the evidence export and contingency forms (kernel
+  //     1170, 1171, 1174; recipe-core 0911); the PQR extract (recipe-core 0910). The record content functions are the
+  //     signed content, so a change there is a change of what a signature binds. ----
+  {
+    group: 'india-licences',
+    functions: ['site.india_record_immutable', 'site.licence_state', 'site.licence_current', 'site.licence_basis',
+                'site.licence_problem', 'site.export_permission_state', 'site.export_permission_current',
+                'site.export_permission_problem', 'site.manufacturing_licence_content', 'site.export_permission_content',
+                'site.india_instant', 'site.record_manufacturing_licence', 'site.approve_manufacturing_licence',
+                'site.suspend_manufacturing_licence', 'site.record_export_permission', 'site.approve_export_permission',
+                'site.suspend_export_permission', 'site.erp_product_effective_at', 'site.shelf_life_basis_of',
+                'site.shelf_life_change_check', 'site.record_shelf_life_basis'],
+    tests: [site('india/licences.test.ts'), r('release/india.test.ts'), site('mutation/india-licences.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'india-issue-gate',
+    functions: ['recipe.india_issue_problem', 'recipe.record_batch_licence_basis', 'plant.record_product_hazard',
+                'plant.record_area_dedication', 'plant.product_hazard_approved', 'plant.product_hazard_class',
+                'plant.product_hazard_classes', 'plant.area_dedicated', 'plant.hazard_area_problem',
+                'plant.hazard_record_state', 'plant.dedication_record_state', 'plant.hazard_classification_content',
+                'plant.area_dedication_content', 'plant.assert_hazard_approval', 'plant.approve_product_hazard',
+                'plant.approve_area_dedication'],
+    tests: [r('release/india.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'india-expiry',
+    functions: ['recipe.expiry_month_end', 'recipe.batch_shelf_life', 'recipe.batch_expiry',
+                'tab.post_finished_lot', 'tab.batch_data_expiry_check'],
+    tests: [r('release/india.test.ts'), s('india/india-routes.test.ts'), s('blocks/packaging/db-guards.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'india-h2-and-allocation',
+    functions: ['recipe.india_label_particulars', 'recipe.h2_layout', 'recipe.h2_payload', 'recipe.issue_h2_payload',
+                'recipe.h2_payload_problem', 'recipe.allocation_register'],
+    tests: [r('release/india.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'records-evidence-export',
+    functions: ['records.evidence_export_state', 'records.evidence_export_content', 'records.register_evidence_export',
+                'records.certify_evidence_export', 'records.read_evidence_export', 'records.batch_status',
+                'records.true_copy_content_text', 'records.true_copy_bundle_problem'],
+    tests: [k('records/evidence-export.test.ts'), k('records/true-copy.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'records-contingency-forms',
+    functions: ['records.contingency_form_state', 'records.contingency_forms_of', 'records.unreconciled_forms',
+                'records.form_reconciliation_state', 'records.form_reconciliation_problem',
+                'records.form_reconciliation_content', 'records.issue_contingency_pack',
+                'records.record_contingency_form_event', 'records.sign_form_reconciliation',
+                'recipe.refuse_unreconciled_completion'],
+    tests: [k('records/contingency-forms.test.ts'), r('lifecycle/execution-complete-forms.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'pqr-extract',
+    functions: ['recipe.pqr_extract_v1', 'recipe.pqr_register_view', 'recipe.pqr_reconciliation', 'recipe.pqr_query_problem',
+                'recipe.pqr_result_sha256', 'recipe.pqr_current_version', 'recipe.pqr_run_query', 'recipe.pqr_reproduces',
+                'recipe.pqr_involvement', 'recipe.run_pqr_extract', 'recipe.pqr_extract_content', 'recipe.sign_off_pqr'],
+    tests: [r('release/pqr-extract.test.ts')],
     threshold: 90,
   },
 ];

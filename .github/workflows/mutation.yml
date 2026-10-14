@@ -89,7 +89,8 @@ jobs:
                 platform-scope, tablets-core-checks, release-gate, release-gate-market-items, manufacturer-release,
                 tablets-release-items, us-disposition, qp-certification, market-changes, after-release-suspension,
                 after-release-decisions, shipping-interlock, record-lock-and-amendment, bulk-and-bright-stock,
-                execution-complete-forms]
+                execution-complete-forms, india-licences, india-issue-gate, india-expiry, india-h2-and-allocation,
+                records-evidence-export, records-contingency-forms, pqr-extract]
     services:
       postgres:
         image: postgres:16

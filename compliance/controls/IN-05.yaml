@@ -40,6 +40,7 @@ tests:
   - "apps/tablets-server/test/seed/release-seed.test.ts > the release demo of the set-up CLI (demo seed) > [IN-05][INV-05] the ready lot, tested, sampled and reviewed through real signed acts, is READY with no red G-REL item for IN, US and EU"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [INV-05][IN-05][PR-45][PR-44][PR-53] each finished lot: the worksheet's packs, release results approved by the head of QC, reserve samples, G-REL for India green with every item read from signed records, RELEASED by the AP"
   - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [PR-45][IN-05][INV-05] the finished lot is released for India through G-REL green and the AP's signed release"
+  - "apps/tablets-server/test/mutation/india-expiry.test.ts > posting the finished lot of a packaging order (tablets 1201, tab.post_finished_lot) > [PR-45] [IN-05] [PR-43] each refusal on its own, then the lot with the master's product name, the order's markets and the database's expiry"
 clauses:
   - clause: "attempt release with an open deviation, without head-of-QC approval, with an unsigned step, and as a user without the AP/delegate role; all four are blocked."
     tests:
