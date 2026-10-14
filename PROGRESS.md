@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 11 October 2026.
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 October 2026.
 
 ## What this is
 
@@ -68,6 +68,14 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
     need missing features are deferred to Phase 6 or 7 (listed in trace-deferrals.md). Exit review (one pass): no
     critical or high. `phase.yaml` is at 4; the trace passes at phase 4 with the golden and browser results (143/241
     controls with passing tests). Final run: 5,916 + 31 golden + 42 browser tests passed.
+  - Phase 4 focused mutation work (decision 0012) on `phase-4/mutation-final` (scopes A, B, C merged): results in
+    `docs/build-plan/phase-4/mutation-results.md`. Two real defects fixed with tests: G6.VALIDATION_BASIS walks back to
+    the last process-impacting version (recipe-core 0932, PR-06) and the export permission reason text (site services
+    0903). Scope C groups all 100 % after the re-run; scope A 232 survivors and scope B 118 survivors aimed at by new
+    tests but not re-confirmed. Final run: @@FINAL@@.
+    Deferred to deployment validation: kill confirmation of the A and B survivors, us-disposition, qp-certification and
+    market-changes groups, Stryker survivor triage (server release, records, India, archive and PQR features), a whole
+    SQL re-run under the decision 0009 organisation.
   - Open for the owner (defaults stand): D-7b-1 (GB-T-01's two orders are India-only, since its master is authorised for
     India only; meeting D-P4-15 literally means re-recording GB-T-01 with a three-market master after review); PR-30
     (a breach raises the exception that needs a deviation and blocks release, but creates no deviation record by
@@ -80,7 +88,7 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-Phase 4 closes with the slice 7 PR. Then Phase 6 (decision 0010): integrations and extras for Tablets, and the clauses
+Phase 4 closes with the slice 7 PR and the mutation PR (`phase-4/mutation-final`). Then Phase 6 (decision 0010): integrations and extras for Tablets, and the clauses
 decision 0011 deferred to it; then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
