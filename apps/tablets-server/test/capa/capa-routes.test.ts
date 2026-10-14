@@ -11,8 +11,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { withCommand } from '@ebmr/kernel';
 import { passwordActor } from '@ebmr/test-kit';
-import { qmsSimulator } from '../../../simulators/src/qms/model.ts';
-import { startFeedSimulator, type RunningFeedSimulator } from '../../../simulators/src/system-feed/server.ts';
 import { setMirrorMode, type Administration } from '../../../../packages/kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { qmsReleaseFetch } from '../../src/features/integrations/adapters/qms/index.ts';
@@ -21,13 +19,14 @@ import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import { actorOf } from '../support/gmp-world.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
+import { spawnFeedSimulator, type FeedSimProcess } from '../integrations/feed-simulator.ts';
 
 let server: TestServer;
 let db: TestDatabase;
 let adm: Administration;
 let qa: TestBrowser;
 let qa2: TestBrowser;
-let qms: RunningFeedSimulator;
+let qms: FeedSimProcess;
 let lot: { id: string; code: string };
 
 beforeAll(async () => {
@@ -36,8 +35,7 @@ beforeAll(async () => {
   const b = server.seed.bootstrap;
   adm = { admin: await passwordActor(server.db, b.admin, b.admin.fingerprint), owner: await passwordActor(server.db, b.owner, b.owner.fingerprint), authn: server.db.authn };
   [qa, qa2] = await Promise.all([server.asPersona('qaInvestigator'), server.asPersona('qaApprover2')]);
-  const q = qmsSimulator();
-  qms = await startFeedSimulator(q.feed, q.plugin, { host: '127.0.0.1', port: 0 });
+  qms = await spawnFeedSimulator('QMS');
   lot = { id: randomUUID(), code: `L-${randomUUID().slice(0, 6).toUpperCase()}` };
   const c = await db.admin.connect();
   try {
@@ -102,9 +100,9 @@ describe('the CAPA register over HTTP (IN-01 (d), PR-51)', () => {
 });
 
 describe('the QMS status fetched at release (DI-31; D-P6a-3)', () => {
-  const link = (over: { baseUrl?: string | null; timeoutMs?: number } = {}) => ({ baseUrl: `http://127.0.0.1:${qms.port.toString()}`, timeoutMs: 500, ...over });
-  const post = (path: string, body: unknown) => fetch(`http://127.0.0.1:${qms.port.toString()}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  const fault = (f: string, on: boolean, slowMs?: number) => post('/api/fault', { fault: f, on, ...(slowMs ? { slowMs } : {}) });
+  const link = (over: { baseUrl?: string | null; timeoutMs?: number } = {}) => ({ baseUrl: qms.base, timeoutMs: 500, ...over });
+  const post = (path: string, body: unknown) => qms.post(path, body);
+  const fault = (f: string, on: boolean, slowMs?: number) => qms.fault(f, on, slowMs);
 
   /** The release's transaction as the AP: the live fetch, then the database's release check, then rolled back. */
   async function inRelease(l: Parameters<typeof qmsReleaseFetch>[1]): Promise<string | null> {
@@ -148,7 +146,7 @@ describe('the QMS status fetched at release (DI-31; D-P6a-3)', () => {
     await setMirrorMode(db, 'QMS_STATUS', 'MIRROR', adm);
     try {
       // The QMS opens a deviation naming the lot; the eBMR's mirror has not received it yet: the token differs.
-      expect((await post('/qms/v1/deviations', { deviationRef: 'QD-REL-1', status: 'OPEN', lotNumbers: [lot.code] })).status).toBe(201);
+      expect(await post('/qms/v1/deviations', { deviationRef: 'QD-REL-1', status: 'OPEN', lotNumbers: [lot.code] })).toBe(201);
       expect(await refusalCode(inRelease(link()))).toBe('EBMR-QMS-011');
     } finally {
       await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN', adm);

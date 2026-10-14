@@ -10,12 +10,6 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
 import { plant } from '@ebmr/recipe-core';
-import { cmmsSimulator } from '../../../simulators/src/cmms/model.ts';
-import { limsSimulator } from '../../../simulators/src/lims/model.ts';
-import { lmsSimulator } from '../../../simulators/src/lms/model.ts';
-import { qmsSimulator } from '../../../simulators/src/qms/model.ts';
-import { FEED_FAULTS, type FeedFault } from '../../../simulators/src/system-feed/feed.ts';
-import { startFeedSimulator, type RunningFeedSimulator } from '../../../simulators/src/system-feed/server.ts';
 import { passwordActor, terminalOf } from '@ebmr/test-kit';
 import { withReason } from '../../../../packages/kernel/test/identity/seed.ts';
 import { count, ctxOf, registerAdapter, setMirrorMode, type Administration, type TestAdapter } from '../../../../packages/kernel/test/integrations/support.ts';
@@ -28,6 +22,11 @@ import { QMS_ADAPTER } from '../../src/features/integrations/adapters/qms/index.
 import { actorOf } from '../support/gmp-world.ts';
 import { grantedPerson } from '../support/granted-person.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
+import { spawnFeedSimulator, type FeedSimProcess } from './feed-simulator.ts';
+
+/** The simulators' faults (apps/simulators/src/system-feed/feed.ts FEED_FAULTS), switched on in turn. */
+const FEED_FAULTS = ['FEED_GAP', 'STALE_VALUE', 'MALFORMED', 'DUPLICATE', 'OUT_OF_ORDER', 'WRONG_BATCH', 'LINK_CUT', 'SLOW', 'STALE_MIRROR'] as const;
+type FeedFault = (typeof FEED_FAULTS)[number];
 
 let server: TestServer;
 let db: TestDatabase;
@@ -37,7 +36,7 @@ let lotCode: string;
 let equipmentCode: string;
 const personNumber = `EMP-${randomBytes(3).toString('hex').toUpperCase()}`;
 const QUALS = Array.from({ length: 40 }, (_, i) => `SOP-F${i.toString().padStart(2, '0')}`);
-const sims: RunningFeedSimulator[] = [];
+const sims: FeedSimProcess[] = [];
 
 beforeAll(async () => {
   server = await startServer('GMP');
@@ -86,25 +85,23 @@ afterAll(async () => {
 });
 
 interface Rig {
-  sim: RunningFeedSimulator;
+  sim: FeedSimProcess;
   adapter: TestAdapter;
   worker: FeedPullWorker;
   post(path: string, body: unknown): Promise<number>;
   fault(f: FeedFault, on: boolean, slowMs?: number): Promise<void>;
 }
 
-async function rig(spec: FeedAdapterSpec, made: { feed: RunningFeedSimulator['feed']; plugin: Parameters<typeof startFeedSimulator>[1] }): Promise<Rig> {
-  const sim = await startFeedSimulator(made.feed, made.plugin, { host: '127.0.0.1', port: 0 });
+async function rig(spec: FeedAdapterSpec): Promise<Rig> {
+  const sim = await spawnFeedSimulator(spec.system);
   sims.push(sim);
   const adapter = await registerAdapter(db, spec.system, adm);
-  const base = `http://127.0.0.1:${sim.port.toString()}`;
+  const base = sim.base;
   const worker = new FeedPullWorker(spec, { pool: db.app, baseUrl: base, timeoutMs: 400, openSession: () => Promise.resolve({ actor: ctxOf(adapter.actor), close: () => Promise.resolve() }) });
   return {
     sim, adapter, worker,
-    post: async (path, body) => (await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).status,
-    fault: async (fault, on, slowMs) => {
-      await fetch(`${base}/api/fault`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ fault, on, ...(slowMs ? { slowMs } : {}) }) });
-    },
+    post: (path, body) => sim.post(path, body),
+    fault: (fault, on, slowMs) => sim.fault(fault, on, slowMs),
   };
 }
 
@@ -169,7 +166,8 @@ async function soak(r: Rig, publish: (i: number, record: number) => Promise<numb
   // No silent loss: the source's count and checksum match what the eBMR accepted plus what it refused with an alarm.
   const rec = await r.worker.reconcile(from, BigInt(Date.now() + 5000) * 1000n);
   expect(rec.matched).toBe(true);
-  const published = new Set(r.sim.feed.published().map((m) => m.idempotencyKey)).size;
+  // Each published message has its own key: the source's head is the number of distinct keys it sent.
+  const published = await r.sim.head();
   const received = (await count(db, 'select count(*) as n from platform.inbound_message where adapter_code = $1', [r.adapter.code]))
     + (await count(db, "select count(distinct idempotency_key) as n from platform.inbound_exception where adapter_code = $1 and kind = 'REFUSED'", [r.adapter.code]));
   expect(received).toBe(published);
@@ -179,7 +177,7 @@ async function soak(r: Rig, publish: (i: number, record: number) => Promise<numb
 
 describe('the feed adapters against their simulators (DI-31)', () => {
   it('[DI-31] LMS: the contract reaches iam.receive_lms_qualification; the soak with every fault in turn reconciles (no silent loss)', async () => {
-    const r = await rig(LMS_ADAPTER, lmsSimulator());
+    const r = await rig(LMS_ADAPTER);
     const publish = (i: number, record: number) =>
       r.post('/lms/v1/qualifications', { personNumber, qualificationCode: QUALS[record], status: i % 3 === 2 ? 'REVOKED' : 'QUALIFIED', validFrom: '1700000000000000', validTo: null });
     await soak(r, publish, true);
@@ -187,7 +185,7 @@ describe('the feed adapters against their simulators (DI-31)', () => {
   });
 
   it('[DI-31] QMS: deviation status, CAPA and change control reach the mirror; the soak with every fault in turn reconciles', async () => {
-    const r = await rig(QMS_ADAPTER, qmsSimulator());
+    const r = await rig(QMS_ADAPTER);
     expect(await r.post('/qms/v1/capas', { capaRef: 'QC-CONTRACT', title: 'Contract CAPA', status: 'OPEN', needsMasterChange: false, effectivenessDueDate: null })).toBe(201);
     expect(await r.post('/qms/v1/change-controls', { changeRef: 'CC-CONTRACT', status: 'APPROVED' })).toBe(201);
     const publish = (i: number, record: number) => r.post('/qms/v1/deviations', { deviationRef: `QD-${record.toString()}`, status: i % 2 === 0 ? 'OPEN' : 'CLOSED', lotNumbers: [lotCode] });
@@ -199,7 +197,7 @@ describe('the feed adapters against their simulators (DI-31)', () => {
   });
 
   it('[DI-31] LIMS: results keep the raw value and unit; the soak with every fault in turn reconciles', async () => {
-    const r = await rig(LIMS_ADAPTER, limsSimulator());
+    const r = await rig(LIMS_ADAPTER);
     const publish = (i: number, record: number) =>
       r.post('/lims/v1/results', { sampleId: `S-${record.toString()}`, lotNumber: lotCode, testCode: 'ASSAY', specificationRef: 'SP-1', result: { value: `99.${i.toString()}0`, unit: '%' },
                                    conformance: 'CONFORMS', state: 'APPROVED', recordedAt: '1790000000000000' });
@@ -208,7 +206,7 @@ describe('the feed adapters against their simulators (DI-31)', () => {
   });
 
   it('[DI-31] CMMS: calibrations and work orders reach the equipment guard; the soak with every fault in turn reconciles', async () => {
-    const r = await rig(CMMS_ADAPTER, cmmsSimulator());
+    const r = await rig(CMMS_ADAPTER);
     expect(await r.post('/cmms/v1/calibrations', { equipmentCode, calibrationRef: 'CAL-CONTRACT', performedAt: (BigInt(Date.now()) * 1000n).toString(), result: 'PASS', dueOn: '2099-12-31' })).toBe(201);
     expect(await settle(r)).toMatchObject({ accepted: 1, synced: true });
     expect(await count(db, "select count(*) as n from plant.calibration where reference = 'CAL-CONTRACT'")).toBe(1);

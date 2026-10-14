@@ -5,6 +5,8 @@
  * release transaction and a release without that fetch, with an older one, with an open QMS deviation or with a changed
  * version token is refused, also for a direct insert. As the application role through real identities.
  */
+import { randomUUID } from 'node:crypto';
+import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../../kernel/src/db/command.ts';
 import { signerActor } from '../../../kernel/test/continuity/helpers.ts';
@@ -12,12 +14,10 @@ import { expectRefused } from '../../../kernel/test/identity/helpers.ts';
 import { seedAdministration, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { ageMirror, count, envelopeFor, nowUs, receive, registerAdapter, setMirrorMode, syncMirror, type TestAdapter } from '../../../kernel/test/integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
-import { QualityWorld, seedQualityCast, unique } from '../../../site-services/test/quality/support.ts';
 import { DAY, PlantWorld, seedPlantCast } from '../plant/support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;
-let q: QualityWorld;
 let cmms: TestAdapter;
 let qmsAdapter: TestAdapter;
 let ap: SeededActor;
@@ -26,7 +26,6 @@ beforeAll(async () => {
   db = await createTestDatabase();
   await seedAdministration(db);
   w = new PlantWorld(db, await seedPlantCast(db));
-  q = new QualityWorld(db, await seedQualityCast(db));
   cmms = await registerAdapter(db, 'CMMS');
   qmsAdapter = await registerAdapter(db, 'QMS');
   ap = await signerActor(db, 'AUTHORISED_PERSON');
@@ -34,6 +33,30 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.drop();
 });
+
+let serial = 0;
+const unique = (prefix: string): string => `${prefix}${randomUUID().slice(0, 6).toUpperCase()}${(serial++).toString()}`;
+
+/** A material lot of SITE-1 (fixture rows, triggers off: the lot's own life cycle is tested elsewhere). */
+async function fixtureLot(): Promise<{ lotId: string; lotCode: string }> {
+  const lotId = randomUUID();
+  const lotCode = unique('L-');
+  const c = await db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('set local session_replication_role = replica');
+    await c.query(
+      `insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at,
+                                      received_by_person, received_by_account, correlation_id)
+       values ($1, 'SITE-1', $2, 'FG-1', 'Finished goods', 'FINISHED', 1000, 'units', '2030-01-01T00:00:00Z', $3, $3, $3)`,
+      [lotId, lotCode, randomUUID()],
+    );
+    await c.query('commit');
+  } finally {
+    c.release();
+  }
+  return { lotId, lotCode };
+}
 
 const day = async (n: number): Promise<string> => (await db.admin.query<{ d: string }>('select (site.site_today() + $1::integer)::text as d', [n])).rows[0]!.d;
 const calibration = (equipmentCode: string, over: Record<string, unknown> = {}) => ({
@@ -123,15 +146,15 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
   const status = (deviationRef: string, s: string, token: string, lots: string[]) => ({ deviationRef, status: s, lotNumbers: lots, versionToken: token });
 
   /** In one transaction as the AP: the live fetch's answer recorded, then `then` (the release's work). */
-  const inRelease = <T>(lotId: string, answer: unknown, then: (c: import('pg').PoolClient) => Promise<T>) =>
+  const inRelease = <T>(lotId: string, answer: unknown, then: (c: pg.PoolClient) => Promise<T>) =>
     withCommand(db.app, { ...ap }, async (c) => {
       if (answer !== undefined) await c.query('select site.record_qms_release_fetch($1, $2::jsonb)', [lotId, JSON.stringify(answer)]);
       return then(c);
     });
-  const problem = (c: import('pg').PoolClient, lotId: string) => c.query<{ p: string | null }>('select site.qms_release_problem($1) as p', [lotId]).then((r) => r.rows[0]!.p);
+  const problem = (c: pg.PoolClient, lotId: string) => c.query<{ p: string | null }>('select site.qms_release_problem($1) as p', [lotId]).then((r) => r.rows[0]!.p);
 
   it('[DI-31] QMS unreachable at release: the release is refused and names the QMS', async () => {
-    const lot = await q.lot();
+    const lot = await fixtureLot();
     // STAND_IN: no QMS, nothing to fetch, no refusal.
     await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
     expect(await inRelease(lot.lotId, undefined, (c) => problem(c, lot.lotId))).toBeNull();
@@ -139,7 +162,7 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
     // MIRROR and no live answer in this transaction (the QMS could not be reached): refused, naming the QMS.
     expect(await inRelease(lot.lotId, undefined, (c) => problem(c, lot.lotId))).toMatch(/^EBMR-QMS-013 the QMS status of lot .* was not fetched from the QMS in this release.*call the QMS system owner/);
     // A fetch of an earlier transaction does not count: the status is fetched inside the signing transaction.
-    await inRelease(lot.lotId, [], async () => undefined);
+    await inRelease(lot.lotId, [], () => Promise.resolve(undefined));
     expect(await inRelease(lot.lotId, undefined, (c) => problem(c, lot.lotId))).toMatch(/^EBMR-QMS-013/);
     expect(await inRelease(lot.lotId, [], (c) => problem(c, lot.lotId))).toBeNull();
     // The database guard: a release decision inserted directly, by any role, meets the same check.
@@ -155,12 +178,12 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
     await expect(withCommand(db.admin, withReason(ap), (c) => c.query("insert into recipe.manufacturer_release_decision (lot_id, decision) values ($1, 'REJECTED')", [lot.lotId])))
       .rejects.toThrow(/null value/);
     // Only the person releasing records the fetch.
-    await expectRefused(withCommand(db.app, q.cast.operator, (c) => c.query("select site.record_qms_release_fetch($1, '[]'::jsonb)", [lot.lotId])), 'EBMR-QMS-010');
+    await expectRefused(withCommand(db.app, w.cast.operator, (c) => c.query("select site.record_qms_release_fetch($1, '[]'::jsonb)", [lot.lotId])), 'EBMR-QMS-010');
   });
 
   it('[DI-31] a changed version token at signing refuses the release; an open QMS deviation and a fetch older than the bound refuse it too', async () => {
     await setMirrorMode(db, 'QMS_STATUS', 'MIRROR');
-    const lot = await q.lot();
+    const lot = await fixtureLot();
     const ref = unique('QD-');
     await receive(db, qmsAdapter, 'site.receive_qms_deviation_status', envelopeFor(qmsAdapter, 'qms.deviation_status', status(ref, 'OPEN', 'v1', [lot.lotCode])));
     // G-REL's QMS item shows the mirror with its version tokens; the epoch moves with them.
@@ -174,9 +197,9 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
     // A stale answer (an older token than the mirror holds, or a deviation the QMS no longer lists) is refused alike.
     await receive(db, qmsAdapter, 'site.receive_qms_deviation_status', envelopeFor(qmsAdapter, 'qms.deviation_status', status(ref, 'CLOSED', 'v2', [lot.lotCode])));
     expect(await item()).toMatchObject({ status: 'GREEN', evidence: [{ label: `${ref} CLOSED (QMS version v2)` }] });
-    await expectRefused(inRelease(lot.lotId, [{ deviationRef: ref, status: 'OPEN', versionToken: 'v1' }], async () => undefined), 'EBMR-QMS-011');
-    await expectRefused(inRelease(lot.lotId, [], async () => undefined), 'EBMR-QMS-011');
-    await expectRefused(inRelease(lot.lotId, [{ deviationRef: ref, status: 'CLOSED' }], async () => undefined), 'EBMR-QMS-012');
+    await expectRefused(inRelease(lot.lotId, [{ deviationRef: ref, status: 'OPEN', versionToken: 'v1' }], () => Promise.resolve(undefined)), 'EBMR-QMS-011');
+    await expectRefused(inRelease(lot.lotId, [], () => Promise.resolve(undefined)), 'EBMR-QMS-011');
+    await expectRefused(inRelease(lot.lotId, [{ deviationRef: ref, status: 'CLOSED' }], () => Promise.resolve(undefined)), 'EBMR-QMS-012');
     // The matching answer passes.
     expect(await inRelease(lot.lotId, [{ deviationRef: ref, status: 'CLOSED', versionToken: 'v2' }], (c) => problem(c, lot.lotId))).toBeNull();
     // The 60 s QMS_STATUS bound is a backstop: an answer older than it in the same transaction is refused.

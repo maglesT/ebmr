@@ -64,7 +64,7 @@ export async function integrationActor(db: TestDatabase, name: string, given?: A
     personId: created.personId, accountId: created.accountId, roleCode: 'SERVICE_ACCOUNT', sessionId: s.sessionId, deviceId: s.deviceId, source: 'INTEGRATION',
     siteZone: SEED_ZONE, legalName: name,
     seed: { loginName: lg, password: created.secret, deviceFingerprint: fp, deviceClass: 'SERVER', grantId: created.grantId },
-  } as SeededActor;
+  };
 }
 
 /** An INTEGRATION account on its own SERVER device, registered for `system` by the device administrator. */

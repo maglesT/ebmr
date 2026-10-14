@@ -97,7 +97,7 @@ describe('the simulators over HTTP', () => {
       [cmms, CMMS, '/cmms/v1/calibrations', { equipmentCode: 'EQ-1', calibrationRef: 'CAL-1', performedAt: '1790000000000000', result: 'PASS', dueOn: '2027-01-31' }],
       [cmms, CMMS, '/cmms/v1/work-orders', { equipmentCode: 'EQ-1', workOrder: 'WO-1', kind: 'PREVENTIVE', status: 'OPEN', dueOn: '2027-01-31' }],
     ];
-    for (const [sim, contract, path, body] of cases) {
+    for (const [sim, , path, body] of cases) {
       expect((await post(sim, path, body)).status, path).toBe(201);
       expect((await post(sim, path, { ...(body as object), extra: 1 })).status, path).toBe(400);
     }
