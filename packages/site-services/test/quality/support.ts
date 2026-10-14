@@ -11,6 +11,7 @@ import { withCommand, type ActorContext } from '../../../kernel/src/db/command.t
 import { seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { confirmErpMaster, erpMasterAggregateId, type ErpMasterKind } from '../../src/index.ts';
 import { signerActor, signFor, type TestDatabase } from '../helpers.ts';
+import { completeReceipt } from '../lots/receipt-fixture.ts';
 
 type CommandClient = Parameters<Parameters<typeof withCommand>[2]>[0];
 
@@ -152,7 +153,7 @@ export class QualityWorld {
   }
 
   /** A lot received in QUARANTINE at SITE-1 (the material master posted first). */
-  async lot(over: { materialCode?: string; materialKind?: string; quantity?: string; retestAt?: string; expiresAt?: string; maxRetestMonths?: number | null } = {}): Promise<{ lotId: string; lotCode: string; materialCode: string }> {
+  async lot(over: { materialCode?: string; materialKind?: string; quantity?: string; retestAt?: string; expiresAt?: string; maxRetestMonths?: number | null; receipt?: boolean } = {}): Promise<{ lotId: string; lotCode: string; materialCode: string }> {
     const materialCode = over.materialCode ?? unique('M');
     const lotCode = unique('L');
     await this.material(materialCode, over.materialKind ?? 'EXCIPIENT', 'kg', over.maxRetestMonths === undefined ? 24 : over.maxRetestMonths);
@@ -160,6 +161,7 @@ export class QualityWorld {
     const r = await this.sql<{ lot_id: string }>(this.cast.warehouse, 'select site.receive_lot($1::jsonb) as r', [
       JSON.stringify({ lotCode, materialCode, quantity: over.quantity ?? '5', expiresAt: over.expiresAt ?? '2030-01-01T00:00:00Z', ...(over.retestAt ? { retestAt: over.retestAt } : {}) }),
     ]);
+    if ((over.receipt ?? true) && over.materialKind !== 'INTERMEDIATE') await completeReceipt(this.db, this.cast, r.lot_id, materialCode);
     return { lotId: r.lot_id, lotCode, materialCode };
   }
 

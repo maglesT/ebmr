@@ -24,6 +24,7 @@ import {
   type ReceivedLot,
 } from '../../src/index.ts';
 import { signerActor, signFor, type TestDatabase } from '../helpers.ts';
+import { approveManufacturer, completeReceipt } from './receipt-fixture.ts';
 
 /** The client a command runs on (the kernel's withCommand). */
 type CommandClient = Parameters<Parameters<typeof withCommand>[2]>[0];
@@ -102,7 +103,7 @@ export class World {
    * required ASSAY test (site services 0840) and the lot a passing, QC-approved RELEASE result of it (0841: a lot
    * without its required results is not released).
    */
-  async receive(kind: MaterialKind, overrides: Partial<LotReceipt> = {}, results = true): Promise<ReceivedLot & { materialCode: string; lotCode: string }> {
+  async receive(kind: MaterialKind, overrides: Partial<LotReceipt> = {}, results = true, receipt = true): Promise<ReceivedLot & { materialCode: string; lotCode: string }> {
     const materialCode = overrides.materialCode ?? unique(`M${kind.slice(0, 3)}`);
     const lotCode = overrides.lotCode ?? unique('L');
     // The ERP's material master first (a receipt takes the kind, name and unit from it; site services 0750).
@@ -121,7 +122,20 @@ export class World {
       }),
     );
     if (results) await this.passingResult(lot.lotId);
+    // The complete receipt record a lot needs before it is issued (site services 0910, PR-17): an approved manufacturer,
+    // the receipt record and the examination of its containers.
+    if (receipt && kind !== 'INTERMEDIATE') await this.completeReceipt(lot.lotId, materialCode);
     return { ...lot, materialCode, lotCode };
+  }
+
+  /** QA approves `manufacturerCode` for the material (receipt-fixture.ts). */
+  approveManufacturer(materialCode: string, manufacturerCode = 'MFR-1'): Promise<string | null> {
+    return approveManufacturer(this.db, this.cast.qa, materialCode, manufacturerCode);
+  }
+
+  /** The receipt record and examination of a lot received with site.receive_lot (receipt-fixture.ts). */
+  completeReceipt(lotId: string, materialCode: string, manufacturerCode = 'MFR-1'): Promise<void> {
+    return completeReceipt(this.db, this.cast, lotId, materialCode, manufacturerCode);
   }
 
   /** An approved specification of the material (drafted by the analyst, approved by the head of QC) unless one is in effect. */
