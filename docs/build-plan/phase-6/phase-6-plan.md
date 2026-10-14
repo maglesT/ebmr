@@ -179,6 +179,10 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
   - The source head named at a mirror sync (kernel 1182) is the adapter's claim: the database checks the adapter holds
     everything up to it, not that the source has nothing beyond it. Reconciliation reports (counts and checksums from
     the source) are the cross-check.
+  - A refused message resent unchanged after a server restart is recorded as a second REFUSED row with a second
+    alarm: the worker's memory of refused keys (`refusedKeys`, framework.ts) is lost on restart and the database does
+    not de-duplicate refusals by idempotency key. Nothing is lost and reconciliation counts refused keys once (count
+    distinct); the cost is a repeated alarm. A database de-duplication can follow with 6j's alarm work.
 
 ### Slice 6b: equipment data, alarms and dynamic data; plant rules
 
