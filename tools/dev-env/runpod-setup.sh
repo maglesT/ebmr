@@ -35,6 +35,8 @@ PG=16
 PW_BROWSERS=/opt/pw-browsers
 FAKETIME_DIR=/var/lib/postgresql/faketime-golden
 export DEBIAN_FRONTEND=noninteractive
+# GitHub's runners run in UTC; so do the setup, the clusters it creates and the local CI here.
+export TZ=UTC
 
 log() { printf '\n== %s\n' "$*"; }
 # Written for a root container (RunPod); $SUDO only helps where a non-root user has sudo.
@@ -192,6 +194,7 @@ do_setup() {
   fi
 
   grep -q PLAYWRIGHT_BROWSERS_PATH /root/.bashrc 2>/dev/null || echo "export PLAYWRIGHT_BROWSERS_PATH=${PW_BROWSERS}" >> /root/.bashrc
+  grep -q '^export TZ=UTC' /root/.bashrc 2>/dev/null || echo "export TZ=UTC" >> /root/.bashrc
 
   log "Done. Run CI with: bash tools/dev-env/runpod-setup.sh ci"
 }

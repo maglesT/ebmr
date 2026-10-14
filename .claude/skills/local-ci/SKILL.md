@@ -76,3 +76,16 @@ Ask before stopping or dropping a cluster or database you did not create.
   race (wait for the condition, not for time) and say what it was.
 - Reproduce a CI-only failure locally with the same heap and `CI=true` before changing code.
 - Never skip, disable or loosen a test, and never lower a threshold, to get green.
+
+## Known local cases (RunPod, Ubuntu 22.04)
+
+- `packages/kernel/test/identity/site-zone-policy.test.ts` "[DI-27] over every zone name ...": times out at 30 s here
+  (65 s on its own) and passes on GitHub in under 25 s. This tzdata carries the `posix/` copy of every zone (1,198 names
+  in `pg_timezone_names`, about 600 on the runner), and the guard scans that list on each call. Not TZ: the clusters are
+  `Etc/UTC` and `TZ=UTC` is set. Moving `/usr/share/zoneinfo/posix` aside would match the runner; that is an owner call
+  (a system-wide change).
+- `apps/tablets-server/test/devices/listener-watch.test.ts` (14 October): under load the test checked for the ended
+  backend before it had exited (`pg_terminate_backend` only signals). Fixed by waiting until that backend is gone and
+  the pool is full again; it passes alone, on GitHub, and three times in a row on a shard cluster.
+- Shard 4 runs longest (about 14 minutes against 5.5 for the others): Vitest splits by file, and the slowest files
+  (devices/manual-weighing-interference about 5 minutes) land there. Balancing is left for later.
