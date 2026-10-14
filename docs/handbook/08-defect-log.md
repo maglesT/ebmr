@@ -421,7 +421,7 @@ These patterns came back again and again. If you remember only one page of this 
 - **Consequence:** material weighed into a line that had not been cleared: cross-contamination risk.
 - **Fix:** recipe-core 0307 checks every new step instance against the MBR flow (earlier steps finished, stages
   signed off, loops ended, decisions taken, frames right) and 0311 binds a step's status change to the act that makes
-  it (EBMR-EXE-129).
+  it (EBMR-EXE-129 from 0307, EBMR-EXE-132 from 0311).
 - **Test:** [db-guards-step-order.test.ts](../../apps/tablets-server/test/execution/db-guards-step-order.test.ts) "[DI-34][PR-13][INV-18] a row that
   brings in a step the token has not reached is refused, so the dispensing cannot start before the line clearance is done".
 - **Lesson:** the engine (TypeScript) walks the flow; the database must independently refuse any row that the walk

@@ -377,7 +377,7 @@ trail of the record, and signs the QA review. Someone who worked on the batch ma
 `QA_REVIEW` act sends that `expectedEpoch` back. In the signing transaction, `recipe.record_qa_review` compares it with
 `recipe.epoch_of('BATCH', id)`; if anything moved in between (a late exception, a new deviation link, a correction),
 the review is refused with `EBMR-REV-021` ("the evidence of the record changed after it was evaluated"), nothing is
-signed, and QA reviews again. Other refusals: `EBMR-REV-012` (the reviewer was involved in the batch).
+signed, and QA reviews again. Other refusals: `EBMR-ESIG-045` (the kernel refuses a reviewer who was involved in the batch; the audit-trail review keeps its own copy of the rule, `EBMR-REV-012`).
 
 ## 11. G-REL and the manufacturer release
 
