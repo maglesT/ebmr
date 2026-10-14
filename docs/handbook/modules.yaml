@@ -223,6 +223,14 @@ modules:
       packages/site-services/sql: ['^092[5-9]_']
     tests: ['packages/site-services/test/integrations/**']
 
+  - id: ss-receipt-erp-wms
+    title: Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^091\d_']
+    tests: ['packages/site-services/test/erp-wms/**']
+
   - id: ss-core
     title: Site services package entry and shared tests
     page: modules/site-services.md
@@ -564,10 +572,11 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^100[01]_', '^104[02]_', '^1150_']
+      apps/tablets-server/sql: ['^100[01]_', '^104[02]_', '^1150_', '^1259_']
     server: [apps/tablets-server/src/features/quality]
     contract:
       - packages/api-contract/src/ns/quality.ts
+      - packages/api-contract/src/ns/receipt.ts
       - packages/api-contract/src/ns/deviation.ts
       - packages/api-contract/src/ns/samples.ts
       - packages/api-contract/src/ns/specifications.ts
@@ -575,6 +584,7 @@ modules:
     tests:
       - 'apps/tablets-server/test/quality/**'
       - 'apps/tablets-web/test/office/quality*.test.tsx'
+      - 'apps/tablets-web/test/receipt/**'
       - 'apps/tablets-server/test/mutation/lots-and-lims.test.ts'
       - 'apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts'
 
@@ -662,7 +672,8 @@ modules:
     package: apps/tablets-server
     server: [apps/tablets-server/src/features/integrations]
     contract: [packages/api-contract/src/ns/integrations.ts]
-    tests: ['apps/tablets-server/test/integrations/**']
+    screens: [apps/tablets-web/src/features/integrations]
+    tests: ['apps/tablets-server/test/integrations/**', 'apps/tablets-web/test/integrations/**']
 
   - id: ts-capa
     title: CAPA register and closure (Phase 6 slice 6a, builder B)

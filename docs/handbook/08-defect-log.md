@@ -754,6 +754,22 @@ because the lesson is about structure.
   slice 4b fix); a table name bug in the archive (kernel 1173, commit 67babc7e). The evidence export is now recomputed
   by the database (kernel 1174).
 
+## Integrations (Phase 6)
+
+### P6a-A1: a feed gap kept a mirror looking fresh (slice 6a, builder A)
+- **What went wrong.** The ERP/WMS worker recorded each mirror's synchronisation whenever the source's heartbeat
+  answered, before it read the feed. With a feed gap (the source keeps changing its data but delivers nothing) the
+  heartbeat still answered, so ERP_LOT_STATUS looked fresh while the eBMR held an old lot status.
+- **Why it matters.** A stale mirror must fail closed (INV-26): a lot the WMS has blocked could still be reserved and
+  issued on the old status.
+- **Fix.** The worker records the synchronisation only when the heartbeat answers **and** it is caught up with the
+  source (its cursor reached the source's head):
+  [framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker). Found from
+  builder B's pull worker, which already kept this rule.
+- **Test.** `[DI-31] a feed gap keeps the mirror from looking fresh` in
+  [contract.test.ts](../../apps/tablets-server/test/integrations/erp-wms/contract.test.ts).
+- **Lesson:** freshness is about the data you hold, not about whether the other system answers.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

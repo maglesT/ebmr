@@ -183,6 +183,68 @@ what arrived. Data classes a GMP guard reads from another system run as STAND_IN
 [1180_inbound_adapter_framework.sql](../../../packages/kernel/sql/1180_inbound_adapter_framework.sql); signatures,
 decisions and the builders' split: [slice-6a-0-interfaces.md](../../build-plan/phase-6/slice-6a-0-interfaces.md).
 
+## The ERP/WMS adapter and the worker base (Phase 6, slice 6a, builder A)
+
+**The worker base** ([framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker)):
+one worker per feed, application code only (every rule it relies on is the database's). A cycle asks the source's
+heartbeat, reads a page of the feed after its cursor (the highest sequence number handled; at start the database's),
+and per message checks the envelope (`InboundEnvelope`), the hash against the payload as received and the payload
+against the contract's schema, then runs the system's receiving command in one database command. A refusal of a known
+class is recorded with `platform.record_inbound_refusal` (its alarm) and the cursor moves on; TRANSPORT (the source or
+the database unreachable, a cut or late answer) ends the cycle without moving the cursor and is retried with
+`retryDelayMs` (1 s doubling to 5 min, never given up); an unclassified failure blocks the worker on that message
+(health BLOCKED). The mirror synchronisation (`platform.record_mirror_sync`) is recorded only when the heartbeat answers
+**and** the worker is caught up with the source's head, so a stopped heartbeat, a feed gap or a backlog all let the
+mirror go stale and fail closed (defect P6a-A1 in the [defect log](../08-defect-log.md#integrations-phase-6)).
+`reconcile(from, to)` submits the source's count and checksum of a closed period. Back-off uses the monotonic clock
+(`performance.now`), never GMP time.
+
+**The ERP/WMS adapter** ([adapters/erp-wms](../../../apps/tablets-server/src/features/integrations/adapters/erp-wms/index.ts)):
+two feeds of the ERP_WMS system, each its own registered adapter (D-P6a-0-7), started by the integrations feature
+when the service-keys file has an entry for terminal `SRV-ERP-ADAPTER-01` or `SRV-WMS-ADAPTER-01` with an `endpoint`
+and the account is an ACTIVE ERP_WMS adapter. The account holds role ERP_WMS_INTERFACE (site services 0914:
+INTERFACE.WRITE, ERP.MASTER_WRITE, MATERIAL.HANDLE; no SIGN or ACKNOWLEDGE). Both receive through
+`site.erp_wms_receive` ([site services 0913](../../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql)):
+
+| Message type | Applied by | What it changes |
+|---|---|---|
+| `erp.production_order` | `site.erp_receive_order` | the order at the adapter's site (strength required); the ERP BOM is matched against the MBR BOM at GMP issue (EBMR-EXE-605) |
+| `erp.material_master`, `erp.product_master` | `site.erp_receive_material`, `site.erp_receive_product` | a master version; a new or changed controlled value waits for QA (0802) |
+| `wms.goods_receipt` | `site.receive_supplier_batches` (0910) | one lot in QUARANTINE per supplier batch, each with its receipt record and the message id (PR-17) |
+| `wms.stock_move` | `site.apply_wms_stock_move` (0911) | the move; one that broke the location rule raises an alarm and an exception linked to the lot (PR-46, D-P6a-7) |
+| `wms.lot_status` | `site.apply_wms_lot_status` (0912) | the lot-status mirror; a report older than the one held is STALE (EBMR-ERP-004) |
+| `erp.shipment` | kept as the accepted message | distribution records come with slice 6d |
+
+After each cycle the ERP feed delivers the outbound queue ([outbound.ts](../../../apps/tablets-server/src/features/integrations/adapters/erp-wms/outbound.ts):
+`erp.stock_block`, `erp.lot_status`, `erp.goods_issue`, `erp.yield`, written by triggers in the transaction of their
+fact; a failed delivery is recorded, raises one TRANSPORT alarm, waits its back-off and is sent again until the ERP
+acknowledges it; the messages of one lot keep their order). The WMS feed answers the WMS's questions before a move
+([moves.ts](../../../apps/tablets-server/src/features/integrations/adapters/erp-wms/moves.ts), `site.wms_location_question`,
+0915). The Phase 4 stub consumer of stock blocks (0880) stays for a demo without an ERP.
+
+**Defaults taken by builder A (decision 0004; recorded, the owner may change):**
+D-P6a-A-1 a manual override of an interface-captured value is a row of `platform.inbound_override` (kernel 1181), shown
+on the integration health side as the interface part of the exception report; linking it into a batch's engine-driven
+exception register is left to 6f or 6j; D-P6a-A-2 in STAND_IN the LMS rows keep the 0130 heartbeat, in MIRROR the LMS
+freshness is the generic `platform.mirror_sync` with the data class's bound; D-P6a-A-3 receipt completeness (receipt
+record and an ACCEPTABLE examination of every container) is required for purchased kinds (API, excipients, packaging);
+lots made here (intermediates, finished, returned) have none; D-P6a-A-4 an unapproved manufacturer does not refuse the
+receipt (the goods are in the warehouse and must be recorded): the lot is created and blocked, its release and issue
+refused until QA approves the manufacturer, and the approval is checked again at every reservation and consumption;
+D-P6a-A-5 lot codes of received supplier batches are numbered `GR<yymmdd>-<n>` per site and day when stores give none;
+D-P6a-A-6 the examiner is a person (HUMAN account) and the examination is recorded once per lot; D-P6a-A-7 the location
+rule by status (released within dates: any kind; quarantine, on hold or past dates: quarantine, rejected, returns;
+rejected or recalled: rejected, returns; no stock: none), and an open location exception blocks release and issue
+until QA closes it with a deviation linked to the lot; D-P6a-A-8 in MIRROR the WMS must hold the lot RELEASED for issue
+(a missing report refuses), the stricter wins; D-P6a-A-9 the ERP outbound queue is its own table (platform.outbox is
+claimed by any relay and carries no topic filter); D-P6a-A-10 a WMS expiry or retest date becomes the start of that day
+in the site's zone; D-P6a-A-11 `erp.shipment` is kept, not applied, until 6d; D-P6a-A-12 the ERP/WMS adapter role
+carries MATERIAL.HANDLE to create lots, so issue is made a person's act in the database (EBMR-SITE-924); D-P6a-A-13 the
+receipt signing meaning is tablets 1259 (6a has no tablets range and it must run after 1229); D-P6a-A-14 the optional
+payload fields the receiving command needs (order strength, material kind, product shelf life and beta-lactam flag,
+retest date, delivery-note name) were added to the version-1 contract as optional members (additive), and the database
+refuses a message without them as MALFORMED.
+
 ## QMS, LIMS, LMS and CMMS adapters (Phase 6, slice 6a, builder B)
 
 Each of these four systems is a thin mapping on the framework above: a receiving command in the database per message
@@ -219,8 +281,8 @@ pointer on a TRANSPORT or unclassified failure (the next cycle fetches the same 
 DUPLICATE). It synchronises the system's mirror data classes only when it is **caught up** (pointer = the source's head)
 and the source's heartbeat answers, so a feed gap and a stopped heartbeat both let the mirror go stale. Builder A's
 [framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts) is the ERP/WMS worker; it
-syncs on the heartbeat alone and carries no source reason, so the four systems stay on the pull worker until the two
-are merged (owner of the merge: the lead).
+now also syncs only when caught up (defect P6a-A1); its receiving commands only insert, so they carry no source reason.
+The four systems stay on the pull worker until the two are merged (owner of the merge: the lead).
 
 **The QMS status at release (D-P6a-3, D-P6a-0-11).** The release does not trust the QMS mirror alone. In MIRROR, the
 release acts (manufacturer release, US release disposition, in-system QP certification, re-confirmation) call
@@ -395,6 +457,7 @@ test). They bind loopback addresses only unless told otherwise.
 | Line printer with reader and vision | [printer/main.ts](../../../apps/simulators/src/printer/main.ts) (4031) | `ebmr.sim-printer.v1` | OFFLINE, MISPRINT, READER_FAIL, JOB_MISMATCH, STALE ([model.ts](../../../apps/simulators/src/printer/model.ts)) |
 | Serialisation L3 stub | [serialisation/main.ts](../../../apps/simulators/src/serialisation/main.ts) (`EBMR_L3_HTTP`) | HTTP `/l3/v1/pools...` | in-memory pools; the same pool request answers the pool already issued |
 | ERP stub (DEMO-ONLY) | [erp/main.ts](../../../apps/simulators/src/erp/main.ts) | `POST /api/erp/import` once, then exits | catalogue of the demo product ([catalogue.ts](../../../apps/simulators/src/erp/catalogue.ts)) |
+| ERP and WMS feeds (DEMO-ONLY) | [erp/serve.ts](../../../apps/simulators/src/erp/serve.ts) (`EBMR_SIM_HTTP`, 4310), [wms/main.ts](../../../apps/simulators/src/wms/main.ts) 4320 | HTTP `/erp/v1` and `/wms/v1`: `feed`, `heartbeat`, `reconciliation`; POST `production-orders`, `materials`, `products`, `shipments` (ERP), `goods-receipts`, `stock-moves`, `lot-statuses`, `move-requests` (WMS); the ERP takes `POST /erp/v1/outbound` | [FEED_FAULTS](../../../apps/simulators/src/erp/feed.ts#sym=FEED_FAULTS): the same nine (`POST /api/fault`); the console has a button per fault |
 | QMS, LIMS, LMS, CMMS feeds (DEMO-ONLY) | [qms/main.ts](../../../apps/simulators/src/qms/main.ts) (`EBMR_QMS_HTTP`, 4051), [lims](../../../apps/simulators/src/lims/main.ts) 4052, [lms](../../../apps/simulators/src/lms/main.ts) 4053, [cmms](../../../apps/simulators/src/cmms/main.ts) 4054 | HTTP `/<system>/v1/feed`, `/heartbeat`, `/reconciliation`; POST routes per message type; QMS `GET /qms/v1/lots/:lot/deviations` | [FEED_FAULTS](../../../apps/simulators/src/system-feed/feed.ts#sym=FEED_FAULTS): FEED_GAP, STALE_VALUE, MALFORMED, DUPLICATE, OUT_OF_ORDER, WRONG_BATCH, LINK_CUT, SLOW, STALE_MIRROR (`POST /api/fault`) |
 
 The ERP stub posts the product and material masters and the production orders of the demo MBR (dc-mini: paracetamol
@@ -415,6 +478,13 @@ waits for QA's confirmation ([tablets-web, quality](tablets-web.md#quality-devia
 - Browser: [devices.spec.ts](../../../tools/e2e/specs/devices/devices.spec.ts) runs the gateway and the simulator in
   the real stack (`[DI-32][DI-20]`, and with the simulator OFFLINE only the manual two-person path is offered).
 - In the demo, open the simulator console (the `EBMR_SIM_HTTP` port) to put a load on the pan or switch a fault on.
+- ERP/WMS: the database rules in [packages/site-services/test/erp-wms/](../../../packages/site-services/test/erp-wms/)
+  (receipt, approved manufacturers, locations, the lot-status mirror, faults, the outbound queue) and
+  [kernel test/inbound](../../../packages/kernel/test/inbound/) (overrides, LMS freshness); the ERP BOM at GMP issue in
+  [erp-adapter-order.test.ts](../../../packages/recipe-core/test/lifecycle/erp-adapter-order.test.ts); the contract and
+  soak tests run both workers against the simulator **processes**
+  ([erp-wms/](../../../apps/tablets-server/test/integrations/erp-wms/): every fault in turn, then the period reconciles);
+  the routes with data in [alarm-routes.test.ts](../../../apps/tablets-server/test/integrations/alarm-routes.test.ts).
 - QMS, LIMS, LMS, CMMS: the database rules in `packages/{kernel,site-services,recipe-core}/test/integrations/`; the
   contract and soak tests run each adapter's worker against its simulator **process**
   ([feed-adapters.test.ts](../../../apps/tablets-server/test/integrations/feed-adapters.test.ts): every fault in turn,
@@ -435,12 +505,10 @@ waits for QA's confirmation ([tablets-web, quality](tablets-web.md#quality-devia
 
 ## Differences between the code and the docs (14 October 2026)
 
-- The integration SDK's description ([package.json](../../../packages/integration-sdk/package.json),
-  [src/index.ts](../../../packages/integration-sdk/src/index.ts)) promises adapter contracts for ERP, LIMS, QMS, LMS,
-  EMS, scales, printers and OPC UA. Today it has scale, process (a stand-in for OPC UA), printer and serialisation. The
-  ERP import shape lives in the API contract (`quality.erpImport`), and there are no LIMS, QMS, LMS or EMS contracts:
-  those adapters are Phase 6 (outline section 11). The root `index.ts` still says "Phase 0 skeleton: exposes the
-  package identity only", although the subpaths are real.
+- Closed in slice 6a: the adapter contracts for ERP/WMS, QMS, LIMS, LMS and CMMS are in
+  `@ebmr/integration-sdk/adapter` (EMS and OPC UA follow in 6b, L3 in 6c). Still open: the root `index.ts` says
+  "Phase 0 skeleton: exposes the package identity only", although the subpaths are real; the Phase 3 ERP import
+  (`quality.erpImport`) stays beside the ERP/WMS adapter as the demo seed.
 - The site gateway's description says "OPC UA client"; there is no OPC UA client yet, only the JSON-lines stand-in
   protocol.
 - The outline lists more simulators (autoclave, lyophiliser, particle counter, EMS/BMS, LIMS, QMS, LMS, CMMS stubs);

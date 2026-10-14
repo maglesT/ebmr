@@ -113,6 +113,25 @@ Common problems:
   the site data for `localhost:3001` and `localhost:3011` and pick the terminal again.
 - Never drop the demo databases from a test or a clean-up script; `pnpm demo:setup` is the only way to reset them.
 
+### The ERP and WMS simulators (Phase 6 slice 6a)
+
+Two long-running processes, DEMO-ONLY, loopback by default:
+
+```bash
+EBMR_SIM_HTTP=127.0.0.1:4310 node --import tsx apps/simulators/src/erp/serve.ts   # ERP feed and outbound, /erp/v1
+EBMR_SIM_HTTP=127.0.0.1:4320 node --import tsx apps/simulators/src/wms/main.ts    # WMS feed and move questions, /wms/v1
+```
+
+- Publish data: POST a contract body to `/erp/v1/production-orders`, `/materials`, `/products`, `/shipments` or
+  `/wms/v1/goods-receipts`, `/stock-moves`, `/lot-statuses`; ask a move with `/wms/v1/move-requests`.
+- Inject a fault: the console at `http://127.0.0.1:4310/` has a button per fault, or
+  `curl -X POST localhost:4310/api/fault -d '{"fault":"LINK_CUT","on":true}'` (FEED_GAP, STALE_VALUE, MALFORMED,
+  DUPLICATE, OUT_OF_ORDER, WRONG_BATCH, LINK_CUT, SLOW with `slowMs`, STALE_MIRROR). `GET /api/state` shows the model.
+- Connect the server: register an INTEGRATION account in role ERP_WMS_INTERFACE on its SERVER terminal as an ERP_WMS
+  adapter (`iam.register_integration_adapter`), and give its entry in the service-keys file (`EBMR_SERVICE_KEYS_FILE`)
+  the terminal `SRV-ERP-ADAPTER-01` or `SRV-WMS-ADAPTER-01` and an `endpoint` (`http://127.0.0.1:4310/erp/v1`). The
+  server starts the worker at start-up; the integration health page (`/integrations`) shows its messages and alarms.
+
 ## 3. Run CI locally
 
 Before every push ([CLAUDE.md](../../CLAUDE.md)). The skill [local-ci](../../.claude/skills/local-ci/SKILL.md) is the

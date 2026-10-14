@@ -844,6 +844,23 @@ CAPA, and one CAPA with its deviations, the master version it waits for (effecti
 dates the database computed, events, and the closure through the ceremony (CAPA_ACT), disabled while the server gives
 a `closeProblem`. A QMS mirror row shows its version token and history and offers no act. Tests:
 [capa.test.tsx](../../../apps/tablets-web/test/capa/capa.test.tsx).
+### integrations: integration health and one adapter
+
+[features/integrations](../../../apps/tablets-web/src/features/integrations/) (Phase 6 slice 6a, builder A; DI-31):
+the health page (per adapter: last message with its sequence status, data age, open alarms, last reconciliation; the
+mirrors with their mode, age and bound, a stale blocking mirror named with whom to call; the open alarms, each
+acknowledged with a note, with a badge tap on a shared terminal) and one adapter (messages accepted, refusals with their
+class, reconciliation reports). Tests: [integrations.test.tsx](../../../apps/tablets-web/test/integrations/integrations.test.tsx).
+
+### quality: receipt with supplier batches, the receipt record, approved manufacturers
+
+In [features/quality](../../../apps/tablets-web/src/features/quality/) (Phase 6 slice 6a, builder A; PR-17):
+`/quality/receipt` receives a delivery with its supplier batches (one lot each; the lots the server numbered, with their
+manufacturer's approval), `/quality/lots/<id>/receipt` shows a lot's receipt record and the issue check as the server
+decides it, with stores' examination of the containers, a missing record, and corrections of WMS values with a reason
+(the original kept), and `/quality/approved-manufacturers` is QA's register (propose, approve through the ceremony with
+MATERIAL_SOURCE_ACT, withdraw with a reason). Tests: [receipt.test.tsx](../../../apps/tablets-web/test/receipt/receipt.test.tsx).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.
