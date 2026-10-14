@@ -104,7 +104,7 @@ export async function exchange(fetchFn: FetchFn, url: string, timeoutMs: number,
 
 /** The feed client of the protocol above, over HTTP. */
 export function httpFeedClient(baseUrl: string, opts: { timeoutMs?: number; fetchFn?: FetchFn } = {}): FeedClient {
-  const fetchFn = opts.fetchFn ?? (globalThis.fetch as unknown as FetchFn);
+  const fetchFn = opts.fetchFn ?? (globalThis.fetch);
   const timeoutMs = opts.timeoutMs ?? 2000;
   const base = baseUrl.replace(/\/$/, '');
   return {
@@ -226,7 +226,8 @@ export interface AdapterHealth {
   state: 'IDLE' | 'RUNNING' | 'RETRYING' | 'BLOCKED';
   cursor: string;
   head: string | null;
-  lastCycleAt: string | null;
+  /** Cycles run since the worker started. */
+  cycles: number;
   attempts: number;
   lastError: string | null;
   accepted: number;
@@ -236,7 +237,7 @@ export interface AdapterHealth {
 
 const ebmrCodeOf = (message: string): string | undefined => /\b(EBMR-[A-Z]+-\d{3})\b/.exec(message)?.[1];
 const sqlStateOf = (error: unknown): string | undefined =>
-  typeof error === 'object' && error !== null && 'code' in error && typeof (error as { code: unknown }).code === 'string' ? (error as { code: string }).code : undefined;
+  typeof error === 'object' && error !== null && 'code' in error && typeof (error).code === 'string' ? (error as { code: string }).code : undefined;
 
 /** Converts a received item into the JSON the database records for a refusal (a non-object as a JSON string of it). */
 const asRecordable = (m: unknown): unknown => (typeof m === 'object' && m !== null && !Array.isArray(m) ? m : JSON.stringify(m ?? null));
@@ -262,7 +263,7 @@ export class AdapterWorker {
     this.feed = feed;
     this.openActor = openActor;
     this.pageSize = opts.pageSize ?? 100;
-    this.healthState = { code: def.code, system: def.system, state: 'IDLE', cursor: '0', head: null, lastCycleAt: null, attempts: 0, lastError: null, accepted: 0, duplicates: 0, refused: 0 };
+    this.healthState = { code: def.code, system: def.system, state: 'IDLE', cursor: '0', head: null, cycles: 0, attempts: 0, lastError: null, accepted: 0, duplicates: 0, refused: 0 };
   }
 
   health(): AdapterHealth {
@@ -323,7 +324,7 @@ export class AdapterWorker {
       this.healthState.attempts += 1;
       this.healthState.state = kind === 'UNCLASSIFIED' ? 'BLOCKED' : 'RETRYING';
       this.healthState.lastError = message;
-      this.notBefore = Date.now() + retryDelayMs(this.healthState.attempts);
+      this.notBefore = performance.now() + retryDelayMs(this.healthState.attempts);
     }
     // The system's own work runs whatever happened to the feed (an ERP whose feed is cut may still take deliveries).
     if (this.def.afterCycle) {
@@ -336,7 +337,7 @@ export class AdapterWorker {
       }
     }
     this.healthState.cursor = (this.cursor ?? 0n).toString();
-    this.healthState.lastCycleAt = new Date().toISOString();
+    this.healthState.cycles += 1;
     return report;
   }
 
@@ -409,7 +410,7 @@ export class AdapterWorker {
   start(intervalMs: number, log?: { warn(obj: object, msg: string): void }): void {
     if (this.timer) return;
     this.timer = setInterval(() => {
-      if (this.running || Date.now() < this.notBefore) return;
+      if (this.running || performance.now() < this.notBefore) return;
       this.running = this.cycle().finally(() => {
         this.running = null;
       });

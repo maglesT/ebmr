@@ -16,7 +16,7 @@ interface MoveRequest {
 
 export async function answerMoveQuestions(worker: AdapterWorker, endpoint: string, opts: { timeoutMs?: number; fetchFn?: FetchFn } = {}): Promise<number> {
   const base = endpoint.replace(/\/$/, '');
-  const fetchFn = opts.fetchFn ?? (globalThis.fetch as unknown as FetchFn);
+  const fetchFn = opts.fetchFn ?? (globalThis.fetch);
   const timeoutMs = opts.timeoutMs ?? 2000;
   const r = await exchange(fetchFn, `${base}/move-requests`, timeoutMs);
   const requests = ((r.body as { requests?: MoveRequest[] } | null)?.requests ?? []).filter(

@@ -12,6 +12,10 @@ import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestServer } from '../support/harness.ts';
 import { confirmErpPending, signAction } from '../support/signed-acts.ts';
 
+/** Asymmetric matchers, typed for the object literals they sit in. */
+const matching = (re: RegExp): string => expect.stringMatching(re) as string;
+const like = <T extends Record<string, unknown>>(o: T): T => expect.objectContaining(o as never) as T;
+
 const Q = routes.quality;
 let gmp: TestServer;
 const MATERIAL = `MAT-RC-${randomUUID().slice(0, 6).toUpperCase()}`;
@@ -42,7 +46,7 @@ describe('receipt routes (PR-17)', () => {
     const signed = await signAction(gmp, qa, 'qaInvestigator', { kind: 'MATERIAL_SOURCE_ACT', act: 'MANUFACTURER_APPROVE', approvedManufacturerId: proposed.approvedManufacturerId });
     expect(signed.ok ? 'ok' : JSON.stringify(signed.error)).toBe('ok');
     const register = valueOf(await qa.call(Q.approvedManufacturers, { query: { materialCode: MATERIAL } })).manufacturers;
-    expect(register).toEqual([expect.objectContaining({ manufacturerCode: 'MFR-OK', state: 'APPROVED', approvedBy: expect.objectContaining({ loginName: 'divya.menon' }) })]);
+    expect(register).toEqual([like({ manufacturerCode: 'MFR-OK', state: 'APPROVED', approvedBy: like({ loginName: 'divya.menon' }) })]);
     // The delivery: three supplier batches, the third from a manufacturer not on the register.
     const deliveryId = `GRN-${randomUUID().slice(0, 6)}`;
     const received = valueOf(await stores.call(Q.receiveDelivery, { body: { deliveryId, materialCode: MATERIAL, supplierCode: 'SUP-1', deliveryNoteName: 'Receipt test API', supplierBatches: [batch('SB-1', 'MFR-OK'), batch('SB-2', 'MFR-OK'), batch('SB-3', 'MFR-NOPE')] } }));
@@ -50,11 +54,11 @@ describe('receipt routes (PR-17)', () => {
     const [first, , third] = received.lots;
     if (!first || !third) throw new Error('lots missing');
     // Not examined yet: the receipt view says why the lot cannot be issued.
-    expect(valueOf(await stores.call(Q.lotReceipt, { params: { lotId: first.lotId } }))).toMatchObject({ deliveryId, supplierLot: 'SB-1', containers: '2', source: 'MANUAL', examination: null, issueProblem: expect.stringMatching(/^EBMR-SITE-917 .* were not examined at receipt/) });
+    expect(valueOf(await stores.call(Q.lotReceipt, { params: { lotId: first.lotId } }))).toMatchObject({ deliveryId, supplierLot: 'SB-1', containers: '2', source: 'MANUAL', examination: null, issueProblem: matching(/^EBMR-SITE-917 .* were not examined at receipt/) });
     const examined = valueOf(await stores.call(Q.examineLotReceipt, { params: { lotId: first.lotId }, body: { containersExamined: '2', outcome: 'ACCEPTABLE' } }));
-    expect(examined).toMatchObject({ examination: { containersExamined: '2', outcome: 'ACCEPTABLE', by: expect.objectContaining({ loginName: 'manoj.pillai' }) }, issueProblem: null, manufacturerApprovedNow: true });
+    expect(examined).toMatchObject({ examination: { containersExamined: '2', outcome: 'ACCEPTABLE', by: like({ loginName: 'manoj.pillai' }) }, issueProblem: null, manufacturerApprovedNow: true });
     valueOf(await stores.call(Q.examineLotReceipt, { params: { lotId: third.lotId }, body: { containersExamined: '2', outcome: 'ACCEPTABLE' } }));
-    expect(valueOf(await stores.call(Q.lotReceipt, { params: { lotId: third.lotId } }))).toMatchObject({ manufacturerApprovedAtReceipt: false, issueProblem: expect.stringMatching(/^EBMR-SITE-918 lot .* names manufacturer MFR-NOPE/) });
+    expect(valueOf(await stores.call(Q.lotReceipt, { params: { lotId: third.lotId } }))).toMatchObject({ manufacturerApprovedAtReceipt: false, issueProblem: matching(/^EBMR-SITE-918 lot .* names manufacturer MFR-NOPE/) });
     // A WMS correction route on a receipt stores entered by hand is refused (not interface-captured).
     expect(refusalOf(await stores.call(Q.correctLotReceipt, { params: { lotId: first.lotId }, body: { field: 'containers', value: '3', reason: 'recount' } }))?.code).toBe('EBMR-SITE-923');
     // QA withdraws the approval: the examined lot is blocked again.
@@ -69,7 +73,7 @@ describe('receipt routes (PR-17)', () => {
     const lot = valueOf(await stores.call(Q.receiveLot, { body: { materialCode: MATERIAL, lotCode, supplier: 'SUP-1', supplierLot: `S-${lotCode}`, quantity: '10.000', expiresAt: '2030-06-30T00:00:00+05:30' } }));
     expect(refusalOf(await stores.call(Q.lotReceipt, { params: { lotId: lot.lotId } }))).toMatchObject({ status: 404, code: 'NO_RECEIPT_RECORD' });
     const view = valueOf(await stores.call(Q.recordLotReceipt, { params: { lotId: lot.lotId }, body: { deliveryId: `GRN-${lotCode}`, supplierCode: 'SUP-1', supplierLot: `S-${lotCode}`, manufacturerCode: 'MFR-OK', containers: '1' } }));
-    expect(view).toMatchObject({ lotCode, supplierLot: `S-${lotCode}`, containers: '1', received: { value: '10.000', unit: 'kg' }, issueProblem: expect.stringMatching(/^EBMR-SITE-917/) });
+    expect(view).toMatchObject({ lotCode, supplierLot: `S-${lotCode}`, containers: '1', received: { value: '10.000', unit: 'kg' }, issueProblem: matching(/^EBMR-SITE-917/) });
     expect(refusalOf(await stores.call(Q.recordLotReceipt, { params: { lotId: lot.lotId }, body: { deliveryId: 'GRN-AGAIN', supplierCode: 'SUP-1', supplierLot: `S-${lotCode}`, manufacturerCode: 'MFR-OK', containers: '1' } }))?.code).toBe('EBMR-SITE-915');
   });
 });

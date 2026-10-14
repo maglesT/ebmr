@@ -2,16 +2,16 @@
  * One adapter (Phase 6 slice 6a; DI-31): its health, the newest accepted messages, the newest refusals (each with its
  * alarm), and its reconciliation reports.
  */
-import { useParams } from '@tanstack/react-router';
 import { routes } from '@ebmr/api-contract';
 import { StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
+import { useRouteParams } from '../floor/params.ts';
 import { Section } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { age, freshnessText, words } from './reads.ts';
 
 export function AdapterPage() {
-  const { adapterCode } = useParams({ strict: false }) as { adapterCode: string };
+  const adapterCode = useRouteParams()['adapterCode'] ?? '';
   const q = useApiQuery(routes.integrations.adapter, { params: { adapterCode } });
   const recs = useApiQuery(routes.integrations.reconciliations, { params: { adapterCode } });
   if (q.error) return <RefusalMessage error={q.error.error} />;

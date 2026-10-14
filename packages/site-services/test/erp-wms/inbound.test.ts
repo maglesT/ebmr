@@ -11,6 +11,9 @@ import { createTestDatabase, type TestDatabase } from '../helpers.ts';
 import { refusal, unique } from '../lots/support.ts';
 import { ErpWorld, goodsReceipt, integrationActor, registerAdapter, sha } from './support.ts';
 
+/** Asymmetric matchers, typed for the object literals they sit in. */
+const matching = (re: RegExp): string => expect.stringMatching(re) as string;
+
 let db: TestDatabase;
 let w: ErpWorld;
 
@@ -149,7 +152,7 @@ describe('masters and orders through the domain commands (DI-31, PR-17)', () => 
       bom: [{ materialCode: code, quantity: { value: '9.400', unit: 'kg' } }], plannedStart: '1800000000000000',
     }));
     const { rows } = await db.app.query('select site_code, batch_size::text as size, batch_size_unit, bom, erp_reference from site.erp_production_order where id = $1', [(order.applied as { orderId: string }).orderId]);
-    expect(rows).toEqual([{ site_code: 'SITE-1', size: '60.000', batch_size_unit: 'kg', bom: [{ materialCode: code, quantity: '9.400', unit: 'kg' }], erp_reference: expect.stringMatching(/^REC-/) }]);
+    expect(rows).toEqual([{ site_code: 'SITE-1', size: '60.000', batch_size_unit: 'kg', bom: [{ materialCode: code, quantity: '9.400', unit: 'kg' }], erp_reference: matching(/^REC-/) }]);
     // An order without its strength is malformed; a product master with a shelf life that is not whole months too.
     expect(await refusal(w.inbound(w.envelope('erp.production_order', { orderNumber: unique('PO'), productCode: 'PCM500', plannedQuantity: { value: '60', unit: 'kg' }, bom: [{ materialCode: code, quantity: { value: '1', unit: 'kg' } }], plannedStart: '1' }))))
       .toMatch(/EBMR-ERP-001 malformed erp.production_order payload/);

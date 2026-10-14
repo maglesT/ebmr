@@ -22,12 +22,12 @@ export class OutboundDelivery {
   private readonly base: string;
   private readonly fetchFn: FetchFn;
   private readonly timeoutMs: number;
-  /** When each failed message may be sent again (wall clock of the worker; not GMP data). */
+  /** When each failed message may be sent again (the worker's monotonic clock; not GMP data). */
   private readonly due = new Map<string, number>();
 
   constructor(endpoint: string, opts: { timeoutMs?: number; fetchFn?: FetchFn } = {}) {
     this.base = endpoint.replace(/\/$/, '');
-    this.fetchFn = opts.fetchFn ?? (globalThis.fetch as unknown as FetchFn);
+    this.fetchFn = opts.fetchFn ?? (globalThis.fetch);
     this.timeoutMs = opts.timeoutMs ?? 2000;
   }
 
@@ -39,7 +39,7 @@ export class OutboundDelivery {
     for (const m of pending) {
       if (heldLots.has(m.lotId)) continue;
       const dueAt = this.due.get(m.messageId);
-      if (dueAt !== undefined && Date.now() < dueAt) {
+      if (dueAt !== undefined && performance.now() < dueAt) {
         heldLots.add(m.lotId);
         continue;
       }
@@ -59,7 +59,7 @@ export class OutboundDelivery {
         delivered += 1;
       } else {
         const attempt = await worker.command(async (c) => (await c.query<{ n: number }>('select site.erp_outbound_failed($1, $2) as n', [m.messageId, error])).rows[0]?.n ?? 1);
-        this.due.set(m.messageId, Date.now() + retryDelayMs(Math.max(1, attempt)));
+        this.due.set(m.messageId, performance.now() + retryDelayMs(Math.max(1, attempt)));
         heldLots.add(m.lotId);
       }
     }

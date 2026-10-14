@@ -78,7 +78,7 @@ export interface SimProcess {
 
 async function postJson(url: string, body: unknown): Promise<{ status: number; body: unknown }> {
   const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  return { status: r.status, body: (await r.json()) as unknown };
+  return { status: r.status, body: (await r.json()) };
 }
 
 const SIM_ENTRY = { ERP: '../../../../simulators/src/erp/serve.ts', WMS: '../../../../simulators/src/wms/main.ts' } as const;

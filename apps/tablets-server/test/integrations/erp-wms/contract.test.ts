@@ -10,6 +10,9 @@ import { openPersonaSession, passwordActor } from '@ebmr/test-kit';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { approvedManufacturer, count, drain, erpWmsRig, goodsReceipt, type ErpWmsRig } from './support.ts';
 
+/** Asymmetric matchers, typed for the object literals they sit in. */
+const matching = (re: RegExp): string => expect.stringMatching(re) as string;
+
 let rig: ErpWmsRig;
 const MATERIAL = `MAT-SIM-${randomUUID().slice(0, 6).toUpperCase()}`;
 
@@ -216,7 +219,7 @@ describe('the ERP/WMS adapter against its simulators (DI-31)', () => {
     const allowed = await ask(lot, 'REJECTED');
     await rig.wms.worker.cycle();
     const moves = (await rig.wms.sim.state<{ moves: { requestId: string; state: string; problem: string | null }[] }>()).model.moves;
-    expect(moves.find((m) => m.requestId === refused)).toMatchObject({ state: 'REFUSED', problem: expect.stringMatching(/is QUARANTINE: it may go only to a QUARANTINE, REJECTED, RETURNS location, not to RELEASED \(PR-46\)/) });
+    expect(moves.find((m) => m.requestId === refused)).toMatchObject({ state: 'REFUSED', problem: matching(/is QUARANTINE: it may go only to a QUARANTINE, REJECTED, RETURNS location, not to RELEASED \(PR-46\)/) });
     expect(moves.find((m) => m.requestId === allowed)?.state).toBe('MOVED');
     await drain(rig.wms.worker, rig.wms.sim);
     expect(await count(server, "select count(*) as n from site.lot_location_move m join site.material_lot l on l.id = m.lot_id where l.lot_code = $1 and m.to_kind = 'REJECTED' and m.problem is null", [lot])).toBe(1);

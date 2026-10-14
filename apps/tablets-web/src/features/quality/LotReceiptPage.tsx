@@ -6,10 +6,11 @@
  * the person's reason.
  */
 import { useState } from 'react';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { routes, type LotReceiptView } from '@ebmr/api-contract';
 import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
+import { useRouteParams } from '../floor/params.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
@@ -19,7 +20,7 @@ const CODE = /^[!-~]{1,64}$/;
 const FIELDS = ['containers', 'supplierLot', 'manufacturerCode', 'deliveryNoteName'] as const;
 
 export function LotReceiptPage() {
-  const { lotId } = useParams({ strict: false }) as { lotId: string };
+  const lotId = useRouteParams()['lotId'] ?? '';
   const q = useApiQuery(routes.quality.lotReceipt, { params: { lotId } });
   const stores = useOffered('STORES');
   const missing = q.error?.error.kind === 'REFUSAL' && q.error.error.envelope.refusal.code === 'NO_RECEIPT_RECORD';
