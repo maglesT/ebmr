@@ -233,6 +233,34 @@ afterAll(async () => {
 });
 
 describe('the Tablets items of G-REL (slice 3b, tablets 1162)', () => {
+  it('[INV-05][IN-05] "since review" of a Tablets item reads its own batches and evidence only: changes to other batches, lots, containers and deviations after the review do not count; its own do (tab.grel_changed_since)', async () => {
+    const admin = w.gmp.db.admin;
+    const changed = async (rev: string | null, batches: string[], ev: unknown[]): Promise<boolean> =>
+      (await admin.query<{ r: boolean }>('select tab.grel_changed_since($1::timestamptz, $2::uuid[], $3::jsonb) as r', [rev, batches, JSON.stringify(ev)])).rows[0]!.r;
+    const rev = (await admin.query<{ t: string }>('select clock_timestamp()::text as t')).rows[0]!.t;
+    const [lotA, lotB, conA, conB, devA, devB, batchX] = Array.from({ length: 7 }, () => randomUUID());
+    // TEST FIXTURE: evidence changed after `rev` on other subjects (epoch bumps), and the parent's record touched.
+    const fx = await admin.connect();
+    try {
+      await fx.query('begin');
+      await fx.query("set local session_replication_role = 'replica'");
+      for (const [kind, id] of [['BATCH', batchX], ['LOT', lotB], ['CONTAINER', conB], ['DEVIATION', devB]] as const) await fx.query('select recipe.bump_epoch($1, $2)', [kind, id]);
+      await fx.query('update recipe.execution_state set updated_at = clock_timestamp() where batch_id = $1', [parentId]);
+      await fx.query('commit');
+    } finally {
+      fx.release();
+    }
+    const own = [{ kind: 'BATCH', ref: orderId }, { kind: 'LOT', ref: lotA }, { kind: 'CONTAINER', ref: conA }, { kind: 'DEVIATION', ref: devA }];
+    expect(await changed(rev, [orderId], own)).toBe(false);
+    expect(await changed(null, [parentId], own)).toBe(false);
+    expect(await changed(rev, [], [{ kind: 'NOTE', ref: 'free text' }])).toBe(false);
+    expect(await changed(rev, [parentId], [])).toBe(true);
+    for (const e of [{ kind: 'BATCH', ref: parentId }, { kind: 'BATCH', ref: batchX }, { kind: 'LOT', ref: lotB }, { kind: 'CONTAINER', ref: conB },
+                     { kind: 'DEVIATION', ref: devB }, { kind: 'CONTAINER', ref: 'not-an-id' }, { kind: 'LOT', ref: 'not-an-id' }, { kind: 'DEVIATION', ref: 'not-an-id' }]) {
+      expect(await changed(rev, [], [e]), JSON.stringify(e)).toBe(true);
+    }
+  });
+
   it('[INV-05][IN-05] the evidence set of a packaging order\'s lot is the order and its processing parent, in that order (recipe.release_batches)', async () => {
     const { rows } = await w.gmp.db.app.query<{ r: string[] }>('select recipe.release_batches($1) as r', [lotId]);
     expect(rows[0]!.r).toEqual([orderId, parentId]);
