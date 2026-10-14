@@ -29,7 +29,6 @@ migration_header_from:
 pending:
   - 10-runbooks.md
   - modules/site-services.md
-  - modules/shared-kits.md
   - modules/injectables.md
   - modules/tools.md
 

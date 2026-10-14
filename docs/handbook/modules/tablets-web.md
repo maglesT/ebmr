@@ -864,6 +864,10 @@ browser [india-flow.spec.ts](../../../tools/e2e/specs/india/india-flow.spec.ts).
   `@ebmr/api-contract/strict-csp` first in any new entry.
 - **Lost answers are not failures.** Treat a NETWORK error on a command as "not known"; reconcile (reload, same
   idempotency key) rather than resend blindly.
+- The defect log's web entries show these rules failing in real use:
+  [P2-F57 to F65, the shop-floor forms](../08-defect-log.md#p2-f57-to-f65-the-shop-floor-forms-under-real-use),
+  [P2-F44 to F55, the designer](../08-defect-log.md#p2-f44-to-f55-the-designer),
+  [a signing asked for at the moment of a lock or switch](../08-defect-log.md#p2-web-a-signing-asked-for-at-the-moment-of-a-lock-or-switch).
 
 ## Differences between the code and the docs (14 October 2026)
 
