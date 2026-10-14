@@ -454,19 +454,29 @@ export class AdapterWorker {
     });
   }
 
-  /** Runs cycles every `intervalMs` (a failed cycle waits for its back-off). */
+  /** Runs a cycle now and then every `intervalMs` (a failed cycle waits for its back-off). */
   start(intervalMs: number, log?: { warn(obj: object, msg: string): void }): void {
     if (this.timer) return;
-    this.timer = setInterval(() => {
-      if (this.running || performance.now() < this.notBefore) return;
+    const tick = (): void => {
+      if (!this.timer || this.running || performance.now() < this.notBefore) return;
       this.running = this.cycle().finally(() => {
         this.running = null;
       });
-      void this.running.then((r) => {
-        if (r.stoppedBy && log) log.warn({ adapter: this.def.code, ...r.stoppedBy, attempt: this.healthState.attempts }, 'the integration adapter will retry');
-      });
-    }, intervalMs);
+      this.running.then(
+        (r) => {
+          if (r.stoppedBy && log) log.warn({ adapter: this.def.code, ...r.stoppedBy, attempt: this.healthState.attempts }, 'the integration adapter will retry');
+        },
+        (error: unknown) => log?.warn({ adapter: this.def.code, err: error instanceof Error ? error.message : String(error) }, 'the integration adapter cycle failed; it will retry'),
+      );
+    };
+    this.timer = setInterval(tick, intervalMs);
     this.timer.unref();
+    tick();
+  }
+
+  /** True while the worker runs cycles (between start and stop). */
+  isStarted(): boolean {
+    return this.timer !== null;
   }
 
   async stop(): Promise<void> {

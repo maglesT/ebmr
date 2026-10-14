@@ -4,8 +4,9 @@
  * (contract ns/integrations.ts; kernel 1180; DI-31, DI-20). Every rule is the database's: the reads come from its
  * tables and platform.mirror_freshness, the acknowledgment is platform.acknowledge_integration_alarm (ALARM.ACKNOWLEDGE).
  * Slice 6a-0 fixes these routes; the adapter workers (builders A and B) live beside this file and hand data over
- * through the database under their integration identities, never through these routes. Slice 6a builder A: the plugin
- * starts the ERP/WMS feeds the service-keys file configures (adapters/erp-wms; the worker base adapters/framework.ts).
+ * through the database under their integration identities, never through these routes. The plugin starts the adapters
+ * the service-keys file configures for the systems the site runs in MIRROR mode (adapters/start.ts; the one worker
+ * framework adapters/framework.ts), stops them when the server closes and shows their workers' health on the routes.
  */
 import { routes } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
@@ -14,7 +15,7 @@ import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { materialSourceActHandler } from '../quality/receipt.ts';
-import { startErpWmsAdapters } from './adapters/erp-wms/index.ts';
+import { startAdapters, type AdapterRuntime } from './adapters/start.ts';
 import { INTEGRATIONS_GUIDANCE } from './guidance.ts';
 import { adapterDetail, adapterList, alarmList, alarmView, mirrorList, reconciliationList } from './reads.ts';
 
@@ -28,21 +29,20 @@ export function registerSignableActions(registry: SignableActionRegistry, app: A
 
 export async function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
-  if (app.config.serviceKeysFile) {
-    const workers = await startErpWmsAdapters(app, scope.log).catch((e: unknown) => {
-      scope.log.warn({ err: e instanceof Error ? e.message : String(e) }, 'the ERP/WMS adapters could not start');
-      return [];
-    });
-    if (workers.length > 0) scope.addHook('onClose', async () => Promise.all(workers.map((w) => w.stop())).then(() => undefined));
-  }
+  const adapters: AdapterRuntime | null = await startAdapters(app, scope.log).catch((e: unknown) => {
+    scope.log.warn({ err: e instanceof Error ? e.message : String(e) }, 'the integration adapters could not start');
+    return null;
+  });
+  if (adapters && adapters.workers.length > 0) scope.addHook('onClose', () => adapters.stop());
+  const live = (code: string) => adapters?.health(code) ?? null;
   bindRoutes(scope, app, routes.integrations, {
     adapters: async ({ requireSession }) => {
       requireSession();
-      return { adapters: await adapterList(app, pool) };
+      return { adapters: await adapterList(app, pool, live) };
     },
     adapter: async ({ params, requireSession }) => {
       requireSession();
-      return adapterDetail(app, pool, params.adapterCode);
+      return adapterDetail(app, pool, params.adapterCode, live);
     },
     reconciliations: async ({ params, requireSession }) => {
       requireSession();

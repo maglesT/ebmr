@@ -7,6 +7,7 @@ import type pg from 'pg';
 import type {
   AdapterDetailView,
   AdapterHealthView,
+  AdapterWorkerView,
   InboundMessageView,
   InboundRefusalView,
   IntegrationAlarmView,
@@ -14,10 +15,29 @@ import type {
   ReconciliationReportView,
 } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
+import type { AdapterHealth } from './adapters/framework.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
+
+/** The health of this server's worker for an adapter, or null when none runs (adapters/start.ts). */
+export type WorkerHealthOf = (adapterCode: string) => AdapterHealth | null;
+
+function workerView(h: AdapterHealth | null): AdapterWorkerView | null {
+  if (!h) return null;
+  return {
+    state: h.state,
+    cursor: h.cursor,
+    head: h.head === null ? null : h.head.slice(0, 64),
+    cycles: h.cycles.toString(),
+    attempts: h.attempts.toString(),
+    lastError: h.lastError === null ? null : h.lastError.slice(0, 500),
+    accepted: h.accepted.toString(),
+    duplicates: h.duplicates.toString(),
+    refused: h.refused.toString(),
+  };
+}
 
 interface AdapterRow {
   id: string;
@@ -153,7 +173,7 @@ export function mirrorList(app: AppContext, db: Db): Promise<MirrorFreshnessView
   return freshness(app, db);
 }
 
-async function healthOf(app: AppContext, db: Db, a: AdapterRow): Promise<AdapterHealthView> {
+async function healthOf(app: AppContext, db: Db, a: AdapterRow, live: WorkerHealthOf): Promise<AdapterHealthView> {
   const last = (await db.query<MessageRow>(`${MESSAGES} where m.adapter_id = $1 order by m.received_at desc, m.sequence_no desc limit 1`, [a.id])).rows[0];
   const report = (await db.query<ReportRow>(`${REPORTS} where r.adapter_id = $1 order by r.period_to desc, r.recorded_at desc limit 1`, [a.id])).rows[0];
   return {
@@ -166,13 +186,14 @@ async function healthOf(app: AppContext, db: Db, a: AdapterRow): Promise<Adapter
     openAlarms: a.open_alarms,
     lastReconciliation: report ? reportView(app, report) : null,
     mirrors: await freshness(app, db, a.source_system),
+    worker: workerView(live(a.code)),
   };
 }
 
-export async function adapterList(app: AppContext, db: Db): Promise<AdapterHealthView[]> {
+export async function adapterList(app: AppContext, db: Db, live: WorkerHealthOf = () => null): Promise<AdapterHealthView[]> {
   const { rows } = await db.query<AdapterRow>(`${ADAPTERS} order by a.source_system, a.code`);
   const out: AdapterHealthView[] = [];
-  for (const a of rows) out.push(await healthOf(app, db, a));
+  for (const a of rows) out.push(await healthOf(app, db, a, live));
   return out;
 }
 
@@ -190,7 +211,7 @@ async function adapterRow(db: Db, code: string): Promise<AdapterRow> {
   return a;
 }
 
-export async function adapterDetail(app: AppContext, db: Db, code: string): Promise<AdapterDetailView> {
+export async function adapterDetail(app: AppContext, db: Db, code: string, live: WorkerHealthOf = () => null): Promise<AdapterDetailView> {
   const a = await adapterRow(db, code);
   const messages = (await db.query<MessageRow>(`${MESSAGES} where m.adapter_id = $1 order by m.received_at desc, m.sequence_no desc limit 50`, [a.id])).rows;
   const refusals = (
@@ -201,7 +222,7 @@ export async function adapterDetail(app: AppContext, db: Db, code: string): Prom
     )
   ).rows;
   return {
-    health: await healthOf(app, db, a),
+    health: await healthOf(app, db, a, live),
     messages: messages.map((m) => messageView(app, m)),
     refusals: refusals.map((r) => ({
       refusalId: r.id,

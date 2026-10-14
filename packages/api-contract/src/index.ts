@@ -231,6 +231,7 @@ export {
 export {
   AdapterDetailView,
   AdapterHealthView,
+  AdapterWorkerView,
   InboundErrorClass,
   InboundMessageView,
   InboundRefusalView,

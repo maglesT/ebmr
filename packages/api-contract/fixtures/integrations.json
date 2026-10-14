@@ -82,7 +82,18 @@
             "boundSeconds": "86400",
             "stale": false
           }
-        ]
+        ],
+        "worker": {
+          "state": "IDLE",
+          "cursor": "1042",
+          "head": "1042",
+          "cycles": "5760",
+          "attempts": "0",
+          "lastError": null,
+          "accepted": "1039",
+          "duplicates": "2",
+          "refused": "1"
+        }
       },
       {
         "adapterCode": "LMS-MAIN",
@@ -107,7 +118,8 @@
             "boundSeconds": "3600",
             "stale": false
           }
-        ]
+        ],
+        "worker": null
       }
     ]
   },
@@ -193,7 +205,18 @@
           "boundSeconds": "86400",
           "stale": false
         }
-      ]
+      ],
+      "worker": {
+        "state": "IDLE",
+        "cursor": "1042",
+        "head": "1042",
+        "cycles": "5760",
+        "attempts": "0",
+        "lastError": null,
+        "accepted": "1039",
+        "duplicates": "2",
+        "refused": "1"
+      }
     },
     "messages": [
       {

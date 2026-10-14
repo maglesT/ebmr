@@ -26,6 +26,11 @@ export function AdapterPage() {
       <p data-testid="adapter-health">
         {h.description}. Status {words(h.status)}; data age {age(h.dataAgeSeconds)}; {h.openAlarms} open alarm(s).
       </p>
+      <p data-testid="adapter-worker">
+        {h.worker
+          ? `Worker on this server: ${words(h.worker.state)}; handled up to message ${h.worker.cursor} of ${h.worker.head ?? '(no answer yet)'}; ${h.worker.cycles} cycle(s), ${h.worker.accepted} accepted, ${h.worker.duplicates} duplicate(s), ${h.worker.refused} refused${h.worker.lastError ? `; last error: ${h.worker.lastError}` : ''}.`
+          : 'No worker runs for this adapter on this server (its system is STAND_IN here, or no endpoint is configured).'}
+      </p>
       <ul>
         {h.mirrors.map((m) => (
           <li key={m.dataClass}>

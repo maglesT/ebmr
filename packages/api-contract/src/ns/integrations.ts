@@ -90,6 +90,24 @@ export const IntegrationAlarmView = z.strictObject({
 export type IntegrationAlarmView = z.infer<typeof IntegrationAlarmView>;
 
 /** One adapter on the health page: identity, last message, data age, open alarms, last reconciliation. */
+/** The adapter's worker as this server process runs it (slice 6a: started with the server in MIRROR mode). */
+export const AdapterWorkerView = z.strictObject({
+  /** IDLE between cycles; RUNNING in one; RETRYING after a TRANSPORT failure (back-off); BLOCKED on an unclassified one. */
+  state: z.enum(['IDLE', 'RUNNING', 'RETRYING', 'BLOCKED']),
+  /** The highest sequence number handled. */
+  cursor: WholeText,
+  /** The source's head as it last reported it (as received, at most 64 characters). */
+  head: z.string().max(64).nullable(),
+  cycles: WholeText,
+  /** Failed cycles in a row. */
+  attempts: WholeText,
+  lastError: z.string().max(500).nullable(),
+  accepted: WholeText,
+  duplicates: WholeText,
+  refused: WholeText,
+});
+export type AdapterWorkerView = z.infer<typeof AdapterWorkerView>;
+
 export const AdapterHealthView = z.strictObject({
   adapterCode: AdapterCode,
   sourceSystem: IntegrationSourceSystem,
@@ -102,6 +120,8 @@ export const AdapterHealthView = z.strictObject({
   lastReconciliation: ReconciliationReportView.nullable(),
   /** The data classes this system mirrors, with their freshness. */
   mirrors: z.array(MirrorFreshnessView),
+  /** This server's worker for the adapter; null when none runs (the system is STAND_IN, or no endpoint is configured). */
+  worker: AdapterWorkerView.nullable(),
 });
 export type AdapterHealthView = z.infer<typeof AdapterHealthView>;
 
