@@ -98,6 +98,14 @@ decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (br
 adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
 6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
 training mode, 6h Hindi and Gujarati, 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
+- Slice 6a (branch `phase-6/slice-6a`, 14 October): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to
+  1182: inbound messages accepted whole or not at all, de-duplicated, gaps alarmed; integration identities that never
+  sign; mirrors that fail closed, EBMR-INT-010), one worker framework started with the server for MIRROR systems;
+  ERP/WMS (receipt with one lot per supplier batch, approved manufacturers, stock-location rule, issue gate), QMS with
+  CAPA (live QMS fetch inside the release signature), LIMS, LMS, CMMS; simulators with nine faults; soak tests reconcile.
+  Quick review: no critical or high; two mediums fixed with tests (stale QMS mirror at release; a heartbeat cannot
+  refresh a mirror while the adapter is behind the source). Residuals: the live QMS fetch is enforced by the server,
+  not the database; a refusal resent after a restart is recorded twice (nothing lost). Defaults D-P6a-*.
 Slice 6a on `phase-6/slice-6a`: 6a-0 (interface commit) done: `@ebmr/integration-sdk/adapter` (envelope, error
 classes, retry rule, reconciliation, system contracts), kernel 1180 (integration adapters, `platform.accept_inbound`,
 integration alarms, reconciliation, `platform.mirror_fresh_or_raise`), namespace `integrations` with its server reads;
