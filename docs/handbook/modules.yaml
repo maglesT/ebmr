@@ -29,8 +29,6 @@ migration_header_from:
 pending:
   - 07-adding-a-feature.md
   - 10-runbooks.md
-  - modules/
-  - modules/kernel.md
   - modules/site-services.md
   - modules/expr.md
   - modules/recipe-core.md
