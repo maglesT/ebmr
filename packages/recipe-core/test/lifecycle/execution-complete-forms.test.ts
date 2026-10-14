@@ -136,6 +136,16 @@ describe('EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16)', ()
     expect(await status(b)).toBe('EXECUTION_COMPLETE');
   });
 
+  it('[DI-43][PR-16] only the move into EXECUTION_COMPLETE is gated: another write of the status of a batch with a form still out passes', async () => {
+    const b = await issuedBatch();
+    await pack(b, 1);
+    const before = await status(b);
+    expect(before).not.toBe('EXECUTION_COMPLETE');
+    await db.admin.query('update recipe.execution_state set status = status where batch_id = $1', [b]);
+    expect(await status(b)).toBe(before);
+    await expectRefused(complete(b), 'EBMR-EXE-310');
+  });
+
   it('[DI-43][PR-16] the application role cannot write the completion around the gate nor switch the gate off', async () => {
     const b = await issuedBatch();
     await pack(b, 1);
