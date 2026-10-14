@@ -33,7 +33,6 @@ pending:
   - modules/expr.md
   - modules/recipe-core.md
   - modules/api-contract.md
-  - modules/tablets-server.md
   - modules/tablets-web.md
   - modules/integrations.md
   - modules/shared-kits.md
