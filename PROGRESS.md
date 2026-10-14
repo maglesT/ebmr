@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 October 2026.
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 14 October 2026 (handbook).
 
 ## What this is
 
@@ -85,6 +85,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
     (D-6a-7); D-2a-9 (CONFIRMED impact keeps release blocked after closure), D-P4-6 (India
     PPQ release waits for the validation outcome), D-3a-10 (CONFIRMED impact never justifiable), D-5b-2 (a product with
     no bright-stock maximum is not checked), the drying-loop correction and India subdivision questions (Phase 3 backlog).
+- Developer handbook and code map for Phases 1 to 4 (decisions 0013, 0014) on `docs/handbook-phase-1-4`:
+  `docs/handbook/` (primer, glossary, architecture, life of a batch, database, testing, adding a feature, defect log,
+  removed and replaced, runbooks, eleven module guides; Draft) and the generated code map and reference pages
+  (`pnpm handbook`; `pnpm handbook:check` and a [meta] test keep them current and the links valid). Default D-HB-1:
+  existing migrations stay byte-identical; only new ones carry a `-- Handbook:` line. Code/doc disagreements found
+  while writing are in history (14 October) for the owner.
 - CI runs the tests in four shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;
   run lint with `node --max-old-space-size=4096` and the rest of the chain separately.
 
@@ -99,6 +105,9 @@ scripts) on a cloud server the owner provides.
 
 - Commands, layout and CI rules: `REPO-GUIDE.md`. Skills in `.claude/skills/` (fix-finding, local-ci, mutation-check,
   postgres-oracle, graphify).
-- Local PostgreSQL 16 clusters: main 5432, ci 5433, ci2 5434 (`sudo pg_ctlcluster 16 <name> start` after a container
-  restart; ci2 recovers slowly). Test databases are created per run and dropped after.
+- Machine: a RunPod container whose disk is erased when the pod stops. Run `bash tools/dev-env/runpod-setup.sh` after
+  each pod start; commit and push to the working branch (never main) after every step and at least every 30 minutes.
+- Local PostgreSQL 16 clusters: main 5432, ci 5433, ci2 5434, golden 5435 (libfaketime; the CI golden job uses 5433 on
+  its own runner). On Ubuntu 22.04 the kernel site-zone-policy "[DI-27] over every zone name" test needs about 65 s
+  (posix/ zone copies) and times out locally; it passes on CI. Test databases are created per run and dropped after.
 - Run `pnpm run ci` (or the changed packages' tests) before pushing.

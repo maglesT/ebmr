@@ -256,3 +256,5 @@ what was stored, and the report can be re-run from the content at any time.
 - PR-04 "the batch record shows the registration references used", PACMP follow-up; PR-05 step-level
   version display; PR-06 per-site implementation tracking and effectiveness review (QMS).
 - Market-add evaluation after issue (Phase 4) reuses `select_version_for_issue`.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)

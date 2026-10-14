@@ -1,0 +1,367 @@
+# integrations: device contracts, the site gateway and the simulators
+
+**Draft.** This page is still being written; facts on it were checked against the code on 14 October 2026.
+
+This page explains how data from machines and outside systems reaches the batch record: the contracts in
+`packages/integration-sdk`, the equipment gateway `apps/site-gateway` that runs next to the machines, and the
+simulators in `apps/simulators` that stand in for real scales, presses, printers, the serialisation system and the ERP
+in the demo and the tests. Read it when you work on a device, a reading, a print job, serialisation or the ERP import.
+The server side (how a reading is stored, claimed by an entry and checked by the database) is in
+[tablets-server, ts-devices](tablets-server.md#ts-devices-devices-and-scale-or-process-readings).
+
+## Where the code is
+
+| What | Where |
+|---|---|
+| Scale contract: reading, signature, MT-SICS codec, gateway wire | [packages/integration-sdk/src/scale/](../../../packages/integration-sdk/src/scale/) |
+| Process equipment contract: tags, readings, setpoints | [packages/integration-sdk/src/process/](../../../packages/integration-sdk/src/process/) |
+| Printer contract: jobs, echo, print events | [packages/integration-sdk/src/printer/](../../../packages/integration-sdk/src/printer/) |
+| Serialisation contract: L3 pools, serial events, reports, market code content | [packages/integration-sdk/src/serialisation/](../../../packages/integration-sdk/src/serialisation/) |
+| Gateway core: capture, readiness, live display | [apps/site-gateway/src/gateway.ts](../../../apps/site-gateway/src/gateway.ts#sym=SiteGateway) |
+| Gateway journals (scale, process, print) | [journal.ts](../../../apps/site-gateway/src/journal.ts#sym=Journal), [process-journal.ts](../../../apps/site-gateway/src/process-journal.ts#sym=ProcessJournal), [print-journal.ts](../../../apps/site-gateway/src/print-journal.ts#sym=PrintJournal) |
+| Gateway uplink to the server | [uplink.ts](../../../apps/site-gateway/src/uplink.ts#sym=Uplink), [process-uplink.ts](../../../apps/site-gateway/src/process-uplink.ts#sym=ProcessGateway), [printer-uplink.ts](../../../apps/site-gateway/src/printer-uplink.ts#sym=PrinterGateway) |
+| Gateway API the server calls (capture, live, health) | [api.ts](../../../apps/site-gateway/src/api.ts#sym=startGatewayApi) |
+| Device drivers | [drivers/](../../../apps/site-gateway/src/drivers/) |
+| Gateway configuration (`EBMR_GW_CONFIG`) | [config.ts](../../../apps/site-gateway/src/config.ts#sym=parseGatewayConfig) |
+| Simulators: scale, process, printer, serialisation L3, ERP | [apps/simulators/src/](../../../apps/simulators/src/) |
+| Server side: gateway listener, enrolment, reading storage | [apps/tablets-server/src/features/devices/](../../../apps/tablets-server/src/features/devices/) |
+| Tests | [integration-sdk/test](../../../packages/integration-sdk/test/), [site-gateway/test](../../../apps/site-gateway/test/), [simulators/test](../../../apps/simulators/test/) |
+
+## What it does
+
+```mermaid
+flowchart LR
+  subgraph Plant floor
+    BAL[Balance / IPC instrument<br/>MT-SICS over TCP]
+    PRS[Press, coater, granulator...<br/>ebmr.sim-process.v1]
+    PRN[Line printer / coder<br/>ebmr.sim-printer.v1]
+  end
+  GW[Site gateway<br/>drivers, journals, Ed25519 key]
+  SRV[Tablets server<br/>gateway listener /gw/v1]
+  DB[(PostgreSQL<br/>tab.device_reading ...)]
+  L3[Serialisation L3<br/>/l3/v1]
+  ERP[ERP<br/>POST /api/erp/import]
+  WEB[Browser: scale slot]
+  BAL --> GW
+  PRS --> GW
+  PRN <--> GW
+  GW -- readings, heartbeats, print events --> SRV
+  SRV -- capture, live --> GW
+  SRV --> DB
+  SRV <--> L3
+  ERP --> SRV
+  WEB -- capture trigger --> SRV
+```
+
+- The **site gateway** is a small Node program on the plant network. It talks to each instrument in its own protocol,
+  writes every value to a journal on disk before anything else, signs scale readings with its own key, and sends
+  everything to the Tablets server's **gateway listener** (a separate port, `EBMR_GATEWAY_LISTEN`, paths `/gw/v1/...`).
+  The server calls the gateway back for a capture or the live display (paths `/v1/...`).
+- The **integration SDK** holds the shapes both sides agree on (zod schemas and pure functions), so the gateway, the
+  simulators and the server check the same rules.
+- The **simulators** behave like the real devices, including their faults, so the demo and the tests can show every
+  exception path without hardware.
+- The **ERP** (enterprise resource planning: the company's system for products, materials and orders) sends its
+  masters and production orders to the server; in the demo a stub does it once. The **serialisation L3 system** (the
+  site system that issues serial numbers for packs) is called by the server; in the demo a stub plays it.
+
+### Pharma context
+
+- **Data from a device is evidence.** A weight in a batch record must be the weight the balance showed, from that
+  balance, at that time. If an operator could type it, or a program could change it on the way, the record would prove
+  nothing. Regulators call this data integrity of interfaces (EU GMP Annex 11 on data exchanged between systems;
+  21 CFR 211.68 on automatic equipment). Controls: [DI-31](../../../compliance/controls/DI-31.yaml) interface data
+  integrity, [DI-32](../../../compliance/controls/DI-32.yaml) instrument data and original records,
+  [DI-20](../../../compliance/controls/DI-20.yaml) device checks.
+- **Attributable to a device, not only to a person.** The record names the instrument (device code and the serial
+  number the gateway read from it) and the gateway that took the value. A balance swapped for another one is refused.
+- **Nothing lost, nothing added, nothing twice.** If the network fails, values wait in the gateway's journal and are
+  delivered later, in order, once each ([DI-28](../../../compliance/controls/DI-28.yaml) contemporaneous capture and
+  buffering). Sequence numbers and hash links let the server see a gap, a repeat or a change.
+- **The record's time is the server's.** The gateway stamps its own clock as the source time, with a trust flag; the
+  time of record is the database clock ([Architecture, time](../03-architecture.md#10-time)).
+- **No keying at the device.** Print data (batch, dates, MRP, GTIN or NDC) always comes from the record; the gateway
+  loads it on the printer as given and checks the printer's echo ([PR-36](../../../compliance/controls/PR-36.yaml)).
+  Serial codes must carry the record's lot and expiry ([PR-42](../../../compliance/controls/PR-42.yaml)).
+- **When devices fail, a second person.** If no scale works, a manual weighing is allowed only with a second person's
+  check ([DI-30](../../../compliance/controls/DI-30.yaml), [PR-20](../../../compliance/controls/PR-20.yaml)); the
+  gateway must report honestly whether a capture could succeed, so the manual path is offered only when it should be.
+
+## integration-sdk: the contracts
+
+`@ebmr/integration-sdk` has four subpath exports. Each is zod and Node built-ins only: never the kernel or a database
+driver, so the gateway and the simulators stay free of the database (boundary rule `gateway-and-simulators-no-db` in
+[.dependency-cruiser.cjs](../../../.dependency-cruiser.cjs)). Every value is **decimal text**, never a JavaScript
+`number`; weights are handled as `bigint` counts of the resolution ([scale/decimal.ts](../../../packages/integration-sdk/src/scale/decimal.ts#sym=toCounts)).
+A value with more decimals than allowed is **refused, never rounded**.
+
+### Scale: the reading and its signature
+
+[reading.ts](../../../packages/integration-sdk/src/scale/reading.ts) defines a scale reading
+([ReadingBody](../../../packages/integration-sdk/src/scale/reading.ts#sym=ReadingBody)): reading id, chain id (the
+gateway's enrolment on one server), gateway code, device code, the instrument serial the gateway verified, sequence
+number, value and unit (or null), stable flag, status (OK, UNSTABLE, OVERLOAD, UNDERLOAD, OFFLINE, ERROR), the **raw
+line** exactly as the instrument sent it, the gateway's source time and its trust (DEVICE_SYNCED or DEVICE_UNSYNCED),
+the installation (GMP or SANDBOX), the purpose (TARE, GROSS, CHECK) and the hash of the previous reading.
+
+- The hash is SHA-256 of a canonical text of the fields ([readingHash](../../../packages/integration-sdk/src/scale/reading.ts#sym=readingHash));
+  the first reading links to [genesisHash](../../../packages/integration-sdk/src/scale/reading.ts#sym=genesisHash)`(chainId)`.
+- The gateway signs `ebmr.scale-reading.v1|<hash>` with its Ed25519 key ([sealReading](../../../packages/integration-sdk/src/scale/reading.ts#sym=sealReading)).
+- The server checks with [readingProblem](../../../packages/integration-sdk/src/scale/reading.ts#sym=readingProblem):
+  schema, hash, signature against the enrolled key; the database recomputes the hash in SQL and checks the sequence.
+
+[mt-sics.ts](../../../packages/integration-sdk/src/scale/mt-sics.ts#sym=parseResponse) is the codec for MT-SICS
+(Mettler Toledo's standard balance command set, a subset): `S` stable weight, `SI` immediate weight, `T` tare, `Z`
+zero, `I4` serial number, `@` reset. A garbled line is a protocol error and is never read as a weight. The server uses
+the same codec to check that the stored raw line states the stored value (DI-32).
+[instruments.ts](../../../packages/integration-sdk/src/scale/instruments.ts#sym=INSTRUMENT_PROFILES) adds the IPC and
+packaging instruments that report one value the way a balance does (moisture analyser, hardness tester, friabilator,
+disintegration tester, leak tester, checkweigher). [wire.ts](../../../packages/integration-sdk/src/scale/wire.ts)
+holds the capture request and answer, the live sample, device states (CONNECTING, ONLINE, OFFLINE, SERIAL_MISMATCH)
+and the health answer.
+
+### Process equipment
+
+[process/tags.ts](../../../packages/integration-sdk/src/process/tags.ts#sym=PRESS_TAGS) names the tags of each kind of
+equipment (press, coater, granulator, dryer, blender, roller compactor, blister machine, bottle line, cartoner): unit,
+fraction digits, whether it is a counter, whether it takes a setpoint. Tag names never change once released.
+[process/wire.ts](../../../packages/integration-sdk/src/process/wire.ts) defines the readings (ACTUAL,
+SETPOINT_READBACK, ALARM, ALARM_CLEARED, with quality GOOD, UNCERTAIN, BAD or STALE), the setpoint downloads and their
+acknowledgement (APPLIED, MISMATCH, FAILED), and [processReadingsProblems](../../../packages/integration-sdk/src/process/wire.ts#sym=processReadingsProblems),
+the rules a schema cannot say (known tag, its unit and decimals, whole non-negative counters).
+[process/sim-protocol.ts](../../../packages/integration-sdk/src/process/sim-protocol.ts#sym=SIM_PROCESS_PROTOCOL) is
+`ebmr.sim-process.v1`, JSON lines over TCP, a stand-in for a PLC or OPC UA server.
+
+### Printers and coders
+
+[printer/wire.ts](../../../packages/integration-sdk/src/printer/wire.ts) defines a print job's variable data
+([PrintFields](../../../packages/integration-sdk/src/printer/wire.ts#sym=PrintFields): batch, manufacturing and expiry
+date, MRP, GTIN or NDC, serial pool), with GS1 check digits ([gs1CheckDigit](../../../packages/integration-sdk/src/printer/wire.ts#sym=gs1CheckDigit)),
+the job acknowledgement (LOADED, MISMATCH, FAILED), the print events (printed counts, reader, vision and challenge
+results, faults) and [echoMismatches](../../../packages/integration-sdk/src/printer/wire.ts#sym=echoMismatches).
+Dates are the record's calendar dates; the layout renders them for the market (plain for India-domestic packs).
+[printer/sim-protocol.ts](../../../packages/integration-sdk/src/printer/sim-protocol.ts#sym=SIM_PRINTER_PROTOCOL) is
+`ebmr.sim-printer.v1`.
+
+### Serialisation
+
+[serialisation/wire.ts](../../../packages/integration-sdk/src/serialisation/wire.ts) is the contract with the site's
+L3 serialisation system: a pool of serials per packaging order, serial state events (every serial must end
+COMMISSIONED, DECOMMISSIONED, DESTROYED, SAMPLE or UNUSED_RETURNED), and a pool report whose hash is the SHA-256 of a
+canonical text ([canonicalReportText](../../../packages/integration-sdk/src/serialisation/wire.ts#sym=canonicalReportText)).
+[serialisation/market.ts](../../../packages/integration-sdk/src/serialisation/market.ts#sym=MARKET_PROFILES) holds the
+market code content as data: EU FMD and US DSCSA (a unit identifier in a GS1 DataMatrix) and India Schedule H2 (a
+batch-level QR, no serials; its layout is a stub until its elements are confirmed).
+[codeContentProblems](../../../packages/integration-sdk/src/serialisation/market.ts#sym=codeContentProblems) refuses a
+code whose lot or expiry differs from the record's.
+
+> **Why this exists** (signed, chained readings)
+> - **Pharma reason:** the server must be able to prove that a stored weight is exactly what the balance sent, from the
+>   balance it names, and that no reading was dropped, inserted or changed between the plant floor and the database.
+> - **Control:** [DI-31](../../../compliance/controls/DI-31.yaml), [DI-32](../../../compliance/controls/DI-32.yaml).
+> - **Code:** [sealReading](../../../packages/integration-sdk/src/scale/reading.ts#sym=sealReading),
+>   [readingProblem](../../../packages/integration-sdk/src/scale/reading.ts#sym=readingProblem); in the database
+>   [tab.ingest_reading](../../../apps/tablets-server/sql/0330_reading_freshness_challenge.sql#sym=tab.ingest_reading)
+>   and [tab.device_reading_proof](../../../apps/tablets-server/sql/0270_devices_readings_guards.sql#sym=tab.device_reading_proof).
+> - **Tests:** [scale/reading.test.ts](../../../packages/integration-sdk/test/scale/reading.test.ts),
+>   [scale/mt-sics.test.ts](../../../packages/integration-sdk/test/scale/mt-sics.test.ts); server
+>   [devices/reading-proof.test.ts](../../../apps/tablets-server/test/devices/reading-proof.test.ts).
+> - **Error:** server `EBMR-DEV-...` codes ([error codes](../reference/error-codes.md)).
+
+## site-gateway: the equipment gateway
+
+### Start, identity and gateway keys
+
+The gateway is started with `EBMR_GW_CONFIG=<file> node --import tsx apps/site-gateway/src/main.ts` (the demo and the
+browser suite write the file). [config.ts](../../../apps/site-gateway/src/config.ts#sym=GatewayConfigFile) names: the
+gateway code (its registered SERVER device on the server), the installation, the listen address of its API, the
+uplink address, its Ed25519 key file, its service key (the login of its INTEGRATION identity), the journal directory,
+and every instrument with driver, address, expected serial, resolution, unit and room; optionally process equipment
+and printers.
+
+**Gateway keys.** The gateway owns an Ed25519 key pair. The system administrator enrols the public key on the server
+([enrolGateway](../../../apps/tablets-server/src/features/devices/enrol.ts#sym=enrolGateway), database
+[tab.enrol_gateway_key](../../../apps/tablets-server/sql/0702_gateway_key_large_order.sql#sym=tab.enrol_gateway_key)):
+its SHA-256 fingerprint becomes the fingerprint of the gateway's SERVER device, and the instruments it may serve are
+bound with the serial, unit and resolution each must have. The database takes only a 44-byte Ed25519 public key of a
+curve point of large order (a key of small order would let anyone build a signature that verifies). In the demo the key
+is a DEMO-ONLY file made by [tools/demo](tools.md#tools-demo-the-demo-stack).
+
+**Login.** [Uplink](../../../apps/site-gateway/src/uplink.ts#sym=Uplink) asks the server for a nonce, signs it with the
+gateway key, and sends it with the service key and a fresh random API token
+([newApiToken](../../../apps/site-gateway/src/uplink.ts#sym=newApiToken)). The answer names the chain (the enrolment)
+and the server's head, which the journal adopts. From then on the gateway uses an opaque bearer token; the server uses
+the API token to call the gateway, so the server never holds the gateway's credential. An INTEGRATION identity can
+never sign a GMP signature ([DI-14](../../../compliance/controls/DI-14.yaml)).
+
+### Capture: how one weight is taken
+
+[SiteGateway](../../../apps/site-gateway/src/gateway.ts#sym=SiteGateway) does a capture like this:
+
+1. The operator presses "Capture gross" on the kiosk; the server calls `POST /v1/devices/:code/capture` on the gateway
+   with its API token.
+2. The gateway checks: the instrument is configured here **and** bound to this gateway on the server with the same
+   serial, unit and resolution; the connection's `I4` serial was verified.
+3. It sends `S` until a stable weight or a timeout. Whatever the balance answered is sealed (hash, signature) and
+   **journalled with fsync before anything else**: a stable weight as OK, the last dynamic weight after a timeout as
+   UNSTABLE, overload and underload as such. A unit other than the configured one, or a value finer than the
+   resolution, is refused and alarmed, never converted or rounded.
+4. The journal is uploaded; the capture answers with the reading and whether the server acknowledged it (waiting up
+   to [CAPTURE_ACK_WAIT_MS](../../../apps/site-gateway/src/gateway.ts#sym=CAPTURE_ACK_WAIT_MS), 5 s).
+5. The browser gets the reading's id; the step entry claims it ([tablets-server, ts-devices](tablets-server.md#ts-devices-devices-and-scale-or-process-readings)).
+
+The live display (`GET /v1/devices/:code/live`, server-sent events at about 4 Hz) is display only: never journalled,
+never recorded.
+
+### The journal: store and forward
+
+[Journal](../../../apps/site-gateway/src/journal.ts#sym=Journal) is an append-only JSONL file per chain:
+`journal-<chain>.jsonl` (sealed readings in sequence), `ack-<chain>.json` (the last reading the server confirmed),
+`chain.json`. At start the whole chain is verified (schema, sequence, hash links, each signature); **any break refuses
+the start** (fail closed). Only an unterminated last line (a crash mid-write, never synced or sent) is set aside as
+evidence (`.partial-<n>`). Nothing is ever deleted or rewritten. If a write or sync fails, the partial bytes are cut
+off, the failure is alarmed, and the journal takes nothing more until a restart re-verifies the file (review P52).
+
+The process and print journals ([ProcessJournal](../../../apps/site-gateway/src/process-journal.ts#sym=ProcessJournal),
+[PrintJournal](../../../apps/site-gateway/src/print-journal.ts#sym=PrintJournal)) follow the same rules with a
+sequence per device or printer, rebuilt from the file at start, so there is no gap and no repeat across restarts.
+
+**Upload.** Readings the server does not hold yet go in sequence and in batches, idempotent by reading id. Each batch
+first takes a challenge the server's database issues; each reading's waiting time is signed with the challenge, so the
+database knows how old a reading is when it arrives (DI-28, review P53). The watermark moves only on the server's
+acknowledgement. While the server cannot be reached, nothing is lost.
+
+**Readiness.** An instrument is reported ONLINE (in the heartbeat and in `GET /v1/health`) only while a capture on it
+could be journalled **and delivered**: verified serial, logged in, a usable journal, the installation matches, the
+server's binding matches, and the uplink can deliver. Otherwise it is OFFLINE with the reason, so the server offers the
+manual two-person path instead of a capture that would fail. The heartbeat runs every few seconds (at most half of the
+server's 10 s freshness window) and at once when readiness changes, coalesced to one per 500 ms.
+
+> **Why this exists** (journal before answer, fail closed at start)
+> - **Pharma reason:** a weight must be recorded when it is taken and must never be lost or altered on its way, even
+>   when the network or the disk fails. A journal that was tampered with must never be uploaded or extended.
+> - **Control:** [DI-28](../../../compliance/controls/DI-28.yaml), [DI-31](../../../compliance/controls/DI-31.yaml),
+>   [DI-30](../../../compliance/controls/DI-30.yaml), [PR-20](../../../compliance/controls/PR-20.yaml) (readiness).
+> - **Code:** [Journal](../../../apps/site-gateway/src/journal.ts#sym=Journal),
+>   [JournalIntegrityError](../../../apps/site-gateway/src/journal.ts#sym=JournalIntegrityError),
+>   [Uplink](../../../apps/site-gateway/src/uplink.ts#sym=Uplink).
+> - **Tests:** [journal.test.ts](../../../apps/site-gateway/test/journal.test.ts) (`[DI-31] a journal that was altered
+>   refuses the start`), [journal-write-failure.test.ts](../../../apps/site-gateway/test/journal-write-failure.test.ts),
+>   [upload-wait.test.ts](../../../apps/site-gateway/test/upload-wait.test.ts),
+>   [delivery-readiness.test.ts](../../../apps/site-gateway/test/delivery-readiness.test.ts),
+>   [capture-readiness.test.ts](../../../apps/site-gateway/test/capture-readiness.test.ts).
+
+### Drivers
+
+Each driver keeps one TCP connection per device, one request at a time, a timeout per request and reconnection with
+exponential back-off. At **every** connect it asks the device for its serial number; another serial than the
+configured one is refused (state SERIAL_MISMATCH, alarm, connection closed). A timed-out request or a garbled line
+closes the connection, so a late or corrupt answer can never be taken as the answer to a later request.
+
+| Driver | Device | Protocol |
+|---|---|---|
+| [MtSicsDriver](../../../apps/site-gateway/src/drivers/mt-sics.ts#sym=MtSicsDriver) | balances and IPC instruments | MT-SICS (`I4` for the serial) |
+| [ProcessSimDriver](../../../apps/site-gateway/src/drivers/process-sim.ts#sym=ProcessSimDriver) | press, coater and other process equipment | `ebmr.sim-process.v1` (`hello` gives serial and kind) |
+| [PrinterSimDriver](../../../apps/site-gateway/src/drivers/printer-sim.ts#sym=PrinterSimDriver) | line printers with reader and vision | `ebmr.sim-printer.v1` (`hello` gives serial and boot) |
+
+> **Why this exists** (the serial is checked at every connect)
+> - **Pharma reason:** a reading must come from the calibrated instrument the record names. A balance moved from
+>   another room, or replaced without re-qualification, must not feed the record.
+> - **Control:** [DI-20](../../../compliance/controls/DI-20.yaml).
+> - **Code:** [MtSicsDriver](../../../apps/site-gateway/src/drivers/mt-sics.ts#sym=MtSicsDriver) and the other drivers;
+>   the server binding checked by [SiteGateway](../../../apps/site-gateway/src/gateway.ts#sym=SiteGateway).
+> - **Tests:** [gateway.test.ts](../../../apps/site-gateway/test/gateway.test.ts) (`[DI-20] a serial mismatch is refused
+>   at connect and alarmed`), [device-config.test.ts](../../../apps/site-gateway/test/device-config.test.ts).
+
+### Process equipment and printers
+
+[ProcessGateway](../../../apps/site-gateway/src/process-uplink.ts#sym=ProcessGateway) polls each device and journals,
+in one synced append, an ACTUAL reading per tag, a SETPOINT_READBACK when a read-back changed, and ALARM and
+ALARM_CLEARED. A device whose scan counter stops moving is STALE (its values froze). Readings go to
+`POST /gw/v1/process-readings`. Setpoint downloads (`GET /gw/v1/setpoint-downloads`) are written, read back and
+compared: APPLIED, MISMATCH or FAILED; the read-back is journalled before the acknowledgement.
+
+[PrinterGateway](../../../apps/site-gateway/src/printer-uplink.ts#sym=PrinterGateway) takes the print jobs the server
+released (`GET /gw/v1/print-jobs`), loads each exactly as given, and compares the printer's echo: LOADED when equal,
+MISMATCH when anything differs (the printer is cleared at once, so it never prints a wrong job), FAILED. A job the
+server voids (batch data changed after set-up) is cleared from the printer and a FAULT JOB_VOIDED is journalled. Print
+events (counts, reader, vision and challenge results, faults, OFFLINE and STALE) are journalled and forwarded to
+`POST /gw/v1/print-events`. Control [PR-36](../../../compliance/controls/PR-36.yaml).
+
+Tests: [process.test.ts](../../../apps/site-gateway/test/process.test.ts),
+[printer.test.ts](../../../apps/site-gateway/test/printer.test.ts).
+
+### The clock
+
+[clock.ts](../../../apps/site-gateway/src/clock.ts#sym=systemClock) is the gateway's only clock read (ESLint allows
+`Date.now()` there and nowhere else in the gateway): the wall clock stamps the source time (trust DEVICE_UNSYNCED
+unless the configuration reports a synchronised clock), and a monotonic clock measures waits and timeouts.
+
+## simulators
+
+Each simulator is a separate process with a TCP port (the device protocol) and an HTTP port (a plain-HTML console,
+forms only, no script, marked "SIMULATOR"). Values are `bigint` counts, randomness comes from a seeded generator and
+time from an injectable clock, so the same seed and actions give the same output (each simulator has a determinism
+test). They bind loopback addresses only unless told otherwise.
+
+| Simulator | Entry | Speaks | Faults you can inject |
+|---|---|---|---|
+| Balance and IPC instruments | [scale/main.ts](../../../apps/simulators/src/scale/main.ts) (`EBMR_SIM_TCP`, default 4001) | MT-SICS | [FAULTS](../../../apps/simulators/src/scale/model.ts#sym=FAULTS): OFFLINE, UNSTABLE, OVERLOAD, SLOW, GARBLED, SERIAL_MISMATCH, DRIFT |
+| Press, coater and other process equipment | [process/main.ts](../../../apps/simulators/src/process/main.ts) (`EBMR_SIM_EQUIPMENT`, press 4011) | `ebmr.sim-process.v1` | OFFLINE, STALE, DRIFT, alarms, ... ([model.ts](../../../apps/simulators/src/process/model.ts)) |
+| Line printer with reader and vision | [printer/main.ts](../../../apps/simulators/src/printer/main.ts) (4031) | `ebmr.sim-printer.v1` | OFFLINE, MISPRINT, READER_FAIL, JOB_MISMATCH, STALE ([model.ts](../../../apps/simulators/src/printer/model.ts)) |
+| Serialisation L3 stub | [serialisation/main.ts](../../../apps/simulators/src/serialisation/main.ts) (`EBMR_L3_HTTP`) | HTTP `/l3/v1/pools...` | in-memory pools; the same pool request answers the pool already issued |
+| ERP stub (DEMO-ONLY) | [erp/main.ts](../../../apps/simulators/src/erp/main.ts) | `POST /api/erp/import` once, then exits | catalogue of the demo product ([catalogue.ts](../../../apps/simulators/src/erp/catalogue.ts)) |
+
+The ERP stub posts the product and material masters and the production orders of the demo MBR (dc-mini: paracetamol
+500 mg, batch sizes BS-100K and BS-50K), with BOMs scaled exactly as decimal text. The server's route
+`quality.erpImport` authenticates it by its service identity; a new master version that changes something GMP-relevant
+waits for QA's confirmation ([tablets-web, quality](tablets-web.md#quality-deviations-lots-specifications-samples-returns)).
+
+## How to test it
+
+- The SDK, gateway and simulator tests run in the Vitest `db` project (no database is needed by most of them):
+  `pnpm vitest run --project db packages/integration-sdk apps/site-gateway apps/simulators`.
+- Gateway tests start the real scale simulator as a child process and a **fake server listener** that checks readings
+  exactly as the real one does (signature, hash, sequence, links) but keeps them in memory
+  ([support.ts](../../../apps/site-gateway/test/support.ts#sym=FakeServer)). The gateway never imports another app,
+  so the simulator runs as a process.
+- The real ingestion, claims and the manual weighing gate are tested on the server
+  ([test/devices/](../../../apps/tablets-server/test/devices/)).
+- Browser: [devices.spec.ts](../../../tools/e2e/specs/devices/devices.spec.ts) runs the gateway and the simulator in
+  the real stack (`[DI-32][DI-20]`, and with the simulator OFFLINE only the manual two-person path is offered).
+- In the demo, open the simulator console (the `EBMR_SIM_HTTP` port) to put a load on the pan or switch a fault on.
+
+## Pitfalls
+
+- **Never round or convert a device value.** Refuse and alarm; the person or the engineer fixes the configuration.
+- **Journal first, answer second.** Any new device path must sync to disk before the value "exists" for anyone.
+- **The gateway and the simulators may not import the kernel, a database driver or the SDK's root `index.ts`**
+  (the root imports the kernel); use the subpaths `@ebmr/integration-sdk/scale`, `/process`, `/printer`,
+  `/serialisation`.
+- **Tag names are released interfaces.** Add a tag; never rename one.
+- **A late answer is not an answer.** Drivers close the connection on a timeout; keep that rule in a new driver.
+- **Readiness must be honest.** Report OFFLINE whenever a capture could not be delivered, otherwise the manual path is
+  wrongly refused.
+- **Determinism in simulators.** No `Math.random()` or wall clock; use the seeded generator and the injected clock.
+
+## Differences between the code and the docs (14 October 2026)
+
+- The integration SDK's description ([package.json](../../../packages/integration-sdk/package.json),
+  [src/index.ts](../../../packages/integration-sdk/src/index.ts)) promises adapter contracts for ERP, LIMS, QMS, LMS,
+  EMS, scales, printers and OPC UA. Today it has scale, process (a stand-in for OPC UA), printer and serialisation. The
+  ERP import shape lives in the API contract (`quality.erpImport`), and there are no LIMS, QMS, LMS or EMS contracts:
+  those adapters are Phase 6 (outline section 11). The root `index.ts` still says "Phase 0 skeleton: exposes the
+  package identity only", although the subpaths are real.
+- The site gateway's description says "OPC UA client"; there is no OPC UA client yet, only the JSON-lines stand-in
+  protocol.
+- The outline lists more simulators (autoclave, lyophiliser, particle counter, EMS/BMS, LIMS, QMS, LMS, CMMS stubs);
+  they arrive with the phases that need them (Injectables, Phase 6).
+
+## Related pages
+
+- [tablets-server, ts-devices](tablets-server.md#ts-devices-devices-and-scale-or-process-readings): storage, claims,
+  the manual weighing gate.
+- [tablets-web, devices](tablets-web.md#devices-the-scale-slot-and-the-scales-page): the scale slot on the kiosk.
+- [The life of a batch, dispensing](../04-life-of-a-batch.md#4-dispensing).
+- [tools](tools.md): the demo stack that starts the gateway and the simulators.
+- Generated: [code map](../code-map.md#integration-sdk), [control map](../reference/control-map.md).

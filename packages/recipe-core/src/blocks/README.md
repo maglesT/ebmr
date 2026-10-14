@@ -102,3 +102,5 @@ contract; a batch pins it at issue and is never run or replayed with other block
 lot status, expiry and identity arrive with each entry today; Phase 3 checks them against site
 services at the database. Rendering parts arrive with the UI (Phase 2 screens) and renderers (Phase 4).
 The edition blocks (TB-xx, IB-xx) register through `extend()`.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)

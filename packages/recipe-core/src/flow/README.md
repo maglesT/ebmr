@@ -96,3 +96,5 @@ signatures, holds), the MBR life cycle (DI-04's "cannot become Effective without
 record" gate uses `evidenceHolds`), the block registry with the full block contract, edition rule
 sets (Tablets in Phase 3; Injectables deferred), and the kernel/edition adapters for the reference
 and market-minima ports.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)

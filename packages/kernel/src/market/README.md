@@ -209,3 +209,5 @@ from the id alone (it never changes, INV-09); the signer signs in state `PROPOSE
 - Market-set changes after issue (market-add evaluation, 3.3.3) and line-tightening gates (3.3.4)
   are Phase 4/5 work on top of this engine.
 - Tables reach installations as signed data packages later; the content hash is the basis.
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

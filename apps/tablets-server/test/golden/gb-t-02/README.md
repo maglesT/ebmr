@@ -56,3 +56,5 @@ quality-control unit's release is refused (EBMR-DSP-032).
 
 As GB-T-01's (D-S6-6): the database clock is frozen at the next midnight UTC (or `EBMR_GOLDEN_LATER_DAYS` whole days
 later) and the driver only moves it forward. The plant is cleaned on the frozen clock before each batch and order.
+
+Handbook: [06-testing-and-debugging.md](../../../../../docs/handbook/06-testing-and-debugging.md)

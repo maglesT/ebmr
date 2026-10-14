@@ -37,3 +37,5 @@ PR-08 (limit model and tier behaviour; tests `test/limits/*.test.ts`; `readme.te
 README's names true). The deviation record and its QA disposition belong to the engine and the
 execution store, the release-screen flag to the release screen (Phase 4) and the QMS (later
 phases); this module states exactly what each breach requires.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)

@@ -190,3 +190,5 @@ kernel e-signature ceremony and qualification checks on fresh data, material and
 from site services, leaver processing around the hand-over (built in engine 1.6.0), item-level N/A, pauses, the persisted involvement
 set and its database check (INV-03 in SQL), production approval, review and release (G-25), and the
 edition blocks (TB-xx) arrive in Phase 3 and 4. The engine takes them as commands in and events out.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)

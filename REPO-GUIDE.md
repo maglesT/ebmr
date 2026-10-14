@@ -31,7 +31,7 @@ pnpm run ci           # everything CI runs (plain `pnpm ci` is a reserved pnpm c
 pnpm test             # tests only
 ```
 
-`pnpm lint` runs ESLint with a 4 GB heap: typed linting keeps the root, ui-kit, web and E2E TypeScript programs in memory
+`pnpm lint` runs ESLint with an 8 GB heap (raised from 4 GB in commit d158c601): typed linting keeps the root, ui-kit, web and E2E TypeScript programs in memory
 together (about 2.2 GB live in Phase 2), more than node's default heap on a CI runner. Raise it there if lint runs out of
 memory again; to see what CI sees locally, run with `NODE_OPTIONS=--max-old-space-size=2048`.
 

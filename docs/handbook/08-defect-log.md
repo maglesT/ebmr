@@ -1,0 +1,877 @@
+# Defects and lessons
+
+**Draft.** This page lists the significant bugs found and fixed in Phases 1 to 4: what went wrong, why it matters in
+a pharma plant, the root cause, the fix, the test that now guards it and what a developer should learn from it. It is
+written for a developer who is new to the project and wants to avoid repeating these mistakes. Read the
+[Top lessons](#top-lessons) first. The rest is a reference you search when you touch the same area.
+
+Terms such as batch record, e-signature, hold point, deviation, G-REL and AP are explained once in the
+[glossary](02-glossary.md); the [pharma primer](01-pharma-primer.md) gives the background.
+
+## Where the code is
+
+- Review backlogs: [Phase 2 exit](../build-plan/phase-2-exit/review-backlog.md),
+  [Phase 3](../build-plan/phase-3/review-backlog.md), [Phase 4](../build-plan/phase-4/review-backlog.md).
+- Phase 1 exit review results: [review-results-2026-09-28.json](../build-plan/phase-1-exit/review-results-2026-09-28.json)
+  (88 findings; the reproducer of each is in [packages/kernel/test/review/](../../packages/kernel/test/review/)).
+- Phase 4 mutation results: [mutation-results.md](../build-plan/phase-4/mutation-results.md).
+- Full history (search it, do not read it whole): [history.md](../progress/history.md).
+- Open owner decisions and answers: [phase-2-open-questions.md](../decisions/phase-2-open-questions.md).
+
+## How to read an entry
+
+Finding names differ by phase, and the numbers overlap, so the phase is always given:
+
+- **P1-F12** means finding F12 of the Phase 1 exit review (numbers without a leading zero, F1 to F84).
+- **P2-F12** means finding F12 of the Phase 2 exit review (two digits, F01 to F67), with its follow-up rounds.
+- **P3-n** and **P4-n** are findings of the quick reviews of a slice (the number is the review's own, for example
+  "slice 3b review 2"). **HIGH-n** is a finding of the Phase 3 exit review. **D-n** is a defect found by the Phase 2
+  SQL mutation run. **F-A1** is a defect found by the Phase 4 mutation run.
+- "Control" means a line in `compliance/controls/` (for example DI-37). Tests that prove a control carry its ID in
+  their name. See the [control register](../../compliance/controls/).
+- "Migration 0319" means the numbered SQL file of that package (for example recipe-core 0319).
+  Phase 1 findings were fixed on branch `phase-1/mutation-testing` before any deployment, mostly by editing the Phase 1
+  files and adding a few new ones; from Phase 2 on, a fix is a new migration, because a migration that has run is
+  never edited.
+
+## Top lessons
+
+These patterns came back again and again. If you remember only one page of this handbook, remember this list.
+
+1. **The database is the last line of defence, not the server.** Many findings were "the server checks it, but a
+   caller using the application role's own credentials could skip the server". Every rule that a regulation requires
+   must also be a trigger, constraint or function guard in PostgreSQL (ADR 0012, decision 0008 section 2). A check that
+   lives only in TypeScript is a convenience, not a control. (P1-F1, P2-F11, P2-F66, P2-F67, HIGH-4)
+2. **Never trust a value the caller supplies about itself.** Site zone, time trust level, product, batch, approver
+   id, "next step started", reading age, "aggregate type": each was once taken from the caller's word and each was a
+   hole. Read the fact from the database (the batch row, the clock, the signature table), and treat the caller's value
+   at most as a request to be checked. (P1-F5, P1-F24, P1-F42, P1-F46, P2-F38, P3 slice 1 findings 1 and 2)
+3. **A signature must bind exactly what the signer saw.** If anything that matters is not in the signed content
+   (a summary, a route, a quantity, an event, a date), it can change under a valid signature. Put every deciding fact
+   in the signed text, show it in the dialog, and make the database refuse a row that records something else.
+   (P2-F01, P2-F03, P3 slice 1 finding 4, slice 2 findings 1 and 3, HIGH-2, P3 slice 6 review)
+4. **Check the rule at the moment the act happens, and again at every later act that could break it.** Rules such as
+   "the checker is not the approver" were checked only when one of the two meanings was signed, so signing in the
+   other order slipped past. Test both orders, and test the case where the second act is the one that breaks the rule.
+   (P1-F13, P1-F41, P1-F73, P2-F11)
+5. **Locks: take the same lock in the same order everywhere, and re-read after you wait.** Races showed up between a
+   proposal and a signing, an edit and a submit, a close and a hold, two concurrent policy tightenings. Under
+   READ COMMITTED a waiter must re-read the row after the lock; under REPEATABLE READ it cannot, so the code refuses
+   that isolation level. (P1-F26, P1-F44, P2-F37, slice 3c finding on close and hold, P4 slice 5 amendment)
+6. **Fail closed when information is missing.** A missing expiry date gave a shorter retention, a missing rule set
+   gave "not applicable", a missing hold unit skipped a check, a lot with no lab results passed the release check.
+   The safe answer to "I cannot tell" is "refuse" or "OPEN" (not decided), never "fine". (P1-F31, P1-F79, P3 slice 3c
+   finding 5, P3 slice 5 backlog, P4 slice 3 review)
+7. **Time has three enemies: the caller, the host clock and the clock zone.** Use database time for facts; use the
+   monotonic clock for lifetimes (tickets, timeouts); never `Date.now()` in domain code; never take "today" in a zone
+   the client names. A clock that steps back can lengthen a ticket or hide a fault window. (P1-F42, P1-F43, P1-F27,
+   X44 in history, the GB-T-01 date fix)
+8. **Numbers and text must be stored exactly.** A JavaScript `number` loses digits above 2^53; a lone surrogate or a
+   NUL character in free text crashes a database write after the signer has already seen a hash; text that looks like
+   a real batch number can hide in look-alike characters. Use bigint or decimal strings, refuse unstorable text at the
+   edge, and close a class of problems by structure (an allow-list) rather than by listing bad cases. (the TB-11
+   counter, P2-F30 to F33, P2-F12 rounds 1 to 8)
+9. **Separate the people.** Segregation of duties was missed again and again: the person who raised an exception also
+   dispositioned it; the outgoing person of a hand-over verified the step; the investigator concluded their own
+   deviation; the abort requester signed the approval; a consumer witnessed the lot's destruction. When you add an
+   act, list who is involved in the record and exclude them from the next act. (P2-F11, slice 2 review findings 4, 5
+   and hand-over findings 2 and 6, slice 5 review, P4 slice 2 review)
+10. **A guard without a test that fails when the guard is removed proves nothing.** Many early tests were green for
+    the wrong reason (a pre-check in TypeScript shielded the database guard, a different rule fired first, a made-up
+    id never reached the branch). Write the test that calls the database directly as the application role, and prove
+    it fails without the migration. (P2-F13 to F25, the SQL mutation runs)
+11. **Reads leak, too.** Hiding a row with row-level security still leaks through the query plan, row counts,
+    statistics and error messages. A person under investigation must not learn of it. Revoke the reader instead of
+    filtering when the existence of the data is itself secret. (P2-F34, F35, HIGH-WATER)
+12. **Compare things in full, not by id or by count.** Strictness compared criterion ids only; a serial-number report
+    was not compared with the recorded events; a true copy verifier accepted a bundle that left a table out; a replay
+    compared event counts. Compare content, hash and order. (P1-F20, P1-F34, P2-F29, slice 4a findings)
+13. **Dead and duplicate code rots.** A recipe-core copy of the platform authority function drifted from the kernel's;
+    a function nobody called (`reprocessing_start_problem`) kept a guard no test could reach. Keep one definition (the
+    kernel's scope hook, ADR 0018) and delete dead code with a migration. (slice 3a HIGH, migration 0930)
+14. **Test infrastructure is production code for the pipeline.** Flaky tests came from real races (a pool closing
+    before its sockets, a 5 s wait against a slow disk, a rate limit shared by parallel browser specs, two specs
+    acting on one batch). Find the root cause; a retry only hides a bug that may be in the product. (section
+    "Test flakiness and races")
+15. **Diff replaced functions against their predecessor.** `create or replace function` silently drops any guard
+    that the new body forgets. Every later review diffed the replaced functions against the previous definition; do
+    the same, and keep the old guard's test in the same file. (slice 2b, 3b, 3c, 3d reviews)
+
+---
+
+## E-signatures
+
+### P1-F1, F68, F74, F12 (critical): a co-signer's context could be reinstalled
+- **What went wrong:** after a co-signature (two people sign one act), the second person's validated "actor context"
+  stayed valid for the rest of the transaction. The application role could set it again and write rows as if the
+  co-signer had done them.
+- **Pharma consequence:** one person could forge another person's actions in the audit trail. That breaks attribution
+  (who did it), the first thing an inspector checks.
+- **Root cause:** the marker that says "this context is the validated one" was a set of rows; every context ever
+  installed stayed valid (ADR 0016 flaw).
+- **Fix:** `kernel.command_marker` now holds one row per backend, so only the most recently installed context is
+  valid. A saved context is restored only through `kernel.set_actor_context`. See
+  [0230_esig_sign.sql](../../packages/kernel/sql/0230_esig_sign.sql), [0010_audit_trail.sql](../../packages/kernel/sql/0010_audit_trail.sql) and
+  [ADR 0016](../adr/0016-validated-actor-context-and-definer-hardening.md) (rewritten).
+- **Test:** [f1.test.ts](../../packages/kernel/test/review/f1.test.ts), "[INV-40][INV-07][DI-22][DI-14][DI-13] bypass: after a
+  co-signature, set_config back to the co-signer's context is refused"; also [f68](../../packages/kernel/test/review/f68.test.ts)
+  and [f74](../../packages/kernel/test/review/f74.test.ts).
+- **Lesson:** four reviewers found the same hole from four angles. Anything that is "valid for the rest of the
+  transaction" needs an explicit end.
+
+### P1-F13, F14, F15, F41, F73: segregation checked in only one signing order
+- **What went wrong:** the independence rules (the checker is not the approver, the witness signs before the next
+  step) were evaluated only when the constrained meaning was signed, only against signatures already present. Signing
+  the approval first, or in an earlier lifecycle state, let one person hold both roles. The witness rule trusted a
+  boolean (`nextStepStarted`) that the caller supplied, defaulting to false.
+- **Pharma consequence:** the four-eyes principle (a second person must independently check) was defeated. That is a
+  classic data-integrity finding.
+- **Root cause:** rule evaluated in one direction; platform hook adapter ignored the actor and the state; caller-owned
+  flag.
+- **Fix:** both signing orders are checked, the state engine refuses a signature applied before the transition's
+  from-state or by someone other than the actor, the "next step started" fact is read from the record. Files:
+  [0230_esig_sign.sql](../../packages/kernel/sql/0230_esig_sign.sql), [0550_platform_state_engine.sql](../../packages/kernel/sql/0550_platform_state_engine.sql).
+- **Tests:** [f13](../../packages/kernel/test/review/f13.test.ts) "[INV-03][INV-04][DI-35][DI-17] verify-then-perform and
+  approve-then-check by one person are refused or detected"; [f14](../../packages/kernel/test/review/f14.test.ts);
+  [f15](../../packages/kernel/test/review/f15.test.ts); [f41](../../packages/kernel/test/review/f41.test.ts);
+  [f73](../../packages/kernel/test/review/f73.test.ts) (both orders).
+- **Lesson:** for every pair of acts that must be done by different people, write two tests, one for each order.
+
+### P1-F16: a second spelling of an aggregate id was a second record
+- **What went wrong:** `BATCH-1` and `batch-1` (or an upper-case step id) made two identities for one record, so
+  "once per version", the aggregate lock and the independence rule did not see the earlier signature.
+- **Consequence:** the performer could verify their own step by spelling its id differently.
+- **Fix:** ids are canonicalised at the point of use (see [0250_esig_stub.sql](../../packages/kernel/sql/0250_esig_stub.sql)).
+- **Test:** [f16](../../packages/kernel/test/review/f16.test.ts) "[INV-03][DI-35][INV-09] the performer cannot verify
+  their own step by spelling its id in upper case".
+- **Lesson:** canonicalise identifiers at the single point of entry.
+
+### P1-F17: a no-op save changed the signed hash
+- **What went wrong:** the sample record's content version came from a count of audit UPDATE events, so a save that
+  changed nothing altered the hash without superseding the signature (signature read CONTENT_MISMATCH).
+- **Fix:** the version no longer comes from the count of UPDATE events ([0910_integration_esig.sql](../../packages/kernel/sql/0910_integration_esig.sql)).
+- **Test:** [f17](../../packages/kernel/test/review/f17.test.ts) "[INV-09][DI-37] after an UPDATE that changes no signed
+  column the signature is VALID or SUPERSEDED_BY_CHANGE, never CONTENT_MISMATCH".
+- **Lesson:** derive a version from content, never from a side counter.
+
+### P1-F24, F76 (high): approvals behind a loosening were free UUIDs
+- **What went wrong:** the approvers of a market-rule loosening (a looser limit) were any UUID the caller typed.
+- **Consequence:** one person could loosen an India acceptance criterion or a label rule with no real second
+  approval, in a system whose rule is that the stricter market wins.
+- **Fix:** approvals must be real e-signatures of real people with the right role (checks in
+  [0340_market_publish.sql](../../packages/kernel/sql/0340_market_publish.sql) and [0360_market_signatures.sql](../../packages/kernel/sql/0360_market_signatures.sql)).
+- **Tests:** [f24](../../packages/kernel/test/review/f24.test.ts) "[IN-52][DI-35][DI-09][INV-47][ST-01] source
+  correction, site-value loosening and policy loosening are refused without real signed approvals";
+  [f76](../../packages/kernel/test/review/f76.test.ts).
+- **Lesson:** an id column that "points at an approval" needs a foreign key and a validity check.
+
+### P2-F01: the stage sign-off summary was not in the signed text
+- **What went wrong:** a stage sign-off confirms the stage record and its summary (open exceptions, yields), but the
+  summary was in neither the signed content nor the dialog. An alert raised after the supervisor's preview changed
+  what the sign-off recorded without refusing the signature. Round 2 found the check compared only the summary's
+  canonical form, so a row could add a member (a step count, a yield verdict) under a valid signature.
+- **Fix:** the summary is part of the signed text, produced by one function for the dialog and for the database
+  (recipe-core 0319); the database refuses a sign-off row that differs from what the engine records (0320, EBMR-EXE-135).
+- **Tests:** [db-guards-stage-summary.test.ts](../../apps/tablets-server/test/execution/db-guards-stage-summary.test.ts),
+  "[DI-37][IN-15][PR-16] a SIGN_OFF_STAGE row recording another summary than its signature covers is refused
+  (EBMR-EXE-135)"; [db-guards-stage-sign-off.test.ts](../../apps/tablets-server/test/execution/db-guards-stage-sign-off.test.ts).
+- **Lesson:** a signature is only as strong as the rule that the stored row equals the signed text.
+
+### P2-F02, F03: the dialog named a different thing from the signed content
+- **What went wrong:** a time-limit breach dialog said "Not raised at a step" while the signed content named the step.
+  The signed header took family and product from the test package's metadata, not from the MBR content.
+- **Fix:** dialog and content use the same source; the server and database (recipe-core 0318, EBMR-EXE-134) refuse a
+  package whose metadata differs from its content.
+- **Test:** [db-guards-package-header.test.ts](../../apps/tablets-server/test/execution/db-guards-package-header.test.ts)
+  "[DI-04][DI-37] a package whose family code or product differs from its MBR content is refused".
+- **Lesson:** metadata beside content is a second source of truth; avoid it or check it.
+
+### P2-F37 and F37.R: a proposal during a signing landed on the signed version
+- **What went wrong:** a second QA user's disposition proposal made while the first was signing landed on the version
+  being signed, so the signature read CONTENT_MISMATCH. The first fix (recipe-core 0309) locked only the batch's
+  lock; a signer outside the batch lock, or a transaction at REPEATABLE READ or SERIALIZABLE, still raced.
+- **Fix:** proposals take the batch lock first and never propose on a signed version (0309); the signing and proposal
+  paths share one lock and refuse stricter isolation levels (0329, 0331, kernel 1020).
+- **Test:** [db-guards-proposal-race.test.ts](../../apps/tablets-server/test/execution/db-guards-proposal-race.test.ts),
+  "[INV-09][DI-37][PR-49] a disposition proposed through the store while QA1's signed disposition commits waits for it
+  and is refused; QA1's signature stays VALID".
+- **Lesson:** see Concurrency below. Two connections in a test are the only honest proof of a lock.
+
+### P2-F39, F40, F56: ceremony screens signed the wrong thing or told the wrong thing
+- **P2-F39:** switching person from the lock screen left the previous person's signing dialog open; the new person
+  could sign the previous person's decision. Now any change of person ends the signing with nothing signed
+  (web test `ceremony-person-change`).
+- **P2-F40:** a resent kiosk sign request after success was told "Nothing was signed". It now gets ESIG_ALREADY_SIGNED
+  or ESIG_REQUEST_USED ([ceremony.test.ts](../../apps/tablets-server/test/esig/ceremony.test.ts)).
+- **P2-F56:** the signing dialog's focused Badge field sent whatever was keyed in (the PIN) as the badge UID, and any
+  refusal ended the signing. The ui-kit badge prompt now accepts only a reader's tap (keys more than 100 ms apart
+  restart the field) and sends nothing that cannot be a badge UID (EBMR-IAM-140).
+- **Lesson:** a security-sensitive input must know where its data can come from (a badge reader types fast; a
+  person does not).
+
+### P3 slice 2 findings 1 and 3, hand-over 3: approvals not bound to the act they approve
+- **What went wrong:** approvals of a skip, a void or an invalidation did not name the act, persons and reason. A QA
+  approval could be reused for another act. The hand-over's QA approval was not bound to the step, persons and
+  reason.
+- **Fix:** approved acts are bound (recipe-core 0470, 0471; hand-over 0462); see
+  [db-guards-change-paths.test.ts](../../apps/tablets-server/test/execution/db-guards-change-paths.test.ts) and
+  [db-guards-hand-over.test.ts](../../apps/tablets-server/test/execution/db-guards-hand-over.test.ts).
+- **Lesson:** the approval row carries the identity of the thing approved, and the guard compares it.
+
+### P3 slice 1 finding 4, slice 2 finding 7, HIGH-2: lot signatures that did not bind enough
+- **Slice 1, finding 4:** the cleaning clearance signature did not bind its result.
+- **Slice 1, backlog 6 and slice 2 finding 7:** the lot release signature did not cover the route or the received
+  quantity, and every consumption superseded the lot's release signature (so releasing and using a lot undid each
+  other). Fixed in site-services 0720 and 0721: the signature covers route and received quantity; consumption no
+  longer supersedes it; a person who consumed from the lot cannot witness its destruction.
+- **HIGH-2 (Phase 3 exit):** a lot decision signature (HOLD, UNHOLD, RETURN, RECALL) did not bind the event. Now
+  the decision is proposed first and the signature binds the proposed event (site-services 0800); over HTTP it is
+  proposed at `POST /api/lots/:lotId/decisions` and signed as LOT_DECISION (0842, D-P4-3).
+- **Slice 6 review:** the signed lot retest did not bind its date and results, could reuse one signature, and the
+  unsigned writer stayed granted to the application role. Fixed in site-services 0762 and tablets 1042.
+- **Tests:** [signables-ids.test.ts](../../apps/tablets-server/test/quality/signables-ids.test.ts) "[DI-37][DI-35] the
+  retest binds the lot, the new instant in UTC with microseconds, and the result ids lower-cased, distinct and
+  sorted"; [lims.test.ts](../../packages/site-services/test/quality/lims.test.ts) "[PR-18][DI-35] a retest is recorded
+  only under QC's own LOT_RETEST_APPROVED signature"; [exit-review.test.ts](../../packages/site-services/test/lots/exit-review.test.ts).
+- **Lesson:** after adding any new act, list what the signer must be sure of and put each item in the content.
+
+### P2 mutation D8, D9, D11: signature rows accepted on a flag alone
+- **D8:** a recorded signature's missing validity went unnoticed (recipe-core 0381). **D9:** any row could invalidate
+  another step's signature (0382). **D11:** the kernel took a signature row on the signing marker alone; now a row is
+  held to its challenge (EBMR-ESIG-065) and to an authentication consumed for it in the same transaction (EBMR-ESIG-066)
+  (kernel 1112), and state rows need a published transition and a history row (EBMR-PLAT-077, -078; kernel 1110).
+- **Lesson:** a flag set by trusted code is not proof when the table owner can set it too. Hold the row to the
+  evidence rows it depends on.
+
+## Audit trail and attribution
+
+### P1-F2, F3, F4: the chain could be rewritten or hidden
+- **F2:** `verify_chain` and anchors did not bind `table_name` and `record_id`, so rewriting them was undetectable.
+  Fix in [0010_audit_trail.sql](../../packages/kernel/sql/0010_audit_trail.sql); test
+  [f2](../../packages/kernel/test/review/f2.test.ts) "[INV-08][DI-23][INV-07] rewriting table_name/record_id of an
+  audit row directly in the database is detected".
+- **F3:** full verification listed chains from the head table, so deleting a head row hid a tampered chain. The
+  verification now reports a chain whose head is missing; test [f3](../../packages/kernel/test/review/f3.test.ts). The same defect
+  reappeared in the screen as **P2-F06** (a chain whose head was deleted vanished from the chain list; tablets 0490).
+- **F4:** `kernel.ddl_log` did not record DROP statements and `audit_triggers_ok` ignored the insert-only guard
+  triggers, so dropping a guard went unseen; test [f4](../../packages/kernel/test/review/f4.test.ts).
+- **Pharma consequence:** the audit trail is the evidence for everything else. A trail that can be edited silently is
+  worthless to an inspector.
+- **Lesson:** a verifier must work from the data, not from a list the attacker can edit.
+
+### P1-F5, F6, F46, F77: facts in an audit entry came from the client
+- **F5/F46:** site zone and printed name came from the client's context. Now `kernel.validate_actor_context` refuses a
+  zone other than the site policy zone (EBMR-IAM-118). Tests [f5](../../packages/kernel/test/review/f5.test.ts),
+  [f46](../../packages/kernel/test/review/f46.test.ts).
+- **F6:** a whitespace-only reason code or no reason text passed the reason-for-change gate. Now both code and text
+  are required and non-blank (EBMR-AUDIT-002). Test [f6](../../packages/kernel/test/review/f6.test.ts). It broke six
+  platform and records tests that had relied on a missing text, and they were corrected.
+- **F77:** a change of a row's aggregate column was recorded only in the new aggregate's chain; the old chain never
+  showed the row leaving. Test [f77](../../packages/kernel/test/review/f77.test.ts).
+- **Lesson:** "reason for change" is a control (21 CFR 11.10(e) style audit rule); test blank and invisible text, not
+  only the empty string.
+
+### P2-F01 round 2 and P4 slice 1: tables that were not audited
+- The list of legacy sign-offs (recipe-core 0319) was owner-only and unaudited, so the privilege test failed; 0320
+  made it an audited, insert-only record. In general a new table either joins the audit and insert-only machinery or
+  is documented as not needing it.
+- **P4 slice 1 (epochs):** the evidence epoch was a counter updated in place and not audited. Recipe-core 0718
+  replaced it with insert-only rows written under a per-subject lock (see [Removed and replaced](09-removed-and-replaced.md)).
+
+## Time and clocks
+
+### P1-F42, F43, F47, F48, F49, F69: trust in time
+- **F42:** the caller could label a typed time DEVICE_SYNCED and skip every late-entry control. Test
+  [f42](../../packages/kernel/test/review/f42.test.ts).
+- **F43:** the review window of a time fault was bounded by the faulty clock, so entries recorded across a clock
+  step were never flagged. Test [f43](../../packages/kernel/test/review/f43.test.ts).
+- **F47:** a drift sample with an uncertainty above the threshold cleared the alarm and became the "last good sample".
+  Test [f47](../../packages/kernel/test/review/f47.test.ts).
+- **F48:** `record_drift_check` aborted (a raw error) for extreme offsets and thresholds with more than 3 decimals,
+  and nothing noticed a monitor that cannot run. Test [f48](../../packages/kernel/test/review/f48.test.ts).
+- **F49:** a "validated" time source was not verified; one administrator could swap references and silence
+  monitoring. Test [f49](../../packages/kernel/test/review/f49.test.ts).
+- **F69:** `platform.raise_time_incident` was callable by the application with no authority check, so anyone could
+  forge, or pre-empt, a time-fault incident. Test [f69](../../packages/kernel/test/review/f69.test.ts).
+- **Files:** [0520_platform_time_sources.sql](../../packages/kernel/sql/0520_platform_time_sources.sql),
+  [0530_platform_time_model.sql](../../packages/kernel/sql/0530_platform_time_model.sql).
+- **Consequence:** back-dated or late entries are a favourite data-integrity finding; the system must know how much
+  to trust each timestamp.
+
+### P1-F27: "today" taken in a zone the client named
+- The retroactivity test for rule-table loosenings used a client-supplied zone and could shift "today" back by up to
+  seven days. Fixed in [0340_market_publish.sql](../../packages/kernel/sql/0340_market_publish.sql) to use the site zone.
+  Test [f27](../../packages/kernel/test/review/f27.test.ts).
+
+### P2-F38, P2 D3: how old a reading may be
+- **F38:** the allowed age of a scale reading was the caller's word (up to one hour). Now the platform setting
+  `device.reading_max_age_s` (120 s, tightening only) caps it (tablets 0360). Test
+  [reading-age-policy.test.ts](../../apps/tablets-server/test/devices/reading-age-policy.test.ts) "[DI-28][DI-32] a
+  10-minute-old reading pair is refused at 120 s, and still refused when the application role asks for 3600 s".
+- **P53 residual (tablets 0330):** the wait of a reading before upload was the application's word. A holder of the
+  application credentials could keep back a genuine unsynced reading and have it counted as fresh. The gateway now
+  signs a database-issued challenge together with its wait (`tab.ingest_reading` was replaced; see
+  [Removed and replaced](09-removed-and-replaced.md)).
+- **Lesson:** age is computed by the database from its own clock plus a signed delay, never reported.
+
+### Ticket lifetimes followed the wall clock (X44, 1 October 2026)
+- **What went wrong:** the proof tickets (10 minutes) and first-login change tickets (2 minutes) the server keeps in
+  memory used `uptimeMs = Date.now() - start`. A clock set back lengthened a ticket's life.
+- **Fix:** `platform/clock.ts` reads both `performance.now()` and `Date.now()` and takes the larger elapsed time, so a
+  step back does not lengthen a ticket.
+- **Tests:** [proof-ticket-clock.test.ts](../../apps/tablets-server/test/session/proof-ticket-clock.test.ts) "[DI-19] a wall
+  clock set back does not lengthen a proof ticket"; [change-ticket-clock.test.ts](../../apps/tablets-server/test/session/change-ticket-clock.test.ts).
+- **Lesson:** this is why domain code may not call `Date.now()`; a lint rule and a test enforce it.
+
+### The GB-T-01 true-copy hash changed with the day of the run (PR #19)
+- **What went wrong:** the golden batch's true-copy hashes depended on the run date: seeded lot dates were
+  normalised as run instants, and a deviation number held the year.
+- **Fix:** lot dates stay as seeded; the year is a placeholder; hashes re-recorded and shown equal on runs started on
+  different days (`EBMR_GOLDEN_LATER_DAYS`). Test code only.
+- **Lesson:** a golden test that is not repeatable tomorrow is not a golden test. Freeze time at midnight UTC.
+
+## Access and read authorisation
+
+### P1-F70, F78, F45, F72, F79, F71: who may do what
+- **F70:** one administrator could rewrite the least-privilege permission-to-role map with `iam.add_role_permission`.
+  Now a request plus a second approver. Test [f70](../../packages/kernel/test/review/f70.test.ts) "[DI-18][DI-17][INV-11] a lone
+  administrator cannot give operators a GMP permission, nor give their own role new authority".
+- **F45/F78:** `platform.create_aggregate_state` had no permission or administrator check, so any caller could create
+  GMP state or pin it to a retired machine version. Every state machine now declares a `create_permission` and every
+  transition a permission. Tests [f45](../../packages/kernel/test/review/f45.test.ts), [f78](../../packages/kernel/test/review/f78.test.ts).
+- **F72:** a denied permission left no stored evaluation, so a failed attempt was not logged. Test
+  [f72](../../packages/kernel/test/review/f72.test.ts).
+- **F79:** qualification (training) requirements were skipped when the request had no scope in that dimension, so the
+  training gate failed open. Test [f79](../../packages/kernel/test/review/f79.test.ts).
+- **F71:** a batch-number counter reservation was authorised at the actor's own location, so a SITE-1 issuer could
+  touch a SITE-2 counter. Test [f71](../../packages/kernel/test/review/f71.test.ts).
+- **Lesson:** "who may call this" is a control; every writer that the application role can call needs a permission
+  check and an administrator refusal (DI-17, DI-18).
+
+### P1-F11: lockout counter reset by any success
+- A single-factor badge tap reset the failed-password counter, so lockout could be dodged by interleaving taps.
+  Test [f11](../../packages/kernel/test/review/f11.test.ts) "[DI-19] failed password guesses interleaved with the
+  victim's badge taps still lock the account at the threshold". File
+  [0160_iam_authentication_sessions.sql](../../packages/kernel/sql/0160_iam_authentication_sessions.sql).
+
+### P2-F34, F35 (rounds 1 to 3, HIGH-WATER): the application role read what it should not
+- **What went wrong:** the signing preview served the content of any record to any session; the audit viewer served
+  every chain to every role; a data-integrity investigation reached the person it was investigating.
+- **Root cause:** read access was decided in the screen; the application role kept SELECT and EXECUTE on kernel
+  readers. Row-level security hid rows but the plan statistics (`EXPLAIN ANALYZE` "rows removed by filter", row
+  estimates, `reltuples`) still told how many investigations existed, and when (HIGH-WATER).
+- **Fix:** the database decides read access per session (tablets 0410, 0420); readers and tables revoked from the
+  application role (0430, 0440, 0450, 0460, 0470); table statistics reads closed (0570); the investigation's subject
+  gets nothing, whatever their role.
+- **Tests:** [esig/read-authorisation.test.ts](../../apps/tablets-server/test/esig/read-authorisation.test.ts) "[DI-17][DI-50] the person
+  a DI investigation investigates gets nothing of it, neither its content nor its signatures";
+  [audit/read-authorisation.test.ts](../../apps/tablets-server/test/audit/read-authorisation.test.ts).
+- **Residual:** the application role still selects the identity, incident and retention tables directly (decision
+  F34.2, below).
+- **Lesson:** to hide that something exists, do not grant the reader. Filtering is not enough.
+
+### P2-F36, F10, F41, F42, F43: sessions and the browser
+- **F36:** a revoked or expired role kept reading and could keep a session alive or unlock it. Now such a session
+  resolves no role and ends at the next request (tablets 0400, EBMR-TAB-017); an account with no role opens no session
+  (0480). Test [role-withdrawn.test.ts](../../apps/tablets-server/test/session/role-withdrawn.test.ts).
+- **F41:** a page on another port could plant a copy of the session cookie that the server read first. A doubled
+  session or CSRF cookie is now served as nobody, and the copies are removed.
+- **F42:** the sign-out mark was a cookie any port could write or delete. It now lives in site storage and the
+  origin's broadcast channel only.
+- **F43:** the gate's own refusals (403 ORIGIN, non-literal /api 404) carried no security headers; helmet now runs
+  first. Browser security spec covers these.
+- **Lesson:** cookies are shared across ports on one host; do not trust a cookie that any local page can set.
+
+### P2-F04, F05, F08, F09: kiosk secrets
+- **F04:** a first-login PIN change left open on a shared kiosk let the next person choose the absent person's PIN.
+  The kiosk wipes the badge UID after 30 s, names whose PIN is set, and the database refuses the change when the
+  authentication is older than the terminal's attribution window (kernel 0990).
+- **F05:** a PIN longer than 12 digits was accepted but could never be typed. One maximum now in pads, contract and
+  kernel; test [pin-length.test.ts](../../apps/tablets-server/test/session/pin-length.test.ts) "[DI-19][DI-15] the pads, the
+  contract and the kernel use one maximum: 12 digits".
+- **BADGE-AUTOFILL (round 4):** a password manager filled a ten-digit secret into the kiosk Badge field and it was sent
+  as a badge UID; those fields now tell managers to leave them alone.
+- **Lesson:** a limit must be the same in every layer, or the layers disagree on what is valid.
+
+### P3 slice 6 review, HIGH-1: confidential and master data
+- **Slice 6 high:** the formula composition (confidential) was readable through the e-signature content route by a
+  role without FORMULA.READ (DI-13), also for a pinned MBR's BOM. Fixed in tablets 1042; test
+  [formula.test.ts](../../apps/tablets-server/test/master-data/formula.test.ts) "[DI-13] the e-signature preview of a formula
+  version, or of an MBR version pinning one, is refused to a session without FORMULA.READ, even on a shop-floor kiosk".
+- **HIGH-1 (Phase 3 exit):** ERP master data (materials, shelf life, beta-lactam flag) could be written by any
+  interface identity with no QA confirmation. Now only the ERP interface writes (`ERP.MASTER_WRITE`) and a
+  safety-relevant change (new code, shelf life, reprocessing permission, material kind, retest interval,
+  beta-lactam) takes effect only after QA signs `ERP_MASTER_CONFIRMED` (tablets 1101; site-services 0803 added the
+  beta-lactam case). Test [interfaces.test.ts](../../packages/site-services/test/quality/interfaces.test.ts) "[PR-47][IN-38] a
+  change of the beta-lactam flag (it drives the isolation of the packing line) takes effect only once QA confirms it".
+- **Consequence:** a wrong beta-lactam flag removes the cross-contamination isolation on a packing line.
+- **P4 low residual (open):** `allocation_register`, `qp_reader_access` and `read_qp_package` do not refuse
+  administrators first.
+
+### P4 slice 6 review: records that administrators could read
+- The inspection workspace read and the allocation register were readable by administrators; an unsigned hazard
+  downgrade was allowed; contingency packs could be made after completion. Fixed with the slice 6 quick-review fixes (kernel 1174, commit eb348d4c; see [evidence-export.test.ts](../../packages/kernel/test/records/evidence-export.test.ts) "[DI-40][DI-18] an
+  administrator does not read the inspection workspace (refused before the permission check)").
+
+## State machines and step order
+
+### P2-F66 (critic, reproduced): the database let a step start that the token could not have reached
+- **What went wrong:** a row could enable a step ahead of the flow, and the server then started dispensing during
+  the line clearance.
+- **Consequence:** material weighed into a line that had not been cleared: cross-contamination risk.
+- **Fix:** recipe-core 0307 checks every new step instance against the MBR flow (earlier steps finished, stages
+  signed off, loops ended, decisions taken, frames right) and 0311 binds a step's status change to the act that makes
+  it (EBMR-EXE-129 from 0307, EBMR-EXE-132 from 0311).
+- **Test:** [db-guards-step-order.test.ts](../../apps/tablets-server/test/execution/db-guards-step-order.test.ts) "[DI-34][PR-13][INV-18] a row that
+  brings in a step the token has not reached is refused, so the dispensing cannot start before the line clearance is done".
+- **Lesson:** the engine (TypeScript) walks the flow; the database must independently refuse any row that the walk
+  would not produce.
+
+### P2-F67: minimum durations and exception blocks held only by the engine
+- A PERFORMED signature before a one-hour minimum, and of a step blocked by an open action-limit breach, were stored
+  through the store. Now refused by the database (recipe-core 0308, EBMR-EXE-130/131), and start and end events are
+  bound to the acts and token arrivals that make them (0312, 0314, 0316).
+- **Test:** [db-guards-step-acts.test.ts](../../apps/tablets-server/test/execution/db-guards-step-acts.test.ts) "[INV-20][PR-30] a step
+  signed performed before its minimum duration is refused by the database, not only by the engine".
+
+### P2-F11: an exception's raiser dispositioned it
+- A person who worked in the step that raised an exception could disposition it through the store (the content
+  provider named only the raiser). Now the provider names performers, data enterers, correctors and PERFORMED signers,
+  `check_disposition_state` refuses (EBMR-EXE-087) and, from round 3, the step is also read from the row that raised
+  the exception, not only from the writer-supplied source (recipe-core 0306, 0310, 0315).
+- **Test:** [db-guards-disposition-involvement.test.ts](../../apps/tablets-server/test/execution/db-guards-disposition-involvement.test.ts)
+  "[INV-03][PR-13][PR-49][DI-17] a person who entered data in the raising step, also holding QA_SHOP_FLOOR, cannot
+  disposition the exception through the store directly".
+
+### P2 T12.LATE and T12.DOC: a late witness stuck the run
+- **What went wrong:** a witness more than five minutes late, or after the run had moved on, was refused by the kernel
+  and nothing else could complete the step; the run was stuck for good. The approved master also showed "VERIFIED"
+  while the floor asked for a timed witness.
+- **Fix:** engine 1.5.0 and recipe-core 0333: once no witness is possible, the step is completed by its later review
+  (VERIFIED), which raises WITNESS_LATE for QA (EBMR-EXE-141). The validator rule GMP-WITNESS-NO-ATTACHMENT warns.
+- **Lesson:** every refusal must leave the run a way forward (a supervised path), or you create a dead end that people
+  work around with paper.
+
+### P2 D6, D12: the designer let impossible MBRs through
+- **D6:** a minimum time ending at the start of a node passed the validator, but the engine starts such a node itself;
+  an honest run broke the engine's own INV-20 check. The validator now refuses it (rule TIME-MIN-AT-ARRIVAL).
+- **D12:** two loops on the same endpoint, one inside the other, judged one reading twice and stopped the batch. The
+  validator rule FLOW-LOOPS refuses it. Validator 1.2.0.
+- **Lesson:** catch it in the designer, where the author can fix it; keep the database refusal as the last line.
+
+### P3 hand-over (slice 2): hand-over dead ends and conflicts
+- A step stayed stuck in ATTEMPT_HANDED_OVER when the incoming person never came; the incoming person was not checked
+  to be active and a performer; the hand-over's supervisor, QA approver and both persons could disposition its
+  exception or verify the step; the outgoing person could still correct entries (recipe-core 0461, 0462, fix commit
+  5f0242a8). Tests in [db-guards-hand-over.test.ts](../../apps/tablets-server/test/execution/db-guards-hand-over.test.ts).
+
+### P4 slice 5 (high): an amendment's cause lacked its reference
+- The cause of an appending amendment (after record lock) lacked its reference, so every opening was refused. A
+  medium finding: a cause linked again after a re-confirmation did not suspend the lot again. Fixed with tests in
+  [after-release.test.ts](../../packages/recipe-core/test/release/after-release.test.ts); also D-5b-9 (an amendment counts lots
+  already suspended and its cause resolves at close).
+
+### P4 (commit 7bd4a37c): a recalled or rejected market was removed from the lot's set
+- After-release market removal could remove a market that was recalled or rejected, hiding a recall from the lot
+  record (recipe-core 0841). Test: "[L-19][INV-39] a market recalled on its own is final for that market only".
+
+## Decimals, numbers and text
+
+### Phase 3 exit: the TB-11 press counter was compared as a JavaScript number
+- **What went wrong:** a press counter above 2^53 would be rounded in a comparison.
+- **Consequence:** an IPC (in-process check) due-by-count could be missed on a high-volume press.
+- **Fix:** compared as an exact integer (bigint), and a counter above the safe integer is refused rather than rounded.
+- **Test:** [blocks.test.ts](../../apps/tablets-server/test/blocks/ipc/blocks.test.ts) "[DI-28][PR-29] the press counter is
+  compared as an exact integer up to the largest safe integer, and a counter above 2^53 is refused, never rounded".
+- **Lesson:** this is the reason for the rule "no JavaScript `number` for GMP values in domain code".
+
+### P3 slice 3d lows: yield rounding before the limit test
+- Compaction yield was rounded before it was compared with its limits, which could turn 99.51 against a 99.5
+  rounded limit into a pass or a fail incorrectly. Now compared exactly (commit bcc22810); the forming constraint
+  values are parsed robustly.
+- **Lesson:** round only for display, after the decision.
+
+### P3 slice 3b: TB-01 rounding and base-stated formula
+- The golden batch found that TB-01's formula had to be stated on the base (anhydrous) form, and that hardness
+  aliases and pressure units were missing. Fixed with tests (slice 6d: seven defects found by running GB-T-01).
+  Rounding of the active goes up, never down (see `[PR-19]` test in
+  [potency.test.ts](../../apps/tablets-server/test/blocks/dispensing/potency.test.ts) "rounding never lowers the active").
+
+### P2-F30 to F33: NUL characters and lone surrogates in free text
+- **What went wrong:** the contract took any string. A U+0000 or an unpaired UTF-16 surrogate in free text
+  (exception description, hold reason, justification, product name) reached a `jsonb` or `text` bind. PostgreSQL
+  refused it with no EBMR code, the server answered 500, wrote no refusal row, and had already shown the signer a
+  hash for content that could never be stored. A lone surrogate was silently turned into U+FFFD, so a justification
+  was stored with a character its author never sent. The two canonical JSON writers disagreed on key order for such
+  text.
+- **Fix:** both canonical JSON writers refuse such text (EBMR-ESIG-004); every route refuses it at any depth with
+  400 INVALID_INPUT naming the field and never the text; request bodies must be strict UTF-8; the database pools refuse
+  a parameter that holds such text; the gateway listener got the same rules.
+- **Tests:** [execution/free-text.test.ts](../../apps/tablets-server/test/execution/free-text.test.ts),
+  [designer/free-text.test.ts](../../apps/tablets-server/test/designer/free-text.test.ts),
+  [gateway-free-text.test.ts](../../apps/tablets-server/test/devices/gateway-free-text.test.ts).
+- **Lesson:** validate text at the edge (storable, strict UTF-8). The signer's hash is only honest if the server can
+  store exactly that text.
+
+## Test mode isolation (P2-F12, eight rounds)
+
+This is the longest single finding in the project, and it explains decision 0008 (review cadence). It is listed here
+because the lesson is about structure.
+
+- **What went wrong:** a real batch or lot number could be recorded in a test (sandbox) run. A sandbox record must
+  never be mistaken for a GMP record, so the rule is: only identifiers that start with `TEST-` are accepted.
+- **Rounds 1 to 6:** each round closed the members the previous verification had found (entry identifiers, container
+  names, free text, kernel stubs, market stubs), and the next verification found another way, for example a lot
+  number inside a comment or an engine-style name like `S24090017` or `E2409/0017`.
+- **Rounds 7 and 8:** the identifier rule read text as stored, not as shown. Invisible characters, look-alike letters
+  and digits (Cyrillic, Hebrew, Georgian) and bidirectional controls hid a real-format number. Chasing glyphs has no
+  end.
+- **Final fix (closed structurally, kernel 1050, 1120):** in a sandbox a word that holds a digit is written with ASCII
+  letters, ASCII digits and `/ . -` only, so no look-alike can be used. Earlier layers remain (kernel 1030, 1040;
+  recipe-core 0346 and 0347 replaced a set of allowed engine words; see [Removed and replaced](09-removed-and-replaced.md)).
+- **Tests:** [db-guards-entry-identifiers.test.ts](../../apps/tablets-server/test/execution/db-guards-entry-identifiers.test.ts)
+  "[DI-05][INV-18] the same entry written through the store with the application role is refused by the database
+  (EBMR-EXE-078)"; [db-guards-kernel-stubs.test.ts](../../apps/tablets-server/test/execution/db-guards-kernel-stubs.test.ts);
+  the `db-guards-free-text-*.test.ts` files in the same folder.
+- **Lesson:** when a class of bug keeps coming back, stop listing bad cases and allow only a small safe alphabet.
+  Also: set an end to review rounds (decision 0008 limits fix rounds to two per finding).
+
+## Release and the release gate
+
+### P3 exit HIGH-3: a packaging order skipped "release for packing"
+- A packaging batch could start without bulk that the processing batch had released for packing (hold point H-PACK).
+- **Fix:** a packaging order needs a bulk issue of usable containers after H-PACK before any TB-21, TB-23 or TB-24
+  entry on GMP (recipe-core 0701, tablets 1102); packing steps inside a GMP processing batch are refused.
+- **Test:** [bulk-gate-gmp.test.ts](../../apps/tablets-server/test/blocks/packaging/bulk-gate-gmp.test.ts) "[INV-27][IN-18][PR-37] on GMP the
+  first entry of a cartoning step (TB-24) in a batch with no bulk issued is refused by the database (EBMR-TAB-395)".
+- **Lesson:** the "demo shortcut" for H-PACK that came later (see below) was removed so that no demo record carries a
+  placeholder signature.
+
+### P3 exit HIGH-4: orphan consumption
+- `recipe.consume_lot` checked no batch state, so lot material could be "consumed" into a batch that was not running,
+  or without a matching entry.
+- **Fix:** consumption needs an ISSUED or IN_PROGRESS batch and an entry of the same command; reservations are revoked
+  at batch end (recipe-core 0700, 0801; tablets 1100).
+- **Test:** [tb-01-gmp.test.ts](../../apps/tablets-server/test/blocks/dispensing/tb-01-gmp.test.ts) "[INV-13][INV-14] past the server, a GMP weighing that
+  names no consumption, or a consumption of another quantity, is refused by the database".
+- **Consequence:** a stock balance that does not match the batch record: a reconciliation failure.
+
+### P4 slice 2 (high): evidence matched by hash alone
+- Recipe-core 0601 and 0716 accepted a fail-to-pass correction's evidence by the hash in `site.evidence_document`, a
+  value the storer typed. A self-attested document could clear a failing result. The database now stores the bytes and
+  computes the SHA-256 (site-services 0823) and a document is evidence only while its stored bytes match (recipe-core
+  0770).
+- **Test:** [gmp-references.test.ts](../../packages/recipe-core/test/lifecycle/gmp-references.test.ts) "[DI-24][INV-41] a document
+  row without stored bytes (the self-attested form of before site services 0823) is not evidence of a fail-to-pass or
+  loop-reading correction".
+
+### P4 slice 2 (high): the person who classified or assessed the deviation also concluded it
+- Deviation classifier and impact recorder were excluded from concluding, closing and signing the impact (PR-50
+  family). Also: a link with CONFIRMED impact keeps release blocked after the deviation closes (D-2a-9, owner may change).
+  Tests in [deviation-full.test.ts](../../packages/site-services/test/quality/deviation-full.test.ts).
+
+### P4 slice 2 (high): demo seeds could run on a non-demo database
+- The DEMO-ONLY seeds (`--gmp-review-batch`, `--gmp-packaging`) used a superuser update with triggers off. They now
+  refuse a database whose name is not a demo name, and check `tab.demo_installation` (commit dee43262).
+- **Lesson:** a shortcut that skips controls must be impossible to run against a real database.
+
+### P4 slice 3: PR-53 justification read the first message only
+- The release justification read link types from message text, and a CONFIRMED impact could be justified away. Now
+  every link is checked structurally (recipe-core 0783), a CONFIRMED impact is never justifiable (D-3a-10), and
+  escalated exceptions count as linked.
+- **Tests:** [release.test.ts](../../packages/recipe-core/test/release/release.test.ts) "[PR-53] every link of an open record is
+  read structurally"; "a CONFIRMED impact is never released under a justification".
+- **Lesson:** never match on message text for a control; match on structured links.
+
+### P4 slice 3: Tablets items failed open
+- Rule sets, printed tablets in a library call and a printing master without a G-21 instance returned "not
+  applicable" (NA). They now fail closed (RED) (tablets 1163). `since_review` was false on every Tablets edition item
+  until the epoch comparison fed it. Tests: [grel-tablets-items.test.ts](../../apps/tablets-server/test/release/grel-tablets-items.test.ts).
+
+### P4 slice 4 (high): a refused QP message blocked the importer's correct resend
+- Deduplication applied to refusals, so a correct resend was ignored. Now only an accepted message is acknowledged
+  and transient errors are raised, not recorded as refusals (recipe-core 0826).
+- **Test:** [dispositions.test.ts](../../packages/recipe-core/test/release/dispositions.test.ts) "[DI-39] a resend of a refused
+  message is evaluated afresh". Also: a distinct QP rejection meaning "[PR-55] an in-system QP rejection is signed
+  QP_REJECTED".
+
+### F-A1, G6.VALIDATION_BASIS (Phase 4 mutation run, recipe-core 0932)
+- **What went wrong:** the gate item read only the change record of the batch's own master version. A revision
+  approved as not process-impacting needs no validation link (PR-06), so every lot made on it stayed RED and could
+  never be released.
+- **Consequence:** a harmless title change to a master recipe would block release of all later lots: a production
+  stoppage created by a compliance check that was too literal.
+- **Fix:** the item walks back through the versions the master was derived from to the last process-impacting
+  version and uses that version's validation references ([0932](../../packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql)).
+- **Test:** [release-gate.test.ts](../../packages/recipe-core/test/mutation/release-gate.test.ts) "[PR-06][INV-05]": a
+  title-only revision is GREEN through its parent's basis; the same revision marked process-impacting without its own
+  link is RED.
+- **Lesson:** a mutation run finds real defects, not only weak tests: it asked "what does this branch do?" for a
+  branch no test had reached.
+
+### Export permission reason text (Phase 4 mutation run, site services 0903)
+- `site.export_permission_problem` said "it lapsed at <valid until>" for an instant inside the permission's validity
+  but before its approval. It now says "it is not current", like `site.licence_problem`. Only the text was wrong.
+
+### P3 slice 4a (two high, four medium)
+- A gateway FAIL challenge could be dropped and a stale PASS reused; an export pack could be issued without artwork
+  for its own market; the serial report was not checked against recorded events; the L-29 hold was skipped without a
+  unit and on a late acknowledgement; reconciliation counts were not compared with the printer's; MRP typed with no
+  second person. All fixed in commit 5d08d254 (tablets 0951, 0952; recipe-core 0580, 0581); tests in
+  [packaging/db-guards.test.ts](../../apps/tablets-server/test/blocks/packaging/db-guards.test.ts).
+
+## Concurrency and locking
+
+### P1-F26: two concurrent policy tightenings left a batch on a looser policy
+- Fix and test: [f26](../../packages/kernel/test/review/f26.test.ts) "[INV-47] [DI-09] two concurrent applications to one batch never
+  leave it on a looser position than one it already applied".
+
+### P1-F44: edit and submit read each other without locks
+- Content could change after submission and the has_body guard could be bypassed. Fix in
+  [0551_platform_sample_record.sql](../../packages/kernel/sql/0551_platform_sample_record.sql); test
+  [f44](../../packages/kernel/test/review/f44.test.ts) "[INV-04] concurrent edit and SUBMIT: a SUBMITTED record never has
+  an empty body and never changes after submission".
+
+### P3 slice 3c: close and hold race on containers
+- A container could stay CLOSED with a hold row (unusable but QA could not sort it) or a container opened during a
+  failing check could miss the hold. Fixed in recipe-core 0540 after walking every lock order (container lock first,
+  then hold). Backlog note: the container lock assumes READ COMMITTED.
+
+### P3 slice 5 review: the charge lock on source containers
+- A source container could be charged twice at once. A charge now waits for the take lock; one request per parent
+  (commit 8c4a6c89).
+
+### P3 slice 3d low: AQL severity under concurrent batches
+- The AQL (acceptance sampling) severity switched under concurrent batches; fixed with a per-product lock (commit
+  b351795f).
+
+### P4: the review register recorded a showing from a WHERE clause
+- The register and `openItem` routes called a definer function in a `WHERE` clause, so PostgreSQL could call it more
+  than once or not at all. They now record the showing and the opening once (commit 4d4d9444); HTTP regression test
+  "[PR-52][DI-26]" in [register-routes.test.ts](../../apps/tablets-server/test/review/register-routes.test.ts).
+- **Lesson:** never put a function with a side effect in `WHERE`, `SELECT` lists of a view or an index expression.
+
+## SQL semantics
+
+### P3 exit medium: collation changed signing order
+- site-services 0733 sorted test codes without `collate "C"`; on a database with another default collation the QC
+  extra-testing decision could become unsignable (fails safe). Fixed in site-services 0810 (`collate "C"` in
+  `site.qc_test_codes`). A C-collation database is now part of the deployment notes.
+- **Lesson:** anything that is hashed or signed must sort and compare in a defined way.
+
+### P4 recipe-core 0719: `check_function_bodies = off`
+- 0719 names a table that 0740 creates, so the file sets `check_function_bodies = off`. Apply order is by file number
+  within a source, so the functions are only called after 0740 exists. A reminder that body checks are lazy.
+
+### D-series (SQL mutation): guards that could not fire
+- Some survivors of the SQL mutation run are real: `recipe.minimum_duration_problem#15` (D6), the family-code refusal
+  naming the wrong value (D14, recipe-core 0384), market authorisation cells written around the command (D10, 0383), a
+  loop left without its own frame (D7), a lot compared with its BOM line's material also where the line names null
+  (D17, recipe-core 0372), a gateway key of small order (D16, tablets 0702, EBMR-DEV-016/017/018: a key of small
+  order lets anyone forge a reading signature).
+- **Lesson:** run the mutation tool on guards; it finds the branches no test enters.
+
+### Dead functions
+- `recipe.reprocessing_start_problem` was never called after recipe-core 0625; dropped by 0930. Also in the Phase 3
+  exit review: `batch_record_identity_guard` and a SITE-165 branch of `consume_reservation` can never fire.
+
+## Plant, lots, reprocessing and tablet blocks (Phase 3)
+
+### Slice 1 findings 1 to 4 (two high)
+- **1, 2 (high):** plant guards trusted caller-supplied product and batch; one person could skip the two-person
+  cleaning check by choosing CIP (clean-in-place) for a class not validated for it.
+- **3:** abandoning a cleaning reset the dirty-hold clock (so a dirty press looked newly cleaned).
+- **4:** the clearance signature did not bind its result.
+- **Fix:** commit 492f8736 (recipe-core 0400, 0403, 0404, 0405). Guards read facts from the batch; CIP allowed only for
+  validated classes; the dirty-hold clock survives an abandoned cleaning.
+- **Tests:** [equipment.test.ts](../../packages/recipe-core/test/plant/equipment.test.ts) "[IN-25] abandoning a cleaning does not
+  restart the dirty-hold clock: past the dirty-hold, a MAJOR cleaning abandoned leaves MINOR refused".
+- **Consequence:** product carry-over (the next product contaminated by the last) and wrong release of a press.
+
+### Slice 2b: GMP batches had no product scope
+- For a GMP batch `plant.batch_scope` returned no scope, so STEP.EXECUTE was checked with an empty scope; plant
+  facts still read the test package. Fixed in recipe-core 0504 and 0502 (commit bb535280). Test
+  [gmp-issue.test.ts](../../packages/recipe-core/test/lifecycle/gmp-issue.test.ts).
+
+### Slice 3a (high): recipe-core had its own copy of the platform authority function
+- It drifted from the kernel's. Replaced by the kernel SCOPE hook (kernel 1150, ADR 0018, commit 1e66d1b0). Also:
+  the setpoint read-back was not tied to its download, alarm acknowledgement was possible outside a step, a G-09@2
+  entry was not tied to the unit class. Test [scope-hook.test.ts](../../packages/kernel/test/platform/scope-hook.test.ts).
+
+### Slice 3b: TB-01 dispensing
+- TB-01's tolerance, adjustment-cap and FEFO (first-expiry-first-out) exceptions were raised by the handler only; the
+  database now requires them. A weighing re-verifies that each calculation lot's assay is still current. TB-01 to
+  TB-07 cannot be skipped. A filter bag last used for another product cannot skip its wash record. A null unit no
+  longer bypasses the granulation unit check (commits 12f023db, 491120b6).
+- **Tests:** [tb-01-db.test.ts](../../apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts) "[PR-19][DI-33] a weighing against a
+  calculation whose lot result QC has superseded since is refused"; "[PR-13][PR-16][IN-07] the database never lets a
+  TB-01 to TB-07 step be skipped".
+
+### Slice 3c: compression
+- Tooling past its stroke limit was not enforced during the run; strokes could be undercounted without a baseline;
+  standalone TB-12 to TB-15 checks held nothing; a missed check held only at the next entry; a batch market without a
+  rule set did not fail closed (commit c46c1813, tablets 0871, 0874, 0890 to 0893). TB-11: a missed start sweep stayed
+  due and re-raised IPC_CHECK_MISSED forever (tablets 1110, commit e7c63357; test
+  [missed-sweep-sql.test.ts](../../apps/tablets-server/test/blocks/ipc/missed-sweep-sql.test.ts)).
+- **Consequence:** tablets compressed on a worn die set past its limit; the weight and hardness checks that should
+  have held the output did not.
+
+### Slice 3d, slice 4b
+- Slice 3d: the out-of-limits and setpoint-mismatch exceptions of G-06 values were not required by the database for
+  TB-18 (now a shared check for every block with G-06 entries); the reject destruction step's order was not enforced
+  (commit b351795f).
+- Slice 4b: TB-23/TB-24 line clearance, occupancy, artwork and isolation moved into the database; the sweeper now
+  holds output for missed TB-23/TB-24 line checks and device challenges (commit b0e63dcf, tablets 0988, 0989).
+
+### Slice 5 (three high): reprocessing and lab results
+- The forward trace missed whole-batch children (INV-33, PR-57); the printed expiry cap ignored whole-batch parents
+  (IN-19 (b)); a failing lot was resolved without a confirmed laboratory error and an approved passing replacement
+  (IN-20). Also the person who records a finding could conclude or close the deviation (PR-50).
+- **Fix:** recipe-core 0625, site-services 0753, commits 8c4a6c89, 5b05c1bf.
+- **Tests:** [reprocessing.test.ts](../../packages/site-services/test/quality/reprocessing.test.ts) "[INV-33][PR-57][IN-19] the
+  forward trace of a parent finds its whole-batch child, and the child's expiry is capped at the parent's";
+  [lims.test.ts](../../packages/site-services/test/quality/lims.test.ts) "[IN-20][PR-19] an approved failure whose OOS
+  concluded any other assignable cause than a laboratory error stands".
+- **Consequence:** a recall trace that misses a child lot, and an out-of-specification result "passed" by a retest
+  without a real laboratory error (testing into compliance).
+
+### Slice 6d: seven defects found by running GB-T-01 end to end
+- Base-stated formula for TB-01, MBR transition signing, G-09@2 instrument use, entries and loop/alternative intents
+  over HTTP, hardness alias and pressure units, TB-01 hydrate checks, and the golden CI job running one file at a
+  time. Plus: a TB-18 pan load is refused while a compression container is on hold (tablets 1092); a GMP G-07 weighing
+  consumes its lot (tablets 1093).
+- **Lesson:** end-to-end golden batches find the integration bugs that unit tests cannot.
+
+### Phase 4 slice 1 quick review
+- Container work missing from the INV-35 involvement set; the batch evidence epoch did not move when a consumed lot's
+  status or LIMS results changed; epoch bumps were not limited to the audit review's scope and window; the high-water
+  mark was not taken from the signed content; item dispositions were not re-opened with the review cycle; QUERIED,
+  RESPONDED and ESCALATED were not gated on GMP; a weighed close was allowed from several balances. Fixed in commits
+  bcec265f, 94d849a5 (recipe-core 0710 to 0721).
+
+### Phase 4 slice 6 and kernel 1173: a true-copy naming defect
+- True copies of insert-only tables without an `id` column did not match each row to its own INSERT event (kernel
+  slice 4b fix); a table name bug in the archive (kernel 1173, commit 67babc7e). The evidence export is now recomputed
+  by the database (kernel 1174).
+
+## Floor screens (web)
+
+### P2-F57 to F65: the shop-floor forms under real use
+- **F57:** the "Saved" note fix reset a saved entry once the step moved on, so a still-open dialog came back with Send
+  enabled and a second Send raised a duplicate exception.
+- **F59:** after any refusal the weighing form threw away both captured scale readings, though only an engine
+  refusal spends them; now it drops only those the server names.
+- **F60 to F62:** a send with no answer; one live stream per capture slot (two per form against the browser's limit of
+  six connections per server, now one per scale); after an unlock the gauge waited up to 15 s.
+- **F63, F64, F65:** reload guard; a greyed Save that said nothing; a link with a full stop got a refusal.
+- **F58 (and F58.1):** a weighing refused as stale spent its readings, and the first fix stopped recording the stale
+  attempt as a row (DI-34 wants every refused engine call recorded). Now the server records the refusal with what was
+  entered and the version shown, without using the readings (tablets 0500, 0510). Test:
+  [stale-weighing-readings.test.ts](../../apps/tablets-server/test/devices/stale-weighing-readings.test.ts) and
+  [db-guards-stale-row.test.ts](../../apps/tablets-server/test/execution/db-guards-stale-row.test.ts).
+- **Lesson:** refusing is also a state change: decide which of (a row, readings, a counter) a refusal may touch.
+
+### P2-F44 to F55: the designer
+- The document view left out acceptance schemes, calculation limits and risk class (F44); hid an alternative's
+  conditions (F45); a library call's steps had no row (F46); an exclusive bound read like an inclusive one (F47); a QA
+  hold point could be released by any role (F48, F49); a leftover draft survived sign-out (F50); a whole number the form
+  did not take was dropped silently (F53); designer contract examples were hand-written shapes (F55).
+- **Lesson:** a document that a reviewer reads must show everything that is signed, in the author's words.
+
+### P2 web: a signing asked for at the moment of a lock or switch
+- A lock, switch or poll asked for at the moment the page shows the person was lost (INV-40, DI-14, DI-28; commit
+  78de0ca0; follow-up 0e96531c for F39).
+
+## Test flakiness and races
+
+| When | Symptom | Root cause | Fix |
+|---|---|---|---|
+| 30 Sep | Unhandled errors at test teardown (FATAL 57P01) | `pg-pool` `end()` resolved before sockets closed, so a forced database drop hit idle backends | all test-kit pools come from `openPool` and end with `endPool` in [db.ts](../../packages/test-kit/src/db.ts) |
+| 30 Sep | Gateway delivery-readiness test got `uplinked:false` once under load | the upload pass waited for the acknowledgement watermark write (open, fsync, rename) before telling waiters, racing a 5 s limit against the disk | waiters told before the slow write; a real gateway race, not a test issue |
+| 1 Oct | Agreement property test skipped big flows to avoid out-of-memory | `fc.pre` skipped every flow above 2,000 paths, so those went unchecked | stream the paths (check and drop), replay engine decisions through the simulator |
+| 1 Oct | Listener share limits test could not fail in CI | the global set-up declared a share of 40 before any test, so the test read only its own set-up | two checks that fail without the migration |
+| 4 Oct | E2E `[INV-03]` floor test broke | the reader-tap timing and a test persona without both roles | rebuilt on a kiosk persona holding OPERATOR and VERIFIER |
+| 12 Oct | Browser specs failed in parallel | specs shared a device rate limit per terminal, and review and release specs acted on the same demo batch | specs spread over office terminals (PC-QA-02, 03, 06, PC-PLAN-02, 03); office specs run one at a time. The limit (X34) is unchanged |
+| 12 Oct | Deviation spec race | hardened (Phase 3 exit) | |
+| 12 Oct | GB-T-01 hashes changed by day | see "Time" above | fixed lot dates, placeholder year |
+| 11 Oct | `db-guards-free-text-shown` failed once under load, passed alone | suspected chance match of "2409" in generated text | **open**: root cause not yet found (Phase 3 backlog, slice 6c) |
+
+Lessons: a retry is not a fix. Reproduce with the same load (see the `local-ci` skill), find the race, and then
+decide whether the race is in the test or in the product (two of the entries above were in the product).
+
+## CI
+
+- **Localhost binding (commit 2cdde1ac):** the server listened on `localhost` through a `serverFactory`, and Fastify
+  then skips the extra bindings of `localhost`. On GitHub's runners `localhost` resolves to `::1` first, so the health
+  check on `127.0.0.1` never got through. The header limit now goes through Fastify's own http options. The test
+  resolves `localhost` to 127.0.0.2 first and fails on the old code.
+- **Lint heap:** typed linting holds about 2.2 GB, above node's default heap. Run lint with
+  `node --max-old-space-size=4096` (also in [PROGRESS.md](../../PROGRESS.md)).
+- **E2E job timeout** raised to 45 minutes; the golden job runs one file at a time; a test over 30 minutes is not
+  allowed (GB-T-01 takes about 1,300 s).
+- **Register and README tests:** adding a test file without listing it in its folder README or in the control's list
+  fails a `[meta]` test. Merging two scopes of mutation groups once left a function in two SQL mutation groups (fixed
+  by one group per function, commit 79a0e582).
+- **Renumbered migrations (commits 5685be5b, 0b4de0b7, 27b1efe2, ...):** when two branches pick the same migration
+  number, one is renumbered before the merge.
+
+## Tests that proved too little (Phase 2 exit, F13 to F29 and E2E claims)
+
+- Tests were green for the wrong reason: a refusal checked only as "some failure", a guard reached only through a
+  TypeScript pre-check, a rule shown through another rule that fires first, made-up ids that never reach the named
+  branch, events compared by count. Each strengthened test now fails when its guard is removed (shown with a
+  temporary mutant).
+- The E2E evidence record wrote "as expected" for steps that measured nothing, which would have put unmeasured
+  results into a validation pack. It now lists the assertions a step made and says "not checked" if none.
+- The control register did not check the tests a control listed; `register validate` now refuses a listed test its
+  file does not declare, and the trace refuses a listed test the run did not report.
+- Phase 3 exit TypeScript mutation: calculations, entries and signing content at 90 percent or more; five
+  high-risk blocks between 84 and 90 percent. Phase 4 SQL kill tests on the "not twins": 862 of 883 mutants killed.
+
+## Open residuals for the owner
+
+From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.
+
+**Decisions waiting for the owner (PROGRESS.md "Open for the owner")**
+- D-7b-1: GB-T-01's two orders are India-only, since its master is authorised for India only; meeting D-P4-15 literally
+  needs re-recording GB-T-01 with a three-market master.
+- PR-30: a breach raises an exception that needs a deviation and blocks release, but creates no deviation by itself.
+- IN-18 "deferred clauses" read as the register export with each number's use (D-6a-7).
+- D-2a-9 (a CONFIRMED impact keeps release blocked after closure), D-3a-10 (a CONFIRMED impact is never justifiable).
+- D-P4-6: with India treated as the EU, a process-validation (PPQ) batch's release waits for the validation outcome.
+- D-5b-2: a product with no bright-stock maximum hold is not checked.
+- Drying-loop correction (the default of phase 4 slice 1a is stricter: evidence and QA approval) and the India
+  subdivision rule: TB-12 subdivision can never be recorded until the India rule is decided.
+
+**For the owner and the expert (data to check before validation)**
+- Compendial rule-set values in `tab.compendial_rule_set` (tablets 0890) came from secondary sources; AQL table
+  values (tablets 0911) have medium confidence; the India Schedule H2 QR payload layout is a stub.
+- Weight mode e (subdivision of scored tablets) has no India rule set, so it is refused (fail-closed).
+- A QC-unit signature for the TB-19 print approval would need a new signature meaning (default: QA).
+
+**Security and platform residuals**
+- F34.2: the application role still selects identity, incident and retention tables directly; HW.1 to HW.3: it still
+  sees when and how many investigations and holds were opened, not who.
+- Free text in a test run may still hold a real-format identifier within the limits of F12.5.
+- Engine-only class (REPLAY-GATE.1): computed values, data-decided branches, loop exits and counts, replicate counts,
+  some exceptions and lot usability are not re-derived by the database; G-REL replays the stored rows with the pinned
+  engine and keeps a record NOT_READY on any difference.
+- The GMP sweeper's secret is a plaintext demo file; production needs a secret store.
+- Three read functions (`allocation_register`, `qp_reader_access`, `read_qp_package`) do not refuse administrators first.
+- Definer reads granted to the application role (`market_added` and others) are guarded only at the HTTP layer.
+- Not covered: Firefox and Safari (E2E runs Chromium only), the simulator console on port 4002, the unauthenticated
+  `/gw/v1/nonce`, two installations of the same kind on one host sharing cookie names, and a database whose default
+  collation is not C.
+- Performance: each `recipe.execution_state` change runs about 50 triggers (GB-T-01 took 20 minutes; now about 22
+  minutes in CI); the epoch triggers look up on every audit insert; the QP package grows the audit trail. Measure
+  before large sites.
+
+**Mutation work deferred to deployment validation (decision 0012)**
+- Kill confirmation of 232 scope A and 118 scope B survivors; the us-disposition, qp-certification and
+  market-changes groups; Stryker survivor triage for the server release, records, India, archive and PQR features.
+
+**Features and tests not yet built**
+- Detection runs only when asked: replay, `execution_violations()`, chain verification have no scheduler yet.
+- Regulatory assessments not yet made: kiosk badge-tap attribution against Part 11 11.10(d) and 11.300; one
+  administrator can bind an instrument or enrol a gateway key; no complete human-readable copy of a test run.
+- Injectables edition: not reviewed by any area; Phase 5 takes it (decision 0010).

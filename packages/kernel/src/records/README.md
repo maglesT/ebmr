@@ -232,3 +232,5 @@ requires, and it refuses administrators when it does) and the read functions.
   signature by someone else), 040 holds, 041 a hold placed after the disposal approval (or released after
   its signature) voids it, 050-056 incidents, 060-065 investigations (065 closure signature by someone
   else), 070 true copies. Signature refusals keep their EBMR-ESIG codes (070 not valid for this use).
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

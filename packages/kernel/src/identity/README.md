@@ -243,3 +243,5 @@ certification; 180–182 delegation; 190 bootstrap.
 bypass tests for INV-11, INV-26, INV-27 (user IDs) and INV-40. `seed.ts` creates real identities
 through these functions (`seedActor`, `seedServiceActor`, `seedAdministration`, `freshAuthEvent`,
 `withFreshAuth`); on SHARED and GRADE_A_B devices every command needs its own fresh event.
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

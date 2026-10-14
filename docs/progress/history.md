@@ -2470,3 +2470,35 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   run: 6,070 tests passed (the 2 [meta] failures above fixed and re-run), 31 golden, 42 browser, trace ok at phase 4
   (143/241). Deferred to deployment validation: kill confirmation, the us-disposition, qp-certification and
   market-changes groups, Stryker survivor triage.
+- 2026-10-14: RUNPOD MACHINE, DEVELOPER HANDBOOK AND CODE MAP FOR PHASES 1 TO 4 (decisions 0013, 0014; branch
+  docs/handbook-phase-1-4). New machine (RunPod, Ubuntu 22.04, root, no systemd; the disk is erased when the pod stops)
+  set up by tools/dev-env/runpod-setup.sh: Node 22, pnpm 10.33.0, PostgreSQL 16 clusters main 5432, ci 5433, ci2 5434
+  and golden 5435 under libfaketime, Playwright Chromium in /opt/pw-browsers. First local CI: static checks green;
+  6,049 passed, 13 failed with the suite running beside three writing agents: 12 were load (30 s timeouts, a role's
+  connection limit, f55's restored cluster slow to recover) and pass when run alone; the 13th, kernel
+  identity/site-zone-policy "[DI-27] over every zone name", needs about 65 s here because Ubuntu 22.04's tzdata
+  carries the posix/ copy of every zone (1,198 names in pg_timezone_names, about 600 on the CI runner, and the guard
+  scans the list per call); it passes on CI in under 17 s. Handbook: docs/handbook/ (README, STYLE, primer, glossary,
+  architecture, life of a batch, database, testing and debugging, adding a feature, defect log, removed and replaced,
+  runbooks, eleven module guides; all Draft). Code map: tools/handbook generates docs/handbook/code-map.md and
+  reference/ (database catalogue, control map, error codes) from docs/handbook/modules.yaml (82 modules, all 454
+  migrations, server features, contract namespaces, screens); `pnpm handbook` / `pnpm handbook:check`, and a [meta]
+  test fails on stale pages, broken links, unknown `#sym=` symbols or anchors, unclaimed files, and a new migration
+  without a `-- Handbook:` line. Default D-HB-1: existing migrations keep their bytes (checksummed by the runner, never
+  edited); the code map names each one's page, and only migrations after the recorded watermarks (kernel 1174, site
+  services 0903, recipe-core 0932, tablets 1209) carry the header line. Package and feature READMEs link their page.
+  Code and docs that disagree (found while writing; left for the owner or a later slice, listed in the pages'
+  "Differences" sections): DI-43 and IN-11 have empty implemented_by and DI-41 does not name kernel 1160 to 1174;
+  tablets 0001 and 0480 tag EBMR-TAB-016 with DI-31 while its tests use DI-16 and DI-38; ADR 0001 describes an
+  ebmr_site database (the site schema lives in the edition database); no screen sends MBR_TRANSITION; two batch status
+  sets, neither the outline's; the kernel outbox relay runs in no app; nothing tests that the contract changes only
+  additively; integration-sdk and site-gateway headers claim adapters (ERP, LIMS, QMS, LMS, EMS, OPC UA) that do not
+  exist yet; stale headers (site-services index.ts, devices "sandbox only", containers index.ts cites tablets 1111 for
+  the rule now in 1141, ui-kit tokens.ts cites a missing test, test-kit's description); tools/regulatory scripts
+  hard-code an old scratchpad path; edition spelt upper case in site-services 0710, lower case in recipe-core 0110.
+  Quick review (one pass): no blocker; an accuracy sample of 28 handbook claims checked against the code, all right.
+  Fixed: a TypeScript `#sym=` target is read with the compiler's parser (top-level declarations only, so a word in a
+  comment, string or regular expression no longer passes); a malformed percent-encoding in a link is reported instead
+  of crashing the check; a migration source without a header mark is reported; the setup script repairs the golden
+  cluster's libfaketime settings on every run. Left as low: reference-style links are not checked; a bare `#sym=`
+  SQL name matches any schema (qualified names are exact); orphaned generated pages are not detected.

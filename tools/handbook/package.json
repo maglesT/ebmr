@@ -1,0 +1,7 @@
+{
+  "name": "@ebmr/tool-handbook",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Developer handbook tooling: generates the code map and the reference pages from the repository and checks the handbook's links (decisions 0013, 0014)",
+  "type": "module"
+}

@@ -55,3 +55,5 @@ set arrives in Phase 3; the Injectables rule set is deferred with that edition.
 - DATA-GUARDS treats values as exact reals: two conditions `x < 3.5` and `x >= 3.51` leave a gap
   even when x is captured to two decimals. Authors must write complementary conditions.
 - Required hashes on every reference may need a DMS integration for SOP and material versions.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)

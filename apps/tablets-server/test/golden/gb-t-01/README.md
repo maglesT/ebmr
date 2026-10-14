@@ -168,3 +168,5 @@ Findings for the lead and the owner (defaults D-7b-1 to D-7b-3 in the phase plan
 
 Performance (the 1-0 baseline: 898 s for the file): see the phase plan's slice 7b notes. Tablets 1210 makes the audit-trail
 review's event list read its window once (the review of the happy variant took 12 minutes before, 22 s after).
+
+Handbook: [06-testing-and-debugging.md](../../../../../docs/handbook/06-testing-and-debugging.md)

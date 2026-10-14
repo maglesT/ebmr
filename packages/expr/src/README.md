@@ -13,7 +13,7 @@ computed, never typed: the calculation part). The package imports nothing else i
 |---|---|
 | `decimal/dec.ts` | `Dec`: 34 significant digits on a private decimal.js clone, parsed from strings only, canonical text, explicit errors, never a JavaScript number |
 | `decimal/exact.ts` | BigInt rationals: one correct rounding for conversions, order-independent sums, correctly rounded square roots |
-| `units/unit-catalogue.ts` | The controlled catalogue (atoms, prefixes, temperature scales, named units per quantity kind). Edit this, then regenerate |
+| `units/generator/unit-catalogue.ts` | The controlled catalogue (atoms, prefixes, temperature scales, named units per quantity kind). Edit this, then regenerate |
 | `units/generator/` | Build-time generator: reads UCUM definitions from @lhncbc/ucum-lhc, resolves them exactly, cross-checks ucum-lhc's floats, writes `unit-table.generated.ts` |
 | `units/unit-table.generated.ts` | The committed, generated table of exact factors (a test regenerates it and compares) |
 | `units/ucum-syntax.ts`, `units/unit.ts`, `units/quantity.ts` | UCUM reader (stricter than ucum-lhc: prefixes only on metric atoms), units, exact conversion and comparison |
@@ -161,3 +161,5 @@ paths, span, fn}` with codes `MISSING_INPUT`, `INVALID_INPUT`, `DIVISION_BY_ZERO
 No clock, randomness, locale formatting, Intl or host APIs in the runtime (a test scans the sources);
 SHA-256 and canonical JSON are implemented here (same rules as the kernel's esig canonical JSON), so hashes
 are identical in Node and the browser. The runtime never loads ucum-lhc; only the generator does.
+
+Handbook: [modules/expr.md](../../../docs/handbook/modules/expr.md)

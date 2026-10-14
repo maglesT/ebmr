@@ -57,3 +57,5 @@ convert database errors to it.
   such suppression is detectable by reconciliation (for example alarms against incidents). A
   dedicated relay role is proposed to the lead.
 - The relay keeps its transaction open while handlers run. Keep handlers short and batches small.
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)
