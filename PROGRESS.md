@@ -96,8 +96,12 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 
 ## Next
 
-Phase 4 closes with the slice 7 PR and the mutation PR (`phase-4/mutation-final`). Then Phase 6 (decision 0010): integrations and extras for Tablets, and the clauses
-decision 0011 deferred to it; then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
+Phase 4 is closed (PRs #26, #27, #28). Phase 6 (decision 0010): integrations and extras for Tablets and the 41 clauses
+decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (branch `phase-6/plan`): slices 6a
+adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
+6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
+training mode, 6h Hindi and Gujarati, 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
+Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
 
