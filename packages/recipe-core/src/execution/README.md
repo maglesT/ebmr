@@ -1437,3 +1437,5 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   forged through the application role is stored (the database does not re-run calculations) and the invariant query
   stays empty, but the replay of the stored rows with the pinned engine differs at that row, as the release gate
   G-REL will read it.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)

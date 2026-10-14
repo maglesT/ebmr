@@ -127,3 +127,5 @@ permission). Its stub table `platform.stub_record` accepts content edits only in
 stored `content_version`, raised only when title or body change, which the e-signature content provider
 (0910) reports: a save that changes nothing keeps every signature valid (INV-09). It stands in for the
 controlled records built in later phases.
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

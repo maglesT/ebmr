@@ -117,3 +117,5 @@ a share of its own, which the limits as the cluster stands would only echo).
 `helpers.ts#openSandbox` gives a test sandbox's pools; its `drop()` ends them with `endPool` (`test/harness/pools.ts`),
 which waits until the socket of every connection has closed, before the forced drop (checked in
 `test/harness/teardown.test.ts`).
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

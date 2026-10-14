@@ -141,3 +141,5 @@ time comes from the database clock (`clock_timestamp()`).
   `recorded_at` is reported when the application role may write it or its default is not the database
   clock.
 - Display: `siteTime(Instant.parse(row.recorded_at_text), siteZone).display`.
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

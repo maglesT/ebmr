@@ -104,3 +104,5 @@ issuer or a service account whose grant covers the site.
 - Register other modules' externally visible identifier sequences (see above); route `continuity.alarm` to the platform alarm and notification path; schedule `runIntegrityVerification` (DI-23).
 - Write each login name to the ledger before the account is created (identity module), which would close the user-ID residual risk above.
 - Grant the backup role `pg_read_all_data` and EXECUTE on `kernel.verify_chain` and `kernel.verify_anchor` for drills against production.
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

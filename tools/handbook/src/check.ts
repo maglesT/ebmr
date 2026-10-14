@@ -91,7 +91,15 @@ export function linkProblems(model: Model, generated: ReadonlyMap<string, string
   const cache = new Map<string, string>();
   const symbols = new Map<string, Set<string>>();
   const ctx = { root: model.root, pending, overlay: generated };
-  return [...pages].sort(compare).flatMap((p) => checkLinks(ctx, p, generated.get(p) ?? read(model.root, p), cache, symbols));
+  const inPages = [...pages].sort(compare).flatMap((p) => checkLinks(ctx, p, generated.get(p) ?? read(model.root, p), cache, symbols));
+  // The code-to-handbook back-links: the `Handbook:` line of each package or feature README.
+  const readmes = model.files.filter((f) => /^(packages|apps|tools)\/.*README\.md$/.test(f));
+  const backLinks = readmes.flatMap((f) => {
+    const lines = read(model.root, f).split('\n').filter((l) => l.startsWith('Handbook:'));
+    if (lines.length === 0) return [`${f}: a package or feature README names its handbook page in a "Handbook: [page](link)" line`];
+    return checkLinks(ctx, f, lines.join('\n'), cache, symbols);
+  });
+  return [...inPages, ...backLinks];
 }
 
 export interface Result {

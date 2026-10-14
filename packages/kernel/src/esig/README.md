@@ -208,3 +208,5 @@ signing, 091 event already used, 092 too old, 094 other challenge).
 - The DI-19 check of unreported misuse covers what the authentication event itself proves (another
   person, account or terminal). A refused attempt that leaves no committed trace (reuse of an event
   that attributed another command, missing components) is known only if the application reports it.
+
+Handbook: [modules/kernel.md](../../../../docs/handbook/modules/kernel.md)

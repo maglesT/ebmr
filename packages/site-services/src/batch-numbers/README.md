@@ -57,3 +57,5 @@ not cover it (see the continuity README). Tests: `test/authorization.test.ts`.
 ## Later phases
 
 Phase 4 (IN-18 proper): the batch issue guard calls `allocateBatchNumber` / `registerExternalBatchNumber`; the rework rule (a reworked batch always gets a new number, IN-19) and contingency-form numbering use the same protected counters.
+
+Handbook: [modules/site-services.md](../../../../docs/handbook/modules/site-services.md)

@@ -75,7 +75,7 @@ export function loadControls(root: string, files: readonly string[]): ControlRow
       id: doc['id'],
       file,
       title: typeof doc['title'] === 'string' ? doc['title'] : '',
-      targetPhase: doc['target_phase'] === undefined ? '' : String(doc['target_phase']),
+      targetPhase: typeof doc['target_phase'] === 'number' || typeof doc['target_phase'] === 'string' ? String(doc['target_phase']) : '',
       editions: list(doc['editions']).map(String),
       buildStatus: typeof doc['build_status'] === 'string' ? doc['build_status'] : '',
       paths: [...new Set(moduleTexts.flatMap(pathsIn))].sort(compare),

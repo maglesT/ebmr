@@ -161,3 +161,5 @@ paths, span, fn}` with codes `MISSING_INPUT`, `INVALID_INPUT`, `DIVISION_BY_ZERO
 No clock, randomness, locale formatting, Intl or host APIs in the runtime (a test scans the sources);
 SHA-256 and canonical JSON are implemented here (same rules as the kernel's esig canonical JSON), so hashes
 are identical in Node and the browser. The runtime never loads ucum-lhc; only the generator does.
+
+Handbook: [modules/expr.md](../../../docs/handbook/modules/expr.md)

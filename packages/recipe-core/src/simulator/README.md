@@ -37,3 +37,5 @@ DI-04 (static part: validator + simulation evidence per version; `test/simulator
 `simulate.test.ts`), INV-19 (unrolling, exhaustion, per-iteration contexts; `paths.test.ts`),
 INV-20 (time vectors), PR-08 (limit vectors). DI-04's execution-time part (recipe version reported
 by the PLC differs from the MBR) belongs to the engine and G-06 in a later phase.
+
+Handbook: [modules/recipe-core.md](../../../../docs/handbook/modules/recipe-core.md)
