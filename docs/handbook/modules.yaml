@@ -1,0 +1,772 @@
+# The module manifest behind the generated handbook pages (decision 0014). `pnpm handbook` reads it and writes
+# code-map.md and reference/*.md; `pnpm handbook:check` (and tools/handbook/test) fails when a migration, a server
+# feature, a contract file or a screen folder belongs to no module, when a handbook link is broken, or when a
+# generated page is out of date.
+#
+# Matching is ordered: a file belongs to the FIRST module (in this file's order) whose pattern matches it.
+# - migrations: per source directory, regular expressions on the file name.
+# - server, contract, screens, src: paths (a directory claims every file under it; a file claims itself).
+# - tests: globs (`**` any depth, `*` within one path segment); only *.test.ts and *.test.tsx files count.
+# - page: the handbook page (relative to docs/handbook) that explains the module; it must be listed in README.md.
+
+migration_sources:
+  - packages/kernel/sql
+  - packages/site-services/sql
+  - packages/recipe-core/sql
+  - apps/tablets-server/sql
+
+# The highest migration number per source when the code map was built (14 October 2026). Migrations are immutable
+# once merged, so the older ones are linked from the code map instead. A migration numbered above this mark must name
+# its handbook page in a `-- Handbook: <page>` line within its first 10 lines.
+migration_header_from:
+  packages/kernel/sql: 1174
+  packages/site-services/sql: 903
+  packages/recipe-core/sql: 932
+  apps/tablets-server/sql: 1209
+
+# Handbook pages linked from the README that are still being written. A link to one of these may point at a file that
+# does not exist yet; remove a page from this list as soon as it lands.
+pending:
+  - 04-life-of-a-batch.md
+  - 06-testing-and-debugging.md
+  - 07-adding-a-feature.md
+  - 10-runbooks.md
+  - modules/
+  - modules/kernel.md
+  - modules/site-services.md
+  - modules/expr.md
+  - modules/recipe-core.md
+  - modules/api-contract.md
+  - modules/tablets-server.md
+  - modules/tablets-web.md
+  - modules/integrations.md
+  - modules/shared-kits.md
+  - modules/injectables.md
+  - modules/tools.md
+
+modules:
+  # ---------------------------------------------------------------- kernel
+  - id: kernel-audit
+    title: Audit trail
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^0010_', '^0960_']
+    src: [packages/kernel/src/audit]
+    tests: ['packages/kernel/test/audit/**']
+
+  - id: kernel-iam
+    title: Identity and access (persons, accounts, roles, qualifications, devices, credentials, sessions)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^01\d\d_', '^0940_', '^0990_', '^1000_']
+    src: [packages/kernel/src/identity]
+    tests: ['packages/kernel/test/identity/**']
+
+  - id: kernel-esig
+    title: Electronic signatures
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^02\d\d_', '^0910_', '^0930_', '^0950_', '^1020_', '^1112_']
+    src: [packages/kernel/src/esig]
+    tests: ['packages/kernel/test/esig/**']
+
+  - id: kernel-market
+    title: Market rules (market profiles, site values, policies)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^03\d\d_', '^1010_']
+    src: [packages/kernel/src/market]
+    tests: ['packages/kernel/test/market/**']
+
+  - id: kernel-qp-evidence
+    title: QP batch package, true copies, contingency forms, evidence export and disposal requests
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^116\d_', '^117\d_']
+    src:
+      - packages/kernel/src/records/contingency.ts
+      - packages/kernel/src/records/evidence-export.ts
+      - packages/kernel/src/records/lossless-json.ts
+      - packages/kernel/src/records/pdf-true-copy.ts
+      - packages/kernel/src/records/pdfa.ts
+      - packages/kernel/src/records/qp-package.ts
+      - packages/kernel/src/records/true-copy.ts
+      - packages/kernel/src/records/verify-true-copy.ts
+    tests:
+      - 'packages/kernel/test/records/contingency-forms.test.ts'
+      - 'packages/kernel/test/records/evidence-export*.test.ts'
+      - 'packages/kernel/test/records/lossless-json.test.ts'
+      - 'packages/kernel/test/records/qp-package.test.ts'
+      - 'packages/kernel/test/records/true-copy*.test.ts'
+
+  - id: kernel-records
+    title: Records register, incidents, retention, data-integrity investigations
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^04\d\d_']
+    src: [packages/kernel/src/records]
+    tests: ['packages/kernel/test/records/**']
+
+  - id: kernel-platform
+    title: Platform services (outbox, time sources, idempotency, state engine, scope hook)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^05\d\d_', '^1110_', '^1150_']
+    src: [packages/kernel/src/state, packages/kernel/src/time, packages/kernel/src/commands]
+    tests: ['packages/kernel/test/platform/**']
+
+  - id: kernel-continuity
+    title: Continuity (backup, restore, protected sequences, device hardening)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^06\d\d_']
+    src: [packages/kernel/src/continuity]
+    tests: ['packages/kernel/test/continuity/**']
+
+  - id: kernel-authorization
+    title: Authorization (permission catalogue, scopes, signature requirements)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^07\d\d_']
+    tests: ['packages/kernel/test/integration/authorization.test.ts']
+
+  - id: kernel-sandbox
+    title: Sandbox, training and simulation store (TEST- identifiers, segregation)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^08\d\d_', '^0920_', '^10[3-9]\d_', '^110[0-2]_', '^11[2-4]\d_']
+    src: [packages/kernel/src/sandbox]
+    tests: ['packages/kernel/test/sandbox/**']
+
+  - id: kernel-integration
+    title: Integration wiring between kernel modules
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^0900_']
+    tests: ['packages/kernel/test/integration/**']
+
+  - id: kernel-installation
+    title: Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^0001_', '^097\d_', '^098\d_', '^1111_']
+    src: [packages/kernel/src/db, packages/kernel/src/index.ts]
+    tests: ['packages/kernel/test/**']
+
+  # ---------------------------------------------------------------- site services
+  - id: ss-batch-numbers
+    title: Batch number register
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^0600_', '^0690_', '^0700_']
+    src: [packages/site-services/src/batch-numbers]
+    tests: ['packages/site-services/test/batch-number-register.test.ts']
+
+  - id: ss-india
+    title: India licences and export permission
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^0885_', '^0903_']
+    src: [packages/site-services/src/india]
+    tests: ['packages/site-services/test/india/**', 'packages/site-services/test/mutation/india-licences.test.ts']
+
+  - id: ss-erp
+    title: ERP masters and production orders
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^0732_', '^075[01]_', '^080[23]_']
+    tests: ['packages/site-services/test/mutation/erp-interfaces.test.ts']
+
+  - id: ss-shipping
+    title: Manufacturer release guard, shipping interlock and after-release lot exits
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^0860_', '^087\d_', '^0880_']
+    tests: ['packages/site-services/test/shipping/**']
+
+  - id: ss-quality
+    title: Deviations, evidence documents, LIMS-lite, specifications, samples, OOS
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql:
+        ['^073[013]_', '^0740_', '^0753_', '^0810_', '^082\d_', '^084[0134]_', '^0859_']
+    src: [packages/site-services/src/quality]
+    tests:
+      - 'packages/site-services/test/quality/**'
+      - 'packages/site-services/test/mutation/deviations.test.ts'
+      - 'packages/site-services/test/mutation/reprocessing.test.ts'
+
+  - id: ss-lots
+    title: Material lots, release, retest, finished and returned lots, shelf life
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql:
+        ['^071\d_', '^072\d_', '^0752_', '^076\d_', '^080[01]_', '^0842_', '^0861_', '^0881_', '^0886_']
+    src: [packages/site-services/src/lots]
+    tests: ['packages/site-services/test/lots/**', 'packages/site-services/test/mutation/lots-and-lims.test.ts']
+
+  - id: ss-core
+    title: Site services package entry and shared tests
+    page: modules/site-services.md
+    package: packages/site-services
+    src: [packages/site-services/src/index.ts]
+    tests: ['packages/site-services/test/**']
+
+  # ---------------------------------------------------------------- recipe core
+  - id: rc-lifecycle
+    title: MBR life cycle (families, versions, evidence, market authorisation, periodic review)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql:
+        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_']
+    src: [packages/recipe-core/src/lifecycle]
+    tests: ['packages/recipe-core/test/lifecycle/**']
+
+  - id: rc-plant
+    title: Plant (equipment, areas, logbook, status, hazard dedication)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^040\d_', '^0460_', '^052[1-3]_', '^0691_', '^0890_', '^0912_']
+    src: [packages/recipe-core/src/plant]
+    tests: ['packages/recipe-core/test/plant/**']
+
+  - id: rc-containers
+    title: Output containers
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^042\d_', '^0540_', '^074\d_']
+    src: [packages/recipe-core/src/containers]
+    tests: ['packages/recipe-core/test/containers/**']
+
+  - id: rc-consumption
+    title: Batch side of material consumption
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0430_', '^070[01]_']
+
+  - id: rc-gmp-batch
+    title: GMP batch store and issue, packaging orders, allocation register, expiry dating
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_']
+
+  - id: rc-blocks
+    title: Generic block versions (G-06, G-21 and others)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0520_', '^0541_', '^058[01]_']
+    src: [packages/recipe-core/src/blocks]
+    tests: ['packages/recipe-core/test/blocks/**']
+
+  - id: rc-reprocessing
+    title: Reprocessing and recovery
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0603_', '^062\d_', '^0930_']
+
+  - id: rc-formula
+    title: Formulation library and planning reads
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^064\d_', '^0690_']
+    src: [packages/recipe-core/src/formula]
+
+  - id: rc-review
+    title: Batch record review (production approval, QA review, audit-trail review, evidence epochs)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^071\d_', '^072\d_', '^0770_', '^0931_']
+    tests: ['packages/recipe-core/test/review/**']
+
+  - id: rc-release
+    title: Release gate G-REL and manufacturer release
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^078\d_', '^0892_', '^0932_']
+    tests: ['packages/recipe-core/test/release/**']
+
+  - id: rc-notifications
+    title: Notification centre
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^081\d_']
+
+  - id: rc-markets
+    title: Market dispositions and QP certification
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^082\d_']
+
+  - id: rc-after-release
+    title: After release (suspension, re-confirmation, recall, rejection, disposal)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^084\d_', '^0875_']
+
+  - id: rc-record-lock
+    title: Record lock, bulk reconciliation and amendment
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^087\d_']
+
+  - id: rc-india
+    title: India issue gates, label particulars and Schedule H2 payload
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0891_', '^0894_']
+
+  - id: rc-pqr
+    title: Product quality review extract
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0910_']
+
+  - id: rc-execution
+    title: Execution store and engine (steps, entries, exceptions, change paths, hand-over, approvals)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0[23]\d\d_', '^04[4-9]\d_', '^0911_']
+    src: [packages/recipe-core/src/execution, packages/recipe-core/src/engine]
+    tests: ['packages/recipe-core/test/execution/**', 'packages/recipe-core/test/engine/**', 'packages/recipe-core/test/integration/**']
+
+  - id: rc-flow
+    title: Flows, validator and limits
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    src: [packages/recipe-core/src/flow, packages/recipe-core/src/validator, packages/recipe-core/src/limits]
+    tests: ['packages/recipe-core/test/flow/**', 'packages/recipe-core/test/validator/**', 'packages/recipe-core/test/limits/**']
+
+  - id: rc-simulator
+    title: Recipe simulator
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    src: [packages/recipe-core/src/simulator]
+    tests: ['packages/recipe-core/test/simulator/**']
+
+  - id: rc-core
+    title: Recipe core package entry and SQL mutation tests
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    src: [packages/recipe-core/src/index.ts, packages/recipe-core/src/pure.ts]
+    tests: ['packages/recipe-core/test/**']
+
+  # ---------------------------------------------------------------- Tablets edition (server feature, contract, screens)
+  - id: ts-session
+    title: Sessions and sign-in
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^0400_', '^0480_', '^0550_']
+    server: [apps/tablets-server/src/features/session]
+    contract: [packages/api-contract/src/ns/session.ts]
+    screens: [apps/tablets-web/src/features/session]
+    tests: ['apps/tablets-server/test/session/**', 'apps/tablets-web/test/session/**']
+
+  - id: ts-access
+    title: Kiosk access, attribution and governance read doors
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^0100_', '^04[346]0_', '^0540_', '^05[678]0_', '^0610_']
+    server: [apps/tablets-server/src/features/access]
+    contract: [packages/api-contract/src/ns/access.ts]
+    screens: [apps/tablets-web/src/features/access]
+    tests: ['apps/tablets-server/test/access/**', 'apps/tablets-web/test/access/**']
+
+  - id: ts-audit
+    title: Audit trail reads
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^0420_', '^0470_', '^0490_', '^0530_']
+    server: [apps/tablets-server/src/features/audit]
+    contract: [packages/api-contract/src/ns/audit.ts]
+    screens: [apps/tablets-web/src/features/audit]
+    tests: ['apps/tablets-server/test/audit/**', 'apps/tablets-web/test/audit/**']
+
+  - id: ts-esig
+    title: Signing ceremony and signing meanings
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^0410_', '^0450_', '^0620_', '^11[5-9]9_', '^1200_', '^1209_']
+    server: [apps/tablets-server/src/features/esig]
+    contract: [packages/api-contract/src/ns/esig.ts]
+    tests: ['apps/tablets-server/test/esig/**']
+
+  - id: ts-designer
+    title: MBR designer
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^0150_', '^0280_', '^1090_']
+    server: [apps/tablets-server/src/features/designer]
+    contract: [packages/api-contract/src/ns/designer.ts]
+    screens: [apps/tablets-web/src/features/designer]
+    tests: ['apps/tablets-server/test/designer/**', 'apps/tablets-web/test/designer/**']
+
+  - id: ts-devices
+    title: Devices and scale or process readings
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql:
+        ['^0250_', '^0270_', '^0290_', '^03[0-6]0_', '^05[0-2]0_', '^0590_', '^0600_', '^070[02]_', '^0710_', '^0820_', '^0870_', '^1060_']
+    server: [apps/tablets-server/src/features/devices]
+    contract: [packages/api-contract/src/ns/devices.ts, packages/api-contract/src/ns/device-readings.ts]
+    screens: [apps/tablets-web/src/features/devices]
+    tests: ['apps/tablets-server/test/devices/**', 'apps/tablets-web/test/devices/**']
+
+  - id: ts-blocks
+    title: Tablets block versions (TB-01 to TB-24)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql:
+        ['^084[0-3]_', '^085\d_', '^087[1-4]_', '^089\d_', '^09[1-9]\d_', '^1002_', '^102\d_', '^109[12]_', '^111[03]_', '^1151_']
+    server: [apps/tablets-server/src/features/edition-blocks.ts, apps/tablets-server/src/blocks]
+    tests: ['apps/tablets-server/test/blocks/**']
+
+  - id: ts-containers
+    title: Output container acts
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^111[12]_', '^1141_']
+    server: [apps/tablets-server/src/features/containers]
+    contract: [packages/api-contract/src/ns/containers.ts]
+    tests: ['apps/tablets-server/test/containers/**']
+
+  - id: ts-master-data
+    title: Master data (formulas, ERP masters)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1041_', '^1101_']
+    server: [apps/tablets-server/src/features/master-data]
+    contract: [packages/api-contract/src/ns/master-data.ts]
+    screens: [apps/tablets-web/src/features/master-data]
+    tests: ['apps/tablets-server/test/master-data/**', 'apps/tablets-web/test/office/master-data.test.tsx']
+
+  - id: ts-quality
+    title: Quality (lots, deviations, LIMS-lite, specifications, samples)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^100[01]_', '^104[02]_', '^1150_']
+    server: [apps/tablets-server/src/features/quality]
+    contract:
+      - packages/api-contract/src/ns/quality.ts
+      - packages/api-contract/src/ns/deviation.ts
+      - packages/api-contract/src/ns/samples.ts
+      - packages/api-contract/src/ns/specifications.ts
+    screens: [apps/tablets-web/src/features/quality]
+    tests: ['apps/tablets-server/test/quality/**', 'apps/tablets-web/test/office/quality*.test.tsx']
+
+  - id: ts-planning
+    title: Planning
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/planning]
+    contract: [packages/api-contract/src/ns/planning.ts]
+    screens: [apps/tablets-web/src/features/planning]
+    tests: ['apps/tablets-web/test/office/planning.test.tsx', 'apps/tablets-web/test/office/packaging.test.tsx']
+
+  - id: ts-plant
+    title: Plant screens and routes
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/plant]
+    contract: [packages/api-contract/src/ns/plant.ts]
+    screens: [apps/tablets-web/src/features/plant]
+    tests: ['apps/tablets-web/test/office/plant.test.tsx']
+
+  - id: ts-review
+    title: Batch record review
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1140_']
+    server: [apps/tablets-server/src/features/review]
+    contract: [packages/api-contract/src/ns/review.ts]
+    screens: [apps/tablets-web/src/features/review]
+    tests: ['apps/tablets-server/test/review/**', 'apps/tablets-web/test/review/**']
+
+  - id: ts-release
+    title: Release cockpit and Tablets G-REL items
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^116[0-3]_']
+    server: [apps/tablets-server/src/features/release]
+    contract: [packages/api-contract/src/ns/release.ts]
+    screens: [apps/tablets-web/src/features/release]
+    tests: ['apps/tablets-server/test/release/**', 'apps/tablets-web/test/release/**']
+
+  - id: ts-notifications
+    title: Notifications
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/notifications]
+    contract: [packages/api-contract/src/ns/notifications.ts]
+    screens: [apps/tablets-web/src/features/notifications]
+    tests: ['apps/tablets-server/test/notifications/**']
+
+  - id: ts-qp-package
+    title: EU QP batch package and certification message intake
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1180_']
+    server: [apps/tablets-server/src/features/qp-package]
+    contract: [packages/api-contract/src/ns/qp-shipping.ts]
+
+  - id: ts-erp-shipping
+    title: ERP shipping interlock
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/erp-shipping]
+
+  - id: ts-records
+    title: Record lock and bright stock
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1190_']
+    server: [apps/tablets-server/src/features/records]
+    contract: [packages/api-contract/src/ns/records-lock.ts]
+    screens: [apps/tablets-web/src/features/records]
+    tests: ['apps/tablets-server/test/records/**', 'apps/tablets-web/test/records/**']
+
+  - id: ts-pqr
+    title: Product quality review
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/pqr]
+    contract: [packages/api-contract/src/ns/pqr.ts]
+    screens: [apps/tablets-web/src/features/pqr]
+    tests: ['apps/tablets-server/test/pqr/**', 'apps/tablets-web/test/pqr/**']
+
+  - id: ts-archive
+    title: Archive, evidence export and inspection
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/archive]
+    contract: [packages/api-contract/src/ns/archive.ts]
+    screens: [apps/tablets-web/src/features/archive]
+
+  - id: ts-india
+    title: India features (licences, labels, expiry rule)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1201_']
+    server: [apps/tablets-server/src/features/india]
+    contract: [packages/api-contract/src/ns/india.ts]
+    screens: [apps/tablets-web/src/features/india]
+    tests: ['apps/tablets-server/test/india/**', 'apps/tablets-web/test/office/india.test.tsx', 'packages/api-contract/test/india.test.ts']
+
+  - id: ts-execution
+    title: Execution on the shop floor (batches, entries, lots)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql:
+        ['^0200_', '^03[789]0_', '^06[34]0_', '^0701_', '^071[15]_', '^080[01]_', '^084[45]_', '^1093_', '^110[02]_']
+    server: [apps/tablets-server/src/features/execution]
+    contract: [packages/api-contract/src/ns/execution.ts, packages/api-contract/src/ns/batches.ts]
+    screens: [apps/tablets-web/src/features/floor]
+    tests: ['apps/tablets-server/test/execution/**', 'apps/tablets-web/test/floor/**']
+
+  - id: ts-meta
+    title: Meta routes (health, version)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/meta]
+    contract: [packages/api-contract/src/ns/meta.ts]
+
+  - id: ts-core
+    title: Tablets server spine (app, platform, CLI, golden batches, seed)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^0001_', '^0260_']
+    server:
+      - apps/tablets-server/src/features/common
+      - apps/tablets-server/src/features/index.ts
+      - apps/tablets-server/src/features/types.ts
+    src:
+      - apps/tablets-server/src/app.ts
+      - apps/tablets-server/src/cli
+      - apps/tablets-server/src/config.ts
+      - apps/tablets-server/src/index.ts
+      - apps/tablets-server/src/main.ts
+      - apps/tablets-server/src/platform
+    tests: ['apps/tablets-server/test/**']
+
+  - id: tablets-web
+    title: Tablets screens shell (app, API client, devices)
+    page: modules/tablets-web.md
+    package: apps/tablets-web
+    src: [apps/tablets-web/src]
+    tests: ['apps/tablets-web/test/**']
+
+  # ---------------------------------------------------------------- other packages
+  - id: api-contract
+    title: Route table and shared shapes
+    page: modules/api-contract.md
+    package: packages/api-contract
+    src: [packages/api-contract/src]
+    tests: ['packages/api-contract/test/**']
+
+  - id: expr
+    title: Calculation language
+    page: modules/expr.md
+    package: packages/expr
+    src: [packages/expr/src]
+    tests: ['packages/expr/test/**']
+
+  - id: integration-sdk
+    title: Integration SDK (device drivers)
+    page: modules/integrations.md
+    package: packages/integration-sdk
+    src: [packages/integration-sdk/src]
+    tests: ['packages/integration-sdk/test/**']
+
+  - id: site-gateway
+    title: Site gateway
+    page: modules/integrations.md
+    package: apps/site-gateway
+    src: [apps/site-gateway/src]
+    tests: ['apps/site-gateway/test/**']
+
+  - id: simulators
+    title: Device and ERP simulators
+    page: modules/integrations.md
+    package: apps/simulators
+    src: [apps/simulators/src]
+    tests: ['apps/simulators/test/**']
+
+  - id: ui-kit
+    title: UI kit
+    page: modules/shared-kits.md
+    package: packages/ui-kit
+    src: [packages/ui-kit/src]
+    tests: ['packages/ui-kit/test/**']
+
+  - id: test-kit
+    title: Test kit
+    page: modules/shared-kits.md
+    package: packages/test-kit
+    src: [packages/test-kit/src]
+    tests: ['packages/test-kit/test/**']
+
+  - id: validation-kit
+    title: Validation kit
+    page: modules/shared-kits.md
+    package: packages/validation-kit
+    src: [packages/validation-kit/src]
+    tests: ['packages/validation-kit/test/**']
+
+  - id: injectables-server
+    title: Injectables server (placeholder)
+    page: modules/injectables.md
+    package: apps/injectables-server
+    src: [apps/injectables-server/src]
+    tests: ['apps/injectables-server/test/**']
+
+  - id: injectables-web
+    title: Injectables screens (placeholder)
+    page: modules/injectables.md
+    package: apps/injectables-web
+    src: [apps/injectables-web/src]
+    tests: ['apps/injectables-web/test/**']
+
+  # ---------------------------------------------------------------- tools
+  - id: tools-boundaries
+    title: Dependency boundaries and clock ban tests
+    page: modules/tools.md
+    package: tools/boundaries
+    tests: ['tools/boundaries/test/**']
+
+  - id: tools-demo
+    title: Demo set-up and run
+    page: modules/tools.md
+    package: tools/demo
+    src: [tools/demo/src]
+    tests: ['tools/demo/test/**']
+
+  - id: tools-dev-env
+    title: Development pod set-up
+    page: modules/tools.md
+    package: tools/dev-env
+    src: [tools/dev-env]
+
+  - id: tools-e2e
+    title: End-to-end browser suite
+    page: modules/tools.md
+    package: tools/e2e
+    src: [tools/e2e/specs, tools/e2e/reporters, tools/e2e/global-setup.ts, tools/e2e/playwright.config.ts]
+    tests: ['tools/e2e/test/**']
+
+  - id: tools-handbook
+    title: Handbook generator and link checker
+    page: modules/tools.md
+    package: tools/handbook
+    src: [tools/handbook/src]
+    tests: ['tools/handbook/test/**']
+
+  - id: tools-register
+    title: Control register tooling
+    page: modules/tools.md
+    package: tools/register
+    src: [tools/register/src]
+    tests: ['tools/register/test/**']
+
+  - id: tools-regulatory
+    title: Regulatory register scripts
+    page: modules/tools.md
+    package: tools/regulatory
+    src: [tools/regulatory]
+
+  - id: tools-sql-mutation
+    title: SQL mutation harness
+    page: modules/tools.md
+    package: tools/sql-mutation
+    src: [tools/sql-mutation/src]
+    tests: ['tools/sql-mutation/test/**']

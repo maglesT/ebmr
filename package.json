@@ -25,6 +25,8 @@
     "trace:e2e": "tsx tools/register/src/cli.ts trace --results .reports/vitest.json --golden .reports/vitest-golden.json --playwright .reports/playwright.json --require-playwright --require-golden",
     "register:sync-tests": "tsx tools/register/src/cli.ts sync-tests --results .reports/vitest.json --golden .reports/vitest-golden.json --playwright .reports/playwright.json",
     "pins:check": "tsx tools/register/src/cli.ts pins",
+    "handbook": "tsx tools/handbook/src/cli.ts generate",
+    "handbook:check": "tsx tools/handbook/src/cli.ts check",
     "mutation:ts": "stryker run",
     "mutation:sql": "tsx tools/sql-mutation/src/run.ts",
     "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm register:validate && pnpm build:web && pnpm test:json && pnpm trace"

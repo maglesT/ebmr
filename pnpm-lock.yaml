@@ -469,6 +469,8 @@ importers:
         specifier: 1.56.1
         version: 1.56.1
 
+  tools/handbook: {}
+
   tools/register: {}
 
   tools/sql-mutation:
