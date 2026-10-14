@@ -786,6 +786,43 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
     expect(basis.problem).toMatch(new RegExp(`^the master of batch ${await batchNumber(lot.batchId)} \\(version \\d+\\) cites no validation report`));
   });
 
+  it('[PR-09][IN-03] validation outcomes and post-change evaluations refuse what the rules exclude; their signed content exists for GMP batches only', async () => {
+    const ppqOutcome = (b: string, outcome: string | null, protocol: string | null, statement: string | null, sig: string = randomUUID()) =>
+      messageOf(w.run(qaReviewer3, (c) => c.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [b, outcome, protocol, statement, sig])));
+    const unreviewed = await issuedBatch('PPQ');
+    expect(await ppqOutcome(unreviewed, 'CONCURRENT_RELEASE', 'PV-1', 'Complete')).toMatch(/EBMR-REL-037/);
+    const ppq = await readyLot({ purpose: 'PPQ' });
+    for (const outcome of ['MAYBE', null]) expect(await ppqOutcome(ppq.batchId, outcome, 'PV-1', 'Complete')).toMatch(/EBMR-REL-035 .* is no validation outcome/);
+    for (const [protocol, statement] of [[' ', 'Complete'], ['PV-1', ' '], [null, 'Complete'], ['PV-1', null]]) {
+      expect(await ppqOutcome(ppq.batchId, 'PASSED', protocol ?? null, statement ?? null)).toMatch(/EBMR-REL-035 a validation outcome names its protocol/);
+    }
+    const h = (await db.app.query<{ h: string }>('select recipe.ppq_statement_hash($1, $2) as h', ['PV-12', 'Protocol results complete'])).rows[0]!.h;
+    const sig = await signFor(db, qaReviewer3, { type: 'ppq_outcome', id: `${ppq.batchId}/CONCURRENT_RELEASE/${h}` }, 'VALIDATION_OUTCOME_RECORDED', await reviewState(ppq.batchId));
+    await w.run(qaReviewer3, (c) => c.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [ppq.batchId, 'CONCURRENT_RELEASE', 'PV-12', 'Protocol results complete', sig]));
+    expect(await ppqOutcome(ppq.batchId, 'CONCURRENT_RELEASE', 'PV-12', 'Again')).toMatch(/EBMR-REL-036 concurrent release of the batch is already recorded/);
+
+    // Post-change: the first batch under a changed master, before and after its QA review.
+    const base = await effective();
+    await productAndSpecification(base.content);
+    const v2 = await w.approvedSuccessor(base.versionId, (m) => {
+      m.header.title = `${m.header.title} (rev 2)`;
+    }, { regulatory: [{ market: 'IN', category: 'NOTIFICATION_LOW' }] });
+    await w.authorise(auth(v2.versionId));
+    const first = await issuedBatch(undefined, base);
+    const evaluate = (text: string | null) =>
+      messageOf(w.run(qaReviewer3, (c) => c.query('select recipe.record_post_change_evaluation($1, $2, $3)', [first, text, randomUUID()])));
+    expect(await evaluate('Evaluated')).toMatch(/EBMR-REL-031/);
+    await review(first);
+    for (const text of [' ', null]) expect(await evaluate(text)).toMatch(/EBMR-REL-033/);
+
+    // The signed contents: a GMP batch has one, an unknown id none.
+    for (const fn of ['recipe.post_change_evaluation_content', 'recipe.ppq_outcome_content']) {
+      const suffix = fn === 'recipe.ppq_outcome_content' ? `PASSED/${'a'.repeat(64)}` : 'a'.repeat(64);
+      expect((await one<{ exists: boolean }>(`select ${fn}($1) as r`, [`${ppq.batchId}/${suffix}`])).exists, fn).toBe(true);
+      expect((await one<{ exists: boolean }>(`select ${fn}($1) as r`, [`${randomUUID()}/${suffix}`])).exists, fn).toBe(false);
+    }
+  });
+
   it('[INV-05] a reserve sample pulled or disposed of moves the epoch of its own lot', async () => {
     const lot = await readyLot();
     const other = await readyLot();
