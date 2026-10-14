@@ -10,7 +10,10 @@ import type { HomeTile } from '../../app/feature.ts';
 import { BatchQualityPage } from './BatchQualityPage.tsx';
 import { DeviationPage } from './DeviationPage.tsx';
 import { DeviationsPage } from './DeviationsPage.tsx';
+import { ApprovedManufacturersPage } from './ApprovedManufacturersPage.tsx';
+import { DeliveryReceiptPage } from './DeliveryReceiptPage.tsx';
 import { ErpStatusPage } from './ErpStatusPage.tsx';
+import { LotReceiptPage } from './LotReceiptPage.tsx';
 import { LotPage } from './LotPage.tsx';
 import { LotsPage } from './LotsPage.tsx';
 import { ReprocessingPage } from './ReprocessingPage.tsx';
@@ -27,6 +30,12 @@ function QualityHome() {
         </li>
         <li>
           <Link to="/quality/lots">Material lots</Link>
+        </li>
+        <li>
+          <Link to="/quality/receipt">Receive a delivery</Link>
+        </li>
+        <li>
+          <Link to="/quality/approved-manufacturers">Approved manufacturers</Link>
         </li>
         <li>
           <Link to="/quality/specifications">Specifications</Link>
@@ -60,6 +69,10 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
     createRoute({ getParentRoute: () => root, path: '/quality/extra-testing', component: BatchQualityPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/reprocessing', component: ReprocessingPage }),
     createRoute({ getParentRoute: () => root, path: '/quality/erp', component: ErpStatusPage }),
+    // Phase 6 slice 6a builder A: receipt with supplier batches, the receipt record and the approved-manufacturer register (PR-17).
+    createRoute({ getParentRoute: () => root, path: '/quality/receipt', component: DeliveryReceiptPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/lots/$lotId/receipt', component: LotReceiptPage }),
+    createRoute({ getParentRoute: () => root, path: '/quality/approved-manufacturers', component: ApprovedManufacturersPage }),
   ];
 }
 

@@ -7,6 +7,7 @@
  * proposed then signed, the reserve and retention samples, and the linked deviations as the release checklist lists them.
  */
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { routes, type LotResultView, type LotSummaryView } from '@ebmr/api-contract';
 import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
@@ -33,6 +34,11 @@ export function LotPage() {
   return (
     <>
       <h1>Lot {lot ? `${lot.lotCode} ${lot.material.name}` : lotId}</h1>
+      <p>
+        <Link to="/quality/lots/$lotId/receipt" params={{ lotId }}>
+          Receipt record, examination and issue check
+        </Link>
+      </p>
       {lot ? (
         <p data-testid="lot-status">
           <StatusChip tone={lot.status === 'RELEASED' ? 'ok' : lot.status === 'REJECTED' ? 'error' : 'warning'} label={lot.status} /> {lot.quantity} {lot.unit}

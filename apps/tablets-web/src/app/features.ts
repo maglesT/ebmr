@@ -10,6 +10,7 @@ import * as designer from '../features/designer/index.tsx';
 import * as devices from '../features/devices/index.tsx';
 import * as floor from '../features/floor/index.tsx';
 import * as india from '../features/india/index.tsx';
+import * as integrations from '../features/integrations/index.tsx';
 import * as masterData from '../features/master-data/index.tsx';
 import * as planning from '../features/planning/index.tsx';
 import * as plant from '../features/plant/index.tsx';
@@ -42,4 +43,5 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['archive', archive satisfies WebFeature],
   ['india', india satisfies WebFeature],
   ['capa', capa satisfies WebFeature],
+  ['integrations', integrations satisfies WebFeature],
 ];

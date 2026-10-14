@@ -52,10 +52,10 @@
     "withdrawal": null
   },
   "withdrawn": {
-    "approvedManufacturerId": "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+    "approvedManufacturerId": "7c8d9e0f-1a2b-4c3d-8e4f-6a7b8c9d0e1f",
     "materialCode": "MAT-PCM",
-    "manufacturerCode": "MFR-GRANULES",
-    "manufacturerName": "Granules India Ltd",
+    "manufacturerCode": "MFR-OLDCO",
+    "manufacturerName": "OldCo Chemicals",
     "manufacturingSite": "Gagillapur, Telangana",
     "basis": "Supplier qualification file QF-2026-014; on-site audit AR-2026-07 (satisfactory)",
     "state": "WITHDRAWN",
