@@ -352,6 +352,12 @@ export const SignableAction = z.discriminatedUnion('kind', [
     /** The licence, the export permission, or the hazard or dedication record. */
     subjectId: Uuid,
   }),
+  z.strictObject({
+    /** Phase 6 slice 6a (ns/capa.ts): QA closes a CAPA (CAPA_CLOSED, never its initiator; refused while not effective, PR-51). */
+    kind: z.literal('CAPA_ACT'),
+    act: z.literal('CLOSE'),
+    capaId: Uuid,
+  }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
 export type SignableKind = SignableAction['kind'];

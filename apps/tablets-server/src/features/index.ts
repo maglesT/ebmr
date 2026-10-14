@@ -9,6 +9,7 @@
 import * as access from './access/index.ts';
 import * as archive from './archive/index.ts';
 import * as audit from './audit/index.ts';
+import * as capa from './capa/index.ts';
 import * as containers from './containers/index.ts';
 import * as designer from './designer/index.ts';
 import * as devices from './devices/index.ts';
@@ -57,6 +58,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'archive', installations: ['GMP'], module: archive satisfies FeatureModule },
   { name: 'india', installations: ['GMP'], module: india satisfies FeatureModule },
   { name: 'integrations', installations: ['GMP'], module: integrations satisfies FeatureModule },
+  { name: 'capa', installations: ['GMP'], module: capa satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

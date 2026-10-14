@@ -54,6 +54,7 @@ import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
 import ig from '../fixtures/integrations.json' with { type: 'json' };
+import cp from '../fixtures/capa.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
@@ -307,6 +308,18 @@ export const EXAMPLES = {
   'integrations-mirrors-stale': { schema: r.integrations.mirrors.response, data: ig.mirrorsStale },
   'integrations-alarms': { schema: r.integrations.alarms.response, data: ig.alarms, routeId: r.integrations.alarms.id },
   'integrations-acknowledge-alarm': { schema: r.integrations.acknowledgeAlarm.response, data: ig.alarmAcknowledged, routeId: r.integrations.acknowledgeAlarm.id },
+  // Phase 6 slice 6a (builder B): the CAPA register and detail (IN-01 (d), PR-51).
+  'capa-register': { schema: r.capa.register.response, data: cp.register, routeId: r.capa.register.id },
+  'capa-detail': { schema: r.capa.detail.response, data: cp.detail, routeId: r.capa.detail.id },
+  'capa-detail-closable': { schema: r.capa.detail.response, data: cp.detailClosable },
+  'capa-detail-mirror': { schema: r.capa.detail.response, data: cp.mirror },
+  'capa-raise': { schema: r.capa.raise.response, data: { ...cp.detail, state: 'OPEN', events: [] }, routeId: r.capa.raise.id },
+  'capa-link-deviation': { schema: r.capa.linkDeviation.response, data: cp.detail, routeId: r.capa.linkDeviation.id },
+  'capa-link-master-version': { schema: r.capa.linkMasterVersion.response, data: cp.detail, routeId: r.capa.linkMasterVersion.id },
+  'capa-implement': { schema: r.capa.implement.response, data: cp.detail, routeId: r.capa.implement.id },
+  'capa-schedule-check': { schema: r.capa.scheduleCheck.response, data: cp.detail, routeId: r.capa.scheduleCheck.id },
+  'capa-record-effectiveness': { schema: r.capa.recordEffectiveness.response, data: cp.detailClosable, routeId: r.capa.recordEffectiveness.id },
+  'capa-cancel': { schema: r.capa.cancel.response, data: { ...cp.detail, state: 'CANCELLED' }, routeId: r.capa.cancel.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
   // Phase 4 slice 6a: licences, export permissions, the issue check, the allocation register, label particulars and H2.
