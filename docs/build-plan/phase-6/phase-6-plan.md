@@ -585,8 +585,8 @@ released migration; replace a function in a new one.
    not in `phase.yaml` editions, proven by a `[meta]` test; no control file changes.
 8. **Freshness bounds** (GMP weight; site values): LMS and CMMS 60 minutes, QMS live at release, item master and
    stock 24 hours flagged (D-P6a-3).
-9. Still open from Phase 4 (defaults stand): D-7b-1, PR-30, D-6a-7 (Phase 4's IN-18 reading), D-2a-9, D-P4-6, D-3a-10,
-   D-5b-2, the drying-loop correction and India subdivision questions.
+9. Phase 4's open questions are closed: the owner confirmed their defaults on 13 October (D-7b-1, PR-30, D-6a-7,
+   D-2a-9, D-P4-6, D-3a-10, D-5b-2, the drying-loop correction and India subdivision); Phase 6 builds on them.
 
 ## Left ready for the analytics work (decisions 0015, 0016; built after Phase 6)
 
