@@ -364,6 +364,12 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.literal('MANUFACTURER_APPROVE'),
     approvedManufacturerId: Uuid,
   }),
+  z.strictObject({
+    /** Phase 6 slice 6f (ns/config.ts): the quality unit approves a configuration change record (CONFIG_CHANGE_APPROVED, never its raiser; DI-09). */
+    kind: z.literal('CONFIG_CHANGE_ACT'),
+    act: z.literal('APPROVE'),
+    number: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/),
+  }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
 export type SignableKind = SignableAction['kind'];

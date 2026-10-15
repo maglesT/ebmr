@@ -21,6 +21,7 @@ import { notifications } from './ns/notifications.ts';
 import { erpShipping, qpPackage } from './ns/qp-shipping.ts';
 import { india } from './ns/india.ts';
 import { integrations } from './ns/integrations.ts';
+import { config } from './ns/config.ts';
 import { capa } from './ns/capa.ts';
 import { records } from './ns/records-lock.ts';
 import { pqr } from './ns/pqr.ts';
@@ -30,7 +31,7 @@ import { samples } from './ns/samples.ts';
 import { session } from './ns/session.ts';
 import { specifications } from './ns/specifications.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa } as const;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, config } as const;
 export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
@@ -64,4 +65,5 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   india: 'P4',
   integrations: 'P6',
   capa: 'P6',
+  config: 'P6',
 };
