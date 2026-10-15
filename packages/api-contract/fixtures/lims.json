@@ -137,6 +137,20 @@
         "cited": "2022",
         "effective": "2026"
       }
+    ],
+    "mbrs": [
+      {
+        "familyId": "6c1b5f0e-3d2a-4c1e-9a7b-2f4d5e6a7b8c",
+        "familyCode": "PCM500-GRAN",
+        "productCode": "PCM500",
+        "versionId": "7d2c6a1f-4e3b-4d2f-8b8c-3a5e6f7b8c9d",
+        "versionNumber": 3,
+        "state": "APPROVED",
+        "citedIn": "IP-AVG",
+        "pharmacopoeia": "IP",
+        "cited": "2022",
+        "effective": "2026"
+      }
     ]
   },
   "releaseCheck": {

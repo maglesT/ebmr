@@ -77,6 +77,22 @@ export const EditionReviewItem = z.strictObject({
 });
 export type EditionReviewItem = z.infer<typeof EditionReviewItem>;
 
+/** A master-record version whose limits cite an edition older than the one effective now (IN-33; recipe-core 1061). */
+export const MbrEditionReviewItem = z.strictObject({
+  familyId: Uuid,
+  familyCode: z.string(),
+  productCode: z.string(),
+  versionId: Uuid,
+  versionNumber: z.number().int().positive(),
+  state: z.string().nullable(),
+  /** The id (or title) of the limit, calculation or acceptance criterion that cites the edition. */
+  citedIn: z.string(),
+  pharmacopoeia: z.string(),
+  cited: z.string(),
+  effective: z.string(),
+});
+export type MbrEditionReviewItem = z.infer<typeof MbrEditionReviewItem>;
+
 /** Why a lot is not released yet on its results and samples, in the database's words (null when nothing stands). */
 export const LotReleaseCheckView = z.strictObject({
   lotId: Uuid,
@@ -161,8 +177,8 @@ export const specifications = {
     installation: 'GMP',
     auth: 'SESSION',
     mutating: false,
-    summary: 'Specifications in effect whose limits cite an edition older than the one effective now (IN-33 review list)',
-    response: z.strictObject({ items: z.array(EditionReviewItem) }),
+    summary: 'Specifications in effect and master records whose limits cite an edition older than the one effective now (IN-33 review list)',
+    response: z.strictObject({ items: z.array(EditionReviewItem), mbrs: z.array(MbrEditionReviewItem) }),
   }),
   lotReleaseCheck: defineRoute({
     id: 'specifications.lotReleaseCheck',
