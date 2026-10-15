@@ -35,6 +35,8 @@ import {
   tagSpec,
   type ProcessQuality,
   type ProcessReading,
+  type ProcessReadingNative,
+  type SimSample,
   type ProcessReadingsRequest,
   type SetpointAckRequest,
   type SetpointDownload,
@@ -84,11 +86,31 @@ export interface ProcessGatewayOptions {
   onAlarm?: (alarm: ProcessAlarm) => void;
   onDriverAlarm?: (alarm: { kind: string; deviceCode: string; message: string; details: Record<string, string> }) => void;
   log?: (message: string) => void;
+  /** Slice 6b: units read through another driver (OPC UA); their readings carry the driver's original record (DI-32). */
+  units?: readonly { config: ProcessUnitConfig; driver: ProcessDriverPort }[];
+}
+
+/** What a process device's driver offers the poll and the setpoint path (ProcessSimDriver, or an OPC UA unit). */
+export interface ProcessDriverPort {
+  read(): Promise<
+    | { ok: true; sample: SimSample; receivedWallUs: bigint; serial: string; native?: { values: Record<string, ProcessReadingNative>; setpoints: Record<string, ProcessReadingNative> } }
+    | { ok: false; error: string; message: string }
+  >;
+  write(tag: string, value: string): Promise<{ ok: true } | { ok: false; error: string; message: string }>;
+  stop?(): Promise<void>;
+  readonly state?: string;
+}
+
+/** A process unit whose driver the gateway manages elsewhere (slice 6b: an OPC UA unit; its serial is its equipment code). */
+export interface ProcessUnitConfig {
+  code: string;
+  equipment: ProcessDeviceConfig['equipment'];
+  expectedSerial: string;
 }
 
 interface Device {
-  config: ProcessDeviceConfig;
-  driver: ProcessSimDriver;
+  config: ProcessUnitConfig;
+  driver: ProcessDriverPort;
   /** The scan counter last seen, and when it last moved (monotonic µs). */
   scan: string | null;
   scanMovedAtUs: bigint;
@@ -147,6 +169,9 @@ export class ProcessGateway {
       g.devices.set(config.code, device);
       driver.start();
     }
+    for (const u of options.units ?? []) {
+      g.devices.set(u.config.code, { config: u.config, driver: u.driver, scan: null, scanMovedAtUs: options.clock.monoUs(), stale: false, readbacks: new Map(), alarms: new Set() });
+    }
     if (!options.manual) {
       g.timers.push(setInterval(() => void g.pollOnce(), options.pollMs));
       g.timers.push(setInterval(() => void g.pollSetpoints(), options.setpointPollMs));
@@ -159,8 +184,16 @@ export class ProcessGateway {
     for (const t of this.timers) clearInterval(t);
     await this.flushing?.catch(() => undefined);
     await this.setpointPolling?.catch(() => undefined);
-    for (const d of this.devices.values()) await d.driver.stop();
+    for (const d of this.devices.values()) await d.driver.stop?.();
     await this.journal.close();
+  }
+
+  /** A unit's connection changed (an OPC UA session lost or opened): its read-backs are reported again, its scan restarts. */
+  connectionChanged(code: string): void {
+    const d = this.devices.get(code);
+    if (!d) return;
+    d.readbacks.clear();
+    d.scan = null;
   }
 
   private alarm(a: ProcessAlarm): void {
@@ -214,18 +247,21 @@ export class ProcessGateway {
     const out: Outgoing[] = [];
     const scanQuality = quality('GOOD');
     const valueOf = new Map(sample.values.map((v) => [v.tag, v]));
+    // Slice 6b (DI-32): a reading taken over OPC UA carries the device's original record (raw text, status, source time).
+    const nativeValue = (tag: string) => (r.native?.values[tag] ? { native: r.native.values[tag] } : {});
     for (const v of sample.values) {
-      out.push({ ...base, tag: v.tag, value: v.value, unit: v.unit, quality: scanQuality === 'STALE' ? 'STALE' : v.quality, kind: 'ACTUAL' });
+      out.push({ ...base, tag: v.tag, value: v.value, unit: v.unit, quality: scanQuality === 'STALE' ? 'STALE' : v.quality, kind: 'ACTUAL', ...nativeValue(v.tag) });
     }
     for (const s of sample.setpoints) {
       if (d.readbacks.get(s.tag) === s.value) continue;
-      out.push({ ...base, tag: s.tag, value: s.value, unit: s.unit, quality: scanQuality, kind: 'SETPOINT_READBACK' });
+      const nat = r.native?.setpoints[s.tag];
+      out.push({ ...base, tag: s.tag, value: s.value, unit: s.unit, quality: scanQuality, kind: 'SETPOINT_READBACK', ...(nat ? { native: nat } : {}) });
     }
     const active = new Set(sample.alarms.map((a) => `${a.code}|${a.tag}`));
     const alarmReading = (key: string, kind: 'ALARM' | 'ALARM_CLEARED'): Outgoing | null => {
       const tag = key.slice(key.indexOf('|') + 1);
       const v = valueOf.get(tag);
-      return v ? { ...base, tag, value: v.value, unit: v.unit, quality: scanQuality, kind } : null;
+      return v ? { ...base, tag, value: v.value, unit: v.unit, quality: scanQuality, kind, ...nativeValue(tag) } : null;
     };
     for (const key of active) if (!d.alarms.has(key)) out.push(...[alarmReading(key, 'ALARM')].filter((x): x is Outgoing => x !== null));
     for (const key of d.alarms) if (!active.has(key)) out.push(...[alarmReading(key, 'ALARM_CLEARED')].filter((x): x is Outgoing => x !== null));

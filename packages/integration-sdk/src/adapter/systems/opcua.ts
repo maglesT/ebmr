@@ -82,6 +82,31 @@ export type OpcuaEndpoint = z.infer<typeof OpcuaEndpoint>;
 /** The node on which an equipment OPC UA server states the room or line it is installed in (plant.area code). */
 export const ENDPOINT_LOCATION_NODE = `nsu=${OPCUA_NAMESPACE_URI};s=_endpoint/location`;
 
+/**
+ * The setpoint node of a setpoint tag of a unit (written by the gateway's download, read back separately); the tag's own
+ * node carries the measured value. Only for the released setpoint tags.
+ */
+export function opcuaSetpointNodeId(equipmentCode: string, tag: string): string {
+  if (!tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
+  return `${opcuaNodeId(equipmentCode, tag)}/setpoint`;
+}
+
+/** The node listing a unit's limit alarms active now, as `CODE|tag` entries joined by `;` (empty when none). */
+export function opcuaActiveAlarmsNodeId(equipmentCode: string): string {
+  if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+  return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/_alarms/active`;
+}
+
+/**
+ * The node on which a unit publishes each alarm occurrence transition (EquipmentAlarmV1) and equipment event
+ * (EquipmentEventV1) as one JSON value per change, `{"alarm": {...}}` or `{"event": {...}}` (D-P6b-A-3: the gateway
+ * monitors it with a queue, so every change arrives; a real endpoint's Alarms and Conditions map onto the same port).
+ */
+export function opcuaEventsNodeId(equipmentCode: string): string {
+  if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+  return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/_events`;
+}
+
 /** An endpoint's code: its device code in the device registry (iam.device, class INSTRUMENT). */
 export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
 
