@@ -35,6 +35,7 @@ import {
   type SeedAdministration,
   type SeededActor,
 } from './seed.ts';
+import { openSupportGrant, seedSupportEngineer, supportLogin } from './support-grant.ts';
 
 let db: TestDatabase;
 let adm: SeedAdministration;
@@ -179,7 +180,11 @@ describe('authority at the moment of action (DI-17)', () => {
     const roles = (await db.app.query<{ code: string }>('select code from iam.role where is_kernel order by code')).rows.map((r) => r.code);
     expect(roles).toHaveLength(33); // 32 with EU_QP_READER (kernel 1160), 33 with INSPECTION_READER (kernel 1171)
     for (const role of roles) {
-      const actor = role === 'SERVICE_ACCOUNT' ? await seedServiceActor(db) : await seedActor(db, { roleCode: role, acknowledgeEsig: false });
+      // VENDOR_SUPPORT logs in only inside a support grant (kernel 1202); its authority needs only the account.
+      const actor =
+        role === 'SERVICE_ACCOUNT' ? await seedServiceActor(db)
+        : role === 'VENDOR_SUPPORT' ? await seedSupportEngineer(db)
+        : await seedActor(db, { roleCode: role, acknowledgeEsig: false });
       const { rows } = await db.app.query<{ code: string; allowed: boolean; expected: boolean }>(
         `select p.code, (iam.evaluate_authority($1, $2, p.code, '{}'::jsonb, null, null) ->> 'allowed')::boolean as allowed,
                 exists (select 1 from iam.role_permission rp where rp.role_code = $3 and rp.permission_code = p.code and rp.removed_at is null) as expected
@@ -299,7 +304,10 @@ describe('administrator separation (DI-18, INV-11)', () => {
         await c.query('insert into testgmp.sample (batch_id, value) values ($1, 1)', [randomUUID()]);
       });
     await expectRefused(guarded(adm.admin), 'EBMR-IAM-042', /DI-18/);
-    const vendor = await seedActor(db, { roleCode: 'VENDOR_SUPPORT', acknowledgeEsig: false });
+    // Kernel 1202 (DI-08): a vendor support login needs a live, customer-approved support grant first.
+    const engineer = await seedSupportEngineer(db);
+    await openSupportGrant(db, engineer);
+    const vendor = await supportLogin(db, engineer);
     await expectRefused(guarded(vendor), 'EBMR-IAM-042');
     await guarded(await seedActor(db, { acknowledgeEsig: false }));
   });
