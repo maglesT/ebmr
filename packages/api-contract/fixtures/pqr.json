@@ -187,6 +187,38 @@
         "title": "Granulation endpoint by torque",
         "changeClass": "MAJOR"
       }
+    ],
+    "cpp": [
+      {
+        "batchNumber": "R2600012",
+        "kind": "CALCULATION",
+        "ref": "DV-12",
+        "id": "granYield",
+        "step": "p-gran-yield@",
+        "attempt": 1,
+        "value": {
+          "kind": "DECIMAL",
+          "value": "98.6",
+          "unit": "%"
+        },
+        "unit": "%",
+        "failed": false
+      },
+      {
+        "batchNumber": "R2600012",
+        "kind": "PARAMETER",
+        "ref": "DP-40",
+        "id": "hardness",
+        "step": "p-ipc@",
+        "attempt": 1,
+        "value": {
+          "kind": "DECIMAL",
+          "value": "90",
+          "unit": "N"
+        },
+        "unit": "N",
+        "failed": false
+      }
     ]
   },
   "signedOff": {
@@ -358,6 +390,38 @@
         "number": "CR-2026-014",
         "title": "Granulation endpoint by torque",
         "changeClass": "MAJOR"
+      }
+    ],
+    "cpp": [
+      {
+        "batchNumber": "R2600012",
+        "kind": "CALCULATION",
+        "ref": "DV-12",
+        "id": "granYield",
+        "step": "p-gran-yield@",
+        "attempt": 1,
+        "value": {
+          "kind": "DECIMAL",
+          "value": "98.6",
+          "unit": "%"
+        },
+        "unit": "%",
+        "failed": false
+      },
+      {
+        "batchNumber": "R2600012",
+        "kind": "PARAMETER",
+        "ref": "DP-40",
+        "id": "hardness",
+        "step": "p-ipc@",
+        "attempt": 1,
+        "value": {
+          "kind": "DECIMAL",
+          "value": "90",
+          "unit": "N"
+        },
+        "unit": "N",
+        "failed": false
       }
     ]
   }

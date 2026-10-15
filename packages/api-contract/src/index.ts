@@ -202,6 +202,7 @@ export {
 export {
   PqrBatchView,
   PqrChangeView,
+  PqrCppView,
   PqrCounts,
   PqrDeviationView,
   PqrExtractSummaryView,

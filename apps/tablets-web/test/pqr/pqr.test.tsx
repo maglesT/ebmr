@@ -50,6 +50,15 @@ describe('PQR extract screens (IN-01, PR-58)', () => {
     expect(within(screen.getByTestId('pqr-sign-off')).queryByRole('button')).toBeNull();
   });
 
+  it('[PR-09] an extract shows the typed CPP values of every batch: process parameters, IPC results and yields as recorded', async () => {
+    renderOffice(`/pqr/${x.extractId}`, { role: 'QA_REVIEWER' });
+    const section = await screen.findByTestId('pqr-cpp');
+    for (const c of x.cpp) {
+      const row = within(section).getByTestId(`pqr-cpp-${c.batchNumber}-${c.id}`);
+      expect(row.textContent).toContain(`${String(c.value['value'])} ${String(c.value['unit'])}`);
+    }
+  });
+
   it('[IN-01] the AP signs off the extract through the ceremony (PQR_SIGN_OFF names the extract only)', async () => {
     const ui = renderOffice(`/pqr/${x.extractId}`, { role: 'AUTHORISED_PERSON' });
     const button = await within(await screen.findByTestId('pqr-sign-off')).findByRole('button', { name: 'Sign off the extract' });
