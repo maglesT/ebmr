@@ -20,6 +20,7 @@ import * as records from '../features/records/index.tsx';
 import * as pqr from '../features/pqr/index.tsx';
 import * as capa from '../features/capa/index.tsx';
 import * as config from '../features/config/index.tsx';
+import * as governance from '../features/governance/index.tsx';
 import * as release from '../features/release/index.tsx';
 import * as review from '../features/review/index.tsx';
 import * as session from '../features/session/index.tsx';
@@ -45,5 +46,6 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['india', india satisfies WebFeature],
   ['capa', capa satisfies WebFeature],
   ['config', config satisfies WebFeature],
+  ['governance', governance satisfies WebFeature],
   ['integrations', integrations satisfies WebFeature],
 ];
