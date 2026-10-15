@@ -25,7 +25,8 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 - Token economy (owner, 9 October): see CLAUDE.md. Top model for building, design and security fixes; Sonnet for
   quick reviews; Haiku for mechanical jobs. Up to 5 agents at a time and overlapping independent slices (decision 0017), short reports, short command output.
 - Defaults: take the default for any open question (decision 0004) and record it.
-- Merge a PR yourself when CI is green. Push each checked commit. No deletion without the owner's OK.
+- Merge a PR yourself when CI is green, then start the next slice at once: keep going slice after slice without waiting
+  for the owner (owner, 15 October); ask only for decisions that are genuinely the owner's, and take the default meanwhile. Push each checked commit. No deletion without the owner's OK.
 - Never edit an existing migration; add new ones. Never weaken a control or change `expert_decision`.
 - Paraphrase regulations. No patent formulations. No model names in commits. Never commit the scratchpad `src/`
   folder (copyrighted pharmacopoeia texts). Do not use the repositories maglesT/ds or
