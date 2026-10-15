@@ -51,6 +51,8 @@ tests:
   - "apps/tablets-server/test/config/config-routes.test.ts > configuration change records and RBE rules over HTTP (DI-09, DI-26) > [DI-09] a platform setting (an adapter mode) is not changed under an unknown change record, and the settings list shows the definitions"
   - "apps/tablets-web/test/config/config.test.tsx > configuration change control screens (DI-09, DI-26) > [DI-09] a change record is raised naming its areas, and QA approves an open one through the ceremony"
   - "apps/tablets-web/test/config/config.test.tsx > configuration change control screens (DI-09, DI-26) > [DI-09] the configuration diff between two dates lists each change with its change record; a setting change carries its change record"
+  - "packages/kernel/test/config/change-control.test.ts > roles, permission sets and retention rules are configuration (DI-09, D-P6f-A-9) > [DI-09] a role definition, a permission added to a role and one removed from it each need a change record; each is a version naming it"
+  - "packages/kernel/test/config/change-control.test.ts > roles, permission sets and retention rules are configuration (DI-09, D-P6f-A-9) > [DI-09] the retention rules and the permission sets shipped before change control are versions too, valid from when they were published"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:

@@ -250,6 +250,9 @@ const NOT_CONFIGURATION: Record<string, string> = {
   'market.rule_key': 'keys of a published rule table',
   'market.stub_mbr_limit': 'stub master data of the market engine (sandbox), not configuration',
   'iam.esig_policy': 'per-person e-signature policy acknowledgements, not configuration',
+  'iam.delegation': "a person's own signed delegation to another person (an IAM act); whether a meaning may be delegated is ESIG_MEANING",
+  'iam.role_permission_request': 'the two-person request for a role-permission change; the change itself is ROLE_PERMISSION',
+  'iam.role_grant': "a person's role assignment: their own signed IAM act (two persons), not configuration",
   'platform.config_version': 'the configuration history itself',
   'platform.config_area': 'the registry of configuration areas, written by migrations only',
 };
@@ -261,7 +264,7 @@ describe('every configuration table is under change control (DI-09 scan)', () =>
              exists (select 1 from pg_trigger g where g.tgrelid = a.table_name and g.tgname = 'a00_config_change' and g.tgenabled in ('O', 'A')) as guard,
              exists (select 1 from pg_trigger g where g.tgrelid = a.table_name and g.tgname = 'zz_config_version' and g.tgenabled in ('O', 'A')) as log
       from platform.config_area a order by a.code`);
-    expect(rows.map((r) => r.code)).toEqual(expect.arrayContaining(['ESIG_MEANING', 'ESIG_POLICY', 'IAM_POLICY', 'MARKET_POLICY', 'PLATFORM_SETTING', 'SITE_VALUE']));
+    expect(rows.map((r) => r.code)).toEqual(expect.arrayContaining(['ESIG_MEANING', 'ESIG_POLICY', 'IAM_POLICY', 'MARKET_POLICY', 'PLATFORM_SETTING', 'SITE_VALUE', 'ROLE', 'ROLE_PERMISSION', 'RETENTION_RULE_SET', 'RETENTION_RULE']));
     expect(rows.filter((r) => !r.guard || !r.log)).toEqual([]);
   });
 
@@ -270,9 +273,63 @@ describe('every configuration table is under change control (DI-09 scan)', () =>
       select c.oid::regclass::text as t, exists (select 1 from platform.config_area a where a.table_name = c.oid) as registered
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
       where c.relkind = 'r' and n.nspname not in ('pg_catalog', 'information_schema', 'public')
-        and c.relname ~ '(setting|policy|policies|site_value|limit_set|alarm_limit|rbe_rule|config)'
+        and c.relname ~ '(setting|policy|policies|site_value|limit_set|alarm_limit|rbe_rule|config|^role$|^role_permission|^role_grant$|retention_rule|delegation)'
       order by 1`);
     expect(rows.length).toBeGreaterThan(5);
     expect(rows.filter((r) => !r.registered && !(r.t in NOT_CONFIGURATION)).map((r) => r.t)).toEqual([]);
+  });
+});
+
+describe('roles, permission sets and retention rules are configuration (DI-09, D-P6f-A-9)', () => {
+  const grantAs = (ctx: ActorContext, role: string, permission: string) =>
+    withCommand(db.app, ctx, async (c) => (await c.query<{ id: string }>('select iam.add_role_permission($1, $2, $3) as id', [role, permission, 'test change'])).rows[0]!.id);
+  const decideAs = (ctx: ActorContext, request: string) => withCommand(db.app, ctx, (c) => c.query('select iam.decide_role_permission($1, true, $2)', [request, 'approved']));
+
+  it('[DI-09] a role definition, a permission added to a role and one removed from it each need a change record; each is a version naming it', async () => {
+    const code = `ROLE_${randomBytes(3).toString('hex').toUpperCase()}`;
+    const create = (ctx: ActorContext) =>
+      withCommand(db.app, ctx, (c) => c.query("select iam.create_role($1, 'Test role', 'EXECUTION', 'a test role', array['HUMAN'])", [code]));
+    await expect(create(withReason(admin))).rejects.toThrow('EBMR-CFG-001');
+    const other = await approvedRecord(['PLATFORM_SETTING']);
+    await expect(create(cr(admin, other))).rejects.toThrow('EBMR-CFG-004');
+    const num = await approvedRecord(['ROLE', 'ROLE_PERMISSION']);
+    await create(cr(admin, num));
+    // The two-person permission change: the request is not configuration; the approval that adds the permission is.
+    const request = await grantAs(cr(admin, num), code, 'INCIDENT.RAISE');
+    await expect(decideAs(withReason(owner), request)).rejects.toThrow('EBMR-CFG-001');
+    await decideAs(cr(owner, num), request);
+    await expect(
+      withCommand(db.app, withReason(admin), (c) => c.query('select iam.remove_role_permission($1, $2)', [code, 'INCIDENT.RAISE'])),
+    ).rejects.toThrow('EBMR-CFG-001');
+    await withCommand(db.app, cr(admin, num), (c) => c.query('select iam.remove_role_permission($1, $2)', [code, 'INCIDENT.RAISE']));
+    const { rows } = await db.admin.query<{ area: string; item_key: string; removed: boolean; cr: string }>(
+      `select v.area, v.item_key, (v.value ->> 'removed_at') is not null as removed, c.number as cr from platform.config_version v
+         join platform.change_record c on c.id = v.change_record_id where v.item_key like $1 order by v.id`,
+      [`${code}%`],
+    );
+    expect(rows).toEqual([
+      { area: 'ROLE', item_key: code, removed: false, cr: num },
+      { area: 'ROLE_PERMISSION', item_key: `${code}|INCIDENT.RAISE`, removed: false, cr: num },
+      { area: 'ROLE_PERMISSION', item_key: `${code}|INCIDENT.RAISE`, removed: true, cr: num },
+    ]);
+    // Bypass: the application role cannot write the tables directly.
+    await expect(db.app.query("update iam.role_permission set removed_at = now() where role_code = 'QA_REVIEWER'")).rejects.toThrow(/permission denied/);
+    await expect(db.app.query("insert into records.retention_rule_set (version, note) values ('X', 'x')")).rejects.toThrow(/permission denied/);
+  });
+
+  it('[DI-09] the retention rules and the permission sets shipped before change control are versions too, valid from when they were published', async () => {
+    const { rows } = await db.admin.query<{ n: string; m: string }>(
+      `select (select count(*) from records.retention_rule)::text as n,
+              (select count(*) from platform.config_version v where v.area = 'RETENTION_RULE'
+                  and v.valid_from = (select s.published_at from records.retention_rule_set s where s.version = v.source_row ->> 'rule_set_version'))::text as m`,
+    );
+    expect(Number(rows[0]!.n)).toBeGreaterThan(0);
+    expect(rows[0]!.m).toBe(rows[0]!.n);
+    const live = await db.admin.query<{ n: string }>(
+      `select count(*)::text as n from iam.role_permission p where p.removed_at is null and not exists (
+         select 1 from platform.config_as_of(clock_timestamp()) v where v.area = 'ROLE_PERMISSION' and v.item_key = p.role_code || '|' || p.permission_code
+           and v.value ->> 'removed_at' is null)`,
+    );
+    expect(live.rows[0]?.n).toBe('0');
   });
 });

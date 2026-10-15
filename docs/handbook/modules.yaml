@@ -111,7 +111,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^1195_']
+      packages/kernel/sql: ['^1195_', '^1196_']
     src: [packages/kernel/src/config]
     tests: ['packages/kernel/test/config/**']
 

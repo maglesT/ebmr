@@ -1099,7 +1099,10 @@ slice 6f, builder A; [DI-09](../../../compliance/controls/DI-09.yaml); defaults 
   software-release identity (migrations) pass as a release. Because it is a trigger, every writer is covered, today's and
   later ones. TypeScript passes the number as `ActorContext.changeRecord` ([command.ts](../../../packages/kernel/src/db/command.ts)).
   Areas: PLATFORM_SETTING (with the 6a adapter modes and freshness bounds), IAM_POLICY, ESIG_POLICY, ESIG_MEANING,
-  MARKET_POLICY, SITE_VALUE; recipe-core 1050 adds RBE_RULE.
+  MARKET_POLICY, SITE_VALUE; [1196](../../../packages/kernel/sql/1196_config_areas_roles_retention.sql) adds ROLE,
+  ROLE_PERMISSION (a removal is an update and becomes a version too), RETENTION_RULE_SET and RETENTION_RULE (lead
+  decision D-P6f-A-9); recipe-core 1050 adds RBE_RULE. A person's role grant and a person-to-person delegation are not
+  configuration (their own signed IAM acts).
 - **Versions, as of and diff.** Trigger `zz_config_version` writes every configuration row to `platform.config_version`
   (insert-only: area, item key, value columns, the instant it became valid, basis CHANGE_RECORD, RELEASE or
   BEFORE_CONTROL, the change record). Existing rows were back-filled when each area was registered.

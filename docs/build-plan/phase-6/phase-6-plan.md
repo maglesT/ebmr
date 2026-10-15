@@ -423,7 +423,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     verified by the server, so it does not conflict with ADR 0006 (no signing on offline devices).
   - **D-P6f-4** The IN-10 clause is proven with the test CA standing for the CCA root (decision 0001 item 3); the real
     chain is verified at deployment. Listed for the owner (question 4).
-- **Builder A defaults (15 October; kernel 1195, recipe-core 1050 and 1051, tablets 1270):**
+- **Builder A defaults (15 October; kernel 1195 and 1196, recipe-core 1050 and 1051, tablets 1270):**
   - **D-P6f-A-1** Configuration change records are kernel rows (`platform.change_record`: raised, approved by the quality
     unit's CONFIG_CHANGE_APPROVED e-signature by someone other than the raiser, closed). The MBR change record
     (`recipe.change_record`, PR-06) keeps governing master records. A QMS feed of change records is deployment.
@@ -442,8 +442,14 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     the MBR version's change record; checked at SUBMIT by replacing the PR-07 guard function (same name; machine unchanged).
   - **D-P6f-A-7** An excursion notifies both departments always (the G-11 `notify` roles stay the run's own record).
   - **D-P6f-A-8** Raising and closing: PROCESS_OWNER, CSV_DI_LEAD, MASTER_DATA_STEWARD, QA_MBR_APPROVER; approving:
-    QA_REVIEWER, QA_MBR_APPROVER. Owner question: should roles and permission sets and retention rules become areas, and
-    is a drift-from-baseline alarm (DI-09 clause 2) wanted before Phase 7?
+    QA_REVIEWER, QA_MBR_APPROVER.
+  - **D-P6f-A-9** (lead decision, 15 October; kernel 1196) Role definitions (`iam.role`), the permission sets of roles
+    (`iam.role_permission`, a removal included) and the retention rules (`records.retention_rule_set`,
+    `records.retention_rule`) are configuration areas under the same guard and as-of versioning. Reason: they decide who
+    may sign and how long GMP records are kept; the stricter rule wins. A person's role grant and a delegation from one
+    person to another stay their own signed IAM acts (not configuration); whether a meaning may be delegated is the
+    signature catalogue (ESIG_MEANING).
+  - **D-P6f-A-10** (lead decision) The drift-from-baseline alarm of DI-09 stays in Phase 7, with DI-06.
 - **Migrations:** kernel 1195 to 1209 (configuration versions, support grant, contract-giver role, DSC), recipe-core
   1050 to 1069 (RBE rules, designer, edition review, PQR CPP), site-services none.
 - **Handbook:** `modules/kernel.md` (configuration, DSC, support), `modules/recipe-core.md`, `modules/tablets-web.md`,
