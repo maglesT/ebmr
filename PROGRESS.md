@@ -23,7 +23,7 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 - Decision 0010 (10 October): Tablets to v1.0 (Phases 3, 4, 6, 7) first, Injectables after. Shared-code changes keep
   the injectables extension points open; the trace gate must leave injectables-only controls out before phase.yaml passes 4.
 - Token economy (owner, 9 October): see CLAUDE.md. Top model for building, design and security fixes; Sonnet for
-  quick reviews; Haiku for mechanical jobs. Few agents (2 to 3 at a time), short reports, short command output.
+  quick reviews; Haiku for mechanical jobs. Up to 5 agents at a time and overlapping independent slices (decision 0017), short reports, short command output.
 - Defaults: take the default for any open question (decision 0004) and record it.
 - Merge a PR yourself when CI is green. Push each checked commit. No deletion without the owner's OK.
 - Never edit an existing migration; add new ones. Never weaken a control or change `expert_decision`.
