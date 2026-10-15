@@ -23,9 +23,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 - Decision 0010 (10 October): Tablets to v1.0 (Phases 3, 4, 6, 7) first, Injectables after. Shared-code changes keep
   the injectables extension points open; the trace gate must leave injectables-only controls out before phase.yaml passes 4.
 - Token economy (owner, 9 October): see CLAUDE.md. Top model for building, design and security fixes; Sonnet for
-  quick reviews; Haiku for mechanical jobs. Few agents (2 to 3 at a time), short reports, short command output.
+  quick reviews; Haiku for mechanical jobs. Up to 5 agents at a time and overlapping independent slices (decision 0017), short reports, short command output.
 - Defaults: take the default for any open question (decision 0004) and record it.
-- Merge a PR yourself when CI is green. Push each checked commit. No deletion without the owner's OK.
+- Merge a PR yourself when CI is green, then start the next slice at once: keep going slice after slice without waiting
+  for the owner (owner, 15 October); take every decision yourself (owner, 15 October: "dont ask any decisions take it"),
+  record each with its reason; only the hard rules stay the owner's (never weaken a control or change `expert_decision`). Push each checked commit. No deletion without the owner's OK.
 - Never edit an existing migration; add new ones. Never weaken a control or change `expert_decision`.
 - Paraphrase regulations. No patent formulations. No model names in commits. Never commit the scratchpad `src/`
   folder (copyrighted pharmacopoeia texts). Do not use the repositories maglesT/ds or
@@ -97,7 +99,7 @@ Phase 4 is closed (PRs #26, #27, #28). Phase 6 (decision 0010): integrations and
 decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (branch `phase-6/plan`): slices 6a
 adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
 6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
-training mode, 6h Hindi and Gujarati, 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
+training mode, (6h languages dropped: English only, decision 0018), 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
 - Slice 6a (branch `phase-6/slice-6a`, 14 October): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to
   1182: inbound messages accepted whole or not at all, de-duplicated, gaps alarmed; integration identities that never
   sign; mirrors that fail closed, EBMR-INT-010), one worker framework started with the server for MIRROR systems;

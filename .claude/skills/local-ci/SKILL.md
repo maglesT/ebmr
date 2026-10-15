@@ -79,11 +79,10 @@ Ask before stopping or dropping a cluster or database you did not create.
 
 ## Known local cases (RunPod, Ubuntu 22.04)
 
-- `packages/kernel/test/identity/site-zone-policy.test.ts` "[DI-27] over every zone name ...": times out at 30 s here
-  (65 s on its own) and passes on GitHub in under 25 s. This tzdata carries the `posix/` copy of every zone (1,198 names
-  in `pg_timezone_names`, about 600 on the runner), and the guard scans that list on each call. Not TZ: the clusters are
-  `Etc/UTC` and `TZ=UTC` is set. Moving `/usr/share/zoneinfo/posix` aside would match the runner; that is an owner call
-  (a system-wide change).
+- `packages/kernel/test/identity/site-zone-policy.test.ts` "[DI-27] over every zone name ...": timed out here because
+  Ubuntu 22.04's tzdata carries `posix/` and `right/` copies of every zone (1,198 names in `pg_timezone_names`, about 600
+  on the runner). The setup script moves them to `/usr/share/zoneinfo-legacy` (owner, 15 October); the test then passes
+  in about 21 s.
 - `apps/tablets-server/test/devices/listener-watch.test.ts` (14 October): under load the test checked for the ended
   backend before it had exited (`pg_terminate_backend` only signals). Fixed by waiting until that backend is gone and
   the pool is full again; it passes alone, on GitHub, and three times in a row on a shard cluster.

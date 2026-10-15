@@ -23,8 +23,8 @@ Hard rules:
   defects; validation-grade testing (mutation targets, multi-round adversarial review) belongs to deployment. Tests
   with every feature and green CI always; one review pass per feature; a quick review at the Phase 3 exit; at the
   Phase 4 exit one review pass, the full suite, golden batches and the browser suite; at most 2 fix rounds per finding,
-  then a residual for the owner; database enforcement for the regulation-required core (decision 0008 section 2); 2 to
-  3 agents at a time.
+  then a residual for the owner; database enforcement for the regulation-required core (decision 0008 section 2); up to
+  5 agents at a time, and independent slices may overlap in their own worktrees (decision 0017).
 
 ## Token economy (owner, 9 October 2026)
 
