@@ -1696,6 +1696,29 @@ that silently misses a batch would hide a trend, so it must reconcile to the reg
 - [0952_capa_master_resolver.sql](../../../packages/recipe-core/sql/0952_capa_master_resolver.sql): the CAPA's master
   version is effective when APPROVED and its effective date has come (PR-02, PR-51).
 
+## Contract giver access, MBR edition review and PQR CPP values (recipe-core 1060 to 1062)
+
+Phase 6 slice 6f, builder B.
+
+- [1060_contract_giver_access.sql](../../../packages/recipe-core/sql/1060_contract_giver_access.sql) ([IN-30](../../../compliance/controls/IN-30.yaml)):
+  `recipe.contract_giver_access` gives a reviewer account (CONTRACT_GIVER.READ, read permissions only) a time-boxed read of
+  the batches issued under one loan licence (`recipe.batch_licence_basis.loan_licence_id`). `recipe.contract_giver_batches`
+  and `recipe.read_contract_giver_batch` check the role, the read-only account and a live access, and log each record
+  opened (`recipe.contract_giver_read`). Test: the IN-30 block of
+  [india.test.ts](../../../packages/recipe-core/test/release/india.test.ts) calls every function the application role may
+  call, with NULL arguments, in the reviewer's command and finds no change attributed to the reviewer.
+- [1061_mbr_edition_review.sql](../../../packages/recipe-core/sql/1061_mbr_edition_review.sql) ([IN-33](../../../compliance/controls/IN-33.yaml)):
+  `recipe.mbr_edition_review()` lists the MBR versions (not retired or withdrawn) whose content cites a recorded
+  pharmacopoeia edition older than the one effective now (every object with `pharmacopoeia: {code, edition}`, found by
+  `recipe.mbr_edition_citations`). Test: [edition-review.test.ts](../../../packages/recipe-core/test/lifecycle/edition-review.test.ts).
+- [1062_pqr_cpp_extract.sql](../../../packages/recipe-core/sql/1062_pqr_cpp_extract.sql) ([PR-09](../../../compliance/controls/PR-09.yaml)): query
+  version 2 of the PQR extract adds `cpp`, the typed values of every batch (valid values of critical process
+  parameters, IPC results and endpoints; current critical calculations such as yields), from the pure
+  `recipe.pqr_cpp_of(batch number, master content, state)`; its definition hash is in the result, so a changed function
+  makes earlier extracts stop reproducing. Test: the PR-09 block of
+  [pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts) recomputes the values in TypeScript
+  from the stored records.
+
 ## How to test recipe-core
 
 - Everything in the package: `pnpm vitest run --project db packages/recipe-core/test` (long; on a 4-CPU pod run only

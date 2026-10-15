@@ -130,7 +130,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Closed-system classification, hosting and supplier agreements, open-system data flows.** [DI-08.yaml](../../../compliance/controls/DI-08.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [kernel-iam](../code-map.md#kernel-iam), [ts-governance](../code-map.md#ts-governance), [api-contract](../code-map.md#api-contract)
+- Tests: [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/kernel/test/identity/support-grant.test.ts](../../../packages/kernel/test/identity/support-grant.test.ts)
 
 ## DI-09
 
@@ -981,8 +982,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Electronic signatures (Indian basis).** [IN-10.yaml](../../../compliance/controls/IN-10.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [kernel-esig](../code-map.md#kernel-esig)
-- Tests: [packages/kernel/test/esig/invalidation.test.ts](../../../packages/kernel/test/esig/invalidation.test.ts)
+- Modules: [kernel-esig](../code-map.md#kernel-esig), [ts-governance](../code-map.md#ts-governance), [api-contract](../code-map.md#api-contract), [ui-kit](../code-map.md#ui-kit)
+- Tests: [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/kernel/test/esig/dsc.test.ts](../../../packages/kernel/test/esig/dsc.test.ts), [packages/kernel/test/esig/invalidation.test.ts](../../../packages/kernel/test/esig/invalidation.test.ts), [packages/ui-kit/test/identity/identity.test.tsx](../../../packages/ui-kit/test/identity/identity.test.tsx)
 
 ## IN-11
 
@@ -1162,8 +1163,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Hazardous products (sex hormones, steroids, cytotoxics).** [IN-27.yaml](../../../compliance/controls/IN-27.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [ts-india](../code-map.md#ts-india)
-- Tests: [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [packages/recipe-core/test/mutation/india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts)
+- Modules: [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [ts-designer](../code-map.md#ts-designer), [ts-india](../code-map.md#ts-india)
+- Tests: [apps/tablets-server/test/designer/hazard-containment.test.ts](../../../apps/tablets-server/test/designer/hazard-containment.test.ts), [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [packages/recipe-core/test/mutation/india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts)
 
 ## IN-28
 
@@ -1183,8 +1184,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Loan-licence and contract manufacture.** [IN-30.yaml](../../../compliance/controls/IN-30.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [ss-india](../code-map.md#ss-india), [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [ts-india](../code-map.md#ts-india)
-- Tests: [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [apps/tablets-web/test/office/india.test.tsx](../../../apps/tablets-web/test/office/india.test.tsx), [packages/api-contract/test/india.test.ts](../../../packages/api-contract/test/india.test.ts), [packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts](../../../packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts), [packages/recipe-core/test/mutation/india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [packages/site-services/test/india/licences.test.ts](../../../packages/site-services/test/india/licences.test.ts), [packages/site-services/test/mutation/india-licences.test.ts](../../../packages/site-services/test/mutation/india-licences.test.ts)
+- Modules: [ss-india](../code-map.md#ss-india), [rc-release](../code-map.md#rc-release), [rc-india](../code-map.md#rc-india), [ts-governance](../code-map.md#ts-governance), [ts-india](../code-map.md#ts-india), [api-contract](../code-map.md#api-contract)
+- Tests: [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-server/test/india/india-route-edges.test.ts](../../../apps/tablets-server/test/india/india-route-edges.test.ts), [apps/tablets-server/test/india/india-routes.test.ts](../../../apps/tablets-server/test/india/india-routes.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [apps/tablets-web/test/office/india.test.tsx](../../../apps/tablets-web/test/office/india.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/api-contract/test/india.test.ts](../../../packages/api-contract/test/india.test.ts), [packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts](../../../packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts), [packages/recipe-core/test/mutation/india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [packages/site-services/test/india/licences.test.ts](../../../packages/site-services/test/india/licences.test.ts), [packages/site-services/test/mutation/india-licences.test.ts](../../../packages/site-services/test/mutation/india-licences.test.ts)
 
 ## IN-31
 
@@ -1204,8 +1205,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Pharmacopoeia and edition references in specifications and limits.** [IN-33.yaml](../../../compliance/controls/IN-33.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [ss-quality](../code-map.md#ss-quality), [ts-designer](../code-map.md#ts-designer), [ts-quality](../code-map.md#ts-quality), [api-contract](../code-map.md#api-contract)
-- Tests: [apps/tablets-server/test/quality/lims-routes.test.ts](../../../apps/tablets-server/test/quality/lims-routes.test.ts), [apps/tablets-web/test/designer/document-complete.test.tsx](../../../apps/tablets-web/test/designer/document-complete.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts)
+- Modules: [ss-quality](../code-map.md#ss-quality), [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-designer](../code-map.md#ts-designer), [ts-quality](../code-map.md#ts-quality), [api-contract](../code-map.md#api-contract)
+- Tests: [apps/tablets-server/test/quality/lims-routes.test.ts](../../../apps/tablets-server/test/quality/lims-routes.test.ts), [apps/tablets-web/test/designer/document-complete.test.tsx](../../../apps/tablets-web/test/designer/document-complete.test.tsx), [apps/tablets-web/test/office/quality-records.test.tsx](../../../apps/tablets-web/test/office/quality-records.test.tsx), [packages/api-contract/test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [packages/recipe-core/test/lifecycle/edition-review.test.ts](../../../packages/recipe-core/test/lifecycle/edition-review.test.ts), [packages/site-services/test/quality/specifications.test.ts](../../../packages/site-services/test/quality/specifications.test.ts)
 
 ## IN-34
 
@@ -1483,8 +1484,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Process validation status and validation-batch flags.** [PR-09.yaml](../../../compliance/controls/PR-09.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release)
-- Tests: [apps/tablets-web/test/release/release.test.tsx](../../../apps/tablets-web/test/release/release.test.tsx), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts)
+- Modules: [rc-release](../code-map.md#rc-release), [ts-release](../code-map.md#ts-release), [ts-pqr](../code-map.md#ts-pqr)
+- Tests: [apps/tablets-web/test/pqr/pqr.test.tsx](../../../apps/tablets-web/test/pqr/pqr.test.tsx), [apps/tablets-web/test/release/release.test.tsx](../../../apps/tablets-web/test/release/release.test.tsx), [packages/recipe-core/test/mutation/release-gate.test.ts](../../../packages/recipe-core/test/mutation/release-gate.test.ts), [packages/recipe-core/test/release/pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts), [packages/recipe-core/test/release/release.test.ts](../../../packages/recipe-core/test/release/release.test.ts)
 
 ## PR-10
 

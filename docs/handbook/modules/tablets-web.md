@@ -870,6 +870,16 @@ decides it, with stores' examination of the containers, a missing record, and co
 (the original kept), and `/quality/approved-manufacturers` is QA's register (propose, approve through the ceremony with
 MATERIAL_SOURCE_ACT, withdraw with a reason). Tests: [receipt.test.tsx](../../../apps/tablets-web/test/receipt/receipt.test.tsx).
 
+## Governance screens and the DSC step (Phase 6 slice 6f)
+
+[features/governance](../../../apps/tablets-web/src/features/governance/index.tsx): vendor support grants (`/governance/support`), the India DSC option
+(`/governance/dsc`, with the test-CA banner), QA's contract-giver accesses (`/governance/contract-givers`) and the
+reviewer's read-only batch list and record (`/contract-giver`). In the ceremony
+([access/ceremony.tsx](../../../apps/tablets-web/src/features/access/ceremony.tsx)) a challenge with a `dsc` member makes the signer's token sign the
+statement through the local signing bridge ([access/dsc-bridge.ts](../../../apps/tablets-web/src/features/access/dsc-bridge.ts); `window.ebmrDscBridge` or
+the loopback endpoint) before the sign request; the ui-kit SignatureDialog shows the DSC step and the banner. Tests:
+[governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.

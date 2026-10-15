@@ -1115,6 +1115,49 @@ slice 6f, builder A; [DI-09](../../../compliance/controls/DI-09.yaml); defaults 
   configuration table fails that scan until it is registered. Tests that set configuration for another purpose use the
   fixture record of [support/change-record.ts](../../../packages/kernel/test/support/change-record.ts) (`underChange`).
 
+## Vendor support, the contract giver's reviewer and the India DSC (kernel 1202 to 1205)
+
+Phase 6 slice 6f, builder B.
+
+**Vendor support ([1202_support_grant.sql](../../../packages/kernel/sql/1202_support_grant.sql), [DI-08](../../../compliance/controls/DI-08.yaml),
+D-P6f-2).** An account holding VENDOR_SUPPORT authenticates only inside a live `iam.support_grant`: requested by IT's
+administrator (`iam.request_support_grant`, SUPPORT.GRANT_REQUEST) for one named HUMAN account, approved by two
+signatures of two other people, QA (SUPPORT_ACCESS_QA_APPROVED: QA MBR approver or authorised person) and IT
+(SUPPORT_ACCESS_IT_APPROVED: process owner), recorded by `iam.approve_support_grant` in the signing command. The second
+approval writes `iam.support_grant_activation` with a window of 1 to `iam.support_grant_max_hours` (default 8) hours;
+nothing extends it. `iam.authn_resolve` (replaced from 0160) refuses a support authentication outside a grant
+(SUPPORT_NO_LIVE_GRANT) or for a signature (SUPPORT_CANNOT_SIGN), records the attempt and raises SUPPORT_ACCESS_REFUSED;
+each support authentication raises SUPPORT_ACCESS_USED for review. A support session records its grant
+(`iam.support_session`) and `iam.session_state` (replaced from 0160) answers EXPIRED once the grant has ended or was
+revoked (`iam.revoke_support_grant`), so every command and read stops (EBMR-IAM-114). Messages EBMR-IAM-180 to -189.
+Tests: [support-grant.test.ts](../../../packages/kernel/test/identity/support-grant.test.ts).
+
+**The contract giver's reviewer ([1204_contract_giver_reviewer.sql](../../../packages/kernel/sql/1204_contract_giver_reviewer.sql),
+[IN-30](../../../compliance/controls/IN-30.yaml)).** The role CONTRACT_GIVER_REVIEWER gains CONTRACT_GIVER.READ (READ_ONLY);
+a trigger on `iam.role_permission` keeps the role at READ permissions only, whoever adds one (EBMR-IAM-190). QA grants
+the access (CONTRACT_GIVER_ACCESS.GRANT); the access and the logged reads are recipe-core 1060.
+
+**India DSC ([1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql), [1205_dsc_configuration_areas.sql](../../../packages/kernel/sql/1205_dsc_configuration_areas.sql),
+[IN-10](../../../compliance/controls/IN-10.yaml), decision 0001 item 3, D-P6f-3, D-P6f-4).** The policy `esig.india_dsc`
+takes OFF (default), TEST_CA and LICENSED (`esig.policy_allowed_values`; `esig.set_policy` and `esig.policy_values`
+replaced). TEST_CA needs a live `esig.dsc_trust_anchor` of that kind; LICENSED is refused until a licensed CA or eSign
+provider is configured after the legal opinion (EBMR-ESIG-081). `esig.dsc_meaning_setting` says per meaning whether a DSC
+is needed (default proposal: APPROVED and MANUFACTURER_RELEASE). For such a meaning the challenge carries the statement
+`esig.dsc_statement` (canonical JSON of the challenge id, the content hash and the meaning); the signer's token signs it
+through a local bridge; in the signing command the server verifies the chain to the anchor and the signature
+([dsc.ts](../../../packages/kernel/src/esig/dsc.ts#sym=verifyDsc)) and `esig.record_dsc_signature` stores it after its own
+checks (same transaction, the challenge's statement, the chain ending at the live anchor). A deferred trigger refuses to
+commit such a signature without its DSC (EBMR-ESIG-084). The anchors and per-meaning settings are configuration areas
+(DSC_ANCHOR, DSC_ANCHOR_RETIREMENT, DSC_MEANING) under change records. The test CA
+([dsc-test-ca.ts](../../../packages/kernel/src/esig/dsc-test-ca.ts)) is generated at run time; it is never the CCA root and
+its certificates are not legally valid (banner TEST_CA_BANNER). Messages EBMR-ESIG-080 to -085 (090 to 099 belong to the
+stub of kernel 0250). Tests: [dsc.test.ts](../../../packages/kernel/test/esig/dsc.test.ts).
+
+> **Why this exists**
+> - **Pharma reason:** supplier access is limited, approved by the regulated company and time-boxed (Annex 11, 21 CFR
+>   11.10(d)); the IT Act recognises a digital signature with a licensed CA's certificate (sections 3A and 5, paraphrased).
+> - **Control:** DI-08, IN-30, IN-10.
+
 ## Installation
 
 [0001_bootstrap.sql](../../../packages/kernel/sql/0001_bootstrap.sql) creates the roles and schemas.
