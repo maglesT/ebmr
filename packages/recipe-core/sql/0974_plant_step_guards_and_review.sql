@@ -9,7 +9,8 @@
 --       START_STEP, SIGN_PERFORMED, VERIFY   in a controlled area (plant.area_rule authorisation_required): the person
 --                       holds a current area authorisation (kernel 1190; PR-15: EBMR-PLANT-180)
 --       SIGN_PERFORMED  no GMP-critical alarm bound to the batch and the step awaits its acknowledgment
---                       (plant.alarm_problem, DI-49: EBMR-ALM-020)
+--                       (plant.alarm_problem, DI-49: EBMR-ALM-020), nor one of the step's room bound to the batch
+--                       (a room alarm binds the batches in the room, not a step; D-P6b-B-7)
 --     trigger ad_plant_step_rules on recipe.execution_command (before insert; COMMAND rows that are accepted).
 --   plant.reagent_use (insert-only, audited) and plant.record_reagent_use(batch, step, lot_code, purpose): the
 --       reagent or buffer lot an in-process control of a step used (STEP.EXECUTE in the batch's scope, a person; the
@@ -53,7 +54,19 @@ begin
     end if;
   end if;
   if p_type = 'SIGN_PERFORMED' then
-    return plant.alarm_problem(p_batch, p_step);
+    v_prob := plant.alarm_problem(p_batch, p_step);
+    if v_prob is null and a.id is not null then
+      -- A room's alarm is bound to the batches in the room, not to a step: it blocks the signature of a step done in
+      -- that room (D-P6b-B-7).
+      select 'EBMR-ALM-020 DI-49: GMP-critical alarm(s) await acknowledgment: '
+             || string_agg(x.alarm_code || ' (' || x.occurrence_id || ', room ' || a.code || ')', ', ' order by x.received_at)
+        into v_prob
+        from plant.alarm x join plant.alarm_batch ab on ab.alarm_id = x.id
+       where ab.batch_id = p_batch and ab.step is null and x.area_id = a.id and x.gmp_critical
+         and not exists (select 1 from plant.alarm_ack k where k.alarm_id = x.id)
+      having count(*) > 0;
+    end if;
+    return v_prob;
   end if;
   return null;
 end

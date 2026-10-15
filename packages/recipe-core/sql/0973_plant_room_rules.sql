@@ -11,7 +11,7 @@
 --                                 (a controlled area, PR-15) and its clean-hold time (PR-25: the longest a verified
 --                                 cleaning stands before a batch starts in the room); plant.set_area_rule
 --   plant.area_spill              insert-only, audited: a spill in a room or line (what, by whom, the batch if any);
---                                 plant.record_spill (LOGBOOK.ENTRY). The room is CLEANING_REQUIRED until a cleaning
+--                                 plant.record_spill (STEP.EXECUTE in the batch's scope, or LOGBOOK.ENTRY). The room is CLEANING_REQUIRED until a cleaning
 --                                 of it is verified after the spill (D-P6b-B-3)
 --   plant.room_cleaning_state     (view) per room or line: CLEANING_REQUIRED, OVERDUE, CLEAN or NOT_CLEANED, with the
 --                                 last verified cleaning, the clean-hold time and the open spills
@@ -27,7 +27,8 @@
 --                                 another product runs now (EBMR-PLANT-161)
 --   plant.batch_beta_lactam(batch), plant.penicillin_problem(site, kind, code, beta_lactam)   PR-27 (EBMR-PLANT-170)
 --   Triggers: ab_plant_room_rules on plant.area_occupancy (before insert: room start, adjacency and penicillin rules
---   for every occupancy, whoever writes it) and ab_plant_penicillin_lot on site.material_lot (before insert: a lot of
+--   for every occupancy, whoever writes it), ab_plant_room_rules on plant.clearance (a room that requires cleaning or
+--   is overdue is cleaned again before its clearance) and ab_plant_penicillin_lot on site.material_lot (before insert: a lot of
 --   a beta-lactam material is not received at a non-penicillin site).
 --
 -- Messages: EBMR-PLANT-150 to 153, 160 to 161, 170 to 172.
@@ -120,7 +121,8 @@ create view plant.room_cleaning_state as
          end as cleaning_state
   from plant.area a left join plant.area_rule_current r on r.area_id = a.id;
 
--- LOGBOOK.ENTRY, a person: a spill in room or line p_area (the batch working there, if any). Returns the spill's id.
+-- A person: a spill in room or line p_area (the batch working there, if any: STEP.EXECUTE in its scope; else
+-- LOGBOOK.ENTRY). Returns the spill's id.
 create function plant.record_spill(p_area text, p_description text, p_material text, p_batch uuid) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, plant, iam, pg_temp as $$
 declare
@@ -129,16 +131,18 @@ declare
   v_id    uuid;
 begin
   perform iam.assert_not_administrator();
-  v_actor := iam.require_permission('LOGBOOK.ENTRY', '{}'::jsonb);
+  if p_batch is not null and not exists (select 1 from recipe.batch_execution where id = p_batch) then
+    perform plant.fail(format('Unknown batch %s (EBMR-PLANT-014)', p_batch));
+  end if;
+  -- The operator of the batch working in the room (STEP.EXECUTE in its scope), or the logbook (LOGBOOK.ENTRY).
+  v_actor := case when p_batch is not null then iam.require_permission('STEP.EXECUTE', plant.batch_scope(p_batch))
+                  else iam.require_permission('LOGBOOK.ENTRY', '{}'::jsonb) end;
   if v_actor ->> 'source' not in ('UI', 'API') then
     raise exception using errcode = 'P0001', message = 'EBMR-PLANT-152 a spill is recorded by a person (PR-27)';
   end if;
   a := plant.area_by_code(p_area, true);
   if coalesce(btrim(p_description), '') = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-PLANT-152 a spill states what was spilt and where (PR-27)';
-  end if;
-  if p_batch is not null and not exists (select 1 from recipe.batch_execution where id = p_batch) then
-    perform plant.fail(format('Unknown batch %s (EBMR-PLANT-014)', p_batch));
   end if;
   insert into plant.area_spill (area_id, description, material, batch_id, person_id, account_id, correlation_id)
   values (a.id, btrim(p_description), nullif(btrim(coalesce(p_material, '')), ''), p_batch,
@@ -377,6 +381,21 @@ end
 $$;
 create trigger ab_plant_room_rules before insert on plant.area_occupancy for each row execute function plant.area_occupancy_rules_check();
 
+-- A clearance is not recorded in a room that requires cleaning or whose clean hold has run out (PR-25, PR-27): the
+-- room is cleaned again first (a cleaning starts from CLEAN).
+create function plant.clearance_room_rules_check() returns trigger
+language plpgsql security definer set search_path = pg_catalog, plant, pg_temp as $$
+declare
+  v_problem text := plant.room_start_problem(new.area_id, null, clock_timestamp());
+begin
+  if v_problem is not null then
+    raise exception using errcode = 'P0001', message = v_problem;
+  end if;
+  return new;
+end
+$$;
+create trigger ab_plant_room_rules before insert on plant.clearance for each row execute function plant.clearance_room_rules_check();
+
 create function plant.material_lot_penicillin_check() returns trigger
 language plpgsql security definer set search_path = pg_catalog, plant, pg_temp as $$
 declare
@@ -398,7 +417,7 @@ revoke all on function plant.set_area_rule(text, boolean, bigint, text), plant.a
   plant.room_start_problem(uuid, uuid, timestamptz), plant.define_area_adjacency(text, text, boolean, boolean, text), plant.adjacency_problem(uuid, uuid),
   plant.set_facility_rule(text, boolean, text), plant.classify_beta_lactam(text, text, boolean, text), plant.classified_beta_lactam(text, text),
   plant.batch_beta_lactam(uuid), plant.penicillin_problem(text, text, text, boolean), plant.area_occupancy_rules_check(),
-  plant.material_lot_penicillin_check() from public;
+  plant.clearance_room_rules_check(), plant.material_lot_penicillin_check() from public;
 grant select on plant.area_rule, plant.area_rule_current, plant.area_spill, plant.room_cleaning_state, plant.area_adjacency, plant.area_adjacency_current,
   plant.facility_rule, plant.beta_lactam_class to ebmr_app;
 grant execute on function plant.set_area_rule(text, boolean, bigint, text), plant.area_last_cleaned(uuid), plant.record_spill(text, text, text, uuid),
