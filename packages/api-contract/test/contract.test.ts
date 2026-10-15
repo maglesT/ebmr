@@ -206,7 +206,7 @@ describe('route table', () => {
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
-      'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
+      'alarms.acknowledge', 'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
       'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise', 'capa.recordEffectiveness', 'capa.scheduleCheck', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
       'execution.issue', 'execution.planBatch', 'india.issueH2', 'integrations.acknowledgeAlarm', 'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',

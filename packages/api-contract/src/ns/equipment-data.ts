@@ -1,0 +1,157 @@
+/**
+ * Namespace `equipmentData` (Phase 6 slice 6b-0; DI-32, DI-49; recipe-core 0960): native equipment and room data for
+ * the trend viewer (interactive over the native samples, also for a restored archive), equipment events in the batch
+ * context, and the original records of simple devices. Read-only: data arrive through the OPC UA and EMS adapters and
+ * the gateway, never through these routes.
+ *
+ * Samples are as the source sent them: raw value text, the decimal shown (null when BAD or not a number), the status
+ * code and the source timestamps (epoch microseconds as text). Builders add the equipment status board (PR-22) and the
+ * line station display (PR-35) here, additively.
+ */
+import { z } from 'zod';
+import { Instant, PersonRef, Uuid } from '../common.ts';
+import { defineRoute } from '../route.ts';
+
+const DecimalText = z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text');
+const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as text');
+const PlantCode = z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,63}$/);
+const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/).max(64);
+export const SeriesSubjectKind = z.enum(['EQUIPMENT', 'AREA']);
+
+export const NativeSampleView = z.strictObject({
+  sourceTime: WholeText,
+  serverTime: WholeText.nullable(),
+  raw: z.string().min(1),
+  value: DecimalText.nullable(),
+  status: z.string().regex(/^0x[0-9A-F]{8}$/),
+  quality: z.enum(['GOOD', 'UNCERTAIN', 'BAD']),
+});
+export type NativeSampleView = z.infer<typeof NativeSampleView>;
+
+export const SeriesChunkView = z.strictObject({
+  seriesId: Uuid,
+  source: z.enum(['OPCUA', 'EMS']),
+  subject: z.strictObject({ kind: SeriesSubjectKind, code: PlantCode }),
+  tag: TagName,
+  unit: z.string().min(1),
+  chunkNo: WholeText,
+  fromUs: WholeText,
+  toUs: WholeText,
+  /** SHA-256 of the chunk's canonical text, as the source sent it and the database recomputed it. */
+  chunkHash: z.string().regex(/^[0-9a-f]{64}$/),
+  samples: z.array(NativeSampleView),
+  receivedAt: Instant,
+});
+export type SeriesChunkView = z.infer<typeof SeriesChunkView>;
+
+export const SeriesTagView = z.strictObject({
+  tag: TagName,
+  subjectKind: SeriesSubjectKind,
+  equipmentType: z.string().nullable(),
+  unit: z.string().min(1),
+  scale: WholeText,
+});
+
+export const EquipmentEventView = z.strictObject({
+  eventId: Uuid,
+  source: z.enum(['EBMR', 'OPCUA']),
+  sourceEventId: z.string().min(1),
+  equipmentCode: PlantCode,
+  kind: z.enum(['STATE_CHANGED', 'RECIPE_LOADED', 'RECIPE_MISMATCH', 'PHASE_STARTED', 'PHASE_ENDED', 'OPERATOR_ACTION', 'FAULT']),
+  state: z.enum(['IDLE', 'RUNNING', 'HELD', 'STOPPED', 'FAULTED', 'MAINTENANCE']).nullable(),
+  recipeVersion: z.string().nullable(),
+  message: z.string().min(1),
+  occurredAtSource: Instant,
+  batchId: Uuid.nullable(),
+  step: z.string().nullable(),
+  receivedAt: Instant,
+});
+export type EquipmentEventView = z.infer<typeof EquipmentEventView>;
+
+export const DeviceOriginalView = z.strictObject({
+  recordId: Uuid,
+  equipmentCode: PlantCode,
+  capture: z.enum(['TRANSMITTED', 'PRINTED_TICKET']),
+  deviceRef: z.string().nullable(),
+  rawOutput: z.string().nullable(),
+  value: DecimalText,
+  unit: z.string().min(1),
+  deviceTime: Instant.nullable(),
+  ticketSha256: z.string().nullable(),
+  ticketRef: z.string().nullable(),
+  step: z.string().min(1),
+  entryRef: z.string().nullable(),
+  recordedBy: PersonRef,
+  recordedAt: Instant,
+});
+export type DeviceOriginalView = z.infer<typeof DeviceOriginalView>;
+
+/** The most chunks one page returns. */
+export const SERIES_PAGE_MAX = 200;
+
+export const equipmentData = {
+  tags: defineRoute({
+    id: 'equipmentData.tags',
+    method: 'GET',
+    path: '/api/equipment-data/tags',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The tags a series may carry: every released process tag and the EMS room tags, with unit and fraction digits',
+    response: z.strictObject({ tags: z.array(SeriesTagView) }),
+  }),
+  series: defineRoute({
+    id: 'equipmentData.series',
+    method: 'GET',
+    path: '/api/equipment-data/series',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Native series chunks of one tag of a unit or room over [fromUs, toUs) of source time, oldest first, paged by chunk number',
+    query: z.strictObject({
+      subjectKind: SeriesSubjectKind,
+      subjectCode: PlantCode,
+      tag: TagName,
+      fromUs: WholeText,
+      toUs: WholeText,
+      /** The last chunk number of the previous page. */
+      after: WholeText.optional(),
+      limit: z.string().regex(/^([1-9]|[1-9][0-9]|1[0-9][0-9]|200)$/).optional(),
+    }),
+    response: z.strictObject({ chunks: z.array(SeriesChunkView), nextAfter: WholeText.nullable() }),
+  }),
+  batchSeries: defineRoute({
+    id: 'equipmentData.batchSeries',
+    method: 'GET',
+    path: '/api/equipment-data/batches/:batchId/series',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The native chunks of one tag taken while the batch (one step, when given) held its unit or occupied its room',
+    params: z.strictObject({ batchId: Uuid }),
+    query: z.strictObject({ tag: TagName, step: z.string().min(1).max(200).optional() }),
+    response: z.strictObject({ chunks: z.array(SeriesChunkView) }),
+  }),
+  events: defineRoute({
+    id: 'equipmentData.events',
+    method: 'GET',
+    path: '/api/equipment-data/events',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'Equipment events in the batch context, newest first, by unit or batch',
+    query: z.strictObject({ equipmentCode: PlantCode.optional(), batchId: Uuid.optional() }),
+    response: z.strictObject({ events: z.array(EquipmentEventView) }),
+  }),
+  originals: defineRoute({
+    id: 'equipmentData.originals',
+    method: 'GET',
+    path: '/api/equipment-data/batches/:batchId/originals',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The original records of simple devices of a batch: transmitted raw outputs and printed tickets with their entries (DI-32)',
+    params: z.strictObject({ batchId: Uuid }),
+    response: z.strictObject({ records: z.array(DeviceOriginalView) }),
+  }),
+};

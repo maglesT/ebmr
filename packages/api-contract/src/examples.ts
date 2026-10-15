@@ -54,6 +54,8 @@ import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
 import ig from '../fixtures/integrations.json' with { type: 'json' };
+import al from '../fixtures/alarms.json' with { type: 'json' };
+import eqd from '../fixtures/equipment-data.json' with { type: 'json' };
 import cp from '../fixtures/capa.json' with { type: 'json' };
 import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
@@ -309,6 +311,16 @@ export const EXAMPLES = {
   'integrations-mirrors-stale': { schema: r.integrations.mirrors.response, data: ig.mirrorsStale },
   'integrations-alarms': { schema: r.integrations.alarms.response, data: ig.alarms, routeId: r.integrations.alarms.id },
   'integrations-acknowledge-alarm': { schema: r.integrations.acknowledgeAlarm.response, data: ig.alarmAcknowledged, routeId: r.integrations.acknowledgeAlarm.id },
+  // Phase 6 slice 6b-0: the plant alarm log (DI-49) and native equipment data (DI-32); screens of 6b.
+  'alarms-list': { schema: r.alarms.list.response, data: al.list, routeId: r.alarms.list.id },
+  'alarms-batch-log': { schema: r.alarms.batchLog.response, data: al.batchLog, routeId: r.alarms.batchLog.id },
+  'alarms-alarm': { schema: r.alarms.alarm.response, data: al.alarm, routeId: r.alarms.alarm.id },
+  'alarms-acknowledge': { schema: r.alarms.acknowledge.response, data: al.acknowledged, routeId: r.alarms.acknowledge.id },
+  'equipment-data-tags': { schema: r.equipmentData.tags.response, data: eqd.tags, routeId: r.equipmentData.tags.id },
+  'equipment-data-series': { schema: r.equipmentData.series.response, data: eqd.series, routeId: r.equipmentData.series.id },
+  'equipment-data-batch-series': { schema: r.equipmentData.batchSeries.response, data: eqd.batchSeries, routeId: r.equipmentData.batchSeries.id },
+  'equipment-data-events': { schema: r.equipmentData.events.response, data: eqd.events, routeId: r.equipmentData.events.id },
+  'equipment-data-originals': { schema: r.equipmentData.originals.response, data: eqd.originals, routeId: r.equipmentData.originals.id },
   // Phase 6 slice 6a (builder B): the CAPA register and detail (IN-01 (d), PR-51).
   'capa-register': { schema: r.capa.register.response, data: cp.register, routeId: r.capa.register.id },
   'capa-detail': { schema: r.capa.detail.response, data: cp.detail, routeId: r.capa.detail.id },

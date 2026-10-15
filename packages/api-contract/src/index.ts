@@ -242,5 +242,7 @@ export {
   MirrorFreshnessView,
   ReconciliationReportView,
 } from './ns/integrations.ts';
+export { AlarmLimitKind, AlarmSubjectKind, PlantAlarmSource, PlantAlarmView } from './ns/alarms.ts';
+export { DeviceOriginalView, EquipmentEventView, NativeSampleView, SERIES_PAGE_MAX, SeriesChunkView, SeriesSubjectKind, SeriesTagView } from './ns/equipment-data.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';

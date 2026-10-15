@@ -356,6 +356,7 @@ create table plant.device_original (
   entry_ref        text check (entry_ref is null or btrim(entry_ref) <> ''),
   person_id        uuid not null,
   account_id       uuid not null,
+  role_code        text,
   correlation_id   uuid not null,
   recorded_at      timestamptz not null default clock_timestamp(),
   -- TRANSMITTED: the raw output and the device's timestamp; the raw output states the shown value exactly.
@@ -883,10 +884,11 @@ begin
     raise exception using errcode = 'P0001', message = 'EBMR-EQD-015 DI-32: a printed ticket is kept (its SHA-256 and true-copy reference) and linked to its entry';
   end if;
   insert into plant.device_original (equipment_id, capture, device_ref, raw_output, value, unit, device_time_us, ticket_sha256, ticket_ref, batch_id, step, entry_ref,
-                                     person_id, account_id, correlation_id)
+                                     person_id, account_id, role_code, correlation_id)
   values (e.id, r ->> 'capture', r ->> 'deviceRef', r ->> 'rawOutput', r ->> 'value', r ->> 'unit', (r ->> 'deviceTimeUs')::bigint,
           case when r ->> 'capture' = 'PRINTED_TICKET' then r ->> 'ticketSha256' end, case when r ->> 'capture' = 'PRINTED_TICKET' then r ->> 'ticketRef' end,
-          v_batch, r ->> 'step', r ->> 'entryRef', (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid)
+          v_batch, r ->> 'step', r ->> 'entryRef', (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, v_actor ->> 'role_code',
+          (v_actor ->> 'correlation_id')::uuid)
   returning id into v_id;
   return v_id;
 end
