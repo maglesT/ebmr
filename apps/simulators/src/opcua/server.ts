@@ -74,7 +74,10 @@ export interface OpcuaSimOptions {
   seed?: number;
   /** How often the values are published (ms). */
   tickMs?: number;
+  /** The process model's clock (durations). */
   clock?: SimClock;
+  /** The wall clock of the source timestamps (default the system clock). */
+  wallMs?: () => number;
   hostname?: string;
 }
 
@@ -204,9 +207,9 @@ export class OpcuaSimulator {
     v.setValueFromSource(new Variant({ dataType: DataType.String, value: text }), StatusCodes.Good, new Date(atMs));
   }
 
-  /** A strictly increasing simulator time (ms): two publications never share a source time. */
+  /** A strictly increasing wall time (ms) for source timestamps: two publications never share one. */
   private now(): number {
-    const t = this.clock.nowMs();
+    const t = this.options.wallMs?.() ?? Date.now();
     this.lastMs = t > this.lastMs ? t : this.lastMs + 1;
     return this.lastMs;
   }
