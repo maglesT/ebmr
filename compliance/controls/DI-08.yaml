@@ -34,7 +34,18 @@ behaviour: |-
   - System documentation and the computer systems themselves are readily available for FDA inspection.
 catalog_test: A support engineer tries to log in without a customer-approved time-boxed grant. Refused. A full tenant export re-opens in the stand-alone viewer with audit trails and signature manifestations intact.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/governance/governance-routes.test.ts > vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it"
+  - "packages/api-contract/test/governance.test.ts > the support, contract-giver and DSC routes (Phase 6 slice 6f) > [DI-08][IN-30][IN-10] every support and contract-giver route is GMP only under its own path, and every one of these routes has an example that parses"
+  - "packages/api-contract/test/governance.test.ts > the support, contract-giver and DSC routes (Phase 6 slice 6f) > [DI-08] a support grant is requested for 1 to 72 hours with its vendor and purpose; SUPPORT_ACT approves by grant id as QA or IT only"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] a support login without a time-boxed grant is refused, and the refusal is logged with a HIGH alert"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] with QA and IT approvals the named engineer logs in inside the window; each use raises an alert for review"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] the grant ends by itself: the open session expires, commands are refused and a new login is refused"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] a revoked grant ends at once; a session opened from an older login event is refused"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] two distinct customer people approve; neither the requester nor the engineer; the window is bounded; one grant at a time"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] bypass attempts as the application role: no direct writes, no approval without its signature"
+  - "apps/tablets-web/test/governance/governance.test.tsx > vendor support grants > [DI-08] each grant shows its approvals and window; QA is offered its approval of a pending grant through the ceremony, never a second one"
+  - "apps/tablets-web/test/governance/governance.test.tsx > vendor support grants > [DI-08] IT's administrator requests a grant for a named engineer, for the hours stated"
 clauses:
   - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
     deferred:
