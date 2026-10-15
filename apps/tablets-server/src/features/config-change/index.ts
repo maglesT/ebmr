@@ -64,7 +64,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     asOf: async ({ query, requireSession }) => {
       requireSession();
       const items = await kernelConfig.configurationAsOf(pool, query.at, query.area);
-      return { at: query.at, items: items.map(({ versionId: _v, ...i }) => ({ ...i, value: i.value as Record<string, unknown> })) };
+      return { at: query.at, items: items.map((i) => ({ area: i.area, itemKey: i.itemKey, value: i.value as Record<string, unknown>, validFrom: i.validFrom, basis: i.basis, changeRecord: i.changeRecord })) };
     },
     diff: async ({ query, requireSession }) => {
       requireSession();

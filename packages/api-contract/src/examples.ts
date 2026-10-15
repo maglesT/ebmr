@@ -55,6 +55,7 @@ import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
 import ig from '../fixtures/integrations.json' with { type: 'json' };
 import cp from '../fixtures/capa.json' with { type: 'json' };
+import cfg from '../fixtures/config.json' with { type: 'json' };
 import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
@@ -321,6 +322,17 @@ export const EXAMPLES = {
   'capa-schedule-check': { schema: r.capa.scheduleCheck.response, data: cp.detail, routeId: r.capa.scheduleCheck.id },
   'capa-record-effectiveness': { schema: r.capa.recordEffectiveness.response, data: cp.detailClosable, routeId: r.capa.recordEffectiveness.id },
   'capa-cancel': { schema: r.capa.cancel.response, data: { ...cp.detail, state: 'CANCELLED' }, routeId: r.capa.cancel.id },
+  // Phase 6 slice 6f (builder A): configuration change control (DI-09) and RBE rules (DI-26).
+  'config-areas': { schema: r.config.areas.response, data: { areas: cfg.areas }, routeId: r.config.areas.id },
+  'config-change-records': { schema: r.config.changeRecords.response, data: { changeRecords: [cfg.open, cfg.approved] }, routeId: r.config.changeRecords.id },
+  'config-raise-change-record': { schema: r.config.raiseChangeRecord.response, data: cfg.open, routeId: r.config.raiseChangeRecord.id },
+  'config-close-change-record': { schema: r.config.closeChangeRecord.response, data: { ...cfg.approved, state: 'CLOSED', closedAt: cfg.approved.approvedAt }, routeId: r.config.closeChangeRecord.id },
+  'config-as-of': { schema: r.config.asOf.response, data: cfg.asOf, routeId: r.config.asOf.id },
+  'config-diff': { schema: r.config.diff.response, data: cfg.diff, routeId: r.config.diff.id },
+  'config-settings': { schema: r.config.settings.response, data: { settings: [cfg.setting] }, routeId: r.config.settings.id },
+  'config-set-setting': { schema: r.config.setSetting.response, data: { ...cfg.setting, value: 'MIRROR' }, routeId: r.config.setSetting.id },
+  'config-rbe-rules': { schema: r.config.rbeRules.response, data: { rules: cfg.rules }, routeId: r.config.rbeRules.id },
+  'config-set-rbe-rule': { schema: r.config.setRbeRule.response, data: cfg.rules[0], routeId: r.config.setRbeRule.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
   // Phase 4 slice 6a: licences, export permissions, the issue check, the allocation register, label particulars and H2.
