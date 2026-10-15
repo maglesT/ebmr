@@ -49,7 +49,7 @@ describe('configuration change records and RBE rules over HTTP (DI-09, DI-26)', 
     expect(rule).toMatchObject({ category: 'LATE_ENTRY', mandatory: true, included: true, minSeverity: 'ACTION', version: 1 });
     const t2 = await now();
     const diff = valueOf(await qa.call(routes.config.diff, { query: { from: t1, to: t2 } }));
-    expect(diff.differences).toEqual([{ area: 'RBE_RULE', itemKey: 'LATE_ENTRY', before: null, after: expect.objectContaining({ min_severity: 'ACTION', version: 1 }), changeRecords: [number] }]);
+    expect(diff.differences.map((d) => [d.area, d.itemKey, d.before, d.after?.['min_severity'], d.after?.['version'], d.changeRecords])).toEqual([['RBE_RULE', 'LATE_ENTRY', null, 'ACTION', 1, [number]]]);
     const asOf = valueOf(await qa.call(routes.config.asOf, { query: { at: t2, area: 'RBE_RULE' } }));
     expect(asOf.items).toEqual([expect.objectContaining({ itemKey: 'LATE_ENTRY', basis: 'CHANGE_RECORD', changeRecord: number })]);
 
