@@ -13,6 +13,7 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { withChangeRecord } from '../../../kernel/test/support/change-record.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
@@ -477,7 +478,7 @@ describe('the contract giver reviewer (recipe-core 1060, kernel 1204; IN-30)', (
     const { owner } = await seedAdministration(db);
     const request = await withCommand(db.app, { ...(await cmd(db, admin)), reasonCode: 'TEST', reasonText: 'bypass attempt' }, (c) =>
       c.query<{ id: string }>("select iam.add_role_permission('CONTRACT_GIVER_REVIEWER', 'VALIDATION.MANAGE', 'widen the reviewer') as id"));
-    expect(await messageOf(withCommand(db.app, { ...(await cmd(db, owner)), reasonCode: 'TEST', reasonText: 'bypass attempt' }, (c) =>
+    expect(await messageOf(withCommand(db.app, await withChangeRecord(db, { ...(await cmd(db, owner)), reasonCode: 'TEST', reasonText: 'bypass attempt' }), (c) =>
       c.query("select iam.decide_role_permission($1, true, 'approved')", [request.rows[0]!.id])))).toMatch(/EBMR-IAM-190/);
     // Every function the application role may call, in the reviewer's command with every argument NULL: none records a
     // change attributed to the reviewer, apart from the logged reads of its own access chain and the person's own

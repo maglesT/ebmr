@@ -59,6 +59,7 @@ import cfg from '../fixtures/config.json' with { type: 'json' };
 import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
+import gv from '../fixtures/governance.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
@@ -393,7 +394,30 @@ export const EXAMPLES = {
   'quality-record-lot-receipt': { schema: r.quality.recordLotReceipt.response, data: { ...rc.receipt, source: 'MANUAL', inboundMessageId: null, examination: null }, routeId: r.quality.recordLotReceipt.id },
   'quality-examine-lot-receipt': { schema: r.quality.examineLotReceipt.response, data: rc.receipt, routeId: r.quality.examineLotReceipt.id },
   'quality-correct-lot-receipt': { schema: r.quality.correctLotReceipt.response, data: rc.incomplete, routeId: r.quality.correctLotReceipt.id },
+  // Phase 6 slice 6f (builder B): vendor support grants (DI-08), the contract giver's reviewer (IN-30), the India DSC (IN-10).
+  'support-grants': { schema: r.support.grants.response, data: { grants: [gv.supportActive, gv.supportPending], accounts: [gv.supportAccount] }, routeId: r.support.grants.id },
+  'support-request-grant': { schema: r.support.requestGrant.response, data: { ...gv.supportPending, approvals: [] }, routeId: r.support.requestGrant.id },
+  'support-revoke-grant': { schema: r.support.revokeGrant.response, data: gv.supportRevoked, routeId: r.support.revokeGrant.id },
+  'contract-giver-accesses': { schema: r.contractGiver.accesses.response, data: { accesses: [gv.cgAccess] }, routeId: r.contractGiver.accesses.id },
+  'contract-giver-grant-access': { schema: r.contractGiver.grantAccess.response, data: { ...gv.cgAccess, reads: 0 }, routeId: r.contractGiver.grantAccess.id },
+  'contract-giver-revoke-access': { schema: r.contractGiver.revokeAccess.response, data: { ...gv.cgAccess, live: false }, routeId: r.contractGiver.revokeAccess.id },
+  'contract-giver-batches': { schema: r.contractGiver.batches.response, data: { batches: [gv.cgBatch] }, routeId: r.contractGiver.batches.id },
+  'contract-giver-batch': { schema: r.contractGiver.batch.response, data: gv.cgRecord, routeId: r.contractGiver.batch.id },
+  'esig-dsc-configuration': { schema: r.esig.dscConfiguration.response, data: gv.dsc, routeId: r.esig.dscConfiguration.id },
+  'esig-set-dsc-mode': { schema: r.esig.setDscMode.response, data: gv.dsc, routeId: r.esig.setDscMode.id },
+  'esig-register-dsc-anchor': { schema: r.esig.registerDscAnchor.response, data: gv.dsc, routeId: r.esig.registerDscAnchor.id },
+  'esig-set-dsc-meaning': { schema: r.esig.setDscMeaning.response, data: gv.dsc, routeId: r.esig.setDscMeaning.id },
 } as const satisfies Record<string, Example>;
+
+/** Phase 6 slice 6f (builder B): the support, contract-giver and DSC routes, each with an example above (contract test). */
+export const GOVERNANCE_ROUTE_IDS: readonly string[] = [
+  ...Object.values(r.support),
+  ...Object.values(r.contractGiver),
+  r.esig.dscConfiguration,
+  r.esig.setDscMode,
+  r.esig.registerDscAnchor,
+  r.esig.setDscMeaning,
+].map((route) => route.id);
 
 /** Phase 4 slice 6a: the india routes, each with an example above (checked by the india contract test). */
 export const INDIA_ROUTE_IDS: readonly string[] = Object.values(r.india).map((route) => route.id);

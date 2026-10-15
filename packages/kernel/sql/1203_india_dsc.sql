@@ -12,7 +12,7 @@
 --   esig.india_dsc (policy, kernel 0200)  now takes OFF (default), TEST_CA and LICENSED (esig.policy_allowed_values;
 --                                 esig.set_policy and esig.policy_values replaced from 0210 / 0200 to read it). TEST_CA
 --                                 needs a live TEST_CA anchor; LICENSED needs a live LICENSED anchor, which cannot be
---                                 registered in v1 (EBMR-ESIG-091): it stays refused until the legal opinion (deployment).
+--                                 registered in v1 (EBMR-ESIG-081): it stays refused until the legal opinion (deployment).
 --   esig.dsc_trust_anchor         insert-only: the root certificate (DER and SHA-256) the chains must end at, of kind
 --                                 TEST_CA or LICENSED; esig.dsc_trust_anchor_retirement ends one. One live anchor per kind.
 --   esig.dsc_meaning_setting      insert-only: per signature meaning, whether a DSC is required while the policy is on;
@@ -28,13 +28,13 @@
 -- X.509 is not parsed in SQL); esig.record_dsc_signature checks what the database can: the signature was made in this
 -- transaction, a DSC is required for its meaning now, the statement and its SHA-256 are the challenge's, the last
 -- certificate of the chain is the live anchor of the current mode. A deferred trigger refuses to commit a signature whose
--- meaning needs a DSC without its DSC row (EBMR-ESIG-094).
+-- meaning needs a DSC without its DSC row (EBMR-ESIG-084).
 --
 -- Configuration of the anchor and of the per-meaning setting is made by the quality unit (MBR.APPROVE, never an
 -- administrator), with a reason; builder A's configuration change control (kernel 1195) covers esig.policy_value, so
 -- switching the mode needs an approved change record. [6f hook] The two new configuration tables are registered as
 -- configuration areas once that interface is merged (see the slice 6f report).
--- Messages: EBMR-ESIG-090 to EBMR-ESIG-099.
+-- Messages: EBMR-ESIG-080 to EBMR-ESIG-089.
 
 set local role ebmr_owner;
 
@@ -266,13 +266,13 @@ begin
   perform iam.assert_not_administrator();
   if p_kind = 'LICENSED' then
     raise exception using errcode = 'P0001',
-      message = 'EBMR-ESIG-091 a licensed CA or eSign provider is configured only after the legal opinion (decision 0001 item 3); v1 takes a TEST_CA anchor only';
+      message = 'EBMR-ESIG-081 a licensed CA or eSign provider is configured only after the legal opinion (decision 0001 item 3); v1 takes a TEST_CA anchor only';
   end if;
   if p_kind is distinct from 'TEST_CA' then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-090 a DSC trust anchor is of kind TEST_CA or LICENSED';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC trust anchor is of kind TEST_CA or LICENSED';
   end if;
   if kernel.is_blank(p_label) or kernel.is_blank(p_subject) or kernel.is_blank(p_reason) or p_root_der is null then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-090 a DSC trust anchor names its label, subject, root certificate and the reason';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC trust anchor names its label, subject, root certificate and the reason';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('esig.dsc_trust_anchor:' || p_kind, 0));
   v_old := esig.dsc_live_anchor(p_kind);
@@ -296,10 +296,10 @@ declare
 begin
   perform iam.assert_not_administrator();
   if not exists (select 1 from esig.meaning_type m where m.code = p_meaning) then
-    raise exception using errcode = 'P0001', message = format('EBMR-ESIG-090 unknown signature meaning %s', coalesce(p_meaning, 'NULL'));
+    raise exception using errcode = 'P0001', message = format('EBMR-ESIG-080 unknown signature meaning %s', coalesce(p_meaning, 'NULL'));
   end if;
   if p_required is null or kernel.is_blank(p_reason) then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-090 a DSC setting says whether the meaning needs a DSC, with a reason';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC setting says whether the meaning needs a DSC, with a reason';
   end if;
   insert into esig.dsc_meaning_setting (meaning_code, required, reason, set_by_person, set_by_account, correlation_id)
   values (p_meaning, p_required, btrim(p_reason), (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid,
@@ -315,10 +315,10 @@ begin
   if new.key = 'esig.india_dsc' then
     if new.value = 'LICENSED' and (esig.dsc_live_anchor('LICENSED')).id is null then
       raise exception using errcode = 'P0001',
-        message = 'EBMR-ESIG-091 LICENSED is refused until a licensed CA or eSign provider is configured after the legal opinion (decision 0001 item 3)';
+        message = 'EBMR-ESIG-081 LICENSED is refused until a licensed CA or eSign provider is configured after the legal opinion (decision 0001 item 3)';
     end if;
     if new.value = 'TEST_CA' and (esig.dsc_live_anchor('TEST_CA')).id is null then
-      raise exception using errcode = 'P0001', message = 'EBMR-ESIG-092 TEST_CA needs a registered test-CA trust anchor first';
+      raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 TEST_CA needs a registered test-CA trust anchor first';
     end if;
   end if;
   return new;
@@ -346,25 +346,25 @@ begin
   select * into s from esig.signature sg where sg.id = p_signature;
   select sg.xmin into v_xmin from esig.signature sg where sg.id = p_signature;
   if s.id is null or v_xmin is distinct from pg_current_xact_id()::xid then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-093 a DSC is recorded in the command that made its password signature';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-083 a DSC is recorded in the command that made its password signature';
   end if;
   if not esig.dsc_required(s.meaning_code) then
-    raise exception using errcode = 'P0001', message = format('EBMR-ESIG-093 no DSC is configured for %s now', s.meaning_code);
+    raise exception using errcode = 'P0001', message = format('EBMR-ESIG-083 no DSC is configured for %s now', s.meaning_code);
   end if;
   a := esig.dsc_live_anchor(esig.dsc_mode());
   if a.id is null then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-092 no live trust anchor is configured for the India DSC';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 no live trust anchor is configured for the India DSC';
   end if;
   begin
     v_chain := array(select decode(x, 'base64') from jsonb_array_elements_text(p_dsc -> 'chain') with ordinality t(x, n) order by n);
   exception when others then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-095 the DSC chain is not base64 DER';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain is not base64 DER';
   end;
   if cardinality(v_chain) < 2 or encode(sha256(v_chain[cardinality(v_chain)]), 'hex') <> a.root_sha256 then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-095 the DSC chain does not end at the configured trust anchor';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain does not end at the configured trust anchor';
   end if;
   if encode(sha256(v_chain[1]), 'hex') is distinct from lower(p_dsc ->> 'leafSha256') then
-    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-095 the signer certificate is not the first of the chain';
+    raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the signer certificate is not the first of the chain';
   end if;
   v_stmt := esig.dsc_statement(s.challenge_id);
   insert into esig.dsc_signature (signature_id, mode, anchor_id, statement, statement_sha256, signature_value, algorithm, chain_der,
@@ -382,7 +382,7 @@ language plpgsql security definer set search_path = pg_catalog, esig, pg_temp as
 begin
   if esig.dsc_required(new.meaning_code) and not exists (select 1 from esig.dsc_signature d where d.signature_id = new.id) then
     raise exception using errcode = 'P0001',
-      message = format('EBMR-ESIG-094 IN-10: a %s signature needs a second signature with a Class 3 certificate (India DSC) in the same command', new.meaning_code);
+      message = format('EBMR-ESIG-084 IN-10: a %s signature needs a second signature with a Class 3 certificate (India DSC) in the same command', new.meaning_code);
   end if;
   return null;
 end

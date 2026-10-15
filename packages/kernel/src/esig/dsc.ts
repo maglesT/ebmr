@@ -14,7 +14,7 @@
  * client; in the signing command, after esig.sign, the server verifies the chain up to the configured anchor and the
  * signature over the statement, then stores the row with esig.record_dsc_signature, which checks again what the
  * database can (the statement is the challenge's, the chain ends at the live anchor). A required DSC that is missing
- * when the command commits makes the commit fail (EBMR-ESIG-094), so nothing is signed without it.
+ * when the command commits makes the commit fail (EBMR-ESIG-084), so nothing is signed without it.
  */
 import { X509Certificate, createVerify } from 'node:crypto';
 import type pg from 'pg';
@@ -61,7 +61,7 @@ export async function dscRequirement(db: Db, challengeId: string): Promise<DscRe
 }
 
 const refuse = (why: string): never => {
-  throw new EsigError('EBMR-ESIG-095', `the DSC signature does not verify: ${why}`);
+  throw new EsigError('EBMR-ESIG-085', `the DSC signature does not verify: ${why}`);
 };
 
 const parse = (b64: string, what: string): X509Certificate => {
@@ -75,7 +75,7 @@ const parse = (b64: string, what: string): X509Certificate => {
 /**
  * Verifies a DSC submission: every certificate valid at `at`, each issued and signed by the next, every issuer a CA,
  * the signer's certificate not a CA, the last one exactly the configured anchor (self-signed), and the signature over
- * the statement made with the signer's key. Throws EBMR-ESIG-095 with the reason otherwise.
+ * the statement made with the signer's key. Throws EBMR-ESIG-085 with the reason otherwise.
  */
 export function verifyDsc(statement: string, dsc: DscSubmission, anchorDer: Buffer, at: Date): VerifiedDsc {
   if (!Array.isArray(dsc.chain) || dsc.chain.length < 2 || dsc.chain.length > 6) refuse('the chain holds the signer certificate and its issuers up to the root (2 to 6 certificates)');
@@ -121,8 +121,8 @@ export async function recordDsc(client: pg.PoolClient, signatureId: string, dsc:
   );
   const r = rows[0]?.r;
   if (!r?.required) return false;
-  if (!dsc) throw new EsigError('EBMR-ESIG-094', 'this signature meaning needs a second signature with a Class 3 certificate (India DSC); none was given');
-  if (!r.statement || !r.anchor) throw new EsigError('EBMR-ESIG-092', 'no live trust anchor is configured for the India DSC');
+  if (!dsc) throw new EsigError('EBMR-ESIG-084', 'this signature meaning needs a second signature with a Class 3 certificate (India DSC); none was given');
+  if (!r.statement || !r.anchor) throw new EsigError('EBMR-ESIG-082', 'no live trust anchor is configured for the India DSC');
   const verified = verifyDsc(r.statement, dsc, Buffer.from(r.anchor, 'base64'), new Date(r.at));
   await client.query('select esig.record_dsc_signature($1, $2::jsonb)', [
     signatureId,

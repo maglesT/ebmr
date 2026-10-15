@@ -16,7 +16,7 @@ export * from './routes.ts';
 export * from './vocab/roles.ts';
 export { MetaView } from './ns/meta.ts';
 export { ChangeSecretRequest, DemoDeviceView, DeviceClass, DeviceNonceRequest, DeviceView, LoginMethod, LoginRequest, SessionView } from './ns/session.ts';
-export { ChallengeView, ManifestationView, SignableContentView, SignableDescriptorView, SignatureComponent, SignatureCredentials, SignOutcomeView } from './ns/esig.ts';
+export { ChallengeView, DscConfigurationView, DscRequirementView, DscSubmission, ManifestationView, SignableContentView, SignableDescriptorView, SignatureComponent, SignatureCredentials, SignOutcomeView } from './ns/esig.ts';
 export { AuditChainView, AuditEventView, ChainVerificationView } from './ns/audit.ts';
 export {
   EvidenceView,
@@ -246,3 +246,4 @@ export {
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
+export { ContractGiverAccessView, ContractGiverBatchView, ContractGiverRecordView, SupportAccountView, SupportGrantState, SupportGrantView } from './ns/support.ts';

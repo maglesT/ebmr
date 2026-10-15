@@ -154,10 +154,9 @@ $$;
 -- Every access, for QA's screen.
 create function recipe.contract_giver_accesses() returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
-declare
-  v_actor jsonb := iam.require_permission('CONTRACT_GIVER_ACCESS.GRANT', '{}'::jsonb);
 begin
-  perform v_actor;
+  perform iam.assert_not_administrator();
+  perform iam.require_permission('CONTRACT_GIVER_ACCESS.GRANT', '{}'::jsonb);
   return coalesce((
     select jsonb_agg(jsonb_build_object('accessId', a.id, 'loanLicenceId', a.loan_licence_id, 'loanLicenceNumber', l.licence_number,
                                         'holderName', l.holder_name, 'accountId', a.account_id, 'personId', a.person_id,
@@ -170,26 +169,18 @@ begin
 end
 $$;
 
--- The acting reviewer, checked read-only (EBMR-CGA-003).
-create function recipe.contract_giver_reader() returns jsonb
-language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
-declare
-  v_actor jsonb := iam.require_permission('CONTRACT_GIVER.READ', '{}'::jsonb);
-begin
-  if not records.qp_account_read_only((v_actor ->> 'account_id')::uuid) then
-    raise exception using errcode = 'P0001', message = 'EBMR-CGA-003 a contract giver''s reviewer reads only while the account holds read permissions only';
-  end if;
-  return v_actor;
-end
-$$;
-
 -- The batches the acting reviewer may read now: [{batchId, batchNumber, product, status, reviewState, loanLicenceNumber,
 -- hostLicenceNumber, issuedAt, accessId, accessValidTo}], latest first.
 create function recipe.contract_giver_batches() returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
 declare
-  v_actor jsonb := recipe.contract_giver_reader();
+  v_actor jsonb;
 begin
+  perform iam.assert_not_administrator();
+  v_actor := iam.require_permission('CONTRACT_GIVER.READ', '{}'::jsonb);
+  if not records.qp_account_read_only((v_actor ->> 'account_id')::uuid) then
+    raise exception using errcode = 'P0001', message = 'EBMR-CGA-003 a contract giver''s reviewer reads only while the account holds read permissions only';
+  end if;
   return coalesce((
     select jsonb_agg(jsonb_build_object('batchId', b.id, 'batchNumber', b.batch_number, 'product', recipe.batch_product(b.id),
                                         'status', s.status, 'reviewState', recipe.batch_review_state(b.id),
@@ -208,12 +199,17 @@ $$;
 create function recipe.read_contract_giver_batch(p_batch uuid) returns jsonb
 language plpgsql volatile security definer set search_path = pg_catalog, recipe, iam, pg_temp as $$
 declare
-  v_actor  jsonb := recipe.contract_giver_reader();
+  v_actor  jsonb;
   v_access uuid;
   b        recipe.batch_execution;
   lb       recipe.batch_licence_basis;
   st       recipe.execution_state;
 begin
+  perform iam.assert_not_administrator();
+  v_actor := iam.require_permission('CONTRACT_GIVER.READ', '{}'::jsonb);
+  if not records.qp_account_read_only((v_actor ->> 'account_id')::uuid) then
+    raise exception using errcode = 'P0001', message = 'EBMR-CGA-003 a contract giver''s reviewer reads only while the account holds read permissions only';
+  end if;
   select a.id into v_access
     from recipe.contract_giver_access a join recipe.batch_licence_basis l on l.loan_licence_id = a.loan_licence_id
    where l.batch_id = p_batch and a.account_id = (v_actor ->> 'account_id')::uuid and recipe.contract_giver_access_live(a.id)
@@ -237,8 +233,12 @@ begin
 end
 $$;
 
+select continuity.register_protected_sequence('recipe.contract_giver_read.id',
+  pg_get_serial_sequence('recipe.contract_giver_read', 'id')::regclass,
+  'OTHER', 'recipe-core', 'Ids of recipe.contract_giver_read (the contract giver''s logged reads, INV-27)', 100000);
+
 revoke all on function recipe.contract_giver_access_live(uuid), recipe.grant_contract_giver_access(uuid, uuid, timestamptz, text),
-  recipe.revoke_contract_giver_access(uuid, text), recipe.contract_giver_accesses(), recipe.contract_giver_reader(),
+  recipe.revoke_contract_giver_access(uuid, text), recipe.contract_giver_accesses(),
   recipe.contract_giver_batches(), recipe.read_contract_giver_batch(uuid) from public;
 grant select on recipe.contract_giver_access, recipe.contract_giver_access_revocation, recipe.contract_giver_read to ebmr_app;
 grant execute on function recipe.contract_giver_access_live(uuid), recipe.grant_contract_giver_access(uuid, uuid, timestamptz, text),

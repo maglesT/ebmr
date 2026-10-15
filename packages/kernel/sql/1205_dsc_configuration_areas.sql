@@ -31,6 +31,10 @@ select platform.register_config_area('DSC_MEANING', 'esig.dsc_meaning_setting',
   'India DSC per signature meaning: whether a second signature with a Class 3 certificate is needed while the policy is on',
   array['meaning_code'], array['required'], 'recorded_at', 'recorded_at');
 
+-- INV-27: the ids of the per-meaning settings are a protected sequence.
+select continuity.register_protected_sequence('esig.dsc_meaning_setting.id', pg_get_serial_sequence('esig.dsc_meaning_setting', 'id')::regclass,
+  'OTHER', 'kernel', 'Ids of esig.dsc_meaning_setting (configuration versions of the India DSC per meaning)', 100000);
+
 select kernel.set_actor_context(null);
 
 reset role;

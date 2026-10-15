@@ -77,9 +77,9 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
     expect(rows[0]).toEqual({ m: 'OFF', v: ['OFF', 'TEST_CA', 'LICENSED'] });
     // Off: a release signs without any DSC.
     expect(await signRelease(stub, () => undefined)).toMatch(/[0-9a-f-]{36}/);
-    await expectRefused(asQa(`select esig.set_policy('esig.india_dsc', 'LICENSED', 'licensed CA', 'CR')`, [], true), 'EBMR-ESIG-091');
-    await expectRefused(asQa(`select esig.set_policy('esig.india_dsc', 'TEST_CA', 'test CA', 'CR')`, [], true), 'EBMR-ESIG-092');
-    await expectRefused(asQa(`select esig.register_dsc_anchor('LICENSED', 'CCA root', 'CN=CCA India', $1, 'go live')`, [ca.root.der], true), 'EBMR-ESIG-091');
+    await expectRefused(asQa(`select esig.set_policy('esig.india_dsc', 'LICENSED', 'licensed CA', 'CR')`, [], true), 'EBMR-ESIG-081');
+    await expectRefused(asQa(`select esig.set_policy('esig.india_dsc', 'TEST_CA', 'test CA', 'CR')`, [], true), 'EBMR-ESIG-082');
+    await expectRefused(asQa(`select esig.register_dsc_anchor('LICENSED', 'CCA root', 'CN=CCA India', $1, 'go live')`, [ca.root.der], true), 'EBMR-ESIG-081');
     const admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', acknowledgeEsig: false });
     await expectRefused(withCommand(db.app, await cmd(db, admin), (c) => c.query(`select esig.register_dsc_anchor('TEST_CA', 'x', 'y', $1, 'z')`, [ca.root.der])), 'EBMR-IAM-040');
     // The anchor is configuration (kernel 1205, DI-09): without a change record it is refused.
@@ -117,26 +117,26 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
     const other = createTestCa(now, 'Another CA');
     const stranger = issueTestSigner(other, 'Stranger', now);
     // A chain to another root.
-    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, stranger, other)), 'EBMR-ESIG-095', /trust anchor/);
+    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, stranger, other)), 'EBMR-ESIG-085', /trust anchor/);
     // The right root, but a sub-CA from another CA: the chain is broken.
-    await expectRefused(signRelease(await createStub(db, author), (s) => ({ signature: b64(signDscStatement(stranger, s)), chain: [b64(stranger.der), b64(other.subCa.der), b64(ca.root.der)] })), 'EBMR-ESIG-095', /broken chain/);
+    await expectRefused(signRelease(await createStub(db, author), (s) => ({ signature: b64(signDscStatement(stranger, s)), chain: [b64(stranger.der), b64(other.subCa.der), b64(ca.root.der)] })), 'EBMR-ESIG-085', /broken chain/);
     // The intermediate left out.
-    await expectRefused(signRelease(await createStub(db, author), (s) => ({ signature: b64(signDscStatement(signerCert, s)), chain: [b64(signerCert.der), b64(ca.root.der)] })), 'EBMR-ESIG-095', /broken chain/);
+    await expectRefused(signRelease(await createStub(db, author), (s) => ({ signature: b64(signDscStatement(signerCert, s)), chain: [b64(signerCert.der), b64(ca.root.der)] })), 'EBMR-ESIG-085', /broken chain/);
     // An expired signer certificate.
     const old = issueTestCertificate({ subject: { commonName: 'Expired' }, issuer: ca.subCa, ca: false, notBefore: new Date(now.getTime() - 3e10), notAfter: new Date(now.getTime() - 1e10) });
-    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, old)), 'EBMR-ESIG-095', /not valid at the time/);
+    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, old)), 'EBMR-ESIG-085', /not valid at the time/);
     // A sub-CA "certificate" forged with the signer's own key.
     const forged = issueTestCertificate({ subject: { commonName: 'Forged' }, issuer: ca.subCa, ca: false, notBefore: new Date(now.getTime() - 1e8), notAfter: new Date(now.getTime() + 1e10), signingKey: signerCert.privateKey });
-    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, forged)), 'EBMR-ESIG-095', /broken chain/);
+    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, forged)), 'EBMR-ESIG-085', /broken chain/);
     expect(await dbCount(db, 'select 1 from esig.signature')).toBe(before);
   });
 
   it('[IN-10] a DSC over another content hash, or none, is refused; nothing is signed', async () => {
     const before = await dbCount(db, 'select 1 from esig.signature');
     const stub = await createStub(db, author);
-    await expectRefused(signRelease(stub, (s) => goodDsc(s.replace(/"content_sha256":"[0-9a-f]{64}"/, `"content_sha256":"${'0'.repeat(64)}"`))), 'EBMR-ESIG-095', /content hash/);
-    await expectRefused(signRelease(stub, (s) => ({ ...goodDsc(s), signature: b64(signDscStatement(signerCert, `${s} `)) })), 'EBMR-ESIG-095');
-    await expectRefused(signRelease(stub, () => undefined), 'EBMR-ESIG-094');
+    await expectRefused(signRelease(stub, (s) => goodDsc(s.replace(/"content_sha256":"[0-9a-f]{64}"/, `"content_sha256":"${'0'.repeat(64)}"`))), 'EBMR-ESIG-085', /content hash/);
+    await expectRefused(signRelease(stub, (s) => ({ ...goodDsc(s), signature: b64(signDscStatement(signerCert, `${s} `)) })), 'EBMR-ESIG-085');
+    await expectRefused(signRelease(stub, () => undefined), 'EBMR-ESIG-084');
     expect(await dbCount(db, 'select 1 from esig.signature')).toBe(before);
   });
 
@@ -147,19 +147,19 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
     await expectPermissionDenied(db.app.query(`delete from esig.dsc_signature where signature_id = $1`, [earlier]));
     // Recording a DSC for a signature made in an earlier command is refused (no replay onto another signature).
     const row = (await db.admin.query<{ chain: Buffer[]; v: Buffer }>('select chain_der as chain, signature_value as v from esig.dsc_signature where signature_id = $1', [earlier])).rows[0];
-    await expectRefused(withCommand(db.app, await cmd(db, ap), (c) => c.query('select esig.record_dsc_signature($1, $2::jsonb)', [earlier, JSON.stringify({ signature: b64(row?.v ?? Buffer.alloc(0)), chain: (row?.chain ?? []).map(b64), leafSha256: '0'.repeat(64) })])), 'EBMR-ESIG-093');
+    await expectRefused(withCommand(db.app, await cmd(db, ap), (c) => c.query('select esig.record_dsc_signature($1, $2::jsonb)', [earlier, JSON.stringify({ signature: b64(row?.v ?? Buffer.alloc(0)), chain: (row?.chain ?? []).map(b64), leafSha256: '0'.repeat(64) })])), 'EBMR-ESIG-083');
     // Signing without the server's DSC step: the commit is refused.
     await ensureSealKey(db);
     const stub2 = await createStub(db, author);
     const ch = await challengeFor(db, ap, stub2, { meaning: 'MANUFACTURER_RELEASE' });
     const ev = await signatureAuth(db, ap, ap, ch.challengeId);
-    await expectRefused(withCommand(db.app, await cmd(db, ap), (c) => sign(c, { challengeId: ch.challengeId, authEventId: ev, expectedState: 'OPEN' }, testSealKey)), 'EBMR-ESIG-094');
+    await expectRefused(withCommand(db.app, await cmd(db, ap), (c) => sign(c, { challengeId: ch.challengeId, authEventId: ev, expectedState: 'OPEN' }, testSealKey)), 'EBMR-ESIG-084');
     // The database checks the chain's end itself, whatever the server says.
     const ch3 = await challengeFor(db, ap, await createStub(db, author), { meaning: 'MANUFACTURER_RELEASE' });
     const ev3 = await signatureAuth(db, ap, ap, ch3.challengeId);
     await expectRefused(withCommand(db.app, await cmd(db, ap), async (c) => {
       const s = await sign(c, { challengeId: ch3.challengeId, authEventId: ev3, expectedState: 'OPEN' }, testSealKey);
       await c.query('select esig.record_dsc_signature($1, $2::jsonb)', [s.signatureId, JSON.stringify({ signature: b64(Buffer.alloc(256, 1)), chain: [b64(signerCert.der), b64(Buffer.alloc(100, 7))], leafSha256: '0'.repeat(64), algorithm: 'rsa-sha256', leafSubject: 'x', leafSerial: '1', leafValidFrom: '2026-01-01T00:00:00Z', leafValidTo: '2027-01-01T00:00:00Z' })]);
-    }), 'EBMR-ESIG-095', /trust anchor/);
+    }), 'EBMR-ESIG-085', /trust anchor/);
   });
 });
