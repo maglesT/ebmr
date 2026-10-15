@@ -423,6 +423,27 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     verified by the server, so it does not conflict with ADR 0006 (no signing on offline devices).
   - **D-P6f-4** The IN-10 clause is proven with the test CA standing for the CCA root (decision 0001 item 3); the real
     chain is verified at deployment. Listed for the owner (question 4).
+- **Builder A defaults (15 October; kernel 1195, recipe-core 1050 and 1051, tablets 1270):**
+  - **D-P6f-A-1** Configuration change records are kernel rows (`platform.change_record`: raised, approved by the quality
+    unit's CONFIG_CHANGE_APPROVED e-signature by someone other than the raiser, closed). The MBR change record
+    (`recipe.change_record`, PR-06) keeps governing master records. A QMS feed of change records is deployment.
+  - **D-P6f-A-2** Rows written under the software-release identity (migrations) are a release, which has its own change
+    control; they need no change record and are kept as versions with basis RELEASE.
+  - **D-P6f-A-3** Areas in v1: platform settings (with the 6a adapter modes and freshness bounds), identity and
+    e-signature policies, the signature catalogue, market policies, site values, RBE rules. Slice 6b registers its alarm
+    limits with `platform.register_config_area`; the DI-09 scan test fails on any table named like configuration that is
+    neither registered nor listed with a reason. Roles and permissions, retention rules, rule tables (their own signed
+    approval) and report templates are not areas in v1 (owner question below).
+  - **D-P6f-A-4** "As of a date" reads the version whose validity started last before it: the recorded instant, or the
+    effective instant for market policies; site values are keyed with their effective date.
+  - **D-P6f-A-5** An RBE rule sets per review category the least severity the review shows; a mandatory category is never
+    switched off; customer-added exception types wait for configurable exception types.
+  - **D-P6f-A-6** The validation reference of a REVIEW_BY_EXCEPTION reduction must be one of the validations recorded on
+    the MBR version's change record; checked at SUBMIT by replacing the PR-07 guard function (same name; machine unchanged).
+  - **D-P6f-A-7** An excursion notifies both departments always (the G-11 `notify` roles stay the run's own record).
+  - **D-P6f-A-8** Raising and closing: PROCESS_OWNER, CSV_DI_LEAD, MASTER_DATA_STEWARD, QA_MBR_APPROVER; approving:
+    QA_REVIEWER, QA_MBR_APPROVER. Owner question: should roles and permission sets and retention rules become areas, and
+    is a drift-from-baseline alarm (DI-09 clause 2) wanted before Phase 7?
 - **Migrations:** kernel 1195 to 1209 (configuration versions, support grant, contract-giver role, DSC), recipe-core
   1050 to 1069 (RBE rules, designer, edition review, PQR CPP), site-services none.
 - **Handbook:** `modules/kernel.md` (configuration, DSC, support), `modules/recipe-core.md`, `modules/tablets-web.md`,
@@ -561,6 +582,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
 | tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
+| tablets, added | | | | | | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.

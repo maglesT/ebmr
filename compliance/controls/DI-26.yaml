@@ -103,6 +103,12 @@ tests:
   - "apps/tablets-web/test/review/review.test.tsx > exception register > [DI-26] a clean record shows \"no exception\" with its summary, on the register and on the record review, and offers no item to review"
   - "packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts > overrides of interface-captured values (kernel 1181) > [DI-31][DI-26] the override register is written only through a domain correction: the application can neither call the function nor write the table"
   - "packages/site-services/test/erp-wms/receipt.test.ts > corrections of WMS-captured receipt values (DI-31, DI-26) > [DI-31][DI-26] an interface-captured value changes only by an audit-trailed correction with a reason; the original stays and the override is registered"
+  - "packages/recipe-core/test/review/rbe-rules.test.ts > review-by-exception rules are versioned configuration under change control (DI-26, DI-09) > [DI-26] editing an RBE rule without a change record is blocked"
+  - "packages/recipe-core/test/review/rbe-rules.test.ts > review-by-exception rules are versioned configuration under change control (DI-26, DI-09) > [DI-26] under an approved change record a rule raises a severity floor; a mandatory category cannot be taken off the review"
+  - "packages/recipe-core/test/review/rbe-rules.test.ts > review-by-exception rules are versioned configuration under change control (DI-26, DI-09) > [DI-26] the rule set of a past date is read back, and the register shows each item at least at its rule's severity"
+  - "packages/recipe-core/test/review/rbe-rules.test.ts > review by exception on a step needs a validation reference (PR-52) > [PR-52][DI-26] RBE on a step with the risk class, rationale and a validation of its change record is submitted"
+  - "apps/tablets-server/test/config/config-routes.test.ts > configuration change records and RBE rules over HTTP (DI-09, DI-26) > [DI-09][DI-26] an RBE rule is changed only under a change record QA approved with its signature; the change shows in the diff with the record"
+  - "apps/tablets-web/test/config/config.test.tsx > configuration change control screens (DI-09, DI-26) > [DI-26] an RBE rule version is saved with its change record and rationale; mandatory categories are marked"
 clauses:
   - clause: "Seed a batch with one instance of every exception type. All are listed."
     tests:

@@ -37,6 +37,10 @@ tests:
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26] a reopen supersedes the item dispositions of the closed cycle: the item is open again and is dispositioned again in the new cycle"
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-52][DI-26][DI-34] on a GMP batch an unsigned escalation is refused, a query waits for the QA review, an escalation stands only while its deviation is linked, and a critical item is escalated only after its detail was opened"
   - "apps/tablets-server/test/review/register-routes.test.ts > the register routes record the showing and the opening (PR-52, DI-26) > [PR-52][DI-26] grouped acceptance stands on a recorded showing of the full list; a critical item is accepted only after its recorded opening"
+  - "packages/recipe-core/test/review/rbe-rules.test.ts > review by exception on a step needs a validation reference (PR-52) > [PR-52] RBE on a step without a validation reference is refused"
+  - "packages/recipe-core/test/review/rbe-rules.test.ts > review by exception on a step needs a validation reference (PR-52) > [PR-52] RBE on a step citing a validation that is not on the version's change record, or without a risk class, is refused"
+  - "packages/recipe-core/test/review/rbe-rules.test.ts > review by exception on a step needs a validation reference (PR-52) > [PR-52][DI-26] RBE on a step with the risk class, rationale and a validation of its change record is submitted"
+  - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-52] review by exception on a step without a validation reference is an error at configuration time"
 clauses:
   - clause: "Seed one exception of each type. All appear, and approval stays blocked until each is dispositioned."
     tests:

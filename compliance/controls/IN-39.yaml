@@ -28,6 +28,8 @@ tests:
   - "apps/tablets-server/test/notifications/notification-centre.test.ts > the notification centre (slice 3c, recipe-core 0810) > [IN-39] a person of the department acknowledges once, as themselves (audited); another department's person cannot"
   - "apps/tablets-server/test/seed/release-seed.test.ts > the release demo of the set-up CLI (demo seed) > [IN-05][IN-39] the AP rejects the NOT_READY lot over HTTP on the epoch shown; production and QA are notified and each acknowledges"
   - "apps/tablets-web/test/release/release.test.tsx > notification centre > [IN-39] lists the department's notifications; the acknowledgement is the person's own, with a fresh badge tap on a shared terminal"
+  - "apps/tablets-server/test/notifications/excursion-notifications.test.ts > excursion notifications (IN-39, recipe-core 1051) > [IN-39] both departments are notified: an excursion at a room check is delivered to production and QA with the exception that caused it"
+  - "apps/tablets-server/test/notifications/excursion-notifications.test.ts > excursion notifications (IN-39, recipe-core 1051) > [IN-39] the application role cannot write, change or delete an excursion notification, nor call the notifying trigger function"
 clauses:
   - clause: "enter a differential pressure below the action limit at compression start; the step is blocked or a deviation opens"
     tests:
