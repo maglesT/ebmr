@@ -62,7 +62,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 | 6e | Controlled-substance mode (decision 0001 item 14 = A) | IN-53 (draft, added) | 6a-0 |
 | 6f | Governance: configuration change control and diff as of a date, RBE rules under change control, support grant, contract-giver reviewer, notification delivery, India DSC with the test CA, designer and PQR residuals | DI-08, DI-09 x2, DI-26, PR-52, IN-30, IN-39, IN-10, IN-27, IN-33, PR-09, PR-49 | none |
 | 6g | Dashboards, change-impact explorer, training mode; the read-only reporting path | PR-05 | 6b, 6d |
-| 6h | Languages: Hindi (decision 0018: no regional language), MBR translations approved with the version, language shown recorded | (R-34, outline 7.4; no exit control) | screens of 6a to 6g settled |
+| 6h | **Dropped (decision 0018: English only).** Was: languages, MBR translations approved with the version, language shown recorded | (R-34, outline 7.4; no exit control) | screens of 6a to 6g settled |
 | 6i | Inter-site transfer packages and federated genealogy with as-of points (L-41) | PR-57 (sites), DI-31 (package) | 6d |
 | 6j | Phase 6 exit: clauses, trace at 6, golden batches, browser suite, one review pass | all of the above | all |
 
@@ -457,10 +457,10 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Handbook:** `modules/tablets-web.md`, `modules/recipe-core.md`, `03-architecture.md` (reporting path),
   `10-runbooks.md` (training mode), `08-defect-log.md`.
 
-### Slice 6h: languages (Hindi; decision 0018)
+### Slice 6h: languages (DROPPED, decision 0018: English only)
 
-Decision 0018 (owner, 15 October): Hindi only, no regional language; read every Gujarati item below as dropped.
-The catalogue mechanism stays generic so a language can be added later without code changes.
+Decision 0018 (owner, 15 October): English only; this slice is not built. The text below is kept as the design to
+follow if a language is added after v1.
 
 - **Database guards first (core, language never changes a limit, unit or meaning; outline 7.4):** MBR instruction
   translations are stored per MBR version and language, reviewed bilingually and approved with that version (a
@@ -526,7 +526,7 @@ The catalogue mechanism stays generic so a language can be added later without c
 - **6j-b golden batches and browser suite:** GB-T-01 and GB-T-02 unchanged with exact outputs (adapters in stand-in
   mode); a new GB-T-03 "connected" (ERP/WMS and LMS/CMMS mirrors, OPC UA press, L3/L4 serialisation, mock recall from
   its API lot) with exact outputs; browser flows for the integration health page with a stale mirror refusal, alarm
-  acknowledgment, trend viewer, genealogy explorer and mock recall, controlled dispensing, Hindi step screen.
+  acknowledgment, trend viewer, genealogy explorer and mock recall, controlled dispensing, English step screen.
 - **6j-c review:** one review pass over Phase 6 (serious defects only, decision 0008), critical and high fixed with
   their tests, at most 2 fix rounds, residuals to the backlog for the owner.
 - **Final run:** the full suite, golden batches, browser suite, `pnpm trace` at 6, `pnpm handbook:check`, all green in
@@ -583,12 +583,10 @@ released migration; replace a function in a new one.
   slice 6a (for example D-6a-7 in PROGRESS.md).
 - **D-P6-7** Golden batches: GB-T-01 and GB-T-02 outputs stay exact; one new GB-T-03 "connected"; roller compaction
   and bilayer stay Phase 7 (D-P4-15).
-
+## Owner questions (owner, 15 October: no questions asked; each default below is taken as the decision)
 ## Open for the owner (defaults stand until answered)
 
-1. **Regional language:** answered by the owner, decision 0018: none; Hindi only.
-2. **Translation approval** (regulatory weight: MBR instructions are GMP content): who is the bilingual reviewer for
-   the UI catalogue and the demo MBR translations? Default: model drafts marked DRAFT, shown as "draft translation";
+1. **Languages:** answered by the owner, decision 0018: English only; slice 6h dropped.
    real approval by the customer's bilingual reviewer at deployment (D-P6h-2).
 3. **IN-53 wording and scope** (legal weight): the draft control text paraphrases outline decision 14; the NDPS
    register export format and importing-market controls (US DEA, EU) are not verified. Default: outline wording,
@@ -639,7 +637,7 @@ reconcile). Contract tests per adapter against its simulator. Demo flows as `@of
   suite, all green in one final run. Mutation campaigns stay for deployment.
 - **Demo:** ERP, QMS, LMS and CMMS exchanging data under injected faults (a stale LMS mirror refuses a step
   signature); a press excursion over OPC UA acknowledged with a comment in the batch's alarm log; a serial query; a
-  mock recall from an API lot to every consignee; controlled dispensing under dual custody; Hindi step
+  mock recall from an API lot to every consignee; controlled dispensing under dual custody; English step
   screens; a lot transferred between two sites and accepted by local QA.
 
 ## Order, agents and close
