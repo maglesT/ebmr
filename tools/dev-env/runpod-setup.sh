@@ -161,6 +161,14 @@ do_setup() {
   fi
 
 
+  # Ubuntu 22.04's tzdata carries posix/ and right/ copies of every zone (1,198 names in pg_timezone_names against
+  # about 600 on the GitHub Ubuntu 24.04 runners); the kernel's site-zone test scans the list per call and timed out
+  # here. Moved aside (not deleted) so this machine matches the runners (owner, 15 October 2026).
+  if [ -d /usr/share/zoneinfo/posix ] || [ -d /usr/share/zoneinfo/right ]; then
+    $SUDO mkdir -p /usr/share/zoneinfo-legacy
+    for d in posix right; do [ -d "/usr/share/zoneinfo/$d" ] && $SUDO mv "/usr/share/zoneinfo/$d" /usr/share/zoneinfo-legacy/; done
+  fi
+
   log "Golden cluster environment (libfaketime)"
   $SUDO install -d -m 0777 "$FAKETIME_DIR"
   [ -f "$FAKETIME_DIR/offset" ] || echo '+0s' | $SUDO tee "$FAKETIME_DIR/offset" >/dev/null
