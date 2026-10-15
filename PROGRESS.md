@@ -99,7 +99,7 @@ Phase 4 is closed (PRs #26, #27, #28). Phase 6 (decision 0010): integrations and
 decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (branch `phase-6/plan`): slices 6a
 adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
 6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
-training mode, 6h Hindi and Gujarati, 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
+training mode, 6h Hindi (decision 0018: no regional language), 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
 - Slice 6a (branch `phase-6/slice-6a`, 14 October): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to
   1182: inbound messages accepted whole or not at all, de-duplicated, gaps alarmed; integration identities that never
   sign; mirrors that fail closed, EBMR-INT-010), one worker framework started with the server for MIRROR systems;
