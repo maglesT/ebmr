@@ -155,3 +155,74 @@ export const equipmentData = {
     response: z.strictObject({ records: z.array(DeviceOriginalView) }),
   }),
 };
+
+// ---------------------------------------------------------------------------------------------
+// Slice 6b builder B: the status displays read straight from the system state (recipe-core 0975). The equipment status
+// board (PR-22) and the line station display (PR-35); registered as the namespace equipmentDisplays in routes.ts
+// (D-P6b-B-9: its own namespace, so the equipment-data feature and the plant-rules feature each bind their own routes).
+
+/** One PROCESS unit, room or line on the status board: its machine state as the database holds it now. */
+export const StatusBoardEntry = z.strictObject({
+  subjectKind: SeriesSubjectKind,
+  code: PlantCode,
+  name: z.string().min(1),
+  /** PROCESS for a unit, ROOM or LINE for an area. */
+  kind: z.string().min(1),
+  classCode: z.string().nullable(),
+  /** The state of its machine (equipment_cleanliness or area_status) and the state's version. */
+  state: z.string().nullable(),
+  stateVersion: WholeText.nullable(),
+  stateSince: Instant.nullable(),
+  batch: z.strictObject({ batchId: Uuid, batchRef: z.string().min(1), product: z.string().min(1) }).nullable(),
+  /** Rooms and lines: CLEAN, OVERDUE, CLEANING_REQUIRED or NOT_CLEANED (PR-25, PR-27); null for a unit. */
+  cleaningState: z.enum(['CLEAN', 'OVERDUE', 'CLEANING_REQUIRED', 'NOT_CLEANED']).nullable(),
+  lastCleanedAt: Instant.nullable(),
+  /** Alarms of the unit or room awaiting acknowledgment (DI-49). */
+  openAlarms: z.number().int().min(0),
+});
+export type StatusBoardEntry = z.infer<typeof StatusBoardEntry>;
+
+/** The line station display: what runs on the line now (PR-35); the batch fields are null while the line is idle. */
+export const LineStationView = z.strictObject({
+  code: PlantCode,
+  name: z.string().min(1),
+  kind: z.enum(['ROOM', 'LINE']),
+  state: z.string().nullable(),
+  stateVersion: WholeText.nullable(),
+  batch: z.strictObject({
+    batchId: Uuid,
+    batchRef: z.string().min(1),
+    product: z.string().min(1),
+    productName: z.string().nullable(),
+    stage: z.string().min(1),
+    packagingOrder: z.string().nullable(),
+    artworkSet: z.string().nullable(),
+    since: Instant,
+  }).nullable(),
+  readAt: Instant,
+});
+export type LineStationView = z.infer<typeof LineStationView>;
+
+export const equipmentDisplays = {
+  statusBoard: defineRoute({
+    id: 'equipmentDisplays.statusBoard',
+    method: 'GET',
+    path: '/api/equipment-data/status-board',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The equipment status board: every PROCESS unit, room and line with its state, batch, cleaning state and open alarms, as the database holds them now (PR-22)',
+    response: z.strictObject({ entries: z.array(StatusBoardEntry), readAt: Instant }),
+  }),
+  lineStation: defineRoute({
+    id: 'equipmentDisplays.lineStation',
+    method: 'GET',
+    path: '/api/equipment-data/line-station/:code',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The station display of a line (or room): the product and batch running on it now (PR-35)',
+    params: z.strictObject({ code: PlantCode }),
+    response: LineStationView,
+  }),
+};
