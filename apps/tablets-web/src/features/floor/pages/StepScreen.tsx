@@ -6,6 +6,8 @@
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Banner, Button, floor } from '@ebmr/ui-kit';
 import { RefusalMessage } from '../../../app/refusal.tsx';
+import { BatchAlarmLog } from '../../plant-status/BatchAlarmLog.tsx';
+import { isGmpFloor } from '../family.ts';
 import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
 import { StepExceptions } from '../components/Exceptions.tsx';
@@ -69,6 +71,9 @@ function StepCard({ view, runView }: { view: StepScreenView; runView: RunView | 
           </Button>
         ) : null}
         <StepActionBar view={view} perform={perform} busy={busy} />
+        {/* Phase 6 slice 6b (DI-49): the alarms bound to this step of a GMP batch, acknowledged here. */}
+        {isGmpFloor() ? <BatchAlarmLog batchId={view.run.runId} step={view.step.stepKey} /> : null}
+        {/* end slice 6b */}
         {dialogs}
       </article>
     </div>
