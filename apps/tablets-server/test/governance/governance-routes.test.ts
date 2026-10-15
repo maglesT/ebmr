@@ -106,7 +106,8 @@ describe('vendor support grants over HTTP (DI-08)', () => {
 
 describe('the India DSC step with a test CA over HTTP (IN-10)', () => {
   it('[IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid', async () => {
-    await ensureFixtureChangeRecord({ admin: server.db.admin } as unknown as TestDatabase);
+    const fixtureDb: Pick<TestDatabase, 'admin'> = { admin: server.db.admin };
+    await ensureFixtureChangeRecord(fixtureDb);
     expect(valueOf(await qa.call(routes.esig.dscConfiguration)).mode).toBe('OFF');
     const now = new Date((await server.db.app.query<{ t: Date }>('select clock_timestamp() as t')).rows[0]!.t);
     const ca = esig.createTestCa(now);
@@ -145,7 +146,9 @@ describe('the contract giver\'s reviewer over HTTP (IN-30)', () => {
     const b = await loginOf(server, reviewer);
     expect(valueOf(await b.call(routes.contractGiver.batches)).batches).toEqual([]);
     const own = new Set(['session.get', 'session.chooseRole', 'session.logout', 'access.lock', 'access.unlock', 'access.switchUser', 'access.keepAlive', 'session.login']);
-    const all = Object.values(routes).flatMap((ns) => Object.values(ns)) as { id: string; method: string; path: string; mutating: boolean; installation: string }[];
+    type R = { id: string; method: string; path: string; mutating: boolean; installation: string };
+    const all: R[] = [];
+    for (const ns of Object.values(routes) as Record<string, R>[]) all.push(...Object.values(ns));
     const writes = all.filter((r) => r.mutating && !own.has(r.id) && r.installation !== 'SANDBOX');
     expect(writes.length).toBeGreaterThan(100);
     // Each is refused before any command runs: by the reviewer's scope, or (for a body the route cannot take) by its schema.
@@ -154,7 +157,7 @@ describe('the contract giver\'s reviewer over HTTP (IN-30)', () => {
     for (const r of writes) {
       const url = r.path.replace(/:[A-Za-z]+/g, randomUUID());
       const res = await b.inject({ method: r.method, url, payload: {}, headers: { 'idempotency-key': randomUUID() } });
-      const code = (res.json() as { refusal?: { code?: string } }).refusal?.code;
+      const code = res.json<{ refusal?: { code?: string } }>().refusal?.code;
       if (code === 'CONTRACT_GIVER_SCOPE') scoped += 1;
       if (res.statusCode < 400 || (code !== 'CONTRACT_GIVER_SCOPE' && code !== 'SCHEMA')) allowed.push(`${r.id} ${res.statusCode} ${code ?? ''}`);
     }

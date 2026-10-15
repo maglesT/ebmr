@@ -85,11 +85,11 @@ describe('vendor support grants (kernel 1202; DI-08)', () => {
     const engineer = await seedSupportEngineer(db);
     const grant = await openSupportGrant(db, engineer, 1);
     const support = await supportLogin(db, engineer);
-    await withCommand(db.app, { ...support, correlationId: randomUUID() }, async () => undefined);
+    await withCommand(db.app, { ...support, correlationId: randomUUID() }, () => Promise.resolve(undefined));
     await asTimeTraveller(db, `update iam.support_grant_activation set valid_from = valid_from - interval '2 hours', valid_to = valid_to - interval '2 hours' where grant_id = $1`, [grant]);
     const { rows } = await db.app.query<{ s: string; g: string }>('select iam.session_state($1) as s, iam.support_grant_state($2) as g', [support.sessionId, grant]);
     expect(rows[0]).toEqual({ s: 'EXPIRED', g: 'ENDED' });
-    await expectRefused(withCommand(db.app, { ...support, correlationId: randomUUID() }, async () => undefined), 'EBMR-IAM-114');
+    await expectRefused(withCommand(db.app, { ...support, correlationId: randomUUID() }, () => Promise.resolve(undefined)), 'EBMR-IAM-114');
     await loginRefused(engineer, 'SUPPORT_NO_LIVE_GRANT');
   });
 

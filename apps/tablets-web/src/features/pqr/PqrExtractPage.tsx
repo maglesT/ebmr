@@ -95,8 +95,8 @@ export function PqrExtractPage() {
 
 /** A typed value as recorded: a decimal with its unit, a series of readings, or the value itself. */
 function cppValue(v: Record<string, unknown>): string {
-  if (Array.isArray(v['values'])) return `${(v['values'] as unknown[]).map(String).join(', ')} ${String(v['unit'] ?? '')}`.trim();
-  if ('value' in v) return `${String(v['value'])}${typeof v['unit'] === 'string' ? ` ${v['unit']}` : ''}`;
+  if (Array.isArray(v['values'])) return `${(v['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof v['unit'] === 'string' ? v['unit'] : ''}`.trim();
+  if ('value' in v) return `${typeof v['value'] === 'string' ? v['value'] : JSON.stringify(v['value'])}${typeof v['unit'] === 'string' ? ` ${v['unit']}` : ''}`;
   return JSON.stringify(v);
 }
 

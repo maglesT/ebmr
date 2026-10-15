@@ -11,7 +11,7 @@ import { renderOffice } from '../office/support.tsx';
 
 afterEach(() => {
   cleanup();
-  apiState.reset?.();
+  apiState.installation = undefined;
 });
 
 describe('vendor support grants', () => {

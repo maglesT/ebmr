@@ -93,7 +93,7 @@ export function verifyDsc(statement: string, dsc: DscSubmission, anchorDer: Buff
   if (leaf.ca) refuse('the signer certificate is a certification authority');
   const v = createVerify('sha256');
   v.update(Buffer.from(statement, 'utf8'));
-  let ok = false;
+  let ok: boolean;
   try {
     ok = v.verify(leaf.publicKey, Buffer.from(dsc.signature, 'base64'));
   } catch {

@@ -222,10 +222,11 @@ async function instants(pool: pg.Pool, values: readonly string[]): Promise<Map<s
 }
 
 const decimalText = (v: unknown): string => {
-  if (!v || typeof v !== 'object') return String(v ?? '');
+  if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
+  if (!v || typeof v !== 'object') return '';
   const o = v as Record<string, unknown>;
-  if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map(String).join(', ')} ${String(o['unit'] ?? '')}`.trim();
-  if ('value' in o) return `${String(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+  if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+  if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
   return JSON.stringify(o);
 };
 

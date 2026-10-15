@@ -102,7 +102,7 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
                                            and d.statement like '%' || s.content_hash || '%'
                                       from esig.dsc_signature d join esig.signature s on s.id = d.signature_id where d.signature_id = $1) as same`, [sig]);
     expect(rows[0]?.same).toBe(true);
-    expect(rows[0]?.d).toMatchObject({ mode: 'TEST_CA', anchorLabel: 'eBMR TEST CA', leafSerial: expect.any(String) });
+    expect(rows[0]?.d).toMatchObject({ mode: 'TEST_CA', anchorLabel: 'eBMR TEST CA', leafSerial: expect.any(String) as unknown });
     expect(rows[0]?.d['leafSubject']).toContain('TEST Class 3');
     // A meaning not configured for a DSC (a QC approval) signs as before.
     await asQa(`select esig.set_dsc_meaning('MANUFACTURER_RELEASE', false, 'release signed by password only for this test')`, [], true);

@@ -263,10 +263,11 @@ describe('the period, the query version and one extract among several (recipe-co
       await c.query('begin');
       await c.query("set local session_replication_role = 'replica'");
       await c.query('create temp table pqr_v2 on commit drop as select * from recipe.pqr_query_version where version = 1');
-      await c.query(`update pqr_v2 set version = 2, query_function = 'recipe.pqr_result_sha256(jsonb)',
+      // Version 2 is installed and runnable since recipe-core 1062 (PR-09); an installed version 3 is not.
+      await c.query(`update pqr_v2 set version = 3, query_function = 'recipe.pqr_result_sha256(jsonb)',
                        definition_sha256 = encode(sha256(convert_to(pg_get_functiondef('recipe.pqr_result_sha256(jsonb)'::regprocedure), 'UTF8')), 'hex')`);
       await c.query('insert into recipe.pqr_query_version select * from pqr_v2');
-      expect(await messageOf(c.query("select recipe.pqr_run_query(2, 'X', current_date, current_date)"))).toMatch(/EBMR-PQR-004 PQR query version 2 is not runnable here/);
+      expect(await messageOf(c.query("select recipe.pqr_run_query(3, 'X', current_date, current_date)"))).toMatch(/EBMR-PQR-004 PQR query version 3 is not runnable here/);
     } finally {
       await c.query('rollback');
       c.release();

@@ -4,13 +4,14 @@
  * record opened is logged by the database.
  */
 import { useState } from 'react';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { routes } from '@ebmr/api-contract';
 import { Field } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
+import { useRouteParams } from '../floor/params.ts';
 import { CONTRACT_GIVER_READS, words } from './reads.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -91,7 +92,7 @@ export function ContractGiverBatchesPage() {
 }
 
 export function ContractGiverRecordPage() {
-  const { batchId } = useParams({ strict: false }) as { batchId: string };
+  const batchId = useRouteParams()['batchId'] ?? '';
   const q = useApiQuery(routes.contractGiver.batch, { params: { batchId } });
   const r = q.data;
   return (
