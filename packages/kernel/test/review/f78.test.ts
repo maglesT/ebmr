@@ -28,6 +28,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 
@@ -36,6 +37,7 @@ let reviewer: ActorContext;
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   reviewer = await seededTestActor(db, { roleCode: 'CONTRACT_GIVER_REVIEWER', legalName: 'R. Reviewer' });
 });
 
@@ -69,7 +71,7 @@ describe('F78: platform.create_aggregate_state is ungated (DI-17)', () => {
     const gated = await settle(
       withCommand(
         db.app,
-        { ...reviewer, correlationId: randomUUID(), reasonCode: 'CONFIGURATION', reasonText: 'F78 positive control' },
+        underChange({ ...reviewer, correlationId: randomUUID(), reasonCode: 'CONFIGURATION', reasonText: 'F78 positive control' }),
         (c) => c.query("select platform.set_setting('time.drift_alarm_threshold_s', '1')"),
       ),
     );

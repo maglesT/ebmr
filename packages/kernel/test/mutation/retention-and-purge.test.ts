@@ -55,6 +55,7 @@ import {
   withReason,
   allowRetention,
 } from '../records/helpers.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
@@ -71,6 +72,7 @@ const BATCH_TABLES = ['stub_b4.batch_entry', 'stub_b4.batch_reading'];
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await createStubTables(db);
   // A second stub aggregate whose insert-only rows another record can reference (component parts
   // and their uses), for the delete passes of the purge.
@@ -433,14 +435,14 @@ describe('DI-47 retention schedules: every refusal where it is enforced', () => 
     const { admin } = await seedAdministration(db);
     const typo = 'Asia/Kolkatta';
     const policy = (from: string, to: string, reason: string) =>
-      withCommand(db.app, seedWithReason({ ...admin, siteZone: from, correlationId: randomUUID() }), (c) => setIamPolicy(c, 'site.zone', to, reason));
+      withCommand(db.app, underChange(seedWithReason({ ...admin, siteZone: from, correlationId: randomUUID() })), (c) => setIamPolicy(c, 'site.zone', to, reason));
     const batch = randomUUID();
     try {
       // Since kernel 0940 the policy itself refuses a zone that is no time zone (EBMR-IAM-119) ...
       await expect(policy(SEED_ZONE, typo, 'test: site zone mistyped')).rejects.toThrow(/^EBMR-IAM-119 /);
       // ... and so does the table (0940's row guard) ...
       await expect(
-        asDefinerCommand(db, seedWithReason({ ...admin, siteZone: SEED_ZONE, correlationId: randomUUID() }), (c) =>
+        asDefinerCommand(db, underChange(seedWithReason({ ...admin, siteZone: SEED_ZONE, correlationId: randomUUID() })), (c) =>
           c.query("insert into iam.policy_value (key, value, set_by_person, set_by_account, reason) values ('site.zone', $1, $2, $3, 'test: site zone mistyped')", [
             typo,
             admin.personId,
@@ -450,7 +452,7 @@ describe('DI-47 retention schedules: every refusal where it is enforced', () => 
       ).rejects.toThrow(/^EBMR-IAM-119 /);
       // ... so the value is one recorded before 0940, arranged with the superuser as iam.set_policy recorded it
       // then: in one transaction, without the row guard that did not exist yet (the audit trigger still fires).
-      await asDefinerCommand(db, seedWithReason({ ...admin, siteZone: SEED_ZONE, correlationId: randomUUID() }), async (c) => {
+      await asDefinerCommand(db, underChange(seedWithReason({ ...admin, siteZone: SEED_ZONE, correlationId: randomUUID() })), async (c) => {
         await c.query('alter table iam.policy_value disable trigger aa_site_zone_iam_policy_value');
         await c.query("insert into iam.policy_value (key, value, set_by_person, set_by_account, reason) values ('site.zone', $1, $2, $3, 'test: site zone mistyped before kernel 0940')", [
           typo,

@@ -10,6 +10,7 @@ import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
 import { requestRoleGrant } from '../../src/identity/admin.ts';
 import { heldHead } from '../integrations/support.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedAuthn, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
@@ -71,6 +72,7 @@ const alarms = (): Promise<number> => count('select count(*) as n from platform.
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   ({ admin, owner } = await seedAdministration(db));
   erp = await seedServiceActor(db, { kind: 'INTEGRATION', name: 'ERP adapter 1' });
   lms = await seedServiceActor(db, { kind: 'INTEGRATION', name: 'LMS adapter 1' });
@@ -278,7 +280,7 @@ describe('fail-closed mirrors (DI-31, INV-26, INV-38)', () => {
   const fresh = (cls: string, actor: SeededActor = erp) =>
     withCommand(db.app, ctxOf(actor), async (c) => (await c.query<{ f: Record<string, unknown> }>('select platform.mirror_fresh_or_raise($1) as f', [cls])).rows[0]?.f);
   const setMode = (cls: string, mode: string) =>
-    withCommand(db.app, withReason(owner), (c) => c.query('select platform.set_setting($1, $2)', [`integration.mode.${cls.toLowerCase()}`, mode]));
+    withCommand(db.app, underChange(withReason(owner)), (c) => c.query('select platform.set_setting($1, $2)', [`integration.mode.${cls.toLowerCase()}`, mode]));
   const sync = async (cls: string, actor: SeededActor, code = LMS) => {
     const head = await heldHead(db, code);
     return withCommand(db.app, ctxOf(actor), (c) => c.query('select platform.record_mirror_sync($1, $2)', [cls, head]));

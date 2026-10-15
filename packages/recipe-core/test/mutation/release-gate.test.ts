@@ -15,6 +15,7 @@ import { assessIncidentImpact, raiseIncident } from '../../../kernel/src/records
 import { challengeFor, cmd, signatureAuth, signWith } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -245,6 +246,7 @@ async function productAndSpecification(content: MbrContent): Promise<void> {
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   w = new World(db, await seedCast(db));
   ({ owner } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
@@ -717,7 +719,7 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
   });
 
   it('[PR-53] a justification names an open deviation linked to the lot and states its reason; the justification content exists for a finished lot only', async () => {
-    const setPath = (value: 'ON' | 'OFF') => withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.open_investigation_path', $1)", [value]));
+    const setPath = (value: 'ON' | 'OFF') => withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.open_investigation_path', $1)", [value]));
     await setPath('ON');
     try {
       const lot = await readyLot();
@@ -750,7 +752,7 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
   });
 
   it('[IN-05][INV-39] with the in-system QP on, the QP acknowledges EU items only: an IN item still needs the manufacturer release permission', async () => {
-    const setQp = (value: 'ON' | 'OFF') => withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', $1)", [value]));
+    const setQp = (value: 'ON' | 'OFF') => withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', $1)", [value]));
     const lot = await readyLot();
     const g = await grel(lot.lotId);
     const qp = await seedActor(db, { roleCode: 'EU_QP', legalName: 'Lena Qualified' });

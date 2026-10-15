@@ -8,6 +8,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { heldHead } from '../integrations/support.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
@@ -26,6 +27,7 @@ const ctxOf = (a: SeededActor): ActorContext => {
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   ({ admin, owner } = await seedAdministration(db));
   lms = await seedServiceActor(db, { kind: 'INTEGRATION', name: 'LMS adapter' });
   await withCommand(db.app, withReason(admin), (c) =>
@@ -38,7 +40,7 @@ afterAll(async () => {
 const fresh = async (at = 'clock_timestamp()'): Promise<boolean | null> =>
   (await db.app.query<{ f: boolean | null }>(`select iam.qualification_source_fresh('LMS', ${at}) as f`)).rows[0]?.f ?? null;
 const setMode = (mode: string) =>
-  withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('integration.mode.lms_qualification', $1)", [mode]));
+  withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('integration.mode.lms_qualification', $1)", [mode]));
 
 describe('the LMS qualification source on the generic mirror freshness (kernel 1181)', () => {
   it('[DI-31] stale LMS mirror: an LMS qualification is not fresh once the adapter stops synchronising, and the refusal names the mirror', async () => {

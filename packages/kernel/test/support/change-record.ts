@@ -15,7 +15,7 @@ export const FIXTURE_CHANGE_RECORD = 'CR-TEST-FIXTURE';
 const ready = new WeakSet<object>();
 
 /** Writes the fixture change record into this test database once. */
-export async function ensureFixtureChangeRecord(db: TestDatabase): Promise<string> {
+export async function ensureFixtureChangeRecord(db: Pick<TestDatabase, 'admin'>): Promise<string> {
   if (ready.has(db)) return FIXTURE_CHANGE_RECORD;
   const c = await db.admin.connect();
   try {
@@ -57,7 +57,7 @@ export function underChange<T extends ActorContext>(ctx: T, changeRecord: string
 }
 
 /** Writes the fixture record if needed and returns the context under it. */
-export async function withChangeRecord<T extends ActorContext>(db: TestDatabase, ctx: T): Promise<T> {
+export async function withChangeRecord<T extends ActorContext>(db: Pick<TestDatabase, 'admin'>, ctx: T): Promise<T> {
   await ensureFixtureChangeRecord(db);
   return underChange(ctx);
 }

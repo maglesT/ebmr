@@ -17,6 +17,7 @@ import {
 import { authenticate } from '../../src/identity/authentication.ts';
 import { AuthenticationFailedError } from '../../src/identity/errors.ts';
 import { hashSecret } from '../../src/identity/secrets.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asDefinerCommand, asSuperuserTransaction, expectPermissionDenied, expectRefused } from './helpers.ts';
 import { freshAuthEvent, seedActor, seedAdministration, seedAuthn, withReason, type SeedAdministration } from './seed.ts';
@@ -25,6 +26,7 @@ let db: TestDatabase;
 let adm: SeedAdministration;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
 });
 afterAll(async () => {
@@ -271,10 +273,10 @@ describe('initial and reset secrets (DI-15)', () => {
     await withCommand(db.app, withReason(adm.owner), (c) => c.query("select iam.record_us_esig_certification($1, 'LTR-2026-01', date '2026-03-01')", [entity]));
     const on = await db.app.query<{ r: { on_file: boolean; blocking: boolean } }>('select iam.assert_us_esig_certification($1) as r', [entity]);
     expect(on.rows[0]?.r).toMatchObject({ on_file: true, blocking: false });
-    await withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => c.query("select iam.set_policy('esig.us_certification_mode', 'FLAG', 'expert chose the catalog position')"));
+    await withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => c.query("select iam.set_policy('esig.us_certification_mode', 'FLAG', 'expert chose the catalog position')"));
     const flagged = await db.app.query<{ r: { on_file: boolean; blocking: boolean; mode: string } }>("select iam.assert_us_esig_certification('OTHER-ENTITY') as r");
     expect(flagged.rows[0]?.r).toMatchObject({ on_file: false, blocking: false, mode: 'FLAG' });
-    await withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => c.query("select iam.set_policy('esig.us_certification_mode', 'BLOCK', 'restore outline default')"));
+    await withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => c.query("select iam.set_policy('esig.us_certification_mode', 'BLOCK', 'restore outline default')"));
   });
 
   it('[DI-15] verifiers are argon2id with at least baseline parameters; plaintext or weak hashes are refused', async () => {

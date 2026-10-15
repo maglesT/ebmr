@@ -22,6 +22,7 @@ import { authenticate, changeSecret } from '../../src/identity/authentication.ts
 import { authorize, evaluateAuthority, requirePermission, withGuardedCommand } from '../../src/identity/authority.ts';
 import { AuthenticationFailedError } from '../../src/identity/errors.ts';
 import { openSession } from '../../src/identity/sessions.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asDefinerCommand, asSuperuserTransaction, asTimeTraveller, dbNow, expectPermissionDenied, expectRefused, pause } from './helpers.ts';
 import {
@@ -41,6 +42,7 @@ let db: TestDatabase;
 let adm: SeedAdministration;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
 });
 afterAll(async () => {
@@ -166,7 +168,7 @@ describe('access life cycle (DI-16)', () => {
   });
 
   it('[DI-16] the recertification interval is a policy value allowed between 3 and 12 months', async () => {
-    const set = (v: string) => withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => setPolicy(c, 'recertification.interval_months', v, 'test'));
+    const set = (v: string) => withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => setPolicy(c, 'recertification.interval_months', v, 'test'));
     await expectRefused(set('2'), 'EBMR-IAM-110');
     await expectRefused(set('13'), 'EBMR-IAM-110');
     await set('3');
