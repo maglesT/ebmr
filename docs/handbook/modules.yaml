@@ -106,6 +106,15 @@ modules:
     src: [packages/kernel/src/state, packages/kernel/src/time, packages/kernel/src/commands]
     tests: ['packages/kernel/test/platform/**']
 
+  - id: kernel-config
+    title: Configuration change control (change records, configuration versions, as-of and diff; Phase 6 slice 6f)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^1195_']
+    src: [packages/kernel/src/config]
+    tests: ['packages/kernel/test/config/**']
+
   - id: kernel-continuity
     title: Continuity (backup, restore, protected sequences, device hardening)
     page: modules/kernel.md
@@ -334,7 +343,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^071\d_', '^072\d_', '^0770_', '^0931_']
+      packages/recipe-core/sql: ['^071\d_', '^072\d_', '^0770_', '^0931_', '^1050_']
     tests: ['packages/recipe-core/test/review/**']
 
   - id: rc-release
@@ -352,7 +361,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^081\d_']
+      packages/recipe-core/sql: ['^081\d_', '^1051_']
 
   - id: rc-markets
     title: Market dispositions and QP certification
@@ -685,6 +694,17 @@ modules:
     contract: [packages/api-contract/src/ns/capa.ts]
     screens: [apps/tablets-web/src/features/capa]
     tests: ['apps/tablets-server/test/capa/**', 'apps/tablets-web/test/capa/**']
+
+  - id: ts-config-change
+    title: Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1270_']
+    server: [apps/tablets-server/src/features/config-change]
+    contract: [packages/api-contract/src/ns/config.ts]
+    screens: [apps/tablets-web/src/features/config]
+    tests: ['apps/tablets-server/test/config/**', 'apps/tablets-web/test/config/**']
 
   - id: ts-pqr
     title: Product quality review

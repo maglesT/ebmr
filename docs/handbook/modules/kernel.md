@@ -1081,6 +1081,37 @@ the 0130 heartbeat); `iam.lms_mirror_problem()` gives the EBMR-INT-010 words for
 [overrides-and-lms-mirror.test.ts](../../../packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts). The inbound
 framework itself (1180) is in [integrations](integrations.md#the-adapter-framework-phase-6-slice-6a-0).
 
+## Configuration change control (kernel 1195)
+
+[1195_configuration_change_control.sql](../../../packages/kernel/sql/1195_configuration_change_control.sql) (Phase 6
+slice 6f, builder A; [DI-09](../../../compliance/controls/DI-09.yaml); defaults D-P6f-1, D-P6f-A-1 to A-4 in the
+[phase 6 plan](../../build-plan/phase-6/phase-6-plan.md)). Every configuration change needs a change-record id.
+
+- **Change records.** `platform.change_record` (insert-only: number, title, description, the configuration areas it may
+  change) and `platform.change_record_event` (APPROVED, CLOSED). `platform.raise_change_record` (CONFIG.CHANGE_RAISE),
+  `platform.approve_change_record(number, signature)` (CONFIG.CHANGE_APPROVE; the caller's own CONFIG_CHANGE_APPROVED
+  e-signature of `config_change_record <number>` in state OPEN; never the raiser, EBMR-CFG-014) and
+  `platform.close_change_record` (CONFIG.CHANGE_CLOSE). A record is OPEN, then APPROVED, then CLOSED.
+- **The guard.** `platform.register_config_area(code, table, ...)` (owner-only, from migrations) puts a table under
+  control: trigger `a00_config_change` (BEFORE INSERT OR UPDATE) calls `platform.require_change_record`, which refuses a
+  row unless the validated actor context carries `change_record` naming an APPROVED, not CLOSED record covering the area
+  (EBMR-CFG-001 none, -002 unknown, -003 not approved or closed, -004 another area). Rows written under the
+  software-release identity (migrations) pass as a release. Because it is a trigger, every writer is covered, today's and
+  later ones. TypeScript passes the number as `ActorContext.changeRecord` ([command.ts](../../../packages/kernel/src/db/command.ts)).
+  Areas: PLATFORM_SETTING (with the 6a adapter modes and freshness bounds), IAM_POLICY, ESIG_POLICY, ESIG_MEANING,
+  MARKET_POLICY, SITE_VALUE; recipe-core 1050 adds RBE_RULE.
+- **Versions, as of and diff.** Trigger `zz_config_version` writes every configuration row to `platform.config_version`
+  (insert-only: area, item key, value columns, the instant it became valid, basis CHANGE_RECORD, RELEASE or
+  BEFORE_CONTROL, the change record). Existing rows were back-filled when each area was registered.
+  `platform.config_as_of(at)` and `platform.config_diff(from, to)` read them; [config/change-control.ts](../../../packages/kernel/src/config/change-control.ts)
+  wraps them.
+- **Tests.** [change-control.test.ts](../../../packages/kernel/test/config/change-control.test.ts): refusals per
+  precondition, bypass attempts as the application role, the approval rules, the diff for a past date, and two scans: every
+  registered table carries both triggers, and every table named like configuration (`setting`, `policy`, `site_value`,
+  `alarm_limit`, `rbe_rule`, `config` ...) is registered or listed with the reason it is not configuration. A new
+  configuration table fails that scan until it is registered. Tests that set configuration for another purpose use the
+  fixture record of [support/change-record.ts](../../../packages/kernel/test/support/change-record.ts) (`underChange`).
+
 ## Installation
 
 [0001_bootstrap.sql](../../../packages/kernel/sql/0001_bootstrap.sql) creates the roles and schemas.

@@ -1437,6 +1437,19 @@ certification and a re-confirmation; the QMS address is `EBMR_QMS_URL` (timeout 
 The QMS, LIMS, LMS and CMMS adapters are in [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b);
 the integrations feature starts them with the server (ts-integrations below).
 
+## ts-config-change: configuration change control and RBE rules
+
+[features/config-change](../../../apps/tablets-server/src/features/config-change/) (contract
+[ns/config.ts](../../../packages/api-contract/src/ns/config.ts); kernel 1195, recipe-core 1050; DI-09, DI-26). Reads
+`areas`, `changeRecords`, `asOf`, `diff`, `settings`, `rbeRules`; writes `raiseChangeRecord`, `closeChangeRecord`,
+`setSetting` and `setRbeRule`, each the person's own idempotent command. A write that changes configuration puts the
+request's `changeRecord` into the actor context; the database decides. The approval is the signable action
+CONFIG_CHANGE_ACT APPROVE (CONFIG_CHANGE_APPROVED on `config_change_record <number>`, state OPEN;
+[tablets 1270](../../../apps/tablets-server/sql/1270_signing_meanings_config_change.sql) lets the ceremony preview and
+sign it). Guidance for EBMR-CFG-* and EBMR-RBE-*. The notifications feature (ts-notifications) now also lists excursion
+notifications (`exceptionId` instead of `signatureId`). Tests:
+[config-routes.test.ts](../../../apps/tablets-server/test/config/config-routes.test.ts).
+
 ## ts-integrations: integration health and the adapters
 
 [features/integrations](../../../apps/tablets-server/src/features/integrations/) (contract
