@@ -75,6 +75,37 @@ export const OpcuaEndpoint = z.strictObject({
 });
 export type OpcuaEndpoint = z.infer<typeof OpcuaEndpoint>;
 
+// ---------------------------------------------------------------------------------------------------------------
+// Slice 6b builder A (additive; DI-20, D-P6b-2): the endpoint's session as the gateway opened it
+// ---------------------------------------------------------------------------------------------------------------
+
+/** The node on which an equipment OPC UA server states the room or line it is installed in (plant.area code). */
+export const ENDPOINT_LOCATION_NODE = `nsu=${OPCUA_NAMESPACE_URI};s=_endpoint/location`;
+
+/** An endpoint's code: its device code in the device registry (iam.device, class INSTRUMENT). */
+export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
+
+/**
+ * `opcua.endpoint_session` v1: what the gateway found when it opened (or re-opened) a session to an endpoint: the
+ * security it got, the SHA-256 of the server certificate presented, the location the server reports and the units it
+ * serves. The gateway sends it on its feed before any data of that session; recipe-core 0961 judges it against the
+ * enrolment (device registry: certificate thumbprint, room or line, status; plant.opcua_endpoint: URL, policy, units)
+ * and records it VALID or REFUSED with an alarm. Data of a unit are accepted only under its endpoint's latest VALID
+ * session that still matches the enrolment (DI-20: an unregistered, re-keyed or relocated endpoint is refused).
+ */
+export const OpcuaEndpointSessionV1 = z.strictObject({
+  endpointCode: EndpointCode,
+  endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
+  securityMode: z.enum(['None', 'Sign', 'SignAndEncrypt']),
+  securityPolicy: z.string().regex(/^[A-Za-z0-9_]{1,64}$/),
+  certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
+  /** The room or line the server reports on ENDPOINT_LOCATION_NODE, or null when it reports none. */
+  reportedLocation: z.string().regex(EQUIPMENT_CODE).nullable(),
+  equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).max(64),
+  openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})$/),
+});
+export type OpcuaEndpointSessionV1 = z.infer<typeof OpcuaEndpointSessionV1>;
+
 /** The refusals of the equipment-data and alarm receiving commands (recipe-core 0960), shared by OPCUA and EMS. */
 export const EQUIPMENT_DATA_REFUSALS = {
   'EBMR-EQD-001': 'MALFORMED',
@@ -87,6 +118,8 @@ export const EQUIPMENT_DATA_REFUSALS = {
   'EBMR-ALM-003': 'OUT_OF_RANGE',
   'EBMR-ALM-004': 'DUPLICATE',
   'EBMR-ALM-005': 'OUT_OF_ORDER',
+  // Slice 6b builder A (recipe-core 0961): a malformed endpoint session; a wrong endpoint is recorded, not refused.
+  'EBMR-EQD-020': 'MALFORMED',
 } as const satisfies SystemContract['refusalCodes'];
 
 export const OPCUA: SystemContract = {
@@ -95,6 +128,7 @@ export const OPCUA: SystemContract = {
     'opcua.series_chunk': { summary: 'Native samples of one tag of one unit, with source timestamps, raw values and status codes (DI-32)', versions: { '1': SeriesChunkV1 } },
     'opcua.alarm': { summary: 'An alarm occurrence of a unit raised, cleared or acknowledged at the source (DI-49)', versions: { '1': EquipmentAlarmV1 } },
     'opcua.equipment_event': { summary: 'An equipment event: state change, recipe loaded or mismatched, phase, operator action, fault', versions: { '1': EquipmentEventV1 } },
+    'opcua.endpoint_session': { summary: 'A session the gateway opened to an enrolled endpoint: security, certificate, location, units (DI-20)', versions: { '1': OpcuaEndpointSessionV1 } },
   },
   outbound: [],
   refusalCodes: EQUIPMENT_DATA_REFUSALS,

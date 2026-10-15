@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { expectRefused } from '../../../kernel/test/identity/helpers.ts';
 import { envelopeFor, nowUs, receive, registerAdapter, type TestAdapter } from '../../../kernel/test/integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { servedByEndpoint } from '../equipment-data/support.ts';
 import { PlantWorld, seedPlantCast } from '../plant/support.ts';
 
 let db: TestDatabase;
@@ -29,9 +30,16 @@ afterAll(async () => {
 const code = (p: string): string => `${p}_${randomBytes(3).toString('hex').toUpperCase()}`;
 const sha = (s: string): string => createHash('sha256').update(s, 'utf8').digest('hex');
 
+/** A press behind an enrolled OPC UA endpoint with a VALID session (recipe-core 0961, DI-20: OPC UA data need one). */
+async function servedPress(): Promise<{ id: string; code: string }> {
+  const press = await w.press();
+  await servedByEndpoint(db, opcua, await w.room(), [press.code]);
+  return press;
+}
+
 /** A press in use by batch `label` with step `step` bound to it. */
 async function pressInUse(label: string, step = 'p-compress@1'): Promise<{ press: { id: string; code: string }; batchId: string; product: string }> {
-  const press = await w.press();
+  const press = await servedPress();
   const product = await w.product();
   await w.clean('EQUIPMENT', press.code, 'MAJOR');
   await w.startUse(press.code, label, product);
@@ -156,7 +164,7 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
     const ids = (await db.app.query<{ id: string; step: string | null }>('select id, step from plant.batch_alarms($1) order by step nulls first', [batchId])).rows;
     expect(ids).toEqual([{ id: roomAlarm['alarmId'], step: null }, { id: pressAlarm['alarmId'], step: 'p-compress@1' }]);
     // A unit not in use: the alarm is logged with no batch.
-    const idle = await w.press();
+    const idle = await servedPress();
     const loose = await sendAlarm(alarmPayload(idle.code, { alarmCode: code('IDLE') }));
     expect((await db.app.query('select count(*)::int as n from plant.alarm_batch where alarm_id = $1', [loose['alarmId']])).rows[0]).toEqual({ n: 0 });
     // A source time before the use began binds to no batch (the binding is by the source time, not by arrival).
@@ -232,7 +240,7 @@ describe('native series and original records (DI-32)', () => {
   });
 
   it('[DI-32] a rounded shown value, a BAD sample with a value, a changed sample, a wrong tag or unit, a repeated or overlapping chunk is refused', async () => {
-    const press = await w.press();
+    const press = await servedPress();
     const t0 = BigInt(nowUs());
     const rounded = chunk(press.code, '1', t0, { samples: [{ sourceTime: t0.toString(), serverTime: null, raw: '12.499', value: '12.50', status: '0x00000000' }] });
     await expectRefused(sendChunk(rounded), 'EBMR-EQD-001', /DI-32: the shown value 12.50 is not the raw value 12.499/);
