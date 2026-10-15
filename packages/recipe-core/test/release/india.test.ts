@@ -442,3 +442,79 @@ describe('the allocation register with the use of every number (recipe-core 0895
     expect(await messageOf(withCommand(db.app, { ...erp, correlationId: randomUUID() }, (c) => c.query('select recipe.allocation_register($1) as r', [SITE])))).toMatch(/EBMR-IAM-040/);
   });
 });
+
+describe('the contract giver reviewer (recipe-core 1060, kernel 1204; IN-30)', () => {
+  it('[IN-30] a contract-giver reviewer cannot edit: read-only, scoped to the loan licence\'s batches, every write path refused', async () => {
+    const m = await effective(['IN'], false);
+    const hostId = await recordLicence(licence(m, { products: [{ productCode: 'HOST-CG', strength: '10 mg' }] }));
+    await approveLicence(hostId);
+    const loanId = await recordLicence(licence(m, { licenceKind: 'LOAN', form: '25A', holderName: 'Contract Giver Pvt Ltd', holderAddress: '4 Park Street, Kolkata 700016',
+                                                    hostLicenceId: hostId, technicalAgreement: 'TA-CG-2026 rev 2' }));
+    await approveLicence(loanId);
+    const own = await issue(await plan(m, ['IN']));
+    const reviewer = await seedActor(db, { roleCode: 'CONTRACT_GIVER_REVIEWER', legalName: 'Contract Giver Reviewer', acknowledgeEsig: false });
+    const qaReviewer = await seedActor(db, { roleCode: 'QA_REVIEWER', legalName: 'QA Reviewer CG' });
+    const validTo = new Date(Date.UTC(2099, 0, 1)).toISOString();
+    const grant = (licenceId: string, account: string, until = (async () => (await db.app.query<{ t: string }>("select (clock_timestamp() + interval '30 days')::text as t")).rows[0]!.t)()) =>
+      until.then((u) => sqlAs<string>(qaReviewer, 'select recipe.grant_contract_giver_access($1, $2, $3, $4) as r', [licenceId, account, u, 'Technical agreement TA-CG-2026, clause 9']));
+    // Refusals: a manufacturing licence, an account that can write, a window too long, the reviewer granting itself.
+    expect(await messageOf(grant(hostId, reviewer.accountId))).toMatch(/EBMR-CGA-001/);
+    expect(await messageOf(grant(loanId, operator.accountId))).toMatch(/EBMR-CGA-003/);
+    expect(await messageOf(grant(loanId, reviewer.accountId, Promise.resolve(validTo)))).toMatch(/EBMR-CGA-005/);
+    expect(await messageOf(sqlAs(reviewer, 'select recipe.grant_contract_giver_access($1, $2, now() + interval \'1 day\', $3) as r', [loanId, reviewer.accountId, 'x']))).toMatch(/EBMR-IAM-040/);
+    // Before any access the reviewer reads nothing.
+    expect(await sqlAs<unknown[]>(reviewer, 'select recipe.contract_giver_batches() as r')).toEqual([]);
+    const access = await grant(loanId, reviewer.accountId);
+    const list = await sqlAs<{ batchId: string; loanLicenceNumber: string }[]>(reviewer, 'select recipe.contract_giver_batches() as r');
+    expect(list.map((b) => b.batchId)).toEqual([own]);
+    const record = await sqlAs<Record<string, unknown>>(reviewer, 'select recipe.read_contract_giver_batch($1) as r', [own]);
+    expect(record).toMatchObject({ batchId: own, technicalAgreement: 'TA-CG-2026 rev 2', loanHolderName: 'Contract Giver Pvt Ltd' });
+    expect((await db.app.query('select 1 from recipe.contract_giver_read where access_id = $1 and batch_id = $2', [access, own])).rowCount).toBe(1);
+    // Another batch (not made under the loan licence) stays closed.
+    const other = await issue(await plan(await effective(['IN'], true), ['IN']));
+    expect(await messageOf(sqlAs(reviewer, 'select recipe.read_contract_giver_batch($1) as r', [other]))).toMatch(/EBMR-CGA-004/);
+    // A role permission that writes can never be added to the reviewer role (kernel 1204), even by the owner.
+    const { owner } = await seedAdministration(db);
+    const request = await withCommand(db.app, { ...(await cmd(db, admin)), reasonCode: 'TEST', reasonText: 'bypass attempt' }, (c) =>
+      c.query<{ id: string }>("select iam.add_role_permission('CONTRACT_GIVER_REVIEWER', 'VALIDATION.MANAGE', 'widen the reviewer') as id"));
+    expect(await messageOf(withCommand(db.app, { ...(await cmd(db, owner)), reasonCode: 'TEST', reasonText: 'bypass attempt' }, (c) =>
+      c.query("select iam.decide_role_permission($1, true, 'approved')", [request.rows[0]!.id])))).toMatch(/EBMR-IAM-190/);
+    // Every function the application role may call, in the reviewer's command with every argument NULL: none records a
+    // change attributed to the reviewer, apart from the logged reads of its own access chain and the person's own
+    // acknowledgement of the e-signature policy (an identity record about the person, not GMP content; it gives no
+    // signing authority: the account holds no SIGN permission).
+    const fns = (await db.admin.query<{ call: string }>(
+      `select format('select %s(%s)', p.oid::regproc, coalesce(string_agg('null::' || format_type(t.typ, null), ', ' order by t.ord), '')) as call
+         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         left join lateral unnest(p.proargtypes::oid[]) with ordinality t(typ, ord) on true
+        where n.nspname in ('recipe', 'site', 'plant', 'esig', 'iam', 'records', 'platform', 'kernel') and p.prokind = 'f' and p.provolatile = 'v'
+          and p.prorettype <> 'trigger'::regtype and has_function_privilege('ebmr_app', p.oid, 'execute')
+        group by p.oid order by 1`)).rows.map((r) => r.call);
+    expect(fns.length).toBeGreaterThan(200);
+    const correlationId = randomUUID();
+    let succeeded = 0;
+    await withCommand(db.app, { ...(await cmd(db, reviewer)), correlationId }, async (c) => {
+      await c.query("set local statement_timeout = '5s'");
+      for (const call of fns) {
+        await c.query('savepoint s');
+        try {
+          await c.query(call);
+          succeeded += 1;
+          await c.query('release savepoint s');
+        } catch {
+          await c.query('rollback to savepoint s');
+        }
+      }
+    });
+    expect(succeeded).toBeGreaterThan(0);
+    const written = await db.admin.query<{ chain_key: string; table_name: string | null }>(
+      "select chain_key, table_name from kernel.audit_event where correlation_id = $1 and chain_key not like 'contract_giver_access:%' and table_name is distinct from 'iam.esig_acknowledgement'", [correlationId]);
+    expect(written.rows).toEqual([]);
+    // Direct writes as the application role are refused too.
+    expect(await messageOf(db.app.query('insert into recipe.contract_giver_read (access_id, batch_id, person_id, account_id, correlation_id) values ($1, $2, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', [access, other]))).toMatch(/permission denied/);
+    expect(await messageOf(db.app.query("update recipe.contract_giver_access set valid_to = valid_to + interval '1 year' where id = $1", [access]))).toMatch(/permission denied/);
+    // Revoked, the access reads nothing more.
+    await sqlAs(qaReviewer, "select recipe.revoke_contract_giver_access($1, 'Agreement ended') as r", [access]);
+    expect(await sqlAs<unknown[]>(reviewer, 'select recipe.contract_giver_batches() as r')).toEqual([]);
+  });
+});
