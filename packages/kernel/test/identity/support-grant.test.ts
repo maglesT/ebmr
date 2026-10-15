@@ -110,7 +110,7 @@ describe('vendor support grants (kernel 1202; DI-08)', () => {
     const { admin } = await seedAdministration(db);
     const { qa, it: itOwner } = await supportApprovers(db);
     const engineer = await seedSupportEngineer(db);
-    const asAdmin = <T>(sql: string, params: unknown[]) => withCommand(db.app, { ...admin, correlationId: randomUUID() }, (c) => c.query<T>(sql, params));
+    const asAdmin = (sql: string, params: unknown[]) => withCommand(db.app, { ...admin, correlationId: randomUUID() }, (c) => c.query(sql, params));
     await expectRefused(asAdmin('select iam.request_support_grant($1, $2, $3, $4)', [engineer.accountId, 'Acme', 'x', 73]), 'EBMR-IAM-184');
     await expectRefused(asAdmin('select iam.request_support_grant($1, $2, $3, $4)', [engineer.accountId, 'Acme', ' ', 2]), 'EBMR-IAM-183');
     await expectRefused(asAdmin('select iam.request_support_grant($1, $2, $3, $4)', [qa.accountId, 'Acme', 'x', 2]), 'EBMR-IAM-181');
