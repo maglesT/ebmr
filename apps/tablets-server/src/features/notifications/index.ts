@@ -1,7 +1,7 @@
 /**
  * Feature `notifications` (Phase 4 slice 3c, GMP): the notification centre (contract ns/notifications.ts; recipe-core
  * 0810; control IN-39 clause 2). The database writes each notification in the transaction of the act that causes it (a
- * manufacturer release or rejection notifies PRODUCTION and QA) and decides who may acknowledge one; this feature reads
+ * manufacturer release or rejection, and an environmental excursion (recipe-core 1051), notify PRODUCTION and QA) and decides who may acknowledge one; this feature reads
  * them for the session's departments and runs the acknowledgement as the person's own command.
  */
 import { routes, type NotificationDepartment, type NotificationView } from '@ebmr/api-contract';
@@ -19,10 +19,12 @@ interface Row {
   id: string;
   department: NotificationDepartment;
   event: NotificationView['event'];
+  subject_kind: NotificationView['subjectKind'];
   subject_id: string;
   subject_label: string;
   message: string;
-  cause_signature_id: string;
+  cause_signature_id: string | null;
+  cause_exception_id: string | null;
   caused_by_person: string;
   caused_by_role: string;
   at_us: string;
@@ -44,7 +46,8 @@ export async function notificationViews(
   filter: { departments?: readonly string[]; subjectId?: string; id?: string; openForMe?: boolean },
 ): Promise<NotificationView[]> {
   const { rows } = await db.query<Row>(
-    `select n.id, n.department, n.event, n.subject_id, n.subject_label, n.message, n.cause_signature_id, n.caused_by_person, n.caused_by_role,
+    `select n.id, n.department, n.event, n.subject_kind, n.subject_id, n.subject_label, n.message, n.cause_signature_id, n.cause_exception_id,
+            n.caused_by_person, n.caused_by_role,
             ${usOf('n.created_at')} as at_us,
             coalesce((select jsonb_agg(jsonb_build_object('person', a.person_id, 'role', a.role_code, 'us', ${usOf('a.acknowledged_at')}) order by a.acknowledged_at)
                       from recipe.notification_acknowledgement a where a.notification_id = n.id), '[]'::jsonb) as acks
@@ -63,11 +66,12 @@ export async function notificationViews(
       notificationId: r.id,
       department: r.department,
       event: r.event,
-      subjectKind: 'FINISHED_LOT',
+      subjectKind: r.subject_kind,
       subjectId: r.subject_id,
       subjectLabel: r.subject_label,
       message: r.message,
-      signatureId: r.cause_signature_id,
+      ...(r.cause_signature_id !== null ? { signatureId: r.cause_signature_id } : {}),
+      ...(r.cause_exception_id !== null ? { exceptionId: r.cause_exception_id } : {}),
       by: personRef(people, r.caused_by_person, r.caused_by_role),
       at: app.formatInstant(r.at_us),
       acknowledgements: r.acks.map((a) => ({ by: personRef(people, a.person, a.role), at: app.formatInstant(a.us) })),
