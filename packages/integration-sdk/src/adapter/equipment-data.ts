@@ -127,6 +127,7 @@ export const SeriesChunkV1 = z
       const t = BigInt(s.sourceTime);
       if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
       prev = t;
+      if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
       if (s.value !== null) {
         const problem = shownValueProblem(s.raw, s.value);
         if (problem) ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: problem });
