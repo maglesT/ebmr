@@ -455,8 +455,8 @@ describe('the US disposition (outline 5.2.6; PR-54, INV-39, DI-39)', () => {
 
 describe('two signature rows in one ceremony (D-P4-5)', () => {
   it('[INV-39][PR-54] the AP who also holds the QCU permission releases for the manufacturer and the US in one command: two rows, each its own meaning and content; a stale US evaluation records neither', async () => {
-    const request = await withCommand(db.app, withReason(admin), async (c) => (await c.query<{ id: string }>("select iam.add_role_permission('AUTHORISED_PERSON', 'RELEASE.US_DISPOSITION', 'the AP holds the QCU permission at this site') as id")).rows[0]!.id);
-    await withCommand(db.app, withReason(owner), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the two-row release')", [request]));
+    const request = await withCommand(db.app, underChange(withReason(admin)), async (c) => (await c.query<{ id: string }>("select iam.add_role_permission('AUTHORISED_PERSON', 'RELEASE.US_DISPOSITION', 'the AP holds the QCU permission at this site') as id")).rows[0]!.id);
+    await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the two-row release')", [request]));
 
     const both = async (lot: Lot, usEpoch?: string): Promise<{ mr: string; us: string }> => {
       const gin = await grel(lot.lotId, 'IN');
