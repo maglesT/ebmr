@@ -65,13 +65,13 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
     const alarmId = r['alarmId'] as string;
     // Bound at the raise to the batch, the step and the unit; GMP-critical from the configuration (version 1).
     expect((await db.app.query('select batch_id, step from plant.alarm_batch where alarm_id = $1', [alarmId])).rows).toEqual([{ batch_id: batchId, step: 'p-compress@1' }]);
-    const before = (await db.app.query('select gmp_critical, code_version, limit_value, limit_kind, value, raised_source_us::text as us from plant.alarm where id = $1', [alarmId])).rows[0];
+    const before = (await db.app.query<Record<string, unknown>>('select gmp_critical, code_version, limit_value, limit_kind, value, raised_source_us::text as us from plant.alarm where id = $1', [alarmId])).rows[0];
     expect(before).toEqual({ gmp_critical: true, code_version: 1, limit_value: '18.00', limit_kind: 'HIGH', value: '18.40', us: raised.occurredAt });
     // Unacknowledged, it blocks the step (builder B wires this into the step signature and review).
     expect((await db.app.query<{ p: string | null }>('select plant.alarm_problem($1, $2) as p', [batchId, 'p-compress@1'])).rows[0]!.p).toMatch(new RegExp(`EBMR-ALM-020 .*${alarmCode}`));
     await sendAlarm({ ...raised, transition: 'CLEARED', occurredAt: nowUs() });
     await acknowledge(alarmId, 'Reduced fill depth; force back in range', 'Excursion of 0.4 kN for 3 s; tablets from the window rejected');
-    const log = (await db.app.query('select * from plant.batch_alarms($1)', [batchId])).rows;
+    const log = (await db.app.query<Record<string, unknown>>('select * from plant.batch_alarms($1)', [batchId])).rows;
     expect(log).toHaveLength(1);
     expect(log[0]).toMatchObject({
       id: alarmId, alarm_code: alarmCode, action_taken: 'Reduced fill depth; force back in range', ack_comment: 'Excursion of 0.4 kN for 3 s; tablets from the window rejected',
@@ -207,7 +207,7 @@ describe('native series and original records (DI-32)', () => {
       ],
       ...over,
     };
-    return { ...c, chunkHash: (over['chunkHash'] as string | undefined) ?? sampleHash(c as never) };
+    return { ...c, chunkHash: (over['chunkHash'] as string | undefined) ?? sampleHash(c) };
   };
   const sendChunk = (payload: unknown, a: TestAdapter = opcua) => receive(db, a, 'plant.receive_series_chunk', envelopeFor(a, a.system === 'EMS' ? 'ems.series_chunk' : 'opcua.series_chunk', payload));
 
@@ -216,9 +216,9 @@ describe('native series and original records (DI-32)', () => {
     const t0 = BigInt(nowUs());
     const r = await sendChunk(chunk(press.code, '1', t0));
     expect(r).toMatchObject({ outcome: 'ACCEPTED', applied: 'RECORDED', samples: '3' });
-    const row = (await db.app.query('select samples, from_us::text, to_us::text, chunk_hash from plant.series where id = $1', [r['seriesId']])).rows[0];
-    expect(row['samples'][0]).toEqual({ sourceTime: t0.toString(), serverTime: (t0 + 50n).toString(), raw: '1.25E1', value: '12.50', status: '0x00000000' });
-    expect([row['from_us'], row['to_us']]).toEqual([t0.toString(), (t0 + 200_000n).toString()]);
+    const row = (await db.app.query<{ samples: unknown[]; from_us: string; to_us: string }>('select samples, from_us::text, to_us::text, chunk_hash from plant.series where id = $1', [r['seriesId']])).rows[0]!;
+    expect(row.samples[0]).toEqual({ sourceTime: t0.toString(), serverTime: (t0 + 50n).toString(), raw: '1.25E1', value: '12.50', status: '0x00000000' });
+    expect([row.from_us, row.to_us]).toEqual([t0.toString(), (t0 + 200_000n).toString()]);
     await sendChunk(chunk(press.code, '2', t0 + 1_000_000n));
     const inStep = (await db.app.query<{ chunk_no: string }>('select chunk_no::text from plant.series_in_context($1, $2, $3)', [batchId, 'p-compress@1', 'force.main_kN'])).rows;
     expect(inStep.map((x) => x.chunk_no)).toEqual(['1', '2']);

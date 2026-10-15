@@ -35,6 +35,7 @@ of each database function.
 | [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 2 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 17 | 0 | 18 | 35 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
+| [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 1 | 0 | 1 | 3 |
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
@@ -73,6 +74,7 @@ of each database function.
 | [ts-erp-shipping](#ts-erp-shipping) | ERP shipping interlock | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 0 | 0 | 0 |
 | [ts-records](#ts-records) | Record lock and bright stock | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 7 | 3 | 9 |
 | [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 7 | 4 |
+| [ts-alarms](#ts-alarms) | Plant alarm log and equipment data (Phase 6 slice 6b) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 9 | 2 | 2 |
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 2 |
 | [ts-archive](#ts-archive) | Archive, evidence export and inspection | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 11 | 0 | 0 |
@@ -83,8 +85,8 @@ of each database function.
 | [tablets-web](#tablets-web) | Tablets screens shell (app, API client, devices) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 0 | 8 | 13 |
 | [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 3 | 17 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
-| [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 7 | 3 |
-| [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 10 | 7 |
+| [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 8 | 5 |
+| [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 11 | 7 |
 | [simulators](#simulators) | Device and ERP simulators | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 9 | 2 |
 | [ui-kit](#ui-kit) | UI kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 12 | 16 |
 | [test-kit](#test-kit) | Test kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 3 | 6 |
@@ -557,6 +559,24 @@ of each database function.
 **Tests** (6): [mutation/plant-equipment-and-areas.test.ts](../../packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts), [mutation/platform-scope.test.ts](../../packages/recipe-core/test/mutation/platform-scope.test.ts), [plant/area.test.ts](../../packages/recipe-core/test/plant/area.test.ts), [plant/equipment.test.ts](../../packages/recipe-core/test/plant/equipment.test.ts), [plant/machine.test.ts](../../packages/recipe-core/test/plant/machine.test.ts), [plant/status-blocks.test.ts](../../packages/recipe-core/test/plant/status-blocks.test.ts)
 
 **Controls** (14): [DI-05](../../compliance/controls/DI-05.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-28](../../compliance/controls/DI-28.yaml), [IN-21](../../compliance/controls/IN-21.yaml), [IN-25](../../compliance/controls/IN-25.yaml), [IN-26](../../compliance/controls/IN-26.yaml), [PR-23](../../compliance/controls/PR-23.yaml), [PR-24](../../compliance/controls/PR-24.yaml), [PR-25](../../compliance/controls/PR-25.yaml), [PR-26](../../compliance/controls/PR-26.yaml), [PR-27](../../compliance/controls/PR-27.yaml), [PR-34](../../compliance/controls/PR-34.yaml), [PR-35](../../compliance/controls/PR-35.yaml)
+
+## rc-equipment-data
+
+**Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
+
+**Migrations** (1):
+
+- `packages/recipe-core/sql`: [0960_plant_alarms_series_interfaces.sql](../../packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (10): `plant.alarm`, `plant.alarm_ack`, `plant.alarm_batch`, `plant.alarm_code`, `plant.alarm_transition`, `plant.device_original`, `plant.equipment_state_event`, `plant.series`, `plant.series_tag`, `plant.step_equipment`
+- Views (2): `plant.alarm_status`, `plant.batch_alarm_log`
+- Functions (16): `plant.acknowledge_alarm`, `plant.alarm_problem`, `plant.batch_alarms`, `plant.batch_context_at`, `plant.bind_step_equipment`, `plant.define_alarm_code`, `plant.payload_subject`, `plant.raise_alarm`, `plant.raw_states_value`, `plant.receive_equipment_alarm`, `plant.receive_equipment_event`, `plant.receive_series_chunk`, `plant.record_device_original`, `plant.series_chunk_hash`, `plant.series_in_context`, `plant.source_time_or_raise`
+
+**Tests** (1): [plant-alarms-series.test.ts](../../packages/recipe-core/test/integrations/plant-alarms-series.test.ts)
+
+**Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-49](../../compliance/controls/DI-49.yaml)
 
 ## rc-mirrors
 
@@ -1468,6 +1488,32 @@ of each database function.
 
 **Controls** (4): [DI-14](../../compliance/controls/DI-14.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
 
+## ts-alarms
+
+**Plant alarm log and equipment data (Phase 6 slice 6b).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+
+**Server files** (5): [alarms/guidance.ts](../../apps/tablets-server/src/features/alarms/guidance.ts), [alarms/index.ts](../../apps/tablets-server/src/features/alarms/index.ts), [alarms/reads.ts](../../apps/tablets-server/src/features/alarms/reads.ts), [equipment-data/index.ts](../../apps/tablets-server/src/features/equipment-data/index.ts), [equipment-data/reads.ts](../../apps/tablets-server/src/features/equipment-data/reads.ts)
+
+**Contract** (2): [alarms.ts](../../packages/api-contract/src/ns/alarms.ts), [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts)
+
+**Routes** (9):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| GET | `/api/alarms` | `alarms.list` | [alarms.ts](../../packages/api-contract/src/ns/alarms.ts) |
+| GET | `/api/alarms/:alarmId` | `alarms.alarm` | [alarms.ts](../../packages/api-contract/src/ns/alarms.ts) |
+| POST | `/api/alarms/:alarmId/acknowledge` | `alarms.acknowledge` | [alarms.ts](../../packages/api-contract/src/ns/alarms.ts) |
+| GET | `/api/alarms/by-batch/:batchId` | `alarms.batchLog` | [alarms.ts](../../packages/api-contract/src/ns/alarms.ts) |
+| GET | `/api/equipment-data/batches/:batchId/originals` | `equipmentData.originals` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+| GET | `/api/equipment-data/batches/:batchId/series` | `equipmentData.batchSeries` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+| GET | `/api/equipment-data/events` | `equipmentData.events` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+| GET | `/api/equipment-data/series` | `equipmentData.series` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+| GET | `/api/equipment-data/tags` | `equipmentData.tags` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+
+**Tests** (2): [alarm-routes.test.ts](../../apps/tablets-server/test/alarms/alarm-routes.test.ts), [contract-enums.test.ts](../../apps/tablets-server/test/alarms/contract-enums.test.ts)
+
+**Controls** (2): [DI-32](../../compliance/controls/DI-32.yaml), [DI-49](../../compliance/controls/DI-49.yaml)
+
 ## ts-capa
 
 **CAPA register and closure (Phase 6 slice 6a, builder B).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
@@ -1719,19 +1765,19 @@ of each database function.
 
 **Integration SDK (device drivers).** Package `packages/integration-sdk`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Source** (31): [adapter/contract.ts](../../packages/integration-sdk/src/adapter/contract.ts), [adapter/envelope.ts](../../packages/integration-sdk/src/adapter/envelope.ts), [adapter/errors.ts](../../packages/integration-sdk/src/adapter/errors.ts), [adapter/index.ts](../../packages/integration-sdk/src/adapter/index.ts), [adapter/mirror.ts](../../packages/integration-sdk/src/adapter/mirror.ts), [adapter/reconciliation.ts](../../packages/integration-sdk/src/adapter/reconciliation.ts), [adapter/systems/cmms.ts](../../packages/integration-sdk/src/adapter/systems/cmms.ts), [adapter/systems/ems.ts](../../packages/integration-sdk/src/adapter/systems/ems.ts), [adapter/systems/erp-wms.ts](../../packages/integration-sdk/src/adapter/systems/erp-wms.ts), [adapter/systems/l3.ts](../../packages/integration-sdk/src/adapter/systems/l3.ts), [adapter/systems/lims.ts](../../packages/integration-sdk/src/adapter/systems/lims.ts), [adapter/systems/lms.ts](../../packages/integration-sdk/src/adapter/systems/lms.ts), [adapter/systems/opcua.ts](../../packages/integration-sdk/src/adapter/systems/opcua.ts), [adapter/systems/qms.ts](../../packages/integration-sdk/src/adapter/systems/qms.ts), [index.ts](../../packages/integration-sdk/src/index.ts), [printer/index.ts](../../packages/integration-sdk/src/printer/index.ts), [printer/sim-protocol.ts](../../packages/integration-sdk/src/printer/sim-protocol.ts), [printer/wire.ts](../../packages/integration-sdk/src/printer/wire.ts), [process/index.ts](../../packages/integration-sdk/src/process/index.ts), [process/sim-protocol.ts](../../packages/integration-sdk/src/process/sim-protocol.ts), [process/tags.ts](../../packages/integration-sdk/src/process/tags.ts), [process/wire.ts](../../packages/integration-sdk/src/process/wire.ts), [scale/decimal.ts](../../packages/integration-sdk/src/scale/decimal.ts), [scale/index.ts](../../packages/integration-sdk/src/scale/index.ts), [scale/instruments.ts](../../packages/integration-sdk/src/scale/instruments.ts), [scale/mt-sics.ts](../../packages/integration-sdk/src/scale/mt-sics.ts), [scale/reading.ts](../../packages/integration-sdk/src/scale/reading.ts), [scale/wire.ts](../../packages/integration-sdk/src/scale/wire.ts), [serialisation/index.ts](../../packages/integration-sdk/src/serialisation/index.ts), [serialisation/market.ts](../../packages/integration-sdk/src/serialisation/market.ts), [serialisation/wire.ts](../../packages/integration-sdk/src/serialisation/wire.ts)
+**Source** (32): [adapter/contract.ts](../../packages/integration-sdk/src/adapter/contract.ts), [adapter/envelope.ts](../../packages/integration-sdk/src/adapter/envelope.ts), [adapter/equipment-data.ts](../../packages/integration-sdk/src/adapter/equipment-data.ts), [adapter/errors.ts](../../packages/integration-sdk/src/adapter/errors.ts), [adapter/index.ts](../../packages/integration-sdk/src/adapter/index.ts), [adapter/mirror.ts](../../packages/integration-sdk/src/adapter/mirror.ts), [adapter/reconciliation.ts](../../packages/integration-sdk/src/adapter/reconciliation.ts), [adapter/systems/cmms.ts](../../packages/integration-sdk/src/adapter/systems/cmms.ts), [adapter/systems/ems.ts](../../packages/integration-sdk/src/adapter/systems/ems.ts), [adapter/systems/erp-wms.ts](../../packages/integration-sdk/src/adapter/systems/erp-wms.ts), [adapter/systems/l3.ts](../../packages/integration-sdk/src/adapter/systems/l3.ts), [adapter/systems/lims.ts](../../packages/integration-sdk/src/adapter/systems/lims.ts), [adapter/systems/lms.ts](../../packages/integration-sdk/src/adapter/systems/lms.ts), [adapter/systems/opcua.ts](../../packages/integration-sdk/src/adapter/systems/opcua.ts), [adapter/systems/qms.ts](../../packages/integration-sdk/src/adapter/systems/qms.ts), [index.ts](../../packages/integration-sdk/src/index.ts), [printer/index.ts](../../packages/integration-sdk/src/printer/index.ts), [printer/sim-protocol.ts](../../packages/integration-sdk/src/printer/sim-protocol.ts), [printer/wire.ts](../../packages/integration-sdk/src/printer/wire.ts), [process/index.ts](../../packages/integration-sdk/src/process/index.ts), [process/sim-protocol.ts](../../packages/integration-sdk/src/process/sim-protocol.ts), [process/tags.ts](../../packages/integration-sdk/src/process/tags.ts), [process/wire.ts](../../packages/integration-sdk/src/process/wire.ts), [scale/decimal.ts](../../packages/integration-sdk/src/scale/decimal.ts), [scale/index.ts](../../packages/integration-sdk/src/scale/index.ts), [scale/instruments.ts](../../packages/integration-sdk/src/scale/instruments.ts), [scale/mt-sics.ts](../../packages/integration-sdk/src/scale/mt-sics.ts), [scale/reading.ts](../../packages/integration-sdk/src/scale/reading.ts), [scale/wire.ts](../../packages/integration-sdk/src/scale/wire.ts), [serialisation/index.ts](../../packages/integration-sdk/src/serialisation/index.ts), [serialisation/market.ts](../../packages/integration-sdk/src/serialisation/market.ts), [serialisation/wire.ts](../../packages/integration-sdk/src/serialisation/wire.ts)
 
-**Tests** (7): [adapter/adapter.test.ts](../../packages/integration-sdk/test/adapter/adapter.test.ts), [package.test.ts](../../packages/integration-sdk/test/package.test.ts), [printer/wire.test.ts](../../packages/integration-sdk/test/printer/wire.test.ts), [process/wire.test.ts](../../packages/integration-sdk/test/process/wire.test.ts), [scale/mt-sics.test.ts](../../packages/integration-sdk/test/scale/mt-sics.test.ts), [scale/reading.test.ts](../../packages/integration-sdk/test/scale/reading.test.ts), [serialisation/serialisation.test.ts](../../packages/integration-sdk/test/serialisation/serialisation.test.ts)
+**Tests** (8): [adapter/adapter.test.ts](../../packages/integration-sdk/test/adapter/adapter.test.ts), [adapter/equipment-data.test.ts](../../packages/integration-sdk/test/adapter/equipment-data.test.ts), [package.test.ts](../../packages/integration-sdk/test/package.test.ts), [printer/wire.test.ts](../../packages/integration-sdk/test/printer/wire.test.ts), [process/wire.test.ts](../../packages/integration-sdk/test/process/wire.test.ts), [scale/mt-sics.test.ts](../../packages/integration-sdk/test/scale/mt-sics.test.ts), [scale/reading.test.ts](../../packages/integration-sdk/test/scale/reading.test.ts), [serialisation/serialisation.test.ts](../../packages/integration-sdk/test/serialisation/serialisation.test.ts)
 
-**Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [PR-42](../../compliance/controls/PR-42.yaml)
+**Controls** (5): [DI-20](../../compliance/controls/DI-20.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-49](../../compliance/controls/DI-49.yaml), [PR-42](../../compliance/controls/PR-42.yaml)
 
 ## site-gateway
 
 **Site gateway.** Package `apps/site-gateway`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Source** (15): [api.ts](../../apps/site-gateway/src/api.ts), [clock.ts](../../apps/site-gateway/src/clock.ts), [config.ts](../../apps/site-gateway/src/config.ts), [drivers/mt-sics.ts](../../apps/site-gateway/src/drivers/mt-sics.ts), [drivers/printer-sim.ts](../../apps/site-gateway/src/drivers/printer-sim.ts), [drivers/process-sim.ts](../../apps/site-gateway/src/drivers/process-sim.ts), [gateway.ts](../../apps/site-gateway/src/gateway.ts), [index.ts](../../apps/site-gateway/src/index.ts), [journal.ts](../../apps/site-gateway/src/journal.ts), [main.ts](../../apps/site-gateway/src/main.ts), [print-journal.ts](../../apps/site-gateway/src/print-journal.ts), [printer-uplink.ts](../../apps/site-gateway/src/printer-uplink.ts), [process-journal.ts](../../apps/site-gateway/src/process-journal.ts), [process-uplink.ts](../../apps/site-gateway/src/process-uplink.ts), [uplink.ts](../../apps/site-gateway/src/uplink.ts)
+**Source** (16): [api.ts](../../apps/site-gateway/src/api.ts), [clock.ts](../../apps/site-gateway/src/clock.ts), [config.ts](../../apps/site-gateway/src/config.ts), [drivers/mt-sics.ts](../../apps/site-gateway/src/drivers/mt-sics.ts), [drivers/opcua.ts](../../apps/site-gateway/src/drivers/opcua.ts), [drivers/printer-sim.ts](../../apps/site-gateway/src/drivers/printer-sim.ts), [drivers/process-sim.ts](../../apps/site-gateway/src/drivers/process-sim.ts), [gateway.ts](../../apps/site-gateway/src/gateway.ts), [index.ts](../../apps/site-gateway/src/index.ts), [journal.ts](../../apps/site-gateway/src/journal.ts), [main.ts](../../apps/site-gateway/src/main.ts), [print-journal.ts](../../apps/site-gateway/src/print-journal.ts), [printer-uplink.ts](../../apps/site-gateway/src/printer-uplink.ts), [process-journal.ts](../../apps/site-gateway/src/process-journal.ts), [process-uplink.ts](../../apps/site-gateway/src/process-uplink.ts), [uplink.ts](../../apps/site-gateway/src/uplink.ts)
 
-**Tests** (10): [capture-readiness.test.ts](../../apps/site-gateway/test/capture-readiness.test.ts), [delivery-readiness.test.ts](../../apps/site-gateway/test/delivery-readiness.test.ts), [device-config.test.ts](../../apps/site-gateway/test/device-config.test.ts), [gateway.test.ts](../../apps/site-gateway/test/gateway.test.ts), [journal-write-failure.test.ts](../../apps/site-gateway/test/journal-write-failure.test.ts), [journal.test.ts](../../apps/site-gateway/test/journal.test.ts), [package.test.ts](../../apps/site-gateway/test/package.test.ts), [printer.test.ts](../../apps/site-gateway/test/printer.test.ts), [process.test.ts](../../apps/site-gateway/test/process.test.ts), [upload-wait.test.ts](../../apps/site-gateway/test/upload-wait.test.ts)
+**Tests** (11): [capture-readiness.test.ts](../../apps/site-gateway/test/capture-readiness.test.ts), [delivery-readiness.test.ts](../../apps/site-gateway/test/delivery-readiness.test.ts), [device-config.test.ts](../../apps/site-gateway/test/device-config.test.ts), [gateway.test.ts](../../apps/site-gateway/test/gateway.test.ts), [journal-write-failure.test.ts](../../apps/site-gateway/test/journal-write-failure.test.ts), [journal.test.ts](../../apps/site-gateway/test/journal.test.ts), [opcua-driver-shape.test.ts](../../apps/site-gateway/test/opcua-driver-shape.test.ts), [package.test.ts](../../apps/site-gateway/test/package.test.ts), [printer.test.ts](../../apps/site-gateway/test/printer.test.ts), [process.test.ts](../../apps/site-gateway/test/process.test.ts), [upload-wait.test.ts](../../apps/site-gateway/test/upload-wait.test.ts)
 
 **Controls** (7): [DI-20](../../compliance/controls/DI-20.yaml), [DI-28](../../compliance/controls/DI-28.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-36](../../compliance/controls/PR-36.yaml)
 

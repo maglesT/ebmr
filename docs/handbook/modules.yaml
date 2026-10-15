@@ -264,6 +264,14 @@ modules:
       - 'packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts'
       - 'packages/recipe-core/test/mutation/platform-scope.test.ts'
 
+  - id: rc-equipment-data
+    title: Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^09[6-8]\d_']
+    tests: ['packages/recipe-core/test/integrations/plant-alarms-series.test.ts']
+
   - id: rc-mirrors
     title: CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B)
     page: modules/recipe-core.md
@@ -674,6 +682,14 @@ modules:
     contract: [packages/api-contract/src/ns/integrations.ts]
     screens: [apps/tablets-web/src/features/integrations]
     tests: ['apps/tablets-server/test/integrations/**', 'apps/tablets-web/test/integrations/**']
+
+  - id: ts-alarms
+    title: Plant alarm log and equipment data (Phase 6 slice 6b)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/alarms, apps/tablets-server/src/features/equipment-data]
+    contract: [packages/api-contract/src/ns/alarms.ts, packages/api-contract/src/ns/equipment-data.ts]
+    tests: ['apps/tablets-server/test/alarms/**']
 
   - id: ts-capa
     title: CAPA register and closure (Phase 6 slice 6a, builder B)

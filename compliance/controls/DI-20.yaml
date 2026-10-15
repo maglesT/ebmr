@@ -209,6 +209,8 @@ tests:
   - "packages/kernel/test/inbound/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20] an unregistered adapter identity is refused"
   - "packages/kernel/test/inbound/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20] only an INTEGRATION account on an active SERVER device is registered, by the device administrator, once per account"
   - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20][DI-14] only the registered ERP_WMS adapter receives and delivers ERP/WMS messages, and it never issues stock"
+  - "apps/site-gateway/test/opcua-driver-shape.test.ts > OPC UA driver shape (6b-0) > [DI-20] an endpoint whose certificate is not the enrolled one, or that is not SignAndEncrypt, is refused"
+  - "packages/integration-sdk/test/adapter/equipment-data.test.ts > equipment data (6b-0) > [DI-20] an endpoint is SignAndEncrypt with an enrolled certificate thumbprint and its room; None mode is refused"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:
