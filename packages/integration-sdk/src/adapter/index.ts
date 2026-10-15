@@ -8,13 +8,14 @@ export * from './errors.ts';
 export * from './reconciliation.ts';
 export * from './mirror.ts';
 export * from './contract.ts';
+export * from './equipment-data.ts';
 export { ERP_WMS } from './systems/erp-wms.ts';
 export { QMS } from './systems/qms.ts';
 export { LIMS } from './systems/lims.ts';
 export { LMS } from './systems/lms.ts';
 export { CMMS } from './systems/cmms.ts';
-export { EMS } from './systems/ems.ts';
-export { OPCUA } from './systems/opcua.ts';
+export { EMS, EMS_TAGS, type EmsTag } from './systems/ems.ts';
+export { OPCUA, OPCUA_NAMESPACE_URI, OPCUA_SECURITY_POLICIES, OPCUA_TAG_MAP, OpcuaEndpoint, RECIPE_VERSION_TAG, EQUIPMENT_DATA_REFUSALS, opcuaNodeId, parseOpcuaNodeId, type OpcuaTagEntry } from './systems/opcua.ts';
 export { L3 } from './systems/l3.ts';
 
 import type { SourceSystem } from './envelope.ts';
