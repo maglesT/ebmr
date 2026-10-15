@@ -583,11 +583,10 @@ released migration; replace a function in a new one.
   slice 6a (for example D-6a-7 in PROGRESS.md).
 - **D-P6-7** Golden batches: GB-T-01 and GB-T-02 outputs stay exact; one new GB-T-03 "connected"; roller compaction
   and bilayer stay Phase 7 (D-P4-15).
-## Owner questions (owner, 15 October: no questions asked; each default below is taken as the decision)
-## Open for the owner (defaults stand until answered)
+## Owner questions (owner, 15 October: no questions are asked; each default below is taken as the decision)
 
 1. **Languages:** answered by the owner, decision 0018: English only; slice 6h dropped.
-   real approval by the customer's bilingual reviewer at deployment (D-P6h-2).
+2. **Translation approval:** no longer applies (decision 0018).
 3. **IN-53 wording and scope** (legal weight): the draft control text paraphrases outline decision 14; the NDPS
    register export format and importing-market controls (US DEA, EU) are not verified. Default: outline wording,
    status U, `expert_decision` PENDING, generic export, importing-market controls out of v1 (D-P6e-2, D-P6e-3).
