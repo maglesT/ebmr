@@ -79,10 +79,12 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
     expect(await signRelease(stub, () => undefined)).toMatch(/[0-9a-f-]{36}/);
     await expectRefused(asQa(`select esig.set_policy('esig.india_dsc', 'LICENSED', 'licensed CA', 'CR')`, [], true), 'EBMR-ESIG-091');
     await expectRefused(asQa(`select esig.set_policy('esig.india_dsc', 'TEST_CA', 'test CA', 'CR')`, [], true), 'EBMR-ESIG-092');
-    await expectRefused(asQa(`select esig.register_dsc_anchor('LICENSED', 'CCA root', 'CN=CCA India', $1, 'go live')`, [ca.root.der]), 'EBMR-ESIG-091');
+    await expectRefused(asQa(`select esig.register_dsc_anchor('LICENSED', 'CCA root', 'CN=CCA India', $1, 'go live')`, [ca.root.der], true), 'EBMR-ESIG-091');
     const admin = await testActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', acknowledgeEsig: false });
     await expectRefused(withCommand(db.app, await cmd(db, admin), (c) => c.query(`select esig.register_dsc_anchor('TEST_CA', 'x', 'y', $1, 'z')`, [ca.root.der])), 'EBMR-IAM-040');
-    await asQa(`select esig.register_dsc_anchor('TEST_CA', 'eBMR TEST CA', 'CN=eBMR TEST CA (not legally valid)', $1, 'demo and validation tests')`, [ca.root.der]);
+    // The anchor is configuration (kernel 1205, DI-09): without a change record it is refused.
+    await expectRefused(asQa(`select esig.register_dsc_anchor('TEST_CA', 'eBMR TEST CA', 'CN=eBMR TEST CA (not legally valid)', $1, 'demo and validation tests')`, [ca.root.der]), 'EBMR-CFG-001');
+    await asQa(`select esig.register_dsc_anchor('TEST_CA', 'eBMR TEST CA', 'CN=eBMR TEST CA (not legally valid)', $1, 'demo and validation tests')`, [ca.root.der], true);
     await asQa(`select esig.set_policy('esig.india_dsc', 'TEST_CA', 'demo of the India DSC option with a test CA', 'CR-TEST-FIXTURE')`, [], true);
     expect((await db.app.query<{ m: string }>('select esig.dsc_mode() as m')).rows[0]?.m).toBe('TEST_CA');
   });
@@ -103,9 +105,9 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
     expect(rows[0]?.d).toMatchObject({ mode: 'TEST_CA', anchorLabel: 'eBMR TEST CA', leafSerial: expect.any(String) });
     expect(rows[0]?.d['leafSubject']).toContain('TEST Class 3');
     // A meaning not configured for a DSC (a QC approval) signs as before.
-    await asQa(`select esig.set_dsc_meaning('MANUFACTURER_RELEASE', false, 'release signed by password only for this test')`, []);
+    await asQa(`select esig.set_dsc_meaning('MANUFACTURER_RELEASE', false, 'release signed by password only for this test')`, [], true);
     expect(await signRelease(await createStub(db, author), () => undefined)).toMatch(/[0-9a-f-]{36}/);
-    await asQa(`select esig.set_dsc_meaning('MANUFACTURER_RELEASE', true, 'back to the default proposal')`, []);
+    await asQa(`select esig.set_dsc_meaning('MANUFACTURER_RELEASE', true, 'back to the default proposal')`, [], true);
   });
 
   it('[IN-10] a broken chain is refused and nothing is signed', async () => {
