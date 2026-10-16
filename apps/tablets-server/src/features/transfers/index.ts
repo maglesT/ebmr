@@ -22,6 +22,9 @@ import { peerApproveHandler, receiptDecideHandler } from './signables.ts';
 
 export const guidance = TRANSFERS_GUIDANCE;
 
+/** Site-to-site requests per client address (review 6i-R3). */
+export const FEDERATION_RATE = { max: 30, timeWindow: '1 minute' } as const;
+
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
   if (app.installation !== 'GMP') return;
   registry.register(receiptDecideHandler(app));
@@ -114,6 +117,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       }
       return { payload: r.payload, seal: key.seal('federation-answer', r.payload) };
     },
-  });
+    // Review 6i-R3: the route needs no session and every request costs a seal verification in the database, so it is
+    // counted per client address (a refused request still leaves its alarm).
+  }, { rateLimits: { genealogy: FEDERATION_RATE } });
   return Promise.resolve();
 }

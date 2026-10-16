@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { FEDERATION_RATE } from '../../src/features/transfers/index.ts';
 import { rawPublicKeyOf } from '../../src/features/transfers/keys.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
@@ -188,6 +189,18 @@ describe('federated genealogy over HTTP (PR-57, IN-29)', () => {
     const again = valueOf(await pune.qa.call(routes.recall.refreshFederation, { params: { mockRecallId: run.mockRecallId }, body: {} }));
     expect(again.federation).toMatchObject({ complete: true, transfers: [{ status: 'ANSWERED' }] });
     expect(again.federation!.transfers[0]!.excerptAsOf?.us).toBe(run.asOf.us);
+  });
+
+  it('[DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)', async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < FEDERATION_RATE.max + 5; i += 1) {
+      const res = await fetch(`${pune.url}/api/federation/genealogy`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ request: 'not a request', seal: 'x' }) });
+      statuses.push(res.status);
+      if (res.status === 429) break;
+    }
+    expect(statuses.at(-1)).toBe(429);
+    expect(statuses.slice(0, -1).every((s) => s === 403)).toBe(true);
+    expect(statuses.length).toBeGreaterThan(FEDERATION_RATE.max - 5);
   });
 
   it('[DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation', async () => {
