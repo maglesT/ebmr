@@ -59,6 +59,8 @@ import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
+import gn from '../fixtures/genealogy.json' with { type: 'json' };
+import mr from '../fixtures/recall.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -357,6 +359,16 @@ export const EXAMPLES = {
   'pqr-extract': { schema: r.pqr.extract.response, data: pq.extract, routeId: r.pqr.extract.id },
   'pqr-extract-signed-off': { schema: r.pqr.extract.response, data: pq.signedOff },
   'pqr-run': { schema: r.pqr.run.response, data: pq.extract, routeId: r.pqr.run.id },
+  'genealogy-trace': { schema: r.genealogy.trace.response, data: gn.trace, routeId: r.genealogy.trace.id },
+  'genealogy-lookup': { schema: r.genealogy.lookup.response, data: gn.lookup, routeId: r.genealogy.lookup.id },
+  'genealogy-supply-chain': { schema: r.genealogy.supplyChain.response, data: gn.supplyChain, routeId: r.genealogy.supplyChain.id },
+  'genealogy-deviation-impact': { schema: r.genealogy.deviationImpact.response, data: gn.impact, routeId: r.genealogy.deviationImpact.id },
+  'genealogy-recurrence': { schema: r.genealogy.recurrence.response, data: gn.recurrence, routeId: r.genealogy.recurrence.id },
+  'genealogy-recurrence-quiet': { schema: r.genealogy.recurrence.response, data: gn.recurrenceQuiet },
+  'recall-mock-recalls': { schema: r.recall.mockRecalls.response, data: { mockRecalls: [mr.summary] }, routeId: r.recall.mockRecalls.id },
+  'recall-mock-recall': { schema: r.recall.mockRecall.response, data: mr.mockRecall, routeId: r.recall.mockRecall.id },
+  'recall-mock-recall-signed-off': { schema: r.recall.mockRecall.response, data: mr.signedOff },
+  'recall-run': { schema: r.recall.run.response, data: mr.mockRecall, routeId: r.recall.run.id },
   // Phase 4 slice 6b: retention, contingency packs, evidence export and the inspection workspace.
   'archive-batches': { schema: r.archive.batches.response, data: ar.batches, routeId: r.archive.batches.id },
   'archive-batch': { schema: r.archive.batch.response, data: ar.batch, routeId: r.archive.batch.id },
@@ -391,6 +403,8 @@ export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records
 
 /** Phase 4 slice 6c: the PQR routes, each with an example above (checked by the contract test). */
 export const PQR_ROUTE_IDS: readonly string[] = Object.values(r.pqr).map((route) => route.id);
+/** Phase 6 slice 6d: the genealogy and recall routes, each with an example above (checked by the contract test). */
+export const GENEALOGY_ROUTE_IDS: readonly string[] = [...Object.values(r.genealogy), ...Object.values(r.recall)].map((route) => route.id);
 /** Phase 4 slice 6b: the archive routes, each with an example above (checked by the contract test). */
 export const ARCHIVE_ROUTE_IDS: readonly string[] = Object.values(r.archive).map((route) => route.id);
 

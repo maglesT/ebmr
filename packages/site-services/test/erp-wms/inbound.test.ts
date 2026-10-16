@@ -56,8 +56,9 @@ describe('faults at the receiving command (DI-31)', () => {
     w.skip(3);
     const gap = await w.inbound(w.envelope('wms.lot_status', { lotNumber: (await w.receive('API')).lotCode, status: 'QUARANTINE' }));
     expect(gap.sequenceStatus).toBe('GAP');
-    const late = await w.deliver(w.envelope('erp.shipment', { shipmentId: 'SH-1', lotNumber: 'X', consigneeCode: 'C1', consigneeName: 'C', consigneeAddress: 'A', quantity: { value: '1', unit: 'kg' }, shippedAt: '1800000000000000' }, { sequenceNo: '4' }), 'OUT_OF_ORDER');
-    expect(late).toMatchObject({ ok: true, result: { sequenceStatus: 'LATE', applied: { kept: true } } });
+    // (A late message is still applied: since slice 6d an erp.shipment is applied too, so the late one here is a lot status.)
+    const late = await w.deliver(w.envelope('wms.lot_status', { lotNumber: (await w.receive('API')).lotCode, status: 'QUARANTINE' }, { sequenceNo: '4' }), 'OUT_OF_ORDER');
+    expect(late).toMatchObject({ ok: true, result: { sequenceStatus: 'LATE' } });
     const taken = await w.deliver(w.envelope('erp.shipment', { shipmentId: 'SH-2', lotNumber: 'X', quantity: { value: '1', unit: 'kg' } }, { sequenceNo: '4' }), 'OUT_OF_ORDER');
     expect(taken).toMatchObject({ ok: false, code: 'EBMR-INT-006' });
     expect([await w.alarms('SEQUENCE_GAP'), await w.alarms('OUT_OF_ORDER')]).toEqual([1, 2]);

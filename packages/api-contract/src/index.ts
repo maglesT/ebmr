@@ -242,5 +242,19 @@ export {
   MirrorFreshnessView,
   ReconciliationReportView,
 } from './ns/integrations.ts';
+export {
+  ComplaintLookupView,
+  DeviationImpactView,
+  DistributionRecordView,
+  GenealogyDirection,
+  GenealogyEdgeKind,
+  GenealogyEdgeView,
+  GenealogyNodeKind,
+  GenealogyNodeView,
+  GenealogyTraceView,
+  RecurrenceView,
+  SupplyChainView,
+} from './ns/genealogy.ts';
+export { MockRecallSubjectKind, MockRecallSummaryView, MockRecallView } from './ns/recall.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
