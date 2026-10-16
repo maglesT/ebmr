@@ -261,6 +261,7 @@ tests:
   - "apps/tablets-server/test/integrations/alarm-routes.test.ts > integrations routes with data (DI-31) > [DI-31][DI-14][INV-40] a person acknowledges an alarm with a note, once, from a kiosk only with a fresh tap; others cannot"
   - "packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts > overrides of interface-captured values (kernel 1181) > [DI-31][DI-14] an override is a person's, with a reason and a new value, of a value that came in a message"
   - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20][DI-14] only the registered ERP_WMS adapter receives and delivers ERP/WMS messages, and it never issues stock"
+  - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-14][DI-20] the adapter's MATERIAL.HANDLE never reaches a person's material act: it cannot cancel a reservation, record a destruction, recover, return, post or move a lot between sites (review 6j-c R1)"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

@@ -150,6 +150,10 @@ Slice 6j-a (branch `phase-6/slice-6j-a`, 16 October): the exit trace. DI-31, DI-
 clause stays deferred to Phase 6 (none moved to 7); IN-53 stays PENDING; a deferral to phase 5 waits while Injectables
 is outside the gate (question 7, `[meta]` test), so PR-26 and PR-28 are unchanged; `phase.yaml` stays 4 for the
 integrator (after 6j-b, 6j-c). Handbook mermaid labels fixed. Details in `docs/build-plan/phase-4/trace-deferrals.md`.
+Slice 6j-c (branch `phase-6/slice-6j-c`, 16 October): the one review pass over Phase 6. One high fixed: 6jc-R1, the
+ERP_WMS adapter's MATERIAL.HANDLE reached a person's material acts (reservation cancel, destruction, recovery, returns,
+finished lot, transfer packages); site services 0990 refuses those rows for a non-HUMAN account (DI-14, DI-20).
+Residuals 6jc-R2 to R7 (one medium: controlled-substance reads open to any role) in the plan's "6j-c review".
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

@@ -784,6 +784,53 @@ follow if a language is added after v1.
 - **Final run:** the full suite, golden batches, browser suite, `pnpm trace` at 6, `pnpm handbook:check`, all green in
   one run.
 
+#### 6j-c review (16 October; one pass over 1fec042..8331e94, serious defects only, decision 0008)
+
+Scope: the 78 Phase 6 migrations and the server's federation, transfer and controlled routes, checked against a fully
+migrated database (catalogue queries over every Phase 6 function and table) rather than by reading alone. Checked and
+found sound: every app-callable Phase 6 writer in `plant`, `tab`, `iam`, `esig`, `sandbox` (schemas the meta tests do
+not scan) refuses administrators or is not a GMP write; every Phase 6 function taking a signature binds it to its
+meaning and aggregate (`esig.assert_signature` or `recipe.assert_release_signature`); every Phase 6 table is audited or
+insert-only on database time, except the operational queues the migrations name; mirrors fail closed (a missing sync
+or bound reads as stale; the LMS check is `coalesce(..., false)`); `ebmr_report` holds SELECT on `report` only and no
+write anywhere; training refuses a GMP installation; the federation answer checks its permission, the seal and that
+the transfer was exchanged with the asker; the three shared functions (`tab.kernel_signing_meanings`,
+`tab.aggregate_read_class`, `tab.record_read_problem`) and the cross-slice re-creations (`recipe.genealogy*`,
+`recipe.*mock_recall*`, `site.erp_wms_receive`) keep every earlier addition; no `Date.now()` or `number` for a GMP value
+in product code (the OPC UA driver writes a Double because the protocol requires it; simulators are exempt).
+
+Findings:
+- **6jc-R1 (high, fixed; DI-14, DI-20):** site services 0914 gave the ERP_WMS adapter's INTEGRATION role
+  MATERIAL.HANDLE and guarded only reservation and consumption. The adapter's identity could still cancel a person's
+  reservation (reproduced: it succeeded), record a lot destruction, recover returned goods, receive returns, post a
+  finished lot, and prepare, seal or import a transfer package (each reached its state check). Fixed in **site
+  services 0990**: trigger `zz_material_act_by_person` on the eight tables of these acts refuses a row unless its
+  account is HUMAN (EBMR-SITE-925); the WMS path writes none of them. Test
+  `packages/site-services/test/erp-wms/inbound.test.ts` "[DI-14][DI-20] the adapter's MATERIAL.HANDLE never reaches a
+  person's material act ..." (failed before, passes after). One fix round.
+
+Residuals for the owner (medium and low; not fixed here):
+- **6jc-R2 (medium; IN-53, draft):** the controlled-substance reads (custody records, batch balance, register extracts)
+  need only a session in any role, in the server and in the database; the signing-content path is gated by
+  CONTROLLED.* (tablets 1290) but the list and register reads are not. Suggested: gate the reads on CONTROLLED.* or
+  the governance readers when IN-53 leaves draft.
+- **6jc-R3 (low; IN-30):** the contract giver reviewer's scope to its loan licence holds in its own routes
+  (recipe-core 1060) and in the server's route allow-list (bind.ts); the role also holds RECORD.READ (kernel 0120), so
+  the database alone would not stop a read through another read function. Suggested: refuse CONTRACT_GIVER_REVIEWER
+  in `tab.record_read_problem` outside its access.
+- **6jc-R4 (low):** migrations merged out of numeric order (tablets 1210, 1218, 1230, 1231 after 1270 to 1280 and 1250 after
+  1301; recipe-core 0960 to 0976 after 1010 and 1050; site services 0940 after 0960) ran out of order on databases upgraded at each merge. None re-creates a shared
+  function, so no effect was found; the runner does not detect it. Suggested: a CI check that a new migration sorts
+  after every migration on main.
+- **6jc-R5 (low):** `site.erp_outbound_message` is called insert-only in 0912's header but has no insert-only
+  trigger (only owner functions write it; operational, not audited).
+- **6jc-R6 (low; DI-18):** `esig.enrol_dsc_certificate` and `esig.record_dsc_signature` do not call
+  `iam.assert_not_administrator()`; the enrolment is for the actor's own HUMAN account and the DSC rides on a password
+  signature the kernel already gates, so no GMP data is reachable.
+- **6jc-R7 (low):** the kernel and recipe-core authorization meta tests scan `market`, `records`, `continuity`,
+  `site`, `platform` and `recipe` only; Phase 6 writers in `plant`, `tab`, `iam`, `esig`, `sandbox` are covered by
+  their own tests but not by a meta scan. Suggested: widen the scan in Phase 7.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - 6a-0: the inbound envelope and error classes (`@ebmr/integration-sdk/adapter`), `platform.accept_inbound`,
