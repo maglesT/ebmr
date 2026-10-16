@@ -25,7 +25,7 @@ of each database function.
 | [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
-| [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
+| [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
 | [kernel-area-authorisation](#kernel-area-authorisation) | Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 80 | 39 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
@@ -396,9 +396,9 @@ of each database function.
 
 **Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
 
-**Migrations** (1):
+**Migrations** (2):
 
-- `packages/kernel/sql`: [1220_installation_keys.sql](../../packages/kernel/sql/1220_installation_keys.sql)
+- `packages/kernel/sql`: [1220_installation_keys.sql](../../packages/kernel/sql/1220_installation_keys.sql), [1221_installation_alarm_ack_admin.sql](../../packages/kernel/sql/1221_installation_alarm_ack_admin.sql)
 
 **Database objects** created in these migrations:
 
