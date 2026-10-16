@@ -7,7 +7,7 @@
 --   recipe.label_field_binding   the record fields a template element may bind (D-P6c-2: layout and bindings only, every
 --                                value from the record): code, description, whether an India-domestic label must bind it
 --                                (D-P6c-17, as recipe.india_label_particulars gives them) and the print-job field that
---                                carries it (batch, mfgDate, expiryDate, mrp, gtin, ndc, pool), if any.
+--                                carries it (batch, mfgDate, expiryDate, mrp, gtin, ndc, serialPoolId), if any.
 --   recipe.label_template        insert-only, audited: a version of a template (code, version, scope, markets, layout with
 --                                its elements, the bound fields). A template for a market set with India is INDIA_DOMESTIC.
 --   recipe.label_template_event  insert-only, audited: APPROVED (by LABEL.APPROVE, never the author; D-P6c-10: an
@@ -69,7 +69,7 @@ insert into recipe.label_field_binding (code, description, india_required, print
   ('MRP', 'Maximum retail price (India-domestic packs; the batch data)', false, 'mrp'),
   ('GTIN', 'GTIN of the market (the master)', false, 'gtin'),
   ('NDC', 'US NDC (the master)', false, 'ndc'),
-  ('SERIAL', 'Unit serial from the L3 pool', false, 'pool'),
+  ('SERIAL', 'Unit serial from the L3 pool', false, 'serialPoolId'),
   ('H2_QR', 'Schedule H2 QR payload (versioned stub, D-P4-14)', false, null);
 create trigger aa_label_field_binding_insert_only before update or delete on recipe.label_field_binding for each row execute function kernel.reject_mutation();
 create trigger aa_label_field_binding_no_truncate before truncate on recipe.label_field_binding for each statement execute function kernel.reject_mutation();

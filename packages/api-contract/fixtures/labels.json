@@ -77,7 +77,7 @@
         "code": "SERIAL",
         "description": "Unit serial from the L3 pool",
         "indiaRequired": false,
-        "printField": "pool"
+        "printField": "serialPoolId"
       },
       {
         "code": "H2_QR",
