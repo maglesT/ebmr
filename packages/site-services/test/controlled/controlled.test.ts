@@ -54,7 +54,7 @@ async function batchOf(product: string, status = 'IN_PROGRESS'): Promise<Batch> 
 /** QA records the flag under the fixture change record; a second QA person approves it. Returns the record id. */
 async function flag(product: string, materials: string[], approve = true): Promise<string> {
   const ctx = await withChangeRecord(db, w.cast.qaMaster);
-  const id = await one<string>(ctx as SeededActor, 'select plant.record_controlled_product($1::jsonb) as r', [
+  const id = await one<string>(ctx, 'select plant.record_controlled_product($1::jsonb) as r', [
     JSON.stringify({ productCode: product, controlled: materials.length > 0, materialCodes: materials, basisRef: 'NDPS manufacturing licence ML-17 (draft)' }),
   ]);
   if (approve) {

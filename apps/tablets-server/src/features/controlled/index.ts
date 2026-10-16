@@ -144,7 +144,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   /** One write as the person's own command (idempotent by the request's key); the definer's result. */
   const write = async (ctx: Ctx, sql: string, params: unknown[], over: Record<string, unknown> = {}): Promise<string> => {
     const { result } = await withIdempotentActorCommand(pool, { ...ctx.actor(), ...over }, ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null);
-    return String(result);
+    return typeof result === 'string' ? result : '';
   };
   bindRoutes(scope, app, routes.controlled, {
     products: async ({ requireSession }) => {

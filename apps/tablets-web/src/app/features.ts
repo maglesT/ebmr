@@ -1,7 +1,7 @@
 /**
  * The fixed list of web features (module C0). Owners: session C0; access and audit C1; designer C2; floor C4; devices C5;
  * Phase 3 slice 6: planning, master-data, plant and quality (S6); Phase 4 slice 1c: review; slice 3c: release and notifications;
- * slice 5c: records (locking and amendment); slice 6c: pqr (PQR extract and sign-off); slice 6b: archive (retention, paper forms, true copies, inspection).
+ * slice 5c: records (locking and amendment); slice 6c: pqr (PQR extract and sign-off); slice 6b: archive (retention, paper forms, true copies, inspection). Phase 6 slice 6e: controlled (controlled-substance mode, draft IN-53).
  */
 import * as access from '../features/access/index.tsx';
 import * as archive from '../features/archive/index.tsx';
@@ -20,6 +20,7 @@ import * as records from '../features/records/index.tsx';
 import * as pqr from '../features/pqr/index.tsx';
 import * as capa from '../features/capa/index.tsx';
 import * as config from '../features/config/index.tsx';
+import * as controlled from '../features/controlled/index.tsx';
 import * as governance from '../features/governance/index.tsx';
 import * as release from '../features/release/index.tsx';
 import * as review from '../features/review/index.tsx';
@@ -48,4 +49,5 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['config', config satisfies WebFeature],
   ['governance', governance satisfies WebFeature],
   ['integrations', integrations satisfies WebFeature],
+  ['controlled', controlled satisfies WebFeature],
 ];
