@@ -5,19 +5,18 @@
  * explanation and the batch's deviation (D-P6e-1: exact decimals, no tolerance). The difference shown is the server's.
  */
 import { useState } from 'react';
-import { useParams } from '@tanstack/react-router';
 import { routes, type CheckpointView } from '@ebmr/api-contract';
 import { Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { useRouteParams } from '../floor/params.ts';
 import { useSessionRole } from '../../app/roles.ts';
 import { CustodyRecord, DraftBanner } from './ControlledPage.tsx';
 import { BALANCE_SIGNERS, CONTROLLED_READS, QUANTITY, UUID, words } from './reads.ts';
 
 export function ControlledBalancePage() {
-  const { batchId } = useParams({ strict: false });
-  const id = typeof batchId === 'string' ? batchId : '';
+  const id = useRouteParams()['batchId'] ?? '';
   const role = useSessionRole();
   const q = useApiQuery(routes.controlled.balance, { params: { batchId: id } });
   const custody = useApiQuery(routes.controlled.custody, { query: { batchId: id } });
