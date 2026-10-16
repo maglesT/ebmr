@@ -214,7 +214,7 @@ export {
   PqrSignOffView,
 } from './ns/pqr.ts';
 export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
-export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
+export { ChemicalRecoveryInput, ChemicalRecoveryView, ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';
 export {
   ArchiveBatchSummary,

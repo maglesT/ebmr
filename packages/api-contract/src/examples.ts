@@ -268,6 +268,8 @@ export const EXAMPLES = {
   'samples-returns': { schema: r.samples.returns.response, data: { returns: [lm.return] }, routeId: r.samples.returns.id },
   'samples-receive-return': { schema: r.samples.receiveReturn.response, data: { ...lm.return, assessment: null }, routeId: r.samples.receiveReturn.id },
   'samples-assess-return': { schema: r.samples.assessReturn.response, data: { ...lm.return, assessment: { ...lm.return.assessment, signed: false } }, routeId: r.samples.assessReturn.id },
+  // Phase 6 slice 6d: the chemical recovery of the returned goods (site services 0960).
+  'samples-recover-return': { schema: r.samples.recoverReturn.response, data: { returnedLotId: lm.return.lotId, recoveredLotId: 'a3000000-0000-4000-8000-000000000001', recoveredLotCode: `${lm.return.lotCode}-CR` }, routeId: r.samples.recoverReturn.id },
   // Phase 4 slice 3 (3-0): the release routes, for the cockpit (3c) before the server (3a).
   'release-queue': { schema: r.release.queue.response, data: rl.queue, routeId: r.release.queue.id },
   'release-lot': { schema: r.release.lot.response, data: rl.lot, routeId: r.release.lot.id },

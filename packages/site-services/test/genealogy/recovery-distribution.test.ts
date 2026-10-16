@@ -149,7 +149,8 @@ describe('distribution records (site services 0961; PR-57; D-P6d-0-6, D-P6d-0-7)
   it('[PR-57] an incomplete, unknown, future or repeated shipment is refused and recorded as a refusal; a lot not released never ships (INV-42); nothing is lost', async () => {
     const f = await finishedLot();
     const count = async () => Number((await db.admin.query<{ n: string }>('select count(*) as n from site.erp_shipment where lot_id = $1', [f.id])).rows[0]!.n);
-    const { consigneeAddress: _drop, ...noAddress } = shipment(f.code);
+    const noAddress: Record<string, unknown> = { ...shipment(f.code) };
+    delete noAddress['consigneeAddress'];
     expect(await w.deliver(w.envelope('erp.shipment', noAddress), 'MALFORMED')).toMatchObject({ ok: false, code: 'EBMR-ERP-020' });
     expect(await w.deliver(w.envelope('erp.shipment', shipment('NO-SUCH-LOT')), 'WRONG_IDENTITY')).toMatchObject({ ok: false, code: 'EBMR-ERP-021' });
     expect(await w.deliver(w.envelope('erp.shipment', shipment(f.code, { shippedAt: '4000000000000000' })), 'OUT_OF_RANGE')).toMatchObject({ ok: false, code: 'EBMR-ERP-022' });

@@ -167,6 +167,32 @@ describe('mock-recall cockpit (IN-29)', () => {
   });
 });
 
+describe('chemical recovery of returned goods (IN-29, PR-48)', () => {
+  const r = example('samples-returns').returns[0]!;
+  const recoverable = { ...r, assessment: { ...r.assessment!, disposition: 'CHEMICAL_RECOVERY' as const, signed: true } };
+
+  it('[IN-29][PR-48] the stores record the chemical recovery of returns whose signed assessment chose it; the body is what they typed', async () => {
+    const ui = renderOffice('/quality/returns', { role: 'STORES_OFFICER', fixtures: { 'samples.returns': { returns: [recoverable] } } });
+    const form = await screen.findByTestId(`form-Chemical recovery of ${r.lotCode}`);
+    for (const [name, value] of [
+      ['Recovered material code', 'API-REC'], ['Recovered material name', 'Recovered paracetamol'], ['Quantity recovered', '40.5'], ['Unit', 'kg'],
+      ['Recovery procedure and run', 'SOP-REC-01 run 3'], ['Expiry (UTC, e.g. 2029-01-01T00:00:00Z)', '2029-01-01T00:00:00Z'],
+    ] as const) await userEvent.type(within(form).getByRole('textbox', { name: new RegExp(`^${name.replace(/[()]/g, '\\$&')}`) }), value);
+    await userEvent.click(within(form).getByRole('button', { name: 'Record the chemical recovery' }));
+    await waitFor(() => expect(ui.posts(`/api/quality/returns/${r.lotId}/chemical-recovery`)).toHaveLength(1));
+    expect(ui.posts(`/api/quality/returns/${r.lotId}/chemical-recovery`)[0]?.body).toEqual({
+      materialCode: 'API-REC', materialName: 'Recovered paracetamol', quantity: '40.5', unit: 'kg', processReference: 'SOP-REC-01 run 3', expiresAt: '2029-01-01T00:00:00Z',
+    });
+  });
+
+  it('[IN-29] a return assessed for destruction, or not yet signed, offers no recovery', async () => {
+    renderOffice('/quality/returns', { role: 'STORES_OFFICER', fixtures: { 'samples.returns': { returns: [r, { ...recoverable, lotId: 'a3000000-0000-4000-8000-0000000000aa', lotCode: 'G-UNSIGNED', assessment: { ...recoverable.assessment, signed: false } }] } } });
+    await screen.findByTestId(`return-${r.lotCode}`);
+    expect(screen.queryByTestId(`form-Chemical recovery of ${r.lotCode}`)).toBeNull();
+    expect(screen.queryByTestId('form-Chemical recovery of G-UNSIGNED')).toBeNull();
+  });
+});
+
 describe('the recurrence warning on the certification screen (PR-49)', () => {
   it('[PR-49] the third recurrence shows a warning on the certification screen', async () => {
     const ui = renderOffice(`/release/${lot.lotId}`, { role: 'AUTHORISED_PERSON' });

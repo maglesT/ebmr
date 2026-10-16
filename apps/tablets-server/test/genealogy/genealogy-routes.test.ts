@@ -3,7 +3,7 @@
  * 1010 to 1013, tablets 1280; PR-57, IN-07, IN-29, PR-50, PR-49): the trace both ways with its as-of point, the
  * complaint lookup by lot, batch or shipment number, the API supply-chain report, the deviation impact query, the
  * recurrence read of the certification screen, and the mock recall run by QA and signed off by the AP through the
- * ceremony (MOCK_RECALL_SIGN_OFF on mock_recall), never by QA.
+ * ceremony (MOCK_RECALL_SIGN_OFF on mock_recall), never by QA; the stores' chemical recovery of returned goods (samples.recoverReturn).
  *
  * Fixtures, not proofs (written as the owner, triggers off; each event's own act is proven in its package): an API lot
  * consumed by a batch, its finished lot and one distribution record. The genealogy and the mock recall are the
@@ -12,7 +12,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type SignableAction } from '@ebmr/api-contract';
-import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
+import { withCommand } from '@ebmr/kernel';
+import { actorOfBrowser, refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { describeAction, signAction } from '../support/signed-acts.ts';
 
@@ -96,7 +97,7 @@ describe('genealogy routes over HTTP (PR-57, IN-07)', () => {
     }
     expect(refusalOf(await qa.call(routes.genealogy.lookup, { query: { code: 'NOTHING-HERE' } })).status).toBe(404);
     const sc = valueOf(await qa.call(routes.genealogy.supplyChain, { params: { lotId: ids.lot } }));
-    expect(sc.lines).toEqual([expect.objectContaining({ lot: expect.objectContaining({ id: ids.api, subKind: 'API' }), depth: 2, supplier: 'SUP-1', supplierLot: 'SB-77', consumedBy: [codes.batch] })]);
+    expect(sc.lines.map((l) => [l.lot.id, l.lot.subKind, l.depth, l.supplier, l.supplierLot, l.consumedBy])).toEqual([[ids.api, 'API', 2, 'SUP-1', 'SB-77', [codes.batch]]]);
   });
 
   it('[PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there', async () => {
@@ -127,4 +128,35 @@ describe('mock recall routes over HTTP (IN-29)', () => {
     expect(signed.signOff).toMatchObject({ signedBy: { role: 'AUTHORISED_PERSON' } });
     expect(codeOf(await signAction(gmp, ap, 'qcuAuthoriser', act))).not.toBe('ok');
   });
+});
+
+const refused = (r: Parameters<typeof refusalOf>[0]): string => {
+  const x = refusalOf(r);
+  return `${x.code} ${x.why}`;
+};
+
+describe('chemical recovery over HTTP (IN-29, PR-48; site services 0960)', () => {
+  it('[IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused', async () => {
+    const [stores, head] = await Promise.all([gmp.asPersona('stores'), gmp.asPersona('qcApprover')]);
+    // A finished lot as the edition's definer posts it (its packaging-order path is proven in the database tests).
+    const finished = await withCommand(gmp.db.admin, { ...(await actorOfBrowser(gmp, stores, 'stores')), correlationId: randomUUID() }, async (c) =>
+      (await c.query<{ id: string }>('select site.create_finished_lot($1::jsonb) as id', [
+        JSON.stringify({ batchId: randomUUID(), batchNumber: `CR${tag}`, edition: 'TABLETS', siteCode: 'SITE-1', productCode: 'GN-500', productName: 'Genealogy tablets 500 mg',
+                         strength: '500 mg', markets: ['IN'], quantity: '1000', unit: 'units', expiresAt: '2029-06-30T23:59:59Z' }),
+      ])).rows[0]?.id ?? '',
+    );
+    const ret = valueOf(await stores.call(routes.samples.receiveReturn, { body: { originalLotId: finished, quantity: '120', reason: 'Recalled by the stockist', returnedFrom: 'Stockist Pune' } }));
+    const recovery = { materialCode: 'API-REC', materialName: 'Recovered paracetamol', quantity: '30.5', unit: 'kg', processReference: 'SOP-REC-01 run 1', expiresAt: '2029-01-01T00:00:00Z' };
+    expect(refused(await stores.call(routes.samples.recoverReturn, { params: { lotId: ret.lotId }, body: recovery }))).toMatch(/EBMR-SITE-961/);
+    valueOf(await head.call(routes.samples.assessReturn, { params: { lotId: ret.lotId }, body: {
+      nature: 'Tablets in blisters', storage: 'Below 30 C', conditionHistory: 'Blisters intact', timeSinceIssue: '3 months', doubt: true, implicatesOtherBatches: false, disposition: 'CHEMICAL_RECOVERY' } }));
+    expect((await signAction(gmp, head, 'qcApprover', { kind: 'LIMS_ACT', act: 'RETURN_ASSESSMENT_SIGN', subjectId: ret.lotId })).ok).toBe(true);
+    expect(refused(await stores.call(routes.samples.recoverReturn, { params: { lotId: ret.lotId }, body: { ...recovery, returnedQuantity: '120.5' } }))).toMatch(/EBMR-SITE-965/);
+    const r = valueOf(await stores.call(routes.samples.recoverReturn, { params: { lotId: ret.lotId }, body: recovery }));
+    expect([r.returnedLotId, r.recoveredLotCode]).toEqual([ret.lotId, `${ret.lotCode}-CR`]);
+    const fwd = valueOf(await qa.call(routes.genealogy.trace, { query: { kind: 'LOT', id: finished, direction: 'FORWARD' } }));
+    expect(fwd.edges.map((e) => [e.node.id, e.edgeKind, e.depth])).toEqual([[finished, null, 0], [ret.lotId, 'RETURNED', 1], [r.recoveredLotId, 'RECOVERED', 2]]);
+    expect(fwd.nodes.find((n) => n.id === r.recoveredLotId)).toMatchObject({ subKind: 'INTERMEDIATE', state: 'QUARANTINE' });
+    expect(refused(await stores.call(routes.samples.recoverReturn, { params: { lotId: ret.lotId }, body: recovery }))).toMatch(/EBMR-SITE-963/);
+  }, 300_000);
 });
