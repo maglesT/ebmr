@@ -838,15 +838,22 @@ Second part of the pass (16 October): the rest of the Phase 6 TypeScript and the
 - Found sound: every Phase 6 route is behind the session gate and its writes go through guarded database functions
   with the actor from the session; no route trusts an actor, signer or time sent by the client; no web screen is the
   only check of a right; no SQL is built from input; no direct INSERT or UPDATE from TypeScript.
-- No new critical or high finding. No migration added in this part.
+- No new critical finding. One high, after the lead's re-rating: 6jc-R8, fixed in kernel 1230.
 
-Residuals of the second part (medium and low; not fixed here):
-- **6jc-R8 (medium; DI-31):** kernel 1220 accepts a small-order Ed25519 point as this installation's or a peer's key
-  (`platform.raw_public_key` only checks that the point decodes). Under such a key every seal verifies. Reproduced: with
-  the identity point as the key, the seal R = B, S = 1 verifies any payload. The key still needs a SYSTEM.CONFIGURE
-  proposal and QA's signed approval, which an attacker-held key would also need, so no right is gained; but anyone could
-  then forge that peer's packages and answers. Suggested: the small-order refusal of tablets 0702
-  (`tab.ed25519_small_order`) in `platform.raw_public_key` and `platform.seal_valid`.
+Findings and residuals of the second part (only R8 is fixed; the rest are medium and low):
+- **6jc-R8 (high, fixed; DI-31; raised from medium by the lead, D-P6j-c-3):** kernel 1220 accepted a small-order
+  Ed25519 point as this installation's or a peer's key (`platform.raw_public_key` only checked that the point decodes).
+  Under such a key every seal verifies. Reproduced: with the identity point as the key, the seal R = B, S = 1 verifies
+  any payload, and a package forged in a weak peer's name was taken in. Fixed in **kernel 1230**, one fix round:
+  - `platform.ed25519_small_order`, the kernel twin of `tab.ed25519_small_order` (tablets 0702).
+  - `platform.raw_public_key` refuses a small-order key with EBMR-XFR-042, so `set_installation_identity` and
+    `propose_peer_installation` refuse it.
+  - `platform.seal_valid` is false under a small-order key, so a key stored before the guard verifies nothing.
+  - Non-canonical encodings were already refused (`platform.ed25519_decode` refuses y >= q and a negative zero x).
+  - Tests in `packages/site-services/test/transfer/transfer.test.ts`, "review 6j-c R8": "[DI-31] a key of small order is
+    refused as a peer's key and as this installation's key (EBMR-XFR-042)" and "[DI-31] a peer key of small order stored
+    before the guard verifies no seal ...". Both failed before the fix and pass after.
+  - Mutation group: the new "transfer and federation" group (6j-a campaign), with `transfer.test.ts`.
 - **6jc-R9 (medium; DI-31, owner):** the 6a feed protocol does not authenticate the source.
   - The server pulls `<base>/feed` with a plain HTTP GET, and `payloadHash` has no key.
   - The site gateway's OPC UA feed (series, alarms, events, endpoint sessions) reaches `plant.receive_*` without the
@@ -882,6 +889,9 @@ Decisions:
 - **D-P6j-c-2:** 6jc-R8 is rated medium, not high. The weak key has to pass QA's signed approval, and it gives nothing
   that an approved key held by an attacker would not. The fix is small and Priority 1 under decision 0019, so the
   mutation campaign may take it.
+- **D-P6j-c-3 (lead):** 6jc-R8 is raised to high and fixed in 6j-c. A small-order key makes the seal check vacuous:
+  every seal verifies under it. QA's approval of the key only limits who can bring such a key in. Federation and
+  transfer seals are Priority 1 in decision 0019.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

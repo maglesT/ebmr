@@ -25,7 +25,7 @@ of each database function.
 | [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
-| [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
+| [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 0 | 0 |
 | [kernel-area-authorisation](#kernel-area-authorisation) | Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 80 | 39 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
@@ -399,14 +399,14 @@ of each database function.
 
 **Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
 
-**Migrations** (2):
+**Migrations** (3):
 
-- `packages/kernel/sql`: [1220_installation_keys.sql](../../packages/kernel/sql/1220_installation_keys.sql), [1221_installation_alarm_ack_admin.sql](../../packages/kernel/sql/1221_installation_alarm_ack_admin.sql)
+- `packages/kernel/sql`: [1220_installation_keys.sql](../../packages/kernel/sql/1220_installation_keys.sql), [1221_installation_alarm_ack_admin.sql](../../packages/kernel/sql/1221_installation_alarm_ack_admin.sql), [1230_installation_key_large_order.sql](../../packages/kernel/sql/1230_installation_key_large_order.sql)
 
 **Database objects** created in these migrations:
 
 - Tables (7): `platform.federation_request`, `platform.installation_alarm`, `platform.installation_alarm_ack`, `platform.installation_identity`, `platform.peer_installation`, `platform.peer_installation_approval`, `platform.peer_installation_revocation`
-- Functions (23): `platform.accept_federation_request`, `platform.acknowledge_installation_alarm`, `platform.approve_peer_installation`, `platform.current_installation`, `platform.ed25519_add`, `platform.ed25519_decode`, `platform.ed25519_double`, `platform.ed25519_le_integer`, `platform.ed25519_pow`, `platform.ed25519_verify`, `platform.own_seal_valid`, `platform.peer_installation_content`, `platform.peer_installation_state`, `platform.peer_seal_valid`, `platform.propose_peer_installation`, `platform.raise_installation_alarm`, `platform.raw_public_key`, `platform.refuse_federation_query`, `platform.revoke_peer_installation`, `platform.seal_message`, `platform.seal_valid`, `platform.set_installation_identity`, `platform.trusted_peer`
+- Functions (24): `platform.accept_federation_request`, `platform.acknowledge_installation_alarm`, `platform.approve_peer_installation`, `platform.current_installation`, `platform.ed25519_add`, `platform.ed25519_decode`, `platform.ed25519_double`, `platform.ed25519_le_integer`, `platform.ed25519_pow`, `platform.ed25519_small_order`, `platform.ed25519_verify`, `platform.own_seal_valid`, `platform.peer_installation_content`, `platform.peer_installation_state`, `platform.peer_seal_valid`, `platform.propose_peer_installation`, `platform.raise_installation_alarm`, `platform.raw_public_key`, `platform.refuse_federation_query`, `platform.revoke_peer_installation`, `platform.seal_message`, `platform.seal_valid`, `platform.set_installation_identity`, `platform.trusted_peer`
 
 ## kernel-area-authorisation
 

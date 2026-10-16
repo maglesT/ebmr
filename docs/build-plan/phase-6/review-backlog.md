@@ -5,12 +5,11 @@ with what was checked, in the "6j-c review" subsection of [phase-6-plan.md](phas
 slice quick reviews (R-6a to R-6i) are in each slice's section of the same plan.
 
 Fixed: 6jc-R1 (high; DI-14, DI-20): the ERP/WMS adapter's identity could record a person's material act (site services
-0990; [defect log](../../handbook/08-defect-log.md)).
+0990), and 6jc-R8 (high, raised by the lead; DI-31): a small-order Ed25519 key made every seal under it verify (kernel 1230).
+Both are in the [defect log](../../handbook/08-defect-log.md).
 
 Backlog for the owner:
 - Medium (IN-53, draft) 6jc-R2: the controlled-substance list and register reads need only a session.
-- Medium (DI-31) 6jc-R8: a small-order Ed25519 point is accepted as an installation or peer key, and every seal verifies
-  under it. Suggested fix: the tablets 0702 small-order refusal in `platform.raw_public_key` and `platform.seal_valid`.
 - Medium (DI-31, owner) 6jc-R9: the adapter feed protocol and the gateway's OPC UA feed do not authenticate the source.
   Before a networked deployment: sign the gateway feed with the gateway key, or require mutual TLS.
 - Medium (PR-27) 6jc-R10: the penicillin facility rule and the beta-lactam classification are set by one master-data

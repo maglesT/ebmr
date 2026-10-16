@@ -151,9 +151,10 @@ ERP_WMS adapter's MATERIAL.HANDLE reached a person's material acts (reservation 
 finished lot, transfer packages); site services 0990 refuses those rows for a non-HUMAN account (DI-14, DI-20).
 Residuals 6jc-R2 to R7 (one medium: controlled-substance reads open to any role) in the plan's "6j-c review".
 Second part (rest of the Phase 6 TypeScript, the gateway, the SDK, the web screens and the regulated core's SQL logic,
-probed on a migrated database): no new critical or high. Residuals 6jc-R8 to R15, three medium for the owner: small-order
-installation keys accepted (R8), the adapter feeds and the gateway's OPC UA feed not authenticated (R9), the penicillin
-facility and beta-lactam rules set by one person (R10). Backlog: docs/build-plan/phase-6/review-backlog.md.
+probed on a migrated database): one high, 6jc-R8 (raised by the lead): a small-order installation or peer key made
+every seal verify. Fixed in kernel 1230 (EBMR-XFR-042; DI-31). Residuals 6jc-R9 to R15, two of them medium for the owner:
+the adapter feeds and the gateway's OPC UA feed are not authenticated (R9), and one person sets the penicillin facility
+and beta-lactam rules (R10). Backlog: docs/build-plan/phase-6/review-backlog.md.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

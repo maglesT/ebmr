@@ -977,6 +977,23 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 - **Lesson:** when you give an integration role a broad permission for one path, guard every other path that permission
   opens, at the table rather than in each function.
 
+### 6jc-R8: a seal under an installation key of small order proved nothing (Phase 6 exit review)
+- **What went wrong.** Kernel 1220 accepted any 32-byte encoding of a curve point as this installation's key or as a
+  peer's key. A point of small order (eight times it is the neutral point) passed. Under the neutral point as the key,
+  the seal R = B, S = 1 verifies for every payload. A package forged in such a peer's name, by anyone, was taken in.
+- **Why it matters.** A transfer package carries a lot's status and release into another site's stock, and a federation
+  answer feeds a recall (DI-31). Once a weak key is trusted, its seal check means nothing; QA's approval of the key only
+  limits who can bring one in.
+- **Fix.** Kernel [1230](../../packages/kernel/sql/1230_installation_key_large_order.sql), as tablets 0702 did for
+  gateway keys: `platform.ed25519_small_order`; `platform.raw_public_key` refuses a small-order key (EBMR-XFR-042), and
+  `platform.seal_valid` is false under one, so a key stored earlier verifies nothing either.
+- **Test.** `[DI-31] a key of small order is refused as a peer's key and as this installation's key (EBMR-XFR-042)` and
+  `[DI-31] a peer key of small order stored before the guard verifies no seal ...` in
+  [transfer.test.ts](../../packages/site-services/test/transfer/transfer.test.ts).
+- **Lesson:** a signature check is only as good as the key it is checked under. When a second copy of a crypto
+  routine is written (the kernel twin of tablets 0270), carry over the key checks that the first copy gained later
+  (tablets 0702).
+
 ## Controlled substances (Phase 6 slice 6e, draft IN-53)
 
 ### P6e-R1: a batch could complete after its last controlled checkpoint (slice 6e, review)
