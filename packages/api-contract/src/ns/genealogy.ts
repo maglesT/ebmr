@@ -13,11 +13,14 @@ import { z } from 'zod';
 import { DecimalString, EpochMicros, Instant, Uuid } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
-export const GenealogyNodeKind = z.enum(['LOT', 'BATCH', 'CONTAINER', 'SHIPMENT']);
+/** TRANSFER (Phase 6 slice 6i, additive): a lot-transfer package between two site installations; the same node at both sites. */
+export const GenealogyNodeKind = z.enum(['LOT', 'BATCH', 'CONTAINER', 'SHIPMENT', 'TRANSFER']);
 export type GenealogyNodeKind = z.infer<typeof GenealogyNodeKind>;
 export const GenealogyEdgeKind = z.enum([
   'CONSUMED', 'RETURNED', 'RECOVERED', 'SHIPPED', 'OUTPUT', 'MERGED', 'BULK_ISSUE', 'CHARGED', 'REPROCESSED',
   'REPROCESSING_ADDITION', 'RECOVERY_ADDITION', 'PACKAGING_ORDER', 'FINISHED',
+  // Phase 6 slice 6i (recipe-core 1090): the lot left in a sealed package; the package became the receiving site's lot.
+  'TRANSFERRED', 'TRANSFER_RECEIVED',
 ]);
 export type GenealogyEdgeKind = z.infer<typeof GenealogyEdgeKind>;
 export const GenealogyDirection = z.enum(['FORWARD', 'BACKWARD']);
@@ -33,7 +36,11 @@ export const GenealogyNodeView = z.strictObject({
   name: z.string().nullable(),
   /** LOT: the material kind (API, EXCIPIENT, ..., FINISHED, RETURNED); BATCH: PROCESSING or PACKAGING; else null. */
   subKind: z.string().nullable(),
-  /** LOT: the lot state; BATCH: the record status; CONTAINER: the container state; SHIPMENT: the consignee code. */
+  /**
+   * LOT: the lot state; BATCH: the record status; CONTAINER: the container state; SHIPMENT: the consignee code; TRANSFER:
+   * SEALED (outbound) or the receipt's RECEIVED, ACCEPTED or REFUSED (inbound). A TRANSFER's label is the package number,
+   * its code the origin installation, its name the destination installation and its subKind OUTBOUND or INBOUND.
+   */
   state: z.string().nullable(),
 });
 export type GenealogyNodeView = z.infer<typeof GenealogyNodeView>;
@@ -60,9 +67,42 @@ export const GenealogyTraceView = z.strictObject({
     batches: z.number().int().nonnegative(),
     containers: z.number().int().nonnegative(),
     shipments: z.number().int().nonnegative(),
+    /** Phase 6 slice 6i (additive): the TRANSFER nodes. */
+    transfers: z.number().int().nonnegative().optional(),
   }),
 });
 export type GenealogyTraceView = z.infer<typeof GenealogyTraceView>;
+
+/**
+ * One other site's part of a federated trace (Phase 6 slice 6i; D-P6i-0-7): the excerpt the installation at the other end
+ * of a transfer answered, sealed by its key, from that TRANSFER node in the same direction. ANSWERED: as of the instant
+ * asked. UNREACHABLE, REFUSED or WRONG_ANSWER: the last excerpt received before (its own, older as-of) or none; the
+ * result is then incomplete. NOT_REGISTERED: the other installation is no longer a trusted peer.
+ */
+export const FederatedPartStatus = z.enum(['ANSWERED', 'UNREACHABLE', 'REFUSED', 'WRONG_ANSWER', 'NOT_REGISTERED']);
+export type FederatedPartStatus = z.infer<typeof FederatedPartStatus>;
+export const FederatedPartView = z.strictObject({
+  transferId: Uuid,
+  packageNo: z.string().min(1),
+  peer: z.string().min(1),
+  status: FederatedPartStatus,
+  askedAsOf: Instant,
+  /** The as-of point of the excerpt shown: the one asked when ANSWERED, an earlier one otherwise; null when none was ever received. */
+  excerptAsOf: Instant.nullable(),
+  detail: z.string().nullable(),
+  nodes: z.array(GenealogyNodeView),
+  edges: z.array(GenealogyEdgeView),
+});
+export type FederatedPartView = z.infer<typeof FederatedPartView>;
+export const FederatedTraceView = z.strictObject({
+  local: GenealogyTraceView,
+  remote: z.array(FederatedPartView),
+  /** True only when every transfer reached has an ANSWERED part and no part reaches a further transfer. */
+  complete: z.boolean(),
+  /** Transfers the other sites' excerpts reach that this site does not ask (one hop, D-P6i-0-7). */
+  beyondOneHop: z.array(z.strictObject({ transferId: Uuid, packageNo: z.string().min(1), peer: z.string().min(1) })),
+});
+export type FederatedTraceView = z.infer<typeof FederatedTraceView>;
 
 /** One distribution record (site.erp_shipment with the 6d fields; PR-57). */
 export const DistributionRecordView = z.strictObject({
@@ -177,6 +217,17 @@ export const genealogy = {
     summary: 'The genealogy of a lot, batch, container or shipment, forward or backward, at any depth, as of an instant (PR-57)',
     query: z.strictObject({ kind: GenealogyNodeKind, id: Uuid, direction: GenealogyDirection, ...asOfQuery }),
     response: GenealogyTraceView,
+  }),
+  federatedTrace: defineRoute({
+    id: 'genealogy.federatedTrace',
+    method: 'GET',
+    path: '/api/genealogy/federated-trace',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The genealogy across sites: the local trace and, for each transfer reached, the other site\'s sealed excerpt as of the instant, or the last one received, marked incomplete (L-41, PR-57)',
+    query: z.strictObject({ kind: GenealogyNodeKind, id: Uuid, direction: GenealogyDirection, ...asOfQuery }),
+    response: FederatedTraceView,
   }),
   lookup: defineRoute({
     id: 'genealogy.lookup',

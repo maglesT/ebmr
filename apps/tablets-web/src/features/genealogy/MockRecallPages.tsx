@@ -207,8 +207,68 @@ function MockRecall({ v }: { v: MockRecallView }) {
           ))}
         </ul>
       </Section>
+      {v.federation ? <Federation v={v} /> : null}
       <SignOff v={v} />
     </>
+  );
+}
+
+/**
+ * Phase 6 slice 6i (L-41, IN-29): what each destination of an outbound transfer answered as of the run's own instant. An
+ * unanswered site makes the run incomplete (the database decides; it is part of what the AP signs off); the last excerpt
+ * received is shown with its own, older as-of. QA asks the sites again before the sign-off.
+ */
+function Federation({ v }: { v: MockRecallView }) {
+  const f = v.federation!;
+  const role = useSessionRole();
+  const again = useCommand(routes.recall.refreshFederation, RECALL_READS, 'asking the other sites again');
+  return (
+    <Section title="Other sites" testId="mock-recall-federation">
+      {f.complete ? (
+        <Banner tone="ok" title="Complete across sites">
+          {f.transfers.length === 0 ? 'No outbound transfer is reached.' : `Every destination answered as of ${v.asOf.text}.`}
+        </Banner>
+      ) : (
+        <Banner tone="error" title="Incomplete: not every destination site answered as of the run's instant">
+          <p data-testid="mock-recall-federation-incomplete">
+            {[
+              ...f.transfers.filter((t) => t.status !== 'ANSWERED').map((t) => `${t.destination} (${words(t.status)})`),
+              ...f.beyondOneHop.map((b) => `${b.packageNo} to ${b.destination} (beyond one hop)`),
+            ].join(', ')}
+          </p>
+        </Banner>
+      )}
+      <ul>
+        {f.transfers.map((t) => (
+          <li key={t.transferId} data-testid={`mock-recall-remote-${t.packageNo}`} data-status={t.status}>
+            {t.packageNo} to {t.destination} <StatusChip tone={t.status === 'ANSWERED' ? 'ok' : 'error'} label={words(t.status)} />{' '}
+            {t.excerptAsOf ? (t.status === 'ANSWERED' ? `as of ${t.excerptAsOf.text}` : `last excerpt as of ${t.excerptAsOf.text}`) : 'no excerpt'}
+            {t.detail ? ` · ${t.detail}` : ''}
+            <ul>
+              {t.lots.map((l) => (
+                <li key={l.lotId}>
+                  Lot {l.lotCode} {l.materialCode ?? ''} {l.state ? `(${words(l.state)})` : ''}
+                </li>
+              ))}
+              {t.batches.map((b) => (
+                <li key={b.batchId}>Batch {b.batchNumber}</li>
+              ))}
+              {t.shipments.map((s) => (
+                <li key={s.shipmentId}>
+                  Shipment {s.shipmentNo} to {s.consigneeCode ?? 'unknown consignee'} {s.market ? `(${s.market})` : ''}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+      {!f.complete && !v.signOff && (offered(role, 'QA') || role === 'HEAD_OF_QC') ? (
+        <>
+          <ActButton primary={false} label="Ask the other sites again" disabled={again.busy} onPress={() => again.run({ params: { mockRecallId: v.mockRecallId }, body: {} })} />
+          <ActResult error={again.error} done={again.done} label="Asked again." />
+        </>
+      ) : null}
+    </Section>
   );
 }
 

@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { ARCHIVE_ROUTE_IDS, CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, GENEALOGY_ROUTE_IDS, LIMS_ROUTE_IDS, PQR_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RECORDS_LOCK_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { ARCHIVE_ROUTE_IDS, CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, GENEALOGY_ROUTE_IDS, LIMS_ROUTE_IDS, PQR_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RECORDS_LOCK_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, TRANSFER_ROUTE_IDS, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -217,9 +217,9 @@ describe('route table', () => {
       'plantRules.classifyBetaLactam', 'plantRules.createAreaAuthorisation', 'plantRules.defineAdjacency', 'plantRules.recordAreaAuthorisation', 'plantRules.recordReagentLot', 'plantRules.recordReagentUse',
       'plantRules.recordSpill', 'plantRules.setFacilityRule', 'plantRules.setRoomRule', 'plantRules.withdrawAreaAuthorisation', 'plantRules.withdrawReagentLot', 'pqr.run', 'quality.correctLotReceipt',
       'quality.examineLotReceipt', 'quality.proposeApprovedManufacturer', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotReceipt',
-      'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'recall.run', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn', 'samples.recoverReturn', 'serialisation.rejectPool',
+      'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'recall.refreshFederation', 'recall.run', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn', 'samples.recoverReturn', 'serialisation.rejectPool',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
-      'support.requestGrant', 'support.revokeGrant', 'training.completeStep', 'training.start',
+      'support.requestGrant', 'support.revokeGrant', 'training.completeStep', 'training.start', 'transfers.acknowledgeAlarm', 'transfers.import', 'transfers.prepare',
     ]);
     for (const r of fresh) {
       expect(r.auth, r.id).toBe('SESSION');
@@ -407,6 +407,25 @@ describe('route table', () => {
     expect(run({ subjectKind: 'DEVIATION', subjectId: id, authorityInformed: true, authorityReference: 'CDSCO/2026/17' })).toBe(true);
     expect(run({ subjectKind: 'BATCH', subjectId: id, authorityInformed: false })).toBe(false);
     expect(run({ subjectKind: 'LOT', subjectId: id })).toBe(false);
+  });
+
+  it('[DI-31][DI-39] the transfers and federation namespaces (Phase 6 slice 6i) are GMP only, each route with an example; stores and alarm acts are FRESH_ON_SHARED; the site-to-site endpoint needs no session and is read-only; TRANSFER_RECEIPT_DECIDE needs a reason to refuse', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of [...TRANSFER_ROUTE_IDS, routes.genealogy.federatedTrace.id, routes.recall.refreshFederation.id]) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of [...Object.values(routes.transfers), ...Object.values(routes.federation)]) expect(r.installation, r.id).toBe('GMP');
+    for (const r of [routes.transfers.prepare, routes.transfers.import, routes.transfers.acknowledgeAlarm, routes.recall.refreshFederation]) expect(r.attribution, r.id).toBe('FRESH_ON_SHARED');
+    expect(routes.federation.genealogy).toMatchObject({ auth: 'NONE', mutating: false, idempotency: 'NONE' });
+    expect(routes.genealogy.federatedTrace.mutating).toBe(false);
+    const id = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    expect(ok(SignableAction, { kind: 'TRANSFER_RECEIPT_DECIDE', receiptId: id, decision: 'ACCEPTED' })).toBe(true);
+    expect(ok(SignableAction, { kind: 'TRANSFER_RECEIPT_DECIDE', receiptId: id, decision: 'REFUSED', reason: 'container seals broken' })).toBe(true);
+    expect(ok(SignableAction, { kind: 'TRANSFER_RECEIPT_DECIDE', receiptId: id, decision: 'RELEASED' })).toBe(false);
+    expect(ok(SignableAction, { kind: 'PEER_INSTALLATION_APPROVE', peerId: id })).toBe(true);
+    const prepare = (b: unknown) => routes.transfers.prepare.body?.safeParse(b).success;
+    expect(prepare({ lotId: id, destination: 'GOA-TAB-GMP', quantity: '100.5' })).toBe(true);
+    expect(prepare({ lotId: id, destination: 'GOA-TAB-GMP', quantity: 100 })).toBe(false);
+    expect(prepare({ lotId: id, destination: 'goa', quantity: '1' })).toBe(false);
+    expect(routes.genealogy.trace.query?.safeParse({ kind: 'TRANSFER', id, direction: 'FORWARD' }).success).toBe(true);
   });
 
   it('the archive namespace (Phase 4 slice 6b) is GMP only, each route with an example; paper-form commands are FRESH_ON_SHARED; ARCHIVE_ACT certifies an export or signs a forms reconciliation', () => {

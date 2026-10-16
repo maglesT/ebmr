@@ -7,8 +7,8 @@
  */
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { routes, GenealogyDirection, GenealogyNodeKind, type GenealogyEdgeView, type GenealogyNodeView, type GenealogyTraceView } from '@ebmr/api-contract';
-import { Field, floor, StatusChip } from '@ebmr/ui-kit';
+import { routes, GenealogyDirection, GenealogyNodeKind, type FederatedTraceView, type GenealogyEdgeView, type GenealogyNodeView, type GenealogyTraceView } from '@ebmr/api-contract';
+import { Banner, Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, Section } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -28,6 +28,8 @@ interface Asked {
   id: string;
   direction: Direction;
   asOfUs: string | null;
+  /** Phase 6 slice 6i: ask the installations at the other end of each transfer reached (genealogy.federatedTrace). */
+  acrossSites: boolean;
 }
 
 const key = (n: { kind: string; id: string }): string => `${n.kind}:${n.id}`;
@@ -41,7 +43,8 @@ export function GenealogyExplorerPage() {
   const [id, setId] = useState(initialId);
   const [direction, setDirection] = useState<Direction>(initialDirection);
   const [asOf, setAsOf] = useState('');
-  const [asked, setAsked] = useState<Asked | null>(UUID.test(initialId) ? { kind: initialKind, id: initialId, direction: initialDirection, asOfUs: null } : null);
+  const [acrossSites, setAcrossSites] = useState(false);
+  const [asked, setAsked] = useState<Asked | null>(UUID.test(initialId) ? { kind: initialKind, id: initialId, direction: initialDirection, asOfUs: null, acrossSites: false } : null);
   const asOfUs = asOf.trim() === '' ? null : validToUs(asOf);
   const ok = UUID.test(id.trim()) && (asOf.trim() === '' || asOfUs !== null);
   return (
@@ -64,25 +67,97 @@ export function GenealogyExplorerPage() {
           onChange={(v) => setDirection(DIRECTIONS.find((d) => d === v) ?? 'FORWARD')}
         />
         <Field name="genealogyAsOf" label="As of (empty: now; with offset, e.g. 2026-10-12T10:10:00+05:30)" value={asOf} onChange={setAsOf} />
-        <ActButton label="Trace" disabled={!ok} onPress={() => ok && setAsked({ kind, id: id.trim().toLowerCase(), direction, asOfUs })} />
+        <label>
+          <input type="checkbox" checked={acrossSites} onChange={(e) => setAcrossSites(e.target.checked)} /> Across sites (ask the other installation of each transfer reached)
+        </label>
+        <ActButton label="Trace" disabled={!ok} onPress={() => ok && setAsked({ kind, id: id.trim().toLowerCase(), direction, asOfUs, acrossSites })} />
       </Section>
-      {asked ? <TraceResult asked={asked} /> : null}
+      {asked ? asked.acrossSites ? <FederatedResult asked={asked} /> : <TraceResult asked={asked} /> : null}
     </>
   );
 }
 
 function TraceResult({ asked }: { asked: Asked }) {
   const q = useApiQuery(routes.genealogy.trace, { query: { kind: asked.kind, id: asked.id, direction: asked.direction, ...(asked.asOfUs ? { asOfUs: asked.asOfUs } : {}) } });
-  const [view, setView] = useState<'TREE' | 'TABLE'>('TREE');
-  const [filter, setFilter] = useState<Filter>('ALL');
   if (q.error) return <RefusalMessage error={q.error.error} />;
   const t = q.data;
   if (!t) return <p>Tracing…</p>;
+  return <TraceView t={t} />;
+}
+
+/**
+ * Phase 6 slice 6i (L-41, PR-57): the local trace and each other site's sealed part, with the as-of point of what is
+ * shown; a part that is not the answer as of the instant asked makes the whole result incomplete, said in a banner.
+ */
+function FederatedResult({ asked }: { asked: Asked }) {
+  const q = useApiQuery(routes.genealogy.federatedTrace, { query: { kind: asked.kind, id: asked.id, direction: asked.direction, ...(asked.asOfUs ? { asOfUs: asked.asOfUs } : {}) } });
+  if (q.error) return <RefusalMessage error={q.error.error} />;
+  const f = q.data;
+  if (!f) return <p>Tracing here and asking the other sites…</p>;
+  return (
+    <>
+      {f.complete ? (
+        <Banner tone="ok" title="Complete across sites">
+          Every other site answered as of {f.local.asOf.text}.
+        </Banner>
+      ) : (
+        <Banner tone="error" title="Incomplete: not every site answered as of the instant asked">
+          <p data-testid="federated-incomplete">
+            {f.remote.filter((p) => p.status !== 'ANSWERED').map((p) => `${p.peer} (${words(p.status)})`).join(', ')}
+            {f.beyondOneHop.length > 0 ? ` · beyond one hop: ${f.beyondOneHop.map((b) => `${b.packageNo} to ${b.peer}`).join(', ')}` : ''}
+          </p>
+        </Banner>
+      )}
+      <TraceView t={f.local} />
+      <RemoteParts f={f} />
+    </>
+  );
+}
+
+function RemoteParts({ f }: { f: FederatedTraceView }) {
+  return (
+    <Section title="Other sites" testId="federated-parts">
+      {f.remote.length === 0 ? <p>No transfer to or from another site is reached.</p> : null}
+      {f.remote.map((p) => {
+        const nodes = new Map(p.nodes.map((n) => [key(n), n]));
+        return (
+          <div key={p.transferId} data-testid={`federated-part-${p.packageNo}`} data-status={p.status}>
+            <h3>
+              {p.packageNo} at {p.peer} <StatusChip tone={p.status === 'ANSWERED' ? 'ok' : 'error'} label={words(p.status)} />
+            </h3>
+            <p>
+              {p.excerptAsOf
+                ? p.status === 'ANSWERED'
+                  ? `As of ${p.excerptAsOf.text}, sealed by ${p.peer}.`
+                  : `Last excerpt received, as of ${p.excerptAsOf.text} (older than the instant asked, ${p.askedAsOf.text}).`
+                : 'No excerpt was ever received from this site.'}
+              {p.detail ? ` ${p.detail}` : ''}
+            </p>
+            <ul>
+              {p.edges.map((e) => {
+                const n = nodes.get(key(e.node));
+                return (
+                  <li key={`${key(e.node)}<${e.parent ? key(e.parent) : ''}<${e.edgeKind ?? ''}`} data-kind={e.node.kind} data-depth={e.depth.toString()}>
+                    {e.edgeKind ? <StatusChip tone="neutral" label={words(e.edgeKind)} /> : null} {n ? nodeLine(n) : e.node.id} (depth {e.depth.toString()})
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
+    </Section>
+  );
+}
+
+function TraceView({ t }: { t: GenealogyTraceView }) {
+  const [view, setView] = useState<'TREE' | 'TABLE'>('TREE');
+  const [filter, setFilter] = useState<Filter>('ALL');
   return (
     <Section title={`${words(t.direction)} genealogy of ${t.start.label}`} testId="genealogy-result">
       <p data-testid="genealogy-summary">
         As of {t.asOf.text}: {t.counts.lots.toString()} lot(s), {t.counts.batches.toString()} batch(es), {t.counts.containers.toString()} container(s),{' '}
-        {t.counts.shipments.toString()} shipment(s).
+        {t.counts.shipments.toString()} shipment(s){t.counts.transfers ? `, ${t.counts.transfers.toString()} transfer(s) to or from other sites` : ''}.
       </p>
       <floor.ChoiceGroup
         label="Show as"

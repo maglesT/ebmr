@@ -730,6 +730,28 @@ follow if a language is added after v1.
   to 1099.
 - **Handbook:** `03-architecture.md` (topology), `modules/site-services.md`, `modules/kernel.md`,
   `modules/recipe-core.md`, `08-defect-log.md`.
+- **Built (16 October, branch `phase-6/slice-6i`):** 6i-0 interfaces and defaults D-P6i-0-1 to D-P6i-0-13 in
+  [slice-6i-0-interfaces.md](slice-6i-0-interfaces.md). Kernel 1220 (installation identity and key versions, peer
+  installations trusted after QA's PEER_INSTALLATION_APPROVED, seals with domain separation, Ed25519 in PL/pgSQL,
+  installation alarms, the site-to-site request log); site services 0980, 0981 (package built by the database from its
+  own records and sealed by the server; import refused with an alarm when malformed, from an untrusted sender, tampered,
+  misaddressed or a duplicate; a local INTERMEDIATE lot in QUARANTINE; local QA's TRANSFER_RECEIPT_ACCEPTED or _REFUSED;
+  release and reservation refused before the acceptance and after the hold limit; rule resolutions re-resolved, the
+  stricter winning); recipe-core 1090 to 1093 (TRANSFER node and edges, the federated answer and the asking side, the mock
+  recall across sites); tablets 1300, 1301 (signing meanings and read classes). Server feature `transfers`, the
+  `federation.genealogy` route outside the browser origin gate, `genealogy.federatedTrace`, `recall.run` asking each
+  destination, `recall.refreshFederation`; screens `/transfers`, the receipt page, the explorer's "Across sites" and the
+  mock recall's "Other sites". Tests: two installations in one run at the database (15) and over HTTP with two servers
+  (6), contract and web tests.
+- **Quick review (one pass):** no critical. Three findings fixed with tests (defect log P6i-R1 to R3): a mock recall
+  whose destination's part reached a further transfer was called complete (now `beyond_one_hop`, incomplete); an as-of
+  point a moment ahead of the answering clock was refused (now answered after a wait of up to 2 seconds); the
+  unauthenticated site-to-site route had no rate limit (now 30 a minute per address).
+- **Residuals (for the owner):** federation is one hop (a third site's part is listed, not fetched; D-P6i-0-7); the
+  suspension cascade stays local (D-P6i-0-10); the installation identity and peer list are not yet under the 6f
+  configuration change record; a key rotation needs the peers to approve the new key before packages verify; the
+  transfer-out quantity reduces the lot's available quantity but is not a consumption row (the ERP/WMS moves the stock);
+  federation from a shared kiosk needs the person's tap like any command.
 
 ### Slice 6j: Phase 6 exit
 
@@ -778,6 +800,8 @@ follow if a language is added after v1.
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
 | tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
+| tablets, added | | | | | | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
+| tablets, assigned 16 Oct | | | | 1280-1289 | 1290-1299 | | 1310-1319 | | 1300-1309 | |
 | tablets, added | | | | | | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | 1310-1319 (reserved, unused) | | | |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a

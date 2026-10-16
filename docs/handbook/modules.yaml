@@ -164,6 +164,13 @@ modules:
       packages/kernel/sql: ['^118\d_']
     tests: ['packages/kernel/test/inbound/**']
 
+  - id: kernel-transfer
+    title: Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^122\d_']
+
   - id: kernel-area-authorisation
     title: Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15)
     page: modules/kernel.md
@@ -254,6 +261,14 @@ modules:
     migrations:
       packages/site-services/sql: ['^096\d_']
     tests: ['packages/site-services/test/genealogy/**']
+
+  - id: ss-transfer
+    title: Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^09[89]\d_']
+    tests: ['packages/site-services/test/transfer/**']
 
   - id: ss-reporting
     title: Reporting views and change-impact DB tests (Phase 6 slice 6g)
@@ -347,6 +362,13 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql: ['^101\d_']
+
+  - id: rc-transfer
+    title: Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^109\d_']
 
   - id: rc-reporting
     title: Reporting views and the change-impact query (Phase 6 slice 6g)
@@ -811,6 +833,17 @@ modules:
     contract: [packages/api-contract/src/ns/genealogy.ts, packages/api-contract/src/ns/recall.ts]
     screens: [apps/tablets-web/src/features/genealogy]
     tests: ['apps/tablets-server/test/genealogy/**', 'apps/tablets-web/test/genealogy/**']
+
+  - id: ts-transfers
+    title: Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^130\d_']
+    server: [apps/tablets-server/src/features/transfers]
+    contract: [packages/api-contract/src/ns/transfers.ts]
+    screens: [apps/tablets-web/src/features/transfers]
+    tests: ['apps/tablets-server/test/transfers/**', 'apps/tablets-web/test/transfers/**']
 
   - id: ts-dashboards
     title: Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g)

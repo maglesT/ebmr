@@ -264,5 +264,151 @@
       }
     ],
     "incomplete": []
+  },
+  "federated": {
+    "mockRecallId": "e1000000-0000-4000-8000-000000000001",
+    "subjectKind": "LOT",
+    "subjectId": "a1000000-0000-4000-8000-000000000001",
+    "subjectRef": "API-PCM-2601",
+    "asOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "queryVersion": 2,
+    "resultSha256": "4b6d8f0a2c4e6b8d0f2a4c6e8b0d2f4a3f5a9c0e1b2d4f6a8c0e2b4d6f8a0c2e",
+    "authorityInformed": false,
+    "authorityReference": null,
+    "counts": {
+      "batches": 3,
+      "lots": 3,
+      "consignees": 1,
+      "shipments": 1,
+      "incompleteRecords": 0
+    },
+    "ranBy": {
+      "personId": "5b0d2c1e-7a3f-4e6b-9c2d-1f0a3b4c5d61",
+      "legalName": "Rhea Reviewer",
+      "loginName": "rhea.reviewer",
+      "role": "QA_REVIEWER"
+    },
+    "ranAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "signOff": null,
+    "reproduces": true,
+    "batches": [
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000001",
+        "batchNumber": "GBT01-2601",
+        "productCode": "GBT01",
+        "depth": 1
+      },
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000002",
+        "batchNumber": "GBT01-2601-P1",
+        "productCode": "GBT01",
+        "depth": 2
+      },
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000003",
+        "batchNumber": "GBT01-2601-P2",
+        "productCode": "GBT01",
+        "depth": 2
+      }
+    ],
+    "lots": [
+      {
+        "lotId": "a1000000-0000-4000-8000-000000000001",
+        "lotCode": "API-PCM-2601",
+        "materialCode": "PCM-API",
+        "materialKind": "API",
+        "depth": 0,
+        "unit": "kg",
+        "delivered": "0",
+        "returned": "0",
+        "outstanding": "0"
+      },
+      {
+        "lotId": "f1000000-0000-4000-8000-000000000001",
+        "lotCode": "GBT01-2601-P1",
+        "materialCode": "GBT01",
+        "materialKind": "FINISHED",
+        "depth": 3,
+        "unit": "{tbl}",
+        "delivered": "1200",
+        "returned": "200",
+        "outstanding": "1000"
+      },
+      {
+        "lotId": "f1000000-0000-4000-8000-000000000002",
+        "lotCode": "GBT01-2601-P2",
+        "materialCode": "GBT01",
+        "materialKind": "FINISHED",
+        "depth": 3,
+        "unit": "{tbl}",
+        "delivered": "0",
+        "returned": "0",
+        "outstanding": "0"
+      }
+    ],
+    "consignees": [
+      {
+        "consigneeCode": "DIST-PUNE",
+        "consigneeName": "Pune Distributors",
+        "consigneeAddress": "12 Station Road, Pune 411001",
+        "markets": [
+          "IN"
+        ],
+        "shipments": [
+          {
+            "shipmentNo": "SH-26001",
+            "lotCode": "GBT01-2601-P1",
+            "quantity": "1200",
+            "unit": "{tbl}",
+            "shippedAt": {
+              "us": "1791612000000000",
+              "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+            }
+          }
+        ]
+      }
+    ],
+    "incomplete": [],
+    "federation": {
+      "complete": false,
+      "transfers": [
+        {
+          "transferId": "f1000000-0000-4000-8000-000000000001",
+          "packageNo": "INT-2601/T1",
+          "destination": "GOA-TAB-GMP",
+          "depth": 1,
+          "status": "UNREACHABLE",
+          "excerptAsOf": {
+            "us": "1791612000000000",
+            "text": "10-OCT-2026 11:30:00 +05:30 (Asia/Kolkata)"
+          },
+          "detail": "GOA-TAB-GMP did not answer within 5 seconds",
+          "lots": [
+            {
+              "lotId": "a3000000-0000-4000-8000-000000000001",
+              "lotCode": "INT-2601",
+              "materialCode": "GRAN-500",
+              "state": "RELEASED_FOR_FURTHER_PROCESSING"
+            }
+          ],
+          "batches": [],
+          "shipments": [
+            {
+              "shipmentId": "a4000000-0000-4000-8000-000000000001",
+              "shipmentNo": "SH-GOA-77",
+              "consigneeCode": "CUST-GOA-1",
+              "market": "IN"
+            }
+          ]
+        }
+      ],
+      "beyondOneHop": []
+    }
   }
 }

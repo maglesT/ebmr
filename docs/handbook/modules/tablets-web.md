@@ -901,6 +901,13 @@ every tab of a lot's release screen ([RecurrenceWarning.tsx](../../../apps/table
 D-P6d-8); the returned-goods screen offers the stores the chemical recovery once QC's signed assessment chose it. Tests:
 [genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx).
 
+[features/transfers](../../../apps/tablets-web/src/features/transfers/index.tsx) (Phase 6 slice 6i): `/transfers` shows this
+installation and its peers (QA approves a proposed key), the packages sent (built and sealed by the server, downloadable
+as the exchanged file) and received (taken in as received; a refusal shows its reason), and the alarms;
+`/transfers/receipts/$receiptId` shows the origin's status, CoA, rule resolutions and hold time left, with local QA's
+decision. The explorer's "Across sites" option and the mock recall's "Other sites" section show each site's part with its
+as-of point and say when the result is incomplete. Tests: [transfers.test.tsx](../../../apps/tablets-web/test/transfers/transfers.test.tsx).
+
 ## Dashboards, change impact and training (Phase 6 slice 6g)
 
 [features/dashboards](../../../apps/tablets-web/src/features/dashboards/index.tsx) (GMP): `/dashboards` shows the eight

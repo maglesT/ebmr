@@ -1636,6 +1636,21 @@ Migrations that serve several blocks:
 (`tablets-dispensing`, `tablets-compression`, `tablets-ipc`, `tablets-coating`, `packaging-blister`,
 `packaging-bottle` and others).
 
+## ts-transfers: inter-site transfers and the site-to-site endpoint
+
+Phase 6 slice 6i. [features/transfers](../../../apps/tablets-server/src/features/transfers/index.ts) serves the `transfers`
+and `federation` namespaces. The server's one part is the installation key
+([keys.ts](../../../apps/tablets-server/src/features/transfers/keys.ts)): it seals what the database built, a package in the
+same command as `site.prepare_transfer_package`, a federation request or answer. `federation.genealogy` is the one route
+another installation calls: no session, outside the browser origin gate (it carries no cookie; the database checks the
+seal), read-only. [federation.ts](../../../apps/tablets-server/src/features/transfers/federation.ts) asks the other site
+over HTTP with a timeout (`EBMR_FEDERATION_TIMEOUT_S`) and serves `genealogy.federatedTrace`; `recall.run` fixes its
+as-of point first, asks every destination, then stores the run and the answers in one command; `recall.refreshFederation`
+asks again. Signed acts TRANSFER_RECEIPT_DECIDE and PEER_INSTALLATION_APPROVE
+([signables.ts](../../../apps/tablets-server/src/features/transfers/signables.ts); meanings in
+[1300](../../../apps/tablets-server/sql/1300_signing_meanings_transfer.sql)). Tests with two servers:
+[transfer-routes.test.ts](../../../apps/tablets-server/test/transfers/transfer-routes.test.ts).
+
 ## ts-dashboards: dashboards, change impact and training mode (Phase 6 slice 6g)
 
 **What it does.** [features/dashboards](../../../apps/tablets-server/src/features/dashboards/index.ts) (GMP) binds the

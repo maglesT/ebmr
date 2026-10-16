@@ -1076,6 +1076,28 @@ never from the payload (D-P6d-0-6); a row from the adapter must be complete (EBM
 [recovery-distribution.test.ts](../../../packages/site-services/test/genealogy/recovery-distribution.test.ts) and the
 genealogy and mock-recall tests beside it.
 
+## Inter-site transfer packages (Phase 6 slice 6i; site services 0980, 0981)
+
+[0980_transfer_packages.sql](../../../packages/site-services/sql/0980_transfer_packages.sql)
+([DI-39](../../../compliance/controls/DI-39.yaml), [DI-31](../../../compliance/controls/DI-31.yaml)):
+`site.prepare_transfer_package(lot, p)` (MATERIAL.HANDLE) builds the package of a released INTERMEDIATE lot from the
+database's own records: status and release decision, the approved test results (CoA), the hold limit as an instant, the
+rule resolutions of the current kernel and edition tables for the market set, and the backward genealogy excerpt with
+its as-of. `site.seal_transfer_package` keeps the seal only if it verifies under the installation's current key; the
+seal row is the genealogy edge TRANSFERRED. `site.lot_available` subtracts what left in packages.
+[0981_transfer_receipts.sql](../../../packages/site-services/sql/0981_transfer_receipts.sql):
+`site.import_transfer_package(payload, seal)` takes in a package exactly as received: malformed, unknown sender, broken
+seal, wrong destination and a second import are refused with a refusal row and an installation alarm, nothing else; a
+good one becomes a local INTERMEDIATE lot in QUARANTINE with its receipt, and the carried rule resolutions are resolved
+again here, the stricter winning (D-P6i-0-6). Local QA decides the receipt (TRANSFER_RECEIPT_ACCEPTED or _REFUSED); a
+trigger on `site.lot_status_command` and one on `site.lot_reservation` refuse the release and the reservation of a
+received lot before the acceptance and after its hold limit (EBMR-XFR-040, -041), for every writer.
+
+**Pitfalls.** The hold limit is an instant compared with this database's time, so it keeps running in transit
+(D-P6i-0-5). The receiving site's ordinary release still needs its own specification and results (IN-33). Tests:
+[transfer.test.ts](../../../packages/site-services/test/transfer/transfer.test.ts) with two installations, each its own
+database ([world.ts](../../../packages/site-services/test/transfer/world.ts)).
+
 ## How to test site services
 
 | What | Command |

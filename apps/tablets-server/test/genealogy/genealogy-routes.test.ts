@@ -111,7 +111,7 @@ describe('mock recall routes over HTTP (IN-29)', () => {
   it('[IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once', async () => {
     const body = { subjectKind: 'LOT' as const, subjectId: ids.api, authorityInformed: false };
     const m = valueOf(await qa.call(routes.recall.run, { body }));
-    expect(m).toMatchObject({ subjectKind: 'LOT', subjectRef: codes.api, queryVersion: 1, reproduces: true, authorityInformed: false, signOff: null, ranBy: { role: 'QA_REVIEWER' } });
+    expect(m).toMatchObject({ subjectKind: 'LOT', subjectRef: codes.api, queryVersion: 2, reproduces: true, federation: { complete: true, transfers: [] }, authorityInformed: false, signOff: null, ranBy: { role: 'QA_REVIEWER' } });
     expect(m.batches.map((b) => b.batchId)).toEqual([ids.batch]);
     expect(m.lots.find((l) => l.lotId === ids.lot)).toMatchObject({ delivered: '400', returned: '0', outstanding: '400', unit: 'units' });
     expect(m.consignees).toEqual([expect.objectContaining({ consigneeCode: 'CUST-1', consigneeAddress: '12 Station Road, Pune', markets: ['IN'] })]);

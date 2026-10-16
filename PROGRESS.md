@@ -1,6 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6d and 6i).
 `docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6c, 6d and 6g).
 
 ## What this is
@@ -121,6 +122,14 @@ route `samples.recoverReturn`), distribution records from the ERP adapter (0961)
 signed off by the AP, deviation impact query, recurrence warning on the release screen (PR-49), explorer, complaint
 lookup and mock-recall screens (recipe-core 1010 to 1013, tablets 1280). IN-07, IN-29, PR-57 x2, PR-49, PR-50 clauses
 name their tests. Defaults D-P6d-0-*, D-P6d-4 to 10; review fixes and residuals in the plan.
+Slice 6i (branch `phase-6/slice-6i`, 16 October, ready for PR): installation keys and seals verified in the database
+(kernel 1220), sealed lot-transfer packages built by the database, import refused with an alarm when tampered,
+misaddressed, untrusted or repeated, a QUARANTINE lot usable only after local QA's signed acceptance and before the
+carried hold limit, rule resolutions re-resolved with the stricter winning (site services 0980, 0981), the TRANSFER node
+and the federated genealogy with as-of, the mock recall across sites marked incomplete when a site does not answer
+(recipe-core 1090 to 1092, tablets 1300, 1301), `transfers` and `federation` routes and screens. Two installations in one
+test run (two databases; two servers over HTTP). Defaults D-P6i-0-1 to 12; review P6i-R1 to R3 fixed; residuals in the plan.
+Slice 6g (branch `phase-6/slice-6g`, 16 October, ready for its PR): read-only reporting path (role `ebmr_report`,
 Slice 6c (branch `phase-6/slice-6c`, 16 October, ready for PR): label templates approved by a second person (an India
 template needs every India particular), the master's 211.122(g) cut-label option gating its approval, the label store
 (recipe-core 0990, site services 0950); start, middle and end coding specimens equal to the record's coding, label

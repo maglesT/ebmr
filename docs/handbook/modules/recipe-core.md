@@ -1761,6 +1761,27 @@ differ; `reproduces` says so and the sign-off is refused (EBMR-RCL-012): run it 
 route may lack the consignee address; they are listed as incomplete, never filled in (D-P6d-0-7). The DB tests are in
 `packages/site-services/test/genealogy/` (they use site services' ERP world; D-P6d-10).
 
+## Genealogy across sites (Phase 6 slice 6i; recipe-core 1090, 1091)
+
+[1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql)
+([PR-57](../../../compliance/controls/PR-57.yaml)): `recipe.genealogy` gains the node kind TRANSFER (the package id, the
+same node at both sites) with the edges TRANSFERRED (lot to sealed package) and TRANSFER_RECEIVED (package to the
+receiving site's lot). `recipe.answer_federated_genealogy(request, seal)` answers another installation, without a
+session, only from a transfer exchanged with it (one hop, D-P6i-0-7), as of the instant asked; the server seals the
+excerpt. The asking side issues the request (`recipe.issue_federated_request`), keeps an answer only when the database
+verifies its seal and that it answers that request (`recipe.record_federated_excerpt`), and logs failures with an alarm.
+[1091_mock_recall_across_sites.sql](../../../packages/recipe-core/sql/1091_mock_recall_across_sites.sql)
+([IN-29](../../../compliance/controls/IN-29.yaml)): the mock recall's query version 2 lists the outbound transfers it
+reaches; `recipe.record_mock_recall_remote` records what each destination answered (ANSWERED only as of the run's own
+instant) and `recipe.mock_recall_federation` says whether the run is complete; the AP signs that off with the rest.
+
+[1093](../../../packages/recipe-core/sql/1093_federation_actor_and_audit.sql): the four federation functions refuse
+administrators and check GENEALOGY.FEDERATE (asking) or FEDERATION.ANSWER (the endpoint's INTEGRATION identity, role
+FEDERATION_INTERFACE); the request and excerpt logs are audited.
+
+**Pitfalls.** A site that does not answer is shown with its last excerpt and that excerpt's older as-of, never as the
+answer (EBMR-RCL-024). The suspension cascade stays local (D-P6i-0-10).
+
 ## Reporting views and change impact (Phase 6 slice 6g; recipe-core 1070, 1071)
 
 **What it does.** [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql): the versioned,

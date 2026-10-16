@@ -63,6 +63,9 @@
  *                    AMENDMENT_CLOSE  record_lock <batch>/<n>/CLOSE                                 AMENDMENT_CLOSED (QA)
  * Phase 6 slice 6d (recipe-core 1012; ns/recall.ts):
  *  - MOCK_RECALL_SIGN_OFF  mock_recall <mock recall id>  MOCK_RECALL_SIGNED_OFF (AP), state RUN
+ * Phase 6 slice 6i (site services 0981, kernel 1220; ns/transfers.ts):
+ *  - TRANSFER_RECEIPT_DECIDE   transfer_receipt <receipt id>   TRANSFER_RECEIPT_ACCEPTED or _REFUSED (local QA), state RECEIVED
+ *  - PEER_INSTALLATION_APPROVE peer_installation <peer id>     PEER_INSTALLATION_APPROVED (QA), state PROPOSED
  * Phase 4 slice 6c (recipe-core 0910; ns/pqr.ts):
  *  - PQR_SIGN_OFF  pqr_extract <extract id>  PQR_SIGNED_OFF (AP, outside the reviewed batches' records), state EXTRACTED
  * Phase 4 slice 6b (kernel 1170, 1171; ns/archive.ts):
@@ -389,6 +392,19 @@ export const SignableAction = z.discriminatedUnion('kind', [
     /** Phase 6 slice 6d (ns/recall.ts): the authorised person signs off a mock recall that still reproduces (IN-29, D-P6d-2). */
     kind: z.literal('MOCK_RECALL_SIGN_OFF'),
     mockRecallId: Uuid,
+  }),
+  z.strictObject({
+    /** Phase 6 slice 6i (ns/transfers.ts): local QA accepts or refuses a received lot-transfer package (L-41, DI-39). */
+    kind: z.literal('TRANSFER_RECEIPT_DECIDE'),
+    receiptId: Uuid,
+    decision: z.enum(['ACCEPTED', 'REFUSED']),
+    /** Required for a refusal (at least 10 characters). */
+    reason: z.string().trim().min(10).max(1000).optional(),
+  }),
+  z.strictObject({
+    /** Phase 6 slice 6i (ns/transfers.ts): QA approves a proposed peer installation's key (DI-31). */
+    kind: z.literal('PEER_INSTALLATION_APPROVE'),
+    peerId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

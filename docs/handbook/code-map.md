@@ -25,6 +25,7 @@ of each database function.
 | [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
+| [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
 | [kernel-area-authorisation](#kernel-area-authorisation) | Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 80 | 39 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
@@ -35,6 +36,7 @@ of each database function.
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 5 | 12 |
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
 | [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
+| [ss-transfer](#ss-transfer) | Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 1 | 4 |
 | [ss-reporting](#ss-reporting) | Reporting views and change-impact DB tests (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 2 | 2 |
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
 | [ss-label-store](#ss-label-store) | The label store of printed-material lots and its permission (Phase 6 slice 6c) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 0 | 0 |
@@ -46,6 +48,7 @@ of each database function.
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
 | [rc-labels](#rc-labels) | Label templates, their approval and the packaging master's labelling declaration (Phase 6 slice 6c) | [modules/recipe-core.md](modules/recipe-core.md) | 1 | 0 | 1 | 2 |
 | [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
+| [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
 | [rc-reporting](#rc-reporting) | Reporting views and the change-impact query (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 2 | 0 | 0 | 0 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
@@ -88,7 +91,8 @@ of each database function.
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
 | [ts-labels](#ts-labels) | Packaging line completion (specimens, post-use inspection, vision line stops, reconciliation waiver, label templates and store) (Phase 6 slice 6c) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 17 | 2 | 7 |
 | [ts-serialisation](#ts-serialisation) | Serialisation L3/L4 (the L3 adapter, serial query, decommissioning tasks, L3 freshness at release) (Phase 6 slice 6c) | [modules/integrations.md](modules/integrations.md) | 1 | 3 | 0 | 0 |
-| [ts-genealogy](#ts-genealogy) | Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 8 | 2 | 6 |
+| [ts-genealogy](#ts-genealogy) | Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 6 |
+| [ts-transfers](#ts-transfers) | Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 11 | 2 | 4 |
 | [ts-dashboards](#ts-dashboards) | Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 5 | 2 | 3 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
@@ -99,7 +103,7 @@ of each database function.
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 1 | 0 | 0 |
 | [ts-core](#ts-core) | Tablets server spine (app, platform, CLI, golden batches, seed) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 17 | 36 |
 | [tablets-web](#tablets-web) | Tablets screens shell (app, API client, devices) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 0 | 8 | 13 |
-| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 5 | 24 |
+| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 5 | 25 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
 | [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 8 | 5 |
 | [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 13 | 7 |
@@ -388,6 +392,19 @@ of each database function.
 
 **Controls** (4): [DI-14](../../compliance/controls/DI-14.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-26](../../compliance/controls/DI-26.yaml), [DI-31](../../compliance/controls/DI-31.yaml)
 
+## kernel-transfer
+
+**Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
+
+**Migrations** (2):
+
+- `packages/kernel/sql`: [1220_installation_keys.sql](../../packages/kernel/sql/1220_installation_keys.sql), [1221_installation_alarm_ack_admin.sql](../../packages/kernel/sql/1221_installation_alarm_ack_admin.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (7): `platform.federation_request`, `platform.installation_alarm`, `platform.installation_alarm_ack`, `platform.installation_identity`, `platform.peer_installation`, `platform.peer_installation_approval`, `platform.peer_installation_revocation`
+- Functions (23): `platform.accept_federation_request`, `platform.acknowledge_installation_alarm`, `platform.approve_peer_installation`, `platform.current_installation`, `platform.ed25519_add`, `platform.ed25519_decode`, `platform.ed25519_double`, `platform.ed25519_le_integer`, `platform.ed25519_pow`, `platform.ed25519_verify`, `platform.own_seal_valid`, `platform.peer_installation_content`, `platform.peer_installation_state`, `platform.peer_seal_valid`, `platform.propose_peer_installation`, `platform.raise_installation_alarm`, `platform.raw_public_key`, `platform.refuse_federation_query`, `platform.revoke_peer_installation`, `platform.seal_message`, `platform.seal_valid`, `platform.set_installation_identity`, `platform.trusted_peer`
+
 ## kernel-area-authorisation
 
 **Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
@@ -570,6 +587,24 @@ of each database function.
 
 **Controls** (6): [IN-07](../../compliance/controls/IN-07.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-50](../../compliance/controls/PR-50.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 
+## ss-transfer
+
+**Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
+
+**Migrations** (2):
+
+- `packages/site-services/sql`: [0980_transfer_packages.sql](../../packages/site-services/sql/0980_transfer_packages.sql), [0981_transfer_receipts.sql](../../packages/site-services/sql/0981_transfer_receipts.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (6): `site.transfer_acceptance`, `site.transfer_package`, `site.transfer_package_seal`, `site.transfer_receipt`, `site.transfer_refusal`, `site.transfer_rule_resolution`
+- Functions (18): `site.decide_transfer_receipt`, `site.import_transfer_package`, `site.lot_available`, `site.lot_transferred_out`, `site.prepare_transfer_package`, `site.refuse_transfer_package`, `site.resolve_carried_rules`, `site.seal_transfer_package`, `site.transfer_hold_remaining`, `site.transfer_receipt_content`, `site.transfer_receipt_state`, `site.transfer_release_check`, `site.transfer_reservation_check`, `site.transfer_rule_resolutions`, `site.transfer_rule_tables`, `site.transfer_use_problem`, `site.us_instant`, `site.us_text`
+- Triggers (2): `zz_transfer_accepted on site.lot_reservation`, `zz_transfer_accepted on site.lot_status_command`
+
+**Tests** (1): [transfer.test.ts](../../packages/site-services/test/transfer/transfer.test.ts)
+
+**Controls** (4): [DI-31](../../compliance/controls/DI-31.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
+
 ## ss-reporting
 
 **Reporting views and change-impact DB tests (Phase 6 slice 6g).** Package `packages/site-services`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
@@ -747,6 +782,19 @@ of each database function.
 - Tables (2): `recipe.mock_recall`, `recipe.mock_recall_signoff`
 - Functions (23): `recipe.deviation_impact_batches`, `recipe.deviation_latest_category`, `recipe.deviation_of_product`, `recipe.deviation_recurrence`, `recipe.genealogy`, `recipe.genealogy_batch_number`, `recipe.genealogy_downstream_lots`, `recipe.genealogy_forward_set`, `recipe.genealogy_lookup`, `recipe.genealogy_lot_deviations`, `recipe.genealogy_node_exists`, `recipe.genealogy_node_views`, `recipe.genealogy_step`, `recipe.genealogy_supply_chain`, `recipe.lot_dosage_form`, `recipe.mock_recall_content`, `recipe.mock_recall_reproduces`, `recipe.mock_recall_result_v1`, `recipe.mock_recall_run_query`, `recipe.mock_recall_sha256`, `recipe.mock_recall_starts`, `recipe.run_mock_recall`, `recipe.sign_off_mock_recall`
 - Triggers (4): `aa_insert_only on recipe.mock_recall`, `aa_insert_only on recipe.mock_recall_signoff`, `aa_no_truncate on recipe.mock_recall`, `aa_no_truncate on recipe.mock_recall_signoff`
+
+## rc-transfer
+
+**Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
+
+**Migrations** (4):
+
+- `packages/recipe-core/sql`: [1090_genealogy_across_sites.sql](../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [1091_mock_recall_across_sites.sql](../../packages/recipe-core/sql/1091_mock_recall_across_sites.sql), [1092_transfer_review_fixes.sql](../../packages/recipe-core/sql/1092_transfer_review_fixes.sql), [1093_federation_actor_and_audit.sql](../../packages/recipe-core/sql/1093_federation_actor_and_audit.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (4): `recipe.federated_excerpt`, `recipe.federated_request_failure`, `recipe.federated_request_out`, `recipe.mock_recall_remote`
+- Functions (15): `recipe.answer_federated_genealogy`, `recipe.genealogy`, `recipe.genealogy_node_exists`, `recipe.genealogy_node_views`, `recipe.genealogy_step`, `recipe.issue_federated_request`, `recipe.last_federated_excerpt`, `recipe.mock_recall_content`, `recipe.mock_recall_federation`, `recipe.mock_recall_result_v2`, `recipe.mock_recall_run_query`, `recipe.record_federated_excerpt`, `recipe.record_federation_failure`, `recipe.record_mock_recall_remote`, `recipe.run_mock_recall`
 
 ## rc-reporting
 
@@ -1842,11 +1890,12 @@ of each database function.
 
 **Contract** (2): [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts), [recall.ts](../../packages/api-contract/src/ns/recall.ts)
 
-**Routes** (8):
+**Routes** (10):
 
 | Method | Path | Route | Contract file |
 |---|---|---|---|
 | GET | `/api/genealogy/deviations/:deviationId/impact` | `genealogy.deviationImpact` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
+| GET | `/api/genealogy/federated-trace` | `genealogy.federatedTrace` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
 | GET | `/api/genealogy/lookup` | `genealogy.lookup` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
 | GET | `/api/genealogy/lots/:lotId/recurrence` | `genealogy.recurrence` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
 | GET | `/api/genealogy/lots/:lotId/supply-chain` | `genealogy.supplyChain` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
@@ -1854,12 +1903,51 @@ of each database function.
 | GET | `/api/recall/mock-recalls` | `recall.mockRecalls` | [recall.ts](../../packages/api-contract/src/ns/recall.ts) |
 | POST | `/api/recall/mock-recalls` | `recall.run` | [recall.ts](../../packages/api-contract/src/ns/recall.ts) |
 | GET | `/api/recall/mock-recalls/:mockRecallId` | `recall.mockRecall` | [recall.ts](../../packages/api-contract/src/ns/recall.ts) |
+| POST | `/api/recall/mock-recalls/:mockRecallId/federation` | `recall.refreshFederation` | [recall.ts](../../packages/api-contract/src/ns/recall.ts) |
 
 **Screens** (6): [GenealogyExplorerPage.tsx](../../apps/tablets-web/src/features/genealogy/GenealogyExplorerPage.tsx), [LookupPages.tsx](../../apps/tablets-web/src/features/genealogy/LookupPages.tsx), [MockRecallPages.tsx](../../apps/tablets-web/src/features/genealogy/MockRecallPages.tsx), [RecurrenceWarning.tsx](../../apps/tablets-web/src/features/genealogy/RecurrenceWarning.tsx), [index.tsx](../../apps/tablets-web/src/features/genealogy/index.tsx), [reads.ts](../../apps/tablets-web/src/features/genealogy/reads.ts)
 
 **Tests** (2): [tablets-server/test/genealogy/genealogy-routes.test.ts](../../apps/tablets-server/test/genealogy/genealogy-routes.test.ts), [tablets-web/test/genealogy/genealogy.test.tsx](../../apps/tablets-web/test/genealogy/genealogy.test.tsx)
 
 **Controls** (6): [IN-07](../../compliance/controls/IN-07.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-50](../../compliance/controls/PR-50.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
+
+## ts-transfers
+
+**Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+
+**Migrations** (2):
+
+- `apps/tablets-server/sql`: [1300_signing_meanings_transfer.sql](../../apps/tablets-server/sql/1300_signing_meanings_transfer.sql), [1301_peer_installation_read_class.sql](../../apps/tablets-server/sql/1301_peer_installation_read_class.sql)
+
+**Database objects** created in these migrations:
+
+- Functions (2): `tab.aggregate_read_class`, `tab.kernel_signing_meanings`
+
+**Server files** (6): [federation.ts](../../apps/tablets-server/src/features/transfers/federation.ts), [guidance.ts](../../apps/tablets-server/src/features/transfers/guidance.ts), [index.ts](../../apps/tablets-server/src/features/transfers/index.ts), [keys.ts](../../apps/tablets-server/src/features/transfers/keys.ts), [reads.ts](../../apps/tablets-server/src/features/transfers/reads.ts), [signables.ts](../../apps/tablets-server/src/features/transfers/signables.ts)
+
+**Contract** (1): [transfers.ts](../../packages/api-contract/src/ns/transfers.ts)
+
+**Routes** (11):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| POST | `/api/federation/genealogy` | `federation.genealogy` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| GET | `/api/transfers/alarms` | `transfers.alarms` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| POST | `/api/transfers/alarms/:alarmId/acknowledge` | `transfers.acknowledgeAlarm` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| GET | `/api/transfers/packages` | `transfers.packages` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| POST | `/api/transfers/packages` | `transfers.prepare` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| GET | `/api/transfers/packages/:packageId/file` | `transfers.packageFile` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| GET | `/api/transfers/peers` | `transfers.peers` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| POST | `/api/transfers/peers` | `transfers.proposePeer` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| GET | `/api/transfers/receipts` | `transfers.receipts` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| POST | `/api/transfers/receipts` | `transfers.import` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+| GET | `/api/transfers/receipts/:receiptId` | `transfers.receipt` | [transfers.ts](../../packages/api-contract/src/ns/transfers.ts) |
+
+**Screens** (2): [TransfersPages.tsx](../../apps/tablets-web/src/features/transfers/TransfersPages.tsx), [index.tsx](../../apps/tablets-web/src/features/transfers/index.tsx)
+
+**Tests** (2): [tablets-server/test/transfers/transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts), [tablets-web/test/transfers/transfers.test.tsx](../../apps/tablets-web/test/transfers/transfers.test.tsx)
+
+**Controls** (4): [DI-31](../../compliance/controls/DI-31.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 
 ## ts-dashboards
 
@@ -2156,7 +2244,7 @@ of each database function.
 
 **Tests** (5): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [dashboards.test.ts](../../packages/api-contract/test/dashboards.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
 
-**Controls** (24): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-57](../../compliance/controls/PR-57.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
+**Controls** (25): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-57](../../compliance/controls/PR-57.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
 
 ## expr
 
