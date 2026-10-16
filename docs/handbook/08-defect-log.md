@@ -994,6 +994,25 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
   routine is written (the kernel twin of tablets 0270), carry over the key checks that the first copy gained later
   (tablets 0702).
 
+### 6jc-R16: a training requirement for one product refused step work on every product (Phase 6 exit review)
+- **What went wrong.** A step command was authorised at the actor's location only ({site, area}), and a step
+  signature in the scope {site} given by the batch_step provider (and the stage, exception, point, record and act
+  providers). Neither named the batch's product. The kernel applies a product-limited requirement whenever a request
+  names no product (it fails closed), so a requirement for product A was applied to every batch at the site.
+- **Why it matters.** It fails closed, so no data was at risk. But one training requirement limited to a product, a
+  normal set-up under IN-04, stopped the operators of every other product at the site from starting or signing a step.
+  A grant limited to a product never covered step work either. Found by the browser-flow agent (F-6jb-1).
+- **Fix.** Recipe-core [1100](../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql) adds the batch's
+  product to the providers' scope and checks the command's permission and engine-role evaluations in the batch's scope.
+  Another product's evaluation is refused (EBMR-EXE-036). Tablets [1320](../../apps/tablets-server/sql/1320_engine_roles_on_batch.sql)
+  evaluates the engine roles on the batch. A requirement with no product limit, and the stale-source refusal, are as before.
+- **Test.** The four tests of "a product-limited qualification requirement applies to batches of that product only
+  (6jc-R16)" in [gmp-batch.test.ts](../../apps/tablets-server/test/execution/gmp-batch.test.ts), and "[INV-26][DI-17][IN-04]
+  past the server, an engine-role evaluation ... with another product is refused" in
+  [db-guards-roles.test.ts](../../apps/tablets-server/test/execution/db-guards-roles.test.ts).
+- **Lesson:** a fail-closed rule for a missing scope member is right only if every caller passes the members it knows.
+  When a scope dimension is added to grants or requirements, check that each authority call on a record names it.
+
 ## Controlled substances (Phase 6 slice 6e, draft IN-53)
 
 ### P6e-R1: a batch could complete after its last controlled checkpoint (slice 6e, review)

@@ -317,6 +317,7 @@ tests:
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31][DI-32] EMS: room temperature and humidity chunks land in plant.series as received; the room conditions show the latest sample"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS feed gap alarms"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS: the soak with every fault in turn reconciles (no silent loss)"
+  - "apps/tablets-server/test/execution/gmp-batch.test.ts > a product-limited qualification requirement applies to batches of that product only (6jc-R16) > [DI-31][IN-04][INV-26] a requirement limited to this batch's product, held only from a stale LMS mirror, is still refused (STALE_QUALIFICATION_SOURCE)"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

@@ -14,9 +14,16 @@
 import type { engine, execution } from '@ebmr/recipe-core';
 import type { Db } from './runs.ts';
 
-/** Engine roles of this command's actor, from stored authority evaluations (inside the command). */
-export async function engineRoles(client: Db): Promise<execution.RoleEvidence[]> {
-  const { rows } = await client.query<{ r: execution.RoleEvidence[] | null }>('select tab.engine_roles() as r');
+/**
+ * Engine roles of this command's actor, from stored authority evaluations (inside the command). A command on a batch
+ * names it: its permissions are then evaluated in the batch's scope, the actor's location with the batch's product, so
+ * a qualification requirement limited to another product does not apply (tablets 1320, recipe-core 1100; 6jc-R16).
+ * The batch issue names none (the batch does not exist yet).
+ */
+export async function engineRoles(client: Db, batchId?: string): Promise<execution.RoleEvidence[]> {
+  const { rows } = batchId
+    ? await client.query<{ r: execution.RoleEvidence[] | null }>('select tab.engine_roles($1::uuid) as r', [batchId])
+    : await client.query<{ r: execution.RoleEvidence[] | null }>('select tab.engine_roles() as r');
   return rows[0]?.r ?? [];
 }
 

@@ -202,7 +202,10 @@ export const TARGETS: Target[] = [
     functions: ['recipe.execution_actor', 'recipe.require_command_permission', 'recipe.execution_marker', 'recipe.assert_marker',
                 'recipe.lock_execution', 'recipe.check_state', 'recipe.check_issued_state', 'recipe.append_execution',
                 'recipe.issue_execution', 'recipe.check_engine_roles', 'recipe.role_evaluation_problem',
-                'recipe.execution_attribution_check', 'recipe.insert_contents', 'tab.engine_roles'],
+                'recipe.execution_attribution_check', 'recipe.insert_contents', 'tab.engine_roles',
+                // 6jc-R16 (recipe-core 1100, tablets 1320): the batch's product joins the command and engine-role checks.
+                'recipe.batch_scope_members', 'recipe.with_batch_scope', 'recipe.batch_step_content', 'recipe.batch_stage_content',
+                'recipe.batch_exception_content', 'recipe.batch_point_content'],
     tests: [s('execution/store.test.ts'), s('execution/db-guards-roles.test.ts'), s('execution/db-guards-issuer.test.ts'),
             s('execution/db-guards-values.test.ts'), r('execution/sql-guards.test.ts'), r('lifecycle/authorization.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.

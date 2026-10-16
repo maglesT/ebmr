@@ -912,6 +912,37 @@ Findings and residuals of the second part (only R8 is fixed; the rest are medium
 - **6jc-R15 (low):** the training attempt read (`features/training/index.ts`, `attempt`) does not check whose attempt
   it is. Training runs on the sandbox installation only, so no GMP data is reachable.
 
+
+Finding of the browser-flow agent (F-6jb-1), verified and fixed in 6j-c:
+- **6jc-R16 (high, fixed; IN-04, DI-21, DI-17, INV-26; D-P6j-c-4):** a qualification (training) requirement limited to
+  one product was applied to every step and step signature at the site, so the performers of every other product were
+  refused (fail closed, but it stops legitimate work, and GB-T-03's performers when its training requirement names a
+  product). Cause: a step command was authorised at the actor's location only ({site, area}), and the batch_step,
+  batch_stage, batch_exception, batch_point, batch_record and batch_act providers gave the signature the scope {site};
+  `iam.requirement_applies` (kernel 0100) applies a product-limited requirement whenever the request names no product.
+  Reproduced on a migrated database: a requirement for another product refused START_STEP (MISSING_QUALIFICATION) and
+  the PERFORMED signature's evaluation. Fixed in **recipe-core 1100** and **tablets 1320**, one fix round:
+  - `recipe.batch_scope_members(batch)` ({product}, or {} when none; never raises). The six providers add it to their
+    scope, so `esig.sign` evaluates the signer in {site, product}.
+  - `recipe.require_command_permission(type, meaning, batch)`, `recipe.role_evaluation_problem(..., batch)` and
+    `recipe.check_engine_roles(..., batch)`; `recipe.append_execution` (from 0295) calls them. An engine-role evaluation
+    at the location, as before or with the batch's own product, is accepted; another product is refused (EBMR-EXE-036).
+  - `tab.engine_roles(batch)` evaluates in the batch's scope; the server passes the run id for commands and signatures
+    (`features/execution/roles.ts`, `index.ts`, `signable.ts`). The batch issue keeps the location-only check.
+  - Unchanged: a requirement without a product limit applies to every batch; one for this product applies, and its
+    qualification must come from a fresh source (STALE_QUALIFICATION_SOURCE). A batch without a product keeps {site}.
+  - Tests: four in `apps/tablets-server/test/execution/gmp-batch.test.ts` ("a product-limited qualification requirement
+    applies to batches of that product only (6jc-R16)": another product allowed, this product required, no product
+    limit still required, stale LMS source still refused) and one past the server in `db-guards-roles.test.ts` (an
+    evaluation with another product refused). The first failed before the fix; all pass after.
+  - Mutation group: `execution-commands` (tools/sql-mutation, on `phase-6/slice-6j`), which already names the replaced
+    functions, `tab.engine_roles`, `db-guards-roles.test.ts` and `gmp-batch.test.ts`; add `recipe.batch_scope_members`
+    and `recipe.with_batch_scope` to it.
+  - Left (medium, fails closed): other batch acts are still authorised at the location only, so a product-limited
+    requirement still applies to them on every batch: the disposition proposals (`recipe.propose_disposition`, 0331),
+    the exception-register acts (0721), the review freeze (0713), the deviation references (0601), the dispensing
+    consumption (0430, 0700) and the batch issue. Same fix pattern when the owner wants it.
+
 Decisions:
 - **D-P6j-c-1:** the "one pass" (decision 0008) covers the regulated core at the database by probing, and the rest
   of the TypeScript by reading. A finding counts as critical or high only when it is reproduced on a migrated database
@@ -922,6 +953,9 @@ Decisions:
 - **D-P6j-c-3 (lead):** 6jc-R8 is raised to high and fixed in 6j-c. A small-order key makes the seal check vacuous:
   every seal verifies under it. QA's approval of the key only limits who can bring such a key in. Federation and
   transfer seals are Priority 1 in decision 0019.
+- **D-P6j-c-4:** 6jc-R16 is rated high although it fails closed (D-P6j-c-1 rates by harm to GMP data): with one
+  product-limited training requirement, which IN-04 (e) makes a normal configuration, every other product's step work
+  at the site stops. Its migrations are recipe-core 1100 and tablets 1320 (after 6g's reserved 1310 to 1319).
 
 #### 6j mutation campaign preparation (branch `phase-6/slice-6j-mutation`, 16 October; decision 0019)
 

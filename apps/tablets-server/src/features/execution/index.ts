@@ -159,7 +159,7 @@ async function runCommand(app: AppContext, pool: Db & pg.Pool, c: CommandRequest
     // usable for the resend from the reloaded screen: Phase 2 exit review F58, F58.1; DI-32). The run's lock is
     // held from here on, so the version the engine compares is this one.
     const useReadings = body.expectedVersion === tx.state.version;
-    const roles = await engineRoles(client);
+    const roles = await engineRoles(client, runId);
     const resolved = await resolveClientIntent(
       { client, app, def: run.def, state: tx.state, room: s.roomCode, actor: engineActor(a.personId, roles), commandId: randomUUID(), expectedVersion: body.expectedVersion, useReadings },
       body.intent,

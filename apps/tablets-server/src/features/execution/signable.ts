@@ -745,7 +745,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       const room = a.intent.type === 'SIGN_PERFORMED' || a.intent.type === 'VERIFY' ? stepRoomRefusal(o.run.def, stepTarget(o.tx.state, a.intent.stepKey).step, ctx.room) : null;
       if (room) throw new HttpRefusal(422, room);
       if (o.tx.state.version !== a.expectedVersion) throw stale(o.tx.state, a.expectedVersion);
-      const roles = await engineRoles(client);
+      const roles = await engineRoles(client, a.runId);
       const changed = await o.tx.prepare(o.subject.target, engineActor(ctx.actor.personId, roles), roles, o.meaning);
       cache.set(a.runId, { def: o.run.def, state: o.tx.state });
       const c = engine.aggregateContent(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
@@ -763,7 +763,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       // Not the decision its challenge recorded: refused before anything is written (it is logged as a signing failure).
       const decided = await decidedProblem(client, ctx, a, o.tx.state);
       if (decided) return { accepted: false, status: 409, refusal: decided };
-      const roles = await engineRoles(client);
+      const roles = await engineRoles(client, a.runId);
       const actor = engineActor(ctx.actor.personId, roles);
       await o.tx.prepare(o.subject.target, actor, roles, o.meaning);
       const placeholder: engine.SignatureRef = { id: engine.PLACEHOLDER_SIGNATURE_ID, meaning: o.meaning, signer: actor.id };
@@ -793,7 +793,7 @@ export function engineCommandHandler(app: AppContext): SignableActionHandler<Eng
       if (signature.meaning !== o.meaning || signature.signer !== ctx.actor.personId) throw new Error(`EBMR-EXE-080 the signature (${signature.meaning}, ${signature.signer}) is not the one this action needs`);
       const decided = await decidedProblem(client, ctx, a, o.tx.state);
       if (decided) throw new Error(`${decided.code} ${decided.why}`);
-      const roles = await engineRoles(client);
+      const roles = await engineRoles(client, a.runId);
       const actor = engineActor(ctx.actor.personId, roles);
       const before = signedHash(o.run.def, o.tx.state, o.subject.aggregateType, o.subject.key);
       const approval = a.intent.type === 'CORRECT_ENTRY' && a.intent.approvalSignatureId ? await correctionApproval(client, a.runId, a.intent.point, a.intent.approvalSignatureId) : undefined;

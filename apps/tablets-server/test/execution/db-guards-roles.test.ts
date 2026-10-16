@@ -195,6 +195,40 @@ describe('P22: engine roles only from the declared kernel role, at the actor\'s 
     expect(await violations(sbx)).toEqual([]);
   }, 300_000);
 
+  it('[INV-26][DI-17][IN-04] past the server, an engine-role evaluation at the actor\'s location with the batch\'s own product is accepted, and one with another product is refused (6jc-R16; recipe-core 1100)', async () => {
+    const { runId, op, run } = await newRun();
+    const me = personaIn(sbx, 'operator1');
+    const product = (await sbx.db.admin.query<{ p: string }>("select recipe.batch_product($1) ->> 'code' as p", [runId])).rows[0]?.p;
+    if (!product) throw new Error('SETUP: the run names no product');
+    const attempt = (forge: 'own' | 'other') =>
+      outcomeOf(async () => {
+        vi.advanceTimersByTime(7_000);
+        const actor = await actorOfBrowser(sbx, op, 'operator1');
+        const { rows } = await sbx.db.admin.query<{ site_code: string | null; room_code: string | null }>('select site_code, room_code from iam.session where id = $1', [actor.sessionId]);
+        const session = rows[0];
+        if (!session?.site_code || !session.room_code) throw new Error(`SETUP: the kiosk session has no site and room: ${JSON.stringify(session)}`);
+        const location = { site: session.site_code, area: session.room_code };
+        return withCommand(sbx.db.app, actor, async (c) => {
+          const tx = await execution.ExecutionTx.open(c, run.def, runId);
+          // An evaluation the application role made itself in the declared role at the location, with the batch's own
+          // product or with another product (the server's own evidence on a batch, tablets 1320, is the first).
+          const evidence: execution.RoleEvidence[] = [
+            { role: 'PRODUCTION_OPERATOR', permission: 'STEP.EXECUTE', evaluationId: await evaluate(c, me, 'STEP.EXECUTE', { ...location, product: forge === 'own' ? product : `${product}-OTHER` }, 'OPERATOR') },
+          ];
+          return tx.command({ type: 'START_STEP', commandId: randomUUID(), actor: engineActor(me.personId, evidence), step: 'p-disp-clear', context: [] }, evidence);
+        });
+      });
+    const other = await attempt('other');
+    expect(other).toMatch(/^REFUSED: .*not at the actor's location .*on this batch.*\[EBMR-EXE-036\]/);
+    expect(await attempt('own')).toBe('ACCEPTED');
+    const { rows: scoped } = await sbx.db.admin.query<{ scope: Record<string, string> }>(
+      "select e.scope from recipe.execution_command k cross join lateral jsonb_array_elements(k.roles) r join iam.authority_evaluation e on e.id = (r ->> 'evaluationId')::uuid where k.batch_id = $1 and k.kind = 'COMMAND' and k.accepted",
+      [runId],
+    );
+    expect(scoped.map((r) => r.scope['product'])).toEqual([product]);
+    expect(await violations(sbx)).toEqual([]);
+  }, 300_000);
+
   it('[INV-26][DI-17][D4] a real stored evaluation is refused when it did not allow the permission, was made for another person, evaluated another permission or was made in an earlier command of the same transaction; nothing is recorded', async () => {
     // Review F19: every other INV-26 test presents made-up evaluation ids, refused because they do not exist. Here each
     // forged evidence names a real evaluation the application role stored itself, inside the transaction, in the
