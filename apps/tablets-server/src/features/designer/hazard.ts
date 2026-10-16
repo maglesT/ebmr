@@ -53,7 +53,7 @@ export class NoContainedAreaError extends Error {
 const reference = (code: string): flow.MbrContent['references'][number] => {
   const doc = DEMO_REFERENCE_DOCUMENTS.find((d) => d.code === code);
   if (!doc) throw new Error(`reference document ${code} is not in the catalogue`);
-  return { id: doc.code, kind: doc.kind, code: doc.code, version: doc.version, hash: referenceHash(referenceContent(doc)), title: doc.title } as flow.MbrContent['references'][number];
+  return { id: doc.code, kind: doc.kind, code: doc.code, version: doc.version, hash: referenceHash(referenceContent(doc)), title: doc.title };
 };
 
 type Node = Record<string, unknown> & { kind: string; id: string };
