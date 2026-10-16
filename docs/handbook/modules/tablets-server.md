@@ -1474,10 +1474,21 @@ checkpoints), `registerExtracts`, `registerExtract` (with `reproduces`); writes 
 `changeRecord` goes into the actor context, DI-09), `proposeCustody`, `recordCheckpoint`, `runRegister`. The signed acts
 are CONTROLLED_ACT: FLAG_APPROVE, CUSTODY_FIRST, CUSTODY_SECOND, BALANCE_SIGN. The records are GOVERNANCE-class; their
 content is read through [tablets 1250](../../../apps/tablets-server/sql/1250_controlled_signing_content.sql) and who may
-preview them is [tablets 1280](../../../apps/tablets-server/sql/1280_controlled_read.sql) (numbered after 6f's 1276,
-which re-creates `tab.record_read_problem`; D-P6e-10). Every response carries the draft banner. Guidance for EBMR-CSM-*
+preview them is [tablets 1290](../../../apps/tablets-server/sql/1290_controlled_read.sql) (numbered after 6d's 1280 and
+6f's 1276, which re-creates `tab.record_read_problem`; D-P6e-10). Every response carries the draft banner. Guidance for EBMR-CSM-*
 (EBMR-CSM-020 tells the dispenser to have the custody record countersigned). Tests:
 [controlled-routes.test.ts](../../../apps/tablets-server/test/controlled/controlled-routes.test.ts).
+## ts-genealogy: genealogy, complaint lookup and mock recall
+
+Phase 6 slice 6d. [features/genealogy](../../../apps/tablets-server/src/features/genealogy/index.ts) serves the `genealogy`
+namespace (trace, complaint lookup, API supply chain, deviation impact, recurrence; any session, read-only, D-P6d-0-8)
+and the `recall` namespace (mock recalls; the run needs RECALL.MOCK_RUN). Every value is a recipe-core function's
+([reads.ts](../../../apps/tablets-server/src/features/genealogy/reads.ts)); the as-of point is epoch microseconds turned into
+a timestamptz in SQL. The AP's sign-off is the signable action MOCK_RECALL_SIGN_OFF
+([signables.ts](../../../apps/tablets-server/src/features/genealogy/signables.ts); meaning in
+[1280](../../../apps/tablets-server/sql/1280_signing_meanings_mock_recall.sql), D-P6d-6). The chemical recovery route
+`samples.recoverReturn` is in [quality/lims.ts](../../../apps/tablets-server/src/features/quality/lims.ts). Tests:
+[genealogy-routes.test.ts](../../../apps/tablets-server/test/genealogy/genealogy-routes.test.ts).
 
 ## ts-integrations: integration health and the adapters
 

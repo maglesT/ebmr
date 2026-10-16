@@ -523,6 +523,15 @@ are disposed of: destroyed under witness, reprocessed or returned.
 Suspension causes (`SuspensionCauseKind`): DEVIATION, INCIDENT, DI_INVESTIGATION, LIMS_REVISION, CALIBRATION_FAILURE,
 RECORD_AMENDMENT. Disposal routes: WITNESSED_DESTRUCTION, REPROCESSING, RETURN.
 
+**Mock recall and genealogy (Phase 6 slice 6d).** Before a real recall, and as an exercise, QA runs a *mock recall* from
+a lot or a deviation (the `recall` routes; [MockRecallPages.tsx](../../apps/tablets-web/src/features/genealogy/MockRecallPages.tsx)):
+the database lists, as of an instant, every affected batch and lot through the genealogy (including lots made with
+chemically recovered material), every consignee with what it was delivered, and reconciles delivered against returned.
+The run is stored with its result hash and signed off by the authorised person; it never changes a lot (D-P6d-2). The
+genealogy explorer and the complaint lookup answer "where did it come from, where did it go" at any depth
+([recipe.genealogy](../../packages/recipe-core/sql/1010_genealogy.sql); [PR-57](../../compliance/controls/PR-57.yaml),
+[IN-29](../../compliance/controls/IN-29.yaml)).
+
 ## 15. Record locking, amendment, true copy, archive, retention, PQR
 
 **In pharma terms.** Once the first disposition is signed (or the bulk reconciliation is closed), the batch record is

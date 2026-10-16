@@ -125,7 +125,13 @@ Slice 6e (branch `phase-6/slice-6e`, 16 October, ready for PR): controlled-subst
 U, NDPS not verified; register 242 controls, 679 rows): product flag under change control with a second QA signature,
 dual custody of dispensing, transfers, returns and destruction (database guards), the controlled account closed at every
 stage sign-off and at batch completion, the reproducible register export; screens with the draft banner. Quick review: one
-core medium fixed (recipe-core 1035). Defaults D-P6e-1 to 10 and residuals in the plan; tablets 1280 added after 6f's range.
+core medium fixed (recipe-core 1035). Defaults D-P6e-1 to 10 and residuals in the plan; tablets 1290 added after 6f's and 6d's ranges.
+Slice 6d (branch `phase-6/slice-6d`, 16 October, ready for PR): `recipe.genealogy` both ways at any depth as of an
+instant over the insert-only event rows (no genealogy table), chemical recovery of returned goods (site services 0960,
+route `samples.recoverReturn`), distribution records from the ERP adapter (0961), mock recall stored with its hash and
+signed off by the AP, deviation impact query, recurrence warning on the release screen (PR-49), explorer, complaint
+lookup and mock-recall screens (recipe-core 1010 to 1013, tablets 1280). IN-07, IN-29, PR-57 x2, PR-49, PR-50 clauses
+name their tests. Defaults D-P6d-0-*, D-P6d-4 to 10; review fixes and residuals in the plan.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

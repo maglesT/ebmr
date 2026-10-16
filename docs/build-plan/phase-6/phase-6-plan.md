@@ -342,6 +342,38 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Migrations:** recipe-core 1010 to 1029, site-services 0960 to 0969.
 - **Handbook:** `modules/recipe-core.md` (genealogy), `modules/site-services.md` (distribution, recovery),
   `04-life-of-a-batch.md` (recall), `modules/tablets-web.md`, `08-defect-log.md`.
+- **Build (16 October):** 6d-0 in [slice-6d-0-interfaces.md](slice-6d-0-interfaces.md); recipe-core 1010 to 1013,
+  site services 0960, 0961, tablets 1280; server feature `genealogy` (namespaces `genealogy`, `recall`), the route
+  `samples.recoverReturn` (additive), web feature `genealogy` and the recurrence warning on the release screen.
+  Defaults of the build:
+  - **D-P6d-4** The deviation impact query names LINKED (the deviation's links, and the batch of a linked finished
+    lot), DOWNSTREAM (forward of a linked subject) and SHARED_LOT (batches that consumed a lot a linked batch consumed,
+    and forward of them), each batch once under the first relation. Equipment, rooms, people and time windows stay the
+    investigation's assessment (closure basis). Why: the genealogy holds material links only; other links need judgement.
+  - **D-P6d-5** Recurrence (PR-49): deviations of the same product whose latest finding has the same root-cause
+    category, raised in the 365 days up to now, this one included; the warning from the third. No finding, or
+    NOT_DETERMINED, is not counted. Why: the catalog names the third recurrence; a category is the only recorded
+    sameness.
+  - **D-P6d-6** Slice 6d had no tablets range; it takes 1280 to 1289 (after 6f's 1270 to 1279), so its signing-meanings
+    replacement runs last and keeps 6f's entries. Why: the signing-meaning functions are replaced whole.
+  - **D-P6d-7** The chemical recovery act is a route of the existing `samples` namespace beside the returned-goods
+    routes (`POST /api/quality/returns/:lotId/chemical-recovery`), offered on the returned-goods screen to the stores
+    once QC's signed assessment chose recovery. Why: additive, next to the goods it acts on; the database decides.
+  - **D-P6d-8** The recurrence warning is shown above every tab of a lot's release screen (manufacturer release and
+    the market tabs, so also the EU certification), only while the database says warning. Why: one place, every
+    certifier sees it.
+  - **D-P6d-9** The explorer's export is CSV (RFC 4180 quoting) of every edge row with the direction and the as-of
+    microseconds in each row and in the file name; the mock-recall export is the reconciliation sheet with the result
+    hash. Why: a spreadsheet is what a recall team uses; the as-of point and hash make a file traceable to its run.
+  - **D-P6d-10** The genealogy DB tests live in `packages/site-services/test/genealogy/` (they use site services'
+    ERP world, and recipe-core may import only kernel and expr). Why: keep the dependency boundaries.
+  - **D-P6f-B-10 (from 6f)** PR-49 is built here (the recurrence count and warning).
+- **Quick review (16 October):** no critical or high. Fixed with tests: the chemical recovery existed only as a
+  database act, with no route or screen (P6d-R1, medium); lint errors in two slice test files and a cross-package test
+  import that broke the dependency rule (P6d-R2, low); a mock-recall example with a moment after its as-of point
+  (DI-05 example rule). Residuals: the browser (E2E) flow of a mock recall waits for 6j's demo run; the web tests that
+  check an act is not offered run before the session role loads, so they prove little alone (the server and database
+  refuse the act; tested there); the recurrence window counts up to now, not as of the certification.
 
 ### Slice 6e: controlled-substance mode (IN-53, draft)
 
@@ -378,7 +410,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Migrations:** site-services 0970 to 0979, recipe-core 1030 to 1049, tablets 1250 to 1259.
 - **Built (16 October, branch `phase-6/slice-6e`):** interfaces and defaults D-P6e-1 to D-P6e-10 in
   [slice-6e-0-interfaces.md](slice-6e-0-interfaces.md). Migrations recipe-core 1030 to 1035, site services 0970, tablets
-  1250 and 1280. Quick review: no critical or high; one core medium fixed with a test (a batch could complete after its
+  1250 and 1290. Quick review: no critical or high; one core medium fixed with a test (a batch could complete after its
   last controlled checkpoint: recipe-core 1035, EBMR-CSM-043). Residuals: (a) the dual-custody prompt is on the controlled
   page, not inside the floor's TB-01 step screen; (b) the stage sign-off and batch-end guards are proven with rows the
   superuser writes into the store (the guard fires first), not yet with a full engine run of a flagged product (GB/E2E
@@ -643,7 +675,7 @@ follow if a language is added after v1.
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
 | tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
-| tablets, added | | | | | 6e: tablets 1280-1289 (after 6f's 1276, which re-creates `tab.record_read_problem`; D-P6e-10) | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
+| tablets, added | | | | | 6e: tablets 1290-1299 (after 6f's 1276, which re-creates `tab.record_read_problem`, and 6d's 1280-1289; D-P6e-10) | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.

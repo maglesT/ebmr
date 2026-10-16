@@ -74,6 +74,29 @@ export type ReturnView = z.infer<typeof ReturnView>;
 
 const lotParams = z.strictObject({ lotId: Uuid });
 
+/** A UTC instant as the database takes it for a lot's expiry or retest (seconds, optional fraction, Z). */
+const UtcInstantText = z.string().regex(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?Z$/);
+
+/**
+ * Phase 6 slice 6d (site services 0960; IN-29, PR-48; D-P6d-0-4, D-P6d-0-5): the chemical recovery of returned goods
+ * whose signed QC assessment chose CHEMICAL_RECOVERY: one INTERMEDIATE lot in QUARANTINE (released by QC through the
+ * ordinary lot release) and its genealogy link (RECOVERED) in the same transaction. All of the returned goods by
+ * default, or the stated part; once per returned lot.
+ */
+export const ChemicalRecoveryInput = z.strictObject({
+  materialCode: z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/),
+  materialName: Text200,
+  quantity: DecimalString,
+  unit: z.string().regex(/^[!-~]{1,32}$/),
+  processReference: Text200,
+  expiresAt: UtcInstantText,
+  retestAt: UtcInstantText.optional(),
+  returnedQuantity: DecimalString.optional(),
+});
+export type ChemicalRecoveryInput = z.infer<typeof ChemicalRecoveryInput>;
+export const ChemicalRecoveryView = z.strictObject({ returnedLotId: Uuid, recoveredLotId: Uuid, recoveredLotCode: z.string().min(1) });
+export type ChemicalRecoveryView = z.infer<typeof ChemicalRecoveryView>;
+
 export const samples = {
   list: defineRoute({
     id: 'samples.list',
@@ -146,5 +169,18 @@ export const samples = {
     params: lotParams,
     body: withAttribution(ReturnAssessmentInput.shape),
     response: ReturnView,
+  }),
+  recoverReturn: defineRoute({
+    id: 'samples.recoverReturn',
+    method: 'POST',
+    path: '/api/quality/returns/:lotId/chemical-recovery',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Record the chemical recovery of returned goods whose signed QC assessment chose it: the recovered material in quarantine and its genealogy link (IN-29, PR-48)',
+    params: lotParams,
+    body: withAttribution(ChemicalRecoveryInput.shape),
+    response: ChemicalRecoveryView,
   }),
 } as const;

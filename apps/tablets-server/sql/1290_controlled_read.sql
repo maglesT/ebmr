@@ -8,8 +8,9 @@
 -- the stores), a controlled_checkpoint by those holding CONTROLLED.BALANCE, and each by the governance readers; every
 -- other type keeps its rule unchanged.
 --
--- Numbered 1280, after slice 6e's own range (1250 to 1258), because 6f's 1276 re-creates this function after that range
--- and would undo a change made inside it (default D-P6e-10; the plan's migration table gains "6e: tablets 1280 to 1289").
+-- Numbered 1290, after slice 6e's own range (1250 to 1258), because 6f's 1276 re-creates this function after that range
+-- and would undo a change made inside it (default D-P6e-10; the plan's migration table gains "6e: tablets 1290 to 1299";
+-- 1280 to 1289 belong to slice 6d, whose 1280 does not re-create this function).
 -- A later migration that re-creates this function starts from this definition.
 
 set local role ebmr_owner;
@@ -19,7 +20,7 @@ language plpgsql stable security definer set search_path = pg_catalog, tab, pg_t
 declare
   v_product text;
 begin
-  -- Phase 6 slice 6e (tablets 1280, IN-53): a controlled-substance record is read by the roles that record or sign that
+  -- Phase 6 slice 6e (tablets 1290, IN-53): a controlled-substance record is read by the roles that record or sign that
   -- kind (and, as every GOVERNANCE record, by the roles that review audit trails, data integrity or access, or audit).
   if p_aggregate_type in ('controlled_product', 'controlled_custody', 'controlled_checkpoint') then
     if not tab.role_may(p_reader.role_code, case p_aggregate_type

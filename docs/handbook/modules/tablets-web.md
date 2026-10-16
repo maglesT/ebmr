@@ -890,6 +890,16 @@ and is countersigned before weighing) and the register export (opened, it says w
 difference with its deviation, record and sign the checkpoint). Every screen shows the draft banner
 (`CONTROLLED_DRAFT_BANNER`). The prompt is on this page, not yet inside the floor's TB-01 step (residual). Tests:
 [controlled.test.tsx](../../../apps/tablets-web/test/controlled/controlled.test.tsx).
+## Genealogy explorer, complaint lookup and mock recalls (Phase 6 slice 6d)
+
+[features/genealogy](../../../apps/tablets-web/src/features/genealogy/index.tsx): the explorer (`/genealogy`; tree and table
+both ways, node-kind filter, an as-of instant typed with its offset, CSV export, D-P6d-9), the complaint lookup
+(`/genealogy/lookup`), the API supply-chain report and the deviation impact list, and the mock-recall cockpit
+(`/recall`, `/recall/$mockRecallId`: QA's run with the licensing-authority flag, the reconciliation sheet, the
+consignees, whether it reproduces, the AP's sign-off through the ceremony). The recurrence warning (PR-49) sits above
+every tab of a lot's release screen ([RecurrenceWarning.tsx](../../../apps/tablets-web/src/features/genealogy/RecurrenceWarning.tsx),
+D-P6d-8); the returned-goods screen offers the stores the chemical recovery once QC's signed assessment chose it. Tests:
+[genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx).
 
 ## How to test this app
 

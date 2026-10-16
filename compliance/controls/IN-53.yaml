@@ -24,7 +24,7 @@ implemented_by:
     - "packages/recipe-core/sql/1035_controlled_batch_end.sql"
     - "packages/site-services/sql/0970_controlled_wms_moves.sql"
     - "apps/tablets-server/sql/1250_controlled_signing_content.sql"
-    - "apps/tablets-server/sql/1280_controlled_read.sql"
+    - "apps/tablets-server/sql/1290_controlled_read.sql"
     - "packages/api-contract/src/ns/controlled.ts"
     - "apps/tablets-server/src/features/controlled/index.ts"
     - "apps/tablets-web/src/features/controlled/index.tsx"

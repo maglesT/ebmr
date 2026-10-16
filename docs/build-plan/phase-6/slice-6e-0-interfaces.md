@@ -32,7 +32,7 @@ permission first and runs as the validated actor; every table is insert-only and
 | site-services 0970 | `site.apply_wms_stock_move` replaced: a WMS move of a lot of a controlled material without a confirmed TRANSFER custody record is recorded with the PR-46 exception and alarm (it already happened; never refused) |
 | recipe-core 1035 | (quick review) the move of a batch to EXECUTION_COMPLETE needs every moved controlled material's account signed and current (EBMR-CSM-043) |
 | tablets 1250 | the content definers of the four signed records for the ceremony (GOVERNANCE-class records, as 6f's 1275: the shared `tab.kernel_signing_meanings` and `tab.aggregate_read_class` stay untouched, because 1259 and 1270 re-create them after this range) |
-| tablets 1280 | (build) `tab.record_read_problem` from 1276 with the read rule of the three controlled record types (D-P6e-10) |
+| tablets 1290 | (build) `tab.record_read_problem` from 1276 with the read rule of the three controlled record types (D-P6e-10) |
 
 Signatures (all `returns` as shown; `p` is jsonb with camelCase members):
 
@@ -101,6 +101,7 @@ HTTP (`apps/tablets-server/test/controlled`) and web (`apps/tablets-web/test/con
   disposal (`recipe.lot_disposal_witness`, recipe-core 0840). Each needs a second person.
 - **D-P6e-9** The flag is a configuration record under change control (area CONTROLLED_PRODUCT) and takes effect on a
   second QA person's signature; a pending flag counts at once (fail-safe), a pending unflagging only once approved.
-- **D-P6e-10** Who may preview a controlled record for signing is added to `tab.record_read_problem` in tablets 1280,
+- **D-P6e-10** Who may preview a controlled record for signing is added to `tab.record_read_problem` in tablets 1290,
   outside the slice's range (1250 to 1258): 6f's 1276 re-creates that function after the range and would undo a change
-  made inside it. The plan's migration table gains "6e: tablets 1280 to 1289".
+  made inside it. The plan's migration table gains "6e: tablets 1290 to 1299" (1280 to 1289 are slice 6d's; renumbered
+  from 1280 when 6d merged first).

@@ -1061,6 +1061,21 @@ recipe-core 1031) needs a CONFIRMED TRANSFER custody record from and to the same
 is recorded with the problem, the alarm and the location exception of 0911, which blocks the lot until QA closes it with a
 deviation (D-P6a-7). Test: the WMS block of
 [controlled.test.ts](../../../packages/site-services/test/controlled/controlled.test.ts).
+## Chemical recovery and distribution records (Phase 6 slice 6d; site services 0960, 0961)
+
+[0960_chemical_recovery.sql](../../../packages/site-services/sql/0960_chemical_recovery.sql)
+([IN-29](../../../compliance/controls/IN-29.yaml), [PR-48](../../../compliance/controls/PR-48.yaml)):
+`site.record_chemical_recovery(returned lot, p)` turns returned goods whose signed QC assessment chose CHEMICAL_RECOVERY
+into one INTERMEDIATE lot in QUARANTINE (QC releases it through the ordinary lot release) and writes the insert-only
+`site.chemical_recovery` link in the same transaction; MATERIAL.HANDLE, once per returned lot, all of it or a stated part
+(EBMR-SITE-960 to 965; D-P6d-0-4, D-P6d-0-5). The route is `samples.recoverReturn` (D-P6d-7).
+[0961_distribution_records.sql](../../../packages/site-services/sql/0961_distribution_records.sql)
+([PR-57](../../../compliance/controls/PR-57.yaml)): the ERP/WMS adapter's `erp.shipment` is applied in its receiving
+command through the shipping interlock; `site.erp_shipment` gains the consignee address, shipped instant, lot number,
+product name, strength and dosage form. The product fields and lot number come from the eBMR's own lot by a trigger,
+never from the payload (D-P6d-0-6); a row from the adapter must be complete (EBMR-ERP-020 to 022, EBMR-SHP-003). Tests:
+[recovery-distribution.test.ts](../../../packages/site-services/test/genealogy/recovery-distribution.test.ts) and the
+genealogy and mock-recall tests beside it.
 
 ## How to test site services
 

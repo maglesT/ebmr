@@ -2522,7 +2522,7 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   of dispensing, transfer, return and destruction, the guard on site.lot_consumption (1032); the batch account and the
   stage sign-off guard on recipe.execution_command (1033); the reproducible register export with its hash (1034); WMS
   moves of a controlled lot without a transfer record raise the PR-46 location exception (site services 0970); the
-  ceremony's content definers (tablets 1250) and the read rule (tablets 1280, after 6f's 1276 which re-creates
+  ceremony's content definers (tablets 1250) and the read rule (tablets 1290, after 6f's 1276 which re-creates
   tab.record_read_problem; D-P6e-10). Contract ns/controlled.ts and CONTROLLED_ACT, server feature controlled, screens
   /controlled and /controlled/batches/$batchId with the draft banner. Quick review: no critical or high; one core medium
   fixed with a test (a batch could complete after its last checkpoint: recipe-core 1035, EBMR-CSM-043); build defects
@@ -2531,3 +2531,16 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   RETURN corrects the account only; aborted batches not held). Local runs (cluster 5439): typecheck and lint of changed
   files clean, deps:check clean, register valid, handbook check passes; site services, api-contract and tablets-web
   (846 passed), recipe-core execution and release (162 passed), the 17 IN-53 tests and the catalogue meta tests passed.
+- 2026-10-16: PHASE 6 SLICE 6d (branch phase-6/slice-6d; resumed after a container restart). origin/main (slice 6f) merged.
+  Built on the earlier builder's 6d-0 interfaces, SQL (recipe-core 1010 to 1013, site services 0960, 0961, tablets 1280)
+  and server feature: the web feature `genealogy` (explorer with tree, table, kind filter, as-of instant and CSV export;
+  complaint lookup; API supply chain; deviation impact; mock-recall cockpit with the AP sign-off), the PR-49 recurrence
+  warning above the release screen's tabs, and the chemical recovery route `samples.recoverReturn` with its form. Clause
+  mappings: IN-07, IN-29 (recovered material), PR-57 x2, PR-49, PR-50 name their tests; trace-deferrals.md notes it.
+  Defaults D-P6d-4 to 10 in the plan (D-P6d-6: tablets 1280 to 1289; D-P6d-10: the genealogy DB tests moved to
+  site-services to keep the dependency rule). Quick review (one pass): no critical or high; P6d-R1 (recovery had no route
+  or screen, medium) and P6d-R2 (lint and dependency-rule errors in the slice tests) fixed with tests; the mock-recall
+  example moved to satisfy the DI-05 example rule. Residuals: the mock-recall browser flow (6j), web "not offered" tests
+  run before the session loads, recurrence counted up to now. Local runs (cluster 5439): typecheck, lint of the changed
+  files and deps:check clean; the slice's site-services, tablets-server, api-contract and tablets-web tests passed (web
+  suite 79 files, 564 tests); register valid; handbook check passes.

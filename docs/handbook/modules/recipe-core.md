@@ -1765,6 +1765,33 @@ of the registers are not verified, so the export layout is generic.
 recorded under another key does not close the stage. A return or destruction confirmed after a checkpoint moves the
 account: the checkpoint stops being current and the next sign-off (or the batch's completion) is refused until it is
 recorded and signed again.
+## Genealogy, mock recall, deviation impact and recurrence (Phase 6 slice 6d; recipe-core 1010 to 1013)
+
+**What it does.** [1010_genealogy.sql](../../../packages/recipe-core/sql/1010_genealogy.sql)
+([PR-57](../../../compliance/controls/PR-57.yaml), [IN-07](../../../compliance/controls/IN-07.yaml),
+[IN-29](../../../compliance/controls/IN-29.yaml)): `recipe.genealogy(kind, id, direction, as_of)` traces a LOT, BATCH,
+CONTAINER or SHIPMENT forward or backward at any depth. There is no genealogy table (D-P6d-1): each edge is read from the
+insert-only row its business event wrote in its own transaction (lot consumption, output containers, merges, bulk
+issues, charges, whole-batch reprocessing, additions, the batch number register, finished lots, returned goods, chemical
+recovery, shipments). The traversal is breadth-first with set semantics: each edge once, depth the fewest steps, a node
+reached again is not expanded (cycles end); more than 64 levels or 200 000 edges is refused, never cut short
+(EBMR-GEN-004, -005). Only rows recorded at or before the as-of instant are read (database time), so a trace repeated as
+of the same instant gives the same set (D-P6d-0-3).
+
+[1011](../../../packages/recipe-core/sql/1011_genealogy_recovery_and_dosage_form.sql) adds the RECOVERED edge to the
+suspension cascade (a lot made with recovered material is suspended with its source) and `recipe.lot_dosage_form`.
+[1012](../../../packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql): the mock recall (a stored exercise,
+never a lot change, D-P6d-2): `recipe.run_mock_recall` (RECALL.MOCK_RUN) stores the as-of point, query version, result
+and its SHA-256 and the licensing-authority flag; `recipe.mock_recall_reproduces` re-runs it as of the same instant;
+`recipe.sign_off_mock_recall` is the AP's MOCK_RECALL_SIGNED_OFF, own signature, current content, still reproducing,
+once. `recipe.deviation_impact_batches` (PR-50, D-P6d-4) and `recipe.deviation_recurrence` (PR-49, D-P6d-5).
+[1013](../../../packages/recipe-core/sql/1013_genealogy_reads.sql) holds the server's reads (node views, complaint lookup,
+supply chain).
+
+**Pitfalls.** A transaction that recorded rows before the as-of instant and committed after a run makes the stored hash
+differ; `reproduces` says so and the sign-off is refused (EBMR-RCL-012): run it again. Records from the Phase 4 ERP stub
+route may lack the consignee address; they are listed as incomplete, never filled in (D-P6d-0-7). The DB tests are in
+`packages/site-services/test/genealogy/` (they use site services' ERP world; D-P6d-10).
 
 ## How to test recipe-core
 
