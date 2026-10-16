@@ -607,9 +607,20 @@ describe('only the plant commands write (bypass attempts)', () => {
       (await db.admin.query<{ src: string }>('select prosrc as src from pg_proc where oid = $1::regproc', [name])).rows[0]?.src ?? '';
     const delegates = ['plant.dispose_container'];
     for (const h of delegates) expect(gated(await helperSrc(h))).toBe(true);
-    const bad = writers.filter((r) => !gated(r.src) && !delegates.some((h) => new RegExp(`^\\s*select ${h.replace('.', '\\.')}\\(`).test(r.src)));
+    // Administration acts (DI-18 side): OPC UA endpoint enrolment is device and interface configuration, done by the
+    // administrator under IAM.DEVICE_MANAGE like iam.register_device, so it may not refuse administrators. Each must
+    // check a permission, and every permission it cites must be of the ADMINISTRATION domain, never a GMP one.
+    const adminActs = ['plant.enrol_opcua_endpoint(text,text,text,text[],text)', 'plant.retire_opcua_endpoint(text,text)'];
+    const domain = new Map((await db.admin.query<{ code: string; domain: string }>('select code, domain from iam.permission')).rows.map((r) => [r.code, r.domain]));
+    for (const fn of adminActs) {
+      const src = writers.find((r) => r.fn === fn)?.src ?? '';
+      const perms = [...src.matchAll(/iam\.require_permission\('([A-Z][A-Z0-9_.]*)'/g)].map((m) => m[1] ?? '');
+      expect(perms.length, fn).toBeGreaterThan(0);
+      expect(perms.filter((p) => domain.get(p) !== 'ADMINISTRATION'), fn).toEqual([]);
+    }
+    const bad = writers.filter((r) => !gated(r.src) && !adminActs.includes(r.fn) && !delegates.some((h) => new RegExp(`^\\s*select ${h.replace('.', '\\.')}\\(`).test(r.src)));
     expect(bad.map((r) => r.fn)).toEqual([]);
-    const known = new Set((await db.admin.query<{ code: string }>('select code from iam.permission')).rows.map((r) => r.code));
+    const known = new Set(domain.keys());
     const cited = writers.flatMap((r) => [...r.src.matchAll(/'([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*)'/g)].map((m) => m[1] ?? ''));
     expect(cited.length).toBeGreaterThan(0);
     expect(cited.filter((c) => !known.has(c))).toEqual([]);
