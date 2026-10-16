@@ -1,0 +1,449 @@
+{
+  "rightFirstTime": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "period": {
+      "from": "2026-07-14",
+      "to": "2026-10-12"
+    },
+    "summary": {
+      "batches": 2,
+      "rightFirstTime": 1,
+      "rate": "0.50"
+    },
+    "runChart": [
+      {
+        "day": "2026-10-11",
+        "batches": 1,
+        "rightFirstTime": 1
+      },
+      {
+        "day": "2026-10-12",
+        "batches": 1,
+        "rightFirstTime": 0
+      }
+    ],
+    "batches": [
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000001",
+        "batchNumber": "PCM500-2610-001",
+        "productCode": "PCM-500",
+        "qaReviewedAt": {
+          "us": "1791525600000000",
+          "text": "11-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "rightFirstTime": true,
+        "exceptionCount": 0,
+        "deviationCount": 0,
+        "reviewCycles": 1,
+        "drill": "/review/b1000000-0000-4000-8000-000000000001"
+      },
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000002",
+        "batchNumber": "PCM500-2610-002",
+        "productCode": "PCM-500",
+        "qaReviewedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "rightFirstTime": false,
+        "exceptionCount": 2,
+        "deviationCount": 1,
+        "reviewCycles": 1,
+        "drill": "/review/b1000000-0000-4000-8000-000000000002"
+      }
+    ]
+  },
+  "exceptionPareto": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "period": {
+      "from": "2026-07-14",
+      "to": "2026-10-12"
+    },
+    "total": 3,
+    "categories": [
+      {
+        "category": "LIMIT_EXCURSION",
+        "count": 2,
+        "cumulativePercent": "66.67",
+        "batches": [
+          {
+            "batchId": "b1000000-0000-4000-8000-000000000002",
+            "batchNumber": "PCM500-2610-002",
+            "drill": "/review/b1000000-0000-4000-8000-000000000002/register"
+          }
+        ]
+      },
+      {
+        "category": "LATE_ENTRY",
+        "count": 1,
+        "cumulativePercent": "100.00",
+        "batches": [
+          {
+            "batchId": "b1000000-0000-4000-8000-000000000002",
+            "batchNumber": "PCM500-2610-002",
+            "drill": "/review/b1000000-0000-4000-8000-000000000002/register"
+          }
+        ]
+      }
+    ]
+  },
+  "reviewCycleTime": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "period": {
+      "from": "2026-07-14",
+      "to": "2026-10-12"
+    },
+    "summary": {
+      "batches": 2,
+      "medianDays": "1.5",
+      "maxDays": "2.0"
+    },
+    "batches": [
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000001",
+        "batchNumber": "PCM500-2610-001",
+        "completedAt": {
+          "us": "1791439200000000",
+          "text": "10-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "qaReviewedAt": {
+          "us": "1791525600000000",
+          "text": "11-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "cycleDays": "1.0",
+        "reviewCycles": 1,
+        "drill": "/review/b1000000-0000-4000-8000-000000000001"
+      },
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000002",
+        "batchNumber": "PCM500-2610-002",
+        "completedAt": {
+          "us": "1791439200000000",
+          "text": "10-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "qaReviewedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "cycleDays": "2.0",
+        "reviewCycles": 1,
+        "drill": "/review/b1000000-0000-4000-8000-000000000002"
+      }
+    ]
+  },
+  "deviationAgeing": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "buckets": [
+      {
+        "bucket": "0-30",
+        "count": 0
+      },
+      {
+        "bucket": "31-60",
+        "count": 1
+      },
+      {
+        "bucket": "61-90",
+        "count": 0
+      },
+      {
+        "bucket": ">90",
+        "count": 0
+      }
+    ],
+    "open": [
+      {
+        "deviationId": "d1000000-0000-4000-8000-000000000001",
+        "ref": "DEV-SITE-1-2026-00012",
+        "kind": "DEVIATION",
+        "classification": "MINOR",
+        "state": "UNDER_INVESTIGATION",
+        "raisedAt": {
+          "us": "1787724000000000",
+          "text": "28-AUG-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "ageDays": 45,
+        "bucket": "31-60",
+        "drill": "/quality/deviations/d1000000-0000-4000-8000-000000000001"
+      }
+    ]
+  },
+  "holdTimeRisk": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "summary": {
+      "held": 1,
+      "atRisk": 1,
+      "over": 0
+    },
+    "containers": [
+      {
+        "containerId": "c1000000-0000-4000-8000-000000000001",
+        "labelCode": "OC-PCM500-2610-001-0003",
+        "batchId": "b1000000-0000-4000-8000-000000000001",
+        "batchNumber": "PCM500-2610-001",
+        "productCode": "PCM-500",
+        "strength": "500 mg",
+        "closedAt": {
+          "us": "1791525600000000",
+          "text": "11-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "maxHoldHours": 30,
+        "heldHours": "24.00",
+        "usedPercent": "80.00",
+        "risk": "AT_RISK",
+        "drill": "/review/b1000000-0000-4000-8000-000000000001/containers"
+      }
+    ]
+  },
+  "overdueReviews": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "versions": [
+      {
+        "versionId": "f1000000-0000-4000-8000-000000000001",
+        "documentId": "MBR-PCM500-TAB-v1",
+        "familyCode": "PCM500-TAB",
+        "versionNumber": 1,
+        "reviewDue": "2026-09-30",
+        "daysOverdue": 12,
+        "lastReviewAt": null,
+        "inUse": true,
+        "drill": "/mbr/versions/f1000000-0000-4000-8000-000000000001"
+      }
+    ]
+  },
+  "pressOee": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "period": {
+      "from": "2026-07-14",
+      "to": "2026-10-12"
+    },
+    "presses": [
+      {
+        "equipmentId": "e2000000-0000-4000-8000-000000000001",
+        "equipmentCode": "PRESS-01",
+        "batchId": "b1000000-0000-4000-8000-000000000001",
+        "batchNumber": "PCM500-2610-001",
+        "from": {
+          "us": "1791525600000000",
+          "text": "11-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "to": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "runningSeconds": "72000.000",
+        "observedSeconds": "86400.000",
+        "tablets": "500000",
+        "rejects": "1200",
+        "availability": "0.8333",
+        "quality": "0.9976",
+        "oee": "0.8313",
+        "drill": "/review/b1000000-0000-4000-8000-000000000001"
+      }
+    ]
+  },
+  "alarmTrend": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "period": {
+      "from": "2026-07-14",
+      "to": "2026-10-12"
+    },
+    "total": 2,
+    "gmpCritical": 1,
+    "byDay": [
+      {
+        "day": "2026-10-11",
+        "count": 1
+      },
+      {
+        "day": "2026-10-12",
+        "count": 1
+      }
+    ],
+    "byCode": [
+      {
+        "alarmCode": "FORCE_HIGH",
+        "count": 1,
+        "gmpCritical": 1,
+        "batches": 1
+      },
+      {
+        "alarmCode": "REJECT_BURST",
+        "count": 1,
+        "gmpCritical": 0,
+        "batches": 0
+      }
+    ],
+    "alarms": [
+      {
+        "alarmId": "a2000000-0000-4000-8000-000000000001",
+        "alarmCode": "FORCE_HIGH",
+        "source": "OPCUA",
+        "subjectCode": "PRESS-01",
+        "raisedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "gmpCritical": true,
+        "acknowledged": true,
+        "batchNumbers": [
+          "PCM500-2610-001"
+        ],
+        "drill": "/alarms"
+      },
+      {
+        "alarmId": "a2000000-0000-4000-8000-000000000002",
+        "alarmCode": "REJECT_BURST",
+        "source": "OPCUA",
+        "subjectCode": "PRESS-01",
+        "raisedAt": {
+          "us": "1791525600000000",
+          "text": "11-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "gmpCritical": false,
+        "acknowledged": false,
+        "batchNumbers": [],
+        "drill": "/alarms"
+      }
+    ],
+    "listTruncated": false
+  },
+  "catalog": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "views": [
+      {
+        "viewName": "alarm_v1",
+        "version": 1,
+        "grain": "plant alarm",
+        "description": "Every plant alarm with its code, source time, acknowledgment and the batches it is bound to (DI-49)",
+        "columns": [
+          {
+            "name": "alarm_id",
+            "type": "uuid"
+          },
+          {
+            "name": "alarm_code",
+            "type": "text"
+          },
+          {
+            "name": "read_at",
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "data_as_of",
+            "type": "timestamp with time zone"
+          }
+        ]
+      }
+    ]
+  },
+  "export": {
+    "dataAsOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "readAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "dataAgeSeconds": 0,
+    "notForGmpDecisions": true,
+    "viewName": "overdue_review_v1",
+    "columns": [
+      "version_id",
+      "document_id",
+      "review_due",
+      "days_overdue"
+    ],
+    "rows": [
+      [
+        "f1000000-0000-4000-8000-000000000001",
+        "MBR-PCM500-TAB-v1",
+        "2026-09-30",
+        "12"
+      ]
+    ],
+    "sha256": "3f5a9c0e1b2d4f6a8c0e2b4d6f8a0c2e4b6d8f0a2c4e6b8d0f2a4c6e8b0d2f4a"
+  }
+}
