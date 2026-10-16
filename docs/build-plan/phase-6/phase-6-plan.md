@@ -920,6 +920,11 @@ Groups, harness options, the Stryker feature table and the run plan: `docs/build
   re-checks them (`--audit-equivalents`).
 - **D-P6j-M-5:** a unit feature (no database) runs Stryker with static mutants (`ignoreStatic: false`): the SDK's
   contracts are module-level zod schemas, which the base setting skips, and its tests take about a second.
+- **D-P6j-M-6:** `EBMR_MUTATION_VITEST_WORKERS` caps the test files a mutant runs at once (unset in CI). On the pod
+  Vitest's file per core exceeds the listener roles' 40 connections per cluster (device-readings' baseline failed even
+  alone on a cluster); the campaign keeps about 4 test files per cluster.
+- **D-P6j-M-7:** the scope A and B kill confirmations are whole-group runs, not `--only`: the Phase 4 survivor lists
+  were lost with the container and several of their functions were re-created since.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

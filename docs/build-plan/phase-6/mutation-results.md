@@ -82,7 +82,7 @@ by the SDK's own tests only (its behaviour through the server is covered by the 
 
 | Feature | Kind | 90 % zone | 80 % zone | First run (90 % / 80 %) | After |
 |---|---|---|---|---|---|
-| sdk-adapter | unit | envelope, errors, mirror, reconciliation, systems/* | contract | smoke run, see below | |
+| sdk-adapter | unit | envelope, errors, mirror, reconciliation, systems/* | contract | 23.3 % overall (smoke run) | |
 | sdk-equipment-data | unit | adapter/equipment-data, serialisation/wire | process/wire | pending | |
 | gateway-opcua | unit | drivers/opcua, opcua-feed | drivers/opcua-node, process-uplink, config, gateway | pending | |
 | server-integrations | server | adapters/framework, adapters/erp-wms/*, adapters/qms | the other adapters, start, reads, guidance | pending | |
@@ -99,7 +99,7 @@ by the SDK's own tests only (its behaviour through the server is covered by the 
 | server-governance | server | governance/index, esig/dsc | - | pending | |
 | server-labels | server | labels/index | - | pending | |
 | server-quality-receipt | server | quality/receipt | quality/lims | pending | |
-| server-serialisation | server | serialisation/index | - | pending | |
+| server-serialisation | server | serialisation/index | - | 80.2 % / - (smoke run) | |
 | server-transfers | server | transfers/federation, index, keys, signables | reads, guidance | pending | |
 | simulators | unit | - | opcua, erp, system-feed, serialisation servers and models | pending | |
 
@@ -160,4 +160,126 @@ pending
 
 ## Run plan
 
-PLAN.
+### Constraints found while preparing
+
+- **One cluster, one harness process with `--own-cluster`.** Between groups that process drops every `ebmr_%`
+  database created since it started and not in use, which includes another run's templates on the same cluster. A
+  second process on a cluster runs without `--own-cluster` (its own databases are still dropped at its end), and on
+  5432, which other work shares, no process uses it.
+- **About four test files per cluster at once.** The roles' connection limits are per cluster (kernel 0970:
+  `ebmr_listener` and `ebmr_sandbox_listener` 40, `ebmr_app` and `ebmr_sandbox` 57, `ebmr_report` 4). Unlimited, Vitest
+  runs a file per core, and the device-readings group's baseline fails with "too many connections for role
+  ebmr_sandbox_listener" even alone on a cluster. `EBMR_MUTATION_VITEST_WORKERS` caps it: keep `--workers` times the
+  cap at about 4 per cluster (`--workers 2` with a cap of 2), and Stryker's server features at concurrency 2 on a
+  cluster no harness uses.
+- **Separate report directories.** Each process writes its own `--out` directory (`report.json` after every mutant,
+  `summary.md` at its end). Parallel runs never share one.
+- **Resume.** A stopped process is started again with the same command plus `--resume`: the results its `report.json`
+  holds for the same mutations are kept, the rest run (a fully kept group skips its baseline). A confirmation run
+  (`--only`) uses a new `--out` directory and no `--resume` against the first run's report, which would keep the very
+  results it is meant to replace. Stryker resumes by itself from the feature's incremental file (same command).
+
+### Estimates
+
+Worker time per mutant is taken as 0.9 times the group's baseline (db plus server, measured alone on 5433) and at least
+6 s: the smoke run gave 8.8 s for a 10 s baseline, with 72 % killed (a killed mutant stops at its first failing file).
+Running ten or more workers on 16 cores slows each one; the wall times below add a third for that.
+
+| Group | Mutants | Baseline (s) | Worker hours |
+|---|---|---|---|
+| equipment-data-and-alarms | 469 | 46 | 5.4 |
+| genealogy-and-recall | 440 | 49 | 5.4 |
+| erp-wms-receipt-and-stock | 351 | 43 | 3.8 |
+| transfer-and-federation | 393 | 37 | 3.6 |
+| qms-capa-lims-cmms | 401 | 17 | 1.7 |
+| packaging-labels-and-line-completion | 352 | 17 | 1.5 |
+| inbound-adapters-and-mirrors | 310 | 17 | 1.3 |
+| plant-rules | 221 | 21 | 1.2 |
+| governance-support-and-contract-giver | 228 | 16 | 0.9 |
+| controlled-substance-mode | 311 | 8 | 0.6 |
+| governance-change-control | 117 | 10 | 0.3 (done in the smoke run) |
+| reporting-and-training, india-dsc, serialisation-l3 | 388 | 5 to 6 | 0.7 |
+| re-created functions in earlier groups (`--functions`) | 202 | 10 to 66 | about 0.8 |
+| **Part 1 SQL** | **4,183** | | **about 27** |
+
+Stryker, part 1: about 1.3 mutants per source line, three quarters of them tested (the rest static or not covered),
+about 7 s of worker time per tested server mutant (`server-serialisation`: 97 tested in 330 s at concurrency 2,
+including a 30 s dry run) and a few seconds per unit mutant whose tests start an OPC UA server (gateway, simulators;
+the SDK's tests take a fraction of a second). The server features hold about 6,800 lines (about 13 worker hours),
+the gateway and the simulators about 4,200 (about 4), the kernel's config and DSC modules 450 (about 1): **about 18
+worker hours**.
+
+With 12 workers, part 1 takes about **4 to 5 hours of wall time**, inside its 12-hour box; the triage and new tests
+come on top, and one confirmation run per group (`--only` on the survivors that new tests aim at) is a fraction of the
+first run.
+
+Part 2 (baselines of all 80 earlier groups measured alone on 5433, all green with the cap of 4 test files):
+
+| Item | Mutants | Worker hours |
+|---|---|---|
+| Scope A groups (release-gate, release-gate-market-items, manufacturer-release, tablets-release-items), run whole | 710 | 4.3 |
+| Scope B groups (the six after-release, shipping, locking, bulk and form groups), run whole | 695 | 5.6 |
+| us-disposition, qp-certification, market-changes, first runs | 481 | 4.3 |
+| Stryker: server release feature (high-risk files first) and the triage of the Phase 4 survivors | | about 3 |
+| **Whole SQL re-run of the 80 earlier groups** (scope A and B included) | **17,553** | **about 128** |
+
+The scope A and B confirmations are best run as whole-group runs: the Phase 4 survivor lists are not in the repository
+(the reports were lost with the container), several of their functions have been re-created since (their mutants are
+renumbered), and a whole run of those ten groups costs about 10 worker hours. Those ten runs are also the first part of
+the whole re-run.
+
+**The whole re-run does not fit part 2's 8-hour box**: about 128 worker hours is 11 hours of wall time with 12 workers
+before the slowdown, 14 with it. The largest groups are market-authorisation-and-issue (14 worker hours),
+lots-and-lims (9), mbr-lifecycle (8), manual-weighing-gate (7) and tablets-ipc (6). Inside the box: the scope A and B
+groups and the three Phase 4 groups first (about 2 hours of wall time), then the earlier groups in the order of decision
+0019's Priority 1 subjects (signing, signature invalidation, audit trail, segregation and grants, release and serial
+gating, limits), the rest a residual for the owner.
+
+### Commands
+
+From the worktree, after `pnpm install --frozen-lockfile`, in a shell that outlives the session (`tmux`, or each
+stream under `nohup bash -c`). SQL, five processes of 2 workers each (cap 2 test files per
+mutant), one per cluster:
+
+```bash
+export EBMR_MUTATION_VITEST_WORKERS=2 EBMR_MUTATION_TEST_TIMEOUT=120000
+sql() { # <port> <out name> <groups> [extra flags]; runs in the foreground
+  EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:$1/postgres \
+    pnpm -s mutation:sql --group "$3" --workers 2 --out .reports/sql-mutation/$2 "${@:4}" > .reports/sql-mutation/$2.log 2>&1
+}
+mkdir -p .reports/sql-mutation
+(sql 5434 p6-1 equipment-data-and-alarms --own-cluster) &
+(sql 5436 p6-2 genealogy-and-recall --own-cluster) &
+(sql 5437 p6-3 erp-wms-receipt-and-stock,plant-rules,india-dsc --own-cluster) &
+(sql 5438 p6-4 transfer-and-federation,qms-capa-lims-cmms --own-cluster) &
+# 5432 is shared: no --own-cluster; the functions Phase 6 re-created in earlier groups follow on the same stream.
+(sql 5432 p6-5 inbound-adapters-and-mirrors,packaging-labels-and-line-completion,governance-support-and-contract-giver,controlled-substance-mode,reporting-and-training,serialisation-l3,governance-change-control
+ sql 5432 p6-6 plant-equipment-and-areas,release-gate,tablets-release-items,read-authorisation,connection-roles,mbr-lifecycle,after-release-suspension,pqr-extract,lots-and-lims \
+   --functions plant.fitness_problems,plant.record_calibration,recipe.grel_evaluate,tab.grel_recon_serial,tab.record_read_problem,sandbox.apply_connect_policy,sandbox.segregation_problems,recipe.guard_critical_elements_risk_assessed,recipe.genealogy_downstream_lots,recipe.pqr_run_query,site.lot_available) &
+```
+
+After a restart: the same stream with `--resume` added to each `sql` line. Progress: `grep -c . .reports/sql-mutation/<out>.log`
+or the `n/N` lines; scores: `.reports/sql-mutation/<out>/summary.md`. governance-change-control runs again (7
+minutes): the smoke run was on the preparation branch, before 6j-a and 6j-b were merged.
+
+Stryker, two features at a time on 5433 (server and db features, concurrency 2), unit features alongside (no database):
+
+```bash
+st() { # <feature> [port]
+  EBMR_STRYKER_FEATURE=$1 EBMR_STRYKER_CONCURRENCY=2 EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:${2:-5433}/postgres \
+    nohup pnpm exec stryker run stryker.phase6.config.mjs > .reports/stryker-phase6/$1.log 2>&1
+}
+mkdir -p .reports/stryker-phase6
+(for f in server-integrations server-transfers server-governance server-genealogy server-controlled server-labels \
+          server-quality-receipt server-dashboards-and-training server-serialisation; do st $f 5433; done) &
+(for f in kernel-config-and-dsc server-plant-rules server-config-change server-capa server-alarms server-equipment-data \
+          server-designer-hazard; do st $f 5433; done) &
+(for f in sdk-adapter sdk-equipment-data gateway-opcua simulators; do st $f; done) &
+node stryker.phase6.config.mjs --summary      # per feature and zone, from the JSON reports
+```
+
+`server-serialisation` and `sdk-adapter` run again too (their smoke runs were on the preparation branch). A feature not done within an
+hour is stopped and run again with `EBMR_STRYKER_HIGH_RISK_ONLY=1` (decision 0019); its incremental file keeps the
+mutants already tested. When the SQL streams end, their clusters take the remaining server features (`st <feature>
+5434`, and so on), one Stryker run per free cluster.
+
