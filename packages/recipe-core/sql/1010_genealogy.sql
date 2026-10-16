@@ -193,10 +193,6 @@ begin
   return next;
   loop
     exit when cardinality(fk) = 0;
-    if v_level >= c_max_depth then
-      raise exception using errcode = 'P0001',
-        message = format('EBMR-GEN-004 the genealogy of %s %s goes deeper than %s levels; the trace is refused rather than cut short (PR-57)', lower(p_kind), p_id, c_max_depth);
-    end if;
     v_level := v_level + 1;
     -- The level's distinct edges, each with the depth of the node it reaches (its earlier depth when reached before).
     select coalesce(array_agg(s.from_kind order by s.to_kind, s.to_id, s.from_kind, s.from_id, s.edge_kind), '{}'),
@@ -208,6 +204,10 @@ begin
       into sk_from, si_from, sk_to, si_to, s_edge, s_depth
       from (select distinct * from recipe.genealogy_step(fk, fi, p_direction, v_as_of)) s
       left join unnest(vk, vi, vd) v(k, i, d) on v.k = s.to_kind and v.i = s.to_id;
+    if v_level > c_max_depth and cardinality(s_edge) > 0 then
+      raise exception using errcode = 'P0001',
+        message = format('EBMR-GEN-004 the genealogy of %s %s goes deeper than %s levels; the trace is refused rather than cut short (PR-57)', lower(p_kind), p_id, c_max_depth);
+    end if;
     v_edges := v_edges + cardinality(s_edge);
     if v_edges > c_max_edges then
       raise exception using errcode = 'P0001',
