@@ -22,7 +22,7 @@ import {
 const LMS = 'LMS_QUALIFICATION';
 
 test('[DI-31] the integration health page shows the LMS mirror fresh after a synchronisation, then stale and blocking with who to call once its heartbeat stops @office', async ({ e2e, officePage, persona, evidence }) => {
-  const viewer = persona('GMP', 'qaInvestigator');
+  const viewer = persona('GMP', 'qcApprover');
   const arranged = await withDb(e2e, 'GMP', async (db, seed) => {
     const adm = await administration(db, seed);
     const lms = await registerAdapter(db, seed, adm, 'LMS');

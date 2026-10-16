@@ -4,7 +4,7 @@
  * EMS adapter's command); the eBMR binds it to the batch occupying the room (the DEMO-ONLY review batch of the set-up) and,
  * as an unconfigured alarm code, treats it as GMP-critical. On the plant alarm list the operator at the DISP-1 kiosk
  * acknowledges it with the action taken; the button stays disabled until the comment a GMP-critical alarm needs is given,
- * and the shared kiosk asks for the operator's fresh badge tap. QA then reads the acknowledgment (person, action and
+ * and the shared kiosk asks for the operator's fresh badge tap. The head of QC then reads the acknowledgment (person, action and
  * comment) in the batch's alarm log on the review screen. The adapter is arranged in the database (support.ts); no EMS
  * worker runs on the E2E stack. The spec acknowledges the alarm it raised, so the review gate of that batch is unchanged.
  */
@@ -75,8 +75,8 @@ test('[DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknow
     await kiosk.context().close();
 
     const qa = await officePage('GMP', 'PC-QA-01');
-    await signIn.office(qa, persona('GMP', 'qaInvestigator'));
-    await evidence.step('QA opens the review of the batch', 'The batch\'s alarm log lists the alarm with its source times and the acknowledgment: who, the action taken and the comment', async () => {
+    await signIn.office(qa, persona('GMP', 'qcApprover'));
+    await evidence.step('The head of QC opens the review of the batch', 'The batch\'s alarm log lists the alarm with its source times and the acknowledgment: who, the action taken and the comment', async () => {
       await openTile(qa, 'Batch record review');
       await qa.getByTestId(`review-batch-${batchNumber}`).getByRole('link', { name: batchNumber }).click();
       const log = qa.getByTestId('batch-alarm-log');

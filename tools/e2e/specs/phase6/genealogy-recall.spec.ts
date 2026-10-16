@@ -1,9 +1,10 @@
 /**
  * Phase 6 exit (slice 6j-b), the genealogy explorer and the mock recall (PR-57, IN-07, IN-29): an API lot consumed by a
- * batch whose finished lot was shipped to two consignees. QA traces the API lot forward on the explorer (tree and table,
- * each node with its edge and depth) and the shipment backward to the API lot; QA runs a mock recall from the API lot,
- * which lists the affected batch, the reconciliation delivered against returned per lot and every consignee with their
- * address, and reproduces; the authorised person signs it off through the ceremony.
+ * batch whose finished lot was shipped to two consignees. The head of QC traces the API lot forward on the explorer (tree
+ * and table, each node with its edge and depth) and the shipment backward to the API lot, and runs a mock recall from the
+ * API lot, which lists the affected batch, the reconciliation delivered against returned per lot and every consignee with
+ * their address, and reproduces; the authorised person signs it off through the ceremony. (The head of QC, not a QA
+ * reviewer: the QA reviewer personas sign in often in the release specs, and sign-ins count per user ID, 10 a minute.)
  *
  * The lot chain is arranged as the genealogy server tests arrange it (superuser, triggers off: a receipt, a reservation and
  * its consumption, a finished lot and two ERP distribution records with unique codes), so the flow depends on no other
@@ -103,7 +104,7 @@ test('[PR-57][IN-07] the genealogy explorer traces an API lot forward to the bat
   const { ids, codes } = await arrangeChain(e2e, await draftFamily(e2e, author, randomBytes(3).toString('hex').toUpperCase()));
   await author.context().close();
   const page = await officePage('GMP', 'PC-QA-01');
-  await signIn.office(page, persona('GMP', 'qaInvestigator'));
+  await signIn.office(page, persona('GMP', 'qcApprover'));
 
   await evidence.step('Trace the API lot forward', 'Lot, batch (consumed), finished lot and both shipments, with their depth; the counts say 2 lots, 1 batch, 2 shipments', async () => {
     await openTile(page, 'Genealogy explorer');
@@ -143,16 +144,16 @@ test('[PR-57][IN-07] the genealogy explorer traces an API lot forward to the bat
   expect(await cspViolations(page)).toEqual([]);
 });
 
-test('[IN-29][PR-57] QA runs a mock recall from the API lot to every consignee; it reproduces, reconciles delivered against returned, and the authorised person signs it off through the ceremony @office', async ({ e2e, officePage, persona, evidence }) => {
+test('[IN-29][PR-57] the head of QC runs a mock recall from the API lot to every consignee; it reproduces, reconciles delivered against returned, and the authorised person signs it off through the ceremony @office', async ({ e2e, officePage, persona, evidence }) => {
   const author = await officePage('GMP', 'PC-DESIGN-01');
   await signIn.office(author, persona('GMP', 'author'));
   const { ids, codes } = await arrangeChain(e2e, await draftFamily(e2e, author, randomBytes(3).toString('hex').toUpperCase()));
   await author.context().close();
   const qa = await officePage('GMP', 'PC-QA-01');
-  await signIn.office(qa, persona('GMP', 'qaInvestigator'));
+  await signIn.office(qa, persona('GMP', 'qcApprover'));
   let recallUrl = '';
 
-  await evidence.step('QA runs a mock recall from the API lot', 'The recall reproduces; it lists the batch, the finished lot delivered 650 units with nothing returned, and both consignees with their addresses', async () => {
+  await evidence.step('The head of QC runs a mock recall from the API lot', 'The recall reproduces; it lists the batch, the finished lot delivered 650 units with nothing returned, and both consignees with their addresses', async () => {
     await openTile(qa, 'Mock recalls');
     await expect(qa.getByRole('heading', { name: 'Mock recalls', level: 1 })).toBeVisible();
     const form = qa.getByTestId('mock-recall-run');

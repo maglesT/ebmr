@@ -2,7 +2,7 @@
  * Phase 6 exit (slice 6j-b), the trend viewer (DI-32; D-P6b-L-2): the EMS sends two chunks of room DISP-1's humidity
  * through its registered adapter (plant.receive_series_chunk), native samples with their source times, raw values and
  * status codes, one of them BAD; the series is the batch's because the batch occupied the room then (the DEMO-ONLY review
- * batch of the set-up). QA opens the trends of the batch: every sample as received, the BAD one without a value and
+ * batch of the set-up). The head of QC opens the trends of the batch: every sample as received, the BAD one without a value and
  * breaking the line; zoom and pan move over the samples.
  *
  * The restored archive: the GMP database is backed up and restored with the kernel's own backup path (continuity
@@ -130,11 +130,11 @@ test('[DI-32] the trend viewer draws a batch\'s room series from the native samp
     }
   });
 
-  const qa = persona('GMP', 'qaInvestigator');
+  const qa = persona('GMP', 'qcApprover');
   const page = await officePage('GMP', 'PC-QA-01');
   await signIn.office(page, qa);
   let live: { window: string; rows: string[] } = { window: '', rows: [] };
-  await evidence.step('QA opens the trends of the batch for the room humidity', 'Every sample as received with its source time, raw value, status and chunk; the BAD sample has no value and breaks the line', async () => {
+  await evidence.step('The head of QC opens the trends of the batch for the room humidity', 'Every sample as received with its source time, raw value, status and chunk; the BAD sample has no value and breaks the line', async () => {
     live = await openTrend(page, batchNumber);
     // Every sample sent, as received (the series of the batch holds only this spec's chunks on a fresh database).
     for (const x of samples) {
@@ -197,7 +197,7 @@ test('[DI-32] the trend viewer draws a batch\'s room series from the native samp
     try {
       await pickTerminal(again, origin, 'PC-QA-01');
       await signIn.office(again, qa);
-      await evidence.step('QA opens the same trend on the restored database', 'The trend re-renders from the restored chunks, sample for sample, and zooms and pans as before', async () => {
+      await evidence.step('The head of QC opens the same trend on the restored database', 'The trend re-renders from the restored chunks, sample for sample, and zooms and pans as before', async () => {
         const back = await openTrend(again, batchNumber);
         expect(back.rows).toEqual(live.rows);
         expect(back.window).toBe(live.window);
