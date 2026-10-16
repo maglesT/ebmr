@@ -67,8 +67,21 @@ export interface BottleRun {
   tabletsPacked: string;
 }
 
+/**
+ * Acts a connected site adds to the bottle order (GB-T-03, Phase 6 slice 6j-b: the serialisation L3/L4 system), each at a
+ * fixed point of the run. GB-T-02 passes none, so its order is the same act for act.
+ */
+export interface BottleHooks {
+  /** After the printed materials are issued and their specimens recorded (the serial pool). */
+  afterIssue?(g: GoldenBatch): Promise<void>;
+  /** After the shippers are made, with their SSCCs in order (the aggregation of the packs to their shippers). */
+  afterShippers?(g: GoldenBatch, ssccs: readonly string[]): Promise<void>;
+  /** Before the printed materials are reconciled (the serial report). */
+  beforeReconciliation?(g: GoldenBatch): Promise<void>;
+}
+
 /** One bottle order planned on the bulk of `parent`, issued, and run to its end. */
-export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenBatch, orderNo: string, plan: BottleRun, markets: string[] = ['IN']): Promise<GoldenBatch> {
+export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenBatch, orderNo: string, plan: BottleRun, markets: string[] = ['IN'], hooks: BottleHooks = {}): Promise<GoldenBatch> {
   await cleanBottleLine(w);
   const issuer = await w.server.asPersona('issuer');
   const p = ok(
@@ -118,6 +131,7 @@ export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenB
   await e('p-g21@', 'ISSUE', { item: 'CARTON', lot: await lotFacts('GBT2-CTN-001'), scannedArtwork: BOTTLE_CARTON_ARTWORK, quantity: { value: plan.carton.issued, unit: '1' } });
   // Phase 6 slice 6c (IN-16, PR-16): the coding and label specimens of the printed-materials step.
   await recordSpecimens(g, 'p-g21@', ['LABEL', 'CARTON']);
+  await hooks.afterIssue?.(g);
   await e('p-tb23@', 'CHALLENGE', { device: 'SEALDET', trigger: 'START', result: 'PASS' });
   await e('p-tb23@', 'COUNT_CHECK', { counts: ['30', '30', '30'] });
   await e('p-tb23@', 'DESICCANT_CHECK', { examined: '20', missing: '0' });
@@ -138,6 +152,7 @@ export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenB
   await e('p-tb24@', 'EXAMINATION', { timing: 'IN_RUN', examined: '5', defective: '0', labelCorrect: true });
   await e('p-tb24@', 'PACKS_MADE', { packs: plan.packs });
   const shippers = Number(plan.packs) / Number(plan.perShipper);
+  const ssccs: string[] = [];
   for (let i = 0; i < shippers; i += 1) {
     if (i % 10 === 0) await pause(g);
     tapAdvance();
@@ -146,10 +161,13 @@ export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenB
     const o = g.b('operator2');
     const sscc = ok(await o.call(routes.batches.issueSscc, { params: { batchId: g.batchId, stepKey: 'p-tb24@' }, body, attribution: await tapFor(o, personaOf(w.seed, 'operator2'), 'POST', path, body) }), 'an SSCC');
     await e('p-tb24@', 'SHIPPER', { sscc: (sscc as { sscc: string }).sscc, packs: plan.perShipper, part: false });
+    ssccs.push((sscc as { sscc: string }).sscc);
   }
+  await hooks.afterShippers?.(g, ssccs);
   await e('p-tb24@', 'EXAMINATION', { timing: 'END', examined: '20', defective: '0', labelCorrect: true });
   await e('p-tb24@', 'CHALLENGE', { device: 'CW', trigger: 'END', result: 'PASS' });
   await e('p-tb24@', 'RECONCILIATION', {});
+  await hooks.beforeReconciliation?.(g);
   for (const [item, r] of [['LABEL', plan.label], ['CARTON', plan.carton]] as const) {
     await e('p-g21@', 'RECONCILIATION', { item, used: r.used, setupWaste: '0', damaged: '0', codedDestroyed: r.codedDestroyed, uncodedReturned: r.uncodedReturned, specimens: r.specimens });
   }
