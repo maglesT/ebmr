@@ -54,15 +54,35 @@ tests:
   - "apps/tablets-server/test/mutation/lots-and-lims-g07.test.ts > the G-07 consumption pairing (tablets 1093, 1100) > [INV-13][INV-14][PR-57] each new G-07 weighing pairs in recorded order with the first unused consumption of this transaction, this batch, this lot of the batch's site and exactly its net, never one a TB-01 entry names; an unpaired one is refused; old entries, other steps and entries naming no lot are left alone"
   - "packages/recipe-core/test/release/after-release.test.ts > a revised result as the cause (L-19; D-5-4) > [L-19][PR-57] a revised result resolves its cause only through its own latest revision: out of its limits it is a problem; revised again within them it is resolved"
   - "packages/recipe-core/test/release/after-release.test.ts > the genealogy of a suspension (L-19, PR-57; recipe-core 0840) > [L-19][PR-57] every edge of the genealogy leads from its own source only: bulk issued, packaging orders, reprocessing children, source additions, lot consumption, returned goods; only finished lots are named, never the node itself"
+  - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404"
+  - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > genealogy explorer (PR-57, IN-07) > [PR-57][IN-07] a trace asked with an as-of instant is sent as microseconds; the tree expands each node once and names a node reached again; the table and the kind filter show the server rows"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > genealogy explorer (PR-57, IN-07) > [PR-57] an as-of instant without its offset is not sent; an empty one means now"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > genealogy explorer (PR-57, IN-07) > [PR-57] the export holds every edge row with the direction and the as-of point, quoted where needed"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > complaint lookup, supply chain and impact (PR-57, PR-50) > [PR-57] the complaint lookup by number opens the lot, its records, deviations and shipments with the distribution fields"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > complaint lookup, supply chain and impact (PR-57, PR-50) > [PR-57] a distribution record without the consignee address is flagged incomplete, never filled in"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > complaint lookup, supply chain and impact (PR-57, PR-50) > [PR-57] the API supply-chain report names each upstream lot with its supplier, supplier lot and manufacturer"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > mock-recall cockpit (IN-29) > [IN-29][PR-57] a mock recall shows the reconciliation sheet, the consignees and its hash; the AP signs it off through the ceremony (MOCK_RECALL_SIGN_OFF names the run only)"
+  - "packages/api-contract/test/contract.test.ts > route table > [PR-57][IN-29] the genealogy and recall namespaces (Phase 6 slice 6d) are GMP only, each route with an example; a trace names kind, id and direction; MOCK_RECALL_SIGN_OFF names the mock recall only"
+  - "packages/site-services/test/genealogy/recovery-distribution.test.ts > distribution records (site services 0961; PR-57; D-P6d-0-6, D-P6d-0-7) > [PR-57] a shipment from the ERP/WMS adapter becomes a distribution record with product name and strength, consignee name and address, date, quantity and lot, in the receiving command"
+  - "packages/site-services/test/genealogy/recovery-distribution.test.ts > distribution records (site services 0961; PR-57; D-P6d-0-6, D-P6d-0-7) > [PR-57] an incomplete, unknown, future or repeated shipment is refused and recorded as a refusal; a lot not released never ships (INV-42); nothing is lost"
+  - "packages/site-services/test/genealogy/recovery-distribution.test.ts > distribution records (site services 0961; PR-57; D-P6d-0-6, D-P6d-0-7) > [PR-57] the product fields are the lot's, whoever writes the row; a row from the adapter must carry the address; the stub route's record without one shows as incomplete"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] a seeded split, merge and rework scenario returns exactly the expected nodes"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] a forward trace from a component lot lists every consignee, matching an ERP extract"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] the as-of point: a trace as of an earlier instant leaves out what was recorded after it, and repeats exactly"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] a cycle ends with each edge once, a genealogy deeper than 64 levels is refused rather than cut short, and bad input is refused"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] the genealogy has no table of its own and the application role cannot write the edges or call the internal step"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > performance (outline risk 6) > [PR-57] the genealogy of a seeded large site is traced within seconds"
+  - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29][PR-57] a mock recall from a lot lists the affected batches and lots, every consignee with what it was delivered, and the reconciliation of delivered against returned; it is stored with its as-of point and hash and reproduces"
 clauses:
   - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
-    deferred:
-      phase: 6
-      reason: "Genealogy edges are written and traced forward for additions and whole-batch rework (listed tests); the genealogy explorer and mock recall that query a seeded split, merge and rework scenario come in Phase 6, whose exit names PR-57 (build outline 11)."
+    tests:
+      - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] a seeded split, merge and rework scenario returns exactly the expected nodes"
+      - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] the as-of point: a trace as of an earlier instant leaves out what was recorded after it, and repeats exactly"
   - clause: "A forward trace from a component lot lists every consignee, matching an ERP extract."
-    deferred:
-      phase: 6
-      reason: "Consignees come from the ERP/WMS adapter, built with contract tests in Phase 6 (build outline 11, whose exit names PR-57); Phase 4 has only the ERP shipping stub."
+    tests:
+      - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] a forward trace from a component lot lists every consignee, matching an ERP extract"
+      - "packages/site-services/test/genealogy/recovery-distribution.test.ts > distribution records (site services 0961; PR-57; D-P6d-0-6, D-P6d-0-7) > [PR-57] a shipment from the ERP/WMS adapter becomes a distribution record with product name and strength, consignee name and address, date, quantity and lot, in the receiving command"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -24,15 +24,30 @@ tests:
   - "apps/tablets-web/test/release/after-release.test.tsx > suspended lots > [L-19][IN-29] lists each suspended lot with its suspended markets and the open recall assessment, linking to its After release tab"
   - "apps/tablets-web/test/release/after-release.test.tsx > After release tab > [L-19][IN-29] shows the suspension per market, its causes with the database's reason, the recall assessment and the ERP stock block"
   - "packages/recipe-core/test/release/after-release.test.ts > which markets a suspension covers (L-19, INV-39; recipe-core 0875) > [L-19][INV-39][IN-29] only a finished lot is suspended, only for the markets of its own set (a decided market outside it gets no row), once per open cause, with one open recall-assessment task"
+  - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once"
+  - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > mock-recall cockpit (IN-29) > [IN-29] QA runs a mock recall from a lot with the authority flag and its reference; the run is sent as chosen"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > mock-recall cockpit (IN-29) > [IN-29] a production person is not offered the run"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > mock-recall cockpit (IN-29) > [IN-29][PR-57] a mock recall shows the reconciliation sheet, the consignees and its hash; the AP signs it off through the ceremony (MOCK_RECALL_SIGN_OFF names the run only)"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > mock-recall cockpit (IN-29) > [IN-29] QA is not offered the sign-off; a run that no longer reproduces cannot be signed off; a signed-off run shows its signer"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > chemical recovery of returned goods (IN-29, PR-48) > [IN-29][PR-48] the stores record the chemical recovery of returns whose signed assessment chose it; the body is what they typed"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > chemical recovery of returned goods (IN-29, PR-48) > [IN-29] a return assessed for destruction, or not yet signed, offers no recovery"
+  - "packages/api-contract/test/contract.test.ts > route table > [PR-57][IN-29] the genealogy and recall namespaces (Phase 6 slice 6d) are GMP only, each route with an example; a trace names kind, id and direction; MOCK_RECALL_SIGN_OFF names the mock recall only"
+  - "packages/site-services/test/genealogy/recovery-distribution.test.ts > chemical recovery (site services 0960; IN-29, PR-48; D-P6d-0-4, D-P6d-0-5) > [IN-29][PR-48] returned goods become recovered material only after QC signed a chemical-recovery assessment, once, with the genealogy link in the same transaction"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [IN-29] from a defective API lot, every finished batch including those with recovered material"
+  - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29][PR-57] a mock recall from a lot lists the affected batches and lots, every consignee with what it was delivered, and the reconciliation of delivered against returned; it is stored with its as-of point and hash and reproduces"
+  - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29] from a deviation: the subjects it linked by then, forward; the licensing-authority flag is recorded with its reference"
+  - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29] the run refuses what is not a mock recall and the application role cannot write the tables"
+  - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29] the authorised person owns the mock recall: only the AP signs it off, with their own signature on the current content, once"
 clauses:
   - clause: "from a defective API lot, list every finished batch"
     tests:
       - "packages/recipe-core/test/release/after-release.test.ts > suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to D-5-3) > [L-19][IN-29][INV-39] a deviation linked upstream of released lots suspends every decided market of each, in the linking transaction, with the ERP block and the AP's task; a lot not yet released only gets the link"
       - "packages/recipe-core/test/release/after-release.test.ts > suspension after release (outline 5.2.6; L-19, IN-29, INV-39; D-5-1 to D-5-3) > [L-19][IN-29][PR-57] a revised LIMS result suspends the lot and every released lot downstream of it through the genealogy; the suspension of 0820's interface does the same"
   - clause: "including those with recovered material from affected batches."
-    deferred:
-      phase: 6
-      reason: "Recovered material (reprocessing and chemical recovery into later batches) is not yet in the genealogy (Phase 4 slice 2 residual D-2b-6: chemical recovery waits for reprocessing); the genealogy explorer and mock recall that list such batches come in Phase 6, whose exit names IN-29 (build outline 11)."
+    tests:
+      - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [IN-29] from a defective API lot, every finished batch including those with recovered material"
+      - "packages/site-services/test/genealogy/recovery-distribution.test.ts > chemical recovery (site services 0960; IN-29, PR-48; D-P6d-0-4, D-P6d-0-5) > [IN-29][PR-48] returned goods become recovered material only after QC signed a chemical-recovery assessment, once, with the genealogy link in the same transaction"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

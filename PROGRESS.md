@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f and 6b).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b and 6d).
 
 ## What this is
 
@@ -126,6 +126,12 @@ adapter worker; endpoint identity (DI-20), native series and original records (D
 context and in review (DI-49), the EMS feed; plant rules PR-15, PR-22, PR-25, PR-27, PR-29, PR-35; screens including the
 trend viewer and the area authorisations. Quick review: Q-6b-1 (alarm acknowledgment scope, recipe-core 0976) fixed.
 Defaults and residuals in the plan's slice 6b section.
+Slice 6d (branch `phase-6/slice-6d`, 16 October, ready for PR): `recipe.genealogy` both ways at any depth as of an
+instant over the insert-only event rows (no genealogy table), chemical recovery of returned goods (site services 0960,
+route `samples.recoverReturn`), distribution records from the ERP adapter (0961), mock recall stored with its hash and
+signed off by the AP, deviation impact query, recurrence warning on the release screen (PR-49), explorer, complaint
+lookup and mock-recall screens (recipe-core 1010 to 1013, tablets 1280). IN-07, IN-29, PR-57 x2, PR-49, PR-50 clauses
+name their tests. Defaults D-P6d-0-*, D-P6d-4 to 10; review fixes and residuals in the plan.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

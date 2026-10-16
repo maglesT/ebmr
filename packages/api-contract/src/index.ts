@@ -214,7 +214,7 @@ export {
   PqrSignOffView,
 } from './ns/pqr.ts';
 export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
-export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
+export { ChemicalRecoveryInput, ChemicalRecoveryView, ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';
 export {
   ArchiveBatchSummary,
@@ -247,6 +247,20 @@ export { AlarmLimitKind, AlarmSubjectKind, PlantAlarmSource, PlantAlarmView } fr
 export { DeviceOriginalView, EquipmentEventView, NativeSampleView, SERIES_PAGE_MAX, SeriesChunkView, SeriesSubjectKind, SeriesTagView } from './ns/equipment-data.ts';
 export { LineStationView, StatusBoardEntry } from './ns/equipment-data.ts';
 export { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
+export {
+  ComplaintLookupView,
+  DeviationImpactView,
+  DistributionRecordView,
+  GenealogyDirection,
+  GenealogyEdgeKind,
+  GenealogyEdgeView,
+  GenealogyNodeKind,
+  GenealogyNodeView,
+  GenealogyTraceView,
+  RecurrenceView,
+  SupplyChainView,
+} from './ns/genealogy.ts';
+export { MockRecallSubjectKind, MockRecallSummaryView, MockRecallView } from './ns/recall.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';

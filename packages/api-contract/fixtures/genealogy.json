@@ -1,0 +1,436 @@
+{
+  "trace": {
+    "start": {
+      "kind": "LOT",
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "label": "API-PCM-2601",
+      "code": "PCM-API",
+      "name": "Paracetamol",
+      "subKind": "API",
+      "state": "RELEASED"
+    },
+    "direction": "FORWARD",
+    "asOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "nodes": [
+      {
+        "kind": "LOT",
+        "id": "a1000000-0000-4000-8000-000000000001",
+        "label": "API-PCM-2601",
+        "code": "PCM-API",
+        "name": "Paracetamol",
+        "subKind": "API",
+        "state": "RELEASED"
+      },
+      {
+        "kind": "BATCH",
+        "id": "b1000000-0000-4000-8000-000000000001",
+        "label": "GBT01-2601",
+        "code": "GBT01",
+        "name": "Paracetamol tablets",
+        "subKind": "PROCESSING",
+        "state": "EXECUTION_COMPLETE"
+      },
+      {
+        "kind": "CONTAINER",
+        "id": "c1000000-0000-4000-8000-000000000001",
+        "label": "OC-GBT01-2601-0001",
+        "code": "GBT01",
+        "name": null,
+        "subKind": null,
+        "state": "CLOSED"
+      },
+      {
+        "kind": "CONTAINER",
+        "id": "c1000000-0000-4000-8000-000000000002",
+        "label": "OC-GBT01-2601-0002",
+        "code": "GBT01",
+        "name": null,
+        "subKind": null,
+        "state": "CLOSED"
+      },
+      {
+        "kind": "BATCH",
+        "id": "b1000000-0000-4000-8000-000000000002",
+        "label": "GBT01-2601-P1",
+        "code": "GBT01",
+        "name": "Paracetamol tablets",
+        "subKind": "PACKAGING",
+        "state": "EXECUTION_COMPLETE"
+      },
+      {
+        "kind": "BATCH",
+        "id": "b1000000-0000-4000-8000-000000000003",
+        "label": "GBT01-2601-P2",
+        "code": "GBT01",
+        "name": "Paracetamol tablets",
+        "subKind": "PACKAGING",
+        "state": "EXECUTION_COMPLETE"
+      },
+      {
+        "kind": "LOT",
+        "id": "f1000000-0000-4000-8000-000000000001",
+        "label": "GBT01-2601-P1",
+        "code": "GBT01",
+        "name": "Paracetamol tablets 500 mg",
+        "subKind": "FINISHED",
+        "state": "RELEASED"
+      },
+      {
+        "kind": "LOT",
+        "id": "f1000000-0000-4000-8000-000000000002",
+        "label": "GBT01-2601-P2",
+        "code": "GBT01",
+        "name": "Paracetamol tablets 500 mg",
+        "subKind": "FINISHED",
+        "state": "RELEASED"
+      },
+      {
+        "kind": "SHIPMENT",
+        "id": "51000000-0000-4000-8000-000000000001",
+        "label": "SH-26001",
+        "code": "GBT01",
+        "name": "Paracetamol tablets 500 mg",
+        "subKind": null,
+        "state": "DIST-PUNE"
+      }
+    ],
+    "edges": [
+      {
+        "node": {
+          "kind": "LOT",
+          "id": "a1000000-0000-4000-8000-000000000001"
+        },
+        "parent": null,
+        "edgeKind": null,
+        "depth": 0
+      },
+      {
+        "node": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000001"
+        },
+        "parent": {
+          "kind": "LOT",
+          "id": "a1000000-0000-4000-8000-000000000001"
+        },
+        "edgeKind": "CONSUMED",
+        "depth": 1
+      },
+      {
+        "node": {
+          "kind": "CONTAINER",
+          "id": "c1000000-0000-4000-8000-000000000001"
+        },
+        "parent": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000001"
+        },
+        "edgeKind": "OUTPUT",
+        "depth": 2
+      },
+      {
+        "node": {
+          "kind": "CONTAINER",
+          "id": "c1000000-0000-4000-8000-000000000002"
+        },
+        "parent": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000001"
+        },
+        "edgeKind": "OUTPUT",
+        "depth": 2
+      },
+      {
+        "node": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000002"
+        },
+        "parent": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000001"
+        },
+        "edgeKind": "PACKAGING_ORDER",
+        "depth": 2
+      },
+      {
+        "node": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000003"
+        },
+        "parent": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000001"
+        },
+        "edgeKind": "PACKAGING_ORDER",
+        "depth": 2
+      },
+      {
+        "node": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000002"
+        },
+        "parent": {
+          "kind": "CONTAINER",
+          "id": "c1000000-0000-4000-8000-000000000001"
+        },
+        "edgeKind": "BULK_ISSUE",
+        "depth": 2
+      },
+      {
+        "node": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000003"
+        },
+        "parent": {
+          "kind": "CONTAINER",
+          "id": "c1000000-0000-4000-8000-000000000002"
+        },
+        "edgeKind": "BULK_ISSUE",
+        "depth": 2
+      },
+      {
+        "node": {
+          "kind": "LOT",
+          "id": "f1000000-0000-4000-8000-000000000001"
+        },
+        "parent": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000002"
+        },
+        "edgeKind": "FINISHED",
+        "depth": 3
+      },
+      {
+        "node": {
+          "kind": "LOT",
+          "id": "f1000000-0000-4000-8000-000000000002"
+        },
+        "parent": {
+          "kind": "BATCH",
+          "id": "b1000000-0000-4000-8000-000000000003"
+        },
+        "edgeKind": "FINISHED",
+        "depth": 3
+      },
+      {
+        "node": {
+          "kind": "SHIPMENT",
+          "id": "51000000-0000-4000-8000-000000000001"
+        },
+        "parent": {
+          "kind": "LOT",
+          "id": "f1000000-0000-4000-8000-000000000001"
+        },
+        "edgeKind": "SHIPPED",
+        "depth": 4
+      }
+    ],
+    "counts": {
+      "lots": 3,
+      "batches": 3,
+      "containers": 2,
+      "shipments": 1
+    }
+  },
+  "lookup": {
+    "query": "GBT01-2601-P1",
+    "lot": {
+      "kind": "LOT",
+      "id": "f1000000-0000-4000-8000-000000000001",
+      "label": "GBT01-2601-P1",
+      "code": "GBT01",
+      "name": "Paracetamol tablets 500 mg",
+      "subKind": "FINISHED",
+      "state": "RELEASED"
+    },
+    "batches": [
+      {
+        "kind": "BATCH",
+        "id": "b1000000-0000-4000-8000-000000000002",
+        "label": "GBT01-2601-P1",
+        "code": "GBT01",
+        "name": "Paracetamol tablets",
+        "subKind": "PACKAGING",
+        "state": "EXECUTION_COMPLETE"
+      },
+      {
+        "kind": "BATCH",
+        "id": "b1000000-0000-4000-8000-000000000001",
+        "label": "GBT01-2601",
+        "code": "GBT01",
+        "name": "Paracetamol tablets",
+        "subKind": "PROCESSING",
+        "state": "EXECUTION_COMPLETE"
+      }
+    ],
+    "deviations": [
+      {
+        "deviationId": "d1000000-0000-4000-8000-000000000001",
+        "ref": "DEV-SITE-1-2026-00012",
+        "kind": "DEVIATION",
+        "title": "Compression force drift on press 2",
+        "classification": "MINOR",
+        "state": "CLOSED"
+      }
+    ],
+    "shipments": [
+      {
+        "shipmentId": "51000000-0000-4000-8000-000000000001",
+        "shipmentNo": "SH-26001",
+        "lotId": "f1000000-0000-4000-8000-000000000001",
+        "lotCode": "GBT01-2601-P1",
+        "productName": "Paracetamol tablets 500 mg",
+        "strength": "500 mg",
+        "dosageForm": "TABLET",
+        "market": "IN",
+        "consigneeCode": "DIST-PUNE",
+        "consigneeName": "Pune Distributors",
+        "consigneeAddress": "12 Station Road, Pune 411001",
+        "quantity": "1200",
+        "unit": "{tbl}",
+        "shippedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "complete": true
+      }
+    ],
+    "upstreamLots": [
+      {
+        "kind": "LOT",
+        "id": "a1000000-0000-4000-8000-000000000001",
+        "label": "API-PCM-2601",
+        "code": "PCM-API",
+        "name": "Paracetamol",
+        "subKind": "API",
+        "state": "RELEASED"
+      }
+    ],
+    "downstreamLots": []
+  },
+  "supplyChain": {
+    "lot": {
+      "kind": "LOT",
+      "id": "f1000000-0000-4000-8000-000000000001",
+      "label": "GBT01-2601-P1",
+      "code": "GBT01",
+      "name": "Paracetamol tablets 500 mg",
+      "subKind": "FINISHED",
+      "state": "RELEASED"
+    },
+    "asOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "lines": [
+      {
+        "lot": {
+          "kind": "LOT",
+          "id": "a1000000-0000-4000-8000-000000000001",
+          "label": "API-PCM-2601",
+          "code": "PCM-API",
+          "name": "Paracetamol",
+          "subKind": "API",
+          "state": "RELEASED"
+        },
+        "depth": 3,
+        "supplier": "SUP-1",
+        "supplierLot": "SB-7781",
+        "manufacturerCode": "MFR-HYD",
+        "consumedBy": [
+          "GBT01-2601"
+        ]
+      }
+    ]
+  },
+  "impact": {
+    "deviationId": "d1000000-0000-4000-8000-000000000001",
+    "ref": "DEV-SITE-1-2026-00012",
+    "asOf": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "batches": [
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000001",
+        "batchNumber": "GBT01-2601",
+        "productCode": "GBT01",
+        "relation": "LINKED"
+      },
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000002",
+        "batchNumber": "GBT01-2601-P1",
+        "productCode": "GBT01",
+        "relation": "DOWNSTREAM"
+      },
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000003",
+        "batchNumber": "GBT01-2601-P2",
+        "productCode": "GBT01",
+        "relation": "DOWNSTREAM"
+      },
+      {
+        "batchId": "b1000000-0000-4000-8000-000000000009",
+        "batchNumber": "GBT01-2602",
+        "productCode": "GBT01",
+        "relation": "SHARED_LOT"
+      }
+    ]
+  },
+  "recurrence": {
+    "lotId": "f1000000-0000-4000-8000-000000000001",
+    "threshold": 3,
+    "windowDays": 365,
+    "warning": true,
+    "items": [
+      {
+        "deviationId": "d1000000-0000-4000-8000-000000000001",
+        "ref": "DEV-SITE-1-2026-00012",
+        "title": "Compression force drift on press 2",
+        "rootCauseCategory": "EQUIPMENT",
+        "productCode": "GBT01",
+        "occurrences": 3,
+        "warning": true,
+        "others": [
+          {
+            "deviationId": "d1000000-0000-4000-8000-000000000003",
+            "ref": "DEV-SITE-1-2026-00003",
+            "raisedAt": {
+              "us": "1791612000000000",
+              "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+            }
+          },
+          {
+            "deviationId": "d1000000-0000-4000-8000-000000000007",
+            "ref": "DEV-SITE-1-2026-00007",
+            "raisedAt": {
+              "us": "1791612000000000",
+              "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "recurrenceQuiet": {
+    "lotId": "f1000000-0000-4000-8000-000000000002",
+    "threshold": 3,
+    "windowDays": 365,
+    "warning": false,
+    "items": [
+      {
+        "deviationId": "d1000000-0000-4000-8000-000000000002",
+        "ref": "DEV-SITE-1-2026-00013",
+        "title": "Label reel changed late",
+        "rootCauseCategory": "HUMAN_ERROR",
+        "productCode": "GBT01",
+        "occurrences": 1,
+        "warning": false,
+        "others": []
+      }
+    ]
+  }
+}

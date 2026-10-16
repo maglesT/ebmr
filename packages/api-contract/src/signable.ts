@@ -61,6 +61,8 @@
  * Phase 4 slice 5b (recipe-core 0870 to 0889; ns/records-lock.ts):
  *  - RECORD_LOCK_ACT AMENDMENT_OPEN   record_lock <batch>/<n>/OPEN/<DEVIATION|CHANGE_RECORD>/<id>  AMENDMENT_OPENED (QA)
  *                    AMENDMENT_CLOSE  record_lock <batch>/<n>/CLOSE                                 AMENDMENT_CLOSED (QA)
+ * Phase 6 slice 6d (recipe-core 1012; ns/recall.ts):
+ *  - MOCK_RECALL_SIGN_OFF  mock_recall <mock recall id>  MOCK_RECALL_SIGNED_OFF (AP), state RUN
  * Phase 4 slice 6c (recipe-core 0910; ns/pqr.ts):
  *  - PQR_SIGN_OFF  pqr_extract <extract id>  PQR_SIGNED_OFF (AP, outside the reviewed batches' records), state EXTRACTED
  * Phase 4 slice 6b (kernel 1170, 1171; ns/archive.ts):
@@ -382,6 +384,11 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('SUPPORT_ACT'),
     act: z.enum(['QA_APPROVE', 'IT_APPROVE']),
     grantId: Uuid,
+  }),
+  z.strictObject({
+    /** Phase 6 slice 6d (ns/recall.ts): the authorised person signs off a mock recall that still reproduces (IN-29, D-P6d-2). */
+    kind: z.literal('MOCK_RECALL_SIGN_OFF'),
+    mockRecallId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

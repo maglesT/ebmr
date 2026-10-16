@@ -23,6 +23,9 @@ The owner may move any of them. The reasons are paraphrased here; the control fi
 | PR-57 | seeded split/merge/rework scenario returns the nodes | genealogy explorer and mock recall (Phase 6 exit names PR-57) |
 | PR-57 | forward trace lists every consignee, matching the ERP | consignees come from the ERP/WMS adapter |
 
+Phase 6 slice 6d (16 October) maps IN-07, IN-29 (recovered material), both PR-57 clauses, PR-49 (third recurrence) and
+PR-50 (impact query) to their tests in the control files; they are no longer deferred.
+
 ## Deferred to Phase 7 (validation pack and hardening; plan slice 7: documentation-type controls)
 
 | Control | Clause (short) | Why |

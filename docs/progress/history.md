@@ -2527,3 +2527,16 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   trend viewer, area authorisations of the qualification matrix. Quick review: one medium fixed (Q-6b-1, an alarm
   acknowledged under the first bound batch's scope only; recipe-core 0976), a test race and CI lint errors fixed;
   defaults D-P6b-A-*, D-P6b-B-*, D-P6b-L-1 to 4 and residuals in the plan's slice 6b section.
+- 2026-10-16: PHASE 6 SLICE 6d (branch phase-6/slice-6d; resumed after a container restart). origin/main (slice 6f) merged.
+  Built on the earlier builder's 6d-0 interfaces, SQL (recipe-core 1010 to 1013, site services 0960, 0961, tablets 1280)
+  and server feature: the web feature `genealogy` (explorer with tree, table, kind filter, as-of instant and CSV export;
+  complaint lookup; API supply chain; deviation impact; mock-recall cockpit with the AP sign-off), the PR-49 recurrence
+  warning above the release screen's tabs, and the chemical recovery route `samples.recoverReturn` with its form. Clause
+  mappings: IN-07, IN-29 (recovered material), PR-57 x2, PR-49, PR-50 name their tests; trace-deferrals.md notes it.
+  Defaults D-P6d-4 to 10 in the plan (D-P6d-6: tablets 1280 to 1289; D-P6d-10: the genealogy DB tests moved to
+  site-services to keep the dependency rule). Quick review (one pass): no critical or high; P6d-R1 (recovery had no route
+  or screen, medium) and P6d-R2 (lint and dependency-rule errors in the slice tests) fixed with tests; the mock-recall
+  example moved to satisfy the DI-05 example rule. Residuals: the mock-recall browser flow (6j), web "not offered" tests
+  run before the session loads, recurrence counted up to now. Local runs (cluster 5439): typecheck, lint of the changed
+  files and deps:check clean; the slice's site-services, tablets-server, api-contract and tablets-web tests passed (web
+  suite 79 files, 564 tests); register valid; handbook check passes.

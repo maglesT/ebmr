@@ -240,6 +240,14 @@ modules:
       packages/site-services/sql: ['^092[5-9]_']
     tests: ['packages/site-services/test/integrations/**']
 
+  - id: ss-genealogy
+    title: Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^096\d_']
+    tests: ['packages/site-services/test/genealogy/**']
+
   - id: ss-receipt-erp-wms
     title: Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A)
     page: modules/site-services.md
@@ -304,6 +312,13 @@ modules:
     migrations:
       packages/recipe-core/sql: ['^095\d_']
     tests: ['packages/recipe-core/test/integrations/**']
+
+  - id: rc-genealogy
+    title: Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^101\d_']
 
   - id: rc-containers
     title: Output containers
@@ -729,6 +744,17 @@ modules:
     contract: [packages/api-contract/src/ns/capa.ts]
     screens: [apps/tablets-web/src/features/capa]
     tests: ['apps/tablets-server/test/capa/**', 'apps/tablets-web/test/capa/**']
+
+  - id: ts-genealogy
+    title: Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^128\d_']
+    server: [apps/tablets-server/src/features/genealogy]
+    contract: [packages/api-contract/src/ns/genealogy.ts, packages/api-contract/src/ns/recall.ts]
+    screens: [apps/tablets-web/src/features/genealogy]
+    tests: ['apps/tablets-server/test/genealogy/**', 'apps/tablets-web/test/genealogy/**']
 
   - id: ts-config-change
     title: Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A)

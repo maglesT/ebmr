@@ -81,6 +81,10 @@ export const ErpShipmentV1 = z.strictObject({
   consigneeAddress: SourceText,
   quantity: SourceValue,
   shippedAt: EpochMicrosText,
+  /** Slice 6d (additive): the market shipped to; required when the finished lot is made for more than one market. */
+  market: z.enum(['IN', 'US', 'EU']).optional(),
+  /** Slice 6d (additive): shipped in quarantine to a contract partner (INV-42); false when left out. */
+  quarantine: z.boolean().optional(),
 });
 
 /**
@@ -89,6 +93,13 @@ export const ErpShipmentV1 = z.strictObject({
  */
 export const ERP_WMS_REFUSAL_CODES: Readonly<Record<string, ErrorClass>> = {
   'EBMR-ERP-001': 'MALFORMED',
+  // Distribution records (site services 0961, slice 6d) and the shipping interlock (0870) the shipment goes through.
+  'EBMR-ERP-020': 'MALFORMED',
+  'EBMR-ERP-021': 'WRONG_IDENTITY',
+  'EBMR-ERP-022': 'OUT_OF_RANGE',
+  'EBMR-SHP-002': 'OUT_OF_RANGE',
+  'EBMR-SHP-003': 'DUPLICATE',
+  'EBMR-SHP-004': 'OUT_OF_RANGE',
   'EBMR-ERP-002': 'WRONG_IDENTITY',
   'EBMR-ERP-003': 'OUT_OF_RANGE',
   'EBMR-ERP-004': 'STALE',

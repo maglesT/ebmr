@@ -328,6 +328,20 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       if (!view) throw notFound('return');
       return view;
     },
+    // Phase 6 slice 6d (site services 0960; IN-29, PR-48): the database checks QC's signed CHEMICAL_RECOVERY assessment,
+    // MATERIAL.HANDLE, once per returned lot, and writes the recovered lot and its genealogy link in this transaction.
+    recoverReturn: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      const recovery = compact({
+        materialCode: body.materialCode, materialName: body.materialName, quantity: body.quantity, unit: body.unit, processReference: body.processReference,
+        expiresAt: body.expiresAt, retestAt: body.retestAt, returnedQuantity: body.returnedQuantity,
+      });
+      const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const { rows } = await c.query<{ r: { lotId: string; lotCode: string } }>('select site.record_chemical_recovery($1, $2::jsonb) as r', [params.lotId, JSON.stringify(recovery)]);
+        return rows[0]?.r ?? null;
+      });
+      if (!out.result) throw notFound('return');
+      return { returnedLotId: params.lotId, recoveredLotId: out.result.lotId, recoveredLotCode: out.result.lotCode };
+    },
   });
   return Promise.resolve();
 }

@@ -27,7 +27,7 @@ import {
   StepScreenView,
   type ContractProofs,
 } from '../src/index.ts';
-import { ARCHIVE_ROUTE_IDS, CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, LIMS_ROUTE_IDS, PQR_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RECORDS_LOCK_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
+import { ARCHIVE_ROUTE_IDS, CONTAINER_ROUTE_IDS, DEVIATION_ROUTE_IDS, EXAMPLES, GENEALOGY_ROUTE_IDS, LIMS_ROUTE_IDS, PQR_ROUTE_IDS, QP_SHIPPING_ROUTE_IDS, RECORDS_LOCK_ROUTE_IDS, RELEASE_ROUTE_IDS, REVIEW_ROUTE_IDS, SLICE_6_ROUTE_IDS, STEP_EXAMPLES_BY_BLOCK, example } from '../src/examples.ts';
 import { TABLET_ENTRY_KINDS_BY_BLOCK, TabletEntryKind, TYPED_ENTRY_KINDS } from '../src/tablet-entries.ts';
 
 const ok = (schema: z.ZodType, value: unknown): boolean => schema.safeParse(value).success;
@@ -214,7 +214,7 @@ describe('route table', () => {
       'plantRules.classifyBetaLactam', 'plantRules.createAreaAuthorisation', 'plantRules.defineAdjacency', 'plantRules.recordAreaAuthorisation', 'plantRules.recordReagentLot', 'plantRules.recordReagentUse',
       'plantRules.recordSpill', 'plantRules.setFacilityRule', 'plantRules.setRoomRule', 'plantRules.withdrawAreaAuthorisation', 'plantRules.withdrawReagentLot', 'pqr.run', 'quality.correctLotReceipt',
       'quality.examineLotReceipt', 'quality.proposeApprovedManufacturer', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotReceipt',
-      'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
+      'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'recall.run', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn', 'samples.recoverReturn',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
       'support.requestGrant', 'support.revokeGrant',
     ]);
@@ -367,6 +367,26 @@ describe('route table', () => {
     expect(body({ productCode: 'GBT01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(true);
     expect(body({ productCode: 'GBT01', periodFrom: '2025-10-01T00:00:00Z', periodTo: '2026-09-30' })).toBe(false);
     expect(body({ productCode: 'GBT 01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(false);
+  });
+
+  it('[PR-57][IN-29] the genealogy and recall namespaces (Phase 6 slice 6d) are GMP only, each route with an example; a trace names kind, id and direction; MOCK_RECALL_SIGN_OFF names the mock recall only', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const id of GENEALOGY_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
+    for (const r of [...Object.values(routes.genealogy), ...Object.values(routes.recall)]) expect(r.installation, r.id).toBe('GMP');
+    for (const r of Object.values(routes.genealogy)) expect(r.mutating, r.id).toBe(false);
+    const id = 'd4e5f6a7-b8c9-4d0e-8f1a-2b3c4d5e6f70';
+    const trace = (q: unknown) => routes.genealogy.trace.query?.safeParse(q).success;
+    expect(trace({ kind: 'LOT', id, direction: 'FORWARD' })).toBe(true);
+    expect(trace({ kind: 'LOT', id, direction: 'FORWARD', asOfUs: '1791612000000000' })).toBe(true);
+    expect(trace({ kind: 'LOT', id, direction: 'SIDEWAYS' })).toBe(false);
+    expect(trace({ kind: 'LOT', id, direction: 'FORWARD', asOfUs: '2026-10-12' })).toBe(false);
+    expect(ok(SignableAction, { kind: 'MOCK_RECALL_SIGN_OFF', mockRecallId: id })).toBe(true);
+    expect(ok(SignableAction, { kind: 'MOCK_RECALL_SIGN_OFF', mockRecallId: id, resultSha256: 'a'.repeat(64) })).toBe(false);
+    const run = (b: unknown) => routes.recall.run.body?.safeParse(b).success;
+    expect(run({ subjectKind: 'LOT', subjectId: id, authorityInformed: false })).toBe(true);
+    expect(run({ subjectKind: 'DEVIATION', subjectId: id, authorityInformed: true, authorityReference: 'CDSCO/2026/17' })).toBe(true);
+    expect(run({ subjectKind: 'BATCH', subjectId: id, authorityInformed: false })).toBe(false);
+    expect(run({ subjectKind: 'LOT', subjectId: id })).toBe(false);
   });
 
   it('the archive namespace (Phase 4 slice 6b) is GMP only, each route with an example; paper-form commands are FRESH_ON_SHARED; ARCHIVE_ACT certifies an export or signs a forms reconciliation', () => {
