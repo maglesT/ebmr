@@ -83,6 +83,11 @@ export async function ensureChangeRecord(db: DatabaseHandle): Promise<string> {
   return E2E_CHANGE_RECORD;
 }
 
+/** Letters only (a to z): a sandbox text never holds a word shaped like a batch or lot number (EBMR-SBX-024, DI-05). */
+export function letters(n: number): string {
+  return [...randomBytes(n)].map((b) => String.fromCharCode(97 + (b % 26))).join('');
+}
+
 export interface GrantedPerson {
   personId: string;
   accountId: string;
@@ -99,7 +104,7 @@ export const officeTerminal = (seed: SiteSeed): string => (seed.installation ===
 export async function grantedPerson(db: DatabaseHandle, seed: SiteSeed, adm: Administration, roleCode: string, name: string): Promise<GrantedPerson> {
   const sandbox = seed.installation === 'SANDBOX';
   const legalName = sandbox ? `TEST-${name}` : name;
-  const loginName = `${sandbox ? 'test-' : ''}${roleCode.toLowerCase().replace(/_/g, '.')}.${randomUUID().slice(0, 8)}`;
+  const loginName = `${sandbox ? 'test-' : ''}${roleCode.toLowerCase().replace(/_/g, '.')}.${letters(8)}`;
   const created = await withCommand(db.app, because(adm.admin, `E2E set-up: a ${roleCode}`), async (c) => {
     const personId = await identity.createPerson(c, 'NATURAL', legalName);
     await identity.recordIdentityVerification(c, {
@@ -142,7 +147,7 @@ export interface Adapter {
  */
 export async function registerAdapter(db: DatabaseHandle, seed: SiteSeed, adm: Administration, system: SourceSystem): Promise<Adapter> {
   const sandbox = seed.installation === 'SANDBOX';
-  const tag = randomBytes(3).toString('hex').toUpperCase();
+  const tag = letters(6).toUpperCase();
   const legalName = `${sandbox ? 'TEST-' : ''}${system} adapter ${tag}`;
   const loginName = `${sandbox ? 'test-' : ''}svc-${system.toLowerCase()}-${tag.toLowerCase()}`;
   const fingerprint = randomBytes(32).toString('hex');
