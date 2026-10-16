@@ -225,7 +225,7 @@ describe('P22: engine roles only from the declared kernel role, at the actor\'s 
       "select e.scope from recipe.execution_command k cross join lateral jsonb_array_elements(k.roles) r join iam.authority_evaluation e on e.id = (r ->> 'evaluationId')::uuid where k.batch_id = $1 and k.kind = 'COMMAND' and k.accepted",
       [runId],
     );
-    expect(scoped.map((r) => r.scope.product)).toEqual([product]);
+    expect(scoped.map((r) => r.scope['product'])).toEqual([product]);
     expect(await violations(sbx)).toEqual([]);
   }, 300_000);
 

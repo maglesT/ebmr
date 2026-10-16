@@ -44,6 +44,9 @@ tests:
   - "packages/kernel/test/identity/authority.test.ts > [DI-21] an archived signer resolves to the name and role valid on the signing date"
   - "packages/kernel/test/identity/authority.test.ts > [DI-21][INV-26][PR-15] expiring a user's SOP training blocks both execution and verification and names the missing item"
   - "packages/kernel/test/review/f79.test.ts > F79: site-scoped qualification requirements are skipped when the request has no site (INV-26, DI-21, IN-04) > [INV-26][DI-21] iam.evaluate_authority: an installation-wide request does not skip the SITE-1 training requirement"
+  - "apps/tablets-server/test/execution/gmp-batch.test.ts > a product-limited qualification requirement applies to batches of that product only (6jc-R16) > [IN-04][DI-21][INV-26][DI-17] a requirement limited to another product does not apply: the operator starts, records and signs PERFORMED on this product's batch, and the signature's evaluation names the batch's product"
+  - "apps/tablets-server/test/execution/gmp-batch.test.ts > a product-limited qualification requirement applies to batches of that product only (6jc-R16) > [IN-04][DI-21][INV-26] a requirement limited to this batch's product applies: the unqualified operator is refused the step signature, and once qualified signs"
+  - "apps/tablets-server/test/execution/gmp-batch.test.ts > a product-limited qualification requirement applies to batches of that product only (6jc-R16) > [IN-04][DI-21][INV-26] a requirement without a product limit still applies to every batch of the site"
 clauses:
   - clause: "Expire a user's SOP training. Execution and verification are both blocked."
     tests:

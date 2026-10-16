@@ -14,6 +14,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type pg from 'pg';
 import { sha256Hex } from '@ebmr/expr';
 import { engine, execution, flow } from '@ebmr/recipe-core';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
@@ -393,12 +394,12 @@ describe('a product-limited qualification requirement applies to batches of that
   const STEP = 'p-disp-sop@';
   const tag = () => randomUUID().slice(0, 8).toUpperCase();
 
-  async function asOwner<T>(fn: (c: { query: (text: string, params?: unknown[]) => Promise<{ rows: Json[] }> }) => Promise<T>): Promise<T> {
+  async function asOwner<T>(fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
     const c = await gmp.db.admin.connect();
     try {
       await c.query('begin');
       await c.query('set local session_replication_role = replica');
-      const r = await fn(c as never);
+      const r = await fn(c);
       await c.query('commit');
       return r;
     } catch (e) {
@@ -415,12 +416,12 @@ describe('a product-limited qualification requirement applies to batches of that
     const recorder = personaIn(gmp, 'approver').personId;
     const id = await asOwner(async (c) => {
       await c.query('insert into iam.qualification_type (code, name, description) values ($1, $2, $3)', [code, `Training ${code}`, 'Test training (6jc-R16)']);
-      const { rows } = await c.query(
+      const { rows } = await c.query<{ id: string }>(
         `insert into iam.qualification_requirement (qualification_code, role_code, scope_product, reason, created_by_person)
          values ($1, 'OPERATOR', $2, 'Training required for the test (6jc-R16)', $3) returning id::text as id`,
         [code, scope.product ?? null, recorder],
       );
-      return String(rows[0]!['id']);
+      return rows[0]!.id;
     });
     return { code, id };
   }
@@ -488,7 +489,7 @@ describe('a product-limited qualification requirement applies to batches of that
     }
   }, 300_000);
 
-  it('[IN-04][DI-21][INV-26] a requirement limited to this batch\'s product applies: the unqualified operator is refused the next step and the step signature, and once qualified signs', async () => {
+  it('[IN-04][DI-21][INV-26] a requirement limited to this batch\'s product applies: the unqualified operator is refused the step signature, and once qualified signs', async () => {
     const { batchId, driver } = await recorded();
     const req = await requirement({ product: gmpMbr.header.product.code });
     try {
