@@ -108,5 +108,7 @@ attempts), `start` (POST `/api/training/attempts`), `completeStep` (POST `/api/t
   whatever number of batches it is bound to.
 - **D-P6g-0-8** Change impact as section 2; a rule-table site value is taken as used by every version authorised in
   its markets (MBR content does not name rule keys).
+- **D-P6g-0-10** Migration ranges (lead, 16 October): kernel 1210-1214, recipe-core 1070-1079, tablets 1310-1319 (unused);
+  checked against the open slices 6c, 6e and 6i. Why: they run in parallel.
 - **D-P6g-0-9** Training exercises live in server code, attempts in the sandbox only; no training state in a GMP
   database (the tables exist there, empty and guarded).

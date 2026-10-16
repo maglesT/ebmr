@@ -1598,6 +1598,21 @@ Migrations that serve several blocks:
 (`tablets-dispensing`, `tablets-compression`, `tablets-ipc`, `tablets-coating`, `packaging-blister`,
 `packaging-bottle` and others).
 
+## ts-dashboards: dashboards, change impact and training mode (Phase 6 slice 6g)
+
+**What it does.** [features/dashboards](../../../apps/tablets-server/src/features/dashboards/index.ts) (GMP) binds the
+`dashboards` and `changeImpact` namespaces ([ns/dashboards.ts](../../../packages/api-contract/src/ns/dashboards.ts)):
+eight dashboards that aggregate the report views in SQL (recipe-core 1070), the report catalogue and its export (the
+rows of one catalogued view as text with their SHA-256), and the change impact over `recipe.change_impact`. Each response
+carries `dataAsOf`, `readAt`, `dataAgeSeconds` and `notForGmpDecisions: true`; each row a drill path. Read-only.
+[features/training](../../../apps/tablets-server/src/features/training/index.ts) is registered on the SANDBOX only:
+the overview (watermark of the TRAINING source, `TEST-` personas, the exercises of
+[exercises.ts](../../../apps/tablets-server/src/features/training/exercises.ts) with the person's attempts) and the
+start and step commands (FRESH_ON_SHARED, so a kiosk taps), kept in the sandbox by kernel 1211.
+
+**Pitfalls.** Periods are site-zone dates (the zone from `app.siteZone`); a start after the end is EBMR-RPT-001. The
+alarm list is capped at 500 rows but the counts never are. Tests: `apps/tablets-server/test/dashboards/`.
+
 ## ts-core: the golden batches
 
 A **golden batch** is a whole batch run end to end, over HTTP, against a real database, whose every quantity, yield

@@ -1512,6 +1512,19 @@ A control column left empty means the register does not name the function; see t
 | [`kernel.apply_listener_share`](../../../packages/kernel/sql/0980_listener_login_roles.sql#sym=kernel.apply_listener_share) | 0980 | `SBX-035` ]<br>`SBX-036` ]<br>`SBX-037` ] |  |
 | [`sandbox.mirror_application_privileges`](../../../packages/kernel/sql/0980_listener_login_roles.sql#sym=sandbox.mirror_application_privileges) | 0980 | `SBX-030` ] | [DI-05](../../../compliance/controls/DI-05.yaml) |
 | [`sandbox.apply_connect_policy`](../../../packages/kernel/sql/1111_connect_policy_unknown_grantee.sql#sym=sandbox.apply_connect_policy) | 1111 | `SBX-038` ] | [DI-05](../../../compliance/controls/DI-05.yaml) |
+## The reporting role and training attempts (Phase 6 slice 6g; kernel 1210, 1211)
+
+[1210_reporting_role.sql](../../../packages/kernel/sql/1210_reporting_role.sql): the login role `ebmr_report` (NOINHERIT,
+member of nothing, connection limit 4), CONNECT on GMP databases only, USAGE on the schema `report`, SELECT on its views
+and EXECUTE on their non-volatile row functions, nothing else. `sandbox.segregation_problems()` reports any other
+privilege, a membership, an elevated attribute, a default privilege, a volatile function it could run, and in a sandbox
+that it can connect; `sandbox.apply_connect_policy()` grants and takes CONNECT accordingly. `report.data_as_of()` is the
+read's transaction time on a primary and the last replayed commit on a replica.
+[1211_training_attempts.sql](../../../packages/kernel/sql/1211_training_attempts.sql): `sandbox.training_attempt` and
+`sandbox.training_step`, insert-only, refused in a GMP database whoever writes (EBMR-SBX-039); `sandbox.start_training`
+and `sandbox.complete_training_step` (the person's own attempt only, EBMR-SBX-040). Tests:
+`packages/kernel/test/sandbox/reporting-and-training.test.ts`.
+
 ## How to test the kernel
 
 | What | Command |

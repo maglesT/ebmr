@@ -101,7 +101,7 @@ describe('change impact (GMP)', () => {
     expect(within(screen.getByTestId('impact-batches')).getAllByRole('listitem')).toHaveLength(v.openBatches.length);
     expect(within(screen.getByTestId('impact-versions')).getByRole('link', { name: v.versions[0]!.label }).getAttribute('href')).toBe(v.versions[0]!.drill);
     const href = screen.getByTestId('impact-export').getAttribute('href') ?? '';
-    expect(JSON.parse(decodeURIComponent(href.slice(href.indexOf(',') + 1))).contentHash).toBe(v.contentHash);
+    expect((JSON.parse(decodeURIComponent(href.slice(href.indexOf(',') + 1))) as { contentHash: string }).contentHash).toBe(v.contentHash);
   });
 });
 
