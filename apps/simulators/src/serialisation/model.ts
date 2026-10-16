@@ -200,7 +200,8 @@ export class L3Stub {
   /** A rejected lot: a decommissioning task for the serials commissioned now (the same task again for a repeat). */
   reject(poolId: string, reason: string): DecommissionTask {
     const pool = this.pool(poolId);
-    const existing = [...this.tasks.values()].find((t) => t.poolId === poolId);
+    // The same task again while it is open; a rejection after a task is done opens a new one.
+    const existing = [...this.tasks.values()].find((t) => t.poolId === poolId && t.state === 'OPEN');
     if (existing) return structuredClone(existing);
     pool.rejected = true;
     const taskId = `DT-${this.nextTask.toString().padStart(6, '0')}`;

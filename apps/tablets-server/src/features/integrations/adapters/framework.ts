@@ -265,7 +265,7 @@ export interface AdapterHealth {
   refused: number;
 }
 
-const ebmrCodeOf = (message: string): string | undefined => /\b(EBMR-[A-Z]+-\d{3})\b/.exec(message)?.[1];
+const ebmrCodeOf = (message: string): string | undefined => /\b(EBMR-[A-Z][A-Z0-9]*-\d{3})\b/.exec(message)?.[1];
 const sqlStateOf = (error: unknown): string | undefined =>
   typeof error === 'object' && error !== null && 'code' in error && typeof (error).code === 'string' ? (error as { code: string }).code : undefined;
 
@@ -504,7 +504,7 @@ export class UnclassifiedFailure extends Error {
 // Systems that are a mapping of message types onto receiving commands (QMS, LIMS, LMS, CMMS)
 // ---------------------------------------------------------------------------------------------------------------
 
-export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS';
+export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'L3';
 
 /** A system whose adapter is only a map of message types to receiving commands of the database (builder B's four). */
 export interface FeedAdapterSpec {

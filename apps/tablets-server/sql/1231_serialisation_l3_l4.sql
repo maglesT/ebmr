@@ -21,8 +21,9 @@
 --                                   EBMR-L3-105 OUT_OF_RANGE    an aggregation whose count is not the shipper's packs (the
 --                                                               aggregation mismatch); a task with more serials than the pool
 --   tab.record_pool_rejection(pool, reason, task)   QA.FLOOR_APPROVE: the OPEN task the L3 answered to QA's rejection
---                                 (EBMR-L3-106 to -108).
---   tab.serial_lookup(answer)     RECORD.READ: the L3's answer to a serial query, answered with the record's lot (the
+--                                 (EBMR-L3-106 to -108). tab.assert_pool_rejection(pool): the same right and pool, checked
+--                                 before the server asks the L3 to reject (nothing is asked for someone who may not).
+--   tab.serial_lookup(answer)     a read (the route needs a session, as every read): the L3's answer to a serial query, answered with the record's lot (the
 --                                 packaging order's batch number) and expiry (recipe.batch_expiry); any L3 lot, expiry,
 --                                 GTIN or packaging order that differs is listed in problems (D-P6c-13) (EBMR-L3-109,
 --                                 -110).
@@ -185,7 +186,7 @@ begin
     if jsonb_typeof(p) is distinct from 'object' or exists (select 1 from jsonb_object_keys(p) k where k not in ('taskId', 'poolId', 'packagingOrder', 'serialCount', 'reason', 'state', 'changedAt'))
        or coalesce(p ->> 'taskId', '') !~ '^[\x21-\x7E]{1,64}$' or coalesce(p ->> 'poolId', '') !~ '^[\x21-\x7E]{1,64}$'
        or coalesce(p ->> 'packagingOrder', '') !~ '^[\x21-\x7E]{1,64}$' or coalesce(p ->> 'serialCount', '') !~ '^(0|[1-9][0-9]{0,17})$'
-       or coalesce(p ->> 'reason', '') !~ '^[\x20-\x7E]{1,500}$' or coalesce(p ->> 'state', '') not in ('OPEN', 'DONE')
+       or coalesce(p ->> 'reason', '') !~ '^[\x20-\x7E]+$' or length(p ->> 'reason') > 500 or coalesce(p ->> 'state', '') not in ('OPEN', 'DONE')
        or coalesce(p ->> 'changedAt', '') !~ '^(0|[1-9][0-9]{0,15})$' then
       raise exception using errcode = 'P0001', message = 'EBMR-L3-101 malformed l3.decommission_task payload: taskId, poolId, packagingOrder, serialCount, reason, state OPEN|DONE and changedAt';
     end if;
@@ -209,7 +210,23 @@ begin
             (v_ctx ->> 'person_id')::uuid, (v_ctx ->> 'correlation_id')::uuid)
     returning id into v_id;
   end if;
-  return jsonb_build_object('outcome', 'ACCEPTED', 'messageId', m.id, 'applied', v_type, 'rowId', v_id);
+  return jsonb_build_object('outcome', 'ACCEPTED', 'messageId', m.id, 'sequenceStatus', v_out ->> 'sequenceStatus', 'alarmId', v_out -> 'alarmId', 'applied', v_type, 'rowId', v_id);
+end
+$$;
+
+-- D-P6c-14 (header): the pool's batch when the actor may reject it.
+create function tab.assert_pool_rejection(p_pool text) returns uuid
+language plpgsql stable security definer set search_path = pg_catalog, tab, iam, plant, pg_temp as $$
+declare
+  sp tab.serial_pool;
+begin
+  perform iam.assert_not_administrator();
+  select * into sp from tab.serial_pool where pool_id = p_pool;
+  if sp.pool_id is null then
+    raise exception using errcode = 'P0001', message = format('EBMR-L3-106 %s is no serial pool of this site', left(coalesce(p_pool, 'NULL'), 64));
+  end if;
+  perform iam.require_permission('QA.FLOOR_APPROVE', plant.batch_scope(sp.batch_id));
+  return sp.batch_id;
 end
 $$;
 
@@ -227,7 +244,7 @@ begin
     raise exception using errcode = 'P0001', message = format('EBMR-L3-106 %s is no serial pool of this site', left(coalesce(p_pool, 'NULL'), 64));
   end if;
   v_actor := iam.require_permission('QA.FLOOR_APPROVE', plant.batch_scope(sp.batch_id));
-  if p_reason is null or p_reason !~ '^[\x20-\x7E]{1,500}$' or btrim(p_reason) = '' then
+  if p_reason is null or p_reason !~ '^[\x20-\x7E]+$' or length(p_reason) > 500 or btrim(p_reason) = '' then
     raise exception using errcode = 'P0001', message = 'EBMR-L3-107 QA rejects a pool with its reason (1 to 500 printable characters)';
   end if;
   select batch_number into v_num from recipe.batch_execution where id = sp.batch_id;
@@ -258,7 +275,6 @@ declare
   v_probs text[] := '{}';
   v_state text;
 begin
-  perform iam.require_permission('RECORD.READ', '{}'::jsonb);
   if jsonb_typeof(p_answer) is distinct from 'object' or coalesce(p_answer ->> 'serial', '') !~ '^[A-Za-z0-9/.-]{1,20}$'
      or coalesce(p_answer ->> 'poolId', '') !~ '^[\x21-\x7E]{1,64}$' or coalesce(p_answer ->> 'gtin', '') !~ '^[0-9]{14}$'
      or coalesce(p_answer ->> 'packagingOrder', '') !~ '^[\x20-\x7E]{1,64}$'
@@ -362,9 +378,9 @@ language sql stable security definer set search_path = pg_catalog, tab, recipe, 
   from recipe.batch_execution b where b.id = p_batch
 $$;
 
-revoke all on function tab.l3_tasks_of(text), tab.l3_shipper_packs(uuid, text), tab.receive_l3_message(jsonb), tab.record_pool_rejection(text, text, jsonb), tab.serial_lookup(jsonb),
+revoke all on function tab.l3_tasks_of(text), tab.l3_shipper_packs(uuid, text), tab.receive_l3_message(jsonb), tab.assert_pool_rejection(text), tab.record_pool_rejection(text, text, jsonb), tab.serial_lookup(jsonb),
   tab.l3_release_problem(uuid), tab.batch_pools_view(uuid) from public;
-grant execute on function tab.receive_l3_message(jsonb), tab.record_pool_rejection(text, text, jsonb), tab.serial_lookup(jsonb), tab.l3_release_problem(uuid),
+grant execute on function tab.receive_l3_message(jsonb), tab.assert_pool_rejection(text), tab.record_pool_rejection(text, text, jsonb), tab.serial_lookup(jsonb), tab.l3_release_problem(uuid),
   tab.batch_pools_view(uuid) to ebmr_app;
 grant select on tab.l3_aggregation, tab.l3_decommission_task to ebmr_app;
 

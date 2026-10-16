@@ -15,7 +15,7 @@ export { LMS } from './systems/lms.ts';
 export { CMMS } from './systems/cmms.ts';
 export { EMS } from './systems/ems.ts';
 export { OPCUA } from './systems/opcua.ts';
-export { L3 } from './systems/l3.ts';
+export { L3, L3_MIRROR_CLASS, L3AggregationV1, L3DecommissionTaskV1 } from './systems/l3.ts';
 
 import type { SourceSystem } from './envelope.ts';
 import type { SystemContract } from './contract.ts';

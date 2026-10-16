@@ -102,6 +102,7 @@ export async function startL3Stub(opts: L3StubServerOptions): Promise<RunningL3S
       res.end(consoleHtml());
       return;
     }
+    if (method === 'GET' && path === '/api/state') return send(res, 200, { head: stub.feed.head().toString(), faults: [...faults, ...stub.faults, ...stub.feed.faults], model: { pools: stub.summaries(), tasks: stub.decommissionTasks() } });
     if (method === 'POST' && path === '/api/fault') {
       const body = await readJson(req);
       const fault = isRecord(body) ? body['fault'] : undefined;

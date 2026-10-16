@@ -17,11 +17,12 @@ import type { AppContext } from '../../../platform/context.ts';
 import { CMMS_ADAPTER } from './cmms/index.ts';
 import { ERP_WMS_ROLE, erpWmsWorker } from './erp-wms/index.ts';
 import { adapterEntry, feedWorker, openAdapterActor, type AdapterHealth, type AdapterWorker } from './framework.ts';
+import { L3_ADAPTER } from './l3/index.ts';
 import { LIMS_ADAPTER } from './lims/index.ts';
 import { LMS_ADAPTER } from './lms/index.ts';
 import { QMS_ADAPTER } from './qms/index.ts';
 
-/** The role of the QMS, LIMS, LMS and CMMS adapters' accounts (D-P6a-B-10: SERVICE_ACCOUNT only). */
+/** The role of the QMS, LIMS, LMS, CMMS and L3 adapters' accounts (D-P6a-B-10: SERVICE_ACCOUNT only). */
 export const FEED_ADAPTER_ROLE = 'SERVICE_ACCOUNT';
 
 type Make = (pool: pg.Pool, code: string, openActor: Parameters<typeof feedWorker>[3], endpoint: string) => AdapterWorker;
@@ -42,6 +43,8 @@ export const ADAPTER_SLOTS: readonly Slot[] = [
   { terminal: 'SRV-LIMS-ADAPTER-01', system: 'LIMS', roleCode: FEED_ADAPTER_ROLE, make: (p, c, o, endpoint) => feedWorker(p, c, LIMS_ADAPTER, o, { endpoint }) },
   { terminal: 'SRV-LMS-ADAPTER-01', system: 'LMS', roleCode: FEED_ADAPTER_ROLE, make: (p, c, o, endpoint) => feedWorker(p, c, LMS_ADAPTER, o, { endpoint }) },
   { terminal: 'SRV-CMMS-ADAPTER-01', system: 'CMMS', roleCode: FEED_ADAPTER_ROLE, make: (p, c, o, endpoint) => feedWorker(p, c, CMMS_ADAPTER, o, { endpoint }) },
+  // Phase 6 slice 6c (PR-42): the serialisation L3 system's feed.
+  { terminal: 'SRV-L3-ADAPTER-01', system: 'L3', roleCode: FEED_ADAPTER_ROLE, make: (p, c, o, endpoint) => feedWorker(p, c, L3_ADAPTER, o, { endpoint }) },
 ];
 
 /** The systems the site runs in MIRROR mode (see the header for LIMS). */
