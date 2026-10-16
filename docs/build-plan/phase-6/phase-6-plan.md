@@ -381,7 +381,10 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     rejected pool's task stays OPEN and the order is not released through serialisation until the site runs the L3
     mirror. Why: a rejected pool's lot is not released anyway; the modes never mix (D-P6a-5).
   - **D-P6c-21** The specimens, the inspection, the line stops and the waiver are rows of their own beside the record,
-    not record entries: the record head, its normalised true copy and the golden outputs stay exact (D-P6-7).
+    not record entries: the record head's facts are unchanged. The golden drivers' new acts each take a second of the
+    frozen clock, so later instants move and the three packaging orders' true-copy hashes were taken again (defect
+    P6c-3: only instants differ, each one minute later; GB-T-02 order 8467d0bf79c0... to f97928738d30..., GB-T-01
+    order 0 84e7e5dd56c4... to 04b571b906d6..., order 1 8f07940fe378... to 6718a46f8c5e...; the batches' hashes hold).
   - **D-P6c-22** The post-use inspection is recorded once every G-21 step of the order is performed (not only when none
     is in progress, D-P6c-6), and the latest inspection is the one that counts.
 - **Residuals (for the lead):** R-6c-1 the specimens and the post-use inspection are not in the record's true copy or
@@ -390,8 +393,8 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
   signing meaning) as recorded; R-6c-3 the label store's ISSUE is not linked to the G-21 ISSUE entry (D-P6c-11);
   R-6c-4 a G-21 step whose master gives no checker signature completes without one (the master's signatures are the
   designer's rule; PR-16 is proven where the master has a checker); R-6c-5 the GB-T-01 and GB-T-02 drivers record the
-  specimens and the inspection, but the golden job runs only on CI (libfaketime), so its first run is the check; the
-  E2E stack was not run locally (the demo seed, release-seed.test.ts, passed).
+  specimens and the inspection; the first golden run moved the orders' hashes (P6c-3, taken again after a content
+  diff on the libfaketime cluster gate6); the demo stack starts and answers /api/meta (checked at the merge of 6b).
 
 ### Slice 6d: genealogy service and explorer, mock recall, distribution records
 

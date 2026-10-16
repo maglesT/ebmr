@@ -53,7 +53,10 @@ describe('integrations routes with data (DI-31)', () => {
     const open = valueOf(await qa.call(I.alarms, { query: { adapterCode: erp.code } })).alarms;
     expect(open.map((a) => [a.alarmId, a.kind]).sort()).toEqual([[gapAlarm, 'SEQUENCE_GAP'], [refusalAlarm, 'MALFORMED']].sort());
     expect(open.find((a) => a.alarmId === gapAlarm)?.summary).toMatch(/2/);
-    expect(valueOf(await qa.call(I.mirrors)).mirrors.find((m) => m.dataClass === 'ERP_LOT_STATUS')).toMatchObject({ mode: 'STAND_IN', stale: false });
+    const mirrors = valueOf(await qa.call(I.mirrors)).mirrors;
+    expect(mirrors.find((m) => m.dataClass === 'ERP_LOT_STATUS')).toMatchObject({ mode: 'STAND_IN', stale: false });
+    // Slice 6c (tablets 1231): the L3 serial-status class is listed under the contract (it answered 500 before the enum knew it).
+    expect(mirrors.find((m) => m.dataClass === 'L3_SERIAL_STATUS')).toMatchObject({ sourceSystem: 'L3', mode: 'STAND_IN', blocking: true, stale: false });
     expect(refusalOf(await qa.call(I.adapter, { params: { adapterCode: 'NO-SUCH-ADAPTER' } }))?.status).toBe(404);
   });
 

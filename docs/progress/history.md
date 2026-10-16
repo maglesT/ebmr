@@ -2561,3 +2561,15 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   (145), the packaging, blister, bottle, G-REL and mutation tests touched by the gate (138), release and GMP seed tests (6),
   contract coverage and platform tests, the whole dom project (646) passed; register valid; handbook checks pass;
   dependency and pin checks clean. Not run locally: the golden job (libfaketime, CI) and the E2E stack.
+
+Slice 6c, merge of main with slice 6b (16 October): conflicts resolved keeping both sides (feed system unions with EMS,
+OPCUA and L3; feature list; adapters EMS, OPCUA and L3; contract routes, namespace owners and examples; web router; coverage
+ids; DI-31 tests; modules.yaml; PROGRESS); handbook regenerated. No migration number or database function shared by 6b
+and 6c. CI fixes in the same push: P6c-3 (golden packaging orders' hashes taken again after a content diff: only instants,
+one minute later, from the driver's one-second tick per new act), P6c-4 (L3_SERIAL_STATUS in the contract and SDK
+mirror enums; the integrations mirror read answered 500), P6c-5 (recipe.label_field_binding registered as audited in
+0990). Local: typecheck, lint, boundaries, register, handbook checks; contract and web tests (631); the conflict, 6b, 6c,
+seed and integrations DB tests on 5432 (192); the demo stack answered /api/meta. Golden on gate6: GB-T-02 green with the
+new hash; the GB-T-01 orders' new hashes are the ones the full local and CI runs produced; two later local GB-T-01 runs
+stopped early on the device-nonce rate limit (120 a minute, wall clock, on a fast idle machine) and once on an INTERNAL
+answer in coating; neither touches 6c code; CI is the check.

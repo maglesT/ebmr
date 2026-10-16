@@ -4,7 +4,7 @@
 --
 -- Handbook: modules/recipe-core.md
 --
---   recipe.label_field_binding   the record fields a template element may bind (D-P6c-2: layout and bindings only, every
+--   recipe.label_field_binding   insert-only, audited: the record fields a template element may bind (D-P6c-2: layout and bindings only, every
 --                                value from the record): code, description, whether an India-domestic label must bind it
 --                                (D-P6c-17, as recipe.india_label_particulars gives them) and the print-job field that
 --                                carries it (batch, mfgDate, expiryDate, mrp, gtin, ndc, serialPoolId), if any.
@@ -73,6 +73,8 @@ insert into recipe.label_field_binding (code, description, india_required, print
   ('H2_QR', 'Schedule H2 QR payload (versioned stub, D-P4-14)', false, null);
 create trigger aa_label_field_binding_insert_only before update or delete on recipe.label_field_binding for each row execute function kernel.reject_mutation();
 create trigger aa_label_field_binding_no_truncate before truncate on recipe.label_field_binding for each statement execute function kernel.reject_mutation();
+-- A reference catalogue like esig.meaning_type: its rows are audited (DI-17), keyed by the binding code.
+select kernel.register_audited_table('recipe.label_field_binding', 'label_field_binding', 'code', true);
 
 -- ---------------------------------------------------------------------------------------------
 -- Templates

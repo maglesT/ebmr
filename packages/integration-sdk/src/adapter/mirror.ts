@@ -22,6 +22,7 @@ export const MIRROR_DATA_CLASSES = [
   'ERP_LOT_STATUS',
   'ERP_ITEM_MASTER',
   'WMS_STOCK',
+  'L3_SERIAL_STATUS',
 ] as const;
 export const MirrorDataClass = z.enum(MIRROR_DATA_CLASSES);
 export type MirrorDataClass = z.infer<typeof MirrorDataClass>;

@@ -873,6 +873,44 @@ because the lesson is about structure.
   web test `[IN-16] the packaging page offers the next coding specimen ...` checks it.
 - **Lesson:** a comparison the database makes is only a check when the person cannot see the answer.
 
+### P6c-3: the golden packaging orders' true-copy hashes moved (slice 6c, CI golden job)
+- **What went wrong.** The 6c build said the specimens and the post-use inspection, being rows of their own, leave the
+  record head and the golden hashes unchanged (D-P6c-21). The first golden run (CI, PR #36) failed three hash checks:
+  GB-T-02's bottle order and GB-T-01's two blister orders. The driver ticks the frozen clock one second before every act
+  (`dbAs`), so the seven or eight new acts per order (the completion view read, three coding and two label specimens,
+  the inspection and its verification) move every later act that many seconds on.
+- **What changed in the true copy.** Diffing the normalised true copy of each order with those acts ticking and with
+  them not ticking (cluster gate6, libfaketime): no key added or removed and no value changed except instants, each one
+  minute later as whole minutes from the issue: GB-T-02 order 9 instants (entries EN-28 to EN-30 at t+24m to t+25m,
+  EN-58 to EN-63 at t+31m to t+32m); each GB-T-01 order 8 instants (EN-28 t+52m to t+53m, EN-29 and EN-30 t+54m to
+  t+55m; the packaging stage's end, its sign-off and lastRecordedUs t+58m to t+59m). With the new acts not ticking the
+  three old hashes come back exactly. The batches' own hashes did not change.
+- **Fix.** The scenario is meant to have these acts and each act takes its own second (the driver's rule), so the pinned
+  hashes are taken again: GB-T-02 order 8467d0bf79c0... to f97928738d30...; GB-T-01 order 0 84e7e5dd56c4... to
+  04b571b906d6...; order 1 8f07940fe378... to 6718a46f8c5e... (full values in
+  [gb-t-02/expected.json](../../apps/tablets-server/test/golden/gb-t-02/expected.json) and
+  [gb-t-01/expected-release.json](../../apps/tablets-server/test/golden/gb-t-01/expected-release.json)).
+- **Lesson:** a row beside the record leaves the record's facts alone, not its clock; a golden output moves with any new
+  act before it, so run the golden job before saying a hash is unchanged.
+
+### P6c-4: the integrations reads answered 500 once the L3 mirror existed (slice 6c, CI)
+- **What went wrong.** Tablets 1231 adds the mirror data class L3_SERIAL_STATUS, but the contract's MirrorDataClassName
+  and the adapter SDK's MIRROR_DATA_CLASSES did not list it, so `integrations.mirrors` built an answer the contract
+  refused (INTERNAL, "does not match the contract").
+- **Fix.** Both enums list L3_SERIAL_STATUS (the contract-enums test keeps them equal); the test `[DI-31] the health page,
+  the adapter detail and the alarm list ...` in
+  [alarm-routes.test.ts](../../apps/tablets-server/test/integrations/alarm-routes.test.ts) now expects the L3 class in
+  the mirror list.
+- **Lesson:** a database catalogue row and the enum that names it are one change; a seed of a new class needs a read of it.
+
+### P6c-5: the label field bindings were not audited (slice 6c, CI)
+- **What went wrong.** recipe-core 0990's `recipe.label_field_binding` was insert-only but not registered as an audited
+  table; the recipe schema's privilege test (every recipe table audited, ADR 0012) listed it.
+- **Fix.** 0990 registers it (`kernel.register_audited_table`, keyed by its code, as esig.meaning_type is); 0990 was not
+  yet merged to main. `[DI-17][INV-01][INV-02][INV-04][INV-17] the application role reads every recipe table ...` in
+  [authorization.test.ts](../../packages/recipe-core/test/lifecycle/authorization.test.ts) passes unchanged.
+- **Lesson:** a reference table is a record table too; the schema meta test is the check, run it with the slice.
+
 ### P6d-R1: the chemical recovery could not be done from the application (slice 6d, review)
 
 **Symptom.** Returned goods that QC assessed and signed for chemical recovery could not be recovered by any user: the
