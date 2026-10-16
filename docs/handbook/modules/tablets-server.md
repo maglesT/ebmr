@@ -1465,6 +1465,18 @@ PPE and decontamination operations to every stage of a hazardous product's new M
 Tests: [governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts),
 [hazard-containment.test.ts](../../../apps/tablets-server/test/designer/hazard-containment.test.ts).
 
+## ts-genealogy: genealogy, complaint lookup and mock recall
+
+Phase 6 slice 6d. [features/genealogy](../../../apps/tablets-server/src/features/genealogy/index.ts) serves the `genealogy`
+namespace (trace, complaint lookup, API supply chain, deviation impact, recurrence; any session, read-only, D-P6d-0-8)
+and the `recall` namespace (mock recalls; the run needs RECALL.MOCK_RUN). Every value is a recipe-core function's
+([reads.ts](../../../apps/tablets-server/src/features/genealogy/reads.ts)); the as-of point is epoch microseconds turned into
+a timestamptz in SQL. The AP's sign-off is the signable action MOCK_RECALL_SIGN_OFF
+([signables.ts](../../../apps/tablets-server/src/features/genealogy/signables.ts); meaning in
+[1280](../../../apps/tablets-server/sql/1280_signing_meanings_mock_recall.sql), D-P6d-6). The chemical recovery route
+`samples.recoverReturn` is in [quality/lims.ts](../../../apps/tablets-server/src/features/quality/lims.ts). Tests:
+[genealogy-routes.test.ts](../../../apps/tablets-server/test/genealogy/genealogy-routes.test.ts).
+
 ## ts-integrations: integration health and the adapters
 
 [features/integrations](../../../apps/tablets-server/src/features/integrations/) (contract

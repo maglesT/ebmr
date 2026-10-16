@@ -14,8 +14,8 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import type { TestDatabase } from '../../../kernel/test/support/db.ts';
-import { signerActor } from '../../../site-services/test/helpers.ts';
-import { ErpWorld } from '../../../site-services/test/erp-wms/support.ts';
+import { signerActor } from '../helpers.ts';
+import { ErpWorld } from '../erp-wms/support.ts';
 
 export const TAG = randomUUID().slice(0, 4).toUpperCase();
 let serial = 0;

@@ -1,7 +1,7 @@
 /**
  * The genealogy in the database (Phase 6 slice 6d; recipe-core 1010, 1011; site services 0960, 0961; PR-57, IN-07,
  * IN-29; defaults D-P6d-1, D-P6d-0-1 to D-P6d-0-7). Every trace runs as the application role through recipe.genealogy;
- * the fixtures are described in support.ts.
+ * the fixtures are described in world.ts.
  *
  * The seeded scenario (split, merge, rework, recovery):
  *   API lot A and excipient lot E -> processing batch G1 -> containers C1, C2, C3 (C3 merged into C2);
@@ -13,7 +13,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
-import { GenealogyWorld, refusal, type Batch, type Lot } from './support.ts';
+import { GenealogyWorld, refusal, type Batch, type Lot } from './world.ts';
 
 let db: TestDatabase;
 let w: GenealogyWorld;

@@ -11,7 +11,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
-import { GenealogyWorld, refusal, unique, type Batch, type Lot } from './support.ts';
+import { GenealogyWorld, refusal, unique, type Batch, type Lot } from './world.ts';
 
 let db: TestDatabase;
 let w: GenealogyWorld;
@@ -137,7 +137,7 @@ describe('mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2)', () => {
     const apSig = await signFor(db, w.ap, aggregate, 'MOCK_RECALL_SIGNED_OFF', 'RUN');
     // QA holds no RECALL.MOCK_SIGN_OFF, even with the AP's signature in hand.
     expect(await refusal(w.run(w.cast.qa, 'select recipe.sign_off_mock_recall($1, $2)::text as r', [id, apSig]))).toMatch(/EBMR-IAM|RECALL\.MOCK_SIGN_OFF|permission/i);
-    const ap2 = await (await import('../../../site-services/test/helpers.ts')).signerActor(db, 'AUTHORISED_PERSON');
+    const ap2 = await (await import('../helpers.ts')).signerActor(db, 'AUTHORISED_PERSON');
     expect(await refusal(w.run(ap2, 'select recipe.sign_off_mock_recall($1, $2)::text as r', [id, apSig]))).toMatch(/EBMR-REL-013 .* recorded by the person who signed it/);
     const signOff = await w.run<string>(w.ap, 'select recipe.sign_off_mock_recall($1, $2)::text as r', [id, apSig]);
     expect(signOff).toMatch(/^[0-9a-f-]{36}$/);
