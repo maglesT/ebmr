@@ -9,7 +9,8 @@
  * at the next start). A system is in MIRROR when any of its mirror data classes is; LIMS has no data class (D-P6a-B-6,
  * LIMS-lite stays the stand-in), so its adapter runs when any data class of the site is in MIRROR (D-P6a-I-2). The EMS
  * (slice 6b) has no data class either (a feed of room observations, D-P6b-B-8) and follows the LIMS rule: a site that
- * connects its external systems runs it, a STAND_IN site still starts no adapter at all.
+ * connects its external systems runs it, a STAND_IN site still starts no adapter at all. The OPC UA adapter (the
+ * gateway's feed of native series, alarms, events and endpoint sessions) follows the same rule (D-P6b-L-1).
  * Workers stop (their cycle ends, their session is closed) when the server closes; their health shows on the
  * integrations routes (AdapterHealthView.worker).
  */
@@ -22,6 +23,7 @@ import { ERP_WMS_ROLE, erpWmsWorker } from './erp-wms/index.ts';
 import { adapterEntry, feedWorker, openAdapterActor, type AdapterHealth, type AdapterWorker } from './framework.ts';
 import { LIMS_ADAPTER } from './lims/index.ts';
 import { LMS_ADAPTER } from './lms/index.ts';
+import { OPCUA_ADAPTER } from './opcua/index.ts';
 import { QMS_ADAPTER } from './qms/index.ts';
 
 /** The role of the QMS, LIMS, LMS and CMMS adapters' accounts (D-P6a-B-10: SERVICE_ACCOUNT only). */
@@ -47,6 +49,8 @@ export const ADAPTER_SLOTS: readonly Slot[] = [
   { terminal: 'SRV-CMMS-ADAPTER-01', system: 'CMMS', roleCode: FEED_ADAPTER_ROLE, make: (p, c, o, endpoint) => feedWorker(p, c, CMMS_ADAPTER, o, { endpoint }) },
   // Slice 6b: no mirror data class; runs as LIMS does, when any data class of the site is in MIRROR (header).
   { terminal: 'SRV-EMS-ADAPTER-01', system: 'EMS', roleCode: FEED_ADAPTER_ROLE, make: (p, c, o, endpoint) => feedWorker(p, c, EMS_ADAPTER, o, { endpoint }) },
+  // Slice 6b: the gateway's OPC UA feed (series, alarms, events, endpoint sessions); the EMS rule (D-P6b-L-1).
+  { terminal: 'SRV-OPCUA-ADAPTER-01', system: 'OPCUA', roleCode: FEED_ADAPTER_ROLE, make: (p, c, o, endpoint) => feedWorker(p, c, OPCUA_ADAPTER, o, { endpoint }) },
 ];
 
 /** The systems the site runs in MIRROR mode (see the header for LIMS and the EMS). */
@@ -58,6 +62,7 @@ export async function mirroredSystems(db: Pick<pg.Pool, 'query'>): Promise<Set<S
   if (out.size > 0) {
     out.add('LIMS');
     out.add('EMS');
+    out.add('OPCUA');
   }
   return out;
 }

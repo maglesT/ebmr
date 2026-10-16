@@ -504,7 +504,7 @@ export class UnclassifiedFailure extends Error {
 // Systems that are a mapping of message types onto receiving commands (QMS, LIMS, LMS, CMMS)
 // ---------------------------------------------------------------------------------------------------------------
 
-export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'EMS';
+export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'EMS' | 'OPCUA';
 
 /** A system whose adapter is only a map of message types to receiving commands of the database (builder B's four). */
 export interface FeedAdapterSpec {
