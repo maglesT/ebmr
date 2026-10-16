@@ -45,6 +45,13 @@ tests:
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-39][PR-56] a signed certification message is taken in only while the lot awaits certification, from the importer's QP: acknowledged ACCEPTED, then CERTIFIED; a QP rejection is visible to the US until its investigation is linked"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-39] a resend of a refused message is evaluated afresh (a bad signature, a lot not yet awaiting certification); only an accepted one is answered with its acknowledgement; a lock timeout is raised, never acknowledged"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39] one outcome path at a time: while a transcription waits for its second person, a message and an in-system QP are refused"
+  - "packages/site-services/test/transfer/transfer.test.ts > the outbound package (site services 0980; L-41) > [DI-39] the status and disposition travel with the lot, and only a released intermediate is packaged"
+  - "packages/site-services/test/transfer/transfer.test.ts > the inbound package (site services 0981; L-41) > [DI-39] a received lot is unusable before local QA acceptance"
+  - "packages/site-services/test/transfer/transfer.test.ts > the inbound package (site services 0981; L-41) > [DI-39] a receipt local QA refused never becomes usable"
+  - "apps/tablets-server/test/transfers/transfer-routes.test.ts > lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot"
+  - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-39] the receipt shows the origin's status, CoA, rule resolutions and hold time; local QA accepts, or refuses with a reason, through the ceremony"
+  - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-39] the stores are not offered the decision on a received lot"
+  - "packages/api-contract/test/contract.test.ts > route table > [DI-31][DI-39] the transfers and federation namespaces (Phase 6 slice 6i) are GMP only, each route with an example; stores and alarm acts are FRESH_ON_SHARED; the site-to-site endpoint needs no session and is read-only; TRANSFER_RECEIPT_DECIDE needs a reason to refuse"
 clauses:
   - clause: "A QA reviewer, a supervisor and an admin each try to certify. All fail."
     tests:

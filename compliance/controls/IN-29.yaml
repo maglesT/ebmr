@@ -39,6 +39,9 @@ tests:
   - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29] from a deviation: the subjects it linked by then, forward; the licensing-authority flag is recorded with its reference"
   - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29] the run refuses what is not a mock recall and the application role cannot write the tables"
   - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29] the authorised person owns the mock recall: only the AP signs it off, with their own signature on the current content, once"
+  - "packages/site-services/test/transfer/transfer.test.ts > the mock recall across sites (recipe-core 1091; IN-29) > [IN-29] a mock recall with one site down is marked incomplete"
+  - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again"
+  - "apps/tablets-web/test/transfers/transfers.test.tsx > federated genealogy (PR-57, IN-29) > [IN-29] a mock recall with one site down is shown incomplete with the last excerpt; QA asks the sites again"
 clauses:
   - clause: "from a defective API lot, list every finished batch"
     tests:

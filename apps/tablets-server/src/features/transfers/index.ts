@@ -64,9 +64,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     },
     prepare: async ({ body, actor, idempotencyKey, requestHash }) => {
       const key = await currentKey();
-      const { lotId, attribution: _attribution, ...rest } = body;
+      const spec = compact({ destination: body.destination, quantity: body.quantity, markets: body.markets, holdUntil: body.holdUntil });
       const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        const p = (await c.query<{ r: { packageId: string; payload: string } }>('select site.prepare_transfer_package($1, $2::jsonb) as r', [lotId, JSON.stringify(compact(rest))])).rows[0]!.r;
+        const p = (await c.query<{ r: { packageId: string; payload: string } }>('select site.prepare_transfer_package($1, $2::jsonb) as r', [body.lotId, JSON.stringify(spec)])).rows[0]!.r;
         await c.query('select site.seal_transfer_package($1, $2)', [p.packageId, key.seal('transfer-package', p.payload)]);
         return p.packageId;
       });

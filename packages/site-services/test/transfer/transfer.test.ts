@@ -189,7 +189,7 @@ describe('the inbound package (site services 0981; L-41)', () => {
   it('the remaining hold time carries over and keeps running (D-P6i-0-5)', async () => {
     const until = now(3);
     const p = await pune.ship(lot.id, goa, '10', { holdUntil: until });
-    expect(JSON.parse(p.payload).hold).toMatchObject({ basis: 'STATED' });
+    expect((JSON.parse(p.payload) as Payload)['hold']).toMatchObject({ basis: 'STATED' });
     const r = await goa.receive(p.payload, p.seal);
     expect(await goa.scalar('select hold_until = $2::timestamptz as v from site.transfer_receipt where id = $1', [r.receiptId, until])).toBe(true);
     expect(await goa.scalar("select site.transfer_hold_remaining($1) between interval '0' and interval '3 seconds' as v", [r.receiptId])).toBe(true);
@@ -205,7 +205,7 @@ describe('the inbound package (site services 0981; L-41)', () => {
     await goa.locallyTested(r2.lotId!);
     await goa.releaseForFurtherProcessing(r2.lotId!);
     const back = await goa.ship(r2.lotId!, pune, '1');
-    expect(JSON.parse(back.payload).hold).toMatchObject({ basis: 'CARRIED', untilUs: String(BigInt(Date.parse(until2)) * 1000n) });
+    expect((JSON.parse(back.payload) as Payload)['hold']).toMatchObject({ basis: 'CARRIED', untilUs: String(BigInt(Date.parse(until2)) * 1000n) });
     const wait = Date.parse(until2) - Date.now() + 300;
     if (wait > 0) await sleep(wait);
     expect(await refusal(goa.run(goa.stores, "select site.reserve_lot($1, gen_random_uuid(), 'B-2', 'TABLETS', 1, 'kg', now() + interval '1 hour') as r", [r2.lotId]))).toMatch(/EBMR-XFR-041|EBMR-SITE-14[24]/);

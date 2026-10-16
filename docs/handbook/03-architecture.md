@@ -42,6 +42,14 @@ links to the file that defines it, so you can check it.
 5. Everything shared between the two products (Tablets now, Injectables later) is in `packages/`; everything that
    belongs to one product is in `apps/`.
 
+**Topology (outline L-41).** One installation per site per edition and environment; a company with several sites runs
+several installations, each with its own database and its own Ed25519 installation key (kernel 1220). Material moves
+between sites as a sealed lot-transfer package: the shipping database builds it, the server seals it, the receiving
+database verifies the seal and creates a local lot in QUARANTINE that local QA accepts before use (site services 0980,
+0981). Genealogy questions that cross a transfer are asked of the other installation through its read-only
+`/api/federation/genealogy` route; the request and the answer are both sealed and the answer carries its as-of point
+(recipe-core 1090). There is no hub in v1 (D-P6i-1).
+
 ## 2. Packages and apps
 
 The repository is a pnpm monorepo. Each folder under `packages/` and `apps/` is one npm package named `@ebmr/<name>`.

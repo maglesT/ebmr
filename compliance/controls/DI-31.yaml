@@ -285,6 +285,17 @@ tests:
   - "packages/kernel/test/inbound/inbound.test.ts > fail-closed mirrors (DI-31, INV-26, INV-38) > [DI-31] a heartbeat from an adapter behind the source does not refresh its mirror"
   - "packages/kernel/test/inbound/inbound.test.ts > fail-closed mirrors (DI-31, INV-26, INV-38) > [DI-31] a synchronisation from an adapter caught up with its source refreshes its mirror and keeps the source mark; a gap counts once a person acknowledges it"
   - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11) > [DI-31] a release with a stale QMS mirror is refused even with a matching fetch record"
+  - "packages/site-services/test/transfer/transfer.test.ts > the outbound package (site services 0980; L-41) > [DI-31] a package is sealed once, by the person who prepared it, with this installation's current key"
+  - "packages/site-services/test/transfer/transfer.test.ts > the inbound package (site services 0981; L-41) > [DI-31] a tampered transfer package is refused"
+  - "packages/site-services/test/transfer/transfer.test.ts > the inbound package (site services 0981; L-41) > [DI-31] a package for another installation is refused"
+  - "packages/site-services/test/transfer/transfer.test.ts > the inbound package (site services 0981; L-41) > [DI-31] an unknown sender and a second import of the same package are refused"
+  - "packages/site-services/test/transfer/transfer.test.ts > genealogy across sites (recipe-core 1090; PR-57) > [DI-31] the federation endpoint refuses an unsigned, replayed, misaddressed or unrelated request"
+  - "apps/tablets-server/test/transfers/transfer-routes.test.ts > lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE"
+  - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation"
+  - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-31] the stores build and seal a package for a trusted installation only; the file is the payload and seal as exchanged"
+  - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-31] a package the database refuses is shown with its reason; nothing was taken in"
+  - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-31] QA approves a proposed installation key through the ceremony; the stores are not offered it"
+  - "packages/api-contract/test/contract.test.ts > route table > [DI-31][DI-39] the transfers and federation namespaces (Phase 6 slice 6i) are GMP only, each route with an example; stores and alarm acts are FRESH_ON_SHARED; the site-to-site endpoint needs no session and is read-only; TRANSFER_RECEIPT_DECIDE needs a reason to refuse"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
