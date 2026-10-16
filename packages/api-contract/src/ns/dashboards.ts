@@ -149,7 +149,7 @@ export const ReportExportView = z.strictObject({
 });
 export type ReportExportView = z.infer<typeof ReportExportView>;
 
-const dashboard = <S extends z.ZodType>(name: string, path: string, summary: string, response: S, withPeriod = true) =>
+const periodDashboard = <S extends z.ZodType>(name: string, path: string, summary: string, response: S) =>
   defineRoute({
     id: `dashboards.${name}`,
     method: 'GET',
@@ -158,20 +158,31 @@ const dashboard = <S extends z.ZodType>(name: string, path: string, summary: str
     auth: 'SESSION',
     mutating: false,
     summary,
-    query: withPeriod ? z.strictObject(periodQuery) : z.strictObject({}),
+    query: z.strictObject(periodQuery),
+    response,
+  });
+const plainDashboard = <S extends z.ZodType>(name: string, path: string, summary: string, response: S) =>
+  defineRoute({
+    id: `dashboards.${name}`,
+    method: 'GET',
+    path: `/api/dashboards/${path}`,
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary,
     response,
   });
 
 export const dashboards = {
-  rightFirstTime: dashboard('rightFirstTime', 'right-first-time', 'Right-first-time batches by QA review day, with each batch (never used for GMP decisions)', RightFirstTimeView),
-  exceptionPareto: dashboard('exceptionPareto', 'exception-pareto', 'Register exceptions by category, largest first, with the cumulative share', ExceptionParetoView),
-  reviewCycleTime: dashboard('reviewCycleTime', 'review-cycle-time', 'Days from execution complete to QA review per batch', ReviewCycleTimeView),
-  deviationAgeing: dashboard('deviationAgeing', 'deviation-ageing', 'Open deviations by age bucket', DeviationAgeingView, false),
-  holdTimeRisk: dashboard('holdTimeRisk', 'hold-time-risk', 'Closed bulk containers against their bright-stock maximum hold', HoldTimeRiskView, false),
-  overdueReviews: dashboard('overdueReviews', 'overdue-reviews', 'Approved MBR versions past their periodic review (PR-05)', OverdueReviewsView, false),
-  pressOee: dashboard('pressOee', 'press-oee', 'Press availability and quality per batch from the state events and counters (D-P6g-0-6)', PressOeeView),
-  alarmTrend: dashboard('alarmTrend', 'alarm-trend', 'Plant alarms across batches by day and code (DI-49)', AlarmTrendView),
-  catalog: dashboard('catalog', 'catalog', 'The report views, their versions, grains and columns (the analytics path)', ReportCatalogView, false),
+  rightFirstTime: periodDashboard('rightFirstTime', 'right-first-time', 'Right-first-time batches by QA review day, with each batch (never used for GMP decisions)', RightFirstTimeView),
+  exceptionPareto: periodDashboard('exceptionPareto', 'exception-pareto', 'Register exceptions by category, largest first, with the cumulative share', ExceptionParetoView),
+  reviewCycleTime: periodDashboard('reviewCycleTime', 'review-cycle-time', 'Days from execution complete to QA review per batch', ReviewCycleTimeView),
+  deviationAgeing: plainDashboard('deviationAgeing', 'deviation-ageing', 'Open deviations by age bucket', DeviationAgeingView),
+  holdTimeRisk: plainDashboard('holdTimeRisk', 'hold-time-risk', 'Closed bulk containers against their bright-stock maximum hold', HoldTimeRiskView),
+  overdueReviews: plainDashboard('overdueReviews', 'overdue-reviews', 'Approved MBR versions past their periodic review (PR-05)', OverdueReviewsView),
+  pressOee: periodDashboard('pressOee', 'press-oee', 'Press availability and quality per batch from the state events and counters (D-P6g-0-6)', PressOeeView),
+  alarmTrend: periodDashboard('alarmTrend', 'alarm-trend', 'Plant alarms across batches by day and code (DI-49)', AlarmTrendView),
+  catalog: plainDashboard('catalog', 'catalog', 'The report views, their versions, grains and columns (the analytics path)', ReportCatalogView),
   export: defineRoute({
     id: 'dashboards.export',
     method: 'GET',
