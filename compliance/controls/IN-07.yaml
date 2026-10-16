@@ -18,14 +18,18 @@ catalog_test: skip a step; completion is refused. From a finished batch, list ev
 implemented_by: {}
 tests:
   - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16][IN-07] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
+  - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404"
+  - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier"
+  - "apps/tablets-web/test/genealogy/genealogy.test.tsx > genealogy explorer (PR-57, IN-07) > [PR-57][IN-07] a trace asked with an as-of instant is sent as microseconds; the tree expands each node once and names a node reached again; the table and the kind filter show the server rows"
+  - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [IN-07] from a finished batch, every input lot and every customer shipment"
 clauses:
   - clause: "skip a step; completion is refused."
     tests:
       - "apps/tablets-server/test/blocks/dispensing/tb-01-db.test.ts > TB-01 review fixes: the exceptions a breach raises, superseded results, closed configurations, skips > [PR-13][PR-16][IN-07] the database never lets a TB-01 to TB-07 step be skipped, even one the MBR marks skippable that moves no material"
   - clause: "From a finished batch, list every input lot and every customer shipment."
-    deferred:
-      phase: 6
-      reason: "Customer shipments are the ERP/WMS adapter's, and the genealogy explorer with its forward and backward lists comes in Phase 6 (build outline 11, whose exit names PR-57 and IN-29); Phase 4 has the ERP shipping stub only."
+    tests:
+      - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [IN-07] from a finished batch, every input lot and every customer shipment"
+      - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

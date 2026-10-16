@@ -880,6 +880,17 @@ statement through the local signing bridge ([access/dsc-bridge.ts](../../../apps
 the loopback endpoint) before the sign request; the ui-kit SignatureDialog shows the DSC step and the banner. Tests:
 [governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx).
 
+## Genealogy explorer, complaint lookup and mock recalls (Phase 6 slice 6d)
+
+[features/genealogy](../../../apps/tablets-web/src/features/genealogy/index.tsx): the explorer (`/genealogy`; tree and table
+both ways, node-kind filter, an as-of instant typed with its offset, CSV export, D-P6d-9), the complaint lookup
+(`/genealogy/lookup`), the API supply-chain report and the deviation impact list, and the mock-recall cockpit
+(`/recall`, `/recall/$mockRecallId`: QA's run with the licensing-authority flag, the reconciliation sheet, the
+consignees, whether it reproduces, the AP's sign-off through the ceremony). The recurrence warning (PR-49) sits above
+every tab of a lot's release screen ([RecurrenceWarning.tsx](../../../apps/tablets-web/src/features/genealogy/RecurrenceWarning.tsx),
+D-P6d-8); the returned-goods screen offers the stores the chemical recovery once QC's signed assessment chose it. Tests:
+[genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.

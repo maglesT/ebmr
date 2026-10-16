@@ -32,11 +32,13 @@ of each database function.
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 17 | 0 | 8 | 26 |
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 4 | 11 |
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
+| [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
 | [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 2 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 18 | 0 | 19 | 36 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
+| [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 14 | 0 | 3 | 8 |
@@ -64,7 +66,7 @@ of each database function.
 | [ts-blocks](#ts-blocks) | Tablets block versions (TB-01 to TB-24) | [modules/tablets-server.md](modules/tablets-server.md) | 43 | 0 | 68 | 65 |
 | [ts-containers](#ts-containers) | Output container acts | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 5 | 2 | 2 |
 | [ts-master-data](#ts-master-data) | Master data (formulas, ERP masters) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 4 | 3 | 2 |
-| [ts-quality](#ts-quality) | Quality (lots, deviations, LIMS-lite, specifications, samples) | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 47 | 9 | 20 |
+| [ts-quality](#ts-quality) | Quality (lots, deviations, LIMS-lite, specifications, samples) | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 48 | 9 | 20 |
 | [ts-planning](#ts-planning) | Planning | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 4 | 3 | 2 |
 | [ts-plant](#ts-plant) | Plant screens and routes | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 12 | 1 | 0 |
 | [ts-review](#ts-review) | Batch record review | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 6 | 9 |
@@ -75,6 +77,7 @@ of each database function.
 | [ts-records](#ts-records) | Record lock and bright stock | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 7 | 3 | 9 |
 | [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 7 | 4 |
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
+| [ts-genealogy](#ts-genealogy) | Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 8 | 2 | 6 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 3 |
@@ -84,7 +87,7 @@ of each database function.
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 1 | 0 | 0 |
 | [ts-core](#ts-core) | Tablets server spine (app, platform, CLI, golden batches, seed) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 17 | 36 |
 | [tablets-web](#tablets-web) | Tablets screens shell (app, API client, devices) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 0 | 8 | 13 |
-| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 4 | 20 |
+| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 4 | 22 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
 | [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 7 | 3 |
 | [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 10 | 7 |
@@ -510,6 +513,24 @@ of each database function.
 
 **Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [PR-51](../../compliance/controls/PR-51.yaml)
 
+## ss-genealogy
+
+**Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
+
+**Migrations** (2):
+
+- `packages/site-services/sql`: [0960_chemical_recovery.sql](../../packages/site-services/sql/0960_chemical_recovery.sql), [0961_distribution_records.sql](../../packages/site-services/sql/0961_distribution_records.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (1): `site.chemical_recovery`
+- Functions (5): `site.erp_apply_shipment`, `site.erp_shipment_distribution_fields`, `site.erp_wms_receive`, `site.lot_dosage_form`, `site.record_chemical_recovery`
+- Triggers (3): `a0_distribution_fields on site.erp_shipment`, `aa_insert_only on site.chemical_recovery`, `aa_no_truncate on site.chemical_recovery`
+
+**Tests** (3): [genealogy.test.ts](../../packages/site-services/test/genealogy/genealogy.test.ts), [recall.test.ts](../../packages/site-services/test/genealogy/recall.test.ts), [recovery-distribution.test.ts](../../packages/site-services/test/genealogy/recovery-distribution.test.ts)
+
+**Controls** (6): [IN-07](../../compliance/controls/IN-07.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-50](../../compliance/controls/PR-50.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
+
 ## ss-receipt-erp-wms
 
 **Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
@@ -597,6 +618,20 @@ of each database function.
 **Tests** (1): [cmms-qms-release.test.ts](../../packages/recipe-core/test/integrations/cmms-qms-release.test.ts)
 
 **Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [IN-25](../../compliance/controls/IN-25.yaml), [PR-23](../../compliance/controls/PR-23.yaml)
+
+## rc-genealogy
+
+**Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
+
+**Migrations** (4):
+
+- `packages/recipe-core/sql`: [1010_genealogy.sql](../../packages/recipe-core/sql/1010_genealogy.sql), [1011_genealogy_recovery_and_dosage_form.sql](../../packages/recipe-core/sql/1011_genealogy_recovery_and_dosage_form.sql), [1012_mock_recall_impact_recurrence.sql](../../packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql), [1013_genealogy_reads.sql](../../packages/recipe-core/sql/1013_genealogy_reads.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (2): `recipe.mock_recall`, `recipe.mock_recall_signoff`
+- Functions (23): `recipe.deviation_impact_batches`, `recipe.deviation_latest_category`, `recipe.deviation_of_product`, `recipe.deviation_recurrence`, `recipe.genealogy`, `recipe.genealogy_batch_number`, `recipe.genealogy_downstream_lots`, `recipe.genealogy_forward_set`, `recipe.genealogy_lookup`, `recipe.genealogy_lot_deviations`, `recipe.genealogy_node_exists`, `recipe.genealogy_node_views`, `recipe.genealogy_step`, `recipe.genealogy_supply_chain`, `recipe.lot_dosage_form`, `recipe.mock_recall_content`, `recipe.mock_recall_reproduces`, `recipe.mock_recall_result_v1`, `recipe.mock_recall_run_query`, `recipe.mock_recall_sha256`, `recipe.mock_recall_starts`, `recipe.run_mock_recall`, `recipe.sign_off_mock_recall`
+- Triggers (4): `aa_insert_only on recipe.mock_recall`, `aa_insert_only on recipe.mock_recall_signoff`, `aa_no_truncate on recipe.mock_recall`, `aa_no_truncate on recipe.mock_recall_signoff`
 
 ## rc-containers
 
@@ -1195,7 +1230,7 @@ of each database function.
 
 **Contract** (5): [deviation.ts](../../packages/api-contract/src/ns/deviation.ts), [quality.ts](../../packages/api-contract/src/ns/quality.ts), [receipt.ts](../../packages/api-contract/src/ns/receipt.ts), [samples.ts](../../packages/api-contract/src/ns/samples.ts), [specifications.ts](../../packages/api-contract/src/ns/specifications.ts)
 
-**Routes** (47):
+**Routes** (48):
 
 | Method | Path | Route | Contract file |
 |---|---|---|---|
@@ -1243,6 +1278,7 @@ of each database function.
 | GET | `/api/quality/returns` | `samples.returns` | [samples.ts](../../packages/api-contract/src/ns/samples.ts) |
 | POST | `/api/quality/returns` | `samples.receiveReturn` | [samples.ts](../../packages/api-contract/src/ns/samples.ts) |
 | POST | `/api/quality/returns/:lotId/assessment` | `samples.assessReturn` | [samples.ts](../../packages/api-contract/src/ns/samples.ts) |
+| POST | `/api/quality/returns/:lotId/chemical-recovery` | `samples.recoverReturn` | [samples.ts](../../packages/api-contract/src/ns/samples.ts) |
 | POST | `/api/quality/samples/:sampleId/dispose` | `samples.dispose` | [samples.ts](../../packages/api-contract/src/ns/samples.ts) |
 | GET | `/api/quality/specifications` | `specifications.list` | [specifications.ts](../../packages/api-contract/src/ns/specifications.ts) |
 | POST | `/api/quality/specifications` | `specifications.draft` | [specifications.ts](../../packages/api-contract/src/ns/specifications.ts) |
@@ -1534,6 +1570,41 @@ of each database function.
 
 **Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [PR-51](../../compliance/controls/PR-51.yaml)
 
+## ts-genealogy
+
+**Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+
+**Migrations** (1):
+
+- `apps/tablets-server/sql`: [1280_signing_meanings_mock_recall.sql](../../apps/tablets-server/sql/1280_signing_meanings_mock_recall.sql)
+
+**Database objects** created in these migrations:
+
+- Functions (2): `tab.aggregate_read_class`, `tab.kernel_signing_meanings`
+
+**Server files** (4): [guidance.ts](../../apps/tablets-server/src/features/genealogy/guidance.ts), [index.ts](../../apps/tablets-server/src/features/genealogy/index.ts), [reads.ts](../../apps/tablets-server/src/features/genealogy/reads.ts), [signables.ts](../../apps/tablets-server/src/features/genealogy/signables.ts)
+
+**Contract** (2): [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts), [recall.ts](../../packages/api-contract/src/ns/recall.ts)
+
+**Routes** (8):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| GET | `/api/genealogy/deviations/:deviationId/impact` | `genealogy.deviationImpact` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
+| GET | `/api/genealogy/lookup` | `genealogy.lookup` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
+| GET | `/api/genealogy/lots/:lotId/recurrence` | `genealogy.recurrence` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
+| GET | `/api/genealogy/lots/:lotId/supply-chain` | `genealogy.supplyChain` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
+| GET | `/api/genealogy/trace` | `genealogy.trace` | [genealogy.ts](../../packages/api-contract/src/ns/genealogy.ts) |
+| GET | `/api/recall/mock-recalls` | `recall.mockRecalls` | [recall.ts](../../packages/api-contract/src/ns/recall.ts) |
+| POST | `/api/recall/mock-recalls` | `recall.run` | [recall.ts](../../packages/api-contract/src/ns/recall.ts) |
+| GET | `/api/recall/mock-recalls/:mockRecallId` | `recall.mockRecall` | [recall.ts](../../packages/api-contract/src/ns/recall.ts) |
+
+**Screens** (6): [GenealogyExplorerPage.tsx](../../apps/tablets-web/src/features/genealogy/GenealogyExplorerPage.tsx), [LookupPages.tsx](../../apps/tablets-web/src/features/genealogy/LookupPages.tsx), [MockRecallPages.tsx](../../apps/tablets-web/src/features/genealogy/MockRecallPages.tsx), [RecurrenceWarning.tsx](../../apps/tablets-web/src/features/genealogy/RecurrenceWarning.tsx), [index.tsx](../../apps/tablets-web/src/features/genealogy/index.tsx), [reads.ts](../../apps/tablets-web/src/features/genealogy/reads.ts)
+
+**Tests** (2): [tablets-server/test/genealogy/genealogy-routes.test.ts](../../apps/tablets-server/test/genealogy/genealogy-routes.test.ts), [tablets-web/test/genealogy/genealogy.test.tsx](../../apps/tablets-web/test/genealogy/genealogy.test.tsx)
+
+**Controls** (6): [IN-07](../../compliance/controls/IN-07.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-50](../../compliance/controls/PR-50.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
+
 ## ts-config-change
 
 **Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
@@ -1805,7 +1876,7 @@ of each database function.
 
 **Tests** (4): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
 
-**Controls** (20): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
+**Controls** (22): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-57](../../compliance/controls/PR-57.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
 
 ## expr
 
