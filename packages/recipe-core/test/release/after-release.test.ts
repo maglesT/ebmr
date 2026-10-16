@@ -23,6 +23,7 @@ import { createChallenge, contentForSigning, sign } from '../../../kernel/src/es
 import { challengeFor, cmd, ensureSealKey, signatureAuth, signWith, testSealKey } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -243,6 +244,7 @@ async function productAndSpecification(content: MbrContent, extraTests: { testCo
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   w = new World(db, await seedCast(db));
   ({ admin, owner } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
@@ -1198,9 +1200,9 @@ describe('recall, rejection after release and disposal (outline 5.2.6; L-19, PR-
     const lot = await readyLot(all, ['IN']);
     await manufacturerRelease(lot);
     // Last in the file: the site's grant stays for the rest of the run.
-    const request = await withCommand(db.app, withReason(admin), async (c) =>
+    const request = await withCommand(db.app, underChange(withReason(admin)), async (c) =>
       (await c.query<{ id: string }>("select iam.add_role_permission('QA_SHOP_FLOOR', 'RELEASE.MANUFACTURER', 'the site lets shop-floor QA hold the release permission') as id")).rows[0]!.id);
-    await withCommand(db.app, withReason(owner), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the role test')", [request]));
+    await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the role test')", [request]));
     expect(await codeOf(afterAct(qaFloor, lot.lotId, 'IN', 'RECALL', 'Recall attempted by shop-floor QA'))).toBe('EBMR-ARL-015');
     expect(await marketState(lot.lotId, 'IN')).toBe('RELEASED');
   }, 180_000);

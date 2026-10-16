@@ -25,6 +25,7 @@ import {
   type AccountKind,
 } from '../../src/identity/admin.ts';
 import { evaluateAuthority } from '../../src/identity/authority.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asTimeTraveller, dbNow, expectPermissionDenied, expectRefused, pause } from '../identity/helpers.ts';
 import { SEED_SITE, seedActor, seedAdministration, seedServiceActor, withReason, type SeedAdministration } from '../identity/seed.ts';
@@ -35,6 +36,7 @@ let adm: SeedAdministration;
 let approver2: ActorContext;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
   approver2 = await seedActor(db, { roleCode: 'PROCESS_OWNER', acknowledgeEsig: false });
 });
@@ -43,9 +45,9 @@ afterAll(async () => {
 });
 
 type Work<T> = Parameters<typeof withCommand<T>>[2];
-const asAdmin = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin), work);
-const asRoleAdmin = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin, 'ROLE_CHANGE'), work);
-const asOwner = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.owner), work);
+const asAdmin = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(adm.admin)), work);
+const asRoleAdmin = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(adm.admin, 'ROLE_CHANGE')), work);
+const asOwner = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(adm.owner)), work);
 const hex = (n = 4): string => randomBytes(n).toString('hex');
 
 async function request(accountId: string, roleCode: string, scope = {}): Promise<string> {
@@ -102,7 +104,7 @@ async function asTableOwner(ctx: ActorContext, sql: string, params: unknown[] = 
   const c = await db.admin.connect();
   try {
     await c.query('begin');
-    await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+    await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(underChange(ctx)))]);
     await c.query(sql, params);
   } finally {
     await c.query('rollback');
@@ -126,10 +128,10 @@ async function race(first: Command, second: Command, commitSecond = false): Prom
   const c2 = await db.app.connect();
   try {
     await c1.query('begin');
-    await c1.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(first.ctx))]);
+    await c1.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(underChange(first.ctx)))]);
     await c1.query(first.sql, first.params);
     await c2.query('begin');
-    await c2.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(second.ctx))]);
+    await c2.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(underChange(second.ctx)))]);
     const pid = (await c2.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]?.pid;
     const state = { settled: false };
     const outcome = c2.query(second.sql, second.params).then(
@@ -220,7 +222,7 @@ describe('grant requests and decisions (DI-16, DI-14)', () => {
   it('[DI-16] a decided grant is never decided again: a rejected or revoked grant is not approved later, an approval is not re-dated or withdrawn', async () => {
     const p = await seedActor(db, { roleCode: 'AUDITOR_READONLY', acknowledgeEsig: false });
     const owner2 = await seedActor(db, { roleCode: 'PROCESS_OWNER', acknowledgeEsig: false });
-    const asOwner2 = <T>(work: Work<T>) => withCommand(db.app, withReason(owner2), work);
+    const asOwner2 = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(owner2)), work);
 
     const rejected = await request(p.accountId, 'STATUS_DISPLAY');
     await asOwner((c) => decideRoleGrant(c, rejected, false, 'not needed'));
@@ -534,7 +536,7 @@ describe('catalogue changes are serialised on the role and see what committed wh
     };
     const begin = async (c: typeof c1, ctx: ActorContext) => {
       await c.query('begin');
-      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(underChange(ctx)))]);
     };
     const outcomes: string[] = [];
     try {
@@ -716,10 +718,12 @@ describe('a permission reaches a role only through an approved request or a soft
   it('[DI-18][DI-16] outside a command only the software-release identity adds a permission to a role: without an actor, or as anyone else, the owner is refused', async () => {
     const role = await customRole(['RECORD.READ'], ['HUMAN'], 'ADMINISTRATION_SECURITY');
     /** One insert by owner-level code outside any command (always rolled back), under the given pipeline identity. */
-    const insertOutsideCommand = async (roleCode: string | null): Promise<{ permission_code: string }[]> => {
+    const insertOutsideCommand = async (roleCode: string | null, guardOff = true): Promise<{ permission_code: string }[]> => {
       const c = await db.admin.connect();
       try {
         await c.query('begin');
+        // Configuration change control (DI-09) refuses first; it is switched off inside this rolled-back transaction so the role-permission guard is what is proved.
+        if (guardOff) await c.query('alter table iam.role_permission disable trigger a00_config_change');
         if (roleCode) {
           await c.query('select kernel.set_actor_context($1::jsonb)', [JSON.stringify({
             person_id: NIL, account_id: NIL, role_code: roleCode, session_id: NIL, source: 'SYSTEM', site_zone: 'UTC', correlation_id: randomUUID(),
@@ -736,6 +740,9 @@ describe('a permission reaches a role only through an approved request or a soft
     };
     await expectRefused(insertOutsideCommand(null), 'EBMR-IAM-039', /outside a command, only a software release adds permissions to roles/);
     await expectRefused(insertOutsideCommand('SYSTEM_ADMINISTRATOR'), 'EBMR-IAM-039', /outside a command, only a software release adds permissions to roles/);
+    // Without the guard switched off, change control refuses the same writes first.
+    await expectRefused(insertOutsideCommand(null, false), 'EBMR-CFG-001');
+    await expectRefused(insertOutsideCommand('SYSTEM_ADMINISTRATOR', false), 'EBMR-CFG-001');
     // The software release (as the catalogue migrations run) adds it; the static rules still apply.
     expect(await insertOutsideCommand('SOFTWARE_RELEASE')).toEqual([{ permission_code: 'RECORD.EXPORT' }]);
     expect(await permissionsOf(role)).toEqual(['RECORD.READ']);

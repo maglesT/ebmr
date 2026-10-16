@@ -22,6 +22,7 @@ import { authenticate, changeSecret } from '../../src/identity/authentication.ts
 import { authorize, evaluateAuthority, requirePermission, withGuardedCommand } from '../../src/identity/authority.ts';
 import { AuthenticationFailedError } from '../../src/identity/errors.ts';
 import { openSession } from '../../src/identity/sessions.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asDefinerCommand, asSuperuserTransaction, asTimeTraveller, dbNow, expectPermissionDenied, expectRefused, pause } from './helpers.ts';
 import {
@@ -35,11 +36,13 @@ import {
   type SeedAdministration,
   type SeededActor,
 } from './seed.ts';
+import { openSupportGrant, seedSupportEngineer, supportLogin } from './support-grant.ts';
 
 let db: TestDatabase;
 let adm: SeedAdministration;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
 });
 afterAll(async () => {
@@ -47,8 +50,8 @@ afterAll(async () => {
 });
 
 type Work<T> = Parameters<typeof withCommand<T>>[2];
-const asAdmin = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin), work);
-const asOwner = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.owner), work);
+const asAdmin = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(adm.admin)), work);
+const asOwner = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(adm.owner)), work);
 
 async function grantRole(account: string, role: string, scope = {}): Promise<string> {
   const id = await asAdmin((c) => requestRoleGrant(c, { accountId: account, roleCode: role, scope, reason: `needs ${role}` }));
@@ -165,7 +168,7 @@ describe('access life cycle (DI-16)', () => {
   });
 
   it('[DI-16] the recertification interval is a policy value allowed between 3 and 12 months', async () => {
-    const set = (v: string) => withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => setPolicy(c, 'recertification.interval_months', v, 'test'));
+    const set = (v: string) => withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => setPolicy(c, 'recertification.interval_months', v, 'test'));
     await expectRefused(set('2'), 'EBMR-IAM-110');
     await expectRefused(set('13'), 'EBMR-IAM-110');
     await set('3');
@@ -179,7 +182,11 @@ describe('authority at the moment of action (DI-17)', () => {
     const roles = (await db.app.query<{ code: string }>('select code from iam.role where is_kernel order by code')).rows.map((r) => r.code);
     expect(roles).toHaveLength(33); // 32 with EU_QP_READER (kernel 1160), 33 with INSPECTION_READER (kernel 1171)
     for (const role of roles) {
-      const actor = role === 'SERVICE_ACCOUNT' ? await seedServiceActor(db) : await seedActor(db, { roleCode: role, acknowledgeEsig: false });
+      // VENDOR_SUPPORT logs in only inside a support grant (kernel 1202); its authority needs only the account.
+      const actor =
+        role === 'SERVICE_ACCOUNT' ? await seedServiceActor(db)
+        : role === 'VENDOR_SUPPORT' ? await seedSupportEngineer(db)
+        : await seedActor(db, { roleCode: role, acknowledgeEsig: false });
       const { rows } = await db.app.query<{ code: string; allowed: boolean; expected: boolean }>(
         `select p.code, (iam.evaluate_authority($1, $2, p.code, '{}'::jsonb, null, null) ->> 'allowed')::boolean as allowed,
                 exists (select 1 from iam.role_permission rp where rp.role_code = $3 and rp.permission_code = p.code and rp.removed_at is null) as expected
@@ -299,7 +306,10 @@ describe('administrator separation (DI-18, INV-11)', () => {
         await c.query('insert into testgmp.sample (batch_id, value) values ($1, 1)', [randomUUID()]);
       });
     await expectRefused(guarded(adm.admin), 'EBMR-IAM-042', /DI-18/);
-    const vendor = await seedActor(db, { roleCode: 'VENDOR_SUPPORT', acknowledgeEsig: false });
+    // Kernel 1202 (DI-08): a vendor support login needs a live, customer-approved support grant first.
+    const engineer = await seedSupportEngineer(db);
+    await openSupportGrant(db, engineer);
+    const vendor = await supportLogin(db, engineer);
     await expectRefused(guarded(vendor), 'EBMR-IAM-042');
     await guarded(await seedActor(db, { acknowledgeEsig: false }));
   });
@@ -386,7 +396,7 @@ describe('INV-11 bypass attempts', () => {
   });
 
   it('[INV-11] bypass: the catalogue cannot be used to merge administration and GMP permissions', async () => {
-    const asAdminRoles = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin, 'ROLE_CHANGE'), work);
+    const asAdminRoles = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(adm.admin, 'ROLE_CHANGE')), work);
     await expectRefused(asAdminRoles((c) => c.query("select iam.add_role_permission('SYSTEM_ADMINISTRATOR', 'STEP.EXECUTE')")), 'EBMR-IAM-033');
     const code = `SITE_VIEWER_${randomBytes(2).toString('hex').toUpperCase()}`;
     const read = await asAdminRoles(async (c) => {
@@ -400,7 +410,7 @@ describe('INV-11 bypass attempts', () => {
   });
 
   it('[DI-16][DI-18][DI-17] a permission reaches a role only when a second person approves the request; nobody requests or approves one for a role they hold', async () => {
-    const asAdminRoles = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin, 'ROLE_CHANGE', 'extend the verifier bundle'), work);
+    const asAdminRoles = <T>(work: Work<T>) => withCommand(db.app, underChange(withReason(adm.admin, 'ROLE_CHANGE', 'extend the verifier bundle')), work);
     const op = await seedActor(db, { roleCode: 'VERIFIER', acknowledgeEsig: false });
     // A process owner (who approves access requests) who is also a verifier.
     const verifierApprover = await seedActor(db, { roleCode: 'PROCESS_OWNER', acknowledgeEsig: false });
@@ -420,8 +430,8 @@ describe('INV-11 bypass attempts', () => {
     // The requester never approves; a holder of the role never approves (it would extend their own
     // authority); approving needs IAM.GRANT_APPROVE; the application cannot write the rows.
     await expectRefused(asAdmin((c) => decideRolePermission(c, req, true, 'self-approved')), 'EBMR-IAM-032');
-    await expectRefused(withCommand(db.app, withReason(verifierApprover), (c) => decideRolePermission(c, req, true, 'for my own role')), 'EBMR-IAM-032');
-    await expectRefused(withCommand(db.app, withReason(op), (c) => decideRolePermission(c, req, true, 'mine')), 'EBMR-IAM-040');
+    await expectRefused(withCommand(db.app, underChange(withReason(verifierApprover)), (c) => decideRolePermission(c, req, true, 'for my own role')), 'EBMR-IAM-032');
+    await expectRefused(withCommand(db.app, underChange(withReason(op)), (c) => decideRolePermission(c, req, true, 'mine')), 'EBMR-IAM-040');
     await expectPermissionDenied(db.app.query("update iam.role_permission_request set status = 'APPROVED' where id = $1", [req]));
     await expectPermissionDenied(db.app.query("insert into iam.role_permission (role_code, permission_code) values ('VERIFIER', 'STEP.SUPERVISE')"));
     expect(await canSupervise()).toBe(false);
@@ -435,7 +445,7 @@ describe('INV-11 bypass attempts', () => {
     expect(decided).toMatchObject({ status: 'APPROVED', decided_by_person: adm.owner.personId });
     const catalogue = await db.app.query('select role_code, permission_code from iam.role_permission where id = $1', [decided?.role_permission_id]);
     expect(catalogue.rows).toEqual([{ role_code: 'VERIFIER', permission_code: 'STEP.SUPERVISE' }]);
-    await expectRefused(withCommand(db.app, withReason(adm.owner), (c) => decideRolePermission(c, req, false, 'too late')), 'EBMR-IAM-039', /already approved/);
+    await expectRefused(withCommand(db.app, underChange(withReason(adm.owner)), (c) => decideRolePermission(c, req, false, 'too late')), 'EBMR-IAM-039', /already approved/);
 
     // A rejected request never becomes live. Removing a permission takes it away at once.
     const rejected = await asAdminRoles((c) => requestRolePermission(c, { roleCode: 'VERIFIER', permission: 'DEVIATION.APPROVE_INLINE' }));
@@ -453,11 +463,11 @@ describe('INV-11 bypass attempts', () => {
 
   it('[DI-18][INV-11] bypass: even the table owner, inside a command, adds a permission to a role only through an approved request', async () => {
     const insert = (id: string) =>
-      asDefinerCommand(db, withReason(adm.admin, 'ROLE_CHANGE'), (c) =>
+      asDefinerCommand(db, underChange(withReason(adm.admin, 'ROLE_CHANGE')), (c) =>
         c.query("insert into iam.role_permission (id, role_code, permission_code) values ($1, 'OPERATOR', 'RECORD.LEGAL_HOLD')", [id]));
     await expectRefused(insert(randomUUID()), 'EBMR-IAM-039', /approved by a second person/);
     // Nor can a request be born approved, or a decision be forged by the requester.
-    const forged = (sql: string, params: unknown[]) => asDefinerCommand(db, withReason(adm.admin, 'ROLE_CHANGE'), (c) => c.query(sql, params));
+    const forged = (sql: string, params: unknown[]) => asDefinerCommand(db, underChange(withReason(adm.admin, 'ROLE_CHANGE')), (c) => c.query(sql, params));
     await expectRefused(
       forged(
         `insert into iam.role_permission_request (role_code, permission_code, reason, status, requested_by_person, requested_by_account, decided_by_person, decided_at, role_permission_id)
@@ -466,7 +476,7 @@ describe('INV-11 bypass attempts', () => {
       ),
       'EBMR-IAM-039',
     );
-    const req = await withCommand(db.app, withReason(adm.admin, 'ROLE_CHANGE'), (c) => requestRolePermission(c, { roleCode: 'OPERATOR', permission: 'RECORD.LEGAL_HOLD' }));
+    const req = await withCommand(db.app, underChange(withReason(adm.admin, 'ROLE_CHANGE')), (c) => requestRolePermission(c, { roleCode: 'OPERATOR', permission: 'RECORD.LEGAL_HOLD' }));
     await expectRefused(
       forged("update iam.role_permission_request set reason = 'widened' where id = $1", [req]),
       'EBMR-IAM-039',
@@ -476,7 +486,7 @@ describe('INV-11 bypass attempts', () => {
       forged("update iam.role_permission_request set status = 'APPROVED', decided_by_person = $2, role_permission_id = gen_random_uuid() where id = $1", [req, adm.admin.personId]),
       'EBMR-IAM-032',
     );
-    await withCommand(db.app, withReason(adm.owner), (c) => decideRolePermission(c, req, false, 'operators never place legal holds'));
+    await withCommand(db.app, underChange(withReason(adm.owner)), (c) => decideRolePermission(c, req, false, 'operators never place legal holds'));
     expect((await db.app.query("select 1 from iam.role_permission where role_code = 'OPERATOR' and permission_code = 'RECORD.LEGAL_HOLD'")).rowCount).toBe(0);
   });
 

@@ -15,6 +15,7 @@ import { createSealKeyRing, hmacSealKey, type SealKeyProvider } from '../../src/
 import { contentForSigning, createChallenge, sign, type Challenge, type SignatureResult } from '../../src/esig/signing.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
 import { seedActor, seedAdministration, seedAuthn, withFreshAuth, type SeedActorOptions, type SeededActor } from '../identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import type { TestDatabase } from '../support/db.ts';
 
 export { expectPermissionDenied, expectRefused, asSuperuserTransaction, asTimeTraveller } from '../identity/helpers.ts';
@@ -212,7 +213,8 @@ export function qaApprover(db: TestDatabase): Promise<SeededActor> {
 
 export async function setPolicy(db: TestDatabase, key: EsigPolicyKey, value: string): Promise<void> {
   const qa = await qaApprover(db);
-  await run(db, qa, (c) => setEsigPolicy(c, key, value, 'test configuration', 'CC-TEST-001'));
+  await ensureFixtureChangeRecord(db);
+  await run(db, underChange(qa), (c) => setEsigPolicy(c, key, value, 'test configuration', 'CC-TEST-001'));
 }
 
 export async function dbCount(db: TestDatabase, sql: string, params: unknown[] = []): Promise<number> {

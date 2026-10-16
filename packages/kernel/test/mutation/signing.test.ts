@@ -37,6 +37,7 @@ import { createAggregateState, transition } from '../../src/state/engine.ts';
 import { seedAdministration, seedAuthn, withReason, type SeededActor } from '../identity/seed.ts';
 import { endPool, openPool } from '../harness/pools.ts';
 import { asOwner } from '../platform/helpers.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import {
   asSuperuserTransaction,
@@ -63,6 +64,7 @@ let db: TestDatabase;
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await ensureSealKey(db);
 });
 
@@ -227,7 +229,7 @@ describe('independence on the person (esig.check_independence)', () => {
   it('[DI-35][DI-17][INV-03] a type independent of VERIFIED binds in either order: its signer cannot verify the record afterwards, even on the only record that holds the type', async () => {
     // A customer signature point, independent of VERIFIED. It is new, so no other record holds it:
     // the reverse rule must be triggered by this record's own signatures.
-    const qa = await qaApprover(db);
+    const qa = underChange(await qaApprover(db));
     const code = `MUT_IND_${hex(2).toUpperCase()}`;
     await run(db, qa, (c) => addMeaningType(c, code, {
       title: 'Line clearance checked', meaningText: 'As second person, I checked the line clearance before this step.',
@@ -519,7 +521,7 @@ describe('sign (esig.sign)', () => {
   });
 
   it('[DI-35][DI-36] a signature type that changed after the challenge cannot be signed with that challenge', async () => {
-    const qa = await qaApprover(db);
+    const qa = underChange(await qaApprover(db));
     const code = `MUT_SEAL_${hex(2).toUpperCase()}`;
     await run(db, qa, (c) => addMeaningType(c, code, {
       title: 'Seal checked', meaningText: 'As second person, I checked the seal of this container.',

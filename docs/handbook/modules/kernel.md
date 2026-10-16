@@ -1081,6 +1081,92 @@ the 0130 heartbeat); `iam.lms_mirror_problem()` gives the EBMR-INT-010 words for
 [overrides-and-lms-mirror.test.ts](../../../packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts). The inbound
 framework itself (1180) is in [integrations](integrations.md#the-adapter-framework-phase-6-slice-6a-0).
 
+## Configuration change control (kernel 1195)
+
+[1195_configuration_change_control.sql](../../../packages/kernel/sql/1195_configuration_change_control.sql) (Phase 6
+slice 6f, builder A; [DI-09](../../../compliance/controls/DI-09.yaml); defaults D-P6f-1, D-P6f-A-1 to A-4 in the
+[phase 6 plan](../../build-plan/phase-6/phase-6-plan.md)). Every configuration change needs a change-record id.
+
+- **Change records.** `platform.change_record` (insert-only: number, title, description, the configuration areas it may
+  change) and `platform.change_record_event` (APPROVED, CLOSED). `platform.raise_change_record` (CONFIG.CHANGE_RAISE),
+  `platform.approve_change_record(number, signature)` (CONFIG.CHANGE_APPROVE; the caller's own CONFIG_CHANGE_APPROVED
+  e-signature of `config_change_record <number>` in state OPEN; never the raiser, EBMR-CFG-014) and
+  `platform.close_change_record` (CONFIG.CHANGE_CLOSE). A record is OPEN, then APPROVED, then CLOSED.
+- **The guard.** `platform.register_config_area(code, table, ...)` (owner-only, from migrations) puts a table under
+  control: trigger `a00_config_change` (BEFORE INSERT OR UPDATE) calls `platform.require_change_record`, which refuses a
+  row unless the validated actor context carries `change_record` naming an APPROVED, not CLOSED record covering the area
+  (EBMR-CFG-001 none, -002 unknown, -003 not approved or closed, -004 another area). Rows written under the
+  software-release identity (migrations) pass as a release. Because it is a trigger, every writer is covered, today's and
+  later ones. TypeScript passes the number as `ActorContext.changeRecord` ([command.ts](../../../packages/kernel/src/db/command.ts)).
+  Areas: PLATFORM_SETTING (with the 6a adapter modes and freshness bounds), IAM_POLICY, ESIG_POLICY, ESIG_MEANING,
+  MARKET_POLICY, SITE_VALUE; [1196](../../../packages/kernel/sql/1196_config_areas_roles_retention.sql) adds ROLE,
+  ROLE_PERMISSION (a removal is an update and becomes a version too), RETENTION_RULE_SET and RETENTION_RULE (lead
+  decision D-P6f-A-9); recipe-core 1050 adds RBE_RULE. A person's role grant and a person-to-person delegation are not
+  configuration (their own signed IAM acts).
+- **Versions, as of and diff.** Trigger `zz_config_version` writes every configuration row to `platform.config_version`
+  (insert-only: area, item key, value columns, the instant it became valid, basis CHANGE_RECORD, RELEASE or
+  BEFORE_CONTROL, the change record). Existing rows were back-filled when each area was registered.
+  `platform.config_as_of(at)` and `platform.config_diff(from, to)` read them; [config/change-control.ts](../../../packages/kernel/src/config/change-control.ts)
+  wraps them.
+- **Tests.** [change-control.test.ts](../../../packages/kernel/test/config/change-control.test.ts): refusals per
+  precondition, bypass attempts as the application role, the approval rules, the diff for a past date, and two scans: every
+  registered table carries both triggers, and every table named like configuration (`setting`, `policy`, `site_value`,
+  `alarm_limit`, `rbe_rule`, `config` ...) is registered or listed with the reason it is not configuration. A new
+  configuration table fails that scan until it is registered. Tests that set configuration for another purpose use the
+  fixture record of [support/change-record.ts](../../../packages/kernel/test/support/change-record.ts) (`underChange`).
+
+## Vendor support, the contract giver's reviewer and the India DSC (kernel 1202 to 1205)
+
+Phase 6 slice 6f, builder B.
+
+**Vendor support ([1202_support_grant.sql](../../../packages/kernel/sql/1202_support_grant.sql), [DI-08](../../../compliance/controls/DI-08.yaml),
+D-P6f-2).** An account holding VENDOR_SUPPORT authenticates only inside a live `iam.support_grant`: requested by IT's
+administrator (`iam.request_support_grant`, SUPPORT.GRANT_REQUEST) for one named HUMAN account, approved by two
+signatures of two other people, QA (SUPPORT_ACCESS_QA_APPROVED: QA MBR approver or authorised person) and IT
+(SUPPORT_ACCESS_IT_APPROVED: process owner), recorded by `iam.approve_support_grant` in the signing command. The second
+approval writes `iam.support_grant_activation` with a window of 1 to `iam.support_grant_max_hours` (default 8) hours;
+nothing extends it. `iam.authn_resolve` (replaced from 0160) refuses a support authentication outside a grant
+(SUPPORT_NO_LIVE_GRANT) or for a signature (SUPPORT_CANNOT_SIGN), records the attempt and raises SUPPORT_ACCESS_REFUSED;
+each support authentication raises SUPPORT_ACCESS_USED for review. A support session records its grant
+(`iam.support_session`) and `iam.session_state` (replaced from 0160) answers EXPIRED once the grant has ended or was
+revoked (`iam.revoke_support_grant`), so every command and read stops (EBMR-IAM-114). Messages EBMR-IAM-180 to -189.
+Tests: [support-grant.test.ts](../../../packages/kernel/test/identity/support-grant.test.ts).
+
+**The contract giver's reviewer ([1204_contract_giver_reviewer.sql](../../../packages/kernel/sql/1204_contract_giver_reviewer.sql),
+[IN-30](../../../compliance/controls/IN-30.yaml)).** The role CONTRACT_GIVER_REVIEWER gains CONTRACT_GIVER.READ (READ_ONLY);
+a trigger on `iam.role_permission` keeps the role at READ permissions only, whoever adds one (EBMR-IAM-190). QA grants
+the access (CONTRACT_GIVER_ACCESS.GRANT); the access and the logged reads are recipe-core 1060.
+
+**India DSC ([1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql), [1205_dsc_configuration_areas.sql](../../../packages/kernel/sql/1205_dsc_configuration_areas.sql),
+[IN-10](../../../compliance/controls/IN-10.yaml), decision 0001 item 3, D-P6f-3, D-P6f-4).** The policy `esig.india_dsc`
+takes OFF (default), TEST_CA and LICENSED (`esig.policy_allowed_values`; `esig.set_policy` and `esig.policy_values`
+replaced). TEST_CA needs a live `esig.dsc_trust_anchor` of that kind; LICENSED is refused until a licensed CA or eSign
+provider is configured after the legal opinion (EBMR-ESIG-081). `esig.dsc_meaning_setting` says per meaning whether a DSC
+is needed (default proposal: APPROVED and MANUFACTURER_RELEASE). For such a meaning the challenge carries the statement
+`esig.dsc_statement` (canonical JSON of the challenge id, the content hash and the meaning); the signer's token signs it
+through a local bridge; in the signing command the server verifies the chain to the anchor and the signature
+([dsc.ts](../../../packages/kernel/src/esig/dsc.ts#sym=verifyDsc)) and `esig.record_dsc_signature` stores it after its own
+checks (same transaction, the challenge's statement, the chain ending at the live anchor). A deferred trigger refuses to
+commit such a signature without its DSC (EBMR-ESIG-084). The anchors and per-meaning settings are configuration areas
+(DSC_ANCHOR, DSC_ANCHOR_RETIREMENT, DSC_MEANING) under change records. The test CA
+([dsc-test-ca.ts](../../../packages/kernel/src/esig/dsc-test-ca.ts)) is generated at run time; it is never the CCA root and
+its certificates are not legally valid (banner TEST_CA_BANNER). Messages EBMR-ESIG-080 to -085 (090 to 099 belong to the
+stub of kernel 0250). Tests: [dsc.test.ts](../../../packages/kernel/test/esig/dsc.test.ts).
+
+**DSC enrolment ([1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql), review fix
+of IN-10).** A DSC is accepted only from the certificate enrolled for the person who signs. The person enrols the
+certificate of their own token in their own command: the token signs `esig.dsc_enrolment_statement` (the person and the
+account), the server verifies chain and signature ([dsc.ts](../../../packages/kernel/src/esig/dsc.ts#sym=enrolDsc)) and
+`esig.enrol_dsc_certificate` stores it (`esig.dsc_enrolment`, insert-only). A certificate is live for one person only
+(EBMR-ESIG-086); a new enrolment ends the person's old one; an enrolment counts only under the anchor it was verified
+against. `esig.end_dsc_enrolment` ends one (the person, or QA with MBR.APPROVE; EBMR-ESIG-088). `esig.record_dsc_signature`
+(replaced) refuses a certificate that is not the signer's live enrolment (EBMR-ESIG-087).
+
+> **Why this exists**
+> - **Pharma reason:** supplier access is limited, approved by the regulated company and time-boxed (Annex 11, 21 CFR
+>   11.10(d)); the IT Act recognises a digital signature with a licensed CA's certificate (sections 3A and 5, paraphrased).
+> - **Control:** DI-08, IN-30, IN-10.
+
 ## Installation
 
 [0001_bootstrap.sql](../../../packages/kernel/sql/0001_bootstrap.sql) creates the roles and schemas.

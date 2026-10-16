@@ -247,6 +247,11 @@ export interface RiskReduction {
   riskClass?: string;
   /** Reference id of the risk assessment with the written rationale. */
   rationale?: string;
+  /**
+   * REVIEW_BY_EXCEPTION only (PR-52): the validation that shows the step's exceptions are reliably flagged; one of the
+   * validations of the version's change record (recipe-core 1050 refuses SUBMIT otherwise).
+   */
+  validationRef?: string;
 }
 
 /** Author-confirmed golden inputs and expected results for calculations (outline 6.4, 6.5; DI-04). */

@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '@ebmr/kernel';
 import { passwordActor } from '@ebmr/test-kit';
+import { withChangeRecord } from '../../../../packages/kernel/test/support/change-record.ts';
 import type { DeviceReadingPort } from '../../src/platform/ports.ts';
 import { outcomeOf } from '../execution/support.ts';
 import { newRun, PCM, reachPcm, report, startRig, stopRig, type Rig } from './room-scales-support.ts';
@@ -61,7 +62,7 @@ async function weighingsOf(runId: string): Promise<number> {
 /** platform.set_setting by the installation's process owner, with a reason. */
 async function setMaxAge(seconds: string): Promise<void> {
   const owner = await passwordActor(rig.server.db, rig.server.seed.bootstrap.owner, rig.server.seed.bootstrap.owner.fingerprint, { reasonCode: 'CHANGE_CONTROL', reasonText: `F38: reading age ${seconds} s`, correlationId: randomUUID() });
-  await withCommand(rig.server.db.app, owner, (c) => c.query("select platform.set_setting('device.reading_max_age_s', $1)", [seconds]));
+  await withCommand(rig.server.db.app, await withChangeRecord(rig.server.db, owner), (c) => c.query("select platform.set_setting('device.reading_max_age_s', $1)", [seconds]));
 }
 
 describe('F38: the maximum age of a scale reading is the database\'s policy (DI-28)', () => {

@@ -15,13 +15,16 @@ export type NotificationDepartment = z.infer<typeof NotificationDepartment>;
 export const NotificationView = z.strictObject({
   notificationId: Uuid,
   department: NotificationDepartment,
-  event: z.enum(['MANUFACTURER_RELEASED', 'MANUFACTURER_REJECTED']),
-  subjectKind: z.literal('FINISHED_LOT'),
+  /** ENVIRONMENT_EXCURSION (Phase 6 slice 6f, recipe-core 1051): a room condition outside its limit during a batch. */
+  event: z.enum(['MANUFACTURER_RELEASED', 'MANUFACTURER_REJECTED', 'ENVIRONMENT_EXCURSION']),
+  subjectKind: z.enum(['FINISHED_LOT', 'BATCH']),
   subjectId: Uuid,
   subjectLabel: z.string().min(1),
   message: z.string().min(1),
-  /** The signature that caused it, and its signer. */
-  signatureId: Uuid,
+  /** The signature that caused it (a release decision), and its signer. */
+  signatureId: Uuid.optional(),
+  /** The exception of the batch's register that caused it (an excursion), raised by `by`. */
+  exceptionId: z.string().min(1).optional(),
   by: PersonRef,
   at: Instant,
   acknowledgements: z.array(z.strictObject({ by: PersonRef, at: Instant })),

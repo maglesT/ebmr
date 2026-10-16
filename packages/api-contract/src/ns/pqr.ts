@@ -111,6 +111,24 @@ export const PqrExtractSummaryView = z.strictObject({
 });
 export type PqrExtractSummaryView = z.infer<typeof PqrExtractSummaryView>;
 
+/**
+ * One typed CPP value of a batch record (query version 2, recipe-core 1062; PR-09): a valid value of a critical process
+ * parameter, IPC result or endpoint (PARAMETER), or a current critical calculation such as a yield (CALCULATION), with
+ * the typed value as recorded.
+ */
+export const PqrCppView = z.strictObject({
+  batchNumber: z.string(),
+  kind: z.enum(['PARAMETER', 'CALCULATION']),
+  ref: z.string(),
+  id: z.string(),
+  step: z.string(),
+  attempt: z.number().int().positive(),
+  value: z.record(z.string(), z.unknown()),
+  unit: z.string().nullable(),
+  failed: z.boolean(),
+});
+export type PqrCppView = z.infer<typeof PqrCppView>;
+
 export const PqrExtractView = PqrExtractSummaryView.extend({
   /** Whether a re-run of the same query version on the same parameters gives the stored hash now. */
   reproduces: z.boolean(),
@@ -120,6 +138,8 @@ export const PqrExtractView = PqrExtractSummaryView.extend({
   batches: z.array(PqrBatchView),
   deviations: z.array(PqrDeviationView),
   changes: z.array(PqrChangeView),
+  /** The typed CPP values (empty for an extract of query version 1). */
+  cpp: z.array(PqrCppView),
 });
 export type PqrExtractView = z.infer<typeof PqrExtractView>;
 

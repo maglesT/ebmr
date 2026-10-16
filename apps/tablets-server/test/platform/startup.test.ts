@@ -31,6 +31,7 @@ import {
   type DatabaseHandle,
   type SiteSeed,
 } from '@ebmr/test-kit';
+import { withChangeRecord } from '../../../../packages/kernel/test/support/change-record.ts';
 import { buildApp } from '../../src/app.ts';
 import { ConfigError, parseConfig } from '../../src/config.ts';
 import { openSweeperActor, startSweeper } from '../../src/features/execution/sweeper.ts';
@@ -141,7 +142,7 @@ async function setSiteZone(db: DatabaseHandle, seed: SiteSeed, zone: string): Pr
     correlationId: randomUUID(),
   });
   try {
-    await withCommand(db.app, admin, (c) => identity.setPolicy(c, 'site.zone', zone, 'DI-27 test: the site moves to another time zone'));
+    await withCommand(db.app, await withChangeRecord(db, admin), (c) => identity.setPolicy(c, 'site.zone', zone, 'DI-27 test: the site moves to another time zone'));
   } finally {
     await identity.endSession(db.app, admin.sessionId);
   }
@@ -156,7 +157,7 @@ async function recordSiteZoneBefore0940(db: DatabaseHandle, seed: SiteSeed, zone
   const c = await db.admin.connect();
   try {
     await c.query('begin');
-    await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(admin))]);
+    await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(await withChangeRecord(db, admin)))]);
     await c.query('alter table iam.policy_value disable trigger aa_site_zone_iam_policy_value');
     await c.query("insert into iam.policy_value (key, value, set_by_person, set_by_account, reason) values ('site.zone', $1, $2, $3, 'DI-27 test: recorded before kernel 0940')", [zone, admin.personId, admin.accountId]);
     await c.query('alter table iam.policy_value enable trigger aa_site_zone_iam_policy_value');

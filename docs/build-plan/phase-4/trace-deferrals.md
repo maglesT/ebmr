@@ -151,3 +151,11 @@ output), PR-32.1, PR-34.1, PR-36.1, PR-39.1, PR-46.1, PR-49.1, PR-50.1 and .3, P
 
 **Phase 5 deferrals (point 2 above):** PR-26 clause (hose to wrong destination) and PR-28's two clauses stay deferred to
 phase 5; they must be re-targeted (or the tooling changed) when Phase 6 raises `current_phase` to 5 or more.
+
+## Phase 6 slice 6f: clauses now mapped (16 October 2026)
+
+The clauses deferred to Phase 6 for slice 6f now name their passing tests in the control files: DI-08 clause 1, DI-09
+clauses 2 and 3, DI-26 clause 3, PR-52 clause 2, IN-30 clause 2, IN-39 clause 2, IN-10 clause 2 (with the test CA
+standing for the CCA root, D-P6f-4; the real chain is verified at deployment), IN-27 clause 1, IN-33 clause 1 and PR-09
+clause 2. DI-08 clause 2 stays deferred to Phase 7. PR-49 clause 2 is slice 6d's. No control text, catalog test, target
+phase or `expert_decision` changed.

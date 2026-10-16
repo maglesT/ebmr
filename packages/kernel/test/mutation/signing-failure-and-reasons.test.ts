@@ -44,12 +44,14 @@ import {
   testActor,
 } from '../esig/helpers.ts';
 import { seedAuthn, type SeededActor } from '../identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await ensureSealKey(db);
 });
 
@@ -174,7 +176,7 @@ describe('esig.signing_misuse: what a logged refusal accuses (DI-19, kernel 0950
   it('[DI-19][DI-38] the components a signing needs come from the challenge\'s own signature type and version: the private component alone is misuse for a version that needs all components, not for one the relaxation covers', async () => {
     // A customer signature point whose newest version (3) tightened re-authentication to every component; its
     // versions 1 and 2 were relaxable. No other type of the catalogue has a version 3.
-    const qa = await qaApprover(db);
+    const qa = underChange(await qaApprover(db));
     const code = `MUT_K2_${randomUUID().slice(0, 4).toUpperCase()}`;
     await run(db, qa, (c) => addMeaningType(c, code, {
       title: 'Line cleared', meaningText: 'I performed the line clearance before this step.', category: 'EXECUTION', roleClass: 'PERFORMER',

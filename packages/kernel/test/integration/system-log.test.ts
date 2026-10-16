@@ -8,12 +8,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../src/db/command.ts';
 import { decideRoleGrant, requestRoleGrant, setPolicy } from '../../src/identity/admin.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { seedActor, seedAdministration, seedAuthn, withReason } from '../identity/seed.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
 });
 afterAll(async () => {
   await db.drop();
@@ -47,7 +49,7 @@ describe('system log (DI-22)', () => {
     expect(Number(grantEvents[0]?.n)).toBeGreaterThanOrEqual(2);
 
     // 3. Configuration change: a policy value.
-    await withCommand(db.app, withReason(admin, 'POLICY_CHANGE', 'tighter lockout'), (c) => setPolicy(c, 'authn.lockout_threshold', '4', 'tighter lockout'));
+    await withCommand(db.app, underChange(withReason(admin, 'POLICY_CHANGE', 'tighter lockout')), (c) => setPolicy(c, 'authn.lockout_threshold', '4', 'tighter lockout'));
     const { rows: policyEvents } = await db.admin.query<{ reason: string; person: string }>(
       "select payload ->> 'reason_code' as reason, payload -> 'actor' ->> 'person_id' as person from kernel.audit_event where chain_key = 'iam_policy:authn.lockout_threshold' and table_name = 'iam.policy_value' order by id desc limit 1",
     );

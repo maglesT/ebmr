@@ -136,6 +136,12 @@ export function SignatureDialog(p: SignatureDialogProps) {
             {(p.state === 'awaitingSecret' || p.state === 'signing') && c.challenge ? (
               <>
                 <ManifestationPreview preview={c.challenge.manifestation} />
+                {c.challenge.dsc ? (
+                  // IN-10: the India DSC second signature; while the anchor is a test CA the banner says it is not legally valid.
+                  <Banner tone={c.challenge.dsc.banner ? 'test' : 'info'} title={c.challenge.dsc.banner ?? 'Digital signature certificate needed'}>
+                    <p data-testid="dsc-step">This signature also needs your Class 3 digital signature certificate: keep your token connected; it signs the same content when you confirm.</p>
+                  </Banner>
+                ) : null}
                 <Countdown seconds={p.secondsLeft} />
                 {c.attemptError ? <RefusalNotice envelope={c.attemptError} tone="warning" /> : null}
                 {c.challenge.requires.includes('PIN') ? (

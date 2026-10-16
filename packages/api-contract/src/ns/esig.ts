@@ -50,6 +50,54 @@ export type SignableContentView = z.infer<typeof SignableContentView>;
 
 export const SignatureComponent = z.enum(['USER_ID', 'PASSWORD', 'PIN']);
 
+/**
+ * India DSC (IN-10; kernel 1203): what the signer's Class 3 token must sign through the local signing bridge, present on a
+ * challenge only when its meaning needs a DSC now. `statement` is the exact text (canonical JSON over the challenge, the
+ * content hash and the meaning); `banner` is shown while the trust anchor is a test certificate authority.
+ */
+export const DscRequirementView = z.strictObject({
+  mode: z.enum(['TEST_CA', 'LICENSED']),
+  statement: z.string().min(1),
+  banner: z.string().nullable(),
+});
+export type DscRequirementView = z.infer<typeof DscRequirementView>;
+
+/** The token's signature over the statement (base64) and its certificate chain (base64 DER, the signer's first, root last). */
+export const DscSubmission = z.strictObject({
+  signature: z.string().regex(/^[A-Za-z0-9+/=]{40,1400}$/),
+  chain: z.array(z.string().regex(/^[A-Za-z0-9+/=]{100,22000}$/)).min(2).max(6),
+});
+export type DscSubmission = z.infer<typeof DscSubmission>;
+
+export const DscConfigurationView = z.strictObject({
+  mode: z.enum(['OFF', 'TEST_CA', 'LICENSED']),
+  /** Shown while the anchor is a test certificate authority (decision 0001 item 3). */
+  banner: z.string().nullable(),
+  anchors: z.array(z.strictObject({ anchorId: Uuid, kind: z.enum(['TEST_CA', 'LICENSED']), label: z.string(), subject: z.string(), rootSha256: z.string(), recordedAt: z.string(), live: z.boolean() })),
+  meanings: z.array(z.strictObject({ meaning: z.string(), required: z.boolean() })),
+});
+export type DscConfigurationView = z.infer<typeof DscConfigurationView>;
+
+/**
+ * The signer's own DSC enrolment (kernel 1206; IN-10): a DSC is accepted only from the certificate enrolled for the person
+ * who signs. `statement` is what the token signs to enrol (the person and the account); null while the option is off.
+ */
+export const DscEnrolmentView = z.strictObject({
+  statement: z.string().min(1).nullable(),
+  banner: z.string().nullable(),
+  enrolments: z.array(z.strictObject({
+    enrolmentId: Uuid,
+    leafSubject: z.string(),
+    leafSerial: z.string(),
+    leafSha256: z.string(),
+    leafValidTo: z.string(),
+    anchorLabel: z.string(),
+    recordedAt: z.string(),
+    live: z.boolean(),
+  })),
+});
+export type DscEnrolmentView = z.infer<typeof DscEnrolmentView>;
+
 export const ChallengeView = z.strictObject({
   challengeId: Uuid,
   aggregateType: z.string(),
@@ -70,6 +118,8 @@ export const ChallengeView = z.strictObject({
     meaningText: z.string(),
     zone: z.string(),
   }),
+  /** Phase 6 slice 6f (IN-10): the DSC second signature this meaning needs now. */
+  dsc: DscRequirementView.optional(),
 });
 export type ChallengeView = z.infer<typeof ChallengeView>;
 
@@ -158,6 +208,8 @@ export const esig = {
        * command with the act.
        */
       companionChallengeId: Uuid.optional(),
+      /** Phase 6 slice 6f (IN-10): the DSC over the challenge's statement, when the challenge asked for one. */
+      dsc: DscSubmission.optional(),
     }),
     response: SignOutcomeView,
   }),
@@ -182,5 +234,91 @@ export const esig = {
     summary: 'Signatures on an aggregate, with their validity',
     query: z.strictObject({ aggregateType: z.string().min(1), aggregateId: z.string().min(1) }),
     response: z.strictObject({ signatures: z.array(ManifestationView) }),
+  }),
+  dscConfiguration: defineRoute({
+    id: 'esig.dscConfiguration',
+    method: 'GET',
+    path: '/api/esig/dsc',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The India DSC option: its mode, trust anchors and the meanings that need a DSC (IN-10)',
+    response: DscConfigurationView,
+  }),
+  setDscMode: defineRoute({
+    id: 'esig.setDscMode',
+    method: 'POST',
+    path: '/api/esig/dsc/mode',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Switch the India DSC option (OFF, TEST_CA; LICENSED stays refused until a licensed provider is configured) under a change record (QA)',
+    body: withAttribution({ mode: z.enum(['OFF', 'TEST_CA', 'LICENSED']), changeRecord: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/), reason: z.string().trim().min(1).max(2000) }),
+    response: DscConfigurationView,
+  }),
+  registerDscAnchor: defineRoute({
+    id: 'esig.registerDscAnchor',
+    method: 'POST',
+    path: '/api/esig/dsc/anchors',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Register the trust anchor (root certificate, base64 DER) DSC chains must end at; TEST_CA only in v1 (QA, change record)',
+    body: withAttribution({
+      kind: z.enum(['TEST_CA', 'LICENSED']),
+      label: z.string().trim().min(1).max(200),
+      rootCertificate: z.string().regex(/^[A-Za-z0-9+/=]{100,22000}$/),
+      changeRecord: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/),
+      reason: z.string().trim().min(1).max(2000),
+    }),
+    response: DscConfigurationView,
+  }),
+  setDscMeaning: defineRoute({
+    id: 'esig.setDscMeaning',
+    method: 'POST',
+    path: '/api/esig/dsc/meanings',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Whether a signature meaning needs a DSC while the option is on (QA, change record)',
+    body: withAttribution({ meaning: z.string().min(1).max(64), required: z.boolean(), changeRecord: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/), reason: z.string().trim().min(1).max(2000) }),
+    response: DscConfigurationView,
+  }),
+  dscEnrolment: defineRoute({
+    id: 'esig.dscEnrolment',
+    method: 'GET',
+    path: '/api/esig/dsc/enrolment',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The signed-in person\'s DSC enrolments and the statement their token signs to enrol a certificate (IN-10)',
+    response: DscEnrolmentView,
+  }),
+  enrolDsc: defineRoute({
+    id: 'esig.enrolDsc',
+    method: 'POST',
+    path: '/api/esig/dsc/enrolment',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Enrol the certificate of your own token: its signature over the enrolment statement and its chain (IN-10)',
+    body: withAttribution({ dsc: DscSubmission }),
+    response: DscEnrolmentView,
+  }),
+  endDscEnrolment: defineRoute({
+    id: 'esig.endDscEnrolment',
+    method: 'POST',
+    path: '/api/esig/dsc/enrolment/end',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'End a DSC enrolment (a lost token, a new certificate): your own, or anyone\'s as QA (IN-10)',
+    body: withAttribution({ enrolmentId: Uuid, reason: z.string().trim().min(1).max(2000) }),
+    response: DscEnrolmentView,
   }),
 } as const;

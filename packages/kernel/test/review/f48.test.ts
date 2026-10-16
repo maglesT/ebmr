@@ -27,6 +27,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { nodeClock, runDriftCheck, type TimeReference } from '../../src/time/drift-monitor.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { grantPermission, installStubHooks, registerValidatedTimeSource, testActor } from '../platform/helpers.ts';
 
@@ -96,6 +97,7 @@ async function incidentRequests(node: string): Promise<number> {
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await installStubHooks(db);
   await grantPermission(db, 'CSV_DI_LEAD', 'platform.time_source.manage', 'platform.time_source.validate', 'platform.alarm.clear');
   await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
@@ -137,7 +139,7 @@ describe('F48 drift checks that cannot be recorded', () => {
   });
 
   it('[DI-27] (b) a threshold of 0.1235 s is either refused or enforced: a 0.1238 s offset raises DRIFT_EXCEEDED', async () => {
-    const owner = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0048 tighter clock tolerance' });
+    const owner = underChange(await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0048 tighter clock tolerance' }));
     const set = (v: string) => withCommand(db.app, owner, (c) => c.query("select platform.set_setting('time.drift_alarm_threshold_s', $1)", [v]));
     let refused: Error | null = null;
     try {

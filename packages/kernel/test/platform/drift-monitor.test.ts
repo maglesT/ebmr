@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { drainOutbox, type OutboxMessage } from '../../src/commands/outbox.ts';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { nodeClock, runDriftCheck, type TimeReference } from '../../src/time/drift-monitor.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { grantPermission, installStubHooks, registerValidatedTimeSource, testActor, withTriggersDisabled } from './helpers.ts';
 
@@ -29,6 +30,7 @@ async function registerSource(name: string, reference: string): Promise<string> 
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await installStubHooks(db);
   // Registrant and validator of time sources are two people (kernel 0520): the system administrator
   // registers, the CSV / data-integrity lead confirms the validation.
@@ -217,7 +219,7 @@ describe('drift checks', () => {
       "select default_value, min_value::text, max_value::text from platform.setting_definition where key = 'time.drift_alarm_threshold_s'",
     );
     expect(def).toEqual({ default_value: '1', min_value: '0.1', max_value: '5' });
-    const qa = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0042 tighter clock tolerance' });
+    const qa = underChange(await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0042 tighter clock tolerance' }));
     const set = (v: string) => withCommand(db.app, qa, (c) => c.query("select platform.set_setting('time.drift_alarm_threshold_s', $1)", [v]));
     await expect(set('0.05')).rejects.toThrow('EBMR-PLAT-021');
     await expect(set('5.1')).rejects.toThrow('EBMR-PLAT-021');
@@ -412,7 +414,7 @@ describe('what a reading proves', () => {
     const fine = await submit('db-fine', [reading(npl, '1.0000004', '0.000100'), reading(nic, '0.000000', '0.000100')]);
     expect(fine).toMatchObject({ raised: ['DRIFT_EXCEEDED'], over: 1 });
     // A threshold with more decimals than the samples store is refused rather than rounded.
-    const owner = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0048 tighter clock tolerance' });
+    const owner = underChange(await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'CHANGE_CONTROL', reasonText: 'CC-0048 tighter clock tolerance' }));
     await expect(withCommand(db.app, owner, (c) => c.query("select platform.set_setting('time.drift_alarm_threshold_s', '0.1235')"))).rejects.toThrow(
       'EBMR-PLAT-021 setting time.drift_alarm_threshold_s allows at most 3 decimals',
     );
