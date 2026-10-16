@@ -519,11 +519,6 @@ begin
   if p_item is null or not (p_item = any (tab.g21_item_ids(v_step -> 'cfg'))) then
     raise exception using errcode = 'P0001', message = format('EBMR-LBL-047 %s is no printed item of step %s', left(coalesce(p_item, 'NULL'), 64), p_key);
   end if;
-  select * into l from recipe.batch_labelling(p_batch) x where x.step = v_step -> 'inst' ->> 'step' and x.item = p_item;
-  if l.id is null or not (l.form = 'ROLL_LABEL' or (l.form = 'CUT_LABEL' and l.option_211122g = 'ELECTRONIC_100')) then
-    raise exception using errcode = 'P0001',
-      message = format('EBMR-LBL-048 item %s is not declared ROLL_LABEL, or CUT_LABEL with the 100 %% electronic inspection option, on the packaging master: the waiver is for those only (PR-39)', p_item);
-  end if;
   v_dev := recipe.g21_cfg_member(v_step -> 'cfg', 'devices', to_jsonb(p_device));
   if v_dev is null or v_dev ->> 'kind' not in ('VISION', 'READER') or jsonb_typeof(v_dev -> 'serial') is distinct from 'string' then
     raise exception using errcode = 'P0001',
@@ -538,6 +533,11 @@ begin
   if ev.id is null then
     raise exception using errcode = 'P0001',
       message = format('EBMR-LBL-050 device %s (%s) has no passing challenge on a print job of this step through its gateway: it does not qualify yet (PR-39)', p_device, v_dev ->> 'serial');
+  end if;
+  select * into l from recipe.batch_labelling(p_batch) x where x.step = v_step -> 'inst' ->> 'step' and x.item = p_item;
+  if l.id is null or not (l.form = 'ROLL_LABEL' or (l.form = 'CUT_LABEL' and l.option_211122g = 'ELECTRONIC_100')) then
+    raise exception using errcode = 'P0001',
+      message = format('EBMR-LBL-048 item %s is not declared ROLL_LABEL, or CUT_LABEL with the 100 %% electronic inspection option, on the packaging master: the waiver is for those only (PR-39)', p_item);
   end if;
   insert into tab.reconciliation_waiver (batch_id, step_key, item, device, device_serial, challenge_event_id, form, option_211122g, recorded_by_person, recorded_by_account, correlation_id)
   values (p_batch, p_key, p_item, p_device, v_dev ->> 'serial', ev.id, l.form, l.option_211122g, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid, (v_actor ->> 'correlation_id')::uuid)
