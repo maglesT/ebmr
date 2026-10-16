@@ -34,6 +34,13 @@ const EXAMPLE_PARAMS: Record<string, string> = {
   adapterCode: 'ERP-MAIN',
   capaId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   checkId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  // Phase 6 slice 6c (labels, serialisation).
+  templateId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  specimenId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  inspectionId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  stopId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  serial: 'SERIAL0001',
+  poolId: 'POOL-000001',
 };
 
 function samplePath(route: AnyRoute): string {

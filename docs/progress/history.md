@@ -2514,3 +2514,24 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   insertion not database-guarded, the reviewer's routing kept by the server. Local runs (spare clusters 5435, 5437):
   typecheck and lint of the changed files clean; kernel and api-contract 1,643 passed; tablets-server governance, esig,
   config, platform and package tests with tablets-web 643 passed; register valid; handbook checks pass.
+- 2026-10-16: PHASE 6 SLICE 6c (branch phase-6/slice-6c; resumed after a container restart from the 6c-0 interface
+  commit). origin/main merged (slice 6f, PR #33); slice 6b not needed (the vision line stop runs through the printer
+  gateway path). Built: recipe-core 0990 (label templates, layout and record-field bindings only, approved by a second
+  person, an India-domestic template needs every India particular; the packaging master's labelling declaration and its
+  211.122(g) option gating the version's approval), site services 0950 (label store under LABEL_STORE.TRANSACT), tablets
+  1230 (START, MIDDLE and END coding specimens equal to the record's coding, label specimens, the G-21 close and the
+  order's EXECUTION_COMPLETE refused naming the gap, post-use inspection verified by a second person, vision line stops
+  from the printer's EXPIRY_REJECTED / LINE_STOPPED, QA resolution, the reconciliation waiver with a qualifying device,
+  print jobs bound to the master's approved templates), tablets 1231 (L3 schemas and the L3_SERIAL_STATUS mirror,
+  tab.receive_l3_message, decommissioning tasks, aggregations against the record's shippers, the serial query answered
+  from the record, E.RECONCILIATION_SERIAL with the L3 problems and fail-closed freshness). Server features labels and
+  serialisation, the L3 adapter (SRV-L3-ADAPTER-01), the stateful L3/L4 simulator with MISSING_EVENTS, DUPLICATE_SERIAL,
+  STALE_REPORT and AGGREGATION_MISMATCH, the printer's EXPIRY challenge, the screens. The demo seed (release-path) and the
+  GB-T-01/02 drivers record the specimens and the inspection (record head unchanged). The ten 6c clauses name their tests.
+  Quick review (one pass): no critical or high; one medium fixed with a test (the capture form showed the record's
+  coding, P6c-R1); defects P6c-1 (the framework did not read EBMR-L3 codes) and P6c-2 (a PostgreSQL regex bound) fixed
+  during the build. Defaults D-P6c-18 to 22, residuals R-6c-1 to 5 in the plan. Local runs (cluster 5432): typecheck and
+  lint of the changed files clean; the slice's server, recipe-core, site-services, simulator, api-contract and sdk tests
+  (145), the packaging, blister, bottle, G-REL and mutation tests touched by the gate (138), release and GMP seed tests (6),
+  contract coverage and platform tests, the whole dom project (646) passed; register valid; handbook checks pass;
+  dependency and pin checks clean. Not run locally: the golden job (libfaketime, CI) and the E2E stack.
