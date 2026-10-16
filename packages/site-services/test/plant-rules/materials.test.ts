@@ -2,15 +2,16 @@
  * The material rules of slice 6b (builder B): the penicillin facility rule (recipe-core 0973, PR-27) on the receipt of
  * a component and on the start of a product, and reagent and buffer lots with an expiry at an in-process control (site
  * services 0940, recipe-core 0974; PR-29). As the application role through the real commands, with bypass attempts and
- * a success after each refusal.
+ * a success after each refusal. Kept with site services (it uses both packages' test worlds; recipe-core may import
+ * only kernel and expr, .dependency-cruiser.cjs).
  */
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { expectRefused } from '../../../kernel/test/identity/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
-import { QualityWorld, seedQualityCast, unique } from '../../../site-services/test/quality/support.ts';
-import { PlantWorld, seedPlantCast, sleep } from '../plant/support.ts';
-import { batchWithSteps, occupy } from './support.ts';
+import { QualityWorld, seedQualityCast, unique } from '../quality/support.ts';
+import { PlantWorld, seedPlantCast, sleep } from '../../../recipe-core/test/plant/support.ts';
+import { batchWithSteps, occupy } from '../../../recipe-core/test/plant-rules/support.ts';
 
 let db: TestDatabase;
 let w: PlantWorld;

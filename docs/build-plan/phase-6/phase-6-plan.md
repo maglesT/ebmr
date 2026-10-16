@@ -303,6 +303,29 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     (that register follows the engine state row by row and refuses rows the state does not hold); instead every alarm
     bound to the batch is in the review gate of the production approval and the QA review, and on the batch review
     screen beside the register. The G-06 alarm readings stay engine exceptions as before.
+- **Quick review (16 October, one pass over the whole slice diff: correctness, security, control coverage):**
+  - **Q-6b-1 (medium, access, fixed):** the acknowledgment of a plant alarm checked ALARM.ACKNOWLEDGE only in the scope
+    of the first bound batch; a room alarm binds every batch in the room, so a person scoped to one product could give
+    the disposition that stands in another product's record. Recipe-core 0976 requires the right in every bound batch's
+    scope; test `[DI-49] a room alarm bound to batches of two products is acknowledged only by a person whose scope holds
+    both` (fails on 0960 alone).
+  - **Q-6b-2 (low, test race, fixed):** the gateway's `[DI-31]` simulator test waited once for a one-shot out-of-order
+    sample, which the server's sampling can replace under load; the wait now fires the fault again (at most once a
+    second) until the driver has seen one.
+  - **Q-6b-3 (low, lint, fixed):** lint errors in builder files (unused import, needless assertions, unsafe `expect.any`
+    assignments, a `String()` of an unknown) that would have failed CI's lint.
+  - **Q-6b-4 (low, boundary, fixed):** the material-rules test sat in recipe-core but imported site-services test code
+    (`deps:check` refused it); moved to `packages/site-services/test/plant-rules/`.
+  - No critical or high finding. Checked without a finding: the step guard (room from the terminal, which the MBR's
+    stage binding already pins, DI-20; START_STEP, SIGN_PERFORMED and VERIFY all checked), the OPC UA session guard on
+    every OPCUA row, raw-equals-shown in the database for readings and chunks, the alarm log insert-only for every role,
+    the review gate over every unacknowledged alarm, the new area-authorisation routes (QUALIFICATION.RECORD and the
+    no-self rule in the kernel, withdrawal reason in the audit entry).
+- **Residuals (for 6j or the owner):** the Playwright step of `[DI-32] trend data from a restored archive re-renders
+  interactively` on a restored database (D-P6b-L-2; proven now by the web test); the DI-49 compression-force excursion
+  end to end from the OPC UA simulator through the gateway uplink into the alarm log is proven in two halves (the
+  gateway's simulator tests up to the process reading, the server's bridge test from the reading on); D-P6b-L-1 (no
+  OPC UA adapter at a STAND_IN site) for the owner.
 
 ### Slice 6c: packaging line completion and serialisation L3/L4
 

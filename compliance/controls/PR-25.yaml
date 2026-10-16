@@ -35,6 +35,8 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb-18-edges.test.ts > TB-18 cores > [IN-37][PR-25] the room is judged against each limit the MBR sets (ends allowed), with filtered air, once"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > the row guards hold for owner-level writes > [INV-15][IN-26][PR-25] an occupancy of a room: concurrent batches only in a segregated room; an exclusive one follows the latest occupancy, which has ended"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][PR-25] a plain room in use refuses another batch of its own product as in use, naming the batch in it, whatever other rooms hold"
+  - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant displays and rooms > [PR-25][PR-27][PR-15] rooms show cleaning state, clean hold, controlled area and open spills; a room shows its conditions and records a spill"
+  - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-25] a room overdue for cleaning is blocked"
 clauses:
   - clause: "Starting product Y in a room occupied by product X is blocked."
     tests:

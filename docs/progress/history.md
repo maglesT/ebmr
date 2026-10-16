@@ -2502,3 +2502,16 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   of crashing the check; a migration source without a header mark is reported; the setup script repairs the golden
   cluster's libfaketime settings on every run. Left as low: reference-style links are not checked; a bare `#sym=`
   SQL name matches any schema (qualified names are exact); orphaned generated pages are not detected.
+- 2026-10-16: PHASE 6 SLICE 6b (branch phase-6/slice-6b; 6b-0 interfaces, builders A and B, then a finishing pass).
+  Equipment data and alarms: the OPC UA client driver over node-opcua (SignAndEncrypt only, certificate thumbprint,
+  native chunks, setpoint write and read-back, recipe version) and the OPC UA simulator of the nine Tablets units with
+  feed gap, stale value, out of order, recipe mismatch, drift, excursion, reject burst, relocation and certificate
+  change; the gateway's OPC UA feed and the server's OPC UA adapter worker over it; endpoint identity (recipe-core 0961,
+  DI-20); OPC UA readings with their original record (tablets 1210, DI-32); the plant alarm log in batch context with
+  its disposition (recipe-core 0960, DI-49) fed by the Tablets alarms (tablets 1218); the EMS simulator and adapter.
+  Plant rules: area authorisation (kernel 1190, PR-15), clean hold and spills (PR-25, PR-27), penicillin facility
+  (PR-27), adjacency (PR-35), step guards and the alarm log in review (recipe-core 0973 to 0975), reagent lots (site
+  0940, PR-29). Screens: alarm list and acknowledgment, batch alarm log, status board, line station, rooms and spills,
+  trend viewer, area authorisations of the qualification matrix. Quick review: one medium fixed (Q-6b-1, an alarm
+  acknowledged under the first bound batch's scope only; recipe-core 0976), a test race and CI lint errors fixed;
+  defaults D-P6b-A-*, D-P6b-B-*, D-P6b-L-1 to 4 and residuals in the plan's slice 6b section.

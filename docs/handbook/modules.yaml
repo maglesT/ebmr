@@ -245,7 +245,7 @@ modules:
     package: packages/site-services
     migrations:
       packages/site-services/sql: ['^094\d_']
-    tests: ['packages/recipe-core/test/plant-rules/materials.test.ts']
+    tests: ['packages/site-services/test/plant-rules/materials.test.ts']
 
   - id: ss-core
     title: Site services package entry and shared tests

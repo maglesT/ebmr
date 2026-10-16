@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 15 October 2026 (Phase 6 slice 6b-0).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slice 6b).
 
 ## What this is
 
@@ -113,12 +113,11 @@ signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-pl
 Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
 command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
 none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.
-Slice 6b on `phase-6/slice-6b`: 6b-0 (interface commit, 15 October) done: OPC UA and EMS contracts in
-`@ebmr/integration-sdk/adapter` (series chunks with raw values and status codes, alarm occurrences, equipment events,
-node ids from the released tag names), recipe-core 0960 (plant alarm log in the batch context with its disposition,
-DI-49; equipment events; native series; device original records, DI-32), namespaces `alarms` and `equipmentData`, the
-OPC UA driver's shape; signatures, defaults D-P6b-0-1 to 13 and the builder A/B split in
-`docs/build-plan/phase-6/slice-6b-0-interfaces.md`.
+Slice 6b on `phase-6/slice-6b` (16 October, ready for its PR): OPC UA driver, simulator, gateway feed and the server's
+adapter worker; endpoint identity (DI-20), native series and original records (DI-32), the plant alarm log in batch
+context and in review (DI-49), the EMS feed; plant rules PR-15, PR-22, PR-25, PR-27, PR-29, PR-35; screens including the
+trend viewer and the area authorisations. Quick review: Q-6b-1 (alarm acknowledgment scope, recipe-core 0976) fixed.
+Defaults and residuals in the plan's slice 6b section.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

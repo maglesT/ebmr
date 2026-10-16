@@ -205,6 +205,17 @@ tests:
   - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] a rounded shown value, a BAD sample with a value, a changed sample, a wrong tag or unit, a repeated or overlapping chunk is refused"
   - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] an OPC UA reading stores raw output equal to the displayed value; a raw output that rounds to it is refused"
   - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] a printed ticket is linked to its weighing"
+  - "apps/simulators/test/ems/ems.test.ts > the EMS simulator (DI-31, DI-32, DI-49) > [DI-32][DI-31] publishes room samples as valid ems.series_chunk messages: native raw text, the exact shown value, a recomputable hash"
+  - "apps/site-gateway/test/opcua-driver.test.ts > the OPC UA client driver > [DI-32] samples become numbered, hashed chunks with source times, raw text and status as received; the process view shows the raw value exactly"
+  - "apps/site-gateway/test/opcua-simulator.test.ts > the OPC UA driver against the simulator > [DI-20][DI-32] a SignAndEncrypt session with the enrolled certificate, reported first; native series of every unit; the process view shows each raw value exactly"
+  - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-49] a session, native chunks, a reject-burst alarm and an equipment event from the feed land as sent"
+  - "apps/tablets-server/test/equipment-data/opcua-readings.test.ts > OPC UA readings on the gateway path (DI-32, DI-20) > [DI-32] an OPC UA reading stores raw output equal to the displayed value"
+  - "apps/tablets-server/test/equipment-data/opcua-readings.test.ts > OPC UA readings on the gateway path (DI-32, DI-20) > [DI-32] a rounded display, a quality that contradicts the status, a reading of an OPC UA unit without its original record are refused; nothing lands"
+  - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31][DI-32] EMS: room temperature and humidity chunks land in plant.series as received; the room conditions show the latest sample"
+  - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] trend data from a restored archive re-renders interactively"
+  - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] a unit's window is read page by page by chunk number and drawn once every page is in"
+  - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] samples are ordered by source time across chunks and times keep every microsecond"
+  - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-32] a chunk is held as received and as the checked series row; the audit trail holds the row hash only (D-P6b-A-1)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

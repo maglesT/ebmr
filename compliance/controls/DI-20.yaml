@@ -211,6 +211,18 @@ tests:
   - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20][DI-14] only the registered ERP_WMS adapter receives and delivers ERP/WMS messages, and it never issues stock"
   - "apps/site-gateway/test/opcua-driver-shape.test.ts > OPC UA driver shape (6b-0) > [DI-20] an endpoint whose certificate is not the enrolled one, or that is not SignAndEncrypt, is refused"
   - "packages/integration-sdk/test/adapter/equipment-data.test.ts > equipment data (6b-0) > [DI-20] an endpoint is SignAndEncrypt with an enrolled certificate thumbprint and its room; None mode is refused"
+  - "apps/simulators/test/opcua/opcua-simulator.test.ts > the OPC UA equipment simulator > [DI-20] a session without SignAndEncrypt is not served (D-P6b-2)"
+  - "apps/simulators/test/opcua/opcua-simulator.test.ts > the OPC UA equipment simulator > [DI-20] a certificate change restarts the server on the same address with another certificate"
+  - "apps/site-gateway/test/opcua-driver.test.ts > the OPC UA client driver > [DI-20] reports each session first, with the certificate presented, the location the server states and the units; then subscribes the released tags"
+  - "apps/site-gateway/test/opcua-driver.test.ts > the OPC UA client driver > [DI-20] a changed certificate: nothing is read, the session is reported once with the certificate presented, the state and an alarm say why; retried"
+  - "apps/site-gateway/test/opcua-simulator.test.ts > the OPC UA driver against the simulator > [DI-20][DI-32] a SignAndEncrypt session with the enrolled certificate, reported first; native series of every unit; the process view shows each raw value exactly"
+  - "apps/site-gateway/test/opcua-simulator.test.ts > the OPC UA driver against the simulator > [DI-20] a certificate change: the session is reported with the new certificate, the driver refuses it and reads nothing"
+  - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-20][DI-31] after a relocated endpoint session the data are refused with an alarm and none lands; a valid session restores the feed"
+  - "apps/tablets-server/test/equipment-data/opcua-readings.test.ts > OPC UA readings on the gateway path (DI-32, DI-20) > [DI-20] readings of a unit whose endpoint session was refused (certificate changed) are refused until a valid session"
+  - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-20] data from an unregistered or relocated OPC UA endpoint is refused with an alarm"
+  - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-20] a changed certificate, an insecure session, another URL, a blocked or retired endpoint and an unserved unit are refused; data follow the verdict"
+  - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-20] equipment events and OPC UA alarms of a unit without a valid session are refused as well"
+  - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-20] enrolment: the registry permission, an instrument in a plant room or line, units installed there and served once; the tables refuse direct writes"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

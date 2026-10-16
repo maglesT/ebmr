@@ -276,4 +276,32 @@ describe('the alarm log at the step signature and in review (DI-49)', () => {
       expect(problems.filter((p) => p.includes('alarm log')), act).toEqual([]);
     }
   });
+
+  it('[DI-49] a room alarm bound to batches of two products is acknowledged only by a person whose scope holds both (quick review Q-6b-1)', async () => {
+    const room = await w.room();
+    const [p1, p2] = [await w.product(), await w.product()];
+    const b1 = await batchWithSteps(db, p1, ['p-1']);
+    const b2 = await batchWithSteps(db, p2, ['p-1']);
+    await occupyBatch(w, room.code, b1);
+    const alarmId = (await roomAlarm(room.code, `RH_HIGH_${tag()}`))['alarmId'] as string;
+    // Set-up only: the second product's batch in the room at the raise (the binding the occupancy of both would give).
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query('insert into plant.alarm_batch (alarm_id, batch_id, step) values ($1, $2, null)', [alarmId, b2]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    // Scoped to the product of the batch the old check read (the first bound batch by id), so the old check would pass.
+    const firstProduct = b1 < b2 ? p1 : p2;
+    const onlyP1 = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Ravi Scoped', scope: { product: firstProduct } });
+    const ack = (who: SeededActor) => w.run(who, (k) => k.query('select plant.acknowledge_alarm($1, $2, $3, null)', [alarmId, 'Dehumidifier restarted', 'RH back below 60 %']));
+    await expectRefused(ack(onlyP1), 'EBMR-IAM-040', /ALARM.ACKNOWLEDGE/);
+    expect((await db.app.query('select 1 from plant.alarm_ack where alarm_id = $1', [alarmId])).rowCount).toBe(0);
+    const both = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Ravi Both', scope: {} });
+    await ack(both);
+    expect((await db.app.query<{ p: string }>('select person_id as p from plant.alarm_ack where alarm_id = $1', [alarmId])).rows).toEqual([{ p: both.personId }]);
+  });
 });
