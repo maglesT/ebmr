@@ -455,6 +455,9 @@ importers:
       '@ebmr/demo':
         specifier: workspace:0.1.0
         version: link:../demo
+      '@ebmr/kernel':
+        specifier: workspace:0.1.0
+        version: link:../../packages/kernel
       '@ebmr/test-kit':
         specifier: workspace:0.1.0
         version: link:../../packages/test-kit

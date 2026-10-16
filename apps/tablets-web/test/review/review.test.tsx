@@ -5,11 +5,13 @@
  * item", the tracked item detail, a disposition per item, grouped acceptance of non-critical items, production's answer to
  * a query). Every signed act goes through the ceremony with the signable action as sent; nothing builds an aggregate id.
  */
+import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
+import { cls } from '../../src/app/classes.ts';
 import { nextItem } from '../../src/features/review/RegisterPage.tsx';
 import { refusal, renderOffice } from '../office/support.tsx';
 
@@ -45,6 +47,23 @@ describe('record review', () => {
     expect(screen.getByTestId('review-state').textContent).toContain('evidence epoch 7');
     // Production's act is not offered to QA.
     expect(screen.queryByRole('button', { name: 'Approve the record (production)' })).toBeNull();
+  });
+
+  it('the links of the record review are each at least 24 px high (WCAG 2.2 target size; found by the Phase 6 exit browser flow)', async () => {
+    // The app's CSS module with its class selectors renamed to the names the components use, as the ui-kit's size test does.
+    const css = readFileSync(`${import.meta.dirname}/../../src/app/app.module.css`, 'utf8').replace(/\.([A-Za-z][A-Za-z0-9_-]*)/g, (m: string, c: string) => (cls(c) ? `.${cls(c)}` : m));
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+    try {
+      renderOffice(`/review/${B}`, { role: 'QA_REVIEWER' });
+      const nav = await screen.findByRole('navigation', { name: 'Review of the record' });
+      const links = within(nav).getAllByRole('link');
+      expect(links).toHaveLength(3);
+      for (const a of links) expect(getComputedStyle(a).minHeight).toBe('24px');
+    } finally {
+      style.remove();
+    }
   });
 
   it('production approves an EXECUTION_COMPLETE record through the ceremony with the action as sent', async () => {
