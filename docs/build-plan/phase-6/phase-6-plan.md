@@ -626,6 +626,19 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Migrations:** kernel 1210 to 1214 (reporting role), recipe-core 1070 to 1079 (reporting views).
 - **Handbook:** `modules/tablets-web.md`, `modules/recipe-core.md`, `03-architecture.md` (reporting path),
   `10-runbooks.md` (training mode), `08-defect-log.md`.
+- **Built (16 October, branch `phase-6/slice-6g`):** interfaces and defaults D-P6g-0-1 to 9 in
+  [slice-6g-0-interfaces.md](slice-6g-0-interfaces.md). Kernel 1210 (role `ebmr_report`, schema `report`, connect policy
+  and segregation check), 1211 (training attempts, sandbox only); recipe-core 1070 (seven report views and the catalogue),
+  1071 (`recipe.change_impact`). Namespaces `dashboards`, `changeImpact` (GMP) and `training` (SANDBOX); screens
+  `/dashboards`, `/change-impact`, `/training`. No tablets migration: the range tablets 1310-1319 is reserved for 6g
+  (lead, 16 October; D-P6g-0-10) and unused. PR-05 "overdue review on the dashboard" now names its tests.
+- **Quick review (one pass):** no critical or high. Residuals for the owner:
+  - R-6g-1 `ebmr_report` has its own connection limit (4) but `kernel.apply_listener_share` does not count it, so on a
+    primary its four connections come out of the slots the application role may use; production reads a replica.
+  - R-6g-2 the export route returns a whole view in one response (no paging); analytics reads the views directly.
+  - R-6g-3 press OEE has no performance factor until master data holds a rated speed (D-P6g-0-6).
+  - R-6g-4 the training exercises are scripted walk-throughs; the person marks steps done (the system does not check the
+    step was done on the screen).
 
 ### Slice 6h: languages (DROPPED, decision 0018: English only)
 
@@ -734,7 +747,7 @@ follow if a language is added after v1.
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
 | tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
-| tablets, added | | | | | | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
+| tablets, added | | | | | | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | 1310-1319 (reserved, unused) | | | |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.

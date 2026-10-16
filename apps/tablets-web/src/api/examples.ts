@@ -69,6 +69,10 @@ export function fixturesFromExamples(installation: 'GMP' | 'SANDBOX'): FixtureMa
     'designer.simulate': EXAMPLES['simulation-report'].data,
     'audit.events': EXAMPLES['audit-events'].data,
     ...(installation === 'GMP' ? gmpSlice6(steps) : {}),
+    // Phase 6 slice 6g: training mode answers on the sandbox only.
+    ...(installation === 'SANDBOX'
+      ? { 'training.overview': EXAMPLES['training-overview'].data, 'training.start': EXAMPLES['training-start'].data, 'training.completeStep': EXAMPLES['training-complete-step'].data }
+      : {}),
   };
 }
 
@@ -80,7 +84,7 @@ function gmpSlice6(steps: { step: { stepKey: string } }[]): FixtureMap {
   const firstExamples: Record<string, unknown> = {};
   for (const e of Object.values(EXAMPLES)) {
     if (!('routeId' in e) || typeof e.routeId !== 'string') continue;
-    if (!/^(batches|planning|masterData|plant|quality|review|containers|specifications|samples|release|qpPackage|records|pqr|capa|config|integrations|alarms|equipmentData|equipmentDisplays|plantRules|notifications|support|contractGiver|genealogy|recall|esig\.(dscConfiguration|setDscMode|registerDscAnchor|setDscMeaning|dscEnrolment|enrolDsc|endDscEnrolment)|devices\.processReadings|designer\.formulaChoice|esig\.describe)/.test(e.routeId)) continue;
+    if (!/^(batches|planning|masterData|plant|quality|review|containers|specifications|samples|release|qpPackage|records|pqr|capa|config|integrations|alarms|equipmentData|equipmentDisplays|plantRules|notifications|support|contractGiver|genealogy|recall|dashboards|changeImpact|esig\.(dscConfiguration|setDscMode|registerDscAnchor|setDscMeaning|dscEnrolment|enrolDsc|endDscEnrolment)|devices\.processReadings|designer\.formulaChoice|esig\.describe)/.test(e.routeId)) continue;
     if (!(e.routeId in firstExamples)) firstExamples[e.routeId] = e.data;
   }
   const tb08 = EXAMPLES['batches-step-tb08'].data as { step: { stepKey: string } };

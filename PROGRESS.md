@@ -132,6 +132,12 @@ route `samples.recoverReturn`), distribution records from the ERP adapter (0961)
 signed off by the AP, deviation impact query, recurrence warning on the release screen (PR-49), explorer, complaint
 lookup and mock-recall screens (recipe-core 1010 to 1013, tablets 1280). IN-07, IN-29, PR-57 x2, PR-49, PR-50 clauses
 name their tests. Defaults D-P6d-0-*, D-P6d-4 to 10; review fixes and residuals in the plan.
+Slice 6g (branch `phase-6/slice-6g`, 16 October, ready for its PR): read-only reporting path (role `ebmr_report`,
+SELECT on the versioned `report` views only, data age on every row; kernel 1210, 1211; recipe-core 1070, 1071), eight
+dashboards (never for GMP decisions; PR-05 overdue reviews, DI-49 alarm trend), the change-impact explorer with export,
+and training mode on the sandbox (watermark, TEST- personas, scripted exercises, attempts kept in the sandbox only;
+DI-05). PR-05's dashboard clause names its tests. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
+Defaults D-P6g-0-1 to 10.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

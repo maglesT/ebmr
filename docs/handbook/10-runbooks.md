@@ -340,6 +340,19 @@ password file, never in the URLs.
 
 Security documents beside them: [docs/security/](../security/) (threat model, ASVS level 2 review, security baseline).
 
+## Training mode (Phase 6 slice 6g)
+
+1. Training uses the sandbox server of the demo or the site (`pnpm demo` starts it on :3011 against
+   `ebmr_sandbox_tablets_demo`). Every screen there carries the TEST, NOT GMP band and watermark.
+2. Sign in as a training persona (the sandbox persona set, legal names starting `TEST-`) and open **Training**
+   (`/training`): the exercises, their steps with a link to each screen, and your own attempts.
+3. Start an exercise, do each step on its screen and mark it done. Attempts stay in the sandbox database
+   (`sandbox.training_attempt`); a GMP database refuses them (EBMR-SBX-039).
+4. Exercises are defined in `apps/tablets-server/src/features/training/exercises.ts`; a change of steps is a new version.
+5. Reporting access for analytics: connect as `ebmr_report` (vault credential in production) to the GMP database (or a
+   replica) and read `report.catalog_v1`, then the views it lists; `select * from sandbox.segregation_problems()` must stay
+   empty after any grant change.
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

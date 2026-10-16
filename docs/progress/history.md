@@ -2540,3 +2540,21 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   run before the session loads, recurrence counted up to now. Local runs (cluster 5439): typecheck, lint of the changed
   files and deps:check clean; the slice's site-services, tablets-server, api-contract and tablets-web tests passed (web
   suite 79 files, 564 tests); register valid; handbook check passes.
+
+## 16 October 2026: Phase 6 slice 6g (dashboards, change impact, training mode)
+
+Branch `phase-6/slice-6g` from main (6a, 6b, 6d, 6f merged). 6g-0 interface commit first (slice-6g-0-interfaces.md,
+D-P6g-0-1 to 10). Kernel 1210: login role `ebmr_report` (NOINHERIT, member of nothing, connection limit 4), schema
+`report` with `report.data_as_of()` and the view registry and catalogue; `sandbox.apply_connect_policy` and
+`sandbox.segregation_problems` replaced from 1111 and 1100 (the role connects only to GMP databases and holds only USAGE
+on `report`, SELECT on its views and EXECUTE on their non-volatile row functions). Kernel 1211: training attempts and
+steps, insert-only, refused in a GMP database whoever writes (EBMR-SBX-039, -040). Recipe-core 1070: report views
+batch_outcome, exception, deviation_ageing, hold_time_risk, overdue_review, press_counter and alarm (all `_v1`, each over
+a STABLE SECURITY DEFINER row function because a view's functions run with the reader's EXECUTE right). Recipe-core 1071:
+`recipe.change_impact(kind, ref)` for MATERIAL, SPECIFICATION, EQUIPMENT, MBR_VERSION, SITE_VALUE and SUPPLIER. Server
+features `dashboards` (GMP) and `training` (SANDBOX only); web `/dashboards`, `/change-impact`, `/training`. No tablets
+migration (tablets 1310-1319 reserved by the lead for 6g). Tests: kernel sandbox (reporting role bypass, training store),
+site-services reporting (views, change impact against an independent query), server dashboards routes (PR-05, DI-49,
+data age and refresh, export, 404 per installation, training), contract, web. Changed packages' tests green; the web
+suite had one timing flake (keyed-badge) that passes alone. Demo stack started against cluster 5437 and both
+`/api/meta` answered 200. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
