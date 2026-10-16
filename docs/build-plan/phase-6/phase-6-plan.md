@@ -823,6 +823,66 @@ Residuals for the owner (medium and low; not fixed here):
   `site`, `platform` and `recipe` only; Phase 6 writers in `plant`, `tab`, `iam`, `esig`, `sandbox` are covered by
   their own tests but not by a meta scan. Suggested: widen the scan in Phase 7.
 
+Second part of the pass (16 October): the rest of the Phase 6 TypeScript and the SQL logic of the regulated core.
+- Read: the tablets server's Phase 6 features (integrations and adapter workers, equipment data, alarms, plant rules,
+  labels, serialisation, genealogy and mock recall, governance, DSC, config change, dashboards, training, CAPA,
+  `bind.ts`), `packages/integration-sdk`, `apps/site-gateway`, and the Phase 6 web screens against the routes they call.
+- Probed on a fully migrated database: the mirror guards (`platform.mirror_freshness` and `mirror_fresh_or_raise`,
+  `record_mirror_sync`'s caught-up and gap checks, the LMS, CMMS, ERP lot status, QMS and L3 gates), the release gates
+  (`recipe.qms_release_guard` on the four decision tables, `tab.l3_release_problem` in `E.RECONCILIATION_SERIAL`),
+  dual custody (`recipe.sign_controlled_custody`, the consumption guard, the WMS move), packaging completion, alarm
+  acknowledgment, step rules, the signature checks of every Phase 6 function that takes a signature (meaning, aggregate,
+  signer is the actor, record state), change control, support grants, and the federation seals. Every Phase 6
+  `create or replace` of an earlier function was compared line by line with its last earlier definition: none drops a
+  check.
+- Found sound: every Phase 6 route is behind the session gate and its writes go through guarded database functions
+  with the actor from the session; no route trusts an actor, signer or time sent by the client; no web screen is the
+  only check of a right; no SQL is built from input; no direct INSERT or UPDATE from TypeScript.
+- No new critical or high finding. No migration added in this part.
+
+Residuals of the second part (medium and low; not fixed here):
+- **6jc-R8 (medium; DI-31):** kernel 1220 accepts a small-order Ed25519 point as this installation's or a peer's key
+  (`platform.raw_public_key` only checks that the point decodes). Under such a key every seal verifies. Reproduced: with
+  the identity point as the key, the seal R = B, S = 1 verifies any payload. The key still needs a SYSTEM.CONFIGURE
+  proposal and QA's signed approval, which an attacker-held key would also need, so no right is gained; but anyone could
+  then forge that peer's packages and answers. Suggested: the small-order refusal of tablets 0702
+  (`tab.ed25519_small_order`) in `platform.raw_public_key` and `platform.seal_valid`.
+- **6jc-R9 (medium; DI-31, owner):** the 6a feed protocol does not authenticate the source.
+  - The server pulls `<base>/feed` with a plain HTTP GET, and `payloadHash` has no key.
+  - The site gateway's OPC UA feed (series, alarms, events, endpoint sessions) reaches `plant.receive_*` without the
+    gateway's Ed25519 signature, which the process readings and scale uplinks carry. The feed listens on loopback by
+    default.
+  - Anyone who can answer at the feed address can inject or hold back alarms and series, or report a lower head.
+  - Owner, before a networked deployment: sign the gateway feed with the gateway key, or require mutual TLS for every
+    adapter base URL.
+- **6jc-R10 (medium; PR-27):** the penicillin facility rule (`plant.set_facility_rule`) and the beta-lactam
+  classification (`plant.classify_beta_lactam`) are acts of one person with MASTERDATA.CHANGE and a reason. A
+  hazard-class dedication, by contrast, carries QA's approval. One master-data steward can therefore admit a
+  beta-lactam material at a non-penicillin site. Suggested: QA approval, or change control (kernel 1195), for both.
+- **6jc-R11 (low; DI-31):** an OPERATOR or SHIFT_SUPERVISOR (ALARM.ACKNOWLEDGE) who acknowledges a SEQUENCE_GAP
+  integration alarm lets `platform.record_mirror_sync` mark a blocking mirror fresh over the missing messages (kernel
+  1182). The note is the only account of what was lost. Suggested: for a gap on a blocking mirror's adapter, the system
+  owner or QA acknowledges.
+- **6jc-R12 (low):** in the mock recall (`features/genealogy/index.ts`), `askDestinations` treats a failure of the
+  forward genealogy read as "no outbound transfer" (no peer asked, and the run goes on). `run` and
+  `refreshFederation` also call peers before RECALL.MOCK_RUN is checked (the database refuses afterwards and rolls the
+  command back).
+- **6jc-R13 (low; DI-32):** the gateway's `sampleOf` (`drivers/opcua-node.ts`) sets the source time to epoch 0 when a
+  sample has neither a source nor a server timestamp. `plant.source_time_or_raise` refuses future times only, not
+  implausibly old ones.
+- **6jc-R14 (low; IN-10):** the companion signature (`sig2`, `features/esig/index.ts`) never records a DSC. If its
+  meaning requires one, the signing is refused (EBMR-ESIG-084): it fails closed.
+- **6jc-R15 (low):** the training attempt read (`features/training/index.ts`, `attempt`) does not check whose attempt
+  it is. Training runs on the sandbox installation only, so no GMP data is reachable.
+
+Decisions:
+- **D-P6j-c-1:** the "one pass" (decision 0008) covers the regulated core at the database by probing, and the rest
+  of the TypeScript by reading. A finding counts as critical or high only when it is reproduced on a migrated database
+  and lets a person or a system change, sign or release GMP data against a control.
+- **D-P6j-c-2:** 6jc-R8 is rated medium, not high. The weak key has to pass QA's signed approval, and it gives nothing
+  that an approved key held by an attacker would not. The fix is small and Priority 1 under decision 0019, so the
+  mutation campaign may take it.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - 6a-0: the inbound envelope and error classes (`@ebmr/integration-sdk/adapter`), `platform.accept_inbound`,
