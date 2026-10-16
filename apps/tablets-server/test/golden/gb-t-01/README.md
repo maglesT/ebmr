@@ -88,8 +88,8 @@ dispensing calculation, genealogy, the number of batch-record signatures and the
 
 ## Time (D-S6-6)
 
-The golden test's PostgreSQL runs under libfaketime with a timestamp file the driver only moves forward
-(`FAKETIME_TIMESTAMP_FILE`, `FAKETIME_NO_CACHE=1`); nothing in the GMP code reads a test clock. GB-T-01 freezes the
+The golden test's PostgreSQL runs under the golden clock library (`tools/dev-env/golden-clock`, which replaced
+libfaketime in Phase 6 slice 6j-b) with a timestamp file the driver only moves forward (`FAKETIME_TIMESTAMP_FILE`); nothing in the GMP code reads a test clock. GB-T-01 freezes the
 clock at the next midnight UTC and ticks it one second before each act, so every time and duration the server measures
 is the same on each run (blend 601 s, lubrication 181 s). The hash's normalisation (`results.ts`) turns the run's
 instants into minutes from the batch's issue, and an expiry month and the year in a deviation number

@@ -40,7 +40,7 @@ The script is safe to run again: every step checks what is already there. It ins
 - Node 22 and pnpm at the version in `packageManager` of [package.json](../../package.json) (through corepack);
 - PostgreSQL 16 from the PostgreSQL apt repository, with four clusters (below), each with the superuser role
   `ebmr_dev` (password `ebmr_dev`) and locale `C.UTF-8`;
-- `libfaketime`, and the `golden` cluster preloaded with it;
+- the golden clock library (built from `tools/dev-env/golden-clock` with gcc), and the `golden` cluster preloaded with it;
 - the dependencies (`pnpm install --frozen-lockfile`);
 - Playwright's Chromium in `/opt/pw-browsers`, and `PLAYWRIGHT_BROWSERS_PATH` in `/root/.bashrc`.
 
@@ -51,7 +51,7 @@ The four clusters:
 | `main` | 5432 | the default `EBMR_PG_ADMIN_URL`; everyday tests and the demo databases |
 | `ci` | 5433 | spare: a second test run, or a mutation run, in parallel |
 | `ci2` | 5434 | spare, as above |
-| `golden` | 5435 | runs under libfaketime; golden batches only (CI's golden job uses 5433 on its own runner) |
+| `golden` | 5435 | runs under the golden clock library; golden batches only (CI's golden job uses 5433 on its own runner) |
 
 Check:
 
@@ -167,7 +167,7 @@ is in `/opt/pw-browsers`. Reports: `.reports/playwright.json` (read by the trace
 ## 5. Run the golden batches
 
 The golden batches GB-T-01 and GB-T-02 must give their expected outputs exactly
-([Golden batches](06-testing-and-debugging.md#golden-batches)). They need the database clock under libfaketime, so they
+([Golden batches](06-testing-and-debugging.md#golden-batches)). They need the database clock under the golden clock library, so they
 run on the `golden` cluster only, one file at a time:
 
 ```bash

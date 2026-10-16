@@ -156,7 +156,7 @@ scripts) on a cloud server the owner provides.
   postgres-oracle, graphify).
 - Machine: a RunPod container whose disk is erased when the pod stops. Run `bash tools/dev-env/runpod-setup.sh` after
   each pod start; commit and push to the working branch (never main) after every step and at least every 30 minutes.
-- Local PostgreSQL 16 clusters: main 5432, ci 5433, ci2 5434, golden 5435 (libfaketime; the CI golden job uses 5433 on
+- Local PostgreSQL 16 clusters: main 5432, ci 5433, ci2 5434, golden 5435 (golden clock library; the CI golden job uses 5433 on
   its own runner). On Ubuntu 22.04 the kernel site-zone-policy "[DI-27] over every zone name" test needs about 65 s
   (posix/ zone copies) and times out locally; it passes on CI. Test databases are created per run and dropped after.
 - Run `pnpm run ci` (or the changed packages' tests) before pushing.

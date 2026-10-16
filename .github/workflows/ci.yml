@@ -76,7 +76,7 @@ jobs:
   # batch of many hours runs in minutes; the test moves the offset file forward only, and nothing in the GMP code reads
   # a test clock. The other jobs never preload the clock library; their golden tests do not run (runIf EBMR_FAKETIME_FILE).
   golden:
-    name: Golden batches (libfaketime cluster)
+    name: Golden batches (golden clock cluster)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

@@ -1,13 +1,13 @@
 /**
- * The golden batches' clock (D-S6-6): the database under libfaketime follows the offset file, forward only, and the
- * tablets server's trusted time (tab.now_micros) follows the database. Runs only in the `golden` CI job (and locally on a
- * libfaketime cluster), where EBMR_FAKETIME_FILE names the offset file.
+ * The golden batches' clock (D-S6-6): the database under the golden clock library follows the offset file, forward
+ * only, and the tablets server's trusted time (tab.now_micros) follows the database. Runs only in the `golden` CI job (and locally on a
+ * golden clock cluster), where EBMR_FAKETIME_FILE names the offset file.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { advanceMinutes, goldenClockAvailable, offsetSeconds } from './clock.ts';
 
-describe.runIf(goldenClockAvailable)('the golden clock (libfaketime offset, D-S6-6)', () => {
+describe.runIf(goldenClockAvailable)('the golden clock (offset file, D-S6-6)', () => {
   let server: TestServer;
   beforeAll(async () => {
     server = await startServer('GMP');

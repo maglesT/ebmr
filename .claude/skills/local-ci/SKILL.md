@@ -28,7 +28,7 @@ worker per core overloads that cluster: tests time out at 30 s, a role runs out 
 restored cluster recovers too slowly. Those failures are load, not code. The four shard clusters run with `fsync`,
 `synchronous_commit` and `full_page_writes` off (`conf.d/ebmr-test-cluster.conf`, written by the setup script): in
 PostgreSQL 16 every CREATE or DROP DATABASE waits for a checkpoint, and with flushing on, those waits passed the 30 s
-test timeouts. Only crash safety changes, never a query's result. The golden cluster (5435, libfaketime) is
+test timeouts. Only crash safety changes, never a query's result. The golden cluster (5435, golden clock library) is
 never a shard. The GitHub workflow is not changed by any of this.
 
 On a smaller machine:
