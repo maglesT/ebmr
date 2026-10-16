@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slice 6f).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slice 6e).
 
 ## What this is
 
@@ -121,6 +121,11 @@ RBE on a step only with a validation reference, support grants (two customer sig
 giver's read-only reviewer, excursion notifications, designer PPE and containment, MBR edition review, typed CPP values in
 the PQR, the India DSC with a test CA (kernel 1203, 1205) and, from the review, enrolment of the signer's own certificate
 (kernel 1206; a high fixed). The eleven 6f clauses now name their tests. Defaults D-P6f-A-*, D-P6f-B-*; residuals in the plan.
+Slice 6e (branch `phase-6/slice-6e`, 16 October, ready for PR): controlled-substance mode, the draft control IN-53 (status
+U, NDPS not verified; register 242 controls, 679 rows): product flag under change control with a second QA signature,
+dual custody of dispensing, transfers, returns and destruction (database guards), the controlled account closed at every
+stage sign-off and at batch completion, the reproducible register export; screens with the draft banner. Quick review: one
+core medium fixed (recipe-core 1035). Defaults D-P6e-1 to 10 and residuals in the plan; tablets 1280 added after 6f's range.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

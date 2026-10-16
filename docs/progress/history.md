@@ -2514,3 +2514,20 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   insertion not database-guarded, the reviewer's routing kept by the server. Local runs (spare clusters 5435, 5437):
   typecheck and lint of the changed files clean; kernel and api-contract 1,643 passed; tablets-server governance, esig,
   config, platform and package tests with tablets-web 643 passed; register valid; handbook checks pass.
+- 2026-10-16: PHASE 6 SLICE 6e (branch phase-6/slice-6e): controlled-substance mode, the draft control IN-53 (status U:
+  NDPS Act and Rules not verified; expert decision PENDING, pack draft). 6e-0: IN-53.yaml, requirement row n679
+  (unverified), register 242 controls and 679 rows, IN-53 in recipe.engine_name, permissions and meanings (recipe-core
+  1030), interfaces and defaults D-P6e-1 to 10 (docs/build-plan/phase-6/slice-6e-0-interfaces.md). Database: the product
+  flag as a configuration area under change control with a second QA signature, fail-safe in effect (1031); dual custody
+  of dispensing, transfer, return and destruction, the guard on site.lot_consumption (1032); the batch account and the
+  stage sign-off guard on recipe.execution_command (1033); the reproducible register export with its hash (1034); WMS
+  moves of a controlled lot without a transfer record raise the PR-46 location exception (site services 0970); the
+  ceremony's content definers (tablets 1250) and the read rule (tablets 1280, after 6f's 1276 which re-creates
+  tab.record_read_problem; D-P6e-10). Contract ns/controlled.ts and CONTROLLED_ACT, server feature controlled, screens
+  /controlled and /controlled/batches/$batchId with the draft banner. Quick review: no critical or high; one core medium
+  fixed with a test (a batch could complete after its last checkpoint: recipe-core 1035, EBMR-CSM-043); build defects
+  P6e-B1 (kernel witness flag) and P6e-B2 (read rule range) in the defect log. Residuals in the plan (prompt not inside
+  the floor's TB-01 step; guards proven with superuser-written store rows, not a full engine run of a flagged product;
+  RETURN corrects the account only; aborted batches not held). Local runs (cluster 5439): typecheck and lint of changed
+  files clean, deps:check clean, register valid, handbook check passes; site services, api-contract and tablets-web
+  (846 passed), recipe-core execution and release (162 passed), the 17 IN-53 tests and the catalogue meta tests passed.
