@@ -210,7 +210,7 @@ export interface SerialFacts {
   report: Json;
   aggregations: { shippers: number; packs: string };
   /** The L3 release problem with the mirror older than its bound, and after the next synchronisation. */
-  staleMirror: { problem: string | null; grelSerial: string; after: string | null };
+  staleMirror: { problem: string | null; grelSerial: string; after: string | null; grelSerialAfter: string };
 }
 
 /** The most serial events one request to the L3 system carries (its protocol's limit). */
@@ -270,9 +270,9 @@ function serialisation(w: GoldenWorld, cx: Connected): { hooks: Parameters<typeo
     async facts() {
       const one = async <T,>(sql: string, p: unknown[]): Promise<T> => (await w.server.db.admin.query<{ r: T }>(sql, p)).rows[0]?.r as T;
       const pool = await one<Json>("select jsonb_build_object('quantity', quantity::text, 'market', market, 'l3Market', l3_market, 'gtin', gtin) as r from tab.serial_pool where pool_id = $1", [poolId]);
-      const report = await one<Json>('select counts as r from tab.serial_report where pool_id = $1 order by recorded_at desc limit 1', [poolId]).catch(() => ({}));
+      const report = await one<Json>("select counts || jsonb_build_object('unexplained', unexplained::text) as r from tab.serial_report where pool_id = $1 order by fetched_at desc, id desc limit 1", [poolId]);
       const agg = await one<Json>("select jsonb_build_object('shippers', count(*), 'packs', coalesce(sum(child_count), 0)::text) as r from tab.l3_aggregation where pool_id = $1", [poolId]);
-      return { pool: pool as SerialFacts['pool'], report: report ?? {}, aggregations: { shippers: Number(agg['shippers']), packs: String(agg['packs']) } };
+      return { pool: pool as SerialFacts['pool'], report, aggregations: { shippers: Number(agg['shippers']), packs: String(agg['packs']) } };
     },
   };
 }
@@ -282,7 +282,7 @@ export interface Gbt03Release {
   lot: { lotId: string; lotCode: string };
   grel: Json;
   decision: string;
-  us: { grel: string[]; disposition: string };
+  us: { grel: string[]; acknowledged: string[]; disposition: string };
   serial: SerialFacts;
   shipments: Json[];
   recall: Json;
@@ -293,23 +293,42 @@ export async function packReleaseAndRecall(w: GoldenWorld, cx: Connected, m: Gbt
   await cx.sync();
   const s = serialisation(w, cx);
   const order = await bottleOrder(w, m.bottle, batch, PACK_ORDER, { ...BOTTLE_PLAN, labels: bulk.map((c) => c.label) }, ['IN', 'US'], s.hooks);
+  // The L3 feed's last serial events (the destruction and the specimens) reach the mirror before QA reviews the record.
+  await cx.sync();
   const serial = await s.facts();
   await productSpecification(w, GBT02_PRODUCT.productCode);
   const lot = await finishedLot(w, order, BOTTLE_PLAN.packs);
-  for (const b of [batch, order]) await reviewRecord(w, b.batchId);
 
   // The L3 mirror fails closed: an hour and a minute without a synchronisation (its bound is an hour), the US release item
-  // of the serial reconciliation names the stale mirror; the next synchronisation clears it.
+  // of the serial reconciliation names the stale mirror; the next synchronisation clears it. Before QA's review: the
+  // mirror's return bumps the order's evidence epoch, which after the review the US signer would acknowledge item by item.
+  // The US quality-control unit reads G-REL for the US on the lot (its serial reconciliation item) before and after (a
+  // fresh session each time: the office session idles out over the hour).
+  const serialItem = async (): Promise<string> => {
+    const reader = await w.server.asPersona('usQcu');
+    const it = ok(await reader.call(routes.release.grel, { params: { lotId: lot.lotId }, query: { market: 'US' } }), 'G-REL for the US').items.find((i) => i.id === 'E.RECONCILIATION_SERIAL');
+    return it ? `${it.id} ${it.status}` : 'no serial reconciliation item';
+  };
   advanceMinutes(61);
   const problem = (await w.server.db.app.query<{ p: string | null }>('select tab.l3_release_problem($1) as p', [order.batchId])).rows[0]?.p ?? null;
-  const item = (await w.server.db.app.query<{ r: Json }>('select tab.grel_recon_serial($1) as r', [order.batchId])).rows[0]?.r ?? {};
+  const grelSerial = await serialItem();
   await cx.sync();
   const after = (await w.server.db.app.query<{ p: string | null }>('select tab.l3_release_problem($1) as p', [order.batchId])).rows[0]?.p ?? null;
-  const staleMirror = { problem, grelSerial: String(item['status'] ?? JSON.stringify(item)), after };
+  const staleMirror = { problem, grelSerial, after, grelSerialAfter: await serialItem() };
 
+  // QA reviews both records; the AP releases for India.
+  for (const b of [batch, order]) await reviewRecord(w, b.batchId);
   const released = await manufacturerRelease(w, lot.lotId);
   // The US quality-control unit's disposition on G-REL for the US (the serial reconciliation green on a fresh L3 mirror).
   const qcu = await w.server.asPersona('usQcu');
+  const evaluated = ok(await qcu.call(routes.release.grel, { params: { lotId: lot.lotId }, query: { market: 'US' } }), 'G-REL for the US');
+  // The manufacturer release locked the records (recipe-core 0870, FIRST_DISPOSITION), which moves their evidence epoch:
+  // every item resting on them shows "since review", and the signer acknowledges each at this evaluation (5.2.7 item 1).
+  const acknowledged: string[] = [];
+  for (const i of evaluated.items.filter((x) => x.sinceReview && !x.acknowledged)) {
+    ok(await qcu.call(routes.release.acknowledge, { params: { lotId: lot.lotId }, body: { market: 'US', itemId: i.id, epoch: evaluated.epoch } }), `the acknowledgment of ${i.id}`);
+    acknowledged.push(i.id);
+  }
   const usGrel = ok(await qcu.call(routes.release.grel, { params: { lotId: lot.lotId }, query: { market: 'US' } }), 'G-REL for the US');
   const us = await signAct(w, qcu, 'usQcu', { kind: 'RELEASE_ACT', act: 'US_DISPOSE', lotId: lot.lotId, input: { usDecision: 'RELEASE', expectedEpoch: usGrel.epoch } });
   if (!us.ok) throw new Error(`the US disposition was refused: ${JSON.stringify(refusalOf(us))}`);
@@ -338,7 +357,7 @@ export async function packReleaseAndRecall(w: GoldenWorld, cx: Connected, m: Gbt
   const signed = valueOf(await qa.call(routes.recall.mockRecall, { params: { mockRecallId: recall.mockRecallId } }));
   return {
     order, lot, grel: released.grel, decision: released.decision,
-    us: { grel: usGrel.items.map((i) => `${i.id} ${i.status}`), disposition },
+    us: { grel: usGrel.items.map((i) => `${i.id} ${i.status}`), acknowledged, disposition },
     serial: { ...serial, staleMirror }, shipments, recall: signed as unknown as Json,
   };
 }

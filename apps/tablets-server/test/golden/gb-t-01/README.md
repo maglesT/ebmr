@@ -89,9 +89,10 @@ dispensing calculation, genealogy, the number of batch-record signatures and the
 ## Time (D-S6-6)
 
 The golden test's PostgreSQL runs under the golden clock library (`tools/dev-env/golden-clock`, which replaced
-libfaketime in Phase 6 slice 6j-b) with a timestamp file the driver only moves forward (`FAKETIME_TIMESTAMP_FILE`); nothing in the GMP code reads a test clock. GB-T-01 freezes the
-clock at the next midnight UTC and ticks it one second before each act, so every time and duration the server measures
-is the same on each run (blend 601 s, lubrication 181 s). The hash's normalisation (`results.ts`) turns the run's
+libfaketime in Phase 6 slice 6j-b) with a timestamp file the driver only moves forward (`FAKETIME_TIMESTAMP_FILE`);
+nothing in the GMP code reads a test clock. GB-T-01 freezes the clock at the next midnight UTC and ticks it one second
+before each act, so every time and duration the server measures is the same on each run (blend 601 s, lubrication
+181 s). The hash's normalisation (`results.ts`) turns the run's
 instants into minutes from the batch's issue, and an expiry month and the year in a deviation number
 (DEV-SITE-1-&lt;year&gt;-00001) into placeholders; the seeded lots' fixed retest and expiry dates (2027 to 2029, after the
 run) stay as they are. Until 12 October 2026 those lot dates were taken for the run's instants and became offsets from

@@ -32,13 +32,367 @@
     }
   },
   "fromTheRun": {
-    "batch": {},
-    "order": {},
-    "lot": {},
-    "release": {},
-    "serialisation": {},
-    "connected": {},
-    "press": {},
-    "recall": {}
+    "batch": {
+      "states": {
+        "batch": "EXECUTION_COMPLETE",
+        "stages": {
+          "S-BLEND@": "SIGNED_OFF",
+          "S-COMP@": "SIGNED_OFF",
+          "S-DISP@": "SIGNED_OFF"
+        },
+        "containers": {
+          "BLENDING/-/01": "CLOSED",
+          "COMPRESSION/L/01": "CLOSED",
+          "COMPRESSION/L/02": "CLOSED",
+          "COMPRESSION/L/03": "CLOSED",
+          "COMPRESSION/R/01": "CLOSED",
+          "COMPRESSION/R/02": "CLOSED",
+          "COMPRESSION/R/03": "CLOSED"
+        },
+        "notCompleted": []
+      },
+      "consumptions": [
+        "GBT2-CCS-001 1 kg",
+        "GBT2-EXF-001 10 kg",
+        "GBT2-MCC-001 8.4 kg",
+        "GBT2-MGS-001 0.4 kg",
+        "GBT2-SIO-001 0.2 kg"
+      ],
+      "containers": [
+        "BLENDING/- 19.88",
+        "COMPRESSION/L 3.25",
+        "COMPRESSION/L 3.25",
+        "COMPRESSION/L 3.25",
+        "COMPRESSION/R 3.25",
+        "COMPRESSION/R 3.25",
+        "COMPRESSION/R 3.25"
+      ],
+      "exceptions": [
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "IPC_MANUAL_ENTRY ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT",
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT"
+      ],
+      "signatures": 59,
+      "normalisedTrueCopySha256": "d8899a6a6dacb3745459823686c3874d875cc7f83716e8f29393626d58e4aadc"
+    },
+    "order": {
+      "states": {
+        "batch": "EXECUTION_COMPLETE",
+        "stages": {
+          "S-PACK@": "SIGNED_OFF"
+        },
+        "containers": {},
+        "notCompleted": []
+      },
+      "consumptions": [
+        "GBT2-HDP-001 40 kg"
+      ],
+      "containers": [],
+      "exceptions": [
+        "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT"
+      ],
+      "signatures": 20,
+      "normalisedTrueCopySha256": "44f6770864c3a32069bfdb366f744ab1a38d6bbe54f60c75e054984f8b609771"
+    },
+    "lot": {
+      "state": "RELEASED",
+      "quantity": "3200 packs",
+      "markets": [
+        "IN",
+        "US"
+      ],
+      "dispositions": {
+        "IN": "RELEASED",
+        "US": "RELEASED",
+        "EU": null
+      },
+      "results": [
+        "ASSAY 99.6 % PASS APPROVED",
+        "DISSOLUTION 93 % PASS APPROVED"
+      ],
+      "samples": [
+        "RESERVE 4 packs"
+      ],
+      "grel": {
+        "IN": [
+          "G1.REVIEW_1 GREEN",
+          "G1.REVIEW_2 GREEN",
+          "G2.DEVIATIONS GREEN",
+          "G2.REGISTRATION NA",
+          "G2.CHANGE_NOTIFICATION NA",
+          "G3.LIMS GREEN",
+          "G3.EXTRA_TESTING GREEN",
+          "G3.SAMPLES GREEN",
+          "G5.MATERIALS GREEN",
+          "G6.VALIDATION_BASIS GREEN",
+          "G6.POST_CHANGE NA",
+          "G6.PPQ NA",
+          "G6.LICENCE GREEN",
+          "G7.INCIDENTS GREEN",
+          "G8.MARKET_ADD NA",
+          "E.RECONCILIATION_PRINTED GREEN",
+          "E.RECONCILIATION_PACKS GREEN",
+          "E.RECONCILIATION_SERIAL GREEN",
+          "E.RECONCILIATION_YIELD GREEN",
+          "E.POSTED_QUANTITY GREEN",
+          "E.FINISHED_PACK_EXAMINATION GREEN",
+          "E.PRINTED_TABLETS_QC NA",
+          "E.HELD_CONTAINERS GREEN",
+          "E.CONTAINER_RELEASE GREEN",
+          "E.RULE_SETS_VERIFIED NA",
+          "E.WHOLE_BATCH_PARENTS NA"
+        ],
+        "US": [
+          "G1.REVIEW_1 GREEN",
+          "G1.REVIEW_2 GREEN",
+          "G2.DEVIATIONS GREEN",
+          "G2.REGISTRATION NA",
+          "G2.CHANGE_NOTIFICATION NA",
+          "G3.LIMS GREEN",
+          "G3.EXTRA_TESTING GREEN",
+          "G3.SAMPLES GREEN",
+          "G5.MATERIALS GREEN",
+          "G6.VALIDATION_BASIS GREEN",
+          "G6.POST_CHANGE NA",
+          "G6.PPQ NA",
+          "G6.LICENCE GREEN",
+          "G7.INCIDENTS GREEN",
+          "G8.MARKET_ADD NA",
+          "G11.MARKET_IN_SET GREEN",
+          "G11.REGISTRATION GREEN",
+          "G11.MARKET_REJECTIONS NA",
+          "G11.US_RELEASE_RATE NA",
+          "G11.US_CONTRACT_GIVER NA",
+          "E.RECONCILIATION_PRINTED GREEN",
+          "E.RECONCILIATION_PACKS GREEN",
+          "E.RECONCILIATION_SERIAL GREEN",
+          "E.RECONCILIATION_YIELD GREEN",
+          "E.POSTED_QUANTITY GREEN",
+          "E.FINISHED_PACK_EXAMINATION GREEN",
+          "E.PRINTED_TABLETS_QC NA",
+          "E.HELD_CONTAINERS GREEN",
+          "E.CONTAINER_RELEASE GREEN",
+          "E.RULE_SETS_VERIFIED NA",
+          "E.WHOLE_BATCH_PARENTS NA"
+        ]
+      }
+    },
+    "release": {
+      "decision": "RELEASED",
+      "grel": [
+        "G1.REVIEW_1 GREEN",
+        "G1.REVIEW_2 GREEN",
+        "G2.DEVIATIONS GREEN",
+        "G2.REGISTRATION NA",
+        "G2.CHANGE_NOTIFICATION NA",
+        "G3.LIMS GREEN",
+        "G3.EXTRA_TESTING GREEN",
+        "G3.SAMPLES GREEN",
+        "G5.MATERIALS GREEN",
+        "G6.VALIDATION_BASIS GREEN",
+        "G6.POST_CHANGE NA",
+        "G6.PPQ NA",
+        "G6.LICENCE GREEN",
+        "G7.INCIDENTS GREEN",
+        "G8.MARKET_ADD NA",
+        "E.RECONCILIATION_PRINTED GREEN",
+        "E.RECONCILIATION_PACKS GREEN",
+        "E.RECONCILIATION_SERIAL GREEN",
+        "E.RECONCILIATION_YIELD GREEN",
+        "E.POSTED_QUANTITY GREEN",
+        "E.FINISHED_PACK_EXAMINATION GREEN",
+        "E.PRINTED_TABLETS_QC NA",
+        "E.HELD_CONTAINERS GREEN",
+        "E.CONTAINER_RELEASE GREEN",
+        "E.RULE_SETS_VERIFIED NA",
+        "E.WHOLE_BATCH_PARENTS NA"
+      ],
+      "us": {
+        "grel": [
+          "G1.REVIEW_1 GREEN",
+          "G1.REVIEW_2 GREEN",
+          "G2.DEVIATIONS GREEN",
+          "G2.REGISTRATION NA",
+          "G2.CHANGE_NOTIFICATION NA",
+          "G3.LIMS GREEN",
+          "G3.EXTRA_TESTING GREEN",
+          "G3.SAMPLES GREEN",
+          "G5.MATERIALS GREEN",
+          "G6.VALIDATION_BASIS GREEN",
+          "G6.POST_CHANGE NA",
+          "G6.PPQ NA",
+          "G6.LICENCE GREEN",
+          "G7.INCIDENTS GREEN",
+          "G8.MARKET_ADD NA",
+          "G11.MARKET_IN_SET GREEN",
+          "G11.REGISTRATION GREEN",
+          "G11.MARKET_REJECTIONS NA",
+          "G11.US_RELEASE_RATE NA",
+          "G11.US_CONTRACT_GIVER NA",
+          "E.RECONCILIATION_PRINTED GREEN",
+          "E.RECONCILIATION_PACKS GREEN",
+          "E.RECONCILIATION_SERIAL GREEN",
+          "E.RECONCILIATION_YIELD GREEN",
+          "E.POSTED_QUANTITY GREEN",
+          "E.FINISHED_PACK_EXAMINATION GREEN",
+          "E.PRINTED_TABLETS_QC NA",
+          "E.HELD_CONTAINERS GREEN",
+          "E.CONTAINER_RELEASE GREEN",
+          "E.RULE_SETS_VERIFIED NA",
+          "E.WHOLE_BATCH_PARENTS NA"
+        ],
+        "acknowledged": [
+          "E.RECONCILIATION_PRINTED",
+          "E.RECONCILIATION_PACKS",
+          "E.RECONCILIATION_SERIAL",
+          "E.RECONCILIATION_YIELD",
+          "E.POSTED_QUANTITY",
+          "E.FINISHED_PACK_EXAMINATION",
+          "E.HELD_CONTAINERS",
+          "E.RULE_SETS_VERIFIED"
+        ],
+        "disposition": "RELEASED"
+      },
+      "shipments": [
+        {
+          "unit": "packs",
+          "market": "IN",
+          "quantity": "1600",
+          "consignee": "CUST-IN-PUNE",
+          "shipmentNo": "SHP-GBT03-IN-01"
+        },
+        {
+          "unit": "packs",
+          "market": "US",
+          "quantity": "1596",
+          "consignee": "CUST-US-NJ",
+          "shipmentNo": "SHP-GBT03-US-01"
+        }
+      ]
+    },
+    "serialisation": {
+      "pool": {
+        "gtin": "00312345678906",
+        "market": "US",
+        "l3Market": "US_DSCSA",
+        "quantity": "3214"
+      },
+      "report": {
+        "SAMPLE": "4",
+        "issued": "3214",
+        "DESTROYED": "10",
+        "unexplained": "0",
+        "COMMISSIONED": "3200",
+        "DECOMMISSIONED": "0",
+        "UNUSED_RETURNED": "0"
+      },
+      "aggregations": {
+        "shippers": 32,
+        "packs": "3200"
+      },
+      "staleMirror": {
+        "problem": "the L3 mirror L3_SERIAL_STATUS is stale (last synchronised 3664 s ago, bound 3600 s): the serial status cannot be relied on until the L3 adapter synchronises again (PR-42)",
+        "grelSerial": "E.RECONCILIATION_SERIAL RED",
+        "after": null,
+        "grelSerialAfter": "E.RECONCILIATION_SERIAL GREEN"
+      }
+    },
+    "connected": {
+      "accepted": {
+        "cmms.calibration": 5,
+        "cmms.maintenance": 2,
+        "erp.production_order": 2,
+        "erp.shipment": 2,
+        "l3.aggregation": 32,
+        "lms.qualification": 3,
+        "wms.lot_status": 8
+      },
+      "refused": 0,
+      "alarms": 0,
+      "mirrors": {
+        "ERP_ITEM_MASTER": "MIRROR FRESH",
+        "ERP_LOT_STATUS": "MIRROR FRESH",
+        "WMS_STOCK": "MIRROR FRESH",
+        "LMS_QUALIFICATION": "MIRROR FRESH",
+        "CMMS_CALIBRATION": "MIRROR FRESH",
+        "CMMS_MAINTENANCE": "MIRROR FRESH",
+        "L3_SERIAL_STATUS": "MIRROR FRESH"
+      },
+      "lms": {
+        "qualifications": 3,
+        "performers": 3
+      },
+      "cmms": {
+        "calibrations": 5,
+        "workOrders": 2
+      }
+    },
+    "press": {
+      "sessions": [
+        "OPC-COMP-1 SignAndEncrypt Basic256Sha256 COMP-1 PRESS-01 enrolled-certificate"
+      ],
+      "refusedSessions": 0,
+      "alarmLog": [
+        "OPCUA | PRESS-01 | REJECT_BURST | 700 | GMP-critical | no step | cleared | acknowledged: Checked the checkweigher reject bin and the press discharge; the rejects were set aside and the run continued. / Reject burst of the press during the compression run; no tablet out of limits reached the containers."
+      ],
+      "seriesTags": [
+        "force.main_kN",
+        "force.pre_kN",
+        "stroke.count",
+        "tablet.count",
+        "turret.speed_rpm"
+      ],
+      "rawKept": true,
+      "refused": 0,
+      "integrationAlarms": 0
+    },
+    "recall": {
+      "subjectRef": "GBT2-EXF-001",
+      "queryVersion": 2,
+      "reproduces": true,
+      "counts": {
+        "batches": 2,
+        "lots": 2,
+        "consignees": 2,
+        "shipments": 2,
+        "incompleteRecords": 0
+      },
+      "federation": {
+        "complete": true,
+        "transfers": [],
+        "beyondOneHop": []
+      },
+      "authorityInformed": false,
+      "lots": [
+        "GBT2-EXF-001 0 0 0 kg",
+        "<batch-1>/P01 3196 0 3196 packs"
+      ],
+      "consignees": [
+        "CUST-IN-PUNE [\"IN\"]",
+        "CUST-US-NJ [\"US\"]"
+      ],
+      "signedOffBy": "AUTHORISED_PERSON",
+      "normalisedSha256": "0e481a505a4023bf6cdda9be5211faa2411f54bbfe23a0cdeb78a802a8d1a732"
+    }
   }
 }

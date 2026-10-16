@@ -11,7 +11,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { canonicalJson, Dec, sha256Hex } from '@ebmr/expr';
+import { Dec, sha256Hex } from '@ebmr/expr';
 import { FAKETIME_FILE, freezeAt, goldenClockAvailable } from '../clock.ts';
 import { setUpPlant } from '../gb-t-01/plant.ts';
 import { normalise, resultsOf, type BatchResults } from '../gb-t-01/results.ts';
@@ -19,7 +19,7 @@ import { startGoldenWorld, type GoldenWorld } from '../gb-t-01/world.ts';
 import { lotFacts, orderFacts, type LotFacts, type OrderFacts } from '../gb-t-01/release-results.ts';
 import { BLEND, COMPRESSION } from '../gb-t-02/scenario.ts';
 import { connect, GOLDEN_CLOCK_LIB, MIRRORED_CLASSES, type Connected } from './connected.ts';
-import { connectPress, type PressFacts, type PressRig } from './opcua.ts';
+import { ACK, connectPress, type PressFacts, type PressRig } from './opcua.ts';
 import { BOTTLE_PLAN, CALIBRATED, LMS_TRAINING, packReleaseAndRecall, PERFORMERS, runBatch, SERIALS, setUpGbt03, type Gbt03Release } from './scenario.ts';
 
 type Json = Record<string, unknown>;
@@ -64,15 +64,21 @@ async function connectedFacts(w: GoldenWorld, cx: Connected): Promise<ConnectedF
   };
 }
 
+/** `text` with each of the scenario's batch numbers replaced by its ordinal (results.ts normalise does the same). */
+const numbered = (text: string, numbers: readonly string[]): string => numbers.reduce((t, b, i) => t.split(b).join(`<batch-${String(i + 1)}>`), text);
+
 /** The mock recall as compared: its facts, and the SHA-256 of the whole view normalised as a true copy is. */
 function recallFacts(recall: Json, start: bigint, numbers: readonly string[]): Json {
   const lots = (recall['lots'] as Json[] | undefined) ?? [];
   const consignees = (recall['consignees'] as Json[] | undefined) ?? [];
-  const normalised = normalise(recall, start, numbers, start);
+  // resultSha256 is the digest of the stored result with its identifiers, new on every run ("reproduces" checks it): left out.
+  const view = Object.fromEntries(Object.entries(recall).filter(([k]) => k !== 'resultSha256'));
+  const normalised = normalise(view, start, numbers, start);
   return {
     subjectRef: recall['subjectRef'], queryVersion: recall['queryVersion'], reproduces: recall['reproduces'], counts: recall['counts'],
     federation: recall['federation'], authorityInformed: recall['authorityInformed'],
-    lots: lots.map((l) => `${String(l['lotCode'] ?? l['lotId'])} ${String(l['delivered'])} ${String(l['returned'])} ${String(l['outstanding'])} ${String(l['unit'])}`),
+    // A finished lot's code carries its batch number (with the year): by its ordinal, as in the normalised copy.
+    lots: lots.map((l) => numbered(`${String(l['lotCode'] ?? l['lotId'])} ${String(l['delivered'])} ${String(l['returned'])} ${String(l['outstanding'])} ${String(l['unit'])}`, numbers)),
     consignees: consignees.map((c) => `${String(c['consigneeCode'])} ${JSON.stringify(c['markets'])}`),
     signedOffBy: (recall['signOff'] as { signedBy?: { role?: string } } | null)?.signedBy?.role ?? null,
     normalisedSha256: sha256Hex(normalised),
@@ -159,7 +165,7 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
     expect(run.orderFacts?.shipperPacks).toBe(b['packs']);
   });
 
-  it('[PR-42][DI-31] serialises the US cartons through the L3/L4 system: the worksheet\'s pool, commissioning, destruction, specimens and aggregations, the L3 report closing the step; a stale L3 mirror refuses the US release item and a synchronisation clears it', () => {
+  it('[PR-42][PR-39][DI-31] serialises the US cartons through the L3/L4 system: the worksheet\'s pool, commissioning, destruction, specimens and aggregations, the L3 report closing the step; a stale L3 mirror refuses the US release item and a synchronisation clears it', () => {
     const s = expected.worksheet.serials;
     expect(SERIALS).toEqual(s);
     expect(run.rel?.serial).toEqual(expected.fromTheRun.serialisation);
@@ -170,12 +176,15 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
     expect(run.connected).toEqual(expected.fromTheRun.connected);
   });
 
-  it('[DI-20][DI-32] the OPC UA press reports its enrolled endpoint\'s session and native series of the compression through the site gateway', () => {
+  it('[DI-20][DI-32][DI-49] the OPC UA press reports its enrolled endpoint\'s session and native series of the compression through the site gateway, and its reject-burst alarm is acknowledged with a comment in the batch\'s alarm log', () => {
     expect(run.press).toEqual(expected.fromTheRun.press);
+    expect(run.press?.sessions.every((x) => x.endsWith('enrolled-certificate'))).toBe(true);
+    expect(run.press?.alarmLog.some((x) => x.includes('REJECT_BURST') && x.includes(`acknowledged: ${ACK.actionTaken} / ${ACK.comment}`))).toBe(true);
   });
 
   it('[PR-45][IN-05][INV-05] the finished lot is released for India through G-REL green and the AP\'s signed release, and for the US by its quality-control unit', () => {
-    expect({ decision: run.rel?.decision, grel: run.rel?.grel, us: run.rel?.us, shipments: run.rel?.shipments }).toEqual(expected.fromTheRun.release);
+    // G-REL's items (its epoch is a digest of the evidence's identifiers, different on every run).
+    expect({ decision: run.rel?.decision, grel: run.rel?.grel['items'], us: run.rel?.us, shipments: run.rel?.shipments }).toEqual(expected.fromTheRun.release);
     expect(run.lot).toEqual(expected.fromTheRun.lot);
   });
 
@@ -196,4 +205,3 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
   });
 });
 
-void canonicalJson;

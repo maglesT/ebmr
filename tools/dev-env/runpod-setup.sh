@@ -26,6 +26,7 @@
 #   golden 5435  under the golden clock library (as the CI golden job, which uses 5433 on its own runner)
 #     EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5435/postgres \
 #     EBMR_FAKETIME_FILE=/var/lib/postgresql/faketime-golden/offset \
+#     EBMR_GOLDEN_CLOCK_LIB=/usr/local/lib/ebmr/golden-clock.so \
 #     pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism
 set -euo pipefail
 
