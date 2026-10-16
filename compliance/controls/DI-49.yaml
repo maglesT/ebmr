@@ -58,6 +58,18 @@ tests:
   - "packages/site-services/test/reporting/reporting-views.test.ts > report views (recipe-core 1070) > [DI-49] the alarm view holds every alarm once, whatever number of batches it is bound to, with its acknowledgment"
   - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period"
   - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [DI-49] the alarm trend shows the count of every alarm of the period, by day and code"
+clauses:
+  - clause: "Simulate an excursion. It appears with raise and acknowledgment times, acknowledger identity and comment."
+    tests:
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > the plant alarm log in the batch context (DI-49) > [DI-49] a simulated compression-force excursion appears with raise and acknowledgment times, the acknowledger and the comment"
+      - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant alarms (DI-49) > [DI-49] the batch review shows the batch alarm log with the acknowledgment: time, person, action, comment, deviation"
+  - clause: "Try to acknowledge without a comment. Refused."
+    tests:
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > the plant alarm log in the batch context (DI-49) > [DI-49] acknowledging a GMP-critical alarm without a comment is refused; the action taken is always required; once only; a person only"
+      - "apps/tablets-server/test/alarms/alarm-routes.test.ts > alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot"
+  - clause: "Try to delete the alarm log. Impossible."
+    tests:
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > the plant alarm log in the batch context (DI-49) > [DI-49] the alarm log cannot be deleted or updated by any role"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

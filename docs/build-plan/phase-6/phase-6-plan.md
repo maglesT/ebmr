@@ -767,6 +767,36 @@ follow if a language is added after v1.
   IN-53's clauses; every clause deferred to 6 now with passing tests (the deferral removed only when a test proves it;
   a clause still unbuildable is deferred to 7 only with its reason and listed for the owner). The phase-5 deferrals of
   shared controls (PR-26, PR-28) are handled per question 7 before the raise. `phase.yaml` to 6 last.
+  - **State 6j-a (branch `phase-6/slice-6j-a`, 16 October):** DI-31, DI-32 and DI-49 map their clauses; every clause
+    deferred to 6 (IN-01, PR-15, PR-17 x3, PR-22, PR-25, PR-27 x2, PR-29, PR-35 x2, PR-46, PR-51) names passing tests;
+    none moved to 7. IN-53 keeps 6e's mapping, `expert_decision` PENDING. Question 7 taken: the trace treats phase 5 as
+    not started while injectables is outside the gate (`deferralStarted`, a `[meta]` test); PR-26 and PR-28 unchanged.
+    PR-15's filling suite is a `deferred_scope` to 5 (D-P6b-5). `phase.yaml` stays at 4 for the integrator. Handbook
+    mermaid labels escaped (`;` as `#59;`, a second `:` as `#58;`). Owner list: IN-53 pending (question 3); PR-15
+    filling suite (question 6); PR-26 and PR-28 waiting with Injectables (question 7); DI-32's restored-archive
+    browser step on a restored database is 6j-b's (D-P6b-L-2).
+  - **Check 6j-a (pod, 16 October):** typecheck, the full lint, `deps:check`, `pins:check`, `register:validate` (242
+    controls) and `handbook:check` pass. A dry run of the trace at 6 (a scratch helper calling `buildTrace` at phase 6
+    on a partial report; `phase.yaml` untouched) over 140 test files: every listed test of DI-31, DI-32, DI-49 and
+    IN-53, and every clause test of IN-01, PR-15, PR-17, PR-22, PR-25, PR-27, PR-29, PR-35, PR-46, PR-51, DI-20, PR-57
+    and IN-29 (1224 passed, none failed; 23 skipped, the GB-T-01 golden file outside the golden cluster). Every clause
+    of these 17 controls has a passing listed test except PR-22 clause 2 (the batch report's unit IDs), which only
+    GB-T-01 proves (mapped since Phase 4; confirmed by the golden job of the final run). No passing tagged test is
+    missing from a `tests` list. Not run here: the end-to-end tests DI-32 lists (devices, journey) and the golden
+    batches (final run).
+  - D-P6j-a-1: the trace at 6 is dry-run on a partial report with `buildTrace`; `pnpm trace` itself needs the whole
+    report and runs in the final run after the raise.
+  - D-P6j-a-2: a clause that 6j-b's browser flows or GB-T-03 will also prove (stale mirror refusal on the health page,
+    alarm acknowledgment, trend viewer, genealogy explorer and mock recall, controlled dispensing, English step screen)
+    is not deferred: it keeps its passing unit and integration tests, and 6j-b's tagged tests are added to the lists
+    with `register:sync-tests` at the merge.
+  - **Clauses moved to Phase 7 (owner list):** none; every clause deferred to 6 is proven by passing tests. The owner
+    items of the trace:
+    - IN-53: NDPS not verified, owner decision needed (draft control; `expert_decision` stays PENDING; question 3).
+    - PR-15: the filling-suite refusal is a `deferred_scope` to phase 5 with Injectables (question 6, D-P6b-5).
+    - PR-26 and PR-28: their clauses deferred to phase 5 wait with Injectables (question 7).
+    - DI-32 clause 3: the restored-archive re-render is proven on archived native series and the trend viewer; the
+      browser step on a restored database is 6j-b's (D-P6b-L-2).
 - **6j-b golden batches and browser suite:** GB-T-01 and GB-T-02 unchanged with exact outputs (adapters in stand-in
   mode); a new GB-T-03 "connected" (ERP/WMS and LMS/CMMS mirrors, OPC UA press, L3/L4 serialisation, mock recall from
   its API lot) with exact outputs; browser flows for the integration health page with a stale mirror refusal, alarm

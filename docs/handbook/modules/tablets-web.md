@@ -346,12 +346,12 @@ sequenceDiagram
   S->>C: sign({aggregate, meaning, action, title})
   C->>API: GET /api/esig/content (the text to sign and its SHA-256)
   Note over C: refuses text whose hash is not the server's
-  C->>C: kiosk: badge tap (and PIN on TAP_PIN)
+  C->>C: kiosk#58; badge tap (and PIN on TAP_PIN)
   C->>API: POST /api/esig/challenges (hash of the text shown)
   C->>C: PIN or user ID and password, 120 s countdown
   C->>API: POST /api/esig/sign (once, with a fresh device proof)
   API-->>C: manifestation (name, time, meaning)
-  Note over C: lost answer: reload signatures, never resend credentials
+  Note over C: lost answer#58; reload signatures, never resend credentials
 ```
 
 What the screen guarantees, and what it leaves to the server:

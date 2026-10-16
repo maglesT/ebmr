@@ -67,13 +67,12 @@ clauses:
     tests:
       - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27][PR-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
   - clause: "A penicillin component in a non-penicillin facility is blocked."
-    deferred:
-      phase: 6
-      reason: "There is no facility-level penicillin rule yet, only packing-line isolation (IN-38); built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/plant-rules/materials.test.ts > the penicillin facility (PR-27) > [PR-27] a penicillin component in a non-penicillin facility is blocked"
   - clause: "A spill event sets the room to \"cleaning required\"."
-    deferred:
-      phase: 6
-      reason: "There is no spill event on a room yet; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-27] a spill event sets the room to cleaning required"
+      - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant displays and rooms > [PR-25][PR-27][PR-15] rooms show cleaning state, clean hold, controlled area and open spills; a room shows its conditions and records a spill"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

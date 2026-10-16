@@ -46,9 +46,8 @@ clauses:
       - "packages/recipe-core/test/blocks/golden.test.ts > golden fixtures of the phase block versions > [DI-34][PR-25] G-11 Environmental condition check: Relative humidity above the alert limit: register item plus an excursion that notifies production and QA"
       - "apps/tablets-server/test/blocks/coating/tb-18-edges.test.ts > TB-18 cores > [IN-37][PR-25] the room is judged against each limit the MBR sets (ends allowed), with filtered air, once"
   - clause: "A room overdue for cleaning is blocked."
-    deferred:
-      phase: 6
-      reason: "Rooms carry no clean-hold time (only equipment classes do), so a room overdue for cleaning cannot be refused yet; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-25] a room overdue for cleaning is blocked"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -19,6 +19,8 @@
  *  - a DONT_FOLLOW control still has tests proving active enforcement.
  * A control none of whose editions the gate covers (phase.yaml `editions`, decision 0010) is not due and its deferrals
  * are not checked; a test tagged with it is still checked (unknown IDs, failures, the tests list).
+ * Phase 5 is the Injectables edition, built after Phase 7 (decision 0010): a deferral to phase 5 counts as not started
+ * while the gate leaves `injectables` out, whatever the current phase (Phase 6 plan, owner question 7).
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative } from 'node:path';
@@ -149,7 +151,21 @@ function resultsNamed(entry: string, byFile: Map<string, TestResult[]>): TestRes
   return (byFile.get(fileOfEntry(entry)) ?? []).filter((r) => r.path && names(entry, r.path));
 }
 
+/** The phase of the Injectables edition (build outline section 11; decision 0010). */
+export const INJECTABLES_PHASE = 5;
+
+/**
+ * Whether a phase a clause or scope is deferred to has started: it is at or before the current phase, except the
+ * Injectables phase while the gate leaves that edition out (Phase 6 plan, owner question 7).
+ */
+export function deferralStarted(deferredTo: number, phase: number, editions: readonly EditionName[]): boolean {
+  if (deferredTo === INJECTABLES_PHASE && !editions.includes('injectables')) return false;
+  return deferredTo <= phase;
+}
+
 export function buildTrace(controls: ControlRecord[], results: TestResult[], phase: number, options: TraceOptions = {}): TraceReport {
+  const gate = options.editions ?? ['tablets', 'injectables'];
+  const started = (deferredTo: number): boolean => deferralStarted(deferredTo, phase, gate);
   const byId = new Map(controls.map((c) => [c.id, { control: c, passing: [] as string[], failing: [] as string[], clauses: [] as ClauseStatus[] }]));
   const errors: string[] = [];
   const skipped: string[] = [];
@@ -188,12 +204,12 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
   for (const row of byId.values()) {
     const c = row.control;
     const rejected = c.expert_decision.status === 'DONT_FOLLOW';
-    const gated = inGateEditions(c, options.editions ?? ['tablets', 'injectables']);
+    const gated = inGateEditions(c, gate);
     const due = gated && !rejected && c.target_phase <= phase;
     // Owner decision 0011: a control every clause of whose catalog test is deferred, each with its reason, to a phase
     // that has not started has nothing due to prove yet; it shows DEFERRED in the matrix. One clause not deferred, or
     // deferred to a phase that has started (refused below), and it needs its passing tests again.
-    const fullyDeferred = (c.clauses ?? []).length > 0 && (c.clauses ?? []).every((k) => k.deferred !== undefined && k.deferred.phase > phase && k.deferred.reason.trim() !== '');
+    const fullyDeferred = (c.clauses ?? []).length > 0 && (c.clauses ?? []).every((k) => k.deferred !== undefined && !started(k.deferred.phase) && k.deferred.reason.trim() !== '');
     if (due && row.passing.length === 0 && !fullyDeferred) {
       errors.push(`${c.id} (target phase ${c.target_phase}) has no passing test`);
     }
@@ -222,11 +238,11 @@ export function buildTrace(controls: ControlRecord[], results: TestResult[], pha
     });
     if (due && !c.clauses) errors.push(`${c.id} (target phase ${c.target_phase}) does not map its catalog test to clauses with tests or deferrals`);
     for (const d of c.deferred_scope ?? []) {
-      if (gated && d.phase <= phase) errors.push(`${c.id} scope "${d.scope}" is deferred to phase ${d.phase}, which has started`);
+      if (gated && started(d.phase)) errors.push(`${c.id} scope "${d.scope}" is deferred to phase ${d.phase}, which has started`);
     }
     row.clauses.forEach((k, i) => {
       const deferred = k.clause.deferred;
-      if (gated && deferred && deferred.phase <= phase) {
+      if (gated && deferred && started(deferred.phase)) {
         errors.push(`${c.id} clause ${i + 1} is deferred to phase ${deferred.phase}, which has started: "${k.clause.clause}"`);
       } else if (due && k.state === 'NO_TEST') {
         const onlyE2e = (k.clause.tests ?? []).every(isE2e) && options.e2e !== true;

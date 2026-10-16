@@ -356,7 +356,7 @@ sequenceDiagram
   API->>DB: esig.content_for_signing(type, id)
   DB-->>API: canonical text, version, hash
   S->>API: challenge(meaning, hash I saw)
-  API->>DB: esig.create_challenge (refuses another hash: ESIG-013)
+  API->>DB: esig.create_challenge (refuses another hash#58; ESIG-013)
   S->>A: password or badge + PIN for this challenge
   A->>DB: one authentication event, bound to the challenge
   API->>DB: esig.sign(challenge, auth event, expected state)
@@ -454,7 +454,7 @@ A signature is never updated. Its status is computed by
 ```mermaid
 stateDiagram-v2
   [*] --> UNSEALED: esig.sign inserts the row
-  UNSEALED --> VALID: esig.seal_signature (same transaction; otherwise the commit fails)
+  UNSEALED --> VALID: esig.seal_signature (same transaction#59; otherwise the commit fails)
   VALID --> SUPERSEDED_BY_CHANGE: signed content changed (invalidation row)
   VALID --> CONTENT_MISMATCH: hash differs without an invalidation row (integrity problem)
 ```

@@ -562,7 +562,7 @@ derived from the event rows of `recipe.record_lock_event`:
 stateDiagram-v2
   [*] --> UNLOCKED
   UNLOCKED --> LOCKED: first disposition signed, or bulk reconciliation closed
-  LOCKED --> UNDER_AMENDMENT: AMENDMENT_OPEN (signed; suspends the release)
+  LOCKED --> UNDER_AMENDMENT: AMENDMENT_OPEN (signed#59; suspends the release)
   UNDER_AMENDMENT --> LOCKED: AMENDMENT_CLOSE (signed)
 ```
 

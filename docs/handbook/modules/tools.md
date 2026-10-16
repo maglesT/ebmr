@@ -68,7 +68,9 @@ tests and maps each clause of its catalog test to the tests that prove it.
   edition only when its pin changes ([ADR 0015](../../adr/0015-exactly-pinned-shared-packages.md)).
 - **trace** ([buildTrace](../../../tools/register/src/trace.ts#sym=buildTrace)): reads the Vitest JSON report, the golden
   report and the Playwright report, and fails when a test cites an unknown control; a due control has no passing
-  listed test; a clause has neither a passing test nor a deferral; a deferral names a phase that has started; a listed
+  listed test; a clause has neither a passing test nor a deferral; a deferral names a phase that has started (phase 5,
+  the Injectables edition, has not started while `phase.yaml` leaves that edition out of the gate:
+  [deferralStarted](../../../tools/register/src/trace.ts#sym=deferralStarted), Phase 6 plan question 7); a listed
   test did not run (unless its source lets it skip, such as the DI-47 test on 29 February); a passing tagged test is
   missing from its control's list. It writes `.reports/trace-matrix.md` ([writeMatrix](../../../tools/register/src/trace.ts#sym=writeMatrix)).
   `trace:e2e` also requires the Playwright and golden reports (the CI `traceability` job).

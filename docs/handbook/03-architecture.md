@@ -374,17 +374,17 @@ sequenceDiagram
   C->>S: POST /api/quality/deviations + cookie, CSRF, Idempotency-Key
   S->>S: Origin, session, role, CSRF, key, zod body
   S->>H: handler({ body, actor, idempotencyKey })
-  H->>DB: begin; kernel.begin_command(actor)
+  H->>DB: begin#59; kernel.begin_command(actor)
   H->>DB: platform.claim_idempotency_key
   H->>DB: select site.raise_deviation(body)
-  DB->>DB: checks: not admin, DEVIATION.RAISE, body
+  DB->>DB: checks#58; not admin, DEVIATION.RAISE, body
   DB->>DB: insert site.deviation
   DB->>DB: trigger zz_audit_site_deviation -> kernel.audit_row_change
-  H->>DB: store answer; commit
+  H->>DB: store answer#59; commit
   H-->>S: DeviationView
   S-->>C: 200 JSON (validated by response schema)
-  C-->>W: { ok: true, value }
-  Note over S,C: on a refusal: RefusalEnvelope (code EBMR-..., why, guidance)
+  C-->>W: { ok#58; true, value }
+  Note over S,C: on a refusal#58; RefusalEnvelope (code EBMR-..., why, guidance)
 ```
 
 ## 7. Sessions and authentication
@@ -537,20 +537,20 @@ sequenceDiagram
   S-->>U: canonical text, content version, hash
   U->>U: show text, check SHA-256
   U->>S: POST /api/esig/challenges (client hash)
-  S->>DB: handler.prepareForChallenge; esig.create_challenge
+  S->>DB: handler.prepareForChallenge#59; esig.create_challenge
   DB-->>S: challenge (120 s, this signer, session, terminal)
   S-->>U: manifestation preview, components to ask
   U->>S: POST /api/esig/sign (challenge, password or PIN)
   S->>A: authenticate (purpose SIGNATURE, challenge)
   A-->>S: authentication event
-  S->>DB: begin; begin_command(actor + auth event)
+  S->>DB: begin#59; begin_command(actor + auth event)
   S->>DB: handler.dryRun
   S->>DB: esig.sign (checks, insert signature, audit)
   S->>DB: esig.seal_signature
   S->>DB: handler.apply (e.g. platform.transition with signature_id)
   S->>DB: commit
   S-->>U: SIGNED (manifestation)
-  Note over S,DB: any refusal: rollback, then esig failure logged outside the transaction
+  Note over S,DB: any refusal#58; rollback, then esig failure logged outside the transaction
 ```
 
 ## 10. Time
