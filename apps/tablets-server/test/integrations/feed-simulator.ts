@@ -6,7 +6,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'L3';
+export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'EMS' | 'L3';
 
 export interface FeedSimProcess {
   /** The simulator's origin (the adapter's base URL; the feed is under /<system>/v1). */

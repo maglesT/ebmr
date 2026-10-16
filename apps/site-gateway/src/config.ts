@@ -8,7 +8,9 @@
  * with their polling, staleness and print-job polling periods.
  */
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { z } from 'zod';
+import { EndpointCode, OpcuaEndpoint } from '@ebmr/integration-sdk/adapter';
 import { DeviceSerial, EQUIPMENT_KINDS } from '@ebmr/integration-sdk/process';
 import { DecimalText, DeviceCode, INSTRUMENT_KINDS, InstallationKind, SERIAL_PATTERN, UNIT_PATTERN, ed25519PrivateKey, ed25519PublicKey, instrumentUnitProblem } from '@ebmr/integration-sdk/scale';
 import type { KeyObject } from 'node:crypto';
@@ -59,6 +61,18 @@ export const PrinterDeviceConfig = z.object({
 });
 export type PrinterDeviceConfig = z.infer<typeof PrinterDeviceConfig>;
 
+/**
+ * An OPC UA endpoint (Phase 6 slice 6b, builder A; DI-20, D-P6b-2): its device code in the registry, its enrolment
+ * (URL, SignAndEncrypt policy, the certificate's SHA-256, the units and the room or line) and, per unit, the gateway's
+ * process device code; the unit's equipment code is the serial its readings carry.
+ */
+export const OpcuaEndpointConfig = z.object({
+  code: EndpointCode,
+  endpoint: OpcuaEndpoint,
+  units: z.array(z.object({ code: DeviceCode, equipmentCode: z.string().regex(/^[A-Z0-9][A-Z0-9_-]{0,31}$/), equipment: z.enum(EQUIPMENT_KINDS) })).min(1).max(64),
+});
+export type OpcuaEndpointConfig = z.infer<typeof OpcuaEndpointConfig>;
+
 export const GatewayConfigFile = z.object({
   gatewayCode: DeviceCode,
   installation: InstallationKind,
@@ -95,6 +109,14 @@ export const GatewayConfigFile = z.object({
   printerStaleAfterMs: z.number().int().min(500).max(300_000).optional(),
   /** How often the gateway asks the server for print jobs (default 2 s). */
   printJobPollMs: z.number().int().min(200).max(60_000).optional(),
+  /** OPC UA endpoints (slice 6b; default none). */
+  opcuaEndpoints: z.array(OpcuaEndpointConfig).optional(),
+  /** Where the OPC UA feed is served to the server's OPCUA adapter (default 127.0.0.1:4850). */
+  opcuaFeedListen: HostPort.optional(),
+  /** The gateway's OPC UA application certificate store (default <journalDir>/opcua-pki). */
+  opcuaPkiDir: z.string().min(1).optional(),
+  /** A unit that sends no data change for this long is an alarmed feed gap (default 5 s). */
+  opcuaGapAfterMs: z.number().int().min(500).max(300_000).optional(),
 });
 export type GatewayConfigFile = z.infer<typeof GatewayConfigFile>;
 
@@ -123,6 +145,10 @@ export interface GatewayConfig {
   printerPollMs: number;
   printerStaleAfterMs: number;
   printJobPollMs: number;
+  opcuaEndpoints: OpcuaEndpointConfig[];
+  opcuaFeedListen: { host: string; port: number };
+  opcuaPkiDir: string;
+  opcuaGapAfterMs: number;
   /** DEMO-ONLY Ed25519 key (a KMS or HSM in production). */
   privateKey: KeyObject;
   publicKey: KeyObject;
@@ -144,8 +170,17 @@ export function parseGatewayConfig(file: GatewayConfigFile, keyFileText: string,
   if (!service) throw new Error(`the service keys file has no service identity on terminal ${file.gatewayCode}`);
   const processDevices = file.processDevices ?? [];
   const printers = file.printers ?? [];
-  const codes = new Set([...file.devices, ...processDevices, ...printers].map((d) => d.code));
-  if (codes.size !== file.devices.length + processDevices.length + printers.length) throw new Error('a device code appears twice in the gateway configuration');
+  const opcuaEndpoints = file.opcuaEndpoints ?? [];
+  const opcuaUnits = opcuaEndpoints.flatMap((e) => e.units);
+  const codes = new Set([...file.devices, ...processDevices, ...printers, ...opcuaUnits, ...opcuaEndpoints].map((d) => d.code));
+  if (codes.size !== file.devices.length + processDevices.length + printers.length + opcuaUnits.length + opcuaEndpoints.length) throw new Error('a device code appears twice in the gateway configuration');
+  for (const e of opcuaEndpoints) {
+    const enrolled = new Set(e.endpoint.equipmentCodes);
+    for (const u of e.units) if (!enrolled.has(u.equipmentCode)) throw new Error(`unit ${u.equipmentCode} is not one of OPC UA endpoint ${e.code}'s enrolled units`);
+  }
+  if (new Set([...processDevices.map((d) => d.expectedSerial), ...opcuaUnits.map((u) => u.equipmentCode)]).size !== processDevices.length + opcuaUnits.length) {
+    throw new Error('a process device serial or OPC UA unit appears twice in the gateway configuration');
+  }
   if (new Set(printers.map((d) => d.expectedSerial)).size !== printers.length) throw new Error('a printer serial appears twice in the gateway configuration');
   if (new Set(processDevices.map((d) => d.expectedSerial)).size !== processDevices.length) throw new Error('a process device serial appears twice in the gateway configuration');
   return {
@@ -167,6 +202,10 @@ export function parseGatewayConfig(file: GatewayConfigFile, keyFileText: string,
     printerPollMs: file.printerPollMs ?? 1000,
     printerStaleAfterMs: file.printerStaleAfterMs ?? 5000,
     printJobPollMs: file.printJobPollMs ?? 2000,
+    opcuaEndpoints,
+    opcuaFeedListen: hostPort(file.opcuaFeedListen ?? '127.0.0.1:4850'),
+    opcuaPkiDir: file.opcuaPkiDir ?? join(file.journalDir, 'opcua-pki'),
+    opcuaGapAfterMs: file.opcuaGapAfterMs ?? 5000,
     privateKey: ed25519PrivateKey(key.privateKeyPkcs8),
     publicKey: ed25519PublicKey(key.publicKeySpki),
     publicKeySpki: key.publicKeySpki,

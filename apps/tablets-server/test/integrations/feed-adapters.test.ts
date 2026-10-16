@@ -93,7 +93,8 @@ interface Rig {
 }
 
 async function rig(spec: FeedAdapterSpec): Promise<Rig> {
-  const sim = await spawnFeedSimulator(spec.system);
+  // The OPC UA feed is the gateway's, not a feed simulator's (equipment-data/opcua-adapter.test.ts).
+  const sim = await spawnFeedSimulator(spec.system as Exclude<FeedAdapterSpec['system'], 'OPCUA'>);
   sims.push(sim);
   const adapter = await registerAdapter(db, spec.system, adm);
   const base = sim.base;

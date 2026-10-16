@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6c and 6d).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6c and 6d).
 
 ## What this is
 
@@ -100,27 +100,21 @@ decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (br
 adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
 6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
 training mode, (6h languages dropped: English only, decision 0018), 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
-- Slice 6a (branch `phase-6/slice-6a`, 14 October): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to
-  1182: inbound messages accepted whole or not at all, de-duplicated, gaps alarmed; integration identities that never
-  sign; mirrors that fail closed, EBMR-INT-010), one worker framework started with the server for MIRROR systems;
-  ERP/WMS (receipt with one lot per supplier batch, approved manufacturers, stock-location rule, issue gate), QMS with
-  CAPA (live QMS fetch inside the release signature), LIMS, LMS, CMMS; simulators with nine faults; soak tests reconcile.
-  Quick review: no critical or high; two mediums fixed with tests (stale QMS mirror at release; a heartbeat cannot
-  refresh a mirror while the adapter is behind the source). Residuals: the live QMS fetch is enforced by the server,
-  not the database; a refusal resent after a restart is recorded twice (nothing lost). Defaults D-P6a-*.
-Slice 6a on `phase-6/slice-6a`: 6a-0 (interface commit) done: `@ebmr/integration-sdk/adapter` (envelope, error
-classes, retry rule, reconciliation, system contracts), kernel 1180 (integration adapters, `platform.accept_inbound`,
-integration alarms, reconciliation, `platform.mirror_fresh_or_raise`), namespace `integrations` with its server reads;
-signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-plan/phase-6/slice-6a-0-interfaces.md`.
-Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
-command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
-none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.
-Slice 6f (branch `phase-6/slice-6f`, 16 October, ready for PR): configuration change control with versions and a diff
+Slice 6a (merged): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to 1182: inbound messages whole or
+not at all, de-duplicated, gaps alarmed; integration identities never sign; mirrors fail closed, EBMR-INT-010), one
+worker framework started with the server in MIRROR mode; ERP/WMS, QMS with CAPA, LIMS, LMS, CMMS; simulators and soak
+tests. Defaults D-P6a-*; residuals and defect P6a-I1 in the plan and history.
+Slice 6f (merged to main, PR #33, 16 October): configuration change control with versions and a diff
 as of any date (kernel 1195, 1196; roles, permission sets, retention rules included), RBE rules under change records and
 RBE on a step only with a validation reference, support grants (two customer signatures, time-boxed), the contract
 giver's read-only reviewer, excursion notifications, designer PPE and containment, MBR edition review, typed CPP values in
 the PQR, the India DSC with a test CA (kernel 1203, 1205) and, from the review, enrolment of the signer's own certificate
 (kernel 1206; a high fixed). The eleven 6f clauses now name their tests. Defaults D-P6f-A-*, D-P6f-B-*; residuals in the plan.
+Slice 6b (merged to main, PR #34, 16 October): OPC UA driver, simulator, gateway feed and the server's
+adapter worker; endpoint identity (DI-20), native series and original records (DI-32), the plant alarm log in batch
+context and in review (DI-49), the EMS feed; plant rules PR-15, PR-22, PR-25, PR-27, PR-29, PR-35; screens including the
+trend viewer and the area authorisations. Quick review: Q-6b-1 (alarm acknowledgment scope, recipe-core 0976) fixed.
+Defaults and residuals in the plan's slice 6b section.
 Slice 6d (branch `phase-6/slice-6d`, 16 October, ready for PR): `recipe.genealogy` both ways at any depth as of an
 instant over the insert-only event rows (no genealogy table), chemical recovery of returned goods (site services 0960,
 route `samples.recoverReturn`), distribution records from the ERP adapter (0961), mock recall stored with its hash and

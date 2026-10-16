@@ -206,14 +206,16 @@ describe('route table', () => {
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
-      'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
+      'alarms.acknowledge', 'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
       'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise', 'capa.recordEffectiveness', 'capa.scheduleCheck', 'config.closeChangeRecord', 'config.raiseChangeRecord', 'config.setRbeRule', 'config.setSetting', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'contractGiver.grantAccess', 'contractGiver.revokeAccess', 'esig.createChallenge', 'esig.endDscEnrolment', 'esig.enrolDsc', 'esig.registerDscAnchor', 'esig.setDscMeaning', 'esig.setDscMode', 'execution.command', 'execution.importPackage',
       'execution.issue', 'execution.planBatch', 'india.issueH2', 'integrations.acknowledgeAlarm',
       'labels.approveTemplate', 'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',
       'labels.recordLabelSpecimen', 'labels.recordPostUseInspection', 'labels.resolveLineStop', 'labels.verifyPostUseInspection', 'labels.voidSpecimen',
       'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
-      'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'pqr.run', 'quality.correctLotReceipt',
+      'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning',
+      'plantRules.classifyBetaLactam', 'plantRules.createAreaAuthorisation', 'plantRules.defineAdjacency', 'plantRules.recordAreaAuthorisation', 'plantRules.recordReagentLot', 'plantRules.recordReagentUse',
+      'plantRules.recordSpill', 'plantRules.setFacilityRule', 'plantRules.setRoomRule', 'plantRules.withdrawAreaAuthorisation', 'plantRules.withdrawReagentLot', 'pqr.run', 'quality.correctLotReceipt',
       'quality.examineLotReceipt', 'quality.proposeApprovedManufacturer', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotReceipt',
       'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'recall.run', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn', 'samples.recoverReturn', 'serialisation.rejectPool',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
