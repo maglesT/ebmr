@@ -1,0 +1,29 @@
+id: IN-53
+title: Controlled substances (India NDPS)
+part: D
+group: Controlled substances (draft, outline decision 14)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 6
+target_phase_source: outline
+requirement_rows:
+  - 679
+sources: Build outline decision 14 (A); NDPS Act 1985 and NDPS Rules 1985 named as the source but not verified (not in the inputs).
+behaviour: "A product can be flagged in its product master as containing a controlled substance; the flag and any change to it are made by QA under an approved change record and take effect only on a second QA person's signature. For a flagged product the controlled API is moved and dispensed only under dual custody: two different people sign every transfer and every dispensing, and one person cannot fill both places. At each yield checkpoint the batch's account of the controlled API (dispensed, consumed into the product, in process, returned and destroyed) must close with no unexplained difference; otherwise the checkpoint is refused until a signed explanation linked to a deviation is recorded. Rejected controlled material is destroyed only with a witness. Quantities can be exported for the statutory registers as a reproducible extract with a stored hash. Products that are not flagged are not affected."
+catalog_test: "flag a product as controlled and have a second QA person approve it; dispensing its controlled API with one person is refused and with two different people accepted; a yield checkpoint with an unexplained difference of the controlled API is refused, and accepted with a zero difference or with a signed explanation linked to a deviation; destruction of controlled rejects without a witness is refused; the register export run twice on the same data gives the same hash; an unflagged product is unaffected."
+implemented_by:
+  modules: []
+  invariants: []
+  guards: []
+  db_constraints: []
+  rule_keys: []
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: draft
+build_status: SPECIFIED
+jurisdiction: "**India only** (NDPS); importing-market controls (US DEA schedules, EU narcotics rules) are out of v1 (D-P6e-2)."
+notes: "status U: NDPS Act and Rules not verified (not in the inputs). Draft control added under outline decision 14 (Phase 6 slice 6e-0); not part of the 0.9 review pack, so the expert has not seen it."
