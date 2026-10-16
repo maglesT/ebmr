@@ -27,6 +27,8 @@
  *                  mutant, so a run stopped by a restart resumes where it stopped (same commit, same --out);
  *   --audit-equivalents  list the entries of equivalent.json that no longer fit their mutant (no database); a run
  *                  applies an entry only when it fits (see staleEquivalent);
+ * Environment: EBMR_MUTATION_TEST_TIMEOUT (ms) raises Vitest's test and hook time-outs; EBMR_MUTATION_VITEST_WORKERS caps
+ * the test files a mutant runs at once (keep --workers times this at about 4 per cluster on a many-core machine).
  *   --verify       build the templates and run the checks above, nothing else;
  *   --baseline     also run each group's tests once on the unmutated templates and report the times and limits;
  *   --own-cluster  the cluster is this run's alone (a CI job's service or a spare cluster): drop the databases the
@@ -483,7 +485,12 @@ function runVitest(project: Project, tests: string[], env: Record<string, string
     // not taken for a mutant's kill (the default 30 s of vitest.config.ts stays when it is unset).
     const slow = process.env['EBMR_MUTATION_TEST_TIMEOUT'];
     const timeouts = slow && /^[1-9][0-9]*$/.test(slow) ? [`--testTimeout=${slow}`, `--hookTimeout=${slow}`] : [];
-    const child = spawn(process.execPath, [VITEST, 'run', '--project', project, ...tests, '--bail=1', '--reporter=dot', ...timeouts], {
+    // EBMR_MUTATION_VITEST_WORKERS caps the test files one mutant runs at once. Unset, Vitest takes one per core: on a
+    // many-core machine the server's device tests then open more listener connections than the role allows (kernel
+    // 0970: 40 per cluster, all runs on the cluster together), and every mutant of such a group would be killed by it.
+    const cap = process.env['EBMR_MUTATION_VITEST_WORKERS'];
+    const workers = cap && /^[1-9][0-9]*$/.test(cap) ? [`--maxWorkers=${cap}`] : [];
+    const child = spawn(process.execPath, [VITEST, 'run', '--project', project, ...tests, '--bail=1', '--reporter=dot', ...timeouts, ...workers], {
       cwd: ROOT,
       env: { ...process.env, ...env },
       stdio: ['ignore', 'pipe', 'pipe'],
