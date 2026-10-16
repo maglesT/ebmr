@@ -43,6 +43,38 @@ fix-finding skill, at most 2 fix rounds, then a residual for the owner. Never de
 mutated range, to raise a score. Results go in `docs/build-plan/phase-6/mutation-results.md`, in the form of the
 Phase 4 results.
 
+## Limits: important issues first, no endless re-testing (owner, 16 October)
+
+The campaign is time-boxed and works by priority. It must not turn into days of re-runs for small gains.
+
+- **Priority 1, always fixed:** a survivor that shows a real defect in the regulated core:
+  - access checks
+  - e-signatures and their binding
+  - the audit trail
+  - release and serial gating
+  - limits and rounding
+  - dual custody
+  - stale-mirror refusal
+  - federation and transfer seals
+
+  It is fixed with a test, at most 2 fix rounds, then a residual.
+- **Priority 2, killed where reasonable:** a survivor in high-risk code (the 90 % zone) gets a killing test, about 1
+  hour at most per survivor or cluster of alike survivors. After that it is a residual, with its reason.
+- **Priority 3, recorded only:**
+  - a survivor elsewhere (the 80 % zone: display, formatting, logging, simulators, workers' retry timing)
+  - an equivalent mutant
+
+  It is written down with a one-line reason and not chased, unless a single obvious test line kills it.
+- **Runs per group:** one first run and at most one confirmation run (`--only` on the survivors that new tests aim
+  at). No third run of a group. A Stryker feature that does not finish in 1 hour runs on its high-risk files only,
+  else it is a residual.
+- **Time box:** part 1 at most 12 pod hours, part 2 at most 8 pod hours. When the box ends, the work stops and what
+  is left becomes residuals for the owner. A container restart's lost time counts toward the box.
+- **Final runs:** a failing test that is not a real defect gets at most one re-run. Two full final runs at most: one
+  before the campaign, one after it.
+- A missed score target is reported with its residuals; it never blocks the Phase 6 PR. Only an unfixed Priority 1
+  defect does, and that goes to the owner.
+
 ## Order
 
 1. Finish 6j-a, 6j-b and 6j-c.
