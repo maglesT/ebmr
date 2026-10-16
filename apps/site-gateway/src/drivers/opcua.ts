@@ -29,7 +29,6 @@ import {
   NativeSample,
   OpcuaEndpoint,
   opcuaActiveAlarmsNodeId,
-  opcuaEventsNodeId,
   opcuaNodeId,
   opcuaSetpointNodeId,
   parseOpcuaNodeId,

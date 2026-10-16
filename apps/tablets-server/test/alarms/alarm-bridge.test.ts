@@ -116,7 +116,7 @@ describe('the process alarms in the plant alarm log (tablets 1218)', () => {
     const r = (await sbx.db.app.query<{ id: string }>('select id from tab.process_reading where serial = $1 and seq = $2', [SERIAL, excursion.sequence])).rows[0]?.id ?? '';
     const a = await plantAlarm(r);
     // An unconfigured code (TAG.<tag>) counts as GMP-critical (D-P6b-0-3); the source time is the press's.
-    expect(a).toEqual({ id: expect.any(String), source: 'EBMR', alarm_code: 'TAG.FORCE.MAIN_KN', gmp_critical: true, value: '14.10', equipment_id: unit.id, us: excursion.sourceTime });
+    expect(a).toEqual({ id: expect.any(String) as unknown, source: 'EBMR', alarm_code: 'TAG.FORCE.MAIN_KN', gmp_critical: true, value: '14.10', equipment_id: unit.id, us: excursion.sourceTime });
     expect((await sbx.db.app.query('select batch_id, step from plant.alarm_batch where alarm_id = $1', [a?.id])).rows).toEqual([{ batch_id: d.runId, step: 'p-press' }]);
     expect(await signProblem()).toMatch(/^EBMR-ALM-020 DI-49: GMP-critical alarm\(s\) await acknowledgment: TAG\.FORCE\.MAIN_KN \(PR-/);
     // The operator records the alarm in the step and acknowledges it with the action taken (G-06, tablets 0820).
@@ -135,9 +135,9 @@ describe('the process alarms in the plant alarm log (tablets 1218)', () => {
     const me = personaIn(sbx, 'operator1');
     expect(log[0]).toMatchObject({
       source: 'EBMR', occurrenceId: `PR-${r}`, subject: { kind: 'EQUIPMENT', code: unit.code }, alarmCode: 'TAG.FORCE.MAIN_KN', gmpCritical: true, value: { value: '14.10', unit: 'kN' },
-      raisedAtSource: expect.objectContaining({ us: excursion.sourceTime }), clearedAtSource: expect.objectContaining({ us: cleared.sourceTime }),
-      batches: [{ batchId: d.runId, batchNumber: expect.any(String), step: 'p-press' }],
-      acknowledgement: { by: expect.objectContaining({ personId: me.personId }), at: expect.anything(), actionTaken: comment, comment, deviationRef: null },
+      raisedAtSource: expect.objectContaining({ us: excursion.sourceTime }) as unknown, clearedAtSource: expect.objectContaining({ us: cleared.sourceTime }) as unknown,
+      batches: [{ batchId: d.runId, batchNumber: expect.any(String) as unknown, step: 'p-press' }],
+      acknowledgement: { by: expect.objectContaining({ personId: me.personId }) as unknown, at: expect.anything() as unknown, actionTaken: comment, comment, deviationRef: null },
     });
     // Bypass: the log is written only by the bridge; nobody changes or erases it, the owner included.
     await expect(sbx.db.app.query("insert into plant.alarm_ack (alarm_id, action_taken, person_id, account_id, session_id, correlation_id) values ($1, 'x', gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [a?.id])).rejects.toThrow(/permission denied/);
@@ -148,7 +148,7 @@ describe('the process alarms in the plant alarm log (tablets 1218)', () => {
 
   it('[DI-49] an alarm whose code needs a deviation is not acknowledged by the G-06 entry: it stays open in the log and keeps blocking the signature', async () => {
     const steward = await actorOfBrowser(sbx, await sbx.asPersona('steward'), 'steward');
-    await withCommand(sbx.db.app, { ...steward, reasonCode: 'TEST_SETUP', reasonText: 'alarm configuration' } as ActorContext, (c) =>
+    await withCommand(sbx.db.app, { ...steward, reasonCode: 'TEST_SETUP', reasonText: 'alarm configuration' }, (c) =>
       c.query("select plant.define_alarm_code('EBMR', 'TAG.TURRET.SPEED_RPM', true, true, 'Turret overspeed: a deviation is raised')"));
     const over = await reading('turret.speed_rpm', '75.0', 'rpm', 'ALARM');
     expect((await send([over])).status).toBe(200);

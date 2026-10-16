@@ -160,13 +160,13 @@ export class OpcuaFeed {
   /** The sink an OpcuaDriver writes to. */
   sink(): OpcuaSink {
     return {
-      session: (s: OpcuaEndpointSessionV1) => void this.publish('opcua.endpoint_session', `session/${s.endpointCode}/${s.openedAt}`, s.openedAt, s as unknown as Record<string, unknown>),
+      session: (s: OpcuaEndpointSessionV1) => void this.publish('opcua.endpoint_session', `session/${s.endpointCode}/${s.openedAt}`, s.openedAt, s),
       chunk: (c: SeriesChunkV1) => {
         const last = c.samples[c.samples.length - 1];
-        void this.publish('opcua.series_chunk', `${c.subjectCode}/${c.tag}/${c.chunkNo}`, last?.sourceTime ?? '0', c as unknown as Record<string, unknown>);
+        void this.publish('opcua.series_chunk', `${c.subjectCode}/${c.tag}/${c.chunkNo}`, last?.sourceTime ?? '0', c);
       },
-      alarm: (a: EquipmentAlarmV1) => void this.publish('opcua.alarm', `alarm/${a.occurrenceId}/${a.transition}`.slice(0, 128), a.occurredAt, a as unknown as Record<string, unknown>),
-      event: (e: EquipmentEventV1) => void this.publish('opcua.equipment_event', `event/${e.eventId}`.slice(0, 128), e.occurredAt, e as unknown as Record<string, unknown>),
+      alarm: (a: EquipmentAlarmV1) => void this.publish('opcua.alarm', `alarm/${a.occurrenceId}/${a.transition}`.slice(0, 128), a.occurredAt, a),
+      event: (e: EquipmentEventV1) => void this.publish('opcua.equipment_event', `event/${e.eventId}`.slice(0, 128), e.occurredAt, e),
     };
   }
 

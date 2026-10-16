@@ -2,13 +2,14 @@
  * The reads of the plant rules and status displays (Phase 6 slice 6b, builder B; contract ns/plant-rules.ts and the
  * equipmentDisplays block of ns/equipment-data.ts; recipe-core 0973 to 0975, site services 0940). Every value is the
  * database's at the moment of the read: plant.status_board, plant.line_station, plant.room_conditions,
- * plant.room_cleaning_state, plant.area_adjacency_current and site.reagent_lot.
+ * plant.room_cleaning_state, plant.area_adjacency_current and site.reagent_lot; the area authorisations of the
+ * qualification matrix from iam.person_qualification (PR-15).
  */
 import type pg from 'pg';
-import type { AdjacencyView, Instant, LineStationView, ReagentLotView, RoomConditionsView, RoomStateView, StatusBoardEntry } from '@ebmr/api-contract';
+import type { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, Instant, LineStationView, ReagentLotView, RoomConditionsView, RoomStateView, StatusBoardEntry } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
-import { usOf } from '../common/people.ts';
+import { peopleOf, personRef, usOf } from '../common/people.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
 
@@ -30,7 +31,7 @@ export async function statusBoard(app: AppContext, db: Db): Promise<{ entries: S
     state: (b['state'] as string | null) ?? null,
     stateVersion: (b['stateVersion'] as string | null) ?? null,
     stateSince: since_us === null ? null : app.formatInstant(since_us),
-    batch: b['batchId'] ? { batchId: String(b['batchId']), batchRef: String(b['batchRef']), product: String(b['product']) } : null,
+    batch: b['batchId'] ? { batchId: b['batchId'] as string, batchRef: String(b['batchRef']), product: String(b['product']) } : null,
     cleaningState: (b['cleaningState'] as StatusBoardEntry['cleaningState']) ?? null,
     lastCleanedAt: cleaned_us === null ? null : app.formatInstant(cleaned_us),
     openAlarms: Number(b['openAlarms'] ?? 0),
@@ -56,7 +57,7 @@ export async function lineStation(app: AppContext, db: Db, code: string): Promis
     batch:
       s['batchId'] && r?.since_us
         ? {
-            batchId: String(s['batchId']),
+            batchId: s['batchId'] as string,
             batchRef: String(s['batchRef']),
             product: String(s['product']),
             productName: (s['productName'] as string | null) ?? null,
@@ -204,4 +205,85 @@ export async function reagentLot(app: AppContext, db: Db, lotCode: string): Prom
   const r = rows[0];
   if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
   return lotView(app, r);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Area authorisations in the qualification matrix (PR-15; kernel 0130 iam.person_qualification, kernel 1190)
+// ---------------------------------------------------------------------------------------------------------------
+
+interface AuthRow {
+  id: string;
+  person_id: string;
+  code: string;
+  source_code: string;
+  from_us: string;
+  to_us: string | null;
+  recorded_by_person: string;
+  recorded_us: string;
+  withdrawn_us: string | null;
+  withdrawal_reason: string | null;
+  current: boolean;
+}
+
+const AUTH_RECORDS = `
+  select q.id, q.person_id, q.qualification_code as code, q.source_code, ${usOf('q.valid_from')} as from_us,
+         ${tsUs('q.valid_to')} as to_us, q.recorded_by_person, ${usOf('q.recorded_at')} as recorded_us,
+         ${tsUs('q.withdrawn_at')} as withdrawn_us, q.withdrawal_reason,
+         iam.person_area_authorised(q.person_id, substr(q.qualification_code, 6), clock_timestamp()) as current
+    from iam.person_qualification q`;
+
+async function authViews(app: AppContext, db: Db, rows: AuthRow[]): Promise<Map<string, AreaAuthorisationRecordView>> {
+  const people = await peopleOf(db, rows.flatMap((r) => [r.person_id, r.recorded_by_person]));
+  return new Map(
+    rows.map((r): [string, AreaAuthorisationRecordView] => [
+      r.id,
+      {
+        recordId: r.id,
+        person: personRef(people, r.person_id, ''),
+        validFrom: app.formatInstant(r.from_us),
+        validTo: r.to_us === null ? null : app.formatInstant(r.to_us),
+        source: r.source_code,
+        recordedBy: personRef(people, r.recorded_by_person, ''),
+        recordedAt: app.formatInstant(r.recorded_us),
+        withdrawnAt: r.withdrawn_us === null ? null : app.formatInstant(r.withdrawn_us),
+        withdrawalReason: r.withdrawal_reason,
+        current: r.current,
+      },
+    ]),
+  );
+}
+
+/** Every room or line that is a controlled area or has an area authorisation type, with each record of it. */
+export async function areaAuthorisations(app: AppContext, db: Db): Promise<AreaAuthorisationMatrixView> {
+  const areas = await db.query<{ code: string; name: string; kind: 'ROOM' | 'LINE'; required: boolean; qcode: string; defined: boolean }>(
+    `select a.code, a.name, a.kind, coalesce(r.authorisation_required, false) as required, iam.area_authorisation_code(a.code) as qcode,
+            exists (select 1 from iam.qualification_type t where t.code = iam.area_authorisation_code(a.code)) as defined
+       from plant.area a left join plant.area_rule_current r on r.area_id = a.id
+      where coalesce(r.authorisation_required, false)
+         or exists (select 1 from iam.qualification_type t where t.code = iam.area_authorisation_code(a.code))
+      order by a.code`,
+  );
+  const recs = await db.query<AuthRow>(`${AUTH_RECORDS} where q.qualification_code = any ($1::text[]) order by q.recorded_at, q.id`, [areas.rows.map((a) => a.qcode)]);
+  const views = await authViews(app, db, recs.rows);
+  const now = (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0';
+  return {
+    areas: areas.rows.map((a) => ({
+      code: a.code,
+      name: a.name,
+      kind: a.kind,
+      authorisationRequired: a.required,
+      qualificationCode: a.qcode,
+      typeDefined: a.defined,
+      records: recs.rows.filter((r) => r.code === a.qcode).map((r) => views.get(r.id) as AreaAuthorisationRecordView),
+    })),
+    readAt: app.formatInstant(now),
+  };
+}
+
+/** One area authorisation record (an AREA.* qualification record), or 404. */
+export async function areaAuthorisationRecord(app: AppContext, db: Db, id: string): Promise<AreaAuthorisationRecordView> {
+  const { rows } = await db.query<AuthRow>(`${AUTH_RECORDS} where q.id = $1 and q.qualification_code like 'AREA.%'`, [id]);
+  const r = rows[0];
+  if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+  return (await authViews(app, db, [r])).get(r.id) as AreaAuthorisationRecordView;
 }

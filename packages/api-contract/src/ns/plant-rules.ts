@@ -7,7 +7,7 @@
  * database's; a refusal carries its EBMR-PLANT-*, EBMR-SITE-95x or EBMR-IAM-20x code.
  */
 import { z } from 'zod';
-import { Instant, Uuid, withAttribution } from '../common.ts';
+import { Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { NativeSampleView } from './equipment-data.ts';
 
@@ -70,6 +70,41 @@ export const ReagentLotView = z.strictObject({
   withdrawalReason: z.string().nullable(),
 });
 export type ReagentLotView = z.infer<typeof ReagentLotView>;
+
+/** One person's area authorisation record (a qualification AREA.<code> of the register; kernel 0130, 1190). */
+export const AreaAuthorisationRecordView = z.strictObject({
+  recordId: Uuid,
+  person: PersonRef,
+  validFrom: Instant,
+  validTo: Instant.nullable(),
+  /** INTERNAL (recorded here) or the mirror that fed it (the LMS). */
+  source: z.string().min(1),
+  recordedBy: PersonRef,
+  recordedAt: Instant,
+  withdrawnAt: Instant.nullable(),
+  withdrawalReason: z.string().nullable(),
+  /** The record counts now (iam.person_area_authorised: recorded, valid, not withdrawn, from a fresh source). */
+  current: z.boolean(),
+});
+export type AreaAuthorisationRecordView = z.infer<typeof AreaAuthorisationRecordView>;
+
+/** The area authorisations of the qualification matrix: each room or line that is controlled or has a type (PR-15). */
+export const AreaAuthorisationMatrixView = z.strictObject({
+  areas: z.array(
+    z.strictObject({
+      code: PlantCode,
+      name: z.string().min(1),
+      kind: z.enum(['ROOM', 'LINE']),
+      authorisationRequired: z.boolean(),
+      qualificationCode: z.string().min(1),
+      /** The qualification type AREA.<code> exists (createAreaAuthorisation); records need it. */
+      typeDefined: z.boolean(),
+      records: z.array(AreaAuthorisationRecordView),
+    }),
+  ),
+  readAt: Instant,
+});
+export type AreaAuthorisationMatrixView = z.infer<typeof AreaAuthorisationMatrixView>;
 
 const roomParams = z.strictObject({ code: PlantCode });
 const VersionResponse = z.strictObject({ version: WholeText });
@@ -180,6 +215,42 @@ export const plantRules = {
     summary: "The qualification type AREA.<code> a person's area authorisation is recorded under (PR-15; TRAINING.MANAGE)",
     body: withAttribution({ area: PlantCode, name: Text(200) }),
     response: z.strictObject({ qualificationCode: z.string().min(1) }),
+  }),
+  areaAuthorisations: defineRoute({
+    id: 'plantRules.areaAuthorisations',
+    method: 'GET',
+    path: '/api/plant-rules/area-authorisations',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The area authorisations of the qualification matrix: controlled rooms and lines with each person\'s record (PR-15)',
+    response: AreaAuthorisationMatrixView,
+  }),
+  recordAreaAuthorisation: defineRoute({
+    id: 'plantRules.recordAreaAuthorisation',
+    method: 'POST',
+    path: '/api/plant-rules/area-authorisations/:code/records',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: "Record a person's authorisation for a controlled area, valid from now (PR-15; QUALIFICATION.RECORD, never for oneself)",
+    params: roomParams,
+    body: withAttribution({ loginName: z.string().trim().min(1).max(100), validTo: z.iso.datetime({ offset: true }).optional() }),
+    response: AreaAuthorisationRecordView,
+  }),
+  withdrawAreaAuthorisation: defineRoute({
+    id: 'plantRules.withdrawAreaAuthorisation',
+    method: 'POST',
+    path: '/api/plant-rules/area-authorisation-records/:recordId/withdraw',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: "Withdraw a person's area authorisation with the reason (PR-15; QUALIFICATION.RECORD)",
+    params: z.strictObject({ recordId: Uuid }),
+    body: withAttribution({ reason: Text(500) }),
+    response: AreaAuthorisationRecordView,
   }),
   reagentLots: defineRoute({
     id: 'plantRules.reagentLots',

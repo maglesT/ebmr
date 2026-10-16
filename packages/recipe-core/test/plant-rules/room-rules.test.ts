@@ -142,7 +142,7 @@ describe('lines: adjacency and the station display (PR-35)', () => {
     const occupancy = await occupy(w, line.code, 'STN-1', product, true);
     const b = await w.batch('STN-1', product);
     const shown = await station();
-    expect(shown).toMatchObject({ code: line.code, state: 'IN_USE', batchId: b.id, batchRef: b.number, product, productName: expect.any(String), stage: 'PACKAGING' });
+    expect(shown).toMatchObject({ code: line.code, state: 'IN_USE', batchId: b.id, batchRef: b.number, product, productName: expect.any(String) as unknown, stage: 'PACKAGING' });
     expect(shown?.['packagingOrder']).toMatch(/^PO-/);
     await w.run(w.cast.operator, (c) => plant.endAreaOccupancy(c, occupancy));
     expect(await station()).toMatchObject({ state: 'DIRTY', batchId: null, product: null });

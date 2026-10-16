@@ -29,5 +29,7 @@ export const PLANT_RULES_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-SITE-955': entry('This reagent or buffer lot has expired.', ['Check the lot on the bottle label; use an in-date lot.'], ['The QC laboratory'], ['PR-29'], 'INVALID_INPUT'),
   'EBMR-IAM-200': entry('An area authorisation names the room or line code and a name.', ['Read the reason below.'], ['The training coordinator'], ['PR-15'], 'INVALID_INPUT'),
   'EBMR-IAM-201': entry('This area authorisation exists already.', ['Read the reason below.'], ['The training coordinator'], ['PR-15'], 'INVALID_INPUT'),
+  'EBMR-IAM-003': entry('Nobody records their own qualification or area authorisation.', ['Ask the training coordinator to record it.'], ['The training coordinator'], ['PR-15']),
+  'EBMR-IAM-160': entry('There is no live record with that id: it was withdrawn already, or never recorded.', ['Open the list again; a withdrawn authorisation is recorded anew.'], ['The training coordinator'], ['PR-15'], 'INVALID_INPUT'),
   'EBMR-IAM-202': entry('The person holds no current authorisation for this controlled area.', ['Read the reason below.'], ['The training coordinator'], ['PR-15'], 'INVALID_INPUT'),
 };

@@ -3,6 +3,7 @@
  * step): each alarm bound to the batch with its raise and clear times at the source, its acknowledgment (time, person,
  * action taken, comment, deviation reference), the GMP-critical flag and the step; an open one is acknowledged here.
  */
+import { Link } from '@tanstack/react-router';
 import { routes } from '@ebmr/api-contract';
 import { useApiQuery } from '../../api/hooks.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
@@ -14,6 +15,13 @@ export function BatchAlarmLog({ batchId, step }: { batchId: string; step?: strin
   return (
     <section aria-label={title} data-testid="batch-alarm-log">
       <h2>{title}</h2>
+      {step ? null : (
+        <p>
+          <Link to="/trends" search={{ batchId }} data-testid="batch-trends-link">
+            Trends of the batch (native equipment and room data)
+          </Link>
+        </p>
+      )}
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
       {q.data && q.data.alarms.length === 0 ? <p>No alarm.</p> : null}
       {q.data && q.data.alarms.length > 0 ? (

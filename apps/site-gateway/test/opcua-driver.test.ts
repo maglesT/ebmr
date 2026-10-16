@@ -113,7 +113,7 @@ afterEach(async () => {
   }
 });
 
-async function rig(over: Partial<FakeTransport> = {}, opts: { chunkMaxSamples?: number; gapAfterMs?: number } = {}): Promise<Rig> {
+function rig(over: Partial<FakeTransport> = {}, opts: { chunkMaxSamples?: number; gapAfterMs?: number } = {}): Promise<Rig> {
   const t = Object.assign(new FakeTransport(), over);
   const clock = new TestClock();
   const feed = OpcuaFeed.open({ dir: mkdtempSync(join(tmpdir(), 'opcua-feed-')), gatewayCode: 'GW-TEST', clock });
@@ -126,7 +126,7 @@ async function rig(over: Partial<FakeTransport> = {}, opts: { chunkMaxSamples?: 
   const r = { t, d, feed, clock, alarms };
   rigs.push(r);
   d.start();
-  return r;
+  return Promise.resolve(r);
 }
 
 const types = (f: OpcuaFeed) => f.published().map((m) => m.messageType);

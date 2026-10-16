@@ -97,7 +97,7 @@ function chunk(raws: (string | [string, string])[]): SeriesChunkV1 {
     return { sourceTime: (clock + BigInt(i) * 100_000n).toString(), serverTime: null, raw, value, status: '0x00000000' };
   });
   const c = { subjectKind: 'EQUIPMENT' as const, subjectCode: w.unit.code, tag: 'force.main_kN', unit: 'kN', chunkNo: chunkNo.toString(), samples };
-  return { ...c, chunkHash: seriesChunkHash(c) } as SeriesChunkV1;
+  return { ...c, chunkHash: seriesChunkHash(c) };
 }
 
 async function settle(n = 4): Promise<CycleReport[]> {
@@ -122,7 +122,7 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
   it('[DI-32][DI-49] a session, native chunks, a reject-burst alarm and an equipment event from the feed land as sent', async () => {
     feed.publish('opcua.endpoint_session', session());
     const c = chunk(['12.5', ['1.251E1', '12.51'], '12.49']);
-    feed.publish('opcua.series_chunk', c as unknown as Json);
+    feed.publish('opcua.series_chunk', c);
     const occ = `REJ-${randomBytes(3).toString('hex')}`;
     feed.publish('opcua.alarm', {
       subjectKind: 'EQUIPMENT', subjectCode: w.unit.code, occurrenceId: occ, transition: 'RAISED', alarmCode: 'REJECT_BURST', severity: '700',
@@ -146,7 +146,7 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
   it('[DI-20][DI-31] after a relocated endpoint session the data are refused with an alarm and none lands; a valid session restores the feed', async () => {
     const before = await seriesRows();
     feed.publish('opcua.endpoint_session', session({ reportedLocation: 'SOME-OTHER-ROOM' }));
-    feed.publish('opcua.series_chunk', chunk(['12.5']) as unknown as Json);
+    feed.publish('opcua.series_chunk', chunk(['12.5']));
     const rs = await settle();
     expect(refusedOf(rs, 'WRONG_IDENTITY')).toBe(1);
     expect(await seriesRows()).toBe(before);
@@ -154,9 +154,9 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     // A chunk whose hash does not state its samples is refused too (the database recomputes it).
     const bad = { ...chunk(['12.6']), chunkHash: 'f'.repeat(64) };
     feed.publish('opcua.endpoint_session', session());
-    feed.publish('opcua.series_chunk', bad as unknown as Json);
+    feed.publish('opcua.series_chunk', bad);
     const good = chunk(['12.7']);
-    feed.publish('opcua.series_chunk', good as unknown as Json);
+    feed.publish('opcua.series_chunk', good);
     const rs2 = await settle();
     expect(refusedOf(rs2, 'MALFORMED')).toBe(1);
     expect(total(rs2, 'accepted')).toBe(2);

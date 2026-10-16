@@ -12,14 +12,16 @@ import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
+import { refusal } from '../../platform/http/refusal.ts';
 import { PLANT_RULES_GUIDANCE } from './guidance.ts';
-import { adjacencies, lineStation, reagentLot, reagentLots, room, roomConditions, rooms, statusBoard } from './reads.ts';
+import { adjacencies, areaAuthorisationRecord, areaAuthorisations, lineStation, reagentLot, reagentLots, room, roomConditions, rooms, statusBoard } from './reads.ts';
 
 export const guidance = PLANT_RULES_GUIDANCE;
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
-  const one = async (c: { query: (t: string, p: unknown[]) => Promise<{ rows: { r: unknown }[] }> }, sql: string, params: unknown[]): Promise<string> =>
+  // Every command here returns a scalar (a version, an id, a code) as its single column r.
+  const one = async (c: { query: (t: string, p: unknown[]) => Promise<{ rows: { r: string | number | null }[] }> }, sql: string, params: unknown[]): Promise<string> =>
     String((await c.query(sql, params)).rows[0]?.r ?? '');
   bindRoutes(scope, app, routes.equipmentDisplays, {
     statusBoard: async ({ requireSession }) => {
@@ -74,12 +76,42 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         one(c, 'select iam.create_area_authorisation_type($1, $2) as r', [body.area, body.name]));
       return { qualificationCode };
     },
+    areaAuthorisations: async ({ requireSession }) => {
+      requireSession();
+      return areaAuthorisations(app, pool);
+    },
+    // PR-15: a person's authorisation for a controlled area is a record of the qualification register (kernel 0130:
+    // QUALIFICATION.RECORD, never by the person, insert-only with its withdrawal), valid from the recording instant
+    // (D-P6b-L-3). The type must exist (createAreaAuthorisation); the person is named by their login.
+    recordAreaAuthorisation: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      const person = (await pool.query<{ id: string }>('select a.person_id as id from iam.account a where a.login_name = $1', [body.loginName])).rows[0]?.id;
+      if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+      const { rows } = await pool.query<{ defined: boolean; future: boolean | null }>(
+        'select exists (select 1 from iam.qualification_type t where t.code = iam.area_authorisation_code($1)) as defined, $2::timestamptz > clock_timestamp() as future',
+        [params.code, body.validTo ?? null],
+      );
+      if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+      if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+      const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+        one(c, 'select iam.record_qualification($1, iam.area_authorisation_code($2), clock_timestamp(), $3::timestamptz) as r', [person, params.code, body.validTo ?? null]));
+      return areaAuthorisationRecord(app, pool, id);
+    },
+    withdrawAreaAuthorisation: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      await areaAuthorisationRecord(app, pool, params.recordId);
+      // The withdrawal updates the register row: its audit entry carries the person's reason (EBMR-AUDIT-002).
+      const withReason = { ...actor(), reasonCode: 'AREA_AUTHORISATION_WITHDRAWN', reasonText: body.reason };
+      await withIdempotentActorCommand(pool, withReason, idempotencyKey ?? '', requestHash, async (c) => {
+        await c.query('select iam.withdraw_qualification($1, $2)', [params.recordId, body.reason]);
+        return params.recordId;
+      });
+      return areaAuthorisationRecord(app, pool, params.recordId);
+    },
     reagentLots: async ({ requireSession }) => {
       requireSession();
       return { lots: await reagentLots(app, pool) };
     },
     recordReagentLot: async ({ body, actor, idempotencyKey, requestHash }) => {
-      const { attribution: _a, ...lot } = body;
+      const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
       return reagentLot(app, pool, body.lotCode);
     },

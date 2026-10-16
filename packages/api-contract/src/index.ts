@@ -245,6 +245,6 @@ export {
 export { AlarmLimitKind, AlarmSubjectKind, PlantAlarmSource, PlantAlarmView } from './ns/alarms.ts';
 export { DeviceOriginalView, EquipmentEventView, NativeSampleView, SERIES_PAGE_MAX, SeriesChunkView, SeriesSubjectKind, SeriesTagView } from './ns/equipment-data.ts';
 export { LineStationView, StatusBoardEntry } from './ns/equipment-data.ts';
-export { AdjacencyView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
+export { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';

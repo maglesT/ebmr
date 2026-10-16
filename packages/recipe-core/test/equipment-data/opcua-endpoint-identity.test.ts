@@ -5,6 +5,7 @@
  * of the 6a framework, the device administrator, the plant cast), with bypass attempts.
  */
 import { createHash, randomBytes } from 'node:crypto';
+import type { PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../../kernel/src/db/command.ts';
 import { expectRefused } from '../../../kernel/test/identity/helpers.ts';
@@ -39,7 +40,7 @@ const sendChunk = (payload: unknown) => receive(db, opcua, 'plant.receive_series
 let clock = BigInt(Date.now()) * 1000n - 3_600_000_000n;
 const nextStart = (): bigint => (clock += 10_000_000n);
 
-async function admin<T>(fn: (c: import('pg').PoolClient) => Promise<T>): Promise<T> {
+async function admin<T>(fn: (c: PoolClient) => Promise<T>): Promise<T> {
   const { admin: a } = await seedAdministration(db);
   return withCommand(db.app, withReason(a), fn);
 }
