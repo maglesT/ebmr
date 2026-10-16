@@ -6,6 +6,7 @@
  */
 import type pg from 'pg';
 import type {
+  MockRecallFederationView,
   ComplaintLookupView,
   DeviationImpactView,
   DistributionRecordView,
@@ -84,7 +85,7 @@ export async function trace(app: AppContext, db: Db, kind: GenealogyNodeKind, id
       edgeKind: r.edge_kind,
       depth: r.depth,
     })),
-    counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT') },
+    counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? { transfers: count('TRANSFER') } : {}) },
   };
 }
 
@@ -282,8 +283,10 @@ export async function mockRecallView(app: AppContext, db: Db, id: string): Promi
   }
   const [summary] = await summaries(app, db, [r]);
   const res = r.result;
+  const federation = r.query_version >= 2 ? await mockRecallFederation(app, db, id) : undefined;
   return {
     ...summary!,
+    ...(federation ? { federation } : {}),
     reproduces: r.reproduces,
     batches: res.batches.map((b) => ({ batchId: b.batch_id, batchNumber: b.batch_number ?? b.batch_id, productCode: b.product_code, depth: b.depth })),
     lots: res.lots.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code, materialCode: l.material_code, materialKind: l.material_kind, depth: l.depth, unit: l.unit, delivered: l.delivered, returned: l.returned, outstanding: l.outstanding })),
@@ -295,5 +298,38 @@ export async function mockRecallView(app: AppContext, db: Db, id: string): Promi
       shipments: c.shipments.map((s) => ({ shipmentNo: s.shipment_no, lotCode: s.lot_code, quantity: s.quantity, unit: s.unit, shippedAt: app.formatInstant(s.shipped_us) })),
     })),
     incomplete: res.incomplete,
+  };
+}
+
+interface FederationRow {
+  complete: boolean;
+  transfers: { transfer_id: string; package_no: string; destination: string; depth: number; status: MockRecallFederationView['transfers'][number]['status']; excerpt_id: string | null; excerpt_as_of_us: string | null; detail: string | null }[];
+}
+
+/**
+ * Phase 6 slice 6i (recipe-core 1091): per outbound transfer the run reached, what its destination answered (the
+ * database's recipe.mock_recall_federation), with the lots, batches and shipments of the excerpt shown.
+ */
+export async function mockRecallFederation(app: AppContext, db: Db, id: string): Promise<MockRecallFederationView> {
+  const f = (await db.query<{ f: FederationRow }>('select recipe.mock_recall_federation($1) as f', [id])).rows[0]!.f;
+  const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x !== null);
+  const payloads = new Map((await db.query<{ id: string; payload: string }>('select id::text, payload from recipe.federated_excerpt where id = any ($1::uuid[])', [ids])).rows.map((r) => [r.id, r.payload]));
+  return {
+    complete: f.complete,
+    transfers: f.transfers.map((t) => {
+      const nodes = t.excerpt_id ? ((JSON.parse(payloads.get(t.excerpt_id) ?? '{"nodes":[]}') as { nodes: NodeRow[] }).nodes) : [];
+      return {
+        transferId: t.transfer_id,
+        packageNo: t.package_no,
+        destination: t.destination,
+        depth: t.depth,
+        status: t.status,
+        excerptAsOf: t.excerpt_as_of_us ? app.formatInstant(t.excerpt_as_of_us) : null,
+        detail: t.detail,
+        lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+        batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
+        shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+      };
+    }),
   };
 }

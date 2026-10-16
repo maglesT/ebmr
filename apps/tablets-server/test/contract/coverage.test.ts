@@ -35,6 +35,8 @@ const EXAMPLE_PARAMS: Record<string, string> = {
   capaId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   checkId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
   mockRecallId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  receiptId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
+  alarmId: '6b1f7c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e',
 };
 
 function samplePath(route: AnyRoute): string {

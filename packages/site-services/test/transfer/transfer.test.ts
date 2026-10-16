@@ -23,6 +23,17 @@ let olderExcerpt: string;
 
 const now = (s = 0): string => new Date(Date.now() + s * 1000).toISOString();
 
+interface Rule {
+  key: string;
+  value: unknown;
+  [member: string]: unknown;
+}
+interface Payload {
+  status: { decision: { signatureId: string } };
+  ruleResolutions: Rule[];
+  [member: string]: unknown;
+}
+
 beforeAll(async () => {
   [pune, goa] = await Promise.all([Installation.create(`PUNE-${TAG}`), Installation.create(`GOA-${TAG}`)]);
   const pair = generateKeyPairSync('ed25519');
@@ -45,7 +56,7 @@ describe('the outbound package (site services 0980; L-41)', () => {
       [lot.id, randomUUID()],
     );
     first = await pune.ship(lot.id, goa, '100');
-    const p = JSON.parse(first.payload) as Record<string, any>;
+    const p = JSON.parse(first.payload) as Payload;
     expect(p).toMatchObject({
       format: 'ebmr.lot-transfer.v1',
       packageId: first.packageId,
@@ -61,7 +72,7 @@ describe('the outbound package (site services 0980; L-41)', () => {
     });
     expect(p.status.decision.signatureId).toMatch(/^[0-9a-f-]{36}$/);
     expect(p.ruleResolutions.length).toBeGreaterThan(0);
-    expect(p.ruleResolutions.find((r: { key: string }) => r.key === 'kernel.selfInspection.maxIntervalMonths')).toMatchObject({ method: 'SMALLER_STRICTER', value: '12' });
+    expect(p.ruleResolutions.find((r) => r.key === 'kernel.selfInspection.maxIntervalMonths')).toMatchObject({ method: 'SMALLER_STRICTER', value: '12' });
     // The payload is the stored text; the stored seal verifies under this installation's key, and the lot has 400 kg left.
     expect(await pune.scalar('select payload_sha256 = encode(sha256(convert_to($1, \'UTF8\')), \'hex\') as v from site.transfer_package where id = $2', [first.payload, first.packageId])).toBe(true);
     expect(await pune.scalar("select platform.own_seal_valid('transfer-package', $1, $2) as v", [first.payload, first.seal])).toBe(true);
@@ -208,10 +219,10 @@ describe('the inbound package (site services 0981; L-41)', () => {
     expect(rows.rows.find((r) => r.key === 'kernel.selfInspection.maxIntervalMonths')).toMatchObject({ winner: 'EQUAL', resolved: '12' });
     expect(rows.rows.every((r) => r.winner === 'EQUAL')).toBe(true);
     // The origin's table differs (a stricter, a looser and an unknown key): sealed by the origin, as its database would.
-    const base = JSON.parse(first.payload) as Record<string, any>;
-    const craft = (value: string, extra: object[] = []): Record<string, any> => ({
+    const base = JSON.parse(first.payload) as Payload;
+    const craft = (value: string, extra: Rule[] = []): Payload => ({
       ...base, packageId: randomUUID(), packageNo: `${lot.code}/T9${value}`,
-      ruleResolutions: [...base.ruleResolutions.map((r: { key: string }) => (r.key === 'kernel.selfInspection.maxIntervalMonths' ? { ...r, value } : r)), ...extra],
+      ruleResolutions: [...base.ruleResolutions.map((r) => (r.key === 'kernel.selfInspection.maxIntervalMonths' ? { ...r, value } : r)), ...extra],
     });
     const stricter = JSON.stringify(craft('6', [{ key: 'kernel.unknownAtGoa', tableCode: 'kernel', tableVersion: 1, method: 'LARGER_STRICTER', valueType: 'DECIMAL', unit: '1', value: '3' }]));
     const looser = JSON.stringify(craft('24'));
@@ -242,8 +253,8 @@ describe('genealogy across sites (recipe-core 1090; PR-57)', () => {
       ['TRANSFER', null, 0], ['LOT', 'TRANSFER_RECEIVED', 1], ['BATCH', 'CONSUMED', 2], ['LOT', 'FINISHED', 3], ['SHIPMENT', 'SHIPPED', 4],
     ]);
     expect(excerpt.rows.map((r) => r.nodeId)).toEqual([first.packageId, received.lotId, downstream.batch, downstream.finished, downstream.shipment]);
-    expect(excerpt.nodes.find((n) => n.kind === 'SHIPMENT')).toMatchObject({ state: downstream.consignee });
-    expect(excerpt.nodes.find((n) => n.kind === 'TRANSFER')).toMatchObject({ sub_kind: 'INBOUND', state: 'ACCEPTED', code: pune.code, name: goa.code });
+    expect(excerpt.nodes.find((n) => n['kind'] === 'SHIPMENT')).toMatchObject({ state: downstream.consignee });
+    expect(excerpt.nodes.find((n) => n['kind'] === 'TRANSFER')).toMatchObject({ sub_kind: 'INBOUND', state: 'ACCEPTED', code: pune.code, name: goa.code });
     // Kept at PUNE with its as-of point, sealed by GOA.
     expect(await pune.scalar("select (platform.timestamptz_to_epoch_us(as_of) = $2) and platform.peer_seal_valid(peer_code, 'federation-answer', payload, seal) as v from recipe.federated_excerpt where id = $1",
       [asked.excerptId, excerpt.asOfUs])).toBe(true);
