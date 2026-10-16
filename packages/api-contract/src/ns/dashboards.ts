@@ -11,7 +11,7 @@
  *    scripted exercises and the person's own attempts, kept in the sandbox only.
  */
 import { z } from 'zod';
-import { DecimalString, Instant, Uuid, Watermark } from '../common.ts';
+import { DecimalString, Instant, Uuid, Watermark, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
 /** A site-zone calendar date. */
@@ -289,8 +289,9 @@ export const training = {
     installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Start an attempt of a training exercise (kept in the sandbox only; DI-05)',
-    body: z.strictObject({ exerciseCode: z.string().regex(/^[A-Z][A-Z0-9_-]{1,39}$/) }),
+    body: withAttribution({ exerciseCode: z.string().regex(/^[A-Z][A-Z0-9_-]{1,39}$/) }),
     response: TrainingAttemptView,
   }),
   completeStep: defineRoute({
@@ -300,9 +301,10 @@ export const training = {
     installation: 'SANDBOX',
     auth: 'SESSION',
     mutating: true,
+    attribution: 'FRESH_ON_SHARED',
     summary: 'Mark a step of one\'s own training attempt done (DI-05)',
     params: z.strictObject({ attemptId: Uuid }),
-    body: z.strictObject({ step: z.number().int().positive().max(50) }),
+    body: withAttribution({ step: z.number().int().positive().max(50) }),
     response: TrainingAttemptView,
   }),
 } as const;
