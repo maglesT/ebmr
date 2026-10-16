@@ -100,7 +100,11 @@ export interface RunningStack {
   stop(): Promise<void>;
 }
 
-function serverEnv(kind: 'GMP' | 'SANDBOX', opts: StartStackOptions, origins: { gmp: string; sandbox: string }): Record<string, string> {
+/**
+ * The environment of one installation's server process (exported for the Phase 6 exit browser flow that starts a second GMP
+ * server on a database restored from its backup, DI-32).
+ */
+export function serverEnv(kind: 'GMP' | 'SANDBOX', opts: StartStackOptions, origins: { gmp: string; sandbox: string }): Record<string, string> {
   const prefix = kind === 'GMP' ? 'gmp' : 'sandbox';
   const env: Record<string, string> = {
     EBMR_INSTALLATION: kind,

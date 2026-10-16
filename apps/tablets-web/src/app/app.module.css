@@ -48,6 +48,12 @@
   background: var(--ebmr-surface-alt);
   color: var(--ebmr-muted);
 }
+/* A list of links, one a line (the record review's navigation): each link at least 24 px high, WCAG 2.2 target size (2.5.8). */
+.linkList a {
+  display: inline-block;
+  min-height: 24px;
+  line-height: 24px;
+}
 .tileTitle {
   font-weight: 700;
   font-size: 1.1em;

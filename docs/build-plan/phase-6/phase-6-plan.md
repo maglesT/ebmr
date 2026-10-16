@@ -1039,6 +1039,58 @@ Finding for the 6j-c review and the owner:
   the US quality-control unit must acknowledge 8 items before its disposition (EBMR-DSP-038). Not changed here: whether
   a lock counts as a change since review is a release-design decision.
 
+#### 6j-b browser flows
+
+Specs in `tools/e2e/specs/phase6` (arrangements in `support.ts`): `stale-mirror` (DI-31: the integration health page,
+fresh then stale and blocking; a stale LMS mirror refusing "Sign as performed" on the kiosk, accepted after the adapter
+synchronises), `alarms` (DI-49, INV-40: an EMS room alarm acknowledged at the kiosk with its comment, read in the batch's
+alarm log), `trends` (DI-32: the batch's native series, zoom and pan, then the same trend re-rendered on a server started on
+a database restored from its backup), `genealogy-recall` (PR-57, IN-07, IN-29: explorer both ways, mock recall to every
+consignee signed off by the AP), `controlled` (IN-53 draft: flag and its approval, dispensing proposed and signed by two
+different custodians, the second at the kiosk), `english-step` (decision 0018; no control).
+
+- **D-P6j-b-e2e-1** What no screen makes is arranged in the E2E database with the kernel's own commands under real
+  identities (adapter identities registered like devices, the mirror mode under a change record, a training coordinator
+  through the access workflow); rows only the receipt or ERP paths write are superuser inserts as the server tests make
+  them, inside a command of the demo set's stores person, keeping every foreign key and giving each lot its state, so
+  every read still answers within its contract and the database still restores (the trends flow restores it; the first
+  full run found both gaps). A flow that binds something to the shared review batch undoes its gate in its clean-up (the
+  alarm flow acknowledges its alarm if it failed first). `tools/e2e` depends on `@ebmr/kernel` for this. Why: no route
+  makes these rows, and the flows prove the screens, not the set-up.
+- **D-P6j-b-e2e-2** No adapter worker or simulator runs on the E2E stack: each adapter's messages go through its receiving
+  command under its own INTEGRATION identity, the worker's path below HTTP. The simulator-driven exchange under faults is
+  GB-T-03's and the demo's. Why: the E2E stack would otherwise need five more processes for checks the adapter tests make.
+- **D-P6j-b-e2e-3** The stale-mirror signature is refused on the sandbox kiosk (a TEST- batch of a dc-mini package); the
+  health page is the GMP one. Why: the E2E set-up leaves no GMP batch at a step, and its GMP floor needs cleaning,
+  clearance and occupancy first. Because a step signature names only the site (finding F-6jb-1), the flow records every
+  other possible performer as trained (INTERNAL) in the requirement's own command, so no other spec depends on its mirror.
+- **D-P6j-b-e2e-4** The alarm and the series come from the EMS for room DISP-1 with source times inside the review batch's
+  (ended) occupancy, a late report of the source; the eBMR binds them by source time. Why: a press (OPC UA) alarm binds
+  only to an open equipment use and the set-up leaves none; the OPC UA press excursion is GB-T-03's and the demo's.
+- **D-P6j-b-e2e-5** The DI-32 restored archive uses the kernel's backup path (dumpDatabase, verifyFixity,
+  restoreDatabase) into a database named like an E2E one, which the E2E set-up marks as a demo installation (a copy is not
+  one until marked, decision D6), and a second GMP server (`tools/demo` now exports `serverEnv`). Copy and server exist
+  only for the test.
+- **D-P6j-b-e2e-6** Controlled dispensing plans a GB-T-01 batch from an ERP order sent for the run; the planning binds the
+  batch to the oldest open matching order (in a fresh run PO-GBT01-0002), which the open-order list keeps showing. The flag
+  names only the run's own controlled material, so no other batch is affected (recipe-core 1033).
+- **D-P6j-b-e2e-7** Product changes the flows needed: the record review's navigation links are 24 px high (WCAG 2.2
+  target size; the flow's axe check found 22 px), with a computed-style test; the ceremony helpers wait for the exact
+  "Signed." banner (a refusal reads "Nothing was signed.", which the substring match accepted).
+- **D-P6j-b-e2e-8** The flows stay inside the stack's shared allowances without raising them: one page load per terminal
+  (a load identifies the terminal again, 60 a minute for the stack's one address), then the home tiles and in-app links;
+  the reading flows sign in as the head of QC, whom no other spec signs in (sign-ins count per user ID, 10 a minute,
+  and the QA reviewer personas sign in often in the release specs). Found by two full runs that failed other specs.
+- **Findings and residuals (for the lead and the owner):**
+  - **F-6jb-1** A step signature's authority scope names only the site (the batch-step signing content of recipe-core,
+    `'scope', {site}` since 0210), not the batch's product (`plant.batch_scope`). A qualification requirement limited to
+    a product therefore binds every step signature of the site (fails closed: over-restrictive, never permissive). Seen on
+    the sandbox kiosk: a requirement left for another product refused "Sign as performed" with MISSING_QUALIFICATION.
+    GB-T-03's product training would refuse performers of other products. Fix in recipe-core (not in this slice's range).
+  - **F-6jb-2** The floor's refusal of a stale-mirror signature names `STALE_QUALIFICATION_SOURCE:<qualification>` but not
+    the mirror, its age or who to call (6a screens item); `iam.lms_mirror_problem()` has no caller.
+  - The health page writes source systems as words ("Lms", "call the Lms system owner"): cosmetic.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - 6a-0: the inbound envelope and error classes (`@ebmr/integration-sdk/adapter`), `platform.accept_inbound`,

@@ -217,6 +217,7 @@ tests:
   - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] samples are ordered by source time across chunks and times keep every microsecond"
   - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-32] a chunk is held as received and as the checked series row; the audit trail holds the row hash only (D-P6b-A-1)"
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-20][DI-32][DI-49] the OPC UA press reports its enrolled endpoint's session and native series of the compression through the site gateway, and its reject-burst alarm is acknowledged with a comment in the batch's alarm log"
+  - "tools/e2e/specs/phase6/trends.spec.ts > [DI-32] the trend viewer draws a batch's room series from the native samples as received, zooms and pans; after a backup and restore of the database the same trend re-renders interactively from the restored chunks @office"
 clauses:
   - clause: "A weighing with direct capture stores a raw string that matches the display."
     tests:

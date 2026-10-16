@@ -59,6 +59,7 @@ tests:
   - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period"
   - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [DI-49] the alarm trend shows the count of every alarm of the period, by day and code"
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-20][DI-32][DI-49] the OPC UA press reports its enrolled endpoint's session and native series of the compression through the site gateway, and its reject-burst alarm is acknowledged with a comment in the batch's alarm log"
+  - "tools/e2e/specs/phase6/alarms.spec.ts > [DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknowledged at the kiosk with the action taken and the comment a GMP-critical alarm needs, and shows so in the batch's alarm log @office"
 clauses:
   - clause: "Simulate an excursion. It appears with raise and acknowledgment times, acknowledger identity and comment."
     tests:

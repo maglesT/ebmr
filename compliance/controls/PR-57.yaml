@@ -80,6 +80,8 @@ tests:
   - "apps/tablets-web/test/transfers/transfers.test.tsx > federated genealogy (PR-57, IN-29) > [PR-57] the explorer asks across sites and shows each site's part with its as-of; an unanswered site makes the result incomplete"
   - "packages/site-services/test/transfer/transfer.test.ts > review 6i: one hop and clock skew (recipe-core 1092) > [PR-57] an as-of point a moment ahead of the answering site's clock is answered once that instant has passed; one far ahead is refused"
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [IN-29][PR-57] the mock recall from the API lot reaches the batch, the order, the finished lot and both consignees of the ERP's shipments, reproduces, and is signed off by the AP"
+  - "tools/e2e/specs/phase6/genealogy-recall.spec.ts > [PR-57][IN-07] the genealogy explorer traces an API lot forward to the batch, its finished lot and every shipment, as a tree and as a table, and a shipment backward to the API lot @office"
+  - "tools/e2e/specs/phase6/genealogy-recall.spec.ts > [IN-29][PR-57] the head of QC runs a mock recall from the API lot to every consignee; it reproduces, reconciles delivered against returned, and the authorised person signs it off through the ceremony @office"
 clauses:
   - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
     tests:

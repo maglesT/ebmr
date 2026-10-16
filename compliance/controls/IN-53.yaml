@@ -54,6 +54,7 @@ tests:
   - "apps/tablets-web/test/controlled/controlled.test.tsx > controlled-substance screens (IN-53, draft) > [IN-53] dispensing a controlled API with one person is refused: a record awaiting its second custodian offers only the countersignature, and the dispensing form prompts for dual custody"
   - "apps/tablets-web/test/controlled/controlled.test.tsx > controlled-substance screens (IN-53, draft) > [IN-53] the balance panel shows each checkpoint with the server's difference; an explained difference names its deviation; the supervisor signs a recorded checkpoint"
   - "apps/tablets-web/test/controlled/controlled.test.tsx > controlled-substance screens (IN-53, draft) > [IN-53] the register export is reproducible (same hash): the opened export shows its banner and whether it reproduces"
+  - "tools/e2e/specs/phase6/controlled.spec.ts > [IN-53] controlled dispensing under dual custody: QA flags the product and a second QA person approves; the stores person proposes and signs first, cannot countersign; a verifier at the kiosk countersigns @office"
 clauses:
   - clause: "flag a product as controlled and have a second QA person approve it;"
     tests:
