@@ -1,4 +1,4 @@
-current_phase: 4
+current_phase: 6
 # Raise this when a phase starts. CI then requires a passing test for every control
 # whose target_phase is at or before this number (unless the expert chose DONT_FOLLOW).
 editions:
