@@ -39,7 +39,7 @@
 --   tab.packaging_completion_view(batch)   the labels.packaging view (contract ns/labels.ts).
 --   Triggers on recipe.execution_state: zv_tab_g21_specimens (after update): a row that closes a G-21 step (to
 --                                 AWAITING_VERIFICATION or COMPLETED) is refused while a specimen is missing or a line stop
---                                 is open (EBMR-LBL-060); a2_packaging_completion (before update of status): EXECUTION_COMPLETE
+--                                 is open (EBMR-LBL-060); a2_packaging_completion (before insert or update of status): EXECUTION_COMPLETE
 --                                 of a batch with a G-21 step is refused while the completion problem stands (EBMR-LBL-061).
 --   Trigger a6_tab_print_job_rules on tab.print_job (before insert): no job while a line stop of the step is open
 --                                 (EBMR-LBL-062); when the master declares templates for the step, the job's layout is one of
@@ -628,7 +628,7 @@ language plpgsql security definer set search_path = pg_catalog, tab, pg_temp as 
 declare
   v_p text;
 begin
-  if new.status = 'EXECUTION_COMPLETE' and old.status is distinct from 'EXECUTION_COMPLETE' then
+  if new.status = 'EXECUTION_COMPLETE' and (tg_op = 'INSERT' or old.status is distinct from 'EXECUTION_COMPLETE') then
     v_p := tab.packaging_completion_problem(new.batch_id);
     if v_p is not null then
       raise exception using errcode = 'P0001', message = format('EBMR-LBL-061 the packaging order cannot complete: %s', v_p);
@@ -637,7 +637,7 @@ begin
   return new;
 end
 $$;
-create trigger a2_packaging_completion before update of status on recipe.execution_state for each row execute function tab.refuse_incomplete_packaging();
+create trigger a2_packaging_completion before insert or update of status on recipe.execution_state for each row execute function tab.refuse_incomplete_packaging();
 
 -- PR-36, D-P6c-7, D-P6c-16 (header).
 create function tab.print_job_rules() returns trigger

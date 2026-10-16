@@ -154,7 +154,7 @@ export async function startL3Stub(opts: L3StubServerOptions): Promise<RunningL3S
           || (body['action'] !== undefined && body['action'] !== 'ADD' && body['action'] !== 'DELETE')) {
         return refuse(res, 400, 'SCHEMA', 'expected {poolId, parentId, childCount, action?}');
       }
-      return send(res, 201, stub.aggregate({ poolId: body['poolId'], parentId: body['parentId'], childCount: body['childCount'], ...(body['action'] ? { action: body['action'] as 'ADD' | 'DELETE' } : {}) }));
+      return send(res, 201, stub.aggregate({ poolId: body['poolId'], parentId: body['parentId'], childCount: body['childCount'], ...(body['action'] ? { action: body['action'] } : {}) }));
     }
     const done = /^\/l3\/v1\/decommission-tasks\/([^/]+)\/done$/.exec(path);
     if (done && method === 'POST') return send(res, 200, stub.completeTask(decodeURIComponent(done[1] ?? '')));

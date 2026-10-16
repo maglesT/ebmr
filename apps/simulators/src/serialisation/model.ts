@@ -126,7 +126,10 @@ export class L3Stub {
   setFault(fault: L3Fault, on: boolean): void {
     if (on) this.faults.add(fault);
     else this.faults.delete(fault);
-    if (fault === 'MISSING_EVENTS') (on ? this.feed.faults.add('FEED_GAP') : this.feed.faults.delete('FEED_GAP'));
+    if (fault === 'MISSING_EVENTS') {
+      if (on) this.feed.faults.add('FEED_GAP');
+      else this.feed.faults.delete('FEED_GAP');
+    }
     if (fault === 'STALE_REPORT') {
       if (on) this.feed.faults.add('STALE_MIRROR');
       else this.feed.faults.delete('STALE_MIRROR');

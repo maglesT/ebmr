@@ -36,6 +36,9 @@ describe('label and serialisation screens', () => {
     const ui = renderOffice(`/labels/packaging/${packaging.batchId}`, { role: 'OPERATOR' });
     const form = await screen.findByTestId('coding-specimen-form');
     expect(form.textContent).toContain('middle');
+    // The record's coding is not shown beside the capture: it is read off the specimen, never copied (review 6c).
+    expect(screen.getByTestId('packaging-coding-hint').textContent).toContain('Type exactly what each specimen shows');
+    expect(document.body.textContent).not.toContain('2028-09, ');
     await userEvent.type(within(form).getByRole('textbox', { name: 'Batch number on the specimen' }), 'PK26-0012');
     await userEvent.type(within(form).getByRole('textbox', { name: 'Manufacture date on the specimen (YYYY-MM-DD)' }), '2026-10-01');
     await userEvent.type(within(form).getByRole('textbox', { name: 'Expiry on the specimen (YYYY-MM)' }), '2028-09');

@@ -90,7 +90,7 @@ async function complete(r: Run): Promise<string> {
 async function event(kind: string, value: string, jobId: string | null): Promise<{ status: number; id: string }> {
   seq += 1;
   const res = await gw.post(PRINT_EVENTS_PATH, { sessionId: GW_SESSION, events: [{ deviceSerial: SERIAL, jobId, kind, value, sourceTime: `17905846180${seq.toString().padStart(5, '0')}`, sequence: String(seq) }] });
-  return { status: res.status, id: String((((res.body as Json)['events'] as Json[] | undefined)?.[0] as Json | undefined)?.['eventId']) };
+  return { status: res.status, id: String((((res.body as Json)['events'] as Json[] | undefined)?.[0])?.['eventId']) };
 }
 /** Batch data, the line occupied and a print job of CODER released and loaded (the record's data); returns the job. */
 async function loadedJob(r: Run, layout = 'LAYOUT-US-1'): Promise<Json> {

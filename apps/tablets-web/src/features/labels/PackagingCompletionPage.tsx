@@ -1,7 +1,8 @@
 /**
  * The completion evidence of a packaging order (Phase 6 slice 6c; IN-16, PR-16, PR-34, PR-36, PR-39): for each
  * printed-materials step, the start, middle and end coding specimens (the operator types what the specimen shows; the
- * database compares it with the record's coding), a label specimen of each printed item, the line stops a vision
+ * database compares it with the record's coding, which the capture form does not show so it is read off the specimen,
+ * not copied), a label specimen of each printed item, the line stops a vision
  * rejection opened (QA resolves them), the reconciliation waiver (QA, with a qualifying device); then the post-use
  * inspection of the line, verified by a second person. The gap that blocks the step's close or the order's completion
  * is the database's words.
@@ -65,10 +66,10 @@ function StepPanel({ batchId, s }: { batchId: string; s: Step }) {
       {s.coding ? (
         <>
           <h3>Coding specimens</h3>
-          <p data-testid="packaging-expected-coding">
+          <p data-testid="packaging-coding-hint">
             {s.expectedCoding
-              ? `The record's coding: batch ${s.expectedCoding.batch}, manufactured ${s.expectedCoding.mfgDate}, expiry ${s.expectedCoding.expiryDate}${s.expectedCoding.mrp ? `, MRP ${s.expectedCoding.mrp}` : ''}.`
-              : 'The record gives no coding for this step yet.'}
+              ? 'Type exactly what each specimen shows: the system compares it with the record\'s coding and refuses a specimen that differs.'
+              : 'The record gives no coding for this step yet: record the batch data first.'}
           </p>
           <ul>
             {s.codingSpecimens.map((c) => (
