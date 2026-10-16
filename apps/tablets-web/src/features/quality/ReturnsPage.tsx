@@ -3,6 +3,8 @@
  * quarantined lot; booking in a return of a finished lot; QC's assessment (nature, storage, condition history, time since
  * issue, doubt, other batches implicated, the disposition) and its signature (LIMS_ACT RETURN_ASSESSMENT_SIGN). With any
  * doubt only destruction or chemical recovery is allowed: the database decides and the screen shows its words.
+ * Phase 6 slice 6d (IN-29, PR-48): once QC signed an assessment choosing chemical recovery, the stores record the
+ * recovery (samples.recoverReturn): the recovered material becomes a quarantined lot linked in the genealogy.
  */
 import { useState } from 'react';
 import { routes, type LotSummaryView, type ReturnView } from '@ebmr/api-contract';
@@ -28,7 +30,7 @@ export function ReturnsPage() {
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
       {q.data && q.data.returns.length === 0 ? <p>No return booked in.</p> : null}
       {q.data?.returns.map((r) => (
-        <ReturnCard key={r.lotId} r={r} qc={qc} />
+        <ReturnCard key={r.lotId} r={r} qc={qc} stores={stores} />
       ))}
       {stores || qc ? (
         <ReceiveReturn lots={finished} />
@@ -37,7 +39,7 @@ export function ReturnsPage() {
   );
 }
 
-function ReturnCard({ r, qc }: { r: ReturnView; qc: boolean }) {
+function ReturnCard({ r, qc, stores }: { r: ReturnView; qc: boolean; stores: boolean }) {
   const signed = useSignedAct(READS);
   const a = r.assessment;
   return (
@@ -81,6 +83,25 @@ function ReturnCard({ r, qc }: { r: ReturnView; qc: boolean }) {
         />
       ) : null}
       <ActResult error={signed.error} outcome={signed.outcome} />
+      {stores && a?.signed && a.disposition === 'CHEMICAL_RECOVERY' && (r.status === 'QUARANTINE' || r.status === 'REJECTED') ? (
+        <DefineForm
+          title={`Chemical recovery of ${r.lotCode}`}
+          route={routes.samples.recoverReturn}
+          params={{ lotId: r.lotId }}
+          refresh={READS}
+          submitLabel="Record the chemical recovery"
+          fields={[
+            { name: 'materialCode', label: 'Recovered material code', kind: 'text' },
+            { name: 'materialName', label: 'Recovered material name', kind: 'text' },
+            { name: 'quantity', label: 'Quantity recovered', kind: 'decimal' },
+            { name: 'unit', label: 'Unit', kind: 'text' },
+            { name: 'processReference', label: 'Recovery procedure and run', kind: 'text' },
+            { name: 'expiresAt', label: 'Expiry (UTC, e.g. 2029-01-01T00:00:00Z)', kind: 'instant' },
+            { name: 'retestAt', label: 'Retest (UTC)', kind: 'instant', optional: true },
+            { name: 'returnedQuantity', label: 'Returned quantity taken', kind: 'decimal', optional: true, description: 'All of the return when empty' },
+          ]}
+        />
+      ) : null}
     </Section>
   );
 }

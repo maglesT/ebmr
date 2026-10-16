@@ -214,7 +214,7 @@ export {
   PqrSignOffView,
 } from './ns/pqr.ts';
 export { EditionReviewItem, FinishedLotView, MbrEditionReviewItem, LotDecisionProposalView, LotReleaseCheckView, Pharmacopoeia, SpecificationTestInput, SpecificationView } from './ns/specifications.ts';
-export { ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
+export { ChemicalRecoveryInput, ChemicalRecoveryView, ReturnAssessmentInput, ReturnView, SampleView } from './ns/samples.ts';
 export { ProcessReadingView } from './ns/device-readings.ts';
 export {
   ArchiveBatchSummary,
@@ -243,6 +243,20 @@ export {
   MirrorFreshnessView,
   ReconciliationReportView,
 } from './ns/integrations.ts';
+export {
+  ComplaintLookupView,
+  DeviationImpactView,
+  DistributionRecordView,
+  GenealogyDirection,
+  GenealogyEdgeKind,
+  GenealogyEdgeView,
+  GenealogyNodeKind,
+  GenealogyNodeView,
+  GenealogyTraceView,
+  RecurrenceView,
+  SupplyChainView,
+} from './ns/genealogy.ts';
+export { MockRecallSubjectKind, MockRecallSummaryView, MockRecallView } from './ns/recall.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
 export {

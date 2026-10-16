@@ -19,7 +19,7 @@ let gapAlarm = '';
 let refusalAlarm = '';
 
 const envelope = (seq: number, payload: Record<string, unknown>) => ({
-  sourceSystem: 'ERP_WMS', messageType: 'erp.shipment', sourceRecordId: `SH-${seq.toString()}`, sourceTimestamp: '1800000000000000', sequenceNo: seq.toString(),
+  sourceSystem: 'ERP_WMS', messageType: 'erp.material_master', sourceRecordId: `MM-${seq.toString()}`, sourceTimestamp: '1800000000000000', sequenceNo: seq.toString(),
   idempotencyKey: `k-${randomUUID()}`, schemaVersion: '1', payloadHash: createHash('sha256').update(JSON.stringify(payload)).digest('hex'), payload,
 });
 
@@ -27,13 +27,14 @@ beforeAll(async () => {
   gmp = await startServer('GMP');
   erp = await adapterIdentity(gmp, 'ERP');
   const actor = await adapterActor(gmp, erp);
-  const shipment = (id: string) => ({ shipmentId: id, lotNumber: 'L-1', quantity: { value: '1', unit: 'kg' } });
+  // (A material master, applied as it is received; since slice 6d an erp.shipment needs a released finished lot.)
+  const shipment = (id: string) => ({ materialCode: `MAT-${id}`, name: `Material ${id}`, baseUnit: 'kg', materialKind: 'EXCIPIENT' });
   await withCommand(gmp.db.app, { ...actor, correlationId: randomUUID() }, (c) => c.query('select site.erp_wms_receive($1::jsonb)', [JSON.stringify(envelope(1, shipment('SH-1')))]));
   const gap = await withCommand(gmp.db.app, { ...actor, correlationId: randomUUID() }, async (c) =>
     (await c.query<{ r: { alarmId: string } }>('select site.erp_wms_receive($1::jsonb) as r', [JSON.stringify(envelope(4, shipment('SH-4')))])).rows[0]?.r);
   gapAlarm = gap?.alarmId ?? '';
   const refused = await withCommand(gmp.db.app, { ...actor, correlationId: randomUUID() }, async (c) =>
-    (await c.query<{ id: string }>("select platform.record_inbound_refusal($1::jsonb, 'MALFORMED', 'EBMR-ERP-001 malformed erp.shipment payload') as id", [JSON.stringify(envelope(5, { garbled: true }))])).rows[0]?.id ?? '');
+    (await c.query<{ id: string }>("select platform.record_inbound_refusal($1::jsonb, 'MALFORMED', 'EBMR-ERP-001 malformed erp.material_master payload') as id", [JSON.stringify(envelope(5, { garbled: true }))])).rows[0]?.id ?? '');
   refusalAlarm = (await gmp.db.app.query<{ a: string }>('select alarm_id::text as a from platform.inbound_exception where id = $1', [refused])).rows[0]?.a ?? '';
 }, 300_000);
 afterAll(async () => {

@@ -890,6 +890,17 @@ the record's coding, review finding P6c-R1; label specimens, withdrawal with a r
 waiver, the post-use inspection and its verification); the serial lookup and the pools of an order with the L3
 mirror's freshness and why release waits. Tests: [labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx).
 
+## Genealogy explorer, complaint lookup and mock recalls (Phase 6 slice 6d)
+
+[features/genealogy](../../../apps/tablets-web/src/features/genealogy/index.tsx): the explorer (`/genealogy`; tree and table
+both ways, node-kind filter, an as-of instant typed with its offset, CSV export, D-P6d-9), the complaint lookup
+(`/genealogy/lookup`), the API supply-chain report and the deviation impact list, and the mock-recall cockpit
+(`/recall`, `/recall/$mockRecallId`: QA's run with the licensing-authority flag, the reconciliation sheet, the
+consignees, whether it reproduces, the AP's sign-off through the ceremony). The recurrence warning (PR-49) sits above
+every tab of a lot's release screen ([RecurrenceWarning.tsx](../../../apps/tablets-web/src/features/genealogy/RecurrenceWarning.tsx),
+D-P6d-8); the returned-goods screen offers the stores the chemical recovery once QC's signed assessment chose it. Tests:
+[genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.

@@ -873,6 +873,23 @@ because the lesson is about structure.
   web test `[IN-16] the packaging page offers the next coding specimen ...` checks it.
 - **Lesson:** a comparison the database makes is only a check when the person cannot see the answer.
 
+### P6d-R1: the chemical recovery could not be done from the application (slice 6d, review)
+
+**Symptom.** Returned goods that QC assessed and signed for chemical recovery could not be recovered by any user: the
+database act `site.record_chemical_recovery` (site services 0960) existed and was tested, but no route or screen called
+it, so the IN-29 genealogy of recovered material could only be built by the tests.
+**Cause.** The slice built the database guard first and the server reads, but the act's route was not in the 6d-0
+contract. **Fix.** The additive route `samples.recoverReturn` (`POST /api/quality/returns/:lotId/chemical-recovery`,
+D-P6d-7) and the form on the returned-goods screen. **Tests.** `[IN-29][PR-48] the stores record the chemical recovery
+...` (genealogy-routes.test.ts, over HTTP, the forward trace reaching the recovered lot) and the web test of the form.
+
+### P6d-R2: slice test files broke the static CI job (slice 6d, review)
+
+**Symptom.** Two lint errors (an unused destructured member; an `any` from a nested `expect.objectContaining`) and three
+dependency-rule errors: recipe-core's genealogy tests imported site services' test helpers, and recipe-core may import
+only kernel and expr. **Fix.** The genealogy DB tests moved to `packages/site-services/test/genealogy/` (D-P6d-10); the
+assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's files before each push.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

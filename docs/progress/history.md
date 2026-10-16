@@ -2514,6 +2514,19 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   insertion not database-guarded, the reviewer's routing kept by the server. Local runs (spare clusters 5435, 5437):
   typecheck and lint of the changed files clean; kernel and api-contract 1,643 passed; tablets-server governance, esig,
   config, platform and package tests with tablets-web 643 passed; register valid; handbook checks pass.
+- 2026-10-16: PHASE 6 SLICE 6d (branch phase-6/slice-6d; resumed after a container restart). origin/main (slice 6f) merged.
+  Built on the earlier builder's 6d-0 interfaces, SQL (recipe-core 1010 to 1013, site services 0960, 0961, tablets 1280)
+  and server feature: the web feature `genealogy` (explorer with tree, table, kind filter, as-of instant and CSV export;
+  complaint lookup; API supply chain; deviation impact; mock-recall cockpit with the AP sign-off), the PR-49 recurrence
+  warning above the release screen's tabs, and the chemical recovery route `samples.recoverReturn` with its form. Clause
+  mappings: IN-07, IN-29 (recovered material), PR-57 x2, PR-49, PR-50 name their tests; trace-deferrals.md notes it.
+  Defaults D-P6d-4 to 10 in the plan (D-P6d-6: tablets 1280 to 1289; D-P6d-10: the genealogy DB tests moved to
+  site-services to keep the dependency rule). Quick review (one pass): no critical or high; P6d-R1 (recovery had no route
+  or screen, medium) and P6d-R2 (lint and dependency-rule errors in the slice tests) fixed with tests; the mock-recall
+  example moved to satisfy the DI-05 example rule. Residuals: the mock-recall browser flow (6j), web "not offered" tests
+  run before the session loads, recurrence counted up to now. Local runs (cluster 5439): typecheck, lint of the changed
+  files and deps:check clean; the slice's site-services, tablets-server, api-contract and tablets-web tests passed (web
+  suite 79 files, 564 tests); register valid; handbook check passes.
 - 2026-10-16: PHASE 6 SLICE 6c (branch phase-6/slice-6c; resumed after a container restart from the 6c-0 interface
   commit). origin/main merged (slice 6f, PR #33); slice 6b not needed (the vision line stop runs through the printer
   gateway path). Built: recipe-core 0990 (label templates, layout and record-field bindings only, approved by a second

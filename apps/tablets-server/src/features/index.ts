@@ -4,7 +4,7 @@
  * batches stay sandbox-only, the GMP batch issue GMP-only, by the contract's route installations; each installation has its
  * own gateways and scales). A module replaces only its own index.ts. Phase 3 slice 6: planning, master-data
  * (formulation library) and plant on GMP; the GMP batch family `/api/batches/*` is bound by execution (D-S6-1). Phase 4
- * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP. Phase 4 slice 6b: archive (retention, contingency packs, evidence export, inspection) on GMP.
+ * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP. Phase 4 slice 6b: archive (retention, contingency packs, evidence export, inspection) on GMP. Phase 6 slice 6d: genealogy (genealogy and recall namespaces) on GMP.
  */
 import * as access from './access/index.ts';
 import * as archive from './archive/index.ts';
@@ -20,6 +20,7 @@ import * as esig from './esig/index.ts';
 import * as governance from './governance/index.ts';
 import * as erpShipping from './erp-shipping/index.ts';
 import * as execution from './execution/index.ts';
+import * as genealogy from './genealogy/index.ts';
 import * as india from './india/index.ts';
 import * as masterData from './master-data/index.ts';
 import * as integrations from './integrations/index.ts';
@@ -67,6 +68,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'serialisation', installations: ['GMP'], module: serialisation satisfies FeatureModule },
   { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
   { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },
+  { name: 'genealogy', installations: ['GMP'], module: genealogy satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

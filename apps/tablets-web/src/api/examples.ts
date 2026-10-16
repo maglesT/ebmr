@@ -80,7 +80,7 @@ function gmpSlice6(steps: { step: { stepKey: string } }[]): FixtureMap {
   const firstExamples: Record<string, unknown> = {};
   for (const e of Object.values(EXAMPLES)) {
     if (!('routeId' in e) || typeof e.routeId !== 'string') continue;
-    if (!/^(batches|planning|masterData|plant|quality|review|containers|specifications|samples|release|qpPackage|records|pqr|capa|config|integrations|labels|serialisation|notifications|support|contractGiver|esig\.(dscConfiguration|setDscMode|registerDscAnchor|setDscMeaning|dscEnrolment|enrolDsc|endDscEnrolment)|devices\.processReadings|designer\.formulaChoice|esig\.describe)/.test(e.routeId)) continue;
+    if (!/^(batches|planning|masterData|plant|quality|review|containers|specifications|samples|release|qpPackage|records|pqr|capa|config|integrations|notifications|support|contractGiver|labels|serialisation|genealogy|recall|esig\.(dscConfiguration|setDscMode|registerDscAnchor|setDscMeaning|dscEnrolment|enrolDsc|endDscEnrolment)|devices\.processReadings|designer\.formulaChoice|esig\.describe)/.test(e.routeId)) continue;
     if (!(e.routeId in firstExamples)) firstExamples[e.routeId] = e.data;
   }
   const tb08 = EXAMPLES['batches-step-tb08'].data as { step: { stepKey: string } };

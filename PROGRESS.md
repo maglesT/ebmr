@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slice 6c).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6c and 6d).
 
 ## What this is
 
@@ -121,6 +121,12 @@ RBE on a step only with a validation reference, support grants (two customer sig
 giver's read-only reviewer, excursion notifications, designer PPE and containment, MBR edition review, typed CPP values in
 the PQR, the India DSC with a test CA (kernel 1203, 1205) and, from the review, enrolment of the signer's own certificate
 (kernel 1206; a high fixed). The eleven 6f clauses now name their tests. Defaults D-P6f-A-*, D-P6f-B-*; residuals in the plan.
+Slice 6d (branch `phase-6/slice-6d`, 16 October, ready for PR): `recipe.genealogy` both ways at any depth as of an
+instant over the insert-only event rows (no genealogy table), chemical recovery of returned goods (site services 0960,
+route `samples.recoverReturn`), distribution records from the ERP adapter (0961), mock recall stored with its hash and
+signed off by the AP, deviation impact query, recurrence warning on the release screen (PR-49), explorer, complaint
+lookup and mock-recall screens (recipe-core 1010 to 1013, tablets 1280). IN-07, IN-29, PR-57 x2, PR-49, PR-50 clauses
+name their tests. Defaults D-P6d-0-*, D-P6d-4 to 10; review fixes and residuals in the plan.
 Slice 6c (branch `phase-6/slice-6c`, 16 October, ready for PR): label templates approved by a second person (an India
 template needs every India particular), the master's 211.122(g) cut-label option gating its approval, the label store
 (recipe-core 0990, site services 0950); start, middle and end coding specimens equal to the record's coding, label
