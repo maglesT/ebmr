@@ -27,14 +27,16 @@ tests:
   - "apps/tablets-web/test/release/release.test.tsx > release cockpit, manufacturer tab > [IN-03][PR-09] QA signs a post-change evaluation and a PPQ outcome for the batch named, each with its own text"
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-09] a protocol batch reads its own validation outcome: a FAILED outcome names the batch, and another batch's outcome does not stand for one not recorded"
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-09][IN-03] validation outcomes and post-change evaluations refuse what the rules exclude; their signed content exists for GMP batches only"
+  - "packages/recipe-core/test/release/pqr-extract.test.ts > typed CPP values in the extract (recipe-core 1062; PR-09) > [PR-09] CPP data exported for N batches and recomputed from source records match"
+  - "apps/tablets-web/test/pqr/pqr.test.tsx > PQR extract screens (IN-01, PR-58) > [PR-09] an extract shows the typed CPP values of every batch: process parameters, IPC results and yields as recorded"
 clauses:
   - clause: "A PPQ-flagged batch cannot be released or certified until the validation outcome is entered."
     tests:
       - "packages/recipe-core/test/release/release.test.ts > incidents, validation and change (DI-12, PR-09, IN-03) > [PR-09] a PPQ batch waits for its validation outcome; concurrent release counts for the US only (India treated as the EU, D-P4-6); QA records the outcome once"
   - clause: "CPP data exported for N batches and recomputed from the source records match exactly."
-    deferred:
-      phase: 6
-      reason: "Typed CPP values (yields, IPC results) are not yet in the PQR extract (slice 6c residual), so there is no CPP export to recompute; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/release/pqr-extract.test.ts > typed CPP values in the extract (recipe-core 1062; PR-09) > [PR-09] CPP data exported for N batches and recomputed from source records match"
+      - "apps/tablets-web/test/pqr/pqr.test.tsx > PQR extract screens (IN-01, PR-58) > [PR-09] an extract shows the typed CPP values of every batch: process parameters, IPC results and yields as recorded"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

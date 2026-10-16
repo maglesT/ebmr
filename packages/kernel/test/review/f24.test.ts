@@ -25,6 +25,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext, type ActorContext } from '../../src/db/command.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 import { MARKET_ROLES, publishSeedTables, seedDocument, seedStubWorld, type StubWorld } from '../market/helpers.ts';
@@ -34,6 +35,7 @@ let world: StubWorld;
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await publishSeedTables(db);
   world = await seedStubWorld(db);
 });
@@ -110,8 +112,8 @@ describe('F24: approvals behind a loosening must be verified e-signatures, not f
   it('[IN-52][DI-35][DI-09][INV-47][ST-01] source correction, site-value loosening and policy loosening are refused without real signed approvals', async () => {
     // --- Actors (real identities from the identity module).
     const corrector = await seededTestActor(db, { roleCode: MARKET_ROLES.corrector }); // REGULATORY_SIGNER
-    const steward = await seededTestActor(db, { roleCode: MARKET_ROLES.siteValues }); // MASTER_DATA_STEWARD
-    const qaPolicy = await seededTestActor(db, { roleCode: MARKET_ROLES.policy }); // QA_MBR_APPROVER
+    const steward = underChange(await seededTestActor(db, { roleCode: MARKET_ROLES.siteValues })); // MASTER_DATA_STEWARD
+    const qaPolicy = underChange(await seededTestActor(db, { roleCode: MARKET_ROLES.policy })); // QA_MBR_APPROVER
     const qaReviewer = await seededTestActor(db, { roleCode: 'QA_REVIEWER' });
     const qaApprover = await seededTestActor(db, { roleCode: 'QA_MBR_APPROVER' });
 

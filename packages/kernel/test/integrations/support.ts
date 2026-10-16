@@ -8,6 +8,7 @@ import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { activateAccount, createAccount, createPerson, decideRoleGrant, issueInitialSecret, registerDevice, requestRoleGrant } from '../../src/identity/admin.ts';
 import { authenticate, type AuthnDb } from '../../src/identity/authentication.ts';
 import { openSession } from '../../src/identity/sessions.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import type { TestDatabase } from '../support/db.ts';
 import { testActor } from '../identity/helpers.ts';
 import { SEED_SITE, SEED_ZONE, seedAdministration, withReason, type SeededActor } from '../identity/seed.ts';
@@ -132,7 +133,8 @@ export async function recordRefusal(db: TestDatabase, a: TestAdapter, envelope: 
 
 export async function setMirrorMode(db: TestDatabase, dataClass: string, mode: 'STAND_IN' | 'MIRROR', given?: Administration): Promise<void> {
   const { owner } = await administration(db, given);
-  await withCommand(db.app, withReason(owner), (c) => c.query('select platform.set_setting($1, $2)', [`integration.mode.${dataClass.toLowerCase()}`, mode]));
+  await ensureFixtureChangeRecord(db);
+  await withCommand(db.app, underChange(withReason(owner)), (c) => c.query('select platform.set_setting($1, $2)', [`integration.mode.${dataClass.toLowerCase()}`, mode]));
 }
 
 /**

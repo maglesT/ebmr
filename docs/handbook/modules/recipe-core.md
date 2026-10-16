@@ -1174,6 +1174,26 @@ signer at the evaluated epoch ([recipe.acknowledge_release_item](../../../packag
 Where else to read: [architecture section 9](../03-architecture.md#9-e-signatures) for the kernel signing ceremony,
 and [the life of a batch, section 10](../04-life-of-a-batch.md#10-record-review-review-by-exception-and-evidence-epochs).
 
+## Review-by-exception rules and excursion notifications (recipe-core 1050, 1051)
+
+[1050_rbe_rules.sql](../../../packages/recipe-core/sql/1050_rbe_rules.sql) (Phase 6 slice 6f, builder A;
+[DI-26](../../../compliance/controls/DI-26.yaml), [PR-52](../../../compliance/controls/PR-52.yaml), DI-09):
+`recipe.rbe_rule_version` holds versions of the rule of each review category (listed or not, the least severity the
+review shows, a rationale), written only by `recipe.set_rbe_rule` (REVIEW.RBE_RULE_CHANGE) and only under an approved
+change record covering RBE_RULE (kernel 1195). A mandatory category cannot be taken off the review (EBMR-RBE-002).
+`recipe.rbe_rules_as_of(at)` gives the rule set of any instant; the view `recipe.exception_register_rbe` shows each
+register item at least at its rule's severity. An MBR's REVIEW_BY_EXCEPTION reduction now needs a risk class, a
+rationale and a `validationRef` that is one of the validations of the version's change record: the SUBMIT guard
+`recipe.guard_critical_elements_risk_assessed` was replaced (same name, machine unchanged) to check it, and the validator
+reports it at design time. Tests: [rbe-rules.test.ts](../../../packages/recipe-core/test/review/rbe-rules.test.ts).
+
+[1051_excursion_notifications.sql](../../../packages/recipe-core/sql/1051_excursion_notifications.sql)
+([IN-39](../../../compliance/controls/IN-39.yaml) clause 2): an ENVIRONMENT_EXCURSION register row (G-11) writes one
+notification for PRODUCTION and one for QA in the same transaction (trigger `zzn_excursion_notifies`; EBMR-NTF-010 fails
+closed). `recipe.notification` now has an exception cause (`cause_batch_id`, `cause_exception_id`) beside the signature
+cause, the event ENVIRONMENT_EXCURSION and the subject kind BATCH. Tests:
+[excursion-notifications.test.ts](../../../apps/tablets-server/test/notifications/excursion-notifications.test.ts).
+
 ## Batch record review
 
 **What it does.** After execution, Production approves the record, then QA reviews it by exception
@@ -1675,6 +1695,29 @@ that silently misses a batch would hide a trend, so it must reconcile to the reg
   columns (a PL/pgSQL `new.source` on a table without it fails at run time).
 - [0952_capa_master_resolver.sql](../../../packages/recipe-core/sql/0952_capa_master_resolver.sql): the CAPA's master
   version is effective when APPROVED and its effective date has come (PR-02, PR-51).
+
+## Contract giver access, MBR edition review and PQR CPP values (recipe-core 1060 to 1062)
+
+Phase 6 slice 6f, builder B.
+
+- [1060_contract_giver_access.sql](../../../packages/recipe-core/sql/1060_contract_giver_access.sql) ([IN-30](../../../compliance/controls/IN-30.yaml)):
+  `recipe.contract_giver_access` gives a reviewer account (CONTRACT_GIVER.READ, read permissions only) a time-boxed read of
+  the batches issued under one loan licence (`recipe.batch_licence_basis.loan_licence_id`). `recipe.contract_giver_batches`
+  and `recipe.read_contract_giver_batch` check the role, the read-only account and a live access, and log each record
+  opened (`recipe.contract_giver_read`). Test: the IN-30 block of
+  [india.test.ts](../../../packages/recipe-core/test/release/india.test.ts) calls every function the application role may
+  call, with NULL arguments, in the reviewer's command and finds no change attributed to the reviewer.
+- [1061_mbr_edition_review.sql](../../../packages/recipe-core/sql/1061_mbr_edition_review.sql) ([IN-33](../../../compliance/controls/IN-33.yaml)):
+  `recipe.mbr_edition_review()` lists the MBR versions (not retired or withdrawn) whose content cites a recorded
+  pharmacopoeia edition older than the one effective now (every object with `pharmacopoeia: {code, edition}`, found by
+  `recipe.mbr_edition_citations`). Test: [edition-review.test.ts](../../../packages/recipe-core/test/lifecycle/edition-review.test.ts).
+- [1062_pqr_cpp_extract.sql](../../../packages/recipe-core/sql/1062_pqr_cpp_extract.sql) ([PR-09](../../../compliance/controls/PR-09.yaml)): query
+  version 2 of the PQR extract adds `cpp`, the typed values of every batch (valid values of critical process
+  parameters, IPC results and endpoints; current critical calculations such as yields), from the pure
+  `recipe.pqr_cpp_of(batch number, master content, state)`; its definition hash is in the result, so a changed function
+  makes earlier extracts stop reproducing. Test: the PR-09 block of
+  [pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts) recomputes the values in TypeScript
+  from the stored records.
 
 ## How to test recipe-core
 

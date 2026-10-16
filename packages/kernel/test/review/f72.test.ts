@@ -26,11 +26,13 @@ import type { ActorContext } from '../../src/db/command.ts';
 import { withGuardedCommand } from '../../src/identity/authority.ts';
 import { placeLegalHold } from '../../src/records/retention-store.ts';
 import { seedActor, seedAdministration, withReason } from '../identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await seedAdministration(db);
 });
 afterAll(async () => {
@@ -63,7 +65,7 @@ describe('F72: a refused platform permission (EBMR-PLAT-006) is logged like any 
 
     // 2. Weakening the drift-alarm threshold is refused by the platform authority check ...
     await expect(
-      withGuardedCommand(db.app, withReason(operator, 'CHANGE_CONTROL', 'CC-F72'), (c) =>
+      withGuardedCommand(db.app, underChange(withReason(operator, 'CHANGE_CONTROL', 'CC-F72')), (c) =>
         c.query("select platform.set_setting('time.drift_alarm_threshold_s', '5')"),
       ),
     ).rejects.toThrow(/EBMR-PLAT-006 permission platform\.settings\.change denied: .*PLATFORM\.SETTINGS_CHANGE/);

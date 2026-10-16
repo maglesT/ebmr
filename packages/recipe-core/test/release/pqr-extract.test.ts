@@ -24,7 +24,8 @@ import { createTestDatabase, type TestDatabase } from '../../../kernel/test/supp
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
-import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
+import { encodeState } from '../../src/engine/codec.ts';
+import { autopilot, define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS, fixtureDefinition, GRANULATION_SCENARIO, Run } from '../engine/support.ts';
 import { gmpOrderFor } from '../lifecycle/gmp-support.ts';
 import { cell, reason, seedCast, uniqueContent, withSecondRole, World } from '../lifecycle/support.ts';
 import { investigateDeviation } from './deviation-path.ts';
@@ -275,9 +276,10 @@ describe('the PQR extract (IN-01, PR-58)', () => {
     expect(b.result_sha256).toBe(a.result_sha256);
     expect(b.result).toEqual(a.result);
     expect(await reproduces(a.id)).toBe(true);
-    // The query is versioned: version 1 with the SHA-256 of its definition as installed, still matching.
-    const q = (await db.app.query<{ p: string | null; v: number }>('select recipe.pqr_query_problem(1) as p, recipe.pqr_current_version() as v')).rows[0]!;
-    expect(q).toEqual({ p: null, v: 1 });
+    // The query is versioned: version 1 with the SHA-256 of its definition as installed, still matching; version 2
+    // (recipe-core 1062, typed CPP values, PR-09) is the current one and matches too.
+    const q = (await db.app.query<{ p: string | null; p2: string | null; v: number }>('select recipe.pqr_query_problem(1) as p, recipe.pqr_query_problem(2) as p2, recipe.pqr_current_version() as v')).rows[0]!;
+    expect(q).toEqual({ p: null, p2: null, v: 2 });
   });
 
   it('[PR-58] parameters are checked: a product code, a period whose end is not before its start, at most three years', async () => {
@@ -368,4 +370,82 @@ describe('the AP sign-off (IN-01 (b), PR-58)', () => {
     expect(content.state).toBe('SIGNED_OFF');
     expect(await codeOf(signOff(ap, id))).toMatch(/EBMR-(ESIG-\d{3}|PQR-011)/);
   });
+});
+
+describe('typed CPP values in the extract (recipe-core 1062; PR-09)', () => {
+  interface Cpp { batch_number: string; kind: string; ref: string; id: string; step: string; attempt: number; value: unknown; unit: string | null; failed: boolean }
+  type Json = Record<string, unknown>;
+  const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
+  /** The CPP values recomputed in TypeScript from one batch record (its stored state) and its master content. */
+  function recompute(batchNumber: string, content: MbrContent, state: Json): Cpp[] {
+    const params = new Map((content.parameters as unknown as Json[]).map((p) => [String(p['id']), p]));
+    const calcs = new Map((content.calculations as unknown as Json[]).map((c) => [String(c['id']), c]));
+    const out: Cpp[] = [];
+    for (const [ref, pt] of Object.entries((state['points'] ?? {}) as Record<string, Json>)) {
+      const p = params.get(String(pt['item']));
+      if (!p || pt['status'] !== 'VALID' || pt['kind'] !== 'VALUE' || p['criticality'] !== 'CRITICAL' || !['PROCESS_PARAMETER', 'IPC', 'PROCESS_ENDPOINT'].includes(String(p['role']))) continue;
+      out.push({ batch_number: batchNumber, kind: 'PARAMETER', ref, id: String(pt['item']), step: String(pt['stepKey']), attempt: Number(pt['attempt']), value: pt['value'],
+                 unit: (p['unit'] as string | undefined) ?? null, failed: pt['failed'] === true });
+    }
+    for (const [ref, dv] of Object.entries((state['derived'] ?? {}) as Record<string, Json>)) {
+      const c = calcs.get(String(dv['calculation']));
+      if (!c || dv['status'] !== 'CURRENT' || c['criticality'] !== 'CRITICAL') continue;
+      out.push({ batch_number: batchNumber, kind: 'CALCULATION', ref, id: String(dv['calculation']), step: String(dv['stepKey']), attempt: 1, value: dv['value'],
+                 unit: ((c['output'] as Json | undefined)?.['unit'] as string | undefined) ?? null, failed: dv['failed'] === true });
+    }
+    return out.sort((a, b) => cmp(a.kind, b.kind) || cmp(a.id, b.id) || cmp(a.step, b.step) || a.attempt - b.attempt || cmp(a.ref, b.ref));
+  }
+
+  /** The record of a batch as executed on the floor: the golden granulation run, with this batch's own hardness. */
+  function executedRecord(hardness: string): Json {
+    const r = Run.issue(fixtureDefinition(FIXTURE), { inputs: FIXTURE_INPUTS[FIXTURE], variants: {} });
+    const scenario = { ...GRANULATION_SCENARIO, value: (item: string, step: string, frames: Parameters<NonNullable<typeof GRANULATION_SCENARIO.value>>[2], run: Run) =>
+      item === 'hardness' ? { kind: 'DECIMAL' as const, value: hardness, unit: 'N' } : GRANULATION_SCENARIO.value?.(item, step, frames, run) };
+    expect(autopilot(r, scenario)).toBe('COMPLETE');
+    return JSON.parse(JSON.stringify(encodeState(r.state))) as Json;
+  }
+
+  it('[PR-09] CPP data exported for N batches and recomputed from source records match', async () => {
+    const m = await effective(['IN']);
+    const product = m.content.header.product.code;
+    const N = 3;
+    const records: { batchId: string; number: string; state: Json }[] = [];
+    for (let i = 0; i < N; i++) {
+      const batchId = await issuedBatch(m, ['IN']);
+      const state = executedRecord(String(85 + i));
+      // ARRANGEMENT: the batch's record as executed (the engine's golden run), written as the projection the execution
+      // writers keep; the floor flow itself is proven by the engine and execution tests.
+      await corrupt("update recipe.execution_state set state = $2::jsonb, status = 'EXECUTION_COMPLETE' where batch_id = $1", [batchId, JSON.stringify(state)]);
+      const number = (await db.app.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [batchId])).rows[0]!.n;
+      records.push({ batchId, number, state });
+    }
+    const x = await extractOf(await run(qaReviewer, product));
+    const cpp = (x.result as unknown as { cpp: Cpp[] }).cpp;
+    // Recomputed from the source records (each batch's stored record and its issued master), the export is the same.
+    const stored = await db.admin.query<{ id: string; state: Json; content: MbrContent }>(
+      'select b.id, s.state, recipe.batch_mbr_content(b.id) as content from recipe.batch_execution b join recipe.execution_state s on s.batch_id = b.id where b.id = any($1::uuid[])',
+      [records.map((r) => r.batchId)]);
+    const recomputed = records.slice().sort((a, b) => cmp(a.number, b.number)).flatMap((r) => {
+      const row = stored.rows.find((s) => s.id === r.batchId)!;
+      return recompute(r.number, row.content, row.state);
+    });
+    expect(cpp).toEqual(recomputed);
+    // SETUP: every batch exports its IPC results, process parameters and endpoint, and its yields, typed.
+    for (const r of records) {
+      const mine = cpp.filter((c) => c.batch_number === r.number);
+      expect(mine.some((c) => c.kind === 'CALCULATION' && c.id === 'granYield')).toBe(true);
+      expect(mine.some((c) => c.kind === 'PARAMETER' && c.id === 'lod')).toBe(true);
+      expect(mine.filter((c) => c.id === 'hardness').map((c) => c.value)).toContainEqual({ kind: 'DECIMAL', value: String(85 + records.indexOf(r)), unit: 'N' });
+      expect(mine.some((c) => c.id === 'machineSpeed')).toBe(false);
+    }
+    expect(new Set(cpp.map((c) => c.batch_number)).size).toBe(N);
+    expect(await reproduces(x.id)).toBe(true);
+    // A changed source record changes the export: the earlier extract no longer reproduces.
+    const changed = JSON.parse(JSON.stringify(records[1]!.state)) as Json;
+    const point = Object.values(changed['points'] as Record<string, Json>).find((p) => p['item'] === 'hardness' && p['status'] === 'VALID')!;
+    point['value'] = { kind: 'DECIMAL', value: '70', unit: 'N' };
+    await corrupt('update recipe.execution_state set state = $2::jsonb where batch_id = $1', [records[1]!.batchId, JSON.stringify(changed)]);
+    expect(await reproduces(x.id)).toBe(false);
+  }, 600_000);
 });

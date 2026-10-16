@@ -18,6 +18,7 @@ import {
   sessionState,
   unlockSession,
 } from '../../src/identity/sessions.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asTimeTraveller, expectRefused } from './helpers.ts';
 import { attestDevice, freshAuthEvent, SEED_SITE, seedActor, seedAdministration, seedAuthn, withFreshAuth, withReason, type SeedAdministration, type SeededActor } from './seed.ts';
@@ -26,6 +27,7 @@ let db: TestDatabase;
 let adm: SeedAdministration;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
 });
 afterAll(async () => {
@@ -132,7 +134,7 @@ describe('sessions on shared terminals (DI-14)', () => {
     const op = await seedActor(db, { deviceClass: 'SHARED', acknowledgeEsig: false });
     const colleague = await seedActor(db, { deviceClass: 'SHARED', acknowledgeEsig: false });
     expect((await db.app.query('select idle_timeout_seconds from iam.session where id = $1', [op.sessionId])).rows[0]).toEqual({ idle_timeout_seconds: 300 });
-    const pol = (v: string) => withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => setPolicy(c, 'session.idle_timeout_seconds.SHARED', v, 'test'));
+    const pol = (v: string) => withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => setPolicy(c, 'session.idle_timeout_seconds.SHARED', v, 'test'));
     await expectRefused(pol('30'), 'EBMR-IAM-110');
     await expectRefused(pol('1000'), 'EBMR-IAM-110');
     await asTimeTraveller(db, "update iam.session_activity set last_activity_at = clock_timestamp() - interval '301 seconds' where session_id = $1", [op.sessionId]);

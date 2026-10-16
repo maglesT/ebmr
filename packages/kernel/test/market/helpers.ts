@@ -15,6 +15,7 @@ import type { RuleTableCode, RuleTableDocument } from '../../src/market/types.ts
 import { ensureSealKey, testSealKey } from '../esig/helpers.ts';
 import { seedActor, seedAuthn, type SeededActor } from '../identity/seed.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
+import { withChangeRecord } from '../support/change-record.ts';
 import type { TestDatabase } from '../support/db.ts';
 
 export function testActor(db: TestDatabase, overrides: Partial<ActorContext> = {}): Promise<ActorContext> {
@@ -58,7 +59,7 @@ export async function publishSeedTables(db: TestDatabase): Promise<Map<RuleTable
 
 /** Run SQL as the application role inside a command. */
 export async function asApp<T>(db: TestDatabase, work: (c: pg.PoolClient) => Promise<T>, overrides: Partial<ActorContext> = {}): Promise<T> {
-  return withCommand(db.app, await testActor(db, overrides), work);
+  return withCommand(db.app, await withChangeRecord(db, await testActor(db, overrides)), work);
 }
 
 export interface Published {

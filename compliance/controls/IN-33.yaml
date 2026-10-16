@@ -24,11 +24,13 @@ tests:
   - "packages/site-services/test/quality/specifications.test.ts > results against the specification (IN-33, IN-20, PR-45) > [PR-45][IN-33] a lot is released only against an approved specification and with a current, approved result of every required test: a lot with no results no longer passes"
   - "apps/tablets-server/test/quality/lims-routes.test.ts > specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test"
   - "packages/api-contract/test/contract.test.ts > route table > [IN-33] the specifications and samples namespaces (Phase 4 slice 2b) are GMP only, reads plain and commands FRESH_ON_SHARED, each route with an example; a result names no limits and a specification test cites its pharmacopoeia and edition"
+  - "packages/recipe-core/test/lifecycle/edition-review.test.ts > the MBR edition review (recipe-core 1061; IN-33) > [IN-33] marking IP 2026 effective lists every MBR citing IP 2022"
+  - "apps/tablets-web/test/office/quality-records.test.tsx > specifications > [IN-33] the review list names each master record version citing an older edition, with the limit that cites it"
 clauses:
   - clause: "mark IP 2026 effective; all MBRs citing IP 2022 appear on the review list."
-    deferred:
-      phase: 6
-      reason: "The edition review lists only the specifications citing the previous edition; MBR limits that cite a pharmacopoeia edition are a slice 2a residual built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/lifecycle/edition-review.test.ts > the MBR edition review (recipe-core 1061; IN-33) > [IN-33] marking IP 2026 effective lists every MBR citing IP 2022"
+      - "apps/tablets-web/test/office/quality-records.test.tsx > specifications > [IN-33] the review list names each master record version citing an older edition, with the limit that cites it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

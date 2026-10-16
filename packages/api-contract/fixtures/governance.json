@@ -1,0 +1,333 @@
+{
+  "supportPending": {
+    "grantId": "2b3c4d5e-0000-4000-8000-000000000001",
+    "accountId": "2b3c4d5e-0000-4000-8000-000000000002",
+    "loginName": "vendor.one",
+    "engineer": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000002",
+      "legalName": "Vendor Engineer One",
+      "loginName": "vendor.one",
+      "role": "VENDOR_SUPPORT"
+    },
+    "vendor": "Acme MES Support",
+    "purpose": "Diagnose the label printer queue",
+    "validHours": 4,
+    "requestedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000001",
+      "legalName": "Arjun Admin",
+      "loginName": "arjun.admin",
+      "role": "SYSTEM_ADMINISTRATOR"
+    },
+    "requestedAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "PENDING",
+    "approvals": [
+      {
+        "kind": "QA",
+        "by": {
+          "personId": "1a2b3c4d-0000-4000-8000-000000000003",
+          "legalName": "Quality Head",
+          "loginName": "quality.head",
+          "role": "QA"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "2b3c4d5e-0000-4000-8000-000000000003"
+      }
+    ],
+    "validFrom": null,
+    "validTo": null,
+    "revocation": null,
+    "sessions": 0
+  },
+  "supportActive": {
+    "grantId": "2b3c4d5e-0000-4000-8000-000000000001",
+    "accountId": "2b3c4d5e-0000-4000-8000-000000000002",
+    "loginName": "vendor.one",
+    "engineer": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000002",
+      "legalName": "Vendor Engineer One",
+      "loginName": "vendor.one",
+      "role": "VENDOR_SUPPORT"
+    },
+    "vendor": "Acme MES Support",
+    "purpose": "Diagnose the label printer queue",
+    "validHours": 4,
+    "requestedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000001",
+      "legalName": "Arjun Admin",
+      "loginName": "arjun.admin",
+      "role": "SYSTEM_ADMINISTRATOR"
+    },
+    "requestedAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "ACTIVE",
+    "approvals": [
+      {
+        "kind": "QA",
+        "by": {
+          "personId": "1a2b3c4d-0000-4000-8000-000000000003",
+          "legalName": "Quality Head",
+          "loginName": "quality.head",
+          "role": "QA"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "2b3c4d5e-0000-4000-8000-000000000003"
+      },
+      {
+        "kind": "IT",
+        "by": {
+          "personId": "1a2b3c4d-0000-4000-8000-000000000004",
+          "legalName": "IT System Owner",
+          "loginName": "it.owner",
+          "role": "PROCESS_OWNER"
+        },
+        "at": {
+          "us": "1791615600000000",
+          "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "2b3c4d5e-0000-4000-8000-000000000004"
+      }
+    ],
+    "validFrom": {
+      "us": "1791615600000000",
+      "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "validTo": {
+      "us": "1791630000000000",
+      "text": "12-OCT-2026 15:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "revocation": null,
+    "sessions": 1
+  },
+  "supportRevoked": {
+    "grantId": "2b3c4d5e-0000-4000-8000-000000000001",
+    "accountId": "2b3c4d5e-0000-4000-8000-000000000002",
+    "loginName": "vendor.one",
+    "engineer": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000002",
+      "legalName": "Vendor Engineer One",
+      "loginName": "vendor.one",
+      "role": "VENDOR_SUPPORT"
+    },
+    "vendor": "Acme MES Support",
+    "purpose": "Diagnose the label printer queue",
+    "validHours": 4,
+    "requestedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000001",
+      "legalName": "Arjun Admin",
+      "loginName": "arjun.admin",
+      "role": "SYSTEM_ADMINISTRATOR"
+    },
+    "requestedAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "REVOKED",
+    "approvals": [
+      {
+        "kind": "QA",
+        "by": {
+          "personId": "1a2b3c4d-0000-4000-8000-000000000003",
+          "legalName": "Quality Head",
+          "loginName": "quality.head",
+          "role": "QA"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "2b3c4d5e-0000-4000-8000-000000000003"
+      },
+      {
+        "kind": "IT",
+        "by": {
+          "personId": "1a2b3c4d-0000-4000-8000-000000000004",
+          "legalName": "IT System Owner",
+          "loginName": "it.owner",
+          "role": "PROCESS_OWNER"
+        },
+        "at": {
+          "us": "1791615600000000",
+          "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "signatureId": "2b3c4d5e-0000-4000-8000-000000000004"
+      }
+    ],
+    "validFrom": {
+      "us": "1791615600000000",
+      "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "validTo": {
+      "us": "1791630000000000",
+      "text": "12-OCT-2026 15:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "revocation": {
+      "reason": "Work finished early",
+      "by": {
+        "personId": "1a2b3c4d-0000-4000-8000-000000000003",
+        "legalName": "Quality Head",
+        "loginName": "quality.head",
+        "role": "QA"
+      },
+      "at": {
+        "us": "1791630000000000",
+        "text": "12-OCT-2026 15:10:00 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "sessions": 1
+  },
+  "supportAccount": {
+    "accountId": "2b3c4d5e-0000-4000-8000-000000000002",
+    "loginName": "vendor.one",
+    "engineer": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000002",
+      "legalName": "Vendor Engineer One",
+      "loginName": "vendor.one",
+      "role": "VENDOR_SUPPORT"
+    }
+  },
+  "cgAccess": {
+    "accessId": "3c4d5e6f-0000-4000-8000-000000000001",
+    "loanLicenceId": "3c4d5e6f-0000-4000-8000-000000000002",
+    "loanLicenceNumber": "LL-25A-0042",
+    "holderName": "Contract Giver Pvt Ltd",
+    "accountId": "3c4d5e6f-0000-4000-8000-000000000003",
+    "loginName": "cg.reviewer",
+    "reviewer": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000005",
+      "legalName": "Contract Giver Reviewer",
+      "loginName": "cg.reviewer",
+      "role": "CONTRACT_GIVER_REVIEWER"
+    },
+    "validFrom": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "validTo": {
+      "us": "1791630000000000",
+      "text": "12-OCT-2026 15:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "reason": "Technical agreement TA-CG-2026, clause 9",
+    "grantedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-000000000006",
+      "legalName": "Rhea Reviewer",
+      "loginName": "rhea.reviewer",
+      "role": "QA_REVIEWER"
+    },
+    "live": true,
+    "reads": 2
+  },
+  "cgBatch": {
+    "batchId": "3c4d5e6f-0000-4000-8000-000000000004",
+    "batchNumber": "B2600031",
+    "productCode": "CGP-10",
+    "productName": "Contract product 10 mg",
+    "status": "EXECUTION_COMPLETE",
+    "reviewState": "REVIEWED",
+    "loanLicenceNumber": "LL-25A-0042",
+    "hostLicenceNumber": "MFG-25-0007",
+    "issuedAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "accessValidTo": {
+      "us": "1791630000000000",
+      "text": "12-OCT-2026 15:10:00 +05:30 (Asia/Kolkata)"
+    }
+  },
+  "cgRecord": {
+    "batchId": "3c4d5e6f-0000-4000-8000-000000000004",
+    "batchNumber": "B2600031",
+    "productCode": "CGP-10",
+    "productName": "Contract product 10 mg",
+    "status": "EXECUTION_COMPLETE",
+    "reviewState": "REVIEWED",
+    "loanLicenceNumber": "LL-25A-0042",
+    "hostLicenceNumber": "MFG-25-0007",
+    "issuedAt": {
+      "us": "1791612000000000",
+      "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+    },
+    "batchSize": "BS-100K",
+    "technicalAgreement": "TA-CG-2026 rev 2",
+    "loanHolderName": "Contract Giver Pvt Ltd",
+    "stages": [
+      {
+        "key": "S-GRAN@",
+        "name": "S-GRAN",
+        "status": "ENDED"
+      }
+    ],
+    "steps": [
+      {
+        "key": "p-lod@",
+        "name": "p-lod",
+        "status": "COMPLETED"
+      }
+    ],
+    "values": [
+      {
+        "item": "lod",
+        "step": "p-lod@",
+        "value": "2.1 %",
+        "status": "VALID"
+      }
+    ],
+    "stateHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "dsc": {
+    "mode": "TEST_CA",
+    "banner": "Test certificate authority: not legally valid",
+    "anchors": [
+      {
+        "anchorId": "4d5e6f70-0000-4000-8000-000000000001",
+        "kind": "TEST_CA",
+        "label": "eBMR TEST CA",
+        "subject": "C=IN, O=eBMR test, CN=eBMR TEST CA (not legally valid)",
+        "rootSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "recordedAt": "2026-10-12T04:40:00.000Z",
+        "live": true
+      }
+    ],
+    "meanings": [
+      {
+        "meaning": "APPROVED",
+        "required": true
+      },
+      {
+        "meaning": "MANUFACTURER_RELEASE",
+        "required": true
+      },
+      {
+        "meaning": "PERFORMED",
+        "required": false
+      }
+    ]
+  },
+  "dscEnrolment": {
+    "statement": "{\"account_id\":\"5a6b7c8d-0000-4000-8000-000000000002\",\"format\":\"EBMR-DSC-ENROL-1\",\"person_id\":\"5a6b7c8d-0000-4000-8000-000000000001\"}",
+    "banner": "Test certificate authority: not legally valid",
+    "enrolments": [
+      {
+        "enrolmentId": "5a6b7c8d-0000-4000-8000-000000000003",
+        "leafSubject": "C=IN, O=eBMR test, CN=Meera Iyer (TEST Class 3)",
+        "leafSerial": "1F2E3D",
+        "leafSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "leafValidTo": "2027-10-12T04:40:00.000Z",
+        "anchorLabel": "eBMR TEST CA",
+        "recordedAt": "2026-10-12T04:45:00.000Z",
+        "live": true
+      }
+    ]
+  }
+}

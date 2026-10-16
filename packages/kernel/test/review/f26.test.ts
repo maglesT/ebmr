@@ -25,6 +25,7 @@ import type pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { applyPolicyTightening, batchPolicy, definePolicy, pinPoliciesForBatch, setPolicyVersion } from '../../src/market/policy.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 import { approvePolicyVersion } from '../market/helpers.ts';
@@ -32,6 +33,7 @@ import { approvePolicyVersion } from '../market/helpers.ts';
 let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
 });
 afterAll(async () => {
   await db.drop();
@@ -44,7 +46,7 @@ const ROLE = {
 } as const;
 
 async function as<T>(roleCode: string, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
-  return withCommand(db.app, await seededTestActor(db, { roleCode }), work);
+  return withCommand(db.app, underChange(await seededTestActor(db, { roleCode })), work);
 }
 
 async function begin(client: pg.PoolClient, ctx: ActorContext): Promise<void> {

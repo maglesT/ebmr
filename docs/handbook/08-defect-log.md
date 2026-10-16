@@ -235,6 +235,18 @@ These patterns came back again and again. If you remember only one page of this 
   only under QC's own LOT_RETEST_APPROVED signature"; [exit-review.test.ts](../../packages/site-services/test/lots/exit-review.test.ts).
 - **Lesson:** after adding any new act, list what the signer must be sure of and put each item in the content.
 
+### P6f review: a DSC from any certificate of the CA stood beside anyone's signature
+- **Defect:** kernel 1203 checked the chain to the anchor and the statement, but not whose certificate signed: a
+  valid certificate of the test CA held by someone else was recorded beside the signer's password signature. Fixed in
+  kernel 1206: a person enrols the certificate of their own token (proof of possession over a statement naming the
+  person and account); a certificate is live for one person only; `esig.record_dsc_signature` refuses a certificate that
+  is not the signer's live enrolment (EBMR-ESIG-087).
+- **Tests:** [dsc.test.ts](../../packages/kernel/test/esig/dsc.test.ts) "[IN-10] a DSC is accepted only from the
+  certificate enrolled for the signer: another person's certificate, a stolen enrolment or an ended one is refused";
+  [governance-routes.test.ts](../../apps/tablets-server/test/governance/governance-routes.test.ts).
+- **Lesson:** a second signature must be bound to its signer as tightly as the first; a valid chain says who issued the
+  certificate, not who holds it.
+
 ### P2 mutation D8, D9, D11: signature rows accepted on a flag alone
 - **D8:** a recorded signature's missing validity went unnoticed (recipe-core 0381). **D9:** any row could invalidate
   another step's signature (0382). **D11:** the kernel took a signature row on the signing marker alone; now a row is

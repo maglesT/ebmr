@@ -6,6 +6,7 @@
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { withCommand } from '../../../kernel/src/db/command.ts';
+import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { acknowledgeGaps } from '../../../kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../helpers.ts';
@@ -104,7 +105,8 @@ export class ErpWorld extends World {
   /** Sets a platform setting as the seeded system owner, with a reason. */
   async setting(key: string, value: string): Promise<void> {
     const { owner } = await seedAdministration(this.db);
-    await withCommand(this.db.app, withReason(owner), (c) => c.query('select platform.set_setting($1, $2)', [key, value]));
+    await ensureFixtureChangeRecord(this.db);
+    await withCommand(this.db.app, underChange(withReason(owner)), (c) => c.query('select platform.set_setting($1, $2)', [key, value]));
   }
 
   /** The ERP_WMS adapter's mirror synchronisation (heartbeat) of `dataClass`, caught up, the tests' gaps acknowledged (kernel 1182). */

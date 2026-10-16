@@ -9,6 +9,7 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import { challengeFor, cmd, ensureSealKey, signatureAuth } from '../../../kernel/test/esig/helpers.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { approvePolicyVersion } from '../../../kernel/test/market/helpers.ts';
+import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { canonicalJson, mbrContentHash, sha256Hex } from '../../src/flow/canonical.ts';
 import * as lc from '../../src/lifecycle/index.ts';
@@ -19,6 +20,7 @@ let w: World;
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   w = new World(db, await seedCast(db));
 }, 300_000);
 
@@ -650,7 +652,7 @@ describe('S4: may the checker also approve?', () => {
         [v.versionId, checkedSig],
       ))[0]?.r;
     expect(await guard()).toMatch(/unless QA policy S4/);
-    await w.run(w.cast.qa, (c) =>
+    await w.run(underChange(w.cast.qa), (c) =>
       c.query('select market.define_policy($1::jsonb)', [
         JSON.stringify({ code: 'mbr.checker_may_approve', title: 'S4: the MBR checker may also approve', level: 'TENANT', controls: ['PR-02'], positions: ['ALLOWED', 'NOT_ALLOWED'], defaultPosition: 'NOT_ALLOWED', looseningRequires: 'QA_APPROVAL', reason: 'test' }),
       ]),
@@ -659,14 +661,14 @@ describe('S4: may the checker also approve?', () => {
     // exactly this version (policy, number, position) by a quality-unit person other than its author,
     // w.cast.qa (kernel 0350/0360; EBMR-MKT-073/075). A free approval id is refused.
     const approvalId = await approvePolicyVersion(db, 'mbr.checker_may_approve', 'ALLOWED', w.cast.qa2);
-    await w.run(w.cast.qa, (c) =>
+    await w.run(underChange(w.cast.qa), (c) =>
       c.query("select market.set_policy_version('mbr.checker_may_approve', 'ALLOWED', null, $1::jsonb)", [JSON.stringify({ approvalId, changeRef: 'CC-S4', reason: 'test' })]),
     );
     expect((await q<{ r: boolean }>('select recipe.checker_may_approve() as r'))[0]?.r).toBe(true);
     expect(await guard()).toBeNull();
     const checkerAsQa = await withSecondRole(db, w.cast.checker, 'QA_MBR_APPROVER');
     await expect(w.signVersion(checkerAsQa, v.versionId, 'APPROVED', 'CHECKED')).rejects.toThrow(/EBMR-ESIG-043/);
-    await w.run(w.cast.qa, (c) =>
+    await w.run(underChange(w.cast.qa), (c) =>
       c.query("select market.set_policy_version('mbr.checker_may_approve', 'NOT_ALLOWED', null, $1::jsonb)", [JSON.stringify({ changeRef: 'CC-S4-2', reason: 'back to default' })]),
     );
     expect((await q<{ r: boolean }>('select recipe.checker_may_approve() as r'))[0]?.r).toBe(false);

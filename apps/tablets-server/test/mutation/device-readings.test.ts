@@ -54,6 +54,7 @@ import {
 } from '@ebmr/integration-sdk/scale';
 import { gatewayActor, gatewaySessionOf } from '../../src/features/devices/listener.ts';
 import { withActorCommand } from '../../src/platform/db/commands.ts';
+import { withChangeRecord } from '../../../../packages/kernel/test/support/change-record.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { GW, INGEST_READING_SQL, adminActor, enrol, fakeGateway, gatewayKey, gatewayService, ingestProven, issueChallenge, operatorActor, signWait, type FakeGateway } from '../devices/support.ts';
 
@@ -457,7 +458,7 @@ describe('a gateway token\'s roles at the microsecond: a grant holds from its va
   beforeAll(async () => {
     const s = gatewayService(server);
     const admin = await adminActor(server, 'device-readings kill tests: marker roles of the gateway account');
-    const requested = await withActorCommand(server.db.app, admin, async (c) => {
+    const requested = await withActorCommand(server.db.app, await withChangeRecord(server.db, admin), async (c) => {
       for (const code of [MARK_A, MARK_B]) {
         await c.query("select iam.create_role($1, $2, 'EXECUTION', 'Marker role of the device-readings kill tests (no permission)', array['INTEGRATION'])", [code, `${code} (test)`]);
       }

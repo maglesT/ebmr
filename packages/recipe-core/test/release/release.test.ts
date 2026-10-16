@@ -19,6 +19,7 @@ import { assessIncidentImpact, raiseIncident } from '../../../kernel/src/records
 import { challengeFor, cmd, signatureAuth, signWith } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -266,7 +267,7 @@ async function concludedWithImpact(deviationId: string, impact: 'NONE' | 'POTENT
 }
 
 async function setOpenInvestigationPath(value: 'ON' | 'OFF'): Promise<void> {
-  await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.open_investigation_path', $1)", [value]));
+  await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.open_investigation_path', $1)", [value]));
 }
 
 /** The product master (QA confirms a new code) and the finished product's specification: ASSAY 95 to 105 %, 20 units a run. */
@@ -295,6 +296,7 @@ async function productAndSpecification(content: MbrContent): Promise<void> {
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   w = new World(db, await seedCast(db));
   ({ owner } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });

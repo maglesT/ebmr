@@ -27,7 +27,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useMachine } from '@xstate/react';
 import { fromPromise } from 'xstate';
 import { sha256Hex } from '@ebmr/expr';
-import { routes, type RefusalEnvelope, type SignableContentView, type SignatureCredentials } from '@ebmr/api-contract';
+import { routes, type DscSubmission, type RefusalEnvelope, type SignableContentView, type SignatureCredentials } from '@ebmr/api-contract';
 import { identity, machines } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { callWithDeadline, SEND_DEADLINE_MS } from '../../api/deadline.ts';
@@ -36,6 +36,7 @@ import { secondsUntil } from '../../app/clock.ts';
 import type { SignOutcome, SignRequest } from '../../app/ports.tsx';
 import { buildAttribution, failureOf, frozenRequest, previewIntent } from './calls.ts';
 import type { AccessController } from './controller.tsx';
+import { dscBridge } from './dsc-bridge.ts';
 import { Latest, Vault } from './holders.ts';
 import type { Boot } from '../../app/boot.tsx';
 
@@ -144,7 +145,16 @@ export function CeremonyHost({ job, ctl, onFinish }: { job: SignJob; ctl: Access
             const key = latestBoot.get().deviceKey;
             if (!credentials || !key) throw localError('no credentials were entered');
             const second = companionChallenge.get();
-            const body = { challengeId: input.challenge.challengeId, credentials, action: req.action, ...(second ? { companionChallengeId: second } : {}) };
+            // IN-10 (D-P6f-3): the signer's Class 3 token signs the challenge's statement through the local signing bridge.
+            let dsc: DscSubmission | undefined;
+            if (input.challenge.dsc) {
+              try {
+                dsc = await dscBridge().sign(input.challenge.dsc.statement);
+              } catch (error) {
+                throw localError(`the digital signature token did not sign (${error instanceof Error ? error.message : String(error)}); nothing was sent`);
+              }
+            }
+            const body = { challengeId: input.challenge.challengeId, credentials, action: req.action, ...(second ? { companionChallengeId: second } : {}), ...(dsc ? { dsc } : {}) };
             const proof = await deviceProof(key, 'POST', '/api/esig/sign', body);
             // No proof: nothing was sent, so the answer is a refusal, never a lost answer to reconcile (F08).
             if (!proof.ok) throw callError(proof.error);

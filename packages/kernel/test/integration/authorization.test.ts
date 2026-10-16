@@ -21,6 +21,7 @@ import { openDiInvestigation } from '../../src/records/investigations.ts';
 import { defineRecordType } from '../../src/records/register.ts';
 import { approvePurge, createRetentionSchedule, placeLegalHold, releaseLegalHold } from '../../src/records/retention-store.ts';
 import { createAggregateState, transition } from '../../src/state/engine.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { SEED_SITE, seedActor, seedAdministration, seedServiceActor, withFreshAuth, withReason, type SeededActor } from '../identity/seed.ts';
 import { approveSourceCorrection, createTestTable, miniDocument, publishDocumentAs, publishSeedTables } from '../market/helpers.ts';
@@ -30,6 +31,7 @@ import { approveDisposal, disposalAggregate, recordType, registerType, signFor }
 let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await seedAdministration(db);
 });
 afterAll(async () => {
@@ -284,11 +286,11 @@ describe('market-profile engine', () => {
     const table = `az${randomBytes(3).toString('hex')}`;
     await createTestTable(db, table);
     await expect(publishDocumentAs(db, again(admin), miniDocument(table))).rejects.toThrow('EBMR-IAM-042');
-    await expect(withCommand(db.app, again(admin), (c) => setSiteValue(c, { siteId: randomUUID(), key: 'tablets.compression.ipcSampleMaxInterval', value: '20', effectiveFrom: '2026-01-01' }))).rejects.toThrow(
+    await expect(withCommand(db.app, underChange(again(admin)), (c) => setSiteValue(c, { siteId: randomUUID(), key: 'tablets.compression.ipcSampleMaxInterval', value: '20', effectiveFrom: '2026-01-01' }))).rejects.toThrow(
       'EBMR-IAM-042',
     );
     await expect(
-      withCommand(db.app, again(admin), (c) => definePolicy(c, { code: `adm.${randomBytes(2).toString('hex')}`, title: 't', level: 'TENANT', positions: ['OFF', 'ON'], defaultPosition: 'ON' })),
+      withCommand(db.app, underChange(again(admin)), (c) => definePolicy(c, { code: `adm.${randomBytes(2).toString('hex')}`, title: 't', level: 'TENANT', positions: ['OFF', 'ON'], defaultPosition: 'ON' })),
     ).rejects.toThrow('EBMR-IAM-042');
     await expect(sql(admin, "insert into market.stub_site (code, markets) values ('ADMIN-SITE', '{IN}')")).rejects.toThrow('EBMR-IAM-042');
   });
@@ -297,7 +299,7 @@ describe('market-profile engine', () => {
     const operator = await actor('OPERATOR');
     await expect(sql(operator, "insert into market.stub_site (code, markets) values ('OP-SITE', '{IN}')")).rejects.toThrow(/EBMR-IAM-040 .*MASTERDATA\.CHANGE/);
     await expect(
-      withCommand(db.app, again(await actor('QA_REVIEWER')), (c) =>
+      withCommand(db.app, underChange(again(await actor('QA_REVIEWER'))), (c) =>
         definePolicy(c, { code: `qa.${randomBytes(2).toString('hex')}`, title: 't', level: 'TENANT', positions: ['OFF', 'ON'], defaultPosition: 'ON' }),
       ),
     ).rejects.toThrow(/EBMR-IAM-040 .*MARKET\.POLICY_CHANGE/);
@@ -323,7 +325,7 @@ describe('market-profile engine', () => {
     });
     const siteA = await actor('MASTER_DATA_STEWARD', { site: `AZ-A-${tag}` });
     const set = (siteId: string) =>
-      withCommand(db.app, again(siteA), (c) => setSiteValue(c, { siteId, key: 'tablets.compression.ipcSampleMaxInterval', value: '20', effectiveFrom: '2026-01-01' }));
+      withCommand(db.app, underChange(again(siteA)), (c) => setSiteValue(c, { siteId, key: 'tablets.compression.ipcSampleMaxInterval', value: '20', effectiveFrom: '2026-01-01' }));
     await expect(set(ids.get(`AZ-A-${tag}`) ?? '')).resolves.toMatchObject({ outcome: 'TIGHTER' });
     await expect(set(ids.get(`AZ-B-${tag}`) ?? '')).rejects.toThrow(/EBMR-IAM-040 .*MARKET\.SITE_VALUE_SET/);
   });
@@ -565,7 +567,7 @@ describe('platform AUTHORITY adapter', () => {
   it('[DI-17] platform permissions: a process owner changes a setting and a system administrator a time source, an operator neither; each decision is stored at the actor\'s location', async () => {
     const owner = await actor('PROCESS_OWNER');
     const operator = await actor('OPERATOR');
-    const setting = (ctx: ActorContext) => sql(withReason(ctx, 'CHANGE_CONTROL', 'CC-AZ-1'), "select platform.set_setting('time.late_entry_window_min', '20')");
+    const setting = (ctx: ActorContext) => sql(underChange(withReason(ctx, 'CHANGE_CONTROL', 'CC-AZ-1')), "select platform.set_setting('time.late_entry_window_min', '20')");
     await expect(setting(operator)).rejects.toThrow(/EBMR-PLAT-006 permission platform\.settings\.change denied: .*PLATFORM\.SETTINGS_CHANGE/);
     // The refusal carries what is needed to log the failed check outside the rolled-back command (F72):
     // the same JSON detail as an EBMR-IAM-040 refusal, naming the actor and the catalogue permission.
@@ -609,7 +611,7 @@ describe('platform AUTHORITY adapter', () => {
   });
 
   it('[DI-17] platform permissions are checked where the actor works: a grant limited to another site does not cover them', async () => {
-    const change = (ctx: ActorContext) => sql(withReason(ctx, 'CHANGE_CONTROL', 'CC-AZ-2'), "select platform.set_setting('time.late_entry_window_min', '25')");
+    const change = (ctx: ActorContext) => sql(underChange(withReason(ctx, 'CHANGE_CONTROL', 'CC-AZ-2')), "select platform.set_setting('time.late_entry_window_min', '25')");
     await expect(change(await actor('PROCESS_OWNER', { site: 'SITE-2' }))).rejects.toThrow(/EBMR-PLAT-006 .*"site": "SITE-1"/);
     await change(await actor('PROCESS_OWNER', { site: SEED_SITE }));
   });

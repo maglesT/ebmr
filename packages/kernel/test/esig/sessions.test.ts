@@ -17,6 +17,7 @@ import { withCommand } from '../../src/db/command.ts';
 import { lockSession, unlockSession } from '../../src/identity/sessions.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
 import { seedAdministration, seedAuthn } from '../identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import {
   asTimeTraveller,
@@ -43,6 +44,7 @@ let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
   await ensureSealKey(db);
+  await ensureFixtureChangeRecord(db);
 });
 
 afterAll(async () => {
@@ -208,10 +210,10 @@ describe('policy values', () => {
   it('[DI-38] only the quality unit changes a signing policy, with a reason and a change reference, within the allowed range', async () => {
     const { admin } = await seedAdministration(db);
     const operator = await testActor(db);
-    await expectRefused(withCommand(db.app, await cmd(db, admin), (c) =>
+    await expectRefused(withCommand(db.app, underChange(await cmd(db, admin)), (c) =>
       setEsigPolicy(c, 'esig.session_relaxation', 'true', 'admin tries', 'CC-1')), 'EBMR-IAM-040');
-    await expectRefused(run(db, operator, (c) => setEsigPolicy(c, 'esig.session_relaxation', 'true', 'operator tries', 'CC-1')), 'EBMR-IAM-040');
-    const qa = await qaApprover(db);
+    await expectRefused(run(db, underChange(operator), (c) => setEsigPolicy(c, 'esig.session_relaxation', 'true', 'operator tries', 'CC-1')), 'EBMR-IAM-040');
+    const qa = underChange(await qaApprover(db));
     await expectRefused(run(db, qa, (c) => setEsigPolicy(c, 'esig.challenge_validity_seconds', '600', 'longer', 'CC-2')), 'EBMR-ESIG-005');
     await expectRefused(run(db, qa, (c) => setEsigPolicy(c, 'esig.session_relaxation', 'true', '', 'CC-3')), 'EBMR-ESIG-005');
     await expectRefused(run(db, qa, (c) => setEsigPolicy(c, 'esig.india_dsc', 'ON', 'not yet', 'CC-4')), 'EBMR-ESIG-005');

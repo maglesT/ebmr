@@ -5,10 +5,11 @@
  * acknowledgement); customers may add signature points but cannot remove or weaken the minimum set.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { withCommand } from '../../src/db/command.ts';
+import { toDbContext, withCommand } from '../../src/db/command.ts';
 import { addMeaningType, configureMeaningType, listMeanings, retireMeaningType } from '../../src/esig/catalogue.ts';
 import { acknowledgeEsigPolicy } from '../../src/identity/admin.ts';
 import { freshAuthEvent, seedAdministration } from '../identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import {
   asSuperuserTransaction,
@@ -30,6 +31,7 @@ let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
   await ensureSealKey(db);
+  await ensureFixtureChangeRecord(db);
 });
 
 afterAll(async () => {
@@ -114,7 +116,7 @@ describe('no plain acknowledgement can complete a signature point', () => {
   });
 
   it('[DI-35] a signature type that could be completed without authentication cannot be defined', async () => {
-    const qa = await qaApprover(db);
+    const qa = underChange(await qaApprover(db));
     await expect(run(db, qa, (c) => addMeaningType(c, 'ACK_ONLY', {
       title: 'Seen', meaningText: 'Acknowledged by click', category: 'EXECUTION', roleClass: 'PERFORMER', permissions: ['STEP.EXECUTE'],
       reauth: 'NONE' as never,
@@ -126,7 +128,7 @@ describe('no plain acknowledgement can complete a signature point', () => {
 
 describe('customer signature points and the protected minimum set', () => {
   it('[DI-35] customers add a signature point, sign it, and retire it again', async () => {
-    const qa = await qaApprover(db);
+    const qa = underChange(await qaApprover(db));
     await run(db, qa, (c) => addMeaningType(c, 'BLISTER_SEAL_CHECKED', {
       title: 'Blister seal checked', meaningText: 'As second person, I checked the blister seal integrity of this sample.',
       category: 'VERIFICATION', roleClass: 'VERIFIER', permissions: ['STEP.VERIFY'], reauth: 'SESSION_RELAXABLE',
@@ -142,7 +144,7 @@ describe('customer signature points and the protected minimum set', () => {
   });
 
   it('[DI-35] the company signature policy can change who signs a type and tighten it, never loosen, disable or remove a minimum type', async () => {
-    const qa = await qaApprover(db);
+    const qa = underChange(await qaApprover(db));
     await expectRefused(run(db, qa, (c) => retireMeaningType(c, 'VERIFIED', 'try')), 'EBMR-ESIG-022');
     await expectRefused(run(db, qa, (c) => configureMeaningType(c, 'VERIFIED', { excludesPerformers: false }, 'try')), 'EBMR-ESIG-024');
     await expectRefused(run(db, qa, (c) => configureMeaningType(c, 'APPROVED', { reauth: 'SESSION_RELAXABLE' }, 'try')), 'EBMR-ESIG-024');
@@ -159,7 +161,7 @@ describe('customer signature points and the protected minimum set', () => {
     expect(sup).toMatchObject({ version: 2, reauth: 'ALL_COMPONENTS', permissions: ['STEP.SUPERVISE', 'QA.FLOOR_APPROVE'], isMinimum: true, status: 'ACTIVE' });
     // Only the quality unit configures the catalogue; an administrator cannot.
     const { admin } = await seedAdministration(db);
-    await expectRefused(run(db, admin, (c) => configureMeaningType(c, 'SUPERVISED', { reauth: 'ALL_COMPONENTS' }, 'admin')), 'EBMR-IAM-040');
+    await expectRefused(run(db, underChange(admin), (c) => configureMeaningType(c, 'SUPERVISED', { reauth: 'ALL_COMPONENTS' }, 'admin')), 'EBMR-IAM-040');
   });
 
   it('[DI-35] bypass: the minimum set cannot be removed or disabled with raw SQL, by the application role or the table owner', async () => {
@@ -167,7 +169,11 @@ describe('customer signature points and the protected minimum set', () => {
     await expectPermissionDenied(db.app.query("delete from esig.meaning_type where code = 'VERIFIED'"));
     await expectPermissionDenied(db.app.query("update esig.meaning_type set status = 'RETIRED' where code = 'VERIFIED'"));
     await expectPermissionDenied(db.app.query("insert into esig.meaning_type (code, version) values ('VERIFIED', 99)"));
+    // The owner's statements run in a command under the fixture change record, so the guard on the table is what refuses them
+    // (without a change record the configuration guard would refuse first, EBMR-CFG-001).
+    const qa = underChange(await qaApprover(db));
     await asSuperuserTransaction(db, async (c) => {
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(qa))]);
       await c.query('set local role ebmr_owner');
       await c.query('savepoint s');
       await expectRefused(c.query("delete from esig.meaning_type where code = 'VERIFIED'"), 'EBMR-AUDIT-004');
@@ -176,13 +182,23 @@ describe('customer signature points and the protected minimum set', () => {
       await c.query('rollback to savepoint s');
       await expectRefused(c.query('truncate esig.meaning_type cascade'), 'EBMR-AUDIT-004');
       await c.query('rollback to savepoint s');
-      // A new version that disables a minimum type is refused even for the owner.
+      // A new version that disables a minimum type is refused even for the owner: with the change record in the command,
+      // by the minimum-set guard (EBMR-ESIG-022; the unattributed insert reached EBMR-ESIG-020 before configuration change control) ...
       await expectRefused(c.query(`
         insert into esig.meaning_type (code, version, origin, is_minimum, status, category, role_class, title, meaning_text, permissions,
                                        independent_of, excludes_performers, excludes_involved, witness, reauth, delegable, sources)
         select code, version + 1, origin, is_minimum, 'RETIRED', category, role_class, title, meaning_text, permissions, independent_of,
                excludes_performers, excludes_involved, witness, reauth, delegable, sources
-          from esig.meaning_catalogue where code = 'VERIFIED'`), 'EBMR-ESIG-020');
+          from esig.meaning_catalogue where code = 'VERIFIED'`), 'EBMR-ESIG-022');
+      await c.query('rollback to savepoint s');
+      // ... and without a command at all, by configuration change control (EBMR-CFG-001) first.
+      await c.query('select kernel.set_actor_context(null)');
+      await expectRefused(c.query(`
+        insert into esig.meaning_type (code, version, origin, is_minimum, status, category, role_class, title, meaning_text, permissions,
+                                       independent_of, excludes_performers, excludes_involved, witness, reauth, delegable, sources)
+        select code, version + 1, origin, is_minimum, 'RETIRED', category, role_class, title, meaning_text, permissions, independent_of,
+               excludes_performers, excludes_involved, witness, reauth, delegable, sources
+          from esig.meaning_catalogue where code = 'VERIFIED'`), 'EBMR-CFG-001');
     });
     const after = await db.app.query<{ n: number }>('select count(*)::int as n from esig.meaning_catalogue where is_minimum and status = \'ACTIVE\'');
     expect(after.rows[0]?.n).toBe(before.rows[0]?.n);

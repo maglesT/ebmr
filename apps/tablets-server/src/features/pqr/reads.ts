@@ -18,6 +18,8 @@ interface Line {
 }
 interface ResultJson {
   counts: Record<string, number>;
+  /** Query version 2 (recipe-core 1062; PR-09). */
+  cpp?: { batch_number: string; kind: 'PARAMETER' | 'CALCULATION'; ref: string; id: string; step: string; attempt: number; value: Record<string, unknown>; unit: string | null; failed: boolean }[];
   batches: {
     batch_id: string;
     batch_number: string;
@@ -144,5 +146,6 @@ export async function extractView(app: AppContext, db: Db, extractId: string): P
       batches: d.batches,
     })),
     changes: res.changes.map((c) => ({ changeRecordId: c.change_record_id, number: c.number, title: c.title, changeClass: c.change_class })),
+    cpp: (res.cpp ?? []).map((c) => ({ batchNumber: c.batch_number, kind: c.kind, ref: c.ref, id: c.id, step: c.step, attempt: c.attempt, value: c.value, unit: c.unit, failed: c.failed })),
   };
 }

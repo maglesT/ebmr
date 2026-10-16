@@ -44,7 +44,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^01\d\d_', '^0940_', '^0990_', '^1000_']
+      packages/kernel/sql: ['^01\d\d_', '^0940_', '^0990_', '^1000_', '^1202_', '^1204_']
     src: [packages/kernel/src/identity]
     tests: ['packages/kernel/test/identity/**']
 
@@ -53,7 +53,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^02\d\d_', '^0910_', '^0930_', '^0950_', '^1020_', '^1112_']
+      packages/kernel/sql: ['^02\d\d_', '^0910_', '^0930_', '^0950_', '^1020_', '^1112_', '^1203_', '^1205_', '^1206_']
     src: [packages/kernel/src/esig]
     tests: ['packages/kernel/test/esig/**']
 
@@ -105,6 +105,15 @@ modules:
       packages/kernel/sql: ['^05\d\d_', '^1110_', '^1150_']
     src: [packages/kernel/src/state, packages/kernel/src/time, packages/kernel/src/commands]
     tests: ['packages/kernel/test/platform/**']
+
+  - id: kernel-config
+    title: Configuration change control (change records, configuration versions, as-of and diff; Phase 6 slice 6f)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^1195_', '^1196_']
+    src: [packages/kernel/src/config]
+    tests: ['packages/kernel/test/config/**']
 
   - id: kernel-continuity
     title: Continuity (backup, restore, protected sequences, device hardening)
@@ -245,7 +254,7 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql:
-        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_']
+        ['^01\d\d_', '^0290_', '^0324_', '^0341_', '^0371_', '^0380_', '^0383_', '^0760_', '^0800_', '^1061_']
     src: [packages/recipe-core/src/lifecycle]
     tests:
       - 'packages/recipe-core/test/lifecycle/**'
@@ -334,7 +343,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^071\d_', '^072\d_', '^0770_', '^0931_']
+      packages/recipe-core/sql: ['^071\d_', '^072\d_', '^0770_', '^0931_', '^1050_']
     tests: ['packages/recipe-core/test/review/**']
 
   - id: rc-release
@@ -352,7 +361,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^081\d_']
+      packages/recipe-core/sql: ['^081\d_', '^1051_']
 
   - id: rc-markets
     title: Market dispositions and QP certification
@@ -380,7 +389,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^0891_', '^0894_']
+      packages/recipe-core/sql: ['^0891_', '^0894_', '^1060_']
     tests:
       - 'packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts'
       - 'packages/recipe-core/test/mutation/india-issue-gate.test.ts'
@@ -390,7 +399,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^0910_']
+      packages/recipe-core/sql: ['^0910_', '^1062_']
     tests:
       - 'packages/recipe-core/test/mutation/pqr-extract.test.ts'
 
@@ -685,6 +694,28 @@ modules:
     contract: [packages/api-contract/src/ns/capa.ts]
     screens: [apps/tablets-web/src/features/capa]
     tests: ['apps/tablets-server/test/capa/**', 'apps/tablets-web/test/capa/**']
+
+  - id: ts-config-change
+    title: Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1270_']
+    server: [apps/tablets-server/src/features/config-change]
+    contract: [packages/api-contract/src/ns/config.ts]
+    screens: [apps/tablets-web/src/features/config]
+    tests: ['apps/tablets-server/test/config/**', 'apps/tablets-web/test/config/**']
+
+  - id: ts-governance
+    title: Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1275_', '^1276_']
+    server: [apps/tablets-server/src/features/governance]
+    contract: [packages/api-contract/src/ns/support.ts]
+    screens: [apps/tablets-web/src/features/governance]
+    tests: ['apps/tablets-server/test/governance/**', 'apps/tablets-web/test/governance/**']
 
   - id: ts-pqr
     title: Product quality review

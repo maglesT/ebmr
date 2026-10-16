@@ -9,6 +9,7 @@ import { toDbContext, withCommand, type ActorContext } from '../../src/db/comman
 import { registerDevice, setPolicy } from '../../src/identity/admin.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
 import { openSession } from '../../src/identity/sessions.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asDefinerCommand, asTimeTraveller, authnLoginPool, expectPermissionDenied, expectRefused } from './helpers.ts';
 import {
@@ -29,6 +30,7 @@ let adm: SeedAdministration;
 let kiosk: SeededActor;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
   kiosk = await seedActor(db, { deviceClass: 'SHARED', acknowledgeEsig: false });
 });
@@ -55,10 +57,10 @@ describe('INV-40: every command on a shared device carries a fresh authenticatio
     await asTimeTraveller(db, "update iam.auth_event set recorded_at = clock_timestamp() - interval '61 seconds' where id = $1", [ev]);
     await expectRefused(insert(withEvent(kiosk, ev)), 'EBMR-IAM-125');
     // The window is a policy value per device class; a longer one (within its allowed range) accepts it.
-    await withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => setPolicy(c, 'attribution.freshness_seconds.SHARED', '120', 'test'));
+    await withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => setPolicy(c, 'attribution.freshness_seconds.SHARED', '120', 'test'));
     await insert(withEvent(kiosk, ev));
-    await withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => setPolicy(c, 'attribution.freshness_seconds.SHARED', '60', 'restore'));
-    await expectRefused(withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => setPolicy(c, 'attribution.freshness_seconds.SHARED', '301', 'x')), 'EBMR-IAM-110');
+    await withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => setPolicy(c, 'attribution.freshness_seconds.SHARED', '60', 'restore'));
+    await expectRefused(withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => setPolicy(c, 'attribution.freshness_seconds.SHARED', '301', 'x')), 'EBMR-IAM-110');
   });
 
   it('[INV-40] bypass: another person\'s authentication event is refused', async () => {
