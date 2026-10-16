@@ -11,7 +11,8 @@ Terms such as batch record, e-signature, hold point, deviation, G-REL and AP are
 ## Where the code is
 
 - Review backlogs: [Phase 2 exit](../build-plan/phase-2-exit/review-backlog.md),
-  [Phase 3](../build-plan/phase-3/review-backlog.md), [Phase 4](../build-plan/phase-4/review-backlog.md).
+  [Phase 3](../build-plan/phase-3/review-backlog.md), [Phase 4](../build-plan/phase-4/review-backlog.md),
+  [Phase 6](../build-plan/phase-6/review-backlog.md).
 - Phase 1 exit review results: [review-results-2026-09-28.json](../build-plan/phase-1-exit/review-results-2026-09-28.json)
   (88 findings; the reproducer of each is in [packages/kernel/test/review/](../../packages/kernel/test/review/)).
 - Phase 4 mutation results: [mutation-results.md](../build-plan/phase-4/mutation-results.md).
@@ -960,6 +961,38 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 - **Test.** `[DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without
   asking the database (review 6i-R3)` in [transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts).
 - **Lesson:** a route outside the session gate needs its own gate for cost, not only for identity.
+
+### 6jc-R1: the ERP/WMS adapter's identity could record a person's material act (Phase 6 exit review)
+- **What went wrong.** Site services 0914 gave the ERP_WMS adapter's INTEGRATION role MATERIAL.HANDLE so that it
+  could receive goods, and guarded only reservation and consumption against it. With that right the adapter's account
+  could still cancel a person's reservation, record a lot destruction, recover returned goods, receive returns, post a
+  finished lot, and prepare, seal or import a transfer package.
+- **Why it matters.** These are acts a named person is accountable for (DI-14, DI-20). An interface account doing one
+  of them would make the record say "done by the interface" for something no interface may decide.
+- **Fix.** A before-insert trigger on the eight tables of these acts refuses a row unless its account is HUMAN
+  (EBMR-SITE-925; site services [0990](../../packages/site-services/sql/0990_material_acts_by_person.sql)). The WMS
+  path writes none of them.
+- **Test.** `[DI-14][DI-20] the adapter's MATERIAL.HANDLE never reaches a person's material act ...` in
+  [inbound.test.ts](../../packages/site-services/test/erp-wms/inbound.test.ts).
+- **Lesson:** when you give an integration role a broad permission for one path, guard every other path that permission
+  opens, at the table rather than in each function.
+
+### 6jc-R8: a seal under an installation key of small order proved nothing (Phase 6 exit review)
+- **What went wrong.** Kernel 1220 accepted any 32-byte encoding of a curve point as this installation's key or as a
+  peer's key. A point of small order (eight times it is the neutral point) passed. Under the neutral point as the key,
+  the seal R = B, S = 1 verifies for every payload. A package forged in such a peer's name, by anyone, was taken in.
+- **Why it matters.** A transfer package carries a lot's status and release into another site's stock, and a federation
+  answer feeds a recall (DI-31). Once a weak key is trusted, its seal check means nothing; QA's approval of the key only
+  limits who can bring one in.
+- **Fix.** Kernel [1230](../../packages/kernel/sql/1230_installation_key_large_order.sql), as tablets 0702 did for
+  gateway keys: `platform.ed25519_small_order`; `platform.raw_public_key` refuses a small-order key (EBMR-XFR-042), and
+  `platform.seal_valid` is false under one, so a key stored earlier verifies nothing either.
+- **Test.** `[DI-31] a key of small order is refused as a peer's key and as this installation's key (EBMR-XFR-042)` and
+  `[DI-31] a peer key of small order stored before the guard verifies no seal ...` in
+  [transfer.test.ts](../../packages/site-services/test/transfer/transfer.test.ts).
+- **Lesson:** a signature check is only as good as the key it is checked under. When a second copy of a crypto
+  routine is written (the kernel twin of tablets 0270), carry over the key checks that the first copy gained later
+  (tablets 0702).
 
 ## Controlled substances (Phase 6 slice 6e, draft IN-53)
 

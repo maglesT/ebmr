@@ -25,7 +25,7 @@ of each database function.
 | [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
-| [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
+| [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 0 | 0 |
 | [kernel-area-authorisation](#kernel-area-authorisation) | Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 80 | 39 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
@@ -37,7 +37,7 @@ of each database function.
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
 | [ss-controlled](#ss-controlled) | WMS moves of a controlled API lot need a dual-custody transfer record (Phase 6 slice 6e, draft IN-53) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 1 |
 | [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
-| [ss-transfer](#ss-transfer) | Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 1 | 4 |
+| [ss-transfer](#ss-transfer) | Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 4 |
 | [ss-reporting](#ss-reporting) | Reporting views and change-impact DB tests (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 2 | 2 |
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
 | [ss-label-store](#ss-label-store) | The label store of printed-material lots and its permission (Phase 6 slice 6c) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 0 | 0 |
@@ -399,14 +399,14 @@ of each database function.
 
 **Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
 
-**Migrations** (2):
+**Migrations** (3):
 
-- `packages/kernel/sql`: [1220_installation_keys.sql](../../packages/kernel/sql/1220_installation_keys.sql), [1221_installation_alarm_ack_admin.sql](../../packages/kernel/sql/1221_installation_alarm_ack_admin.sql)
+- `packages/kernel/sql`: [1220_installation_keys.sql](../../packages/kernel/sql/1220_installation_keys.sql), [1221_installation_alarm_ack_admin.sql](../../packages/kernel/sql/1221_installation_alarm_ack_admin.sql), [1230_installation_key_large_order.sql](../../packages/kernel/sql/1230_installation_key_large_order.sql)
 
 **Database objects** created in these migrations:
 
 - Tables (7): `platform.federation_request`, `platform.installation_alarm`, `platform.installation_alarm_ack`, `platform.installation_identity`, `platform.peer_installation`, `platform.peer_installation_approval`, `platform.peer_installation_revocation`
-- Functions (23): `platform.accept_federation_request`, `platform.acknowledge_installation_alarm`, `platform.approve_peer_installation`, `platform.current_installation`, `platform.ed25519_add`, `platform.ed25519_decode`, `platform.ed25519_double`, `platform.ed25519_le_integer`, `platform.ed25519_pow`, `platform.ed25519_verify`, `platform.own_seal_valid`, `platform.peer_installation_content`, `platform.peer_installation_state`, `platform.peer_seal_valid`, `platform.propose_peer_installation`, `platform.raise_installation_alarm`, `platform.raw_public_key`, `platform.refuse_federation_query`, `platform.revoke_peer_installation`, `platform.seal_message`, `platform.seal_valid`, `platform.set_installation_identity`, `platform.trusted_peer`
+- Functions (24): `platform.accept_federation_request`, `platform.acknowledge_installation_alarm`, `platform.approve_peer_installation`, `platform.current_installation`, `platform.ed25519_add`, `platform.ed25519_decode`, `platform.ed25519_double`, `platform.ed25519_le_integer`, `platform.ed25519_pow`, `platform.ed25519_small_order`, `platform.ed25519_verify`, `platform.own_seal_valid`, `platform.peer_installation_content`, `platform.peer_installation_state`, `platform.peer_seal_valid`, `platform.propose_peer_installation`, `platform.raise_installation_alarm`, `platform.raw_public_key`, `platform.refuse_federation_query`, `platform.revoke_peer_installation`, `platform.seal_message`, `platform.seal_valid`, `platform.set_installation_identity`, `platform.trusted_peer`
 
 ## kernel-area-authorisation
 
@@ -610,15 +610,15 @@ of each database function.
 
 **Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
 
-**Migrations** (2):
+**Migrations** (3):
 
-- `packages/site-services/sql`: [0980_transfer_packages.sql](../../packages/site-services/sql/0980_transfer_packages.sql), [0981_transfer_receipts.sql](../../packages/site-services/sql/0981_transfer_receipts.sql)
+- `packages/site-services/sql`: [0980_transfer_packages.sql](../../packages/site-services/sql/0980_transfer_packages.sql), [0981_transfer_receipts.sql](../../packages/site-services/sql/0981_transfer_receipts.sql), [0990_material_acts_by_person.sql](../../packages/site-services/sql/0990_material_acts_by_person.sql)
 
 **Database objects** created in these migrations:
 
 - Tables (6): `site.transfer_acceptance`, `site.transfer_package`, `site.transfer_package_seal`, `site.transfer_receipt`, `site.transfer_refusal`, `site.transfer_rule_resolution`
-- Functions (18): `site.decide_transfer_receipt`, `site.import_transfer_package`, `site.lot_available`, `site.lot_transferred_out`, `site.prepare_transfer_package`, `site.refuse_transfer_package`, `site.resolve_carried_rules`, `site.seal_transfer_package`, `site.transfer_hold_remaining`, `site.transfer_receipt_content`, `site.transfer_receipt_state`, `site.transfer_release_check`, `site.transfer_reservation_check`, `site.transfer_rule_resolutions`, `site.transfer_rule_tables`, `site.transfer_use_problem`, `site.us_instant`, `site.us_text`
-- Triggers (2): `zz_transfer_accepted on site.lot_reservation`, `zz_transfer_accepted on site.lot_status_command`
+- Functions (19): `site.decide_transfer_receipt`, `site.import_transfer_package`, `site.lot_available`, `site.lot_transferred_out`, `site.material_act_by_person`, `site.prepare_transfer_package`, `site.refuse_transfer_package`, `site.resolve_carried_rules`, `site.seal_transfer_package`, `site.transfer_hold_remaining`, `site.transfer_receipt_content`, `site.transfer_receipt_state`, `site.transfer_release_check`, `site.transfer_reservation_check`, `site.transfer_rule_resolutions`, `site.transfer_rule_tables`, `site.transfer_use_problem`, `site.us_instant`, `site.us_text`
+- Triggers (10): `zz_material_act_by_person on site.chemical_recovery`, `zz_material_act_by_person on site.finished_lot`, `zz_material_act_by_person on site.lot_destruction`, `zz_material_act_by_person on site.lot_reservation_revocation`, `zz_material_act_by_person on site.returned_goods`, `zz_material_act_by_person on site.transfer_package`, `zz_material_act_by_person on site.transfer_package_seal`, `zz_material_act_by_person on site.transfer_receipt`, `zz_transfer_accepted on site.lot_reservation`, `zz_transfer_accepted on site.lot_status_command`
 
 **Tests** (1): [transfer.test.ts](../../packages/site-services/test/transfer/transfer.test.ts)
 

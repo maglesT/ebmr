@@ -290,6 +290,8 @@ tests:
   - "packages/site-services/test/transfer/transfer.test.ts > the inbound package (site services 0981; L-41) > [DI-31] a package for another installation is refused"
   - "packages/site-services/test/transfer/transfer.test.ts > the inbound package (site services 0981; L-41) > [DI-31] an unknown sender and a second import of the same package are refused"
   - "packages/site-services/test/transfer/transfer.test.ts > genealogy across sites (recipe-core 1090; PR-57) > [DI-31] the federation endpoint refuses an unsigned, replayed, misaddressed or unrelated request"
+  - "packages/site-services/test/transfer/transfer.test.ts > review 6j-c R8: installation keys of small order (kernel 1230) > [DI-31] a key of small order is refused as a peer's key and as this installation's key (EBMR-XFR-042)"
+  - "packages/site-services/test/transfer/transfer.test.ts > review 6j-c R8: installation keys of small order (kernel 1230) > [DI-31] a peer key of small order stored before the guard verifies no seal: a package sealed by anyone under it is refused as tampered"
   - "apps/tablets-server/test/transfers/transfer-routes.test.ts > lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE"
   - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation"
   - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-31] the stores build and seal a package for a trusted installation only; the file is the payload and seal as exchanged"

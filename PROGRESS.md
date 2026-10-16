@@ -153,6 +153,15 @@ integrator (after 6j-b, 6j-c). Handbook mermaid labels fixed. Details in `docs/b
 Checked on the pod: the static checks and the full lint pass; a dry-run trace at 6 over 140 files (1224 passed, none
 failed) proves every clause of DI-31, DI-32, DI-49, IN-53 and the formerly deferred clauses (PR-22 clause 2 rests on
 GB-T-01, golden job). Owner list in the plan's Slice 6j section.
+Slice 6j-c (branch `phase-6/slice-6j-c`, 16 October): the one review pass over Phase 6. One high fixed: 6jc-R1, the
+ERP_WMS adapter's MATERIAL.HANDLE reached a person's material acts (reservation cancel, destruction, recovery, returns,
+finished lot, transfer packages); site services 0990 refuses those rows for a non-HUMAN account (DI-14, DI-20).
+Residuals 6jc-R2 to R7 (one medium: controlled-substance reads open to any role) in the plan's "6j-c review".
+Second part (rest of the Phase 6 TypeScript, the gateway, the SDK, the web screens and the regulated core's SQL logic,
+probed on a migrated database): one high, 6jc-R8 (raised by the lead): a small-order installation or peer key made
+every seal verify. Fixed in kernel 1230 (EBMR-XFR-042; DI-31). Residuals 6jc-R9 to R15, two of them medium for the owner:
+the adapter feeds and the gateway's OPC UA feed are not authenticated (R9), and one person sets the penicillin facility
+and beta-lactam rules (R10). Backlog: docs/build-plan/phase-6/review-backlog.md.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
