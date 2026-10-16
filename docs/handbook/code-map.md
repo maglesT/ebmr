@@ -44,7 +44,7 @@ of each database function.
 | [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
 | [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
-| [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 0 |
+| [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 14 | 0 | 3 | 8 |
@@ -724,9 +724,9 @@ of each database function.
 
 **Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (3):
+**Migrations** (4):
 
-- `packages/recipe-core/sql`: [1090_genealogy_across_sites.sql](../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [1091_mock_recall_across_sites.sql](../../packages/recipe-core/sql/1091_mock_recall_across_sites.sql), [1092_transfer_review_fixes.sql](../../packages/recipe-core/sql/1092_transfer_review_fixes.sql)
+- `packages/recipe-core/sql`: [1090_genealogy_across_sites.sql](../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [1091_mock_recall_across_sites.sql](../../packages/recipe-core/sql/1091_mock_recall_across_sites.sql), [1092_transfer_review_fixes.sql](../../packages/recipe-core/sql/1092_transfer_review_fixes.sql), [1093_federation_actor_and_audit.sql](../../packages/recipe-core/sql/1093_federation_actor_and_audit.sql)
 
 **Database objects** created in these migrations:
 

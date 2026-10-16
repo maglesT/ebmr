@@ -8,7 +8,7 @@
 import { routes } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
-import { dbNowUs, withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { dbNowUs, withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import type pg from 'pg';
@@ -32,10 +32,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       requireSession();
       return trace(app, pool, query.kind, query.id, query.direction, query.asOfUs);
     },
-    federatedTrace: async ({ query, requireSession }) => {
-      requireSession();
-      return federatedTrace(app, pool, query.kind, query.id, query.direction, query.asOfUs);
-    },
+    federatedTrace: async ({ query, actor }) =>
+      // One command of the person (GENEALOGY.FEDERATE, recipe-core 1093): the requests and answers it records are theirs.
+      withActorCommand(pool, actor(), (c) => federatedTrace(app, c, query.kind, query.id, query.direction, query.asOfUs)),
     lookup: async ({ query, requireSession }) => {
       requireSession();
       return lookup(app, pool, query.code);
@@ -63,12 +62,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return mockRecallView(app, pool, params.mockRecallId);
     },
     run: async ({ body, actor, idempotencyKey, requestHash }) => {
-      // The as-of point is fixed first, so the other sites are asked as of the very instant the run stores (L-41): the
-      // outbound transfers the forward genealogy reaches then are asked before the one command that stores the run and
-      // what each destination answered (D-P6i-0-7).
-      const us = body.asOfUs ?? String(await dbNowUs(pool));
-      const asked = await askDestinations(app, pool, body.subjectKind, body.subjectId, us);
+      // One command (the person's tap on a shared terminal is used once): the as-of point is fixed first, every outbound
+      // transfer the forward genealogy reaches then is asked of its destination as of that instant, and the run is stored
+      // with what each destination answered (L-41; D-P6i-0-7). A resend returns the stored run and asks nobody again.
       const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const us = body.asOfUs ?? String(await dbNowUs(c));
+        const asked = await askDestinations(app, c, body.subjectKind, body.subjectId, us);
         const runId = (await c.query<{ id: string }>(
           `select recipe.run_mock_recall($1, $2, ${tsOf('$3')}, $4, $5) as id`,
           [body.subjectKind, body.subjectId, us, body.authorityInformed, body.authorityReference ?? null],
@@ -83,8 +82,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         `select ${usOf('as_of')} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
       if (!m) return mockRecallView(app, pool, params.mockRecallId);
       const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
-      const asked = (await askDestinations(app, pool, m.kind, m.subject, m.us)).filter((a) => open.includes(a.transferId));
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+        const asked = await askDestinations(app, c, m.kind, m.subject, m.us, open);
         await recordRemote(c, params.mockRecallId, asked);
         return params.mockRecallId;
       });
@@ -105,18 +104,30 @@ interface Asked {
  * Phase 6 slice 6i: every outbound transfer the forward genealogy of the subject reaches as of `us`, each asked of its
  * destination as of that instant (transfers/federation.ts; the answer, or why not, with the last excerpt received).
  */
-async function askDestinations(app: AppContext, pool: pg.Pool, kind: 'LOT' | 'DEVIATION', id: string, us: string): Promise<Asked[]> {
-  // An unknown subject or a future instant is left to the run's own refusal (EBMR-RCL-002, -003).
-  const rows = await pool.query<{ k: string; i: string }>(
+async function askDestinations(app: AppContext, c: pg.PoolClient, kind: 'LOT' | 'DEVIATION', id: string, us: string, only?: readonly string[]): Promise<Asked[]> {
+  // An unknown subject or a future instant is left to the run's own refusal (EBMR-RCL-002, -003); the failed read rolls
+  // back to its savepoint only.
+  await c.query('savepoint recall_destinations');
+  const rows = await c.query<{ k: string; i: string }>(
     `select distinct g.node_kind as k, g.node_id::text as i
        from (select 'LOT'::text as kind, $2::uuid as id where $1 = 'LOT'
              union select y.subject_kind, y.subject_id from site.deviation_link y where $1 = 'DEVIATION' and y.deviation_id = $2::uuid and y.linked_at <= ${tsOf('$3')}) s,
             recipe.genealogy(s.kind, s.id, 'FORWARD', ${tsOf('$3')}) g
-      where g.node_kind = 'TRANSFER'`, [kind, id, us]).then((r) => r.rows, () => [] as { k: string; i: string }[]);
-  const outbound = (await nodeViews(pool, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
+      where g.node_kind = 'TRANSFER'`, [kind, id, us]).then(
+      async (r) => {
+        await c.query('release savepoint recall_destinations');
+        return r.rows;
+      },
+      async () => {
+        await c.query('rollback to savepoint recall_destinations');
+        return [] as { k: string; i: string }[];
+      },
+    );
+  const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
   const out: Asked[] = [];
   for (const t of outbound) {
-    const a = await askPeer(app, pool, otherEnd(t), t.id, 'FORWARD', us);
+    if (only && !only.includes(t.id)) continue;
+    const a = await askPeer(app, c, otherEnd(t), t.id, 'FORWARD', us);
     out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
   }
   return out;

@@ -271,9 +271,8 @@ describe('genealogy across sites (recipe-core 1090; PR-57)', () => {
   });
 
   it('[DI-31] the federation endpoint refuses an unsigned, replayed, misaddressed or unrelated request', async () => {
-    const answer = async (request: string, seal: string): Promise<{ ok: boolean; reason?: string }> =>
-      (await goa.db.app.query<{ r: { ok: boolean; reason?: string } }>('select recipe.answer_federated_genealogy($1, $2) as r', [request, seal])).rows[0]!.r;
-    const issued = (await pune.db.app.query<{ r: { nonce: string; request: string } }>("select recipe.issue_federated_request($1, $2, 'FORWARD', null) as r", [goa.code, first.packageId])).rows[0]!.r;
+    const answer = (request: string, seal: string) => goa.answer(request, seal);
+    const issued = await pune.issue(goa, first.packageId, 'FORWARD');
     // Unsigned (a seal under another key), then the genuine one, then the same request again.
     expect((await answer(issued.request, sealOf(third.key, 'federation-request', issued.request))).reason).toMatch(/EBMR-FED-004/);
     const seal = sealOf(pune.key, 'federation-request', issued.request);
@@ -292,10 +291,9 @@ describe('genealogy across sites (recipe-core 1090; PR-57)', () => {
     expect((await answer(unrelated, sealOf(pune.key, 'federation-request', unrelated))).reason).toMatch(/EBMR-FED-011/);
     expect(await goa.scalar("select count(*)::int as v from platform.federation_request where outcome = 'REFUSED' and alarm_id is not null")).toBe(6);
     // The asking side keeps only an answer sealed by the peer that answers exactly what it asked.
-    const again = (await pune.db.app.query<{ r: { nonce: string; request: string } }>("select recipe.issue_federated_request($1, $2, 'FORWARD', null) as r", [goa.code, first.packageId])).rows[0]!.r;
+    const again = await pune.issue(goa, first.packageId, 'FORWARD');
     const good = await answer(again.request, sealOf(pune.key, 'federation-request', again.request)) as { ok: boolean; payload: string };
-    const record = async (payload: string, s: string): Promise<{ ok: boolean; reason?: string }> =>
-      (await pune.db.app.query<{ r: { ok: boolean; reason?: string } }>('select recipe.record_federated_excerpt($1, $2, $3) as r', [again.nonce, payload, s])).rows[0]!.r;
+    const record = (payload: string, s: string) => pune.recordExcerpt(again.nonce, payload, s);
     expect((await record(good.payload, sealOf(pune.key, 'federation-answer', good.payload))).reason).toMatch(/EBMR-FED-017/);
     const forged = good.payload.replace(downstream.consignee, 'CUST-FORGED');
     expect((await record(forged, sealOf(pune.key, 'federation-answer', forged))).reason).toMatch(/EBMR-FED-017/);
@@ -372,7 +370,7 @@ describe('review 6i: one hop and clock skew (recipe-core 1092)', () => {
         format: 'ebmr.federation-request.v1', nonce: randomUUID(), from: pune.code, to: goa.code, issuedAtUs: String(BigInt(Date.now()) * 1000n),
         query: { transferId: first.packageId, direction: 'FORWARD', asOfUs: String((BigInt(Date.now()) + aheadMs) * 1000n) },
       });
-      return (await goa.db.app.query<{ r: { ok: boolean; reason?: string } }>('select recipe.answer_federated_genealogy($1, $2) as r', [req, sealOf(pune.key, 'federation-request', req)])).rows[0]!.r;
+      return goa.answer(req, sealOf(pune.key, 'federation-request', req));
     };
     expect(await request(1500n)).toMatchObject({ ok: true });
     expect((await request(30_000n)).reason).toMatch(/EBMR-FED-012/);

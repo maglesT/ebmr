@@ -686,14 +686,14 @@ follow if a language is added after v1.
   to 1099.
 - **Handbook:** `03-architecture.md` (topology), `modules/site-services.md`, `modules/kernel.md`,
   `modules/recipe-core.md`, `08-defect-log.md`.
-- **Built (16 October, branch `phase-6/slice-6i`):** 6i-0 interfaces and defaults D-P6i-0-1 to D-P6i-0-12 in
+- **Built (16 October, branch `phase-6/slice-6i`):** 6i-0 interfaces and defaults D-P6i-0-1 to D-P6i-0-13 in
   [slice-6i-0-interfaces.md](slice-6i-0-interfaces.md). Kernel 1220 (installation identity and key versions, peer
   installations trusted after QA's PEER_INSTALLATION_APPROVED, seals with domain separation, Ed25519 in PL/pgSQL,
   installation alarms, the site-to-site request log); site services 0980, 0981 (package built by the database from its
   own records and sealed by the server; import refused with an alarm when malformed, from an untrusted sender, tampered,
   misaddressed or a duplicate; a local INTERMEDIATE lot in QUARANTINE; local QA's TRANSFER_RECEIPT_ACCEPTED or _REFUSED;
   release and reservation refused before the acceptance and after the hold limit; rule resolutions re-resolved, the
-  stricter winning); recipe-core 1090 to 1092 (TRANSFER node and edges, the federated answer and the asking side, the mock
+  stricter winning); recipe-core 1090 to 1093 (TRANSFER node and edges, the federated answer and the asking side, the mock
   recall across sites); tablets 1300, 1301 (signing meanings and read classes). Server feature `transfers`, the
   `federation.genealogy` route outside the browser origin gate, `genealogy.federatedTrace`, `recall.run` asking each
   destination, `recall.refreshFederation`; screens `/transfers`, the receipt page, the explorer's "Across sites" and the
@@ -707,7 +707,7 @@ follow if a language is added after v1.
   suspension cascade stays local (D-P6i-0-10); the installation identity and peer list are not yet under the 6f
   configuration change record; a key rotation needs the peers to approve the new key before packages verify; the
   transfer-out quantity reduces the lot's available quantity but is not a consumption row (the ERP/WMS moves the stock);
-  a resend of `recall.run` with the same idempotency key asks the destinations again before the stored answer returns.
+  federation from a shared kiosk needs the person's tap like any command.
 
 ### Slice 6j: Phase 6 exit
 

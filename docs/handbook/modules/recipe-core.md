@@ -1761,6 +1761,10 @@ verifies its seal and that it answers that request (`recipe.record_federated_exc
 reaches; `recipe.record_mock_recall_remote` records what each destination answered (ANSWERED only as of the run's own
 instant) and `recipe.mock_recall_federation` says whether the run is complete; the AP signs that off with the rest.
 
+[1093](../../../packages/recipe-core/sql/1093_federation_actor_and_audit.sql): the four federation functions refuse
+administrators and check GENEALOGY.FEDERATE (asking) or FEDERATION.ANSWER (the endpoint's INTEGRATION identity, role
+FEDERATION_INTERFACE); the request and excerpt logs are audited.
+
 **Pitfalls.** A site that does not answer is shown with its last excerpt and that excerpt's older as-of, never as the
 answer (EBMR-RCL-024). The suspension cascade stays local (D-P6i-0-10).
 

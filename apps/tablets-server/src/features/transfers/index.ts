@@ -7,14 +7,17 @@
  * trust PEER_INSTALLATION_APPROVE. The server's one part is the installation key (keys.ts): it seals what the database
  * built and nothing else (D-P6i-0-8).
  */
+import { readFileSync } from 'node:fs';
 import { routes } from '@ebmr/api-contract';
+import { identity as kernelIdentity } from '@ebmr/kernel';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
-import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { compact } from '../common/people.ts';
+import { openAdapterActor, type AdapterCredentials } from '../integrations/adapters/framework.ts';
 import { installationKey } from './federation.ts';
 import { TRANSFERS_GUIDANCE } from './guidance.ts';
 import { alarms, identity, packageFile, peers, receipt, receipts, packages } from './reads.ts';
@@ -40,6 +43,29 @@ const noKey = () =>
     whatYouCanDo: ['Configure the installation key of this installation (DEMO-ONLY file; a KMS or HSM in production).'],
     whoCanHelp: ['The system administrator'],
     controls: ['DI-31'],
+  });
+
+/** The service-keys file's terminal of the federation endpoint's INTEGRATION identity (role FEDERATION_INTERFACE). */
+export const FEDERATION_TERMINAL = 'SRV-FEDERATION-01';
+
+/** The federation identity's credentials from EBMR_SERVICE_KEYS_FILE (DEMO-ONLY file); null when none is configured. */
+export function federationCredentials(file: string | null): AdapterCredentials | null {
+  if (!file) return null;
+  const parsed = JSON.parse(readFileSync(file, 'utf8')) as { services?: { terminal: string; loginName: string; serviceKey: string; fingerprint?: string | null; terminalKey?: { fingerprint?: string } | null }[] };
+  const e = (parsed.services ?? []).find((x) => x.terminal === FEDERATION_TERMINAL);
+  const fingerprint = e?.terminalKey?.fingerprint ?? e?.fingerprint ?? null;
+  return e && fingerprint ? { loginName: e.loginName, serviceKey: e.serviceKey, fingerprint } : null;
+}
+
+const noIdentity = () =>
+  refusal(503, {
+    code: 'EBMR-FED-022',
+    kind: 'NOT_ENABLED',
+    whatHappened: 'This server has no federation identity, so it answers no other installation.',
+    why: `EBMR_SERVICE_KEYS_FILE names no ${FEDERATION_TERMINAL} service (an INTEGRATION account in role FEDERATION_INTERFACE).`,
+    whatYouCanDo: ['Configure the federation endpoint\'s service identity.'],
+    whoCanHelp: ['The system administrator'],
+    controls: ['DI-14', 'DI-31'],
   });
 
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
@@ -110,7 +136,18 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     // Site to site: no session; the request's seal under a trusted peer's key is the authentication (the database checks it).
     genealogy: async ({ body }) => {
       const key = await currentKey();
-      const r = (await pool.query<{ r: { ok: boolean; payload?: string; reason?: string } }>('select recipe.answer_federated_genealogy($1, $2) as r', [body.request, body.seal])).rows[0]!.r;
+      // The answer runs as the endpoint's INTEGRATION identity (FEDERATION.ANSWER; it never signs, DI-14); the database
+      // checks the request's seal, destination, time window and nonce (recipe-core 1093, kernel 1220).
+      const creds = federationCredentials(app.config.serviceKeysFile);
+      if (!creds) throw noIdentity();
+      const fed = await openAdapterActor(app, creds, 'FEDERATION_INTERFACE');
+      let r: { ok: boolean; payload?: string; reason?: string };
+      try {
+        r = await withActorCommand(pool, { ...fed, correlationId: crypto.randomUUID() }, async (c) =>
+          (await c.query<{ r: { ok: boolean; payload?: string; reason?: string } }>('select recipe.answer_federated_genealogy($1, $2) as r', [body.request, body.seal])).rows[0]!.r);
+      } finally {
+        await kernelIdentity.endSession(app.pools.app, fed.sessionId);
+      }
       if (!r.ok || !r.payload) {
         const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
         throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });

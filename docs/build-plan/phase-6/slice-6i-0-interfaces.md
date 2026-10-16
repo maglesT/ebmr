@@ -140,5 +140,10 @@ excerpt is shown with its own as-of and the result is marked incomplete, never s
 - **D-P6i-0-12** (build) Received material is released locally through the ordinary lot release after the acceptance, so
   the receiving site's own specification and results apply (IN-33). Why: one lot machine and its guards; the origin's CoA
   is shown to QA, not copied into local results.
+- **D-P6i-0-13** (CI fix) The federated genealogy runs as a validated actor: the asking side in the person's command with
+  GENEALOGY.FEDERATE (QA reviewer, head of QC, AP, QA MBR approver, QA shop floor), the answering side as the endpoint's
+  INTEGRATION identity in role FEDERATION_INTERFACE (FEDERATION.ANSWER; service terminal SRV-FEDERATION-01 in
+  EBMR_SERVICE_KEYS_FILE; it never signs, DI-14); the request and excerpt logs are audited (recipe-core 1093). Why: every
+  app-callable writer refuses administrators and checks a catalogued permission (DI-17, DI-18).
 - **D-P6i-0-10** The suspension cascade (Phase 4 slice 5) stays local; the federated mock recall lists the receiving site's
   lots and consignees, and the receiving site's QA acts on them. Why: each site's QA owns its own lots (L-41).

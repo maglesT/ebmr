@@ -18,7 +18,7 @@ import type { AppContext } from '../../platform/context.ts';
 import { trace } from '../genealogy/reads.ts';
 import { loadInstallationKey, type InstallationKey } from './keys.ts';
 
-type Db = Pick<pg.Pool, 'query'>;
+type Db = Pick<pg.PoolClient, 'query'>;
 
 const keys = new WeakMap<AppContext, InstallationKey | null>();
 
@@ -82,15 +82,19 @@ const reasonOf = (text: string): string => {
 };
 
 /**
- * Asks `peer` for its genealogy from `transferId` in `direction` as of `asOfUs`. Never throws for the other site's
- * failure: it is the part's status, logged with an alarm.
+ * Asks `peer` for its genealogy from `transferId` in `direction` as of `asOfUs`, inside the asking person's command
+ * (`db` is its client). Never throws for the other site's failure: it is the part's status, logged with an alarm.
  */
 export async function askPeer(app: AppContext, db: Db, peer: string, transferId: string, direction: GenealogyDirection, asOfUs: string): Promise<PeerAnswer> {
   let issued: { nonce: string; request: string; baseUrl: string };
+  // The caller's command (the person's, GENEALOGY.FEDERATE; recipe-core 1093): a refused issue rolls back to here only.
+  await db.query('savepoint federation_issue');
   try {
     issued = (await db.query<{ r: { nonce: string; request: string; baseUrl: string } }>(
       "select recipe.issue_federated_request($1, $2, $3, timestamptz 'epoch' + ($4::bigint * interval '1 microsecond')) as r", [peer, transferId, direction, asOfUs])).rows[0]!.r;
+    await db.query('release savepoint federation_issue');
   } catch (error) {
+    await db.query('rollback to savepoint federation_issue');
     const last = await lastExcerpt(db, peer, transferId, direction);
     return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
   }

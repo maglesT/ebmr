@@ -18,6 +18,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { FEDERATION_RATE } from '../../src/features/transfers/index.ts';
 import { rawPublicKeyOf } from '../../src/features/transfers/keys.ts';
+import { withCommand } from '@ebmr/kernel';
+import { passwordActor, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
+import { decideRoleGrant, requestRoleGrant } from '../../../../packages/kernel/src/identity/admin.ts';
+import { integrationActor, type Administration } from '../../../../packages/kernel/test/integrations/support.ts';
+import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
+import { FEDERATION_TERMINAL } from '../../src/features/transfers/index.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
@@ -57,7 +63,24 @@ async function site(code: string): Promise<Site> {
   const dir = mkdtempSync(join(tmpdir(), 'ebmr-6i-'));
   const file = join(dir, 'installation-key.json');
   writeFileSync(file, JSON.stringify({ installationCode: code, privateKeyPkcs8: pair.privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64'), label: 'DEMO-ONLY test key' }));
-  const server = await startSigningServer('GMP', { env: { EBMR_INSTALLATION_KEY_FILE: file, EBMR_FEDERATION_TIMEOUT_S: '3' } });
+  const keys = join(dir, 'service-keys.json');
+  // The federation endpoint's INTEGRATION identity in role FEDERATION_INTERFACE (recipe-core 1093), in the service-keys file.
+  const server = await startSigningServer('GMP', {
+    env: { EBMR_INSTALLATION_KEY_FILE: file, EBMR_FEDERATION_TIMEOUT_S: '3', EBMR_SERVICE_KEYS_FILE: keys },
+    beforeStart: async (handle: DatabaseHandle, seed: SiteSeed) => {
+      const db = handle as unknown as TestDatabase;
+      const adm: Administration = {
+        admin: await passwordActor(handle, seed.bootstrap.admin, seed.bootstrap.admin.fingerprint),
+        owner: await passwordActor(handle, seed.bootstrap.owner, seed.bootstrap.owner.fingerprint),
+        authn: handle.authn,
+      };
+      const fed = await integrationActor(db, `${code} federation endpoint`, adm);
+      const reason = { reasonCode: 'TEST_SETUP', reasonText: 'the federation endpoint identity', correlationId: randomUUID() };
+      const grant = await withCommand(db.app, { ...adm.admin, ...reason }, (c) => requestRoleGrant(c, { accountId: fed.accountId, roleCode: 'FEDERATION_INTERFACE', scope: {}, reason: 'federation endpoint' }));
+      await withCommand(db.app, { ...adm.owner, ...reason, correlationId: randomUUID() }, (c) => decideRoleGrant(c, grant, true, 'approved for test'));
+      writeFileSync(keys, JSON.stringify({ services: [{ terminal: FEDERATION_TERMINAL, loginName: fed.seed.loginName, serviceKey: fed.seed.password, fingerprint: fed.seed.deviceFingerprint }] }));
+    },
+  });
   await server.built.app.listen({ host: '127.0.0.1', port: 0 });
   const port = (server.built.app.server.address() as AddressInfo).port;
   const publicKey = rawPublicKeyOf(pair.privateKey);

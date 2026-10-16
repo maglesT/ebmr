@@ -14,7 +14,8 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import type { SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { publishSeedTables } from '../../../kernel/test/market/helpers.ts';
 import { createTestDatabase, signerActor, signFor, type TestDatabase } from '../helpers.ts';
-import { seedCast, World, type Cast } from '../lots/support.ts';
+import { integrationActor } from '../../../kernel/test/integrations/support.ts';
+import { seedCast, withSecondRole, World, type Cast } from '../lots/support.ts';
 
 export const TAG = randomUUID().slice(0, 4).toUpperCase();
 let serial = 0;
@@ -59,6 +60,8 @@ export class Installation {
   ap!: SeededActor;
   cast!: Cast;
   w!: World;
+  /** The installation's federation endpoint: an INTEGRATION identity in role FEDERATION_INTERFACE (recipe-core 1093). */
+  fed!: SeededActor;
   readonly key: KeyObject;
   readonly publicKey: string;
 
@@ -79,6 +82,7 @@ export class Installation {
     i.qa = i.cast.qa;
     i.stores = i.cast.warehouse;
     i.ap = await signerActor(i.db, 'AUTHORISED_PERSON');
+    i.fed = await withSecondRole(i.db, await integrationActor(i.db, `${code} federation endpoint`), 'FEDERATION_INTERFACE');
     await i.run(i.admin, "select platform.set_installation_identity($1, 'SITE-1', 'TABLETS', $2) as r", [code, i.publicKey]);
     await publishSeedTables(i.db);
     return i;
@@ -233,18 +237,28 @@ export class Installation {
    * key, answered by `peer`'s database (the answer sealed with `peer`'s key), recorded here. Returns the record result.
    */
   async ask(peer: Installation, transfer: string, direction: 'FORWARD' | 'BACKWARD', asOfUs: string | null = null): Promise<{ ok: boolean; excerptId?: string; reason?: string; nonce: string; answer: { ok: boolean; payload?: string; reason?: string } }> {
-    const req = (await this.db.app.query<{ r: { nonce: string; request: string } }>('select recipe.issue_federated_request($1, $2, $3, site.us_instant($4)) as r', [peer.code, transfer, direction, asOfUs])).rows[0]!.r;
-    const answer = (await peer.db.app.query<{ r: { ok: boolean; payload?: string; reason?: string } }>('select recipe.answer_federated_genealogy($1, $2) as r', [
-      req.request, sealOf(this.key, 'federation-request', req.request),
-    ])).rows[0]!.r;
+    const req = await this.issue(peer, transfer, direction, asOfUs);
+    const answer = await peer.answer(req.request, sealOf(this.key, 'federation-request', req.request));
     if (!answer.ok || !answer.payload) {
-      await this.db.app.query("select recipe.record_federation_failure($1, 'REFUSED', $2)", [req.nonce, answer.reason ?? 'refused']);
+      await this.run(this.qa, "select recipe.record_federation_failure($1, 'REFUSED', $2) as r", [req.nonce, answer.reason ?? 'refused']);
       return { ok: false, ...(answer.reason ? { reason: answer.reason } : {}), nonce: req.nonce, answer };
     }
-    const rec = (await this.db.app.query<{ r: { ok: boolean; excerptId?: string; reason?: string } }>('select recipe.record_federated_excerpt($1, $2, $3) as r', [
-      req.nonce, answer.payload, sealOf(peer.key, 'federation-answer', answer.payload),
-    ])).rows[0]!.r;
+    const rec = await this.recordExcerpt(req.nonce, answer.payload, sealOf(peer.key, 'federation-answer', answer.payload));
     return { ...rec, nonce: req.nonce, answer };
+  }
+
+  /** The asking side's request, issued in QA's command (GENEALOGY.FEDERATE). */
+  issue(peer: Installation, transfer: string, direction: 'FORWARD' | 'BACKWARD', asOfUs: string | null = null): Promise<{ nonce: string; request: string }> {
+    return this.run(this.qa, 'select recipe.issue_federated_request($1, $2, $3, site.us_instant($4)) as r', [peer.code, transfer, direction, asOfUs]);
+  }
+
+  /** This installation's answer to a sealed request, in its federation identity's command (FEDERATION.ANSWER). */
+  answer(request: string, seal: string): Promise<{ ok: boolean; payload?: string; reason?: string }> {
+    return this.run(this.fed, 'select recipe.answer_federated_genealogy($1, $2) as r', [request, seal]);
+  }
+
+  recordExcerpt(nonce: string, payload: string, seal: string): Promise<{ ok: boolean; excerptId?: string; reason?: string }> {
+    return this.run(this.qa, 'select recipe.record_federated_excerpt($1, $2, $3) as r', [nonce, payload, seal]);
   }
 
   async drop(): Promise<void> {
