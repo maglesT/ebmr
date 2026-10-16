@@ -234,7 +234,10 @@ export async function startStack(opts: StartStackOptions): Promise<RunningStack>
       if (problem) missing.push(`site gateway not ready: ${problem} (scales stay offline; the manual two-person path still works)`);
     }
   } catch (error) {
+    // Without echo (CI) the processes' own output is the only account of why one did not start: it goes with the error.
+    const tails = opts.echo === false ? processes.map((p) => `--- last output of ${p.name} ---\n${p.tail().join('\n') || '(none)'}`).join('\n') : '';
     await stop();
+    if (tails !== '' && error instanceof Error) error.message = `${error.message}\n${tails}`;
     throw error;
   }
   return { urls: { ...origins, simulatorConsole: `http://127.0.0.1:${opts.ports.simulatorHttp}` }, processes, missing, stop };

@@ -101,7 +101,7 @@ of each database function.
 | [injectables-server](#injectables-server) | Injectables server (placeholder) | [modules/injectables.md](modules/injectables.md) | 0 | 0 | 1 | 0 |
 | [injectables-web](#injectables-web) | Injectables screens (placeholder) | [modules/injectables.md](modules/injectables.md) | 0 | 0 | 1 | 0 |
 | [tools-boundaries](#tools-boundaries) | Dependency boundaries and clock ban tests | [modules/tools.md](modules/tools.md) | 0 | 0 | 3 | 0 |
-| [tools-demo](#tools-demo) | Demo set-up and run | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
+| [tools-demo](#tools-demo) | Demo set-up and run | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 0 |
 | [tools-dev-env](#tools-dev-env) | Development pod set-up | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
 | [tools-e2e](#tools-e2e) | End-to-end browser suite | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 18 |
 | [tools-handbook](#tools-handbook) | Handbook generator and link checker | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
@@ -2045,7 +2045,7 @@ of each database function.
 
 **Source** (5): [cli.ts](../../tools/demo/src/cli.ts), [index.ts](../../tools/demo/src/index.ts), [paths.ts](../../tools/demo/src/paths.ts), [processes.ts](../../tools/demo/src/processes.ts), [stack.ts](../../tools/demo/src/stack.ts)
 
-**Tests** (1): [demo-devices.test.ts](../../tools/demo/test/demo-devices.test.ts)
+**Tests** (2): [demo-devices.test.ts](../../tools/demo/test/demo-devices.test.ts), [processes.test.ts](../../tools/demo/test/processes.test.ts)
 
 ## tools-dev-env
 
