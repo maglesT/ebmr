@@ -32,7 +32,7 @@ of each database function.
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 17 | 0 | 8 | 26 |
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 4 | 11 |
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
-| [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 3 |
+| [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
 | [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 2 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 18 | 0 | 19 | 36 |
@@ -529,7 +529,7 @@ of each database function.
 
 **Tests** (3): [genealogy.test.ts](../../packages/site-services/test/genealogy/genealogy.test.ts), [recall.test.ts](../../packages/site-services/test/genealogy/recall.test.ts), [recovery-distribution.test.ts](../../packages/site-services/test/genealogy/recovery-distribution.test.ts)
 
-**Controls** (3): [IN-29](../../compliance/controls/IN-29.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
+**Controls** (6): [IN-07](../../compliance/controls/IN-07.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-48](../../compliance/controls/PR-48.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-50](../../compliance/controls/PR-50.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 
 ## ss-receipt-erp-wms
 
