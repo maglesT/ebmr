@@ -1719,6 +1719,20 @@ Phase 6 slice 6f, builder B.
   [pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts) recomputes the values in TypeScript
   from the stored records.
 
+## Label templates and the labelling declaration (Phase 6 slice 6c)
+
+[Recipe-core 0990](../../../packages/recipe-core/sql/0990_label_templates.sql) (IN-31, PR-36; D-P6c-2, D-P6c-8,
+D-P6c-10, D-P6c-17). `recipe.label_field_binding` lists the record fields a layout element may bind (and which an
+India-domestic label must bind, as `recipe.india_label_particulars` gives them); `recipe.create_label_template`
+(LABEL.DESIGN) saves the next version of a code, refusing a value on a template (EBMR-LBL-002) or a field that is not a
+binding (EBMR-LBL-001); a template for a market set with India is INDIA_DOMESTIC. `recipe.approve_label_template`
+(LABEL.APPROVE) is another person's attributed act, refused while `recipe.label_template_approval_problem` names a
+missing India particular (EBMR-LBL-003) or for the designer (EBMR-LBL-004). The labelling declaration of a DRAFT
+packaging master (`recipe.declare_packaging_labelling`, MBR.AUTHOR: per G-21 item its form, template and 211.122(g)
+option) is checked by the trigger `a3_labelling_at_approval` on the version's APPROVE (EBMR-LBL-011): a cut-label item
+without its option, or a template that is not APPROVED, refuses the approval. Tests:
+[label-templates.test.ts](../../../packages/recipe-core/test/labels/label-templates.test.ts).
+
 ## Genealogy, mock recall, deviation impact and recurrence (Phase 6 slice 6d; recipe-core 1010 to 1013)
 
 **What it does.** [1010_genealogy.sql](../../../packages/recipe-core/sql/1010_genealogy.sql)

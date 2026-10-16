@@ -104,7 +104,7 @@
         "MANUAL_ENTRY_FALLBACK ALERT NO_IMPACT"
       ],
       "signatures": 20,
-      "normalisedTrueCopySha256": "8467d0bf79c07528e2369fe58c8db7be94244eb6ef9ba79fec44e5abe275e53b"
+      "normalisedTrueCopySha256": "f97928738d3092480f362c8640aed809e1465c357ca48b7603ce389c6213729e"
     },
     "lot": {
       "state": "RELEASED",

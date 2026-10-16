@@ -6,7 +6,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'EMS';
+export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'EMS' | 'L3';
 
 export interface FeedSimProcess {
   /** The simulator's origin (the adapter's base URL; the feed is under /<system>/v1). */
@@ -18,7 +18,8 @@ export interface FeedSimProcess {
 }
 
 export async function spawnFeedSimulator(system: FeedSystem): Promise<FeedSimProcess> {
-  const entry = fileURLToPath(new URL(`../../../simulators/src/${system.toLowerCase()}/main.ts`, import.meta.url));
+  // The L3/L4 simulator is the serialisation stub's process (Phase 6 slice 6c).
+  const entry = fileURLToPath(new URL(`../../../simulators/src/${system === 'L3' ? 'serialisation' : system.toLowerCase()}/main.ts`, import.meta.url));
   const child: ChildProcess = spawn(process.execPath, ['--import', 'tsx', entry], { env: { ...process.env, [`EBMR_${system}_HTTP`]: '127.0.0.1:0' }, stdio: ['ignore', 'pipe', 'pipe'] });
   const port = await new Promise<number>((resolve, reject) => {
     let out = '';

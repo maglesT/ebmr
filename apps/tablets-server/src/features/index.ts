@@ -11,6 +11,8 @@ import * as alarms from './alarms/index.ts';
 import * as archive from './archive/index.ts';
 import * as audit from './audit/index.ts';
 import * as capa from './capa/index.ts';
+import * as labels from './labels/index.ts';
+import * as serialisation from './serialisation/index.ts';
 import * as configChange from './config-change/index.ts';
 import * as containers from './containers/index.ts';
 import * as dashboards from './dashboards/index.ts';
@@ -70,6 +72,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'alarms', installations: ['GMP'], module: alarms satisfies FeatureModule },
   { name: 'equipment-data', installations: ['GMP'], module: equipmentData satisfies FeatureModule },
   { name: 'plant-rules', installations: ['GMP'], module: plantRules satisfies FeatureModule },
+  { name: 'labels', installations: ['GMP'], module: labels satisfies FeatureModule },
+  { name: 'serialisation', installations: ['GMP'], module: serialisation satisfies FeatureModule },
   { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
   { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },
   { name: 'genealogy', installations: ['GMP'], module: genealogy satisfies FeatureModule },

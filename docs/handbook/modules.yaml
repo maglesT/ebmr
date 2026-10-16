@@ -269,6 +269,13 @@ modules:
       packages/site-services/sql: ['^091\d_']
     tests: ['packages/site-services/test/erp-wms/**']
 
+  - id: ss-label-store
+    title: The label store of printed-material lots and its permission (Phase 6 slice 6c)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^0950_']
+    tests: ['packages/site-services/test/lots/label-store.test.ts']
   - id: ss-reagent-lots
     title: Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29)
     page: modules/site-services.md
@@ -325,6 +332,14 @@ modules:
     migrations:
       packages/recipe-core/sql: ['^095\d_']
     tests: ['packages/recipe-core/test/integrations/**']
+
+  - id: rc-labels
+    title: Label templates, their approval and the packaging master's labelling declaration (Phase 6 slice 6c)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0990_']
+    tests: ['packages/recipe-core/test/labels/**']
 
   - id: rc-genealogy
     title: Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d)
@@ -764,6 +779,27 @@ modules:
     contract: [packages/api-contract/src/ns/capa.ts]
     screens: [apps/tablets-web/src/features/capa]
     tests: ['apps/tablets-server/test/capa/**', 'apps/tablets-web/test/capa/**']
+
+  - id: ts-labels
+    title: Packaging line completion (specimens, post-use inspection, vision line stops, reconciliation waiver, label templates and store) (Phase 6 slice 6c)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1230_']
+    server: [apps/tablets-server/src/features/labels]
+    contract: [packages/api-contract/src/ns/labels.ts]
+    screens: [apps/tablets-web/src/features/labels]
+    tests: ['apps/tablets-server/test/labels/**', 'apps/tablets-server/test/blocks/packaging/line-completion.test.ts', 'apps/tablets-web/test/labels/**']
+
+  - id: ts-serialisation
+    title: Serialisation L3/L4 (the L3 adapter, serial query, decommissioning tasks, L3 freshness at release) (Phase 6 slice 6c)
+    page: modules/integrations.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1231_']
+    server: [apps/tablets-server/src/features/serialisation]
+    contract: [packages/api-contract/src/ns/serialisation.ts]
+    tests: ['apps/tablets-server/test/integrations/l3-adapter.test.ts']
 
   - id: ts-genealogy
     title: Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d)

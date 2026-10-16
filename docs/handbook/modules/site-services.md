@@ -929,6 +929,15 @@ person, a reason) changes containers, supplier batch, manufacturer or delivery-n
 | [`site.issue_gate`](../../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql#sym=site.issue_gate) | 0913 | `SITE-917`, `918`, `920`, `922`, `INT-010` (see above) |
 | [`site.issue_by_person`](../../../packages/site-services/sql/0914_erp_wms_interface_role.sql#sym=site.issue_by_person) | 0914 | `SITE-924` a reservation or consumption by an account that is not a person's |
 
+## The label store (Phase 6 slice 6c)
+
+[Site services 0950](../../../packages/site-services/sql/0950_label_store.sql) (PR-32, D-P6c-11). Only
+WAREHOUSE_LABELLING holds LABEL_STORE.TRANSACT: `site.open_label_store_transaction` records a RECEIPT (up to what the lot
+received), an ISSUE to a packaging order (a RELEASED lot, never more than the store holds), a RETURN (at most what the
+order took) or a DESTRUCTION (with its reason) of a printed-packaging lot, in whole units; `site.label_store_balance`
+is receipts and returns less issues and destructions. The G-21 ISSUE entry stays the record's issue (not linked to the
+store's, residual). Tests: [label-store.test.ts](../../../packages/site-services/test/lots/label-store.test.ts).
+
 ## Guard catalogue
 
 Every site-services function in force that names an `EBMR-` code, with the migration that holds the version in force and

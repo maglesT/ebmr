@@ -153,3 +153,44 @@ export function reportReconciles(report: PoolReport): boolean {
   const sum = SERIAL_STATES.reduce((acc, s) => acc + BigInt(report.counts[s]), 0n);
   return report.unexplained === '0' && sum === BigInt(report.counts.issued);
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Phase 6 slice 6c (PR-42, D-P6c-1): the serial query and the rejection of a pool, additive.
+//
+//   GET  /l3/v1/serials/:serial          SerialQueryAnswer: the pool, GTIN, packaging order and state the L3 system holds
+//                                        for one serial (lot and expiry when the L3 profile carries them)
+//   POST /l3/v1/pools/:poolId/reject     PoolRejection -> DecommissionTask: the L3 system opens a decommissioning task
+//                                        for the serials commissioned in the pool (the same task again for a repeat)
+// The eBMR answers a serial query with the lot and expiry of its own record (the pool's packaging order), never the
+// L3's: an L3 lot or expiry that differs from the record is shown as a problem.
+// ---------------------------------------------------------------------------------------------------------------
+
+export const l3SerialPath = (serial: string): string => `/l3/v1/serials/${encodeURIComponent(serial)}`;
+export const l3PoolRejectPath = (poolId: string): string => `${L3_POOLS_PATH}/${encodeURIComponent(poolId)}/reject`;
+
+export const SerialQueryAnswer = z.strictObject({
+  serial: Serial,
+  poolId: PoolId,
+  gtin: Gtin,
+  packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
+  /** null: issued, no state yet. */
+  state: SerialState.nullable(),
+  /** The lot (batch number) and expiry (YYYY-MM) the L3 profile carries, when it does. */
+  lot: z.string().regex(/^[\x20-\x7E]{1,64}$/).optional(),
+  expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+});
+export type SerialQueryAnswer = z.infer<typeof SerialQueryAnswer>;
+
+export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]{1,500}$/) });
+export type PoolRejection = z.infer<typeof PoolRejection>;
+
+export const DecommissionTask = z.strictObject({
+  taskId: z.string().regex(/^[\x21-\x7E]{1,64}$/),
+  poolId: PoolId,
+  packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
+  reason: z.string().max(500),
+  createdAt: ProcessEpochMicros,
+  state: z.enum(['OPEN', 'DONE']),
+  serials: z.array(Serial),
+});
+export type DecommissionTask = z.infer<typeof DecommissionTask>;

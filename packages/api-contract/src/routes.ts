@@ -23,6 +23,8 @@ import { india } from './ns/india.ts';
 import { integrations } from './ns/integrations.ts';
 import { config } from './ns/config.ts';
 import { capa } from './ns/capa.ts';
+import { labels } from './ns/labels.ts';
+import { serialisation } from './ns/serialisation.ts';
 import { alarms } from './ns/alarms.ts';
 import { equipmentData, equipmentDisplays } from './ns/equipment-data.ts';
 import { plantRules } from './ns/plant-rules.ts';
@@ -38,13 +40,12 @@ import { session } from './ns/session.ts';
 import { specifications } from './ns/specifications.ts';
 import { contractGiver, support } from './ns/support.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, genealogy, recall, dashboards, changeImpact, training } as const;
-export type Routes = typeof routes;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, labels, serialisation, genealogy, recall, dashboards, changeImpact, training } as const;export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
 /** Which module owns each namespace's handlers (the stub feature files pass to these owners). */
 /** Phase 3 slice 6 (S6): batches over the execution handlers, planning, master data (formulas) and plant. Phase 4 (P4): review. Phase 6 (P6): integrations, capa, alarms, equipmentData, equipmentDisplays (the status displays of
- * slice 6b, appended to ns/equipment-data.ts as their own namespace so each builder's feature binds its own routes), plantRules, genealogy, recall; slice 6g: dashboards, changeImpact, training. */
+ * slice 6b, appended to ns/equipment-data.ts as their own namespace so each builder's feature binds its own routes), plantRules; labels and serialisation (slice 6c); genealogy, recall; slice 6g: dashboards, changeImpact, training. */
 export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2' | 'C3' | 'C5' | 'S6' | 'P4' | 'P6'>> = {
   meta: 'C0',
   session: 'C0',
@@ -80,6 +81,8 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   config: 'P6',
   support: 'P6',
   contractGiver: 'P6',
+  labels: 'P6',
+  serialisation: 'P6',
   genealogy: 'P6',
   recall: 'P6',
   dashboards: 'P6',

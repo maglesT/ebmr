@@ -32,15 +32,19 @@ tests:
   - "packages/recipe-core/test/execution/g21-sql.test.ts > G-21 entry data in the database (recipe-core 0580) > [PR-32][PR-33] an issue is refused unless every market of the batch names the artwork the lot carries"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 issue > [PR-32][PR-33] a released, unexpired lot of the material, the scanned artwork the lot's and every market's, in the item's unit, positive"
   - "packages/recipe-core/test/blocks/g21-edges.test.ts > G-21 PERFORMED and definition > [PR-33][PR-39][PR-32][PR-40][IN-22][PR-42] the definition: items and devices once, limits, artwork per market, a destruction step for coded items, whole-microsecond intervals, a plant unit, GTIN check digits"
+  - "apps/tablets-server/test/labels/labels-routes.test.ts > labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues"
+  - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [PR-32] the label store offers its transactions to the label store only and posts what was entered"
+  - "packages/site-services/test/lots/label-store.test.ts > the label store (site services 0950) > [PR-32] an unauthorised user cannot open a label-store transaction: an operator, QA and an administrator are refused, the label store keeps its register, and nothing is written past the function"
+  - "packages/site-services/test/lots/label-store.test.ts > the label store (site services 0950) > [PR-32] the store issues only released printed lots and never more than it holds; a return is at most what the order took; a destruction has its reason; another kind of lot is not a label-store lot"
 clauses:
   - clause: "Issuing a label lot with obsolete artwork is blocked."
     tests:
       - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-32][PR-33] printed material is issued only from a printed lot of the register with its recorded artwork, released and of the master's artwork version for the market; the artwork of a lot is recorded once by its holder of the right; a forged engine is refused"
       - "packages/recipe-core/test/blocks/printed.test.ts > G-21@1 printed materials (K-19) > [PR-32][PR-33] printed material is issued only from a released, unexpired lot of the item's material carrying the master's artwork for the market, scanned at the line, within the issue rule"
   - clause: "An unauthorised user cannot open a label-store transaction."
-    deferred:
-      phase: 6
-      reason: "There is no label store or label-store permission (printed material is issued at the G-21 step by its performer role and stock locations are the ERP's); built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/lots/label-store.test.ts > the label store (site services 0950) > [PR-32] an unauthorised user cannot open a label-store transaction: an operator, QA and an administrator are refused, the label store keeps its register, and nothing is written past the function"
+      - "apps/tablets-server/test/labels/labels-routes.test.ts > labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

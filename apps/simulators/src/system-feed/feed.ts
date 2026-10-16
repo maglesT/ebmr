@@ -22,7 +22,7 @@ import { rawPayloadHash, reconciliationChecksum, type ReconciliationSubmission }
 export const FEED_FAULTS = ['FEED_GAP', 'STALE_VALUE', 'MALFORMED', 'DUPLICATE', 'OUT_OF_ORDER', 'WRONG_BATCH', 'LINK_CUT', 'SLOW', 'STALE_MIRROR'] as const;
 export type FeedFault = (typeof FEED_FAULTS)[number];
 
-export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'EMS';
+export type FeedSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'EMS' | 'L3';
 
 export interface FeedEnvelope {
   sourceSystem: FeedSystem;
