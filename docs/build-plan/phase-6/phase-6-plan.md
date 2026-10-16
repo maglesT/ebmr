@@ -814,6 +814,10 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
 - **D-P6j-b-e2e-7** Product changes the flows needed: the record review's navigation links are 24 px high (WCAG 2.2
   target size; the flow's axe check found 22 px), with a computed-style test; the ceremony helpers wait for the exact
   "Signed." banner (a refusal reads "Nothing was signed.", which the substring match accepted).
+- **D-P6j-b-e2e-8** The flows stay inside the stack's shared allowances without raising them: one page load per terminal
+  (a load identifies the terminal again, 60 a minute for the stack's one address), then the home tiles and in-app links;
+  the reading flows sign in as the head of QC, whom no other spec signs in (sign-ins count per user ID, 10 a minute,
+  and the QA reviewer personas sign in often in the release specs). Found by two full runs that failed other specs.
 - **Findings and residuals (for the lead and the owner):**
   - **F-6jb-1** A step signature's authority scope names only the site (the batch-step signing content of recipe-core,
     `'scope', {site}` since 0210), not the batch's product (`plant.batch_scope`). A qualification requirement limited to

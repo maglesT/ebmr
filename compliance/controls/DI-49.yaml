@@ -58,6 +58,7 @@ tests:
   - "packages/site-services/test/reporting/reporting-views.test.ts > report views (recipe-core 1070) > [DI-49] the alarm view holds every alarm once, whatever number of batches it is bound to, with its acknowledgment"
   - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period"
   - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [DI-49] the alarm trend shows the count of every alarm of the period, by day and code"
+  - "tools/e2e/specs/phase6/alarms.spec.ts > [DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknowledged at the kiosk with the action taken and the comment a GMP-critical alarm needs, and shows so in the batch's alarm log @office"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

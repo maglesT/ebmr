@@ -315,6 +315,8 @@ tests:
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31][DI-32] EMS: room temperature and humidity chunks land in plant.series as received; the room conditions show the latest sample"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS feed gap alarms"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS: the soak with every fault in turn reconciles (no silent loss)"
+  - "tools/e2e/specs/phase6/stale-mirror.spec.ts > [DI-31] the integration health page shows the LMS mirror fresh after a synchronisation, then stale and blocking with who to call once its heartbeat stops @office"
+  - "tools/e2e/specs/phase6/stale-mirror.spec.ts > [DI-31] a stale LMS mirror refuses the operator's step signature on the kiosk and names the stale qualification source; after the adapter synchronises again the same signature is accepted @kiosk"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
