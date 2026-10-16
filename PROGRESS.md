@@ -146,6 +146,10 @@ dashboards (never for GMP decisions; PR-05 overdue reviews, DI-49 alarm trend), 
 and training mode on the sandbox (watermark, TEST- personas, scripted exercises, attempts kept in the sandbox only;
 DI-05). PR-05's dashboard clause names its tests. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
 Defaults D-P6g-0-1 to 10.
+Slice 6j-a (branch `phase-6/slice-6j-a`, 16 October): the exit trace. DI-31, DI-32, DI-49 map their clauses; no
+clause stays deferred to Phase 6 (none moved to 7); IN-53 stays PENDING; a deferral to phase 5 waits while Injectables
+is outside the gate (question 7, `[meta]` test), so PR-26 and PR-28 are unchanged; `phase.yaml` stays 4 for the
+integrator (after 6j-b, 6j-c). Handbook mermaid labels fixed. Details in `docs/build-plan/phase-4/trace-deferrals.md`.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

@@ -29,13 +29,12 @@ tests:
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > lines: adjacency and the station display (PR-35) > [PR-35] the station display shows the product and batch"
 clauses:
   - clause: "Starting product Y on an unsegregated adjacent line while product X runs is blocked."
-    deferred:
-      phase: 6
-      reason: "Lines have no adjacency or segregation between them yet; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/plant-rules/room-rules.test.ts > lines: adjacency and the station display (PR-35) > [PR-35] product Y on an unsegregated adjacent line is blocked"
   - clause: "The station display shows the product and batch."
-    deferred:
-      phase: 6
-      reason: "There is no line station display yet; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/plant-rules/room-rules.test.ts > lines: adjacency and the station display (PR-35) > [PR-35] the station display shows the product and batch"
+      - "apps/tablets-server/test/alarms/plant-displays.test.ts > the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -767,6 +767,14 @@ follow if a language is added after v1.
   IN-53's clauses; every clause deferred to 6 now with passing tests (the deferral removed only when a test proves it;
   a clause still unbuildable is deferred to 7 only with its reason and listed for the owner). The phase-5 deferrals of
   shared controls (PR-26, PR-28) are handled per question 7 before the raise. `phase.yaml` to 6 last.
+  - **State 6j-a (branch `phase-6/slice-6j-a`, 16 October):** DI-31, DI-32 and DI-49 map their clauses; every clause
+    deferred to 6 (IN-01, PR-15, PR-17 x3, PR-22, PR-25, PR-27 x2, PR-29, PR-35 x2, PR-46, PR-51) names passing tests;
+    none moved to 7. IN-53 keeps 6e's mapping, `expert_decision` PENDING. Question 7 taken: the trace treats phase 5 as
+    not started while injectables is outside the gate (`deferralStarted`, a `[meta]` test); PR-26 and PR-28 unchanged.
+    PR-15's filling suite is a `deferred_scope` to 5 (D-P6b-5). `phase.yaml` stays at 4 for the integrator. Handbook
+    mermaid labels escaped (`;` as `#59;`, a second `:` as `#58;`). Owner list: IN-53 pending (question 3); PR-15
+    filling suite (question 6); PR-26 and PR-28 waiting with Injectables (question 7); DI-32's restored-archive
+    browser step on a restored database is 6j-b's (D-P6b-L-2).
 - **6j-b golden batches and browser suite:** GB-T-01 and GB-T-02 unchanged with exact outputs (adapters in stand-in
   mode); a new GB-T-03 "connected" (ERP/WMS and LMS/CMMS mirrors, OPC UA press, L3/L4 serialisation, mock recall from
   its API lot) with exact outputs; browser flows for the integration health page with a stale mirror refusal, alarm

@@ -315,6 +315,22 @@ tests:
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31][DI-32] EMS: room temperature and humidity chunks land in plant.series as received; the room conditions show the latest sample"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS feed gap alarms"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS: the soak with every fault in turn reconciles (no silent loss)"
+clauses:
+  - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
+    tests:
+      - "apps/tablets-server/test/integrations/erp-wms/contract.test.ts > the ERP/WMS adapter against its simulators (DI-31) > [DI-31] a malformed, a duplicate, an out-of-order and a wrong-batch ERP message are each refused or de-duplicated with an alarm"
+      - "packages/site-services/test/erp-wms/inbound.test.ts > faults at the receiving command (DI-31) > [DI-31] a malformed, a duplicate, an out-of-order and a wrong-batch ERP message are each refused or de-duplicated with an alarm"
+      - "packages/site-services/test/integrations/capa-qms.test.ts > the QMS mirror (DI-31; D-P6a-5, D-P6a-6) > [DI-31] a malformed, a duplicate, an out-of-order and a wrong-batch QMS deviation status are each refused or de-duplicated with an alarm"
+      - "packages/kernel/test/inbound/inbound.test.ts > platform.accept_inbound (DI-31) > [DI-31] a malformed envelope, a wrong source system and an unknown message type or version are refused and leave nothing"
+      - "packages/kernel/test/inbound/inbound.test.ts > platform.accept_inbound (DI-31) > [DI-31] a resent message is de-duplicated by its idempotency key; the same key with other content is refused"
+      - "packages/kernel/test/inbound/inbound.test.ts > platform.accept_inbound (DI-31) > [DI-31] a sequence gap and a late message are accepted with an integration alarm; a sequence number already taken is refused"
+      - "packages/kernel/test/inbound/inbound.test.ts > platform.accept_inbound (DI-31) > [DI-31] a refusal is recorded with its alarm in its own command; a person acknowledges the alarm once, with a note"
+      - "packages/site-services/test/integrations/lims-inbound.test.ts > LIMS results through the adapter (DI-31) > [DI-31] a malformed result, a wrong-batch result and a late older state are refused, recorded with an alarm, and nothing lands"
+  - clause: "Cut the link mid-transfer. No partial value lands in the record."
+    tests:
+      - "apps/tablets-server/test/integrations/erp-wms/contract.test.ts > the ERP/WMS adapter against its simulators (DI-31) > [DI-31] a link cut mid-transfer, a late answer and a feed gap leave no partial value; the message is delivered once when the link is back"
+      - "packages/kernel/test/inbound/inbound.test.ts > platform.accept_inbound (DI-31) > [DI-31] a message is committed whole or not at all: when the receiving command fails, no message and no alarm remain"
+      - "apps/site-gateway/test/journal-write-failure.test.ts > gateway journal on a failing disk (review P52) > [DI-28][DI-31] a failed append leaves no partial bytes, is alarmed and stops the journal until a restart re-verifies it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

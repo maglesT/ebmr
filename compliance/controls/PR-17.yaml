@@ -81,17 +81,17 @@ tests:
   - "packages/site-services/test/erp-wms/receipt.test.ts > a complete receipt record before issue (PR-17 clause 4) > [PR-17] a lot without a complete receipt record cannot be issued"
 clauses:
   - clause: "One delivery containing three supplier batches creates three lots."
-    deferred:
-      phase: 6
-      reason: "Receipt does not yet split a delivery into one lot per supplier batch; it comes with the Phase 6 receipt and ERP/WMS work (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/erp-wms/receipt.test.ts > one lot per supplier batch (PR-17 clause 2) > [PR-17][DI-31] one delivery with three supplier batches creates three lots"
+      - "apps/tablets-server/test/quality/receipt-routes.test.ts > receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked"
   - clause: "A supplier label naming an unapproved manufacturer blocks the lot."
-    deferred:
-      phase: 6
-      reason: "There is no approved-manufacturer register to check a supplier label against yet; it is built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/erp-wms/receipt.test.ts > the approved-manufacturer register (PR-17 clause 3) > [PR-17] an unapproved manufacturer blocks the lot"
+      - "apps/tablets-web/test/receipt/receipt.test.tsx > receipt screens (PR-17) > [PR-17] a lot from an unapproved manufacturer shows it blocked"
   - clause: "A lot with no complete receipt record cannot be issued."
-    deferred:
-      phase: 6
-      reason: "The receipt record is not yet complete (supplier and supplier lot optional; manufacturer, containers and examiner not recorded), so no completeness check gates issue; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/erp-wms/receipt.test.ts > a complete receipt record before issue (PR-17 clause 4) > [PR-17] a lot without a complete receipt record cannot be issued"
+      - "apps/tablets-server/test/quality/receipt-routes.test.ts > receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -178,3 +178,25 @@ normalised true copy are unchanged. No control text, catalog test, target phase 
 
 PR-05 "An overdue review appears on the dashboard." names its passing tests in the control file (the report view, the
 dashboard route and the dashboard screen); it is no longer deferred.
+
+## Phase 6 slice 6j-a: the Phase 6 exit trace (16 October 2026)
+
+No clause stays deferred to Phase 6. No control text, catalog test, target phase or `expert_decision` changed.
+
+- **New `clauses`:** DI-31 (malformed, duplicate, out-of-order and wrong-batch messages refused or de-duplicated with
+  an alarm; a link cut mid-transfer leaves no partial value), DI-32 (raw string equal to the display; printed ticket
+  linked; trend data from a restored archive re-rendered) and DI-49 (excursion with raise and acknowledgment times,
+  acknowledger and comment; acknowledgment without a comment refused; alarm log not deletable), each clause naming
+  the 6a and 6b tests that prove it.
+- **Deferrals to Phase 6 now mapped to passing tests:** IN-01 clause 2 and PR-51 (CAPA register, 6a), PR-17 clauses
+  1 to 3 (receipt per supplier batch, approved-manufacturer register, complete receipt record), PR-46 clause 2 (the
+  location rule), PR-15 clause 2, PR-22 clause 3, PR-25 clause 3, PR-27 clauses 2 and 3, PR-29 clause 3, PR-35
+  clauses 1 and 2 (6b plant rules and displays).
+- **IN-53** (draft, status U, `expert_decision` PENDING) keeps the clause mapping slice 6e gave it; each clause names
+  passing tests. It is left pending for the owner and the expert (question 3 of the Phase 6 plan).
+- **PR-15 clause 2** names the Tablets controlled-area tests (D-P6b-5, question 6); the filling suite itself is a
+  `deferred_scope` to phase 5, with Injectables.
+- **Phase 5 deferrals (point 2 above):** PR-26 clause 2 and PR-28 clauses 1 and 2 stay deferred to phase 5. Per
+  question 7 the trace counts a deferral to phase 5 as not started while `phase.yaml` editions leave injectables
+  out (`deferralStarted` in `tools/register/src/trace.ts`, a `[meta]` test in `tools/register/test/register.test.ts`).
+- **Moved to Phase 7:** none. The Phase 7 deferrals listed above are unchanged.

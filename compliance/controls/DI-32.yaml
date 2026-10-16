@@ -216,6 +216,20 @@ tests:
   - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] a unit's window is read page by page by chunk number and drawn once every page is in"
   - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] samples are ordered by source time across chunks and times keep every microsecond"
   - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-32] a chunk is held as received and as the checked series row; the audit trail holds the row hash only (D-P6b-A-1)"
+clauses:
+  - clause: "A weighing with direct capture stores a raw string that matches the display."
+    tests:
+      - "apps/tablets-server/test/devices/reading-proof.test.ts > P48: the database proves the signature and the raw line of every reading it stores > [DI-32] a genuinely signed reading whose raw line states another weight than its value is refused and not stored"
+      - "apps/tablets-server/test/devices/ingest.test.ts > ingestion > [DI-32] a raw line that does not state exactly the reading value is refused"
+      - "apps/tablets-server/test/devices/routes.test.ts > capture > [DI-32] a capture returns the reading as the server stored it: device, raw line, value, source time and trust"
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] an OPC UA reading stores raw output equal to the displayed value; a raw output that rounds to it is refused"
+  - clause: "A weighing with a printed ticket shows the ticket linked."
+    tests:
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] a printed ticket is linked to its weighing"
+  - clause: "Trend data from a restored archive can be re-rendered interactively."
+    tests:
+      - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] trend data from a restored archive re-renders interactively"
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] trend data are kept in native form: raw values, source timestamps and status codes as received, the chunk hash recomputed, linked to the batch and step"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
