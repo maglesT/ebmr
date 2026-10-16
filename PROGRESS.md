@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slice 6f).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slice 6c).
 
 ## What this is
 
@@ -121,6 +121,12 @@ RBE on a step only with a validation reference, support grants (two customer sig
 giver's read-only reviewer, excursion notifications, designer PPE and containment, MBR edition review, typed CPP values in
 the PQR, the India DSC with a test CA (kernel 1203, 1205) and, from the review, enrolment of the signer's own certificate
 (kernel 1206; a high fixed). The eleven 6f clauses now name their tests. Defaults D-P6f-A-*, D-P6f-B-*; residuals in the plan.
+Slice 6c (branch `phase-6/slice-6c`, 16 October, ready for PR): label templates approved by a second person (an India
+template needs every India particular), the master's 211.122(g) cut-label option gating its approval, the label store
+(recipe-core 0990, site services 0950); start, middle and end coding specimens equal to the record's coding, label
+specimens, the post-use inspection gating EXECUTION_COMPLETE, vision line stops, the reconciliation waiver (tablets
+1230); the L3 adapter, serial query, decommissioning tasks and the L3 mirror failing closed at release (tablets 1231);
+stateful L3/L4 simulator, screens. The ten 6c clauses name their tests. Defaults D-P6c-1 to 22; residuals R-6c-1 to 5.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

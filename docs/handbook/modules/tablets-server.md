@@ -1437,6 +1437,44 @@ certification and a re-confirmation; the QMS address is `EBMR_QMS_URL` (timeout 
 The QMS, LIMS, LMS and CMMS adapters are in [integrations](integrations.md#qms-lims-lms-and-cmms-adapters-phase-6-slice-6a-builder-b);
 the integrations feature starts them with the server (ts-integrations below).
 
+## ts-labels: packaging line completion and serialisation routes
+
+[features/labels](../../../apps/tablets-server/src/features/labels/index.ts) (contract [ns/labels.ts](../../../packages/api-contract/src/ns/labels.ts))
+and [features/serialisation](../../../apps/tablets-server/src/features/serialisation/index.ts) (contract
+[ns/serialisation.ts](../../../packages/api-contract/src/ns/serialisation.ts)); Phase 6 slice 6c. Every write is the
+person's own idempotent command through a definer; the views are the database's (`tab.packaging_completion_view`,
+`recipe.master_labelling`, `tab.batch_pools_view`).
+
+[Tablets 1230](../../../apps/tablets-server/sql/1230_packaging_line_completion.sql) holds the completion of a packaging
+order:
+
+- **Coding specimens (IN-16, IN-31, D-P6c-4).** A G-21 step that codes (a PRINTER device or an item flagged `coded`)
+  takes START, MIDDLE and END specimens in that order, each stating the coding read from it, which must equal the
+  record's (`tab.g21_expected_coding`: the step's batch data, else the batch number and `recipe.batch_expiry`).
+- **Label specimens (PR-16, D-P6c-5).** One per printed item; withdrawn with a reason while the step runs. The step's
+  checker signature is the check of the specimens (D-P6c-3). A row that closes the step is refused while a specimen is
+  missing or a line stop is open (EBMR-LBL-060).
+- **Post-use inspection (PR-34, D-P6c-6).** Four checks, recorded once every G-21 step is performed, verified by another
+  person (STEP.VERIFY). `a2_packaging_completion` refuses EXECUTION_COMPLETE of a batch with a G-21 step while
+  `tab.packaging_completion_problem` names a gap (a step not performed or awaiting its checker, a specimen, an open line
+  stop, no passing verified inspection; EBMR-LBL-061).
+- **Line stops (PR-36, D-P6c-7).** A printer FAULT EXPIRY_REJECTED or LINE_STOPPED on a job opens a line stop for the
+  job's step (trigger on `tab.print_event`); no print job is released for the step (EBMR-LBL-062) until QA
+  (QA.FLOOR_APPROVE) resolves it with a reason. The printer simulator's EXPIRY challenge produces both faults and stops.
+- **Template binding (D-P6c-16).** When the master declares templates for a step, a print job's layout is one of them,
+  APPROVED, and carries every print field it binds (EBMR-LBL-063).
+- **Reconciliation waiver (PR-39, D-P6c-9).** QA records it for an item declared ROLL_LABEL, or CUT_LABEL with
+  ELECTRONIC_100, with a qualifying device (a VISION or READER device of the step bound to the gateway of a job of the
+  step, with a passing challenge on such a job). It never switches the reconciliation off.
+
+The specimens and the inspection are rows of their own, not record entries, so the record head and its true copy do not
+show them yet (residual R-6c-1). The demo seed records them through these routes
+([cli/line-completion.ts](../../../apps/tablets-server/src/cli/line-completion.ts)); the golden drivers through the
+functions (`recordSpecimens`, `recordPostUseInspection` in gb-t-01/driver.ts). Tests:
+[line-completion.test.ts](../../../apps/tablets-server/test/blocks/packaging/line-completion.test.ts),
+[labels-routes.test.ts](../../../apps/tablets-server/test/labels/labels-routes.test.ts); serialisation in
+[integrations](integrations.md#serialisation-l3l4-phase-6-slice-6c).
+
 ## ts-config-change: configuration change control and RBE rules
 
 [features/config-change](../../../apps/tablets-server/src/features/config-change/) (contract

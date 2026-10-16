@@ -23,14 +23,15 @@ tests:
   - "packages/recipe-core/test/lifecycle/packaging-issue.test.ts > planning a packaging order (Phase 4 slice 2c; recipe-core 0760 to 0762) > [PR-37][IN-16] a packaging order whose master has no secondary-packaging step (TB-24 for tablets) is refused and nothing is planned; an edition with no completion block plans none"
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > a packaging master completes only through its secondary packaging step (slice 3b, recipe-core 0800) > [PR-37][IN-16] TB-24 in a sequence, a parallel branch, every branch of an alternative or a loop body completes the master; in one branch of an alternative, a replicate that may run none or a hold point only, it does not"
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [IN-16][INV-27][PR-34][L-30] two packaging records of the one bulk batch: each linked to it, each started on its own verified PACKAGING_ORDER clearance of the line, the line and its units cleaned between them"
+  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [IN-16] start, middle and end coding specimens are required, in that order, each showing the record's batch number, manufacture date and expiry; the step does not close without them"
+  - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [IN-16] the packaging page offers the next coding specimen in order and posts what the operator read off it; [PR-16] it lists every printed item without its label specimen"
 clauses:
   - clause: "run two part-batches; two linked packaging records exist,"
     tests:
       - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [IN-16][INV-27][PR-34][L-30] two packaging records of the one bulk batch: each linked to it, each started on its own verified PACKAGING_ORDER clearance of the line, the line and its units cleaned between them"
   - clause: "each with start/mid/end coding specimens."
-    deferred:
-      phase: 6
-      reason: "Only the first-print specimen is recorded; start, middle and end coding specimens are not built yet; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [IN-16] start, middle and end coding specimens are required, in that order, each showing the record's batch number, manufacture date and expiry; the step does not close without them"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

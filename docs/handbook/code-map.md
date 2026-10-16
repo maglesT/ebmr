@@ -30,7 +30,7 @@ of each database function.
 | [ss-erp](#ss-erp) | ERP masters and production orders | [modules/site-services.md](modules/site-services.md) | 5 | 0 | 1 | 3 |
 | [ss-shipping](#ss-shipping) | Manufacturer release guard, shipping interlock and after-release lot exits | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 6 |
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 17 | 0 | 8 | 26 |
-| [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 5 | 11 |
+| [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 5 | 12 |
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
 | [ss-label-store](#ss-label-store) | The label store of printed-material lots and its permission (Phase 6 slice 6c) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 0 | 0 |
@@ -38,7 +38,7 @@ of each database function.
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 18 | 0 | 19 | 36 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
-| [rc-labels](#rc-labels) | Label templates, their approval and the packaging master's labelling declaration (Phase 6 slice 6c) | [modules/recipe-core.md](modules/recipe-core.md) | 1 | 0 | 1 | 0 |
+| [rc-labels](#rc-labels) | Label templates, their approval and the packaging master's labelling declaration (Phase 6 slice 6c) | [modules/recipe-core.md](modules/recipe-core.md) | 1 | 0 | 1 | 2 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 14 | 0 | 3 | 8 |
@@ -75,9 +75,9 @@ of each database function.
 | [ts-qp-package](#ts-qp-package) | EU QP batch package and certification message intake | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 0 | 0 |
 | [ts-erp-shipping](#ts-erp-shipping) | ERP shipping interlock | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 0 | 0 | 0 |
 | [ts-records](#ts-records) | Record lock and bright stock | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 7 | 3 | 9 |
-| [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 8 | 4 |
+| [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 8 | 5 |
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
-| [ts-labels](#ts-labels) | Packaging line completion (specimens, post-use inspection, vision line stops, reconciliation waiver, label templates and store) (Phase 6 slice 6c) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 17 | 2 | 0 |
+| [ts-labels](#ts-labels) | Packaging line completion (specimens, post-use inspection, vision line stops, reconciliation waiver, label templates and store) (Phase 6 slice 6c) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 17 | 2 | 7 |
 | [ts-serialisation](#ts-serialisation) | Serialisation L3/L4 (the L3 adapter, serial query, decommissioning tasks, L3 freshness at release) (Phase 6 slice 6c) | [modules/integrations.md](modules/integrations.md) | 1 | 3 | 0 | 0 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
@@ -88,11 +88,11 @@ of each database function.
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 1 | 0 | 0 |
 | [ts-core](#ts-core) | Tablets server spine (app, platform, CLI, golden batches, seed) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 17 | 36 |
 | [tablets-web](#tablets-web) | Tablets screens shell (app, API client, devices) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 0 | 8 | 13 |
-| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 4 | 20 |
+| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 4 | 22 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
 | [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 7 | 3 |
 | [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 10 | 7 |
-| [simulators](#simulators) | Device and ERP simulators | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 9 | 2 |
+| [simulators](#simulators) | Device and ERP simulators | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 9 | 3 |
 | [ui-kit](#ui-kit) | UI kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 12 | 17 |
 | [test-kit](#test-kit) | Test kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 3 | 6 |
 | [validation-kit](#validation-kit) | Validation kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 1 | 0 |
@@ -495,7 +495,7 @@ of each database function.
 
 **Tests** (5): [lots/exit-review.test.ts](../../packages/site-services/test/lots/exit-review.test.ts), [lots/label-store.test.ts](../../packages/site-services/test/lots/label-store.test.ts), [lots/lots.test.ts](../../packages/site-services/test/lots/lots.test.ts), [lots/machine.test.ts](../../packages/site-services/test/lots/machine.test.ts), [mutation/lots-and-lims.test.ts](../../packages/site-services/test/mutation/lots-and-lims.test.ts)
 
-**Controls** (11): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-05](../../compliance/controls/IN-05.yaml), [IN-20](../../compliance/controls/IN-20.yaml), [IN-24](../../compliance/controls/IN-24.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
+**Controls** (12): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-05](../../compliance/controls/IN-05.yaml), [IN-20](../../compliance/controls/IN-20.yaml), [IN-24](../../compliance/controls/IN-24.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-32](../../compliance/controls/PR-32.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
 
 ## ss-capa-qms
 
@@ -631,6 +631,8 @@ of each database function.
 - Triggers (9): `a3_labelling_at_approval on platform.state_history`, `aa_label_field_binding_insert_only on recipe.label_field_binding`, `aa_label_field_binding_no_truncate on recipe.label_field_binding`, `aa_label_template_event_insert_only on recipe.label_template_event`, `aa_label_template_event_no_truncate on recipe.label_template_event`, `aa_label_template_insert_only on recipe.label_template`, `aa_label_template_no_truncate on recipe.label_template`, `aa_packaging_labelling_insert_only on recipe.packaging_labelling`, `aa_packaging_labelling_no_truncate on recipe.packaging_labelling`
 
 **Tests** (1): [label-templates.test.ts](../../packages/recipe-core/test/labels/label-templates.test.ts)
+
+**Controls** (2): [IN-31](../../compliance/controls/IN-31.yaml), [PR-36](../../compliance/controls/PR-36.yaml)
 
 ## rc-containers
 
@@ -1530,7 +1532,7 @@ of each database function.
 
 **Tests** (8): [tablets-server/test/integrations/adapter-startup.test.ts](../../apps/tablets-server/test/integrations/adapter-startup.test.ts), [tablets-server/test/integrations/alarm-routes.test.ts](../../apps/tablets-server/test/integrations/alarm-routes.test.ts), [tablets-server/test/integrations/contract-enums.test.ts](../../apps/tablets-server/test/integrations/contract-enums.test.ts), [tablets-server/test/integrations/erp-wms/contract.test.ts](../../apps/tablets-server/test/integrations/erp-wms/contract.test.ts), [tablets-server/test/integrations/erp-wms/soak.test.ts](../../apps/tablets-server/test/integrations/erp-wms/soak.test.ts), [tablets-server/test/integrations/feed-adapters.test.ts](../../apps/tablets-server/test/integrations/feed-adapters.test.ts), [tablets-server/test/integrations/l3-adapter.test.ts](../../apps/tablets-server/test/integrations/l3-adapter.test.ts), [tablets-web/test/integrations/integrations.test.tsx](../../apps/tablets-web/test/integrations/integrations.test.tsx)
 
-**Controls** (4): [DI-14](../../compliance/controls/DI-14.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
+**Controls** (5): [DI-14](../../compliance/controls/DI-14.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-42](../../compliance/controls/PR-42.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
 
 ## ts-capa
 
@@ -1611,6 +1613,8 @@ of each database function.
 **Screens** (6): [PackagingCompletionPage.tsx](../../apps/tablets-web/src/features/labels/PackagingCompletionPage.tsx), [SerialisationPages.tsx](../../apps/tablets-web/src/features/labels/SerialisationPages.tsx), [StorePage.tsx](../../apps/tablets-web/src/features/labels/StorePage.tsx), [TemplatesPage.tsx](../../apps/tablets-web/src/features/labels/TemplatesPage.tsx), [index.tsx](../../apps/tablets-web/src/features/labels/index.tsx), [reads.ts](../../apps/tablets-web/src/features/labels/reads.ts)
 
 **Tests** (2): [tablets-server/test/labels/labels-routes.test.ts](../../apps/tablets-server/test/labels/labels-routes.test.ts), [tablets-web/test/labels/labels.test.tsx](../../apps/tablets-web/test/labels/labels.test.tsx)
+
+**Controls** (7): [IN-16](../../compliance/controls/IN-16.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [PR-16](../../compliance/controls/PR-16.yaml), [PR-32](../../compliance/controls/PR-32.yaml), [PR-34](../../compliance/controls/PR-34.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [PR-42](../../compliance/controls/PR-42.yaml)
 
 ## ts-serialisation
 
@@ -1909,7 +1913,7 @@ of each database function.
 
 **Tests** (4): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
 
-**Controls** (20): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
+**Controls** (22): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
 
 ## expr
 
@@ -1949,7 +1953,7 @@ of each database function.
 
 **Tests** (9): [erp-wms/erp-wms.test.ts](../../apps/simulators/test/erp-wms/erp-wms.test.ts), [erp/catalogue.test.ts](../../apps/simulators/test/erp/catalogue.test.ts), [package.test.ts](../../apps/simulators/test/package.test.ts), [printer/simulator.test.ts](../../apps/simulators/test/printer/simulator.test.ts), [process/equipment-kinds.test.ts](../../apps/simulators/test/process/equipment-kinds.test.ts), [process/simulator.test.ts](../../apps/simulators/test/process/simulator.test.ts), [scale/simulator.test.ts](../../apps/simulators/test/scale/simulator.test.ts), [serialisation/stub.test.ts](../../apps/simulators/test/serialisation/stub.test.ts), [system-feed/simulators.test.ts](../../apps/simulators/test/system-feed/simulators.test.ts)
 
-**Controls** (2): [DI-31](../../compliance/controls/DI-31.yaml), [PR-42](../../compliance/controls/PR-42.yaml)
+**Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [PR-42](../../compliance/controls/PR-42.yaml)
 
 ## ui-kit
 

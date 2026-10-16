@@ -844,6 +844,35 @@ because the lesson is about structure.
 - **Lesson:** a freshness stamp written by the caller proves only that the caller called; make the database check what
   the stamp claims.
 
+### P6c-1: the adapter framework could not read an L3 refusal code (slice 6c)
+- **What went wrong.** The worker read a refusal's EBMR code with `EBMR-[A-Z]+-\d{3}`. The L3 contract's codes, fixed in
+  the 6c-0 interface, carry a digit in their module (`EBMR-L3-105`), so an aggregation mismatch was unclassified and the
+  L3 adapter stopped on it (BLOCKED) instead of recording the refusal with its alarm and moving on.
+- **Why it matters.** One mismatched aggregation would have stopped every later L3 message, the decommissioning tasks
+  among them, and let the mirror age: release would fail closed for every order, not only the one with the mismatch.
+- **Fix.** The framework reads `EBMR-[A-Z][A-Z0-9]*-\d{3}`
+  ([framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts) `ebmrCodeOf`). The test
+  `[PR-42][DI-31] the L3 adapter lands aggregations and decommissioning tasks ...` in
+  [l3-adapter.test.ts](../../apps/tablets-server/test/integrations/l3-adapter.test.ts) counts the OUT_OF_RANGE refusal
+  and needs the worker caught up with nothing stopped.
+- **Lesson:** a pattern over codes is a contract too; test it with the codes of every system, not the first ones.
+
+### P6c-2: a PostgreSQL regular expression with a bound above 255 (slice 6c, during the build)
+- **What went wrong.** Two checks of tablets 1231 used `{1,500}` in a regular expression. PostgreSQL allows at most 255
+  in a bound; the check raised "invalid repetition count(s)" at run time (the migration compiled, the function body
+  is only parsed when called).
+- **Fix.** Length is checked with `length(...) > 500` beside a `+` pattern; the rejection and receiving tests call both.
+- **Lesson:** a PL/pgSQL body is checked when it runs: every branch of a new definer needs a test that reaches it.
+
+### P6c-R1: the specimen capture showed the record's coding (slice 6c, review)
+- **What went wrong.** The packaging completion page showed the record's batch number, dates and MRP beside the form
+  where the operator types what the coding specimen shows. The database compares the typed coding with the record's,
+  but an operator could copy the value on the screen instead of reading the specimen, and the check would pass.
+- **Fix.** The capture form tells the operator to type exactly what the specimen shows and no longer shows the record's
+  coding ([PackagingCompletionPage.tsx](../../apps/tablets-web/src/features/labels/PackagingCompletionPage.tsx)); the
+  web test `[IN-16] the packaging page offers the next coding specimen ...` checks it.
+- **Lesson:** a comparison the database makes is only a check when the person cannot see the answer.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

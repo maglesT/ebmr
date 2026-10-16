@@ -880,6 +880,16 @@ statement through the local signing bridge ([access/dsc-bridge.ts](../../../apps
 the loopback endpoint) before the sign request; the ui-kit SignatureDialog shows the DSC step and the banner. Tests:
 [governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx).
 
+## Label and serialisation screens (Phase 6 slice 6c)
+
+[features/labels](../../../apps/tablets-web/src/features/labels/) on the `labels` and `serialisation` routes: the label
+template designer (record fields only; the India particulars not placed yet are listed) and QA's approval, which waits
+on the database's `approvalProblem`; the label store (transactions offered to the label store's roles only); the
+packaging completion page (coding specimens in order, typed as read off the specimen: the capture form does not show
+the record's coding, review finding P6c-R1; label specimens, withdrawal with a reason, line stops resolved by QA, the
+waiver, the post-use inspection and its verification); the serial lookup and the pools of an order with the L3
+mirror's freshness and why release waits. Tests: [labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.

@@ -298,6 +298,34 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Handbook:** `modules/integrations.md` (serialisation), `modules/recipe-core.md`, `modules/tablets-server.md`,
   `modules/tablets-web.md`, `08-defect-log.md`.
 
+- **Built (16 October 2026, branch `phase-6/slice-6c`).** Recipe-core 0990, site services 0950, tablets 1230 and 1231 as
+  [slice-6c-0-interfaces.md](slice-6c-0-interfaces.md) section 2 fixes them (plus `tab.assert_pool_rejection`, below);
+  server features `labels` and `serialisation`, the L3 adapter (SRV-L3-ADAPTER-01), the stateful L3/L4 simulator and
+  the printer's EXPIRY challenge, the screens; the clauses deferred to 6c name their tests
+  ([trace-deferrals.md](../phase-4/trace-deferrals.md)). Defaults taken while building (decision 0004):
+  - **D-P6c-18** The serial query is a plain read (a session, as every read): the L3 is asked live and
+    `tab.serial_lookup` answers from the record; no permission beyond the session, since every role that may open a
+    batch record may see its lot and expiry. Why: the floor and QA both look serials up; nothing is written.
+  - **D-P6c-19** QA's rejection of a pool is one command: QA's right and the pool are checked
+    (`tab.assert_pool_rejection`), then the L3 is asked, then its OPEN task is recorded. Why: a badge tap attributes one
+    command (INV-40), and nothing is asked of the L3 for someone who may not reject. A failed call rolls back; the L3
+    answers the same open task to a retry (the simulator opens a new task only after the last one is DONE).
+  - **D-P6c-20** In STAND_IN (the default) an L3 message is refused (WRONG_IDENTITY) and the adapter does not run, so a
+    rejected pool's task stays OPEN and the order is not released through serialisation until the site runs the L3
+    mirror. Why: a rejected pool's lot is not released anyway; the modes never mix (D-P6a-5).
+  - **D-P6c-21** The specimens, the inspection, the line stops and the waiver are rows of their own beside the record,
+    not record entries: the record head, its normalised true copy and the golden outputs stay exact (D-P6-7).
+  - **D-P6c-22** The post-use inspection is recorded once every G-21 step of the order is performed (not only when none
+    is in progress, D-P6c-6), and the latest inspection is the one that counts.
+- **Residuals (for the lead):** R-6c-1 the specimens and the post-use inspection are not in the record's true copy or
+  batch report yet (D-P6c-21; a report section, with the golden hashes taken again, after 6j); R-6c-2 D-P6c-8 (the
+  labelling declaration outside the content hash, frozen by the DRAFT rule) and D-P6c-10 (no LABEL_TEMPLATE_APPROVED
+  signing meaning) as recorded; R-6c-3 the label store's ISSUE is not linked to the G-21 ISSUE entry (D-P6c-11);
+  R-6c-4 a G-21 step whose master gives no checker signature completes without one (the master's signatures are the
+  designer's rule; PR-16 is proven where the master has a checker); R-6c-5 the GB-T-01 and GB-T-02 drivers record the
+  specimens and the inspection, but the golden job runs only on CI (libfaketime), so its first run is the check; the
+  E2E stack was not run locally (the demo seed, release-seed.test.ts, passed).
+
 ### Slice 6d: genealogy service and explorer, mock recall, distribution records
 
 - **6d-0 (lead):** `recipe.genealogy(kind text, id uuid, direction text, as_of timestamptz) returns setof

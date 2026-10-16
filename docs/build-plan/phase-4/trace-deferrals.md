@@ -159,3 +159,14 @@ clauses 2 and 3, DI-26 clause 3, PR-52 clause 2, IN-30 clause 2, IN-39 clause 2,
 standing for the CCA root, D-P6f-4; the real chain is verified at deployment), IN-27 clause 1, IN-33 clause 1 and PR-09
 clause 2. DI-08 clause 2 stays deferred to Phase 7. PR-49 clause 2 is slice 6d's. No control text, catalog test, target
 phase or `expert_decision` changed.
+
+## Phase 6 slice 6c: clauses now mapped (16 October 2026)
+
+The clauses deferred to Phase 6 for slice 6c now name their passing tests in the control files: IN-16 clause 2 (start,
+middle and end coding specimens), IN-31 clause 1 (an India-domestic template without its manufacturing date fails
+approval), PR-16 clause 1 (a withdrawn label specimen blocks the close and the completion, naming the gap), PR-32
+clause 2 (the label-store permission), PR-34 clause 2 (the post-use inspection gates EXECUTION_COMPLETE), PR-36 clauses 2
+(a vision rejection of a wrong expiry stops the line) and 3 (the 211.122(g) option of a cut-label master), PR-39 clause 2
+(no waiver without a qualifying device) and PR-42 clause 3 (the serial query). The GB-T-01 two-order test also needs the
+specimens and the inspection now (driver.ts recordSpecimens, recordPostUseInspection); the record head and its
+normalised true copy are unchanged. No control text, catalog test, target phase or `expert_decision` changed.
