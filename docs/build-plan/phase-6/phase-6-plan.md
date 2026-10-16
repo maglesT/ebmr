@@ -901,6 +901,26 @@ Decisions:
   every seal verifies under it. QA's approval of the key only limits who can bring such a key in. Federation and
   transfer seals are Priority 1 in decision 0019.
 
+#### 6j mutation campaign preparation (branch `phase-6/slice-6j-mutation`, 16 October; decision 0019)
+
+Groups, harness options, the Stryker feature table and the run plan: `docs/build-plan/phase-6/mutation-results.md`.
+
+- **D-P6j-M-1:** every Phase 6 SQL group targets 90 %. The inclusion rule of `targets.ts` admits only guards, limits,
+  signature and state checks, GMP writers and the helpers they decide on (the 90 % zone of outline 9.1); the 80 % zone
+  of decision 0019 is TypeScript and is scored per file zone by `stryker.phase6.config.mjs --summary`. The harness meta
+  test keeps requiring 90 % of every SQL group.
+- **D-P6j-M-2:** an area of decision 0019 is split into several groups where one group would pass about 500 mutants
+  (adapters 3, plant 2, packaging 2, governance 3): a group then fits in one sitting and the groups spread over clusters.
+- **D-P6j-M-3:** the report views and `recipe.change_impact` are mutated (two views carry PR-05 and DI-49; each answer
+  is exported with its hash); reads that only list, look up or format for a screen are left out, named in `LEFT_OUT`,
+  and a meta test fails on any function since the Phase 6 start that is in no group and not left out.
+- **D-P6j-M-4:** an `equivalent.json` entry applies only when the place it cites is its mutant's migration and line
+  (a re-created function renumbers its mutants). `plant.record_calibration#5` was stale after recipe-core 0950 and
+  moved to #6; 56 older entries (Phase 2 to 4 re-creations) do not fit and run as ordinary mutants until part 2
+  re-checks them (`--audit-equivalents`).
+- **D-P6j-M-5:** a unit feature (no database) runs Stryker with static mutants (`ignoreStatic: false`): the SDK's
+  contracts are module-level zod schemas, which the base setting skips, and its tests take about a second.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - 6a-0: the inbound envelope and error classes (`@ebmr/integration-sdk/adapter`), `platform.accept_inbound`,

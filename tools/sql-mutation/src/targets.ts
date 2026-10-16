@@ -17,7 +17,7 @@
  * data, or a helper whose result one of those decides on (recipe.planning_orders, a planning view, is left out). A
  * Phase 3 redefinition of a function already in a Phase 2 group left it there, with the Phase 3 test files that reach
  * the new definition added to the group.
- * The Phase 6 exit (decision 0019, part 1) added the last 15 groups, one or more per slice area of that decision
+ * The Phase 6 exit (decision 0019, part 1) added the last 14 groups, one or more per slice area of that decision
  * (adapters and mirrors: inbound-adapters-and-mirrors, erp-wms-receipt-and-stock, qms-capa-lims-cmms; equipment,
  * alarms and plant rules: equipment-data-and-alarms, plant-rules; packaging and serialisation:
  * packaging-labels-and-line-completion, serialisation-l3; genealogy and recall: genealogy-and-recall; the
@@ -25,7 +25,7 @@
  * governance-change-control, governance-support-and-contract-giver, india-dsc; reporting and training mode:
  * reporting-and-training; inter-site transfer and federation: transfer-and-federation). An area is split where one
  * group would pass about 500 mutants, so that a group's run fits in one sitting and the groups spread over clusters.
- * They hold every function the migrations of 1fec042..8331e94 and site services 0990 (slice 6j-c) add or re-create
+ * They hold every function the migrations of 1fec042..8331e94 and slice 6j-c (site services 0990, kernel 1230) add or re-create
  * that the rule above admits; a function re-created by a later Phase 6 migration sits in the group of the slice that
  * created it, with the later definition's test files added (site.erp_wms_receive, site.apply_wms_stock_move,
  * recipe.genealogy*, recipe.run_mock_recall). Phase 6 re-created eleven functions of earlier groups; they stay there,
@@ -62,15 +62,16 @@ export interface Target {
  * Functions since the Phase 6 start (kernel 1180, site services 0910, recipe-core 0940, tablets 1210) that no group
  * mutates, with the reason: reads that only list, look up or format for a screen (no refusal, check or decision).
  */
-export const LEFT_OUT: Record<string, string> = Object.fromEntries([
-  ...['plant.batch_alarms', 'plant.series_in_context', 'plant.status_board', 'plant.line_station', 'plant.room_conditions',
+const READS_FOR_A_SCREEN = 'a read for a screen or an export list; no refusal, check or decision';
+export const LEFT_OUT: Record<string, string> = Object.fromEntries(
+  ['plant.batch_alarms', 'plant.series_in_context', 'plant.status_board', 'plant.line_station', 'plant.room_conditions',
       'site.lot_current_location', 'site.lims_lot_results', 'site.transfer_hold_remaining', 'tab.packaging_completion_view',
       'tab.batch_pools_view', 'recipe.genealogy_lookup', 'recipe.genealogy_supply_chain', 'recipe.genealogy_lot_deviations',
       'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
-      'report.catalog_rows_v1'].map((f) => [f, 'a read for a screen or an export list; no refusal, check or decision']),
-]);
+      'report.catalog_rows_v1'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+);
 
 const k = (f: string) => `packages/kernel/test/${f}`;
 const r = (f: string) => `packages/recipe-core/test/${f}`;
@@ -1324,12 +1325,12 @@ export const TARGETS: Target[] = [
   },
   // ---- 6i, inter-site transfer and federation: installation keys and seals (Ed25519 in SQL), peer installations,
   //      installation alarms, federated genealogy and the mock recall across sites, transfer packages and receipts
-  //      (kernel 1220, 1221; site services 0980, 0981; recipe-core 1090-1093; tablets 1300, 1301 re-creating the signing
+  //      (kernel 1220, 1221, and 1230 of slice 6j-c refusing small-order keys, 6jc-R8; site services 0980, 0981; recipe-core 1090-1093; tablets 1300, 1301 re-creating the signing
   //      meanings and read classes). site.lot_available (0980) stays in lots-and-lims, with transfer.test.ts added. ----
   {
     group: 'transfer-and-federation',
     functions: ['platform.ed25519_le_integer', 'platform.ed25519_pow', 'platform.ed25519_add', 'platform.ed25519_double',
-                'platform.ed25519_decode', 'platform.ed25519_verify', 'platform.seal_message', 'platform.seal_valid',
+                'platform.ed25519_decode', 'platform.ed25519_verify', 'platform.ed25519_small_order', 'platform.seal_message', 'platform.seal_valid',
                 'platform.current_installation', 'platform.trusted_peer', 'platform.own_seal_valid', 'platform.peer_seal_valid',
                 'platform.raw_public_key', 'platform.set_installation_identity', 'platform.propose_peer_installation',
                 'platform.peer_installation_state', 'platform.peer_installation_content', 'platform.approve_peer_installation',
