@@ -13,7 +13,7 @@
 --   CONTROLLED.REGISTER  runs the register export (QA reviewer, head of QC, authorised person, warehouse).
 -- Meanings: CONTROLLED_PRODUCT_APPROVED (approver, never the recorder), CONTROLLED_CUSTODY_RECORDED (the first custodian),
 -- CONTROLLED_CUSTODY_COUNTERSIGNED (witness class: never the first custodian or the proposer, independent of the first
--- signature), CONTROLLED_BALANCE_SIGNED (supervisor). IN-53 joins the names a test run may cite (recipe.engine_name).
+-- signature; as DESTRUCTION_WITNESSED of 0840 it is not a kernel witness-window signature: the custody act is the record), CONTROLLED_BALANCE_SIGNED (supervisor). IN-53 joins the names a test run may cite (recipe.engine_name).
 
 set local role ebmr_owner;
 
@@ -51,7 +51,7 @@ values
    array['CONTROLLED.CUSTODY'], '{}', false, false, false, 'ALL_COMPONENTS', false, 'IN-53 (draft, NDPS not verified); outline decision 14'),
   ('CONTROLLED_CUSTODY_COUNTERSIGNED', 1, 'VENDOR', true, 'ACTIVE', 'VERIFICATION', 'WITNESS', 'Controlled API custody countersigned',
    'As the second custodian and witness, I saw the quantity of the controlled API lot shown handed over, dispensed or destroyed as recorded.',
-   array['CONTROLLED.CUSTODY'], array['CONTROLLED_CUSTODY_RECORDED'], true, false, true, 'ALL_COMPONENTS', false, 'IN-53 (draft, NDPS not verified); outline decision 14'),
+   array['CONTROLLED.CUSTODY'], array['CONTROLLED_CUSTODY_RECORDED'], true, false, false, 'ALL_COMPONENTS', false, 'IN-53 (draft, NDPS not verified); outline decision 14'),
   ('CONTROLLED_BALANCE_SIGNED', 1, 'VENDOR', true, 'ACTIVE', 'BATCH_RECORD', 'SUPERVISOR', 'Controlled API account signed',
    'I confirm the account of the controlled API of this batch at this yield checkpoint, and the explanation and deviation of any difference.',
    array['CONTROLLED.BALANCE'], '{}', false, false, false, 'ALL_COMPONENTS', false, 'IN-53 (draft, NDPS not verified); outline decision 14');

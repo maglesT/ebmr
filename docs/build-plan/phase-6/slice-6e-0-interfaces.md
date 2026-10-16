@@ -70,7 +70,7 @@ export with the banner "Draft: NDPS rules not verified".
 
 ## 5. Tests (titles fixed; control id in each)
 
-DB (`packages/recipe-core/test/controlled/controlled.test.ts`, as the application role with bypass attempts):
+DB (`packages/site-services/test/controlled/controlled.test.ts`: it needs real lots, reservations and consumptions, which the site lot test world provides; as the application role with bypass attempts):
 `[IN-53] dispensing a controlled API with one person is refused`, `[IN-53] a yield checkpoint with an unexplained
 difference of the controlled API is refused`, `[IN-53] destruction of controlled rejects without a witness is refused`,
 `[IN-53] the register export is reproducible (same hash)`, `[IN-53] an unflagged product is unaffected`, plus the flag
