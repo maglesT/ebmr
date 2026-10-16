@@ -18,7 +18,7 @@ import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.t
 import { signWithCeremony } from '../../fixtures/floor.ts';
 import { gmpKiosk, officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
-import { ensureChangeRecord, withDb } from './support.ts';
+import { ensureChangeRecord, fixture, lotState, withDb } from './support.ts';
 
 const BANNER = 'Draft: NDPS rules not verified (IN-53, status U)';
 
@@ -40,10 +40,7 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
   const lot = { id: randomUUID(), code: `L-CTL-E2E-${tag}` };
   const changeRecord = await withDb(e2e, 'GMP', async (db, seed) => {
     const cr = await ensureChangeRecord(db);
-    const c = await db.admin.connect();
-    try {
-      await c.query('begin');
-      await c.query('set local session_replication_role = replica');
+    await fixture(db, seed, 'controlled material and lot', async (c) => {
       const who = randomUUID();
       await c.query(
         `insert into site.erp_material (material_code, material_name, material_kind, unit, erp_reference, received_by_person, received_by_account, correlation_id)
@@ -56,13 +53,8 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
          values ($1, $2, $3, $4, 'Controlled API (E2E)', 'API', 10, 'kg', '2030-01-01T00:00:00Z', $5, $5, $5)`,
         [lot.id, seed.siteCode, lot.code, material, who],
       );
-      await c.query('commit');
-    } catch (e) {
-      await c.query('rollback');
-      throw e;
-    } finally {
-      c.release();
-    }
+      await lotState(c, lot.id);
+    });
     return cr;
   });
 

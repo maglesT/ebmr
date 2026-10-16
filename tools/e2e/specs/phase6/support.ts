@@ -15,8 +15,9 @@
  * DEMO-ONLY credentials and data; every name is unique per run.
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
-import { openDatabase, passwordActor, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
+import type pg from 'pg';
+import { identity, toDbContext, withCommand, type ActorContext } from '@ebmr/kernel';
+import { openDatabase, openPersonaSession, passwordActor, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
 import type { E2eWorld } from '../../fixtures/index.ts';
 
 export type Installation = 'GMP' | 'SANDBOX';
@@ -241,4 +242,34 @@ export async function occupancyWindow(db: DatabaseHandle, batchId: string, room:
   const r = rows[0];
   if (!r) throw new Error(`batch ${batchId} never occupied ${room}`);
   return { fromUs: BigInt(r.from_us), toUs: BigInt(r.to_us) };
+}
+
+/**
+ * Rows only the receipt or ERP paths write, arranged as the server tests arrange them (the superuser with triggers off),
+ * inside a command of the demo set's stores person (persona set 0, which no E2E worker signs in as), so the audit trail
+ * and the state engine see a validated actor. Every foreign key is kept, so the database still restores from its backup;
+ * a lot gets its state as a receipt gives it (`lotState`).
+ */
+export async function fixture<T>(db: DatabaseHandle, seed: SiteSeed, label: string, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+  const actor = await openPersonaSession(db, seed, 'stores');
+  const c = await db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(because(actor, `E2E fixture: ${label}`)))]);
+    await c.query('set local session_replication_role = replica');
+    const out = await work(c);
+    await c.query('commit');
+    return out;
+  } catch (e) {
+    await c.query('rollback');
+    throw e;
+  } finally {
+    c.release();
+    await identity.endSession(db.app, actor.sessionId);
+  }
+}
+
+/** A lot's state row and its history, as a received lot starts (the material-lot machine's first state). */
+export async function lotState(c: pg.PoolClient, lotId: string): Promise<void> {
+  await c.query("select platform.create_aggregate_state('material_lot', 'material_lot', $1)", [lotId]);
 }

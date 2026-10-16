@@ -17,7 +17,7 @@ import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.t
 import { officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 import type { E2eWorld } from '../../fixtures/index.ts';
-import { withDb } from './support.ts';
+import { fixture, lotState, withDb } from './support.ts';
 
 interface Chain {
   ids: { api: string; batch: string; lot: string; shipments: [string, string] };
@@ -47,11 +47,8 @@ async function arrangeChain(e2e: E2eWorld, family: { familyId: string; productCo
     ids: { api: randomUUID(), batch: randomUUID(), lot: randomUUID(), shipments: [randomUUID(), randomUUID()] },
     codes: { api: `API-E2E-${tag}`, batch: `GN-E2E-${tag}`, shipments: [`SH-E2E-${tag}-1`, `SH-E2E-${tag}-2`], consignees: [`CUST-E2E-${tag}-1`, `CUST-E2E-${tag}-2`] },
   };
-  await withDb(e2e, 'GMP', async (db, seed) => {
-    const c = await db.admin.connect();
-    try {
-      await c.query('begin');
-      await c.query('set local session_replication_role = replica');
+  await withDb(e2e, 'GMP', (db, seed) =>
+    fixture(db, seed, 'genealogy chain', async (c) => {
       const { ids, codes } = chain;
       await c.query(
         `with a as (insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, supplier, supplier_lot, received_quantity, unit, expires_at,
@@ -88,14 +85,9 @@ async function arrangeChain(e2e: E2eWorld, family: { familyId: string; productCo
           [id, no, ids.lot, code, name, address, qty, `DN-${no}`, codes.batch, randomUUID()],
         );
       }
-      await c.query('commit');
-    } catch (e) {
-      await c.query('rollback');
-      throw e;
-    } finally {
-      c.release();
-    }
-  });
+      for (const lot of [ids.api, ids.lot]) await lotState(c, lot);
+    }),
+  );
   return chain;
 }
 

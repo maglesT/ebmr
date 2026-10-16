@@ -14,7 +14,9 @@ import { randomBytes } from 'node:crypto';
 import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.ts';
 import { tapBadge } from '../../fixtures/floor.ts';
 import { gmpKiosk } from '../../fixtures/slice6.ts';
-import { administration, endSessions, envelope, occupancyWindow, receive, registerAdapter, withDb } from './support.ts';
+import { withCommand } from '@ebmr/kernel';
+import { freshTap, openPersonaSession } from '@ebmr/test-kit';
+import { administration, because, endSessions, envelope, occupancyWindow, receive, registerAdapter, withDb } from './support.ts';
 
 test('[DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknowledged at the kiosk with the action taken and the comment a GMP-critical alarm needs, and shows so in the batch\'s alarm log @office', async ({ browser, e2e, officePage, persona, evidence }) => {
   const { batchId, batchNumber } = JSON.parse(readFileSync(join(e2e.state.keysDir, 'gmp-review-batch.json'), 'utf8')) as { batchId: string; batchNumber: string };
@@ -36,52 +38,64 @@ test('[DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknow
   expect(raised).toMatchObject({ outcome: 'ACCEPTED' });
   const alarmId = String(raised['alarmId']);
 
-  const operator = persona('GMP', 'operator1');
-  const kiosk = await gmpKiosk(browser, e2e, 'KIOSK-DISP-1');
-  await signIn.kiosk(kiosk, operator);
-  const action = 'Dehumidifier checked and restarted; RH back below 60 %RH within 5 min';
-  const comment = 'Materials of the batch were in closed containers throughout the excursion';
+  try {
+    const operator = persona('GMP', 'operator1');
+    const kiosk = await gmpKiosk(browser, e2e, 'KIOSK-DISP-1');
+    await signIn.kiosk(kiosk, operator);
+    const action = 'Dehumidifier checked and restarted; RH back below 60 %RH within 5 min';
+    const comment = 'Materials of the batch were in closed containers throughout the excursion';
 
-  await evidence.step('The operator opens the plant alarms at the DISP-1 kiosk', 'The EMS alarm of DISP-1 is open, GMP-critical, with its reading against the limit and the batch it is bound to', async () => {
-    await kiosk.goto(`${e2e.url('GMP')}/alarms`);
-    await expect(kiosk.getByRole('heading', { name: 'Plant alarms', level: 1 })).toBeVisible();
-    const row = kiosk.getByTestId(`alarm-${alarmId}`);
-    await expect(row).toHaveAttribute('data-gmp-critical', 'true');
-    await expect(row).toContainText(`EMS RH_HIGH: ${message}`);
-    await expect(row).toContainText('61.2 %RH against High limit 60.0 %RH');
-    await expect(row).toContainText('Not cleared');
-    await expect(row).toContainText(batchNumber);
-    return { gmpCritical: await row.getAttribute('data-gmp-critical') };
-  }, kiosk);
+    await evidence.step('The operator opens the plant alarms at the DISP-1 kiosk', 'The EMS alarm of DISP-1 is open, GMP-critical, with its reading against the limit and the batch it is bound to', async () => {
+      await kiosk.goto(`${e2e.url('GMP')}/alarms`);
+      await expect(kiosk.getByRole('heading', { name: 'Plant alarms', level: 1 })).toBeVisible();
+      const row = kiosk.getByTestId(`alarm-${alarmId}`);
+      await expect(row).toHaveAttribute('data-gmp-critical', 'true');
+      await expect(row).toContainText(`EMS RH_HIGH: ${message}`);
+      await expect(row).toContainText('61.2 %RH against High limit 60.0 %RH');
+      await expect(row).toContainText('Not cleared');
+      await expect(row).toContainText(batchNumber);
+      return { gmpCritical: await row.getAttribute('data-gmp-critical') };
+    }, kiosk);
 
-  await evidence.step('Acknowledge it with the action taken, the comment and the operator\'s badge tap', 'Without the comment the act stays disabled; with it, the alarm is acknowledged by the operator and leaves the open list', async () => {
-    const row = kiosk.getByTestId(`alarm-${alarmId}`);
-    await row.getByRole('button', { name: 'Acknowledge', exact: true }).click();
-    const dialog = kiosk.getByRole('dialog', { name: 'Acknowledge RH_HIGH' });
-    await dialog.getByRole('textbox', { name: /^Action taken/ }).fill(action);
-    const send = dialog.getByRole('button', { name: 'Acknowledge the alarm' });
-    await expect(send).toBeDisabled();
-    await dialog.getByRole('textbox', { name: /^Comment \(required: GMP-critical alarm\)/ }).fill(comment);
-    await expect(send).toBeEnabled();
-    await send.click();
-    await tapBadge(kiosk, operator);
-    await expect(dialog).toHaveCount(0);
-    await expect(row).toHaveCount(0);
-  }, kiosk);
-  expect(await cspViolations(kiosk)).toEqual([]);
-  await kiosk.context().close();
+    await evidence.step('Acknowledge it with the action taken, the comment and the operator\'s badge tap', 'Without the comment the act stays disabled; with it, the alarm is acknowledged by the operator and leaves the open list', async () => {
+      const row = kiosk.getByTestId(`alarm-${alarmId}`);
+      await row.getByRole('button', { name: 'Acknowledge', exact: true }).click();
+      const dialog = kiosk.getByRole('dialog', { name: 'Acknowledge RH_HIGH' });
+      await dialog.getByRole('textbox', { name: /^Action taken/ }).fill(action);
+      const send = dialog.getByRole('button', { name: 'Acknowledge the alarm' });
+      await expect(send).toBeDisabled();
+      await dialog.getByRole('textbox', { name: /^Comment \(required: GMP-critical alarm\)/ }).fill(comment);
+      await expect(send).toBeEnabled();
+      await send.click();
+      await tapBadge(kiosk, operator);
+      await expect(dialog).toHaveCount(0);
+      await expect(row).toHaveCount(0);
+    }, kiosk);
+    expect(await cspViolations(kiosk)).toEqual([]);
+    await kiosk.context().close();
 
-  const qa = await officePage('GMP', 'PC-QA-01');
-  await signIn.office(qa, persona('GMP', 'qaInvestigator'));
-  await evidence.step('QA opens the review of the batch', 'The batch\'s alarm log lists the alarm with its source times and the acknowledgment: who, the action taken and the comment', async () => {
-    await qa.goto(`${e2e.url('GMP')}/review/${batchId}`);
-    const log = qa.getByTestId('batch-alarm-log');
-    await expect(log.getByRole('heading', { name: 'Alarm log of the batch' })).toBeVisible();
-    const row = log.getByTestId(`batch-alarm-${alarmId}`);
-    await expect(row).toContainText(`EMS DISP-1 RH_HIGH: ${message}`);
-    await expect(row.getByTestId(`ack-${alarmId}`)).toContainText(`${operator.legalName}: ${action}. Comment: ${comment}`);
-    await axe.check(qa);
-    return { acknowledgedBy: operator.legalName };
-  }, qa);
-  expect(await cspViolations(qa)).toEqual([]);
+    const qa = await officePage('GMP', 'PC-QA-01');
+    await signIn.office(qa, persona('GMP', 'qaInvestigator'));
+    await evidence.step('QA opens the review of the batch', 'The batch\'s alarm log lists the alarm with its source times and the acknowledgment: who, the action taken and the comment', async () => {
+      await qa.goto(`${e2e.url('GMP')}/review/${batchId}`);
+      const log = qa.getByTestId('batch-alarm-log');
+      await expect(log.getByRole('heading', { name: 'Alarm log of the batch' })).toBeVisible();
+      const row = log.getByTestId(`batch-alarm-${alarmId}`);
+      await expect(row).toContainText(`EMS DISP-1 RH_HIGH: ${message}`);
+      await expect(row.getByTestId(`ack-${alarmId}`)).toContainText(`${operator.legalName}: ${action}. Comment: ${comment}`);
+      await axe.check(qa);
+      return { acknowledgedBy: operator.legalName };
+    }, qa);
+    expect(await cspViolations(qa)).toEqual([]);
+  } finally {
+    // A failed run must not leave the batch's review blocked by an alarm without disposition (DI-49 gate): the demo set's
+    // operator acknowledges what this run raised, if the flow did not get that far.
+    await withDb(e2e, 'GMP', async (db, seed) => {
+      if ((await db.admin.query('select 1 from plant.alarm_ack where alarm_id = $1', [alarmId])).rowCount !== 0) return;
+      const op = await openPersonaSession(db, seed, 'operator1');
+      await withCommand(db.app, { ...because(op, 'E2E clean-up of a failed run'), authEventId: await freshTap(db, seed, 'operator1') }, (c) =>
+        c.query('select plant.acknowledge_alarm($1, $2, $3, null)', [alarmId, 'E2E clean-up after a failed run', 'The flow failed before its own acknowledgment']));
+      await endSessions(db, op);
+    });
+  }
 });
