@@ -93,12 +93,14 @@ describe('the OPC UA equipment simulator', () => {
       await sim.setFault('RELOCATED', true);
       expect((await read('_endpoint/location')).value.value).toBe('RM-COMP-1-ELSEWHERE');
       await sim.setFault('RELOCATED', false);
-      const before = await read('PRESS-01/force.main_kN');
+      // A tick may publish once more between a read and the fault, so the frozen value's source time is compared with
+      // the moment the fault began: it is that last value's old time, never a time after the freeze.
+      const faultAt = Date.now();
       await sim.setFault('STALE_VALUE', true);
       await new Promise((r) => setTimeout(r, 300));
       const stale = await read('PRESS-01/force.main_kN');
       expect(stale.statusCode.value.toString(16)).toBe('40900000');
-      expect(stale.sourceTimestamp?.getTime()).toBeLessThanOrEqual(before.sourceTimestamp?.getTime() ?? 0);
+      expect(stale.sourceTimestamp?.getTime() ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(faultAt);
       await sim.setFault('STALE_VALUE', false);
       await sim.setFault('EXCURSION', true);
       await new Promise((r) => setTimeout(r, 300));
