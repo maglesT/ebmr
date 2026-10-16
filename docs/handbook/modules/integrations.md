@@ -347,6 +347,41 @@ next start; meanwhile the database refuses a message for a STAND_IN data class);
 class, so its adapter starts when it is configured and the site runs any data class in MIRROR (a wholly STAND_IN site
 starts none); D-P6a-I-3 every receiving command carries the source's reason, including the insert-only ERP/WMS ones.
 
+## Serialisation L3/L4 (Phase 6, slice 6c)
+
+The site's L3 serialisation system reaches the eBMR two ways (PR-42; [slice-6c-0-interfaces.md](../../build-plan/phase-6/slice-6c-0-interfaces.md)):
+
+- **Direct calls (Phase 3 pool path, kept).** The server requests a pool, sends serial state events and fetches the
+  hashed pool report ([execution/serialisation.ts](../../../apps/tablets-server/src/features/execution/serialisation.ts),
+  tablets 0952). A pool whose answer carries fewer distinct serials than asked (the simulator's DUPLICATE_SERIAL fault)
+  is refused (EBMR-EXE-297) and nothing is recorded.
+- **The L3 adapter (slice 6c).** A `FeedAdapterSpec` ([adapters/l3](../../../apps/tablets-server/src/features/integrations/adapters/l3/index.ts),
+  terminal SRV-L3-ADAPTER-01, role SERVICE_ACCOUNT) on the 6a worker framework pulls `l3.aggregation` and
+  `l3.decommission_task` (contract [systems/l3.ts](../../../packages/integration-sdk/src/adapter/systems/l3.ts)) into
+  `tab.receive_l3_message` ([tablets 1231](../../../apps/tablets-server/sql/1231_serialisation_l3_l4.sql)). Its
+  heartbeat keeps the blocking mirror class L3_SERIAL_STATUS fresh (bound 3600 s; STAND_IN by default, D-P6c-12).
+
+| Message | Applied | Refused |
+|---|---|---|
+| `l3.aggregation` | a `tab.l3_aggregation` row: packs of a pool aggregated into a shipper SSCC the record holds (a TB-24 SHIPPER entry) | WRONG_IDENTITY (STAND_IN, unknown pool, a parent that is no shipper of the order), OUT_OF_RANGE (a count other than the shipper's packs: the aggregation mismatch), STALE (older than an aggregation of the same shipper), MALFORMED |
+| `l3.decommission_task` | a `tab.l3_decommission_task` state (OPEN, DONE) | WRONG_IDENTITY (unknown pool, another packaging order), OUT_OF_RANGE (more serials than the pool), STALE, MALFORMED |
+
+The framework reads the EBMR code of a refusal with a digit in its module too (`EBMR-L3-105`; defect P6c-1). The
+release item E.RECONCILIATION_SERIAL (`tab.grel_recon_serial`, re-created) adds `tab.l3_release_problem`: an OPEN
+decommissioning task of a pool of the order, and in MIRROR mode a stale L3 mirror, keep it red (fails closed, outline
+4.6). QA's rejection of a pool (route `serialisation.rejectPool`, one command: `tab.assert_pool_rejection`, the L3's
+reject call, `tab.record_pool_rejection`) records the L3's OPEN task; its DONE comes through the adapter (D-P6c-14). The
+serial query (`serialisation.serial`) asks the L3 live and answers with the record's lot (the order's batch number) and
+expiry (`recipe.batch_expiry`); an L3 lot, expiry, GTIN or packaging order that differs is listed in `problems`, never
+shown as the answer (D-P6c-13, `tab.serial_lookup`).
+
+The simulator ([serialisation/](../../../apps/simulators/src/serialisation/)) is stateful L3/L4: pools, events,
+reports, a serial query with an optional per-pool profile (lot, expiry), aggregations and decommissioning tasks on its
+own feed under `/l3/v1` (feed, heartbeat, reconciliation), faults MISSING_EVENTS, DUPLICATE_SERIAL, STALE_REPORT and
+AGGREGATION_MISMATCH plus the feed's DUPLICATE, OUT_OF_ORDER, MALFORMED, WRONG_BATCH and STALE_VALUE. Tests:
+[l3-adapter.test.ts](../../../apps/tablets-server/test/integrations/l3-adapter.test.ts) (GMP server whose L3 is the
+simulator; the period reconciles, no silent loss).
+
 ## site-gateway: the equipment gateway
 
 ### Start, identity and gateway keys

@@ -398,3 +398,28 @@ export async function granulation(g: GoldenBatch, plan: GranulationPlan): Promis
   await g.closeStage('S-GRAN@');
   await g.release([UNITS.RMG.code, UNITS.FBD.code, 'GRAN-1']);
 }
+
+/**
+ * Phase 6 slice 6c (tablets 1230; IN-16, PR-16): the specimens of G-21 step `stepKey` while it runs, by `persona` in its
+ * own session: START, MIDDLE and END coding specimens showing the record's coding (when the step codes) and a label
+ * specimen of each printed item. They are rows of their own, not record entries, so the record head (and its normalised
+ * true copy) is unchanged.
+ */
+export async function recordSpecimens(g: GoldenBatch, stepKey: string, items: readonly string[], persona = 'operator2'): Promise<void> {
+  const view = await dbAs<{ steps: { stepKey: string; coding: boolean; expectedCoding: Record<string, string> | null }[] }>(g.w, g.b(persona), persona, 'select tab.packaging_completion_view($1) as r', [g.batchId]);
+  const step = view.steps.find((s) => s.stepKey === stepKey);
+  if (!step) throw new Error(`${stepKey} is no printed-materials step of ${g.batchNumber}`);
+  if (step.coding) {
+    for (const position of ['START', 'MIDDLE', 'END']) {
+      await dbAs(g.w, g.b(persona), persona, 'select tab.record_coding_specimen($1, $2, $3, $4::jsonb) as r', [g.batchId, stepKey, position, JSON.stringify(step.expectedCoding)]);
+    }
+  }
+  for (const item of items) await dbAs(g.w, g.b(persona), persona, 'select tab.record_label_specimen($1, $2, $3, null) as r', [g.batchId, stepKey, item]);
+}
+
+/** Phase 6 slice 6c (tablets 1230; PR-34): the post-use inspection of the line, passed, verified by another person. */
+export async function recordPostUseInspection(g: GoldenBatch, persona = 'operator2', verifier = 'verifier1'): Promise<void> {
+  const checks = { noPrintedMaterial: true, noProduct: true, noDocuments: true, lineClean: true };
+  const id = await dbAs<string>(g.w, g.b(persona), persona, 'select tab.record_post_use_inspection($1, $2::jsonb, null) as r', [g.batchId, JSON.stringify(checks)]);
+  await dbAs(g.w, g.b(verifier), verifier, 'select tab.verify_post_use_inspection($1) as r', [id]);
+}

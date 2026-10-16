@@ -24,6 +24,7 @@ import * as quality from '../features/quality/index.tsx';
 import * as records from '../features/records/index.tsx';
 import * as pqr from '../features/pqr/index.tsx';
 import * as capa from '../features/capa/index.tsx';
+import * as labels from '../features/labels/index.tsx';
 import * as config from '../features/config/index.tsx';
 import * as dashboards from '../features/dashboards/index.tsx';
 import * as genealogy from '../features/genealogy/index.tsx';
@@ -54,6 +55,7 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['archive', archive satisfies WebFeature],
   ['india', india satisfies WebFeature],
   ['capa', capa satisfies WebFeature],
+  ['labels', labels satisfies WebFeature],
   ['config', config satisfies WebFeature],
   ['governance', governance satisfies WebFeature],
   ['integrations', integrations satisfies WebFeature],

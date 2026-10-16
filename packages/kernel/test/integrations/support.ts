@@ -13,7 +13,7 @@ import type { TestDatabase } from '../support/db.ts';
 import { testActor } from '../identity/helpers.ts';
 import { SEED_SITE, SEED_ZONE, seedAdministration, withReason, type SeededActor } from '../identity/seed.ts';
 
-export type SourceSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'OPCUA' | 'EMS';
+export type SourceSystem = 'QMS' | 'LIMS' | 'LMS' | 'CMMS' | 'OPCUA' | 'EMS' | 'L3';
 
 export interface TestAdapter {
   system: SourceSystem;

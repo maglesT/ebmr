@@ -281,6 +281,23 @@ export {
 } from './ns/transfers.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
+export {
+  CodedData,
+  CutLabelOption,
+  LABEL_BINDINGS,
+  LabelBinding,
+  LabelForm,
+  LabelLayout,
+  LabelScope,
+  LabelStoreView,
+  LabelTemplateStatus,
+  LabelTemplateView,
+  MasterLabellingView,
+  PackagingCompletionView,
+  SpecimenPosition,
+  StoreTransactionKind,
+} from './ns/labels.ts';
+export { BatchPoolsView, L3MirrorView, SerialLookupView, SerialStatus } from './ns/serialisation.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
 export { ContractGiverAccessView, ContractGiverBatchView, ContractGiverRecordView, SupportAccountView, SupportGrantState, SupportGrantView } from './ns/support.ts';
 export {

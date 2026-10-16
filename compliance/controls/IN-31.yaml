@@ -32,11 +32,18 @@ tests:
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the H2 payload (recipe-core 0894, recipe.h2_payload, recipe.h2_payload_problem) > [IN-31] a value the payload cannot carry is refused: none, one that is not printable text, one with ; or ="
   - "packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts > the H2 payload (recipe-core 0894, recipe.h2_payload, recipe.h2_payload_problem) > [IN-31] an unknown batch has no payload; a payload computed now that was never issued fails although an earlier payload of the batch was issued"
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period"
+  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-36][IN-31] a print job carries an approved label template the master names for its step, with every record field the template binds (D-P6c-16)"
+  - "apps/tablets-server/test/labels/labels-routes.test.ts > labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer"
+  - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [IN-31] a draft India template shows why it cannot be approved (the database's words) and QA's approve button waits; the designer's screen names the India particulars not placed yet"
+  - "packages/api-contract/test/contract.test.ts > route table > [IN-31][PR-36] the labels and serialisation namespaces (Phase 6 slice 6c) are GMP only, each route with an example, reads plain and commands FRESH_ON_SHARED; a template layout binds record fields only (D-P6c-2)"
+  - "packages/recipe-core/test/labels/label-templates.test.ts > label templates (recipe-core 0990) > [IN-31] an India-domestic template without a manufacturing-date field fails approval; with every India particular a second person approves it, never its designer"
+  - "packages/recipe-core/test/labels/label-templates.test.ts > label templates (recipe-core 0990) > [IN-31] a template for India cannot call itself an export label, and an export label has no India particulars to bind; an author never approves a template"
+  - "packages/recipe-core/test/labels/label-templates.test.ts > label templates (recipe-core 0990) > [IN-31] a template holds layout and record-field bindings only: a value, an unknown field, or a designer without LABEL.DESIGN is refused (D-P6c-2)"
 clauses:
   - clause: "load an India-domestic template without a manufacturing-date field; approval fails."
-    deferred:
-      phase: 6
-      reason: "There is no label template with its own fields to approve (print data always carries the record's dates), so no template approval can fail; label templates come in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/labels/label-templates.test.ts > label templates (recipe-core 0990) > [IN-31] an India-domestic template without a manufacturing-date field fails approval; with every India particular a second person approves it, never its designer"
+      - "apps/tablets-server/test/labels/labels-routes.test.ts > labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer"
   - clause: "Print an expiry one month off; the coding check fails."
     tests:
       - "apps/tablets-server/test/blocks/packaging/db-guards.test.ts > G-21 in the database (recipe-core 0580 to 0582, tablets 0950 to 0952) > [PR-36][IN-31][PR-35][IN-16][PR-42] a print job carries only the record's data, bound to the packaging order and artwork set the line runs; the gateway's echo must equal it or the load is refused; the first print is approved by another person than the one who released the job; a batch-data change voids the job and holds the output since the last good check (L-29)"

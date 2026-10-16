@@ -15,6 +15,10 @@
  *    the fault (FAULT READER_FAIL, then READER_FAIL_CLEARED);
  *  - JOB_MISMATCH: a job loaded while it is on is held with the expiry one year later than sent, so its echo differs;
  *  - STALE: the controller freezes: no scan, no print, no event, the status as it was.
+ *
+ * Challenge EXPIRY (Phase 6 slice 6c, PR-36, D-P6c-7): a test unit printed with the expiry one month off the job's is
+ * put on the line; the vision system rejects it, the printer logs FAULT EXPIRY_REJECTED and FAULT LINE_STOPPED and the
+ * line stops (its reject interlock). The gateway carries both faults to the eBMR, which opens a line stop.
  */
 import type { PrintFields, SimPrinterEvent, SimPrinterEventKind, SimPrinterJob } from '@ebmr/integration-sdk/printer';
 import { SIM_EVENTS_MAX } from '@ebmr/integration-sdk/printer';
@@ -185,10 +189,17 @@ export class PrinterModel {
 
   /** A challenge of the code reader or the vision system with a known-bad test unit: PASS when it is rejected as it must be. */
   challenge(target: string): PrinterActionResult<'PASS' | 'FAIL'> {
-    if (target !== 'READER' && target !== 'VISION') return { ok: false, error: 'BAD_TARGET', message: `${target} is not READER or VISION` };
+    if (target !== 'READER' && target !== 'VISION' && target !== 'EXPIRY') return { ok: false, error: 'BAD_TARGET', message: `${target} is not READER, VISION or EXPIRY` };
     if (this.faults.has('STALE')) return { ok: false, error: 'STALE', message: 'the controller does not respond' };
     this.integrate();
     if (!this.job) return { ok: false, error: 'NO_JOB', message: 'a challenge runs on a loaded job' };
+    if (target === 'EXPIRY') {
+      // The vision system reads another expiry than the job's on the test unit: rejected, and the line stops.
+      this.record(this.job.jobId, 'FAULT', 'EXPIRY_REJECTED');
+      this.record(this.job.jobId, 'FAULT', 'LINE_STOPPED');
+      this.running = false;
+      return { ok: true, value: 'PASS' };
+    }
     const result = target === 'READER' && this.faults.has('READER_FAIL') ? 'FAIL' : 'PASS';
     this.record(this.job.jobId, 'CHALLENGE_RESULT', result);
     return { ok: true, value: result };

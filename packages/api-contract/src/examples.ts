@@ -59,6 +59,8 @@ import pr from '../fixtures/plant-rules.json' with { type: 'json' };
 import eqd from '../fixtures/equipment-data.json' with { type: 'json' };
 import cp from '../fixtures/capa.json' with { type: 'json' };
 import cfg from '../fixtures/config.json' with { type: 'json' };
+import lb from '../fixtures/labels.json' with { type: 'json' };
+import sr from '../fixtures/serialisation.json' with { type: 'json' };
 import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
@@ -375,6 +377,32 @@ export const EXAMPLES = {
   'config-set-setting': { schema: r.config.setSetting.response, data: { ...cfg.setting, value: 'MIRROR' }, routeId: r.config.setSetting.id },
   'config-rbe-rules': { schema: r.config.rbeRules.response, data: { rules: cfg.rules }, routeId: r.config.rbeRules.id },
   'config-set-rbe-rule': { schema: r.config.setRbeRule.response, data: cfg.rules[0], routeId: r.config.setRbeRule.id },
+  // Phase 6 slice 6c: label templates, labelling declarations, the label store, the packaging order's completion evidence.
+  'labels-bindings': { schema: r.labels.bindings.response, data: lb.bindings, routeId: r.labels.bindings.id },
+  'labels-templates': { schema: r.labels.templates.response, data: lb.templates, routeId: r.labels.templates.id },
+  'labels-template': { schema: r.labels.template.response, data: lb.template, routeId: r.labels.template.id },
+  'labels-template-no-mfg': { schema: r.labels.template.response, data: lb.templateNoMfg },
+  'labels-create-template': { schema: r.labels.createTemplate.response, data: lb.template, routeId: r.labels.createTemplate.id },
+  'labels-approve-template': { schema: r.labels.approveTemplate.response, data: lb.templateApproved, routeId: r.labels.approveTemplate.id },
+  'labels-master-labelling': { schema: r.labels.masterLabelling.response, data: lb.master, routeId: r.labels.masterLabelling.id },
+  'labels-declare-labelling': { schema: r.labels.declareLabelling.response, data: lb.masterOk, routeId: r.labels.declareLabelling.id },
+  'labels-store': { schema: r.labels.store.response, data: lb.store, routeId: r.labels.store.id },
+  'labels-open-store-transaction': { schema: r.labels.openStoreTransaction.response, data: lb.store, routeId: r.labels.openStoreTransaction.id },
+  'labels-packaging': { schema: r.labels.packaging.response, data: lb.packaging, routeId: r.labels.packaging.id },
+  'labels-packaging-done': { schema: r.labels.packaging.response, data: lb.packagingDone },
+  'labels-packaging-stopped': { schema: r.labels.packaging.response, data: lb.packagingStopped },
+  'labels-record-coding-specimen': { schema: r.labels.recordCodingSpecimen.response, data: lb.packaging, routeId: r.labels.recordCodingSpecimen.id },
+  'labels-record-label-specimen': { schema: r.labels.recordLabelSpecimen.response, data: lb.packaging, routeId: r.labels.recordLabelSpecimen.id },
+  'labels-void-specimen': { schema: r.labels.voidSpecimen.response, data: lb.packaging, routeId: r.labels.voidSpecimen.id },
+  'labels-record-post-use-inspection': { schema: r.labels.recordPostUseInspection.response, data: lb.packagingDone, routeId: r.labels.recordPostUseInspection.id },
+  'labels-verify-post-use-inspection': { schema: r.labels.verifyPostUseInspection.response, data: lb.packagingDone, routeId: r.labels.verifyPostUseInspection.id },
+  'labels-resolve-line-stop': { schema: r.labels.resolveLineStop.response, data: lb.packaging, routeId: r.labels.resolveLineStop.id },
+  'labels-enable-waiver': { schema: r.labels.enableWaiver.response, data: lb.packagingDone, routeId: r.labels.enableWaiver.id },
+  // Phase 6 slice 6c: serialisation L3/L4 (PR-42).
+  'serialisation-serial': { schema: r.serialisation.serial.response, data: sr.lookup, routeId: r.serialisation.serial.id },
+  'serialisation-batch-pools': { schema: r.serialisation.batchPools.response, data: sr.pools, routeId: r.serialisation.batchPools.id },
+  'serialisation-batch-pools-stale': { schema: r.serialisation.batchPools.response, data: sr.poolsStale },
+  'serialisation-reject-pool': { schema: r.serialisation.rejectPool.response, data: sr.poolsRejected, routeId: r.serialisation.rejectPool.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
   // Phase 4 slice 6a: licences, export permissions, the issue check, the allocation register, label particulars and H2.
