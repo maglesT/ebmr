@@ -2502,3 +2502,15 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   of crashing the check; a migration source without a header mark is reported; the setup script repairs the golden
   cluster's libfaketime settings on every run. Left as low: reference-style links are not checked; a bare `#sym=`
   SQL name matches any schema (qualified names are exact); orphaned generated pages are not detected.
+- 2026-10-16: PHASE 6 SLICE 6f CLOSE (branch phase-6/slice-6f; builders A and B, then the close). origin/main merged
+  (decisions 0017, 0018). Added at the close: the clause mappings of the eleven clauses decision 0011 deferred to 6f
+  (DI-08.1, DI-09.2 and .3, DI-26.3, PR-52.2, IN-30.2, IN-39.2, IN-10.2 with the test CA for the CCA root, IN-27.1,
+  IN-33.1, PR-09.2) and a note in docs/build-plan/phase-4/trace-deferrals.md; the builder B defaults D-P6f-B-1 to 10 in
+  the plan (PR-49's recurrence warning stays with 6d). Quick review (one pass): one high, a DSC from any certificate of the
+  CA stood beside anyone's signature; fixed in kernel 1206 (the signer enrols their own token's certificate with a proof
+  of possession; one person per certificate; the signing command refuses another; EBMR-ESIG-086 to 088), with routes,
+  the enrolment section of the DSC page, guidance, handbook and defect log, and tests in kernel, HTTP and web. Residuals:
+  no revocation or key-usage check (deployment, licensed CA), no second-person check of an enrolment's subject, IN-27
+  insertion not database-guarded, the reviewer's routing kept by the server. Local runs (spare clusters 5435, 5437):
+  typecheck and lint of the changed files clean; kernel and api-contract 1,643 passed; tablets-server governance, esig,
+  config, platform and package tests with tablets-web 643 passed; register valid; handbook checks pass.

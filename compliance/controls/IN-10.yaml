@@ -30,6 +30,8 @@ tests:
   - "packages/kernel/test/esig/dsc.test.ts > India DSC with a test CA (kernel 1203; IN-10) > [IN-10] bypass attempts as the application role: no direct DSC row, no replay, no commit of a release without its DSC"
   - "apps/tablets-web/test/governance/governance.test.tsx > the India DSC option > [IN-10] shows the mode, the test certificate authority with its banner and the meanings that need a DSC"
   - "packages/ui-kit/test/identity/identity.test.tsx > what is signed > [IN-10] a challenge that needs the India DSC shows the token step with the test-CA banner; without one there is none"
+  - "apps/tablets-web/test/governance/governance.test.tsx > the India DSC option > [IN-10] a signer enrols the certificate of their own token: the token signs the enrolment statement through the bridge"
+  - "packages/kernel/test/esig/dsc.test.ts > India DSC with a test CA (kernel 1203; IN-10) > [IN-10] a DSC is accepted only from the certificate enrolled for the signer: another person's certificate, a stolen enrolment or an ended one is refused"
 clauses:
   - clause: "sign a step, then alter the value directly in the test database; signature verification reports the record as altered."
     tests:
