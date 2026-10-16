@@ -67,14 +67,18 @@ tests:
   - "packages/recipe-core/test/mutation/mbr-lifecycle.test.ts > the guards of the version machine, on the version they are asked about > [PR-05] the periodic-review due date is after the effective date in the site zone: the same day is refused, the next day accepted"
   - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > D10: an activation and its cells are written only as the activation command writes them, whoever writes them (recipe.market_authorisation_activation_guard, recipe.authorisation_cell_activation_guard) > [INV-17][PR-05][PR-04] a cell is refused for a version that is not APPROVED, for a withdrawn record, when it supersedes anything but its predecessor ending where it begins, when its predecessor names a cell written before it, and for a BRIDGING the successor did not supersede; the command's own supersession, written by an owner-level writer, is accepted"
   - "packages/recipe-core/test/mutation/market-authorisation-and-issue.test.ts > D10: an activation and its cells are written only as the activation command writes them, whoever writes them (recipe.market_authorisation_activation_guard, recipe.authorisation_cell_activation_guard) > [INV-17][PR-05][PR-04] a cell supersedes only the CURRENT cell of an earlier version of its own family, market, site, line and batch size, and only as a CURRENT cell: a predecessor of another family, market, line or batch size, one of its own version, and a BRIDGING written as the successor are each refused; the predecessor the command supersedes is accepted"
+  - "packages/site-services/test/reporting/reporting-views.test.ts > report views (recipe-core 1070) > [PR-05] an overdue review is in the report view the dashboard reads, with its days overdue; one not yet due is not"
+  - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [PR-05] an overdue review appears on the dashboard"
+  - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [PR-05] an overdue review appears on the dashboard, drilling to the MBR version"
 clauses:
   - clause: "After v2 is effective, starting a batch on v1 is blocked."
     tests:
       - "packages/recipe-core/test/lifecycle/issue.test.ts > [PR-05][INV-01] once v2 is CURRENT, a new batch cannot be pinned to v1"
   - clause: "An overdue review appears on the dashboard."
-    deferred:
-      phase: 6
-      reason: "Phase 2 keeps the overdue list in the database (recipe.overdue_reviews, tested in recipe-core lifecycle review-inventory); dashboards come in Phase 6 (build outline 11; decision F13.2)."
+    tests:
+      - "packages/site-services/test/reporting/reporting-views.test.ts > report views (recipe-core 1070) > [PR-05] an overdue review is in the report view the dashboard reads, with its days overdue; one not yet due is not"
+      - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [PR-05] an overdue review appears on the dashboard"
+      - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [PR-05] an overdue review appears on the dashboard, drilling to the MBR version"
   - clause: "The inventory export reconciles with the site document list."
     tests:
       - "packages/recipe-core/test/lifecycle/review-inventory.test.ts > [PR-05][PR-02] the inventory export lists every version with ID, version, status and dates, and reconciles with the site document list"

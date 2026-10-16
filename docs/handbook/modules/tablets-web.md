@@ -901,6 +901,16 @@ every tab of a lot's release screen ([RecurrenceWarning.tsx](../../../apps/table
 D-P6d-8); the returned-goods screen offers the stores the chemical recovery once QC's signed assessment chose it. Tests:
 [genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx).
 
+## Dashboards, change impact and training (Phase 6 slice 6g)
+
+[features/dashboards](../../../apps/tablets-web/src/features/dashboards/index.tsx) (GMP): `/dashboards` shows the eight
+tiles, each with its data-age line, refreshed every five minutes and by "Refresh now", drilling to the review, deviation,
+MBR version and alarm screens, under a banner that they are never used for GMP decisions; `/change-impact` asks for the
+kind and code and shows the lists with an export (JSON with the server's content hash).
+[features/training](../../../apps/tablets-web/src/features/training/index.tsx) (SANDBOX): `/training` shows the
+server's TEST, NOT GMP watermark band (besides the shell's), the personas and the exercises; "Mark done" posts the step of
+the person's own attempt. Tests: `apps/tablets-web/test/dashboards/`.
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.

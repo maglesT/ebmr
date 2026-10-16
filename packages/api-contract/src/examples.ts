@@ -67,6 +67,9 @@ import pq from '../fixtures/pqr.json' with { type: 'json' };
 import gv from '../fixtures/governance.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
 import gn from '../fixtures/genealogy.json' with { type: 'json' };
+import db6g from '../fixtures/dashboards.json' with { type: 'json' };
+import ci6g from '../fixtures/change-impact.json' with { type: 'json' };
+import tr6g from '../fixtures/training.json' with { type: 'json' };
 import mr from '../fixtures/recall.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
@@ -484,6 +487,21 @@ export const EXAMPLES = {
   'esig-dsc-enrolment': { schema: r.esig.dscEnrolment.response, data: gv.dscEnrolment, routeId: r.esig.dscEnrolment.id },
   'esig-enrol-dsc': { schema: r.esig.enrolDsc.response, data: gv.dscEnrolment, routeId: r.esig.enrolDsc.id },
   'esig-end-dsc-enrolment': { schema: r.esig.endDscEnrolment.response, data: { ...gv.dscEnrolment, enrolments: gv.dscEnrolment.enrolments.map((e) => ({ ...e, live: false })) }, routeId: r.esig.endDscEnrolment.id },
+  // Phase 6 slice 6g: dashboards, change impact, training mode.
+  'dashboards-right-first-time': { schema: r.dashboards.rightFirstTime.response, data: db6g.rightFirstTime, routeId: r.dashboards.rightFirstTime.id },
+  'dashboards-exception-pareto': { schema: r.dashboards.exceptionPareto.response, data: db6g.exceptionPareto, routeId: r.dashboards.exceptionPareto.id },
+  'dashboards-review-cycle-time': { schema: r.dashboards.reviewCycleTime.response, data: db6g.reviewCycleTime, routeId: r.dashboards.reviewCycleTime.id },
+  'dashboards-deviation-ageing': { schema: r.dashboards.deviationAgeing.response, data: db6g.deviationAgeing, routeId: r.dashboards.deviationAgeing.id },
+  'dashboards-hold-time-risk': { schema: r.dashboards.holdTimeRisk.response, data: db6g.holdTimeRisk, routeId: r.dashboards.holdTimeRisk.id },
+  'dashboards-overdue-reviews': { schema: r.dashboards.overdueReviews.response, data: db6g.overdueReviews, routeId: r.dashboards.overdueReviews.id },
+  'dashboards-press-oee': { schema: r.dashboards.pressOee.response, data: db6g.pressOee, routeId: r.dashboards.pressOee.id },
+  'dashboards-alarm-trend': { schema: r.dashboards.alarmTrend.response, data: db6g.alarmTrend, routeId: r.dashboards.alarmTrend.id },
+  'dashboards-catalog': { schema: r.dashboards.catalog.response, data: db6g.catalog, routeId: r.dashboards.catalog.id },
+  'dashboards-export': { schema: r.dashboards.export.response, data: db6g.export, routeId: r.dashboards.export.id },
+  'change-impact-material': { schema: r.changeImpact.query.response, data: ci6g.material, routeId: r.changeImpact.query.id },
+  'training-overview': { schema: r.training.overview.response, data: tr6g.overview, routeId: r.training.overview.id },
+  'training-start': { schema: r.training.start.response, data: tr6g.attempt, routeId: r.training.start.id },
+  'training-complete-step': { schema: r.training.completeStep.response, data: { ...tr6g.attempt, done: [1, 2], complete: true }, routeId: r.training.completeStep.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 6 slice 6f (builder B): the support, contract-giver and DSC routes, each with an example above (contract test). */
@@ -507,6 +525,8 @@ export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records
 
 /** Phase 4 slice 6c: the PQR routes, each with an example above (checked by the contract test). */
 export const PQR_ROUTE_IDS: readonly string[] = Object.values(r.pqr).map((route) => route.id);
+/** Phase 6 slice 6g: the dashboards, change-impact and training routes, each with an example above (checked by the contract test). */
+export const SLICE_6G_ROUTE_IDS: readonly string[] = [...Object.values(r.dashboards), ...Object.values(r.changeImpact), ...Object.values(r.training)].map((route) => route.id);
 /** Phase 6 slice 6d: the genealogy and recall routes, each with an example above (checked by the contract test). */
 export const GENEALOGY_ROUTE_IDS: readonly string[] = [...Object.values(r.genealogy), ...Object.values(r.recall)].map((route) => route.id);
 /** Phase 4 slice 6b: the archive routes, each with an example above (checked by the contract test). */

@@ -282,3 +282,25 @@ export {
 export { BatchPoolsView, L3MirrorView, SerialLookupView, SerialStatus } from './ns/serialisation.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
 export { ContractGiverAccessView, ContractGiverBatchView, ContractGiverRecordView, SupportAccountView, SupportGrantState, SupportGrantView } from './ns/support.ts';
+export {
+  AgeingBucket,
+  AlarmTrendView,
+  ChangeImpactItem,
+  ChangeImpactKind,
+  ChangeImpactView,
+  DeviationAgeingView,
+  ExceptionParetoView,
+  HoldRisk,
+  HoldTimeRiskView,
+  OverdueReviewsView,
+  PressOeeView,
+  ReportCatalogView,
+  ReportExportView,
+  ReviewCycleTimeView,
+  RightFirstTimeView,
+  SiteDate,
+  TrainingAttemptView,
+  TrainingExerciseView,
+  TrainingOverviewView,
+  TrainingPersonaView,
+} from './ns/dashboards.ts';

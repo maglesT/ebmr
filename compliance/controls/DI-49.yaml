@@ -55,6 +55,9 @@ tests:
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > the alarm log at the step signature and in review (DI-49) > [DI-49] an unacknowledged GMP-critical alarm blocks the step signature in its room until it is acknowledged"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > the alarm log at the step signature and in review (DI-49) > [DI-49] alarms are in the batch's review scope: production approval and QA review list each alarm without its disposition"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > the alarm log at the step signature and in review (DI-49) > [DI-49] a room alarm bound to batches of two products is acknowledged only by a person whose scope holds both (quick review Q-6b-1)"
+  - "packages/site-services/test/reporting/reporting-views.test.ts > report views (recipe-core 1070) > [DI-49] the alarm view holds every alarm once, whatever number of batches it is bound to, with its acknowledgment"
+  - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period"
+  - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [DI-49] the alarm trend shows the count of every alarm of the period, by day and code"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

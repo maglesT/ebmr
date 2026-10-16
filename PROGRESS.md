@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6c and 6d).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6c, 6d and 6g).
 
 ## What this is
 
@@ -127,6 +127,12 @@ template needs every India particular), the master's 211.122(g) cut-label option
 specimens, the post-use inspection gating EXECUTION_COMPLETE, vision line stops, the reconciliation waiver (tablets
 1230); the L3 adapter, serial query, decommissioning tasks and the L3 mirror failing closed at release (tablets 1231);
 stateful L3/L4 simulator, screens. The ten 6c clauses name their tests. Defaults D-P6c-1 to 22; residuals R-6c-1 to 5.
+Slice 6g (merged to main, PR #39, 16 October): read-only reporting path (role `ebmr_report`,
+SELECT on the versioned `report` views only, data age on every row; kernel 1210, 1211; recipe-core 1070, 1071), eight
+dashboards (never for GMP decisions; PR-05 overdue reviews, DI-49 alarm trend), the change-impact explorer with export,
+and training mode on the sandbox (watermark, TEST- personas, scripted exercises, attempts kept in the sandbox only;
+DI-05). PR-05's dashboard clause names its tests. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
+Defaults D-P6g-0-1 to 10.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

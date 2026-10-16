@@ -173,3 +173,8 @@ clause 2 (the label-store permission), PR-34 clause 2 (the post-use inspection g
 (no waiver without a qualifying device) and PR-42 clause 3 (the serial query). The GB-T-01 two-order test also needs the
 specimens and the inspection now (driver.ts recordSpecimens, recordPostUseInspection); the record head and its
 normalised true copy are unchanged. No control text, catalog test, target phase or `expert_decision` changed.
+
+## Phase 6 slice 6g: clause now mapped (16 October 2026)
+
+PR-05 "An overdue review appears on the dashboard." names its passing tests in the control file (the report view, the
+dashboard route and the dashboard screen); it is no longer deferred.
