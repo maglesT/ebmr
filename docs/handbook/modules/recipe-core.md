@@ -231,7 +231,7 @@ stateDiagram-v2
   [*] --> DRAFT
   DRAFT --> IN_VERIFICATION: START_VERIFICATION (validator passed for this hash)
   IN_VERIFICATION --> SUBMITTED: SUBMIT, signed PREPARED by the author
-  SUBMITTED --> CHECKED: CHECK, signed CHECKED (not author, not editor: INV-04)
+  SUBMITTED --> CHECKED: CHECK, signed CHECKED (not author, not editor#58; INV-04)
   CHECKED --> APPROVED: APPROVE, signed APPROVED by QA + regulatory sign-off
   IN_VERIFICATION --> DRAFT: RETURN (own reason)
   SUBMITTED --> DRAFT: RETURN (own reason)
@@ -622,7 +622,7 @@ the step must not disposition its exception (INV-03, four-eyes).
 stateDiagram-v2
   [*] --> OPEN: raised by the engine row (register row written)
   OPEN --> LINKED: ATTACH_DEVIATION (deviation reference checked, 0601)
-  OPEN --> DISPOSITIONED: DISPOSITION_EXCEPTION (uninvolved person; QA-only ones by QA)
+  OPEN --> DISPOSITIONED: DISPOSITION_EXCEPTION (uninvolved person#59; QA-only ones by QA)
   LINKED --> DISPOSITIONED: DISPOSITION_EXCEPTION
   DISPOSITIONED --> [*]
   note right of DISPOSITIONED
@@ -1149,7 +1149,7 @@ sequenceDiagram
   S->>DB: esig.sign (content = checklist at E1)
   S->>DB: record_manufacturer_release(lot, RELEASE, signature, expectedEpoch E1)
   DB->>DB: lock_epoch on lot, batches, deviations, consumed lots
-  DB->>DB: grel_evaluate again: epoch E2
+  DB->>DB: grel_evaluate again#58; epoch E2
   alt E2 = E1 and signed content still current
     DB-->>S: decision row, lot leaves QUARANTINE
   else evidence moved
