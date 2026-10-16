@@ -414,6 +414,15 @@ tests:
   - "packages/api-contract/test/contract.test.ts > route table > [DI-05] the slice 6 namespaces (GMP batches, planning, master data, plant) and the new quality routes are GMP only, each with an example"
   - "apps/tablets-server/test/execution/gmp-batch-routes.test.ts > GMP batch routes (slice 6a, D-S6-1) > [DI-05][INV-18] GMP routes answer 404 on the sandbox and test-run routes 404 on GMP"
   - "packages/recipe-core/test/mutation/output-containers.test.ts > the hold guard and the signed content of a container > [DI-05][IN-21] the signed content of a container holds its own close, its own holds and the persons of those acts"
+  - "packages/kernel/test/sandbox/reporting-and-training.test.ts > training attempts stay in the sandbox (kernel 1211) > [DI-05] the training attempts are refused in a GMP database, whoever writes"
+  - "packages/kernel/test/sandbox/reporting-and-training.test.ts > training attempts stay in the sandbox (kernel 1211) > [DI-05] a training session cannot write to the GMP database"
+  - "packages/api-contract/test/dashboards.test.ts > slice 6g contract > [DI-05] the dashboards and change impact are GMP and read-only, training is SANDBOX only; each route has an example"
+  - "packages/api-contract/test/dashboards.test.ts > slice 6g contract > [DI-05] the training overview carries the TEST, NOT GMP watermark of the training source"
+  - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [DI-05] training routes answer 404 on the GMP installation and the dashboards 404 on the sandbox"
+  - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises"
+  - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox"
+  - "apps/tablets-web/test/dashboards/dashboards.test.tsx > training (SANDBOX) > [DI-05] the training screen carries the TEST, NOT GMP watermark"
+  - "apps/tablets-web/test/dashboards/dashboards.test.tsx > training (SANDBOX) > [DI-05] a step is marked done in the person's own attempt; a new exercise is started by its code"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:
