@@ -12,11 +12,38 @@
  * added where the group's tests did not reach it (execution-state-binding, evidence-source-and-entries, signed-content),
  * and a follow-up's new function that belongs to an existing group's subject joined it (kernel 1020 to signing, tablets
  * 0530 and 0560 to read-authorisation).
- * The Phase 3 exit (decision 0009) added the last 22 groups, by area: every function added or replaced since dd66b59 in
+ * The Phase 3 exit (decision 0009) added 22 groups, by area: every function added or replaced since dd66b59 in
  * kernel, site-services, recipe-core and tablets that is a guard, a limit, a signature or state check, a writer of GMP
  * data, or a helper whose result one of those decides on (recipe.planning_orders, a planning view, is left out). A
  * Phase 3 redefinition of a function already in a Phase 2 group left it there, with the Phase 3 test files that reach
  * the new definition added to the group.
+ * The Phase 6 exit (decision 0019, part 1) added the last 14 groups, one or more per slice area of that decision
+ * (adapters and mirrors: inbound-adapters-and-mirrors, erp-wms-receipt-and-stock, qms-capa-lims-cmms; equipment,
+ * alarms and plant rules: equipment-data-and-alarms, plant-rules; packaging and serialisation:
+ * packaging-labels-and-line-completion, serialisation-l3; genealogy and recall: genealogy-and-recall; the
+ * controlled-substance mode: controlled-substance-mode; governance, change control and the India DSC:
+ * governance-change-control, governance-support-and-contract-giver, india-dsc; reporting and training mode:
+ * reporting-and-training; inter-site transfer and federation: transfer-and-federation). An area is split where one
+ * group would pass about 500 mutants, so that a group's run fits in one sitting and the groups spread over clusters.
+ * They hold every function the migrations of 1fec042..8331e94 and slice 6j-c (site services 0990, kernel 1230) add or re-create
+ * that the rule above admits; a function re-created by a later Phase 6 migration sits in the group of the slice that
+ * created it, with the later definition's test files added (site.erp_wms_receive, site.apply_wms_stock_move,
+ * recipe.genealogy*, recipe.run_mock_recall). Phase 6 re-created eleven functions of earlier groups; they stay there,
+ * with the Phase 6 test files added (plant.fitness_problems and plant.record_calibration in plant-equipment-and-areas,
+ * recipe.grel_evaluate in release-gate, tab.grel_recon_serial in tablets-release-items, tab.record_read_problem in
+ * read-authorisation, sandbox.apply_connect_policy and sandbox.segregation_problems in connection-roles,
+ * recipe.guard_critical_elements_risk_assessed in mbr-lifecycle, recipe.genealogy_downstream_lots in
+ * after-release-suspension, recipe.pqr_run_query in pqr-extract, site.lot_available in lots-and-lims). Functions of
+ * Phase 1 to 5 that Phase 6 re-created and no group held join the Phase 6 group of their slice (iam.qualification_source_fresh,
+ * iam.session_state, iam.authn_resolve, esig.set_policy, recipe.review_gate_problems, tab.kernel_signing_meanings,
+ * tab.aggregate_read_class). The reads that only list, look up or format for a screen are left out; they are named in
+ * LEFT_OUT below, which tools/sql-mutation/test/harness.test.ts checks against the migrations (every function since the
+ * Phase 6 start is in a group or there). The report views and recipe.change_impact are in: two views carry controls
+ * (PR-05, DI-49) and each answer is exported with its hash.
+ * Every Phase 6 group targets 90 %, as every earlier group does: the rule above admits only guards, limits, signature
+ * and state checks, GMP writers and the helpers they decide on, which is the 90 % zone of build outline 9.1; the 80 %
+ * zone of decision 0019 (display, formatting, logging, simulators, retry timing) is TypeScript and is measured by
+ * Stryker (stryker.phase6.config.mjs).
  * Each group names the narrowest test files that test its functions at database level; a file under
  * apps/tablets-server/test runs in the Vitest `server` project, any other in `db`. Functions that only read or format
  * (no refusal, check or decision) are left out: recipe.json_pick and recipe.checklist_answers of recipe-core 0330 too.
@@ -30,6 +57,21 @@ export interface Target {
   /** Score the group must reach (per cent). */
   threshold: number;
 }
+
+/**
+ * Functions since the Phase 6 start (kernel 1180, site services 0910, recipe-core 0940, tablets 1210) that no group
+ * mutates, with the reason: reads that only list, look up or format for a screen (no refusal, check or decision).
+ */
+const READS_FOR_A_SCREEN = 'a read for a screen or an export list; no refusal, check or decision';
+export const LEFT_OUT: Record<string, string> = Object.fromEntries(
+  ['plant.batch_alarms', 'plant.series_in_context', 'plant.status_board', 'plant.line_station', 'plant.room_conditions',
+      'site.lot_current_location', 'site.lims_lot_results', 'site.transfer_hold_remaining', 'tab.packaging_completion_view',
+      'tab.batch_pools_view', 'recipe.genealogy_lookup', 'recipe.genealogy_supply_chain', 'recipe.genealogy_lot_deviations',
+      'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
+      'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
+      'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
+      'report.catalog_rows_v1'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+);
 
 const k = (f: string) => `packages/kernel/test/${f}`;
 const r = (f: string) => `packages/recipe-core/test/${f}`;
@@ -129,7 +171,9 @@ export const TARGETS: Target[] = [
     tests: [r('lifecycle/approval.test.ts'), r('lifecycle/change-control.test.ts'), r('lifecycle/audit-reason.test.ts'),
             r('lifecycle/machine.test.ts'), r('lifecycle/authorization.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('master-data/formula.test.ts')],
+            s('master-data/formula.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            r('review/rbe-rules.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, market authorisation, batch issue, periodic review (sql 0160-0180, 0250, 0290) --------
@@ -354,7 +398,9 @@ export const TARGETS: Target[] = [
                 'tab.record_withheld', 'tab.registry_chains_of', 'tab.audit_verify_chain', 'tab.partly_withheld_chains'],
     tests: [s('audit/read-authorisation.test.ts'), s('esig/read-authorisation.test.ts'), s('audit/view-integrity.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('master-data/formula.test.ts')],
+            s('master-data/formula.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            s('controlled/controlled-routes.test.ts'), s('governance/governance-routes.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: tablets, sessions, roles bound to them and attribution (sql 0001, 0100, 0400, 0480) ------------------
@@ -401,7 +447,9 @@ export const TARGETS: Target[] = [
     group: 'connection-roles',
     functions: ['kernel.backend_signals_restricted', 'sandbox.apply_connect_policy', 'sandbox.mirror_application_privileges',
                 'sandbox.segregation_problems', 'sandbox.direct_privileges', 'kernel.apply_listener_share'],
-    tests: [k('security/backend-signals.test.ts'), k('security/listener-roles.test.ts'), k('sandbox/bypass.test.ts')],
+    tests: [k('security/backend-signals.test.ts'), k('security/listener-roles.test.ts'), k('sandbox/bypass.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            k('sandbox/reporting-and-training.test.ts')],
     threshold: 90,
   },
   // ---- Site services: the batch-number register (sql 0600; not in the Phase 1 run) ---------------------------------
@@ -514,7 +562,9 @@ export const TARGETS: Target[] = [
                 'plant.record_equipment_event', 'plant.repair_verification_guard', 'plant.repaired_event_verified_guard',
                 'plant.open_failure', 'plant.record_repair', 'plant.verify_repair', 'plant.repair_content',
                 'plant.utility_problem', 'plant.set_utility_feed_age', 'plant.utility_feed_max_age'],
-    tests: [r('plant/equipment.test.ts'), r('plant/area.test.ts'), r('plant/machine.test.ts'), r('plant/status-blocks.test.ts')],
+    tests: [r('plant/equipment.test.ts'), r('plant/area.test.ts'), r('plant/machine.test.ts'), r('plant/status-blocks.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            r('integrations/cmms-qms-release.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: output containers: closing, holds, bracketing, disposal, merge and the press discharge codes
@@ -593,7 +643,9 @@ export const TARGETS: Target[] = [
                 'site.lot_signed_decision', 'site.lot_event_meaning', 'site.propose_lot_decision', 'site.revoke_batch_reservations', 'recipe.claim_consumption', 'recipe.consumption_entries_record', 'recipe.consumption_named_check', 'recipe.batch_end_reservations', 'tab.g07_consumption_pairs'],
     tests: [site('mutation/lots-and-lims.test.ts'), site('lots/lots.test.ts'), site('lots/machine.test.ts'), site('quality/lims.test.ts'), s('blocks/dispensing/tb-01-gmp.test.ts'), site('lots/exit-review.test.ts'), s('blocks/dispensing/tb-01-db.test.ts'),
             // Phase 4 slice 7c: the G-07 pairing and the lot-material entry check (not twins of an engine check).
-            s('mutation/lots-and-lims-g07.test.ts')],
+            s('mutation/lots-and-lims-g07.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            site('transfer/transfer.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: deviations: raise, link, investigate, conclude, close; QA signature; evidence documents;
@@ -846,7 +898,9 @@ export const TARGETS: Target[] = [
                 'recipe.grel_edition_items', 'recipe.grel_versions', 'recipe.release_gate_problems', 'recipe.release_batches', 'recipe.release_deviations', 'recipe.release_scope',
                 'recipe.batch_purpose', 'recipe.batch_master_version', 'recipe.investigation_unjustifiable',
                 'recipe.investigation_unjustifiable_for', 'recipe.manufacturer_release_state', 'recipe.release_involvement'],
-    tests: [r('release/release.test.ts'), s('release/grel-interfaces.test.ts'), s('release/grel-tablets-items.test.ts')],
+    tests: [r('release/release.test.ts'), s('release/grel-interfaces.test.ts'), s('release/grel-tablets-items.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            r('integrations/cmms-qms-release.test.ts')],
     threshold: 90,
   },
   {
@@ -874,7 +928,9 @@ export const TARGETS: Target[] = [
                 'tab.grel_recon_printed', 'tab.grel_recon_serial', 'tab.grel_recon_yield', 'tab.grel_rule_sets',
                 'tab.grel_steps', 'tab.grel_unresolved', 'tab.grel_whole_batch_parents', 'tab.grel_changed_since',
                 'tab.grel_master_blocks', 'tab.grel_next_hold'],
-    tests: [s('release/grel-tablets-items.test.ts'), s('release/grel-interfaces.test.ts')],
+    tests: [s('release/grel-tablets-items.test.ts'), s('release/grel-interfaces.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            s('integrations/l3-adapter.test.ts')],
     threshold: 90,
   },
   {
@@ -925,7 +981,9 @@ export const TARGETS: Target[] = [
                 'recipe.suspend_on_revised_result', 'recipe.suspend_on_calibration_failure', 'recipe.release_suspension_next_id',
                 'recipe.market_removal_after_release_check'],
     tests: [r('release/after-release.test.ts'), r('release/record-amendment.test.ts'), s('release/disposition-interfaces.test.ts'),
-            r('release/dispositions.test.ts')],
+            r('release/dispositions.test.ts'),
+            // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
+            site('genealogy/genealogy.test.ts')],
     threshold: 90,
   },
   {
@@ -1040,6 +1098,253 @@ export const TARGETS: Target[] = [
                 'recipe.pqr_result_sha256', 'recipe.pqr_current_version', 'recipe.pqr_run_query', 'recipe.pqr_reproduces',
                 'recipe.pqr_involvement', 'recipe.run_pqr_extract', 'recipe.pqr_extract_content', 'recipe.sign_off_pqr'],
     tests: [r('release/pqr-extract.test.ts')],
+    threshold: 90,
+  },
+  // ---- Phase 6 (decision 0019, part 1): every function added or re-created by the Phase 6 migrations (1fec042 to
+  //     8331e94, and site services 0990 of slice 6j-c) that the inclusion rule above admits, one group or more per slice
+  //     area of decision 0019. The header lists what is left out, what stayed in an earlier group and why every group
+  //     targets 90 %. ----
+  // ---- 6a, adapters and mirrors: the inbound adapter framework, overrides, mirror sync and the LMS feed (kernel
+  //      1180-1186) ----
+  {
+    group: 'inbound-adapters-and-mirrors',
+    functions: ['iam.integration_adapter_guard', 'iam.register_integration_adapter', 'iam.set_integration_adapter_status',
+                'iam.current_integration_adapter', 'platform.inbound_envelope_problem', 'platform.epoch_us_to_timestamptz',
+                'platform.timestamptz_to_epoch_us', 'platform.raise_integration_alarm', 'platform.accept_inbound_detail',
+                'platform.accept_inbound', 'platform.record_inbound_refusal', 'platform.acknowledge_integration_alarm',
+                'platform.record_reconciliation', 'platform.record_mirror_sync', 'platform.mirror_freshness',
+                'platform.mirror_fresh_or_raise', 'platform.record_inbound_override', 'iam.qualification_source_fresh',
+                'iam.lms_mirror_problem', 'iam.lms_qualification_payload_problem', 'iam.receive_lms_qualification'],
+    tests: [k('inbound/inbound.test.ts'), k('inbound/overrides-and-lms-mirror.test.ts'), k('integrations/lms-inbound.test.ts'),
+            k('integration/authorization.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6a, adapters and mirrors: receipt, approved manufacturers, stock locations, the ERP lot status mirror and
+  //      outbound queue, the ERP/WMS inbound and the issue gate (site services 0910-0916); 6j-c's refusal of a person's
+  //      material acts to a non-HUMAN account (0990). site.erp_wms_receive (re-created by 0961) and
+  //      site.apply_wms_stock_move (re-created by 0970) stay here, with the test files of those definitions. ----
+  {
+    group: 'erp-wms-receipt-and-stock',
+    functions: ['site.manufacturer_approved', 'site.approved_manufacturer_state', 'site.instant_text_pattern', 'site.lot_is_purchased',
+                'site.lot_receipt_effective', 'site.receipt_problem', 'site.manufacturer_problem',
+                'site.propose_approved_manufacturer', 'site.approved_manufacturer_content', 'site.approve_manufacturer',
+                'site.withdraw_manufacturer_approval', 'site.receive_supplier_batches', 'site.receive_delivery',
+                'site.record_lot_receipt', 'site.record_receipt_examination', 'site.lot_release_manufacturer_check',
+                'site.lot_open_location_exception', 'site.location_move_problem', 'site.apply_wms_stock_move',
+                'site.resolve_lot_location_exception', 'site.lot_release_location_check', 'site.erp_lot_status_latest',
+                'site.apply_wms_lot_status', 'site.erp_lot_status_problem', 'site.enqueue_erp_outbound',
+                'site.erp_outbound_from_fact', 'site.require_erp_wms_adapter', 'site.erp_outbound_pending',
+                'site.erp_outbound_delivered', 'site.erp_outbound_failed', 'site.erp_source_value_ok', 'site.calendar_date_ok',
+                'site.erp_payload_problem', 'site.site_date_start', 'site.erp_wms_receive', 'site.correct_lot_receipt_value',
+                'site.issue_gate_problem', 'site.issue_gate', 'site.issue_by_person', 'site.wms_location_question',
+                'site.material_act_by_person'],
+    tests: [site('erp-wms/receipt.test.ts'), site('erp-wms/locations.test.ts'), site('erp-wms/inbound.test.ts'),
+            r('lifecycle/erp-adapter-order.test.ts'), site('controlled/controlled.test.ts'),
+            site('genealogy/recovery-distribution.test.ts'), s('integrations/erp-wms/contract.test.ts'),
+            s('quality/receipt-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6a, adapters and mirrors: CAPA and the QMS mirror, LIMS results, the QMS state at release, the CMMS mirror at
+  //      equipment use (site services 0925-0927; recipe-core 0950-0952). plant.fitness_problems and
+  //      plant.record_calibration (0950) stay in plant-equipment-and-areas, recipe.grel_evaluate (0951) in release-gate,
+  //      each with cmms-qms-release.test.ts added. ----
+  {
+    group: 'qms-capa-lims-cmms',
+    functions: ['site.register_capa_master_resolver', 'site.capa_master_version_facts', 'site.site_today', 'site.qms_mode',
+                'site.capa_latest_qms_state', 'site.capa_state', 'site.capa_check_status', 'site.capa_view', 'site.capa_content',
+                'site.require_capa_stand_in', 'site.lock_capa', 'site.raise_capa', 'site.link_capa_deviation',
+                'site.link_capa_master_version', 'site.record_capa_implemented', 'site.schedule_capa_effectiveness_check',
+                'site.record_capa_effectiveness', 'site.capa_close_problem', 'site.close_capa', 'site.cancel_capa',
+                'site.qms_accept', 'site.qms_payload_problem', 'site.qms_assert_newest', 'site.receive_qms_deviation_status',
+                'site.receive_qms_capa', 'site.receive_qms_change_control', 'site.qms_lot_deviations',
+                'site.record_qms_release_fetch', 'site.qms_release_problem', 'site.receive_lims_sample_result',
+                'plant.cmms_accept', 'plant.site_day_start', 'plant.receive_cmms_calibration', 'plant.receive_cmms_maintenance',
+                'plant.cmms_maintenance_problems', 'recipe.grel_qms_item', 'recipe.qms_release_guard',
+                'recipe.capa_master_version_facts'],
+    tests: [site('integrations/capa-qms.test.ts'), site('integrations/lims-inbound.test.ts'),
+            r('integrations/cmms-qms-release.test.ts'), s('capa/capa-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6b, equipment, alarms and plant rules: equipment alarms, events and series, OPC UA endpoints and readings, the
+  //      plant alarm bridge (recipe-core 0960, 0961, 0976; tablets 1210, 1218) ----
+  {
+    group: 'equipment-data-and-alarms',
+    functions: ['plant.raw_states_value', 'plant.batch_context_at', 'plant.series_chunk_hash', 'plant.payload_subject',
+                'plant.source_time_or_raise', 'plant.define_alarm_code', 'plant.bind_step_equipment', 'plant.raise_alarm',
+                'plant.receive_equipment_alarm', 'plant.acknowledge_alarm', 'plant.alarm_problem', 'plant.receive_equipment_event',
+                'plant.receive_series_chunk', 'plant.record_device_original', 'plant.device_area', 'plant.enrol_opcua_endpoint',
+                'plant.retire_opcua_endpoint', 'plant.receive_opcua_endpoint_session', 'plant.opcua_unit_problem',
+                'plant.opcua_data_guard', 'tab.status_quality', 'tab.process_device_endpoint', 'tab.ingest_opcua_readings',
+                'tab.process_reading_native_required', 'tab.bridge_process_alarm', 'tab.bridge_process_alarm_ack',
+                'tab.bridge_device_alarm', 'tab.bridge_step_device'],
+    tests: [r('integrations/plant-alarms-series.test.ts'), r('equipment-data/opcua-endpoint-identity.test.ts'),
+            r('plant/equipment.test.ts'), s('equipment-data/opcua-readings.test.ts'), s('equipment-data/opcua-adapter.test.ts'),
+            s('alarms/alarm-bridge.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6b, equipment, alarms and plant rules: area authorisation, reagent lots, room, adjacency and beta-lactam rules,
+  //      step rules and the alarm review at batch review (kernel 1190; site services 0940; recipe-core 0973, 0974) ----
+  {
+    group: 'plant-rules',
+    functions: ['iam.area_authorisation_code', 'iam.create_area_authorisation_type', 'iam.person_area_authorised',
+                'iam.area_authorisation_problem', 'site.record_reagent_lot', 'site.withdraw_reagent_lot', 'site.reagent_lot_problem',
+                'plant.set_area_rule', 'plant.area_last_cleaned', 'plant.record_spill', 'plant.room_start_problem',
+                'plant.define_area_adjacency', 'plant.adjacency_problem', 'plant.set_facility_rule', 'plant.classify_beta_lactam',
+                'plant.classified_beta_lactam', 'plant.batch_beta_lactam', 'plant.penicillin_problem',
+                'plant.area_occupancy_rules_check', 'plant.clearance_room_rules_check', 'plant.material_lot_penicillin_check',
+                'plant.step_rules_problem', 'plant.step_rules_check', 'plant.record_reagent_use', 'plant.batch_alarm_review_problems',
+                'recipe.review_gate_problems'],
+    tests: [k('identity/area-authorisation.test.ts'), r('plant-rules/room-rules.test.ts'), site('plant-rules/materials.test.ts'),
+            r('review/review.test.ts'), s('alarms/area-authorisation-matrix.test.ts'), s('alarms/area-authorisation-signature.test.ts'),
+            s('alarms/alarm-bridge.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6c, packaging and serialisation: the label store, label templates and the labelling a packaging master
+  //      declares, G-21 specimens, post-use inspection, line stops, the reconciliation waiver and packaging completion
+  //      (site services 0950; recipe-core 0990; tablets 1230) ----
+  {
+    group: 'packaging-labels-and-line-completion',
+    functions: ['site.label_store_balance', 'site.open_label_store_transaction', 'recipe.label_template_status',
+                'recipe.label_template_ref', 'recipe.label_layout_fields', 'recipe.create_label_template',
+                'recipe.label_template_approval_problem', 'recipe.approve_label_template', 'recipe.labelling_rows',
+                'recipe.packaging_labelling_problem', 'recipe.master_labelling', 'recipe.declare_packaging_labelling',
+                'recipe.batch_labelling', 'recipe.labelling_at_approval_check', 'tab.live_specimens', 'tab.g21_coding_applies',
+                'tab.g21_item_ids', 'tab.g21_expected_coding', 'tab.g21_specimen_step', 'tab.record_coding_specimen',
+                'tab.record_label_specimen', 'tab.void_packaging_specimen', 'tab.g21_specimen_problem', 'tab.g21_steps_of',
+                'tab.record_post_use_inspection', 'tab.verify_post_use_inspection', 'tab.open_line_stop', 'tab.vision_line_stop',
+                'tab.resolve_line_stop', 'tab.enable_reconciliation_waiver', 'tab.packaging_completion_problem',
+                'tab.g21_specimen_close_check', 'tab.refuse_incomplete_packaging', 'tab.print_job_rules'],
+    tests: [site('lots/label-store.test.ts'), r('labels/label-templates.test.ts'), s('blocks/packaging/line-completion.test.ts'),
+            s('blocks/packaging/completion.test.ts'), s('labels/labels-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6c, packaging and serialisation: serialisation L3/L4 messages, pool rejection, the serial query (PR-42) and the
+  //      L3 release item (tablets 1231). tab.grel_recon_serial (re-created) stays in tablets-release-items. ----
+  {
+    group: 'serialisation-l3',
+    functions: ['tab.l3_tasks_of', 'tab.l3_shipper_packs', 'tab.receive_l3_message', 'tab.assert_pool_rejection',
+                'tab.record_pool_rejection', 'tab.serial_lookup', 'tab.l3_release_problem'],
+    tests: [s('integrations/l3-adapter.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6d, genealogy and recall: the genealogy (as 1090 re-created it across sites), chemical recovery, distribution
+  //      records, the mock recall (as 1091 re-created it) and the deviation impact and recurrence answers (site services
+  //      0960, 0961; recipe-core 1010-1013, 1090, 1091). recipe.genealogy_downstream_lots (1011) stays in
+  //      after-release-suspension, with genealogy.test.ts added. ----
+  {
+    group: 'genealogy-and-recall',
+    functions: ['site.record_chemical_recovery', 'site.lot_dosage_form', 'site.erp_shipment_distribution_fields',
+                'site.erp_apply_shipment', 'recipe.genealogy_step', 'recipe.genealogy_node_exists', 'recipe.genealogy',
+                'recipe.genealogy_node_views', 'recipe.lot_dosage_form', 'recipe.genealogy_batch_number', 'recipe.mock_recall_starts',
+                'recipe.genealogy_forward_set', 'recipe.mock_recall_result_v1', 'recipe.mock_recall_sha256',
+                'recipe.mock_recall_run_query', 'recipe.mock_recall_reproduces', 'recipe.run_mock_recall',
+                'recipe.mock_recall_content', 'recipe.sign_off_mock_recall', 'recipe.deviation_impact_batches',
+                'recipe.deviation_latest_category', 'recipe.deviation_of_product', 'recipe.deviation_recurrence'],
+    tests: [site('genealogy/genealogy.test.ts'), site('genealogy/recall.test.ts'), site('genealogy/recovery-distribution.test.ts'),
+            site('transfer/transfer.test.ts'), s('genealogy/genealogy-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6e, the controlled-substance mode: controlled products, dual custody, checkpoints, the register and the batch
+  //      end (recipe-core 1031-1035; tablets 1250). tab.record_read_problem (1290) stays in read-authorisation and
+  //      site.apply_wms_stock_move (0970) in erp-wms-receipt-and-stock, with controlled tests added. ----
+  {
+    group: 'controlled-substance-mode',
+    functions: ['plant.controlled_product_approved', 'plant.controlled_materials', 'plant.material_is_controlled',
+                'plant.controlled_record_state', 'plant.controlled_product_state', 'plant.controlled_product_content',
+                'plant.record_controlled_product', 'plant.approve_controlled_product', 'recipe.controlled_custody_state',
+                'recipe.controlled_custodians', 'recipe.batch_controlled_materials', 'recipe.controlled_custody_content',
+                'recipe.propose_controlled_custody', 'recipe.sign_controlled_custody', 'recipe.controlled_consumption_guard',
+                'recipe.controlled_transfer_for', 'recipe.controlled_balance', 'recipe.controlled_moved_materials',
+                'recipe.controlled_checkpoint_state', 'recipe.controlled_checkpoint_current', 'recipe.controlled_checkpoint_problem',
+                'recipe.controlled_checkpoint_content', 'recipe.record_controlled_checkpoint', 'recipe.sign_controlled_checkpoint',
+                'recipe.controlled_sign_off_guard', 'recipe.controlled_register_v1', 'recipe.controlled_register_sha256',
+                'recipe.run_controlled_register', 'recipe.controlled_register_reproduces', 'recipe.controlled_batch_end_problem',
+                'recipe.controlled_batch_end_guard', 'tab.controlled_pair_ok', 'tab.controlled_preview',
+                'tab.controlled_signing_content'],
+    tests: [site('controlled/controlled.test.ts'), s('controlled/controlled-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6f, governance: configuration change control, review-by-exception rules, excursion notifications and the PQR
+  //      extract v2 with CPPs (kernel 1195, 1196; recipe-core 1050, 1051, 1062). recipe.guard_critical_elements_risk_assessed
+  //      (1050) stays in mbr-lifecycle and recipe.pqr_run_query (1062) in pqr-extract, with their Phase 6 tests. ----
+  {
+    group: 'governance-change-control',
+    functions: ['platform.change_record_state', 'platform.is_release_actor', 'platform.require_change_record',
+                'platform.config_item_key', 'platform.config_item_value', 'platform.config_change_guard',
+                'platform.config_version_log', 'platform.register_config_area', 'platform.raise_change_record',
+                'platform.approve_change_record', 'platform.close_change_record', 'platform.change_record_content',
+                'recipe.rbe_rule_guard', 'recipe.severity_rank', 'recipe.set_rbe_rule', 'recipe.rbe_reduction_problems',
+                'recipe.notify_departments_of_excursion', 'recipe.pqr_cpp_of', 'recipe.pqr_extract_v2'],
+    tests: [k('config/change-control.test.ts'), r('review/rbe-rules.test.ts'), r('release/pqr-extract.test.ts'),
+            s('config/config-routes.test.ts'), s('notifications/excursion-notifications.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6f, governance: vendor support grants and the sessions they open (kernel 1202, re-creating iam.session_state and
+  //      iam.authn_resolve; tablets 1275), the contract giver's reviewer role and batch access (kernel 1204; recipe-core
+  //      1060) ----
+  {
+    group: 'governance-support-and-contract-giver',
+    functions: ['iam.is_support_account', 'iam.support_grant_open_at', 'iam.support_grant_open', 'iam.support_grant_state',
+                'iam.support_grant_content', 'iam.request_support_grant', 'iam.approve_support_grant', 'iam.revoke_support_grant',
+                'iam.support_session_guard', 'iam.support_session_record', 'iam.support_auth_alert', 'iam.session_state',
+                'iam.authn_resolve', 'tab.support_grant_preview', 'tab.support_grant_signing_content',
+                'iam.contract_giver_role_permission_guard', 'recipe.contract_giver_access_live',
+                'recipe.grant_contract_giver_access', 'recipe.revoke_contract_giver_access', 'recipe.contract_giver_batches',
+                'recipe.read_contract_giver_batch'],
+    tests: [k('identity/support-grant.test.ts'), k('identity/credentials.test.ts'), k('identity/devices-sessions.test.ts'),
+            k('identity/generic.test.ts'), k('esig/sessions.test.ts'), r('release/india.test.ts'),
+            s('governance/governance-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6f, governance: the India digital signature certificate (DSC): policy, trust anchors, meanings, enrolment and
+  //      the DSC a signature carries (kernel 1203, re-creating esig.set_policy, and 1206) ----
+  {
+    group: 'india-dsc',
+    functions: ['esig.policy_allowed_values', 'esig.set_policy', 'esig.dsc_mode', 'esig.dsc_live_anchor',
+                'esig.dsc_meaning_required', 'esig.dsc_required', 'esig.dsc_statement', 'esig.dsc_requirement',
+                'esig.dsc_verification_input', 'esig.register_dsc_anchor', 'esig.set_dsc_meaning', 'esig.dsc_policy_guard',
+                'esig.record_dsc_signature', 'esig.dsc_present_check', 'esig.dsc_enrolment_statement', 'esig.dsc_live_enrolment',
+                'esig.dsc_enrolment_input', 'esig.enrol_dsc_certificate', 'esig.end_dsc_enrolment'],
+    tests: [k('esig/dsc.test.ts'), k('config/change-control.test.ts'), s('governance/governance-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6g, reporting and training mode: the report views a dashboard reads (two carry controls: PR-05 overdue review,
+  //      DI-49 alarm trend), the change impact answer and the training attempts kept in the sandbox (kernel 1210, 1211;
+  //      recipe-core 1070, 1071). sandbox.apply_connect_policy and sandbox.segregation_problems (re-created by 1210 for
+  //      the reporting role) stay in connection-roles, with reporting-and-training.test.ts added. ----
+  {
+    group: 'reporting-and-training',
+    functions: ['report.data_as_of', 'report.batch_version', 'report.us_at', 'report.batch_outcome_rows_v1',
+                'report.exception_rows_v1', 'report.deviation_ageing_rows_v1', 'report.hold_time_risk_rows_v1',
+                'report.overdue_review_rows_v1', 'report.press_counter_rows_v1', 'report.alarm_rows_v1',
+                'recipe.change_impact', 'sandbox.training_sandbox_only', 'sandbox.start_training',
+                'sandbox.complete_training_step'],
+    tests: [k('sandbox/reporting-and-training.test.ts'), site('reporting/reporting-views.test.ts'),
+            site('reporting/change-impact.test.ts'), s('dashboards/dashboards-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6i, inter-site transfer and federation: installation keys and seals (Ed25519 in SQL), peer installations,
+  //      installation alarms, federated genealogy and the mock recall across sites, transfer packages and receipts
+  //      (kernel 1220, 1221, and 1230 of slice 6j-c refusing small-order keys, 6jc-R8; site services 0980, 0981; recipe-core 1090-1093; tablets 1300, 1301 re-creating the signing
+  //      meanings and read classes). site.lot_available (0980) stays in lots-and-lims, with transfer.test.ts added. ----
+  {
+    group: 'transfer-and-federation',
+    functions: ['platform.ed25519_le_integer', 'platform.ed25519_pow', 'platform.ed25519_add', 'platform.ed25519_double',
+                'platform.ed25519_decode', 'platform.ed25519_verify', 'platform.ed25519_small_order', 'platform.seal_message', 'platform.seal_valid',
+                'platform.current_installation', 'platform.trusted_peer', 'platform.own_seal_valid', 'platform.peer_seal_valid',
+                'platform.raw_public_key', 'platform.set_installation_identity', 'platform.propose_peer_installation',
+                'platform.peer_installation_state', 'platform.peer_installation_content', 'platform.approve_peer_installation',
+                'platform.revoke_peer_installation', 'platform.raise_installation_alarm', 'platform.acknowledge_installation_alarm',
+                'platform.accept_federation_request', 'platform.refuse_federation_query', 'site.lot_transferred_out',
+                'site.transfer_rule_tables', 'site.transfer_rule_resolutions', 'site.us_text', 'site.prepare_transfer_package',
+                'site.seal_transfer_package', 'site.us_instant', 'site.transfer_receipt_state', 'site.transfer_receipt_content',
+                'site.resolve_carried_rules', 'site.refuse_transfer_package', 'site.import_transfer_package',
+                'site.decide_transfer_receipt', 'site.transfer_use_problem', 'site.transfer_release_check',
+                'site.transfer_reservation_check', 'recipe.answer_federated_genealogy', 'recipe.issue_federated_request',
+                'recipe.record_federation_failure', 'recipe.record_federated_excerpt', 'recipe.mock_recall_result_v2',
+                'recipe.mock_recall_federation', 'recipe.record_mock_recall_remote', 'tab.kernel_signing_meanings',
+                'tab.aggregate_read_class'],
+    tests: [site('transfer/transfer.test.ts'), s('transfers/transfer-routes.test.ts')],
     threshold: 90,
   },
 ];

@@ -162,6 +162,12 @@ probed on a migrated database): one high, 6jc-R8 (raised by the lead): a small-o
 every seal verify. Fixed in kernel 1230 (EBMR-XFR-042; DI-31). Residuals 6jc-R9 to R15, two of them medium for the owner:
 the adapter feeds and the gateway's OPC UA feed are not authenticated (R9), and one person sets the penicillin facility
 and beta-lactam rules (R10). Backlog: docs/build-plan/phase-6/review-backlog.md.
+Mutation campaign preparation (branch `phase-6/slice-6j-mutation`, 16 October; decision 0019): 14 SQL groups for
+every Phase 6 function (3,981 mutants; 202 more in re-created functions of earlier groups), `--resume`, `--functions`,
+`--audit-equivalents` and `EBMR_MUTATION_VITEST_WORKERS` in the harness, a stale `equivalent.json` entry fixed (56
+older ones run as ordinary mutants until part 2 re-checks them), 20 Stryker features in `stryker.phase6.config.mjs`.
+Run plan, estimates (part 1 about 4 to 5 hours; the whole SQL re-run about 128 worker hours, beyond part 2's box) and
+smoke runs in `docs/build-plan/phase-6/mutation-results.md`; D-P6j-M-1 to 7 in the plan.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
