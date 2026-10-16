@@ -72,7 +72,7 @@ ${button('start', 'Start line')}${button('stop', 'Stop line')}${button('reset', 
 <h2>Loaded job</h2>
 ${job}
 <h2>Challenges</h2>
-${button('challenge', 'Challenge the code reader', { target: 'READER' })}${button('challenge', 'Challenge the vision system', { target: 'VISION' })}
+${button('challenge', 'Challenge the code reader', { target: 'READER' })}${button('challenge', 'Challenge the vision system', { target: 'VISION' })}${button('challenge', 'Test unit with a wrong expiry', { target: 'EXPIRY' })}
 <h2>Faults</h2>
 <ul>${faults}</ul>
 ${button('clear-faults', 'Clear all faults')}
