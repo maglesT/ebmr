@@ -1,9 +1,9 @@
 -- Tablets: a peer installation is a RECORD-class record (Phase 6 slice 6i; kernel 1220; DI-31): QA, who signs its
--- approval (PEER_INSTALLATION_APPROVE), reads its content; tablets 1290 left it GOVERNANCE, which QA does not read.
+-- approval (PEER_INSTALLATION_APPROVE), reads its content; tablets 1300 left it GOVERNANCE, which QA does not read.
 --
 -- Handbook: modules/tablets-server.md
 --
---   * tab.aggregate_read_class: CREATE OR REPLACE from 1290 with peer_installation beside transfer_receipt. Nothing else
+--   * tab.aggregate_read_class: CREATE OR REPLACE from 1300 with peer_installation beside transfer_receipt. Nothing else
 --     changes; a later migration that re-creates the function starts from this definition.
 
 set local role ebmr_owner;

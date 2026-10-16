@@ -20,6 +20,7 @@
  */
 import { z } from 'zod';
 import { DECIMAL_TEXT, scaleOf } from '../scale/decimal.ts';
+import { shownValueProblem } from '../adapter/equipment-data.ts';
 import { tagSpec } from './tags.ts';
 
 export const PROCESS_READINGS_PATH = '/gw/v1/process-readings';
@@ -40,6 +41,20 @@ export const ProcessEpochMicros = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'UT
 export const DeviceSerial = z.string().regex(/^[\x21\x23-\x7E]{1,32}$/, 'a device serial number (printable, no quote)');
 export const ProcessUnit = z.string().min(1).max(16);
 
+/**
+ * Phase 6 slice 6b (builder A; DI-32, DI-20): a reading taken over OPC UA keeps the device's original record with it:
+ * the raw value text as the server sent it, the OPC UA status code, the source timestamp the server stamped, and the
+ * enrolled endpoint (an INSTRUMENT of the device registry) whose session it came through. The value shown (`value`)
+ * must state the raw value exactly (never a rounding; tablets 1210 checks it again). Absent for the JSON-lines stand-in.
+ */
+export const ProcessReadingNative = z.strictObject({
+  raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+  status: z.string().regex(/^0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
+  deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
+  endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
+});
+export type ProcessReadingNative = z.infer<typeof ProcessReadingNative>;
+
 export const ProcessReading = z.strictObject({
   deviceSerial: DeviceSerial,
   tag: z.string().min(1).max(64),
@@ -49,6 +64,7 @@ export const ProcessReading = z.strictObject({
   sourceTime: ProcessEpochMicros,
   sequence: ProcessSequence,
   kind: ProcessReadingKind,
+  native: ProcessReadingNative.optional(),
 });
 export type ProcessReading = z.infer<typeof ProcessReading>;
 
@@ -134,6 +150,11 @@ export function processReadingsProblems(candidate: unknown): ProcessWireProblem[
   const lastSeq = new Map<string, bigint>();
   parsed.data.readings.forEach((r, i) => {
     for (const p of processReadingProblems(r)) problems.push({ path: `readings.${i}.${p.field}`, message: p.message });
+    if (r.native) {
+      // DI-32: the value shown is the raw value the device sent, exactly (never a rounding of it).
+      const problem = shownValueProblem(r.native.raw, r.value);
+      if (problem) problems.push({ path: `readings.${i}.native.raw`, message: problem });
+    }
     const seq = BigInt(r.sequence);
     const prev = lastSeq.get(r.deviceSerial);
     if (prev !== undefined && seq <= prev) {

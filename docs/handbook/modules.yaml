@@ -164,6 +164,14 @@ modules:
     migrations:
       packages/kernel/sql: ['^122\d_']
 
+  - id: kernel-area-authorisation
+    title: Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^119[0-4]_']
+    tests: ['packages/kernel/test/identity/area-authorisation.test.ts']
+
   - id: kernel-installation
     title: Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests
     page: modules/kernel.md
@@ -263,6 +271,14 @@ modules:
       packages/site-services/sql: ['^091\d_']
     tests: ['packages/site-services/test/erp-wms/**']
 
+  - id: ss-reagent-lots
+    title: Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^094\d_']
+    tests: ['packages/site-services/test/plant-rules/materials.test.ts']
+
   - id: ss-core
     title: Site services package entry and shared tests
     page: modules/site-services.md
@@ -295,6 +311,14 @@ modules:
       - 'packages/recipe-core/test/plant/**'
       - 'packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts'
       - 'packages/recipe-core/test/mutation/platform-scope.test.ts'
+
+  - id: rc-equipment-data
+    title: Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^09[6-8]\d_']
+    tests: ['packages/recipe-core/test/integrations/plant-alarms-series.test.ts', 'packages/recipe-core/test/equipment-data/**', 'packages/recipe-core/test/plant-rules/**']
 
   - id: rc-mirrors
     title: CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B)
@@ -721,6 +745,17 @@ modules:
     screens: [apps/tablets-web/src/features/integrations]
     tests: ['apps/tablets-server/test/integrations/**', 'apps/tablets-web/test/integrations/**']
 
+  - id: ts-alarms
+    title: Plant alarm log, equipment data, plant rules and their screens (Phase 6 slice 6b)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^121\d_']
+    server: [apps/tablets-server/src/features/alarms, apps/tablets-server/src/features/equipment-data, apps/tablets-server/src/features/plant-rules]
+    contract: [packages/api-contract/src/ns/alarms.ts, packages/api-contract/src/ns/equipment-data.ts, packages/api-contract/src/ns/plant-rules.ts]
+    screens: [apps/tablets-web/src/features/plant-status]
+    tests: ['apps/tablets-server/test/alarms/**', 'apps/tablets-server/test/equipment-data/**', 'apps/tablets-web/test/plant-status/**']
+
   - id: ts-capa
     title: CAPA register and closure (Phase 6 slice 6a, builder B)
     page: modules/tablets-server.md
@@ -748,7 +783,7 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^129\d_']
+      apps/tablets-server/sql: ['^130\d_']
     server: [apps/tablets-server/src/features/transfers]
     contract: [packages/api-contract/src/ns/transfers.ts]
     screens: [apps/tablets-web/src/features/transfers]

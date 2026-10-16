@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@ebmr/integration-sdk": "workspace:0.1.0",
+    "node-opcua": "2.186.13",
     "tsx": "4.23.15"
   }
 }

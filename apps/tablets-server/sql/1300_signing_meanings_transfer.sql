@@ -8,7 +8,7 @@
 --     and TRANSFER_RECEIPT_REFUSED on transfer_receipt and PEER_INSTALLATION_APPROVED on peer_installation.
 --   * tab.aggregate_read_class: CREATE OR REPLACE from 1280: a transfer receipt is a RECORD-class record (a peer
 --     installation stays GOVERNANCE).
--- Slice 6i had no tablets range; it takes 1290 to 1299 (D-P6i-0-1), after slice 6d's 1280 to 1289. The latest definition
+-- Slice 6i's tablets range is 1300 to 1309 (D-P6i-0-1; 6e has 1290 to 1299, 6g 1310 to 1319). The latest definition
 -- on main is 1280; a slice that merges after this one re-creates these functions from this definition (or this one from
 -- theirs) so that no slice's entries are lost. Nothing else changes.
 

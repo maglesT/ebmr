@@ -5,7 +5,7 @@ Everything below is fixed for the slice; changes are additive (new routes, new o
 It builds on the genealogy interfaces of [slice-6d-0-interfaces.md](slice-6d-0-interfaces.md).
 
 Branch `phase-6/slice-6i`. Migrations: kernel 1220 to 1229, site services 0980 to 0999, recipe-core 1090 to 1099 (the plan's
-ranges) and tablets 1290 to 1299 (taken here, D-P6i-0-1).
+ranges) and tablets 1300 to 1309 (assigned by the lead, D-P6i-0-1).
 
 ## 1. What travels and who decides
 
@@ -65,7 +65,7 @@ excerpt is shown with its own as-of and the result is marked incomplete, never s
 | `recipe.mock_recall_remote`, `recipe.record_mock_recall_remote(recall, transfer, status, excerpt, detail) returns uuid` | Per outbound transfer of the result: ANSWERED (an excerpt as of the recall's as-of, FORWARD, from the destination) or UNREACHABLE or REFUSED (with the last excerpt, if any); RECALL.MOCK_RUN; before the sign-off only |
 | `recipe.mock_recall_federation(recall) returns jsonb` | `{complete, transfers[]}`: complete only when every outbound transfer has an ANSWERED row; computed by the database, never stored |
 
-### Tablets 1290
+### Tablets 1300, 1301
 
 `tab.kernel_signing_meanings` and `tab.aggregate_read_class` re-created from their latest definition (tablets 1280) with
 `transfer_receipt` (TRANSFER_RECEIPT_ACCEPTED, TRANSFER_RECEIPT_REFUSED; RECORD class) and `peer_installation`
@@ -104,8 +104,8 @@ excerpt is shown with its own as-of and the result is marked incomplete, never s
 
 ## 5. Decisions (defaults under decision 0004; the owner may change them)
 
-- **D-P6i-0-1** Tablets 1290 to 1299 for the signing meanings (the plan gave 6i no tablets range; 1280 to 1289 is 6d's, the
-  others are taken on main and in the open slices). Why: the next free range after every range in use.
+- **D-P6i-0-1** Tablets 1300 to 1309 for the signing meanings and read classes (assigned by the lead, 16 October: 6e has
+  1290 to 1299, 6g 1310 to 1319; the first build took 1290, 1291, renamed before merge). Why: the plan gave 6i no tablets range.
 - **D-P6i-0-2** A package carries one material lot of kind INTERMEDIATE (intermediates and bulk held as a lot) in a usable
   status (RELEASED or RELEASED_FOR_FURTHER_PROCESSING); finished goods go out as distribution records (6d), purchased
   materials come from their supplier. Shipping in quarantine (for testing elsewhere) is out of v1. Why: L-41 names

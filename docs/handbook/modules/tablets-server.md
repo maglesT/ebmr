@@ -1610,7 +1610,7 @@ over HTTP with a timeout (`EBMR_FEDERATION_TIMEOUT_S`) and serves `genealogy.fed
 as-of point first, asks every destination, then stores the run and the answers in one command; `recall.refreshFederation`
 asks again. Signed acts TRANSFER_RECEIPT_DECIDE and PEER_INSTALLATION_APPROVE
 ([signables.ts](../../../apps/tablets-server/src/features/transfers/signables.ts); meanings in
-[1290](../../../apps/tablets-server/sql/1290_signing_meanings_transfer.sql)). Tests with two servers:
+[1300](../../../apps/tablets-server/sql/1300_signing_meanings_transfer.sql)). Tests with two servers:
 [transfer-routes.test.ts](../../../apps/tablets-server/test/transfers/transfer-routes.test.ts).
 
 ## ts-core: the golden batches

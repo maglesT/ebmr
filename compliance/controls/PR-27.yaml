@@ -59,6 +59,9 @@ tests:
   - "apps/tablets-server/test/mutation/tablets-compression-registers.test.ts > the tooling register commands (tablets 0871) > [INV-24][PR-27] a set is defined by the master-data steward with whole-number counts and limit; a set is looked up by its code, locked or not"
   - "apps/tablets-server/test/mutation/tablets-compression-registers.test.ts > the tooling register commands (tablets 0871) > [INV-24][IN-36][PR-27][PR-22] an issue: a press of the plant, a set the rules let issue, counts of at least one and at most the set holds; it records the set's latest (passing pre-use) inspection"
   - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27][PR-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
+  - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant displays and rooms > [PR-25][PR-27][PR-15] rooms show cleaning state, clean hold, controlled area and open spills; a room shows its conditions and records a spill"
+  - "packages/site-services/test/plant-rules/materials.test.ts > the penicillin facility (PR-27) > [PR-27] a penicillin component in a non-penicillin facility is blocked"
+  - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-27] a spill event sets the room to cleaning required"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:

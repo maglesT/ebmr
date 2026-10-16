@@ -1,7 +1,7 @@
 /**
  * The transfers and federation routes over HTTP with two GMP servers, each on its own database and its own installation
  * key (Phase 6 slice 6i; contract ns/transfers.ts, genealogy.federatedTrace, recall; kernel 1220, site services 0980,
- * 0981, recipe-core 1090, 1091, tablets 1290; L-41, DI-31, DI-39, PR-57, IN-29). PUNE seals a package of a released
+ * 0981, recipe-core 1090, 1091, tablets 1300, 1301; L-41, DI-31, DI-39, PR-57, IN-29). PUNE seals a package of a released
  * intermediate; GOA takes it in (a tampered copy is refused with an alarm) and its QA accepts it through the ceremony;
  * PUNE's explorer and mock recall ask GOA over real HTTP, and mark the result incomplete while GOA does not answer.
  *

@@ -54,6 +54,9 @@ import qs from '../fixtures/qp-shipping.json' with { type: 'json' };
 import nt from '../fixtures/notifications.json' with { type: 'json' };
 import rk from '../fixtures/records-lock.json' with { type: 'json' };
 import ig from '../fixtures/integrations.json' with { type: 'json' };
+import al from '../fixtures/alarms.json' with { type: 'json' };
+import pr from '../fixtures/plant-rules.json' with { type: 'json' };
+import eqd from '../fixtures/equipment-data.json' with { type: 'json' };
 import cp from '../fixtures/capa.json' with { type: 'json' };
 import cfg from '../fixtures/config.json' with { type: 'json' };
 import rc from '../fixtures/receipt.json' with { type: 'json' };
@@ -317,6 +320,35 @@ export const EXAMPLES = {
   'integrations-mirrors-stale': { schema: r.integrations.mirrors.response, data: ig.mirrorsStale },
   'integrations-alarms': { schema: r.integrations.alarms.response, data: ig.alarms, routeId: r.integrations.alarms.id },
   'integrations-acknowledge-alarm': { schema: r.integrations.acknowledgeAlarm.response, data: ig.alarmAcknowledged, routeId: r.integrations.acknowledgeAlarm.id },
+  // Phase 6 slice 6b-0: the plant alarm log (DI-49) and native equipment data (DI-32); screens of 6b.
+  'alarms-list': { schema: r.alarms.list.response, data: al.list, routeId: r.alarms.list.id },
+  'alarms-batch-log': { schema: r.alarms.batchLog.response, data: al.batchLog, routeId: r.alarms.batchLog.id },
+  'alarms-alarm': { schema: r.alarms.alarm.response, data: al.alarm, routeId: r.alarms.alarm.id },
+  'alarms-acknowledge': { schema: r.alarms.acknowledge.response, data: al.acknowledged, routeId: r.alarms.acknowledge.id },
+  'equipment-data-tags': { schema: r.equipmentData.tags.response, data: eqd.tags, routeId: r.equipmentData.tags.id },
+  'equipment-data-series': { schema: r.equipmentData.series.response, data: eqd.series, routeId: r.equipmentData.series.id },
+  'equipment-data-batch-series': { schema: r.equipmentData.batchSeries.response, data: eqd.batchSeries, routeId: r.equipmentData.batchSeries.id },
+  'equipment-data-events': { schema: r.equipmentData.events.response, data: eqd.events, routeId: r.equipmentData.events.id },
+  'equipment-data-originals': { schema: r.equipmentData.originals.response, data: eqd.originals, routeId: r.equipmentData.originals.id },
+  // Phase 6 slice 6b (builder B): the status displays (PR-22, PR-35) and the plant rules (PR-15, PR-25, PR-27, PR-29).
+  'equipment-displays-status-board': { schema: r.equipmentDisplays.statusBoard.response, data: pr.statusBoard, routeId: r.equipmentDisplays.statusBoard.id },
+  'equipment-displays-line-station': { schema: r.equipmentDisplays.lineStation.response, data: pr.lineStation, routeId: r.equipmentDisplays.lineStation.id },
+  'plant-rules-rooms': { schema: r.plantRules.rooms.response, data: pr.rooms, routeId: r.plantRules.rooms.id },
+  'plant-rules-room-conditions': { schema: r.plantRules.roomConditions.response, data: pr.roomConditions, routeId: r.plantRules.roomConditions.id },
+  'plant-rules-record-spill': { schema: r.plantRules.recordSpill.response, data: pr.room, routeId: r.plantRules.recordSpill.id },
+  'plant-rules-set-room-rule': { schema: r.plantRules.setRoomRule.response, data: pr.room, routeId: r.plantRules.setRoomRule.id },
+  'plant-rules-adjacencies': { schema: r.plantRules.adjacencies.response, data: pr.adjacencies, routeId: r.plantRules.adjacencies.id },
+  'plant-rules-define-adjacency': { schema: r.plantRules.defineAdjacency.response, data: pr.version, routeId: r.plantRules.defineAdjacency.id },
+  'plant-rules-set-facility-rule': { schema: r.plantRules.setFacilityRule.response, data: pr.version, routeId: r.plantRules.setFacilityRule.id },
+  'plant-rules-classify-beta-lactam': { schema: r.plantRules.classifyBetaLactam.response, data: pr.version, routeId: r.plantRules.classifyBetaLactam.id },
+  'plant-rules-create-area-authorisation': { schema: r.plantRules.createAreaAuthorisation.response, data: pr.areaAuthorisation, routeId: r.plantRules.createAreaAuthorisation.id },
+  'plant-rules-area-authorisations': { schema: r.plantRules.areaAuthorisations.response, data: pr.areaAuthorisations, routeId: r.plantRules.areaAuthorisations.id },
+  'plant-rules-record-area-authorisation': { schema: r.plantRules.recordAreaAuthorisation.response, data: pr.areaAuthorisationRecord, routeId: r.plantRules.recordAreaAuthorisation.id },
+  'plant-rules-withdraw-area-authorisation': { schema: r.plantRules.withdrawAreaAuthorisation.response, data: pr.areaAuthorisationWithdrawn, routeId: r.plantRules.withdrawAreaAuthorisation.id },
+  'plant-rules-reagent-lots': { schema: r.plantRules.reagentLots.response, data: pr.reagentLots, routeId: r.plantRules.reagentLots.id },
+  'plant-rules-record-reagent-lot': { schema: r.plantRules.recordReagentLot.response, data: pr.reagentLot, routeId: r.plantRules.recordReagentLot.id },
+  'plant-rules-withdraw-reagent-lot': { schema: r.plantRules.withdrawReagentLot.response, data: pr.reagentLot, routeId: r.plantRules.withdrawReagentLot.id },
+  'plant-rules-record-reagent-use': { schema: r.plantRules.recordReagentUse.response, data: pr.reagentUse, routeId: r.plantRules.recordReagentUse.id },
   // Phase 6 slice 6a (builder B): the CAPA register and detail (IN-01 (d), PR-51).
   'capa-register': { schema: r.capa.register.response, data: cp.register, routeId: r.capa.register.id },
   'capa-detail': { schema: r.capa.detail.response, data: cp.detail, routeId: r.capa.detail.id },
