@@ -601,8 +601,11 @@ export async function startGatewayListener(app: AppContext, listen: { host: stri
     const actor = gatewayActor(gw, app.siteZone.current(), randomUUID());
     try {
       return await withActorCommand(app.pools.app, actor, async (client) => {
-        const { rows } = await client.query<{ r: Record<string, unknown> }>('select tab.ingest_process_readings($1::jsonb) as r', [JSON.stringify(body)]);
-        if (!rows[0]) throw new Error('tab.ingest_process_readings returned nothing');
+        // Slice 6b (tablets 1210; DI-32, DI-20): readings taken over OPC UA carry their original record and go through
+        // tab.ingest_opcua_readings, which checks it and the endpoint's session, then applies tablets 0820's rules.
+        const fn = body.readings.some((r) => r.native !== undefined) ? 'tab.ingest_opcua_readings' : 'tab.ingest_process_readings';
+        const { rows } = await client.query<{ r: Record<string, unknown> }>(`select ${fn}($1::jsonb) as r`, [JSON.stringify(body)]);
+        if (!rows[0]) throw new Error(`${fn} returned nothing`);
         return rows[0].r;
       });
     } catch (error) {

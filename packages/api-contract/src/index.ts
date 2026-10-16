@@ -243,6 +243,10 @@ export {
   MirrorFreshnessView,
   ReconciliationReportView,
 } from './ns/integrations.ts';
+export { AlarmLimitKind, AlarmSubjectKind, PlantAlarmSource, PlantAlarmView } from './ns/alarms.ts';
+export { DeviceOriginalView, EquipmentEventView, NativeSampleView, SERIES_PAGE_MAX, SeriesChunkView, SeriesSubjectKind, SeriesTagView } from './ns/equipment-data.ts';
+export { LineStationView, StatusBoardEntry } from './ns/equipment-data.ts';
+export { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
 export {
   ComplaintLookupView,
   DeviationImpactView,

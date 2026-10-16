@@ -19,6 +19,7 @@ import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
+import { BatchAlarmLog } from '../plant-status/BatchAlarmLog.tsx';
 import { AuditTrailPanel } from './AuditTrailPanel.tsx';
 import { GateProblems } from './parts.tsx';
 import { REVIEW_READS, stateTone, words } from './reads.ts';
@@ -88,6 +89,8 @@ function BatchReview({ view: v }: { view: BatchReviewView }) {
       </Section>
       {v.reviewState === 'ABORTED' ? <AbortChecklist view={v} /> : null}
       {v.freeText.length > 0 ? <FreeText view={v} /> : null}
+      {/* Phase 6 slice 6b (DI-49): the batch's alarm log with the acknowledgment of open alarms. */}
+      <BatchAlarmLog batchId={v.batchId} />
       <ProductionApproval view={v} offered={production} />
       <AuditTrailPanel batchId={v.batchId} gate={v.gates.auditTrailReview} offered={qa} />
       <QaReview view={v} offered={qa} />

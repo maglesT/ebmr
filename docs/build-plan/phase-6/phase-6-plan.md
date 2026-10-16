@@ -259,6 +259,73 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Handbook:** `modules/integrations.md` (OPC UA client, simulator), `modules/recipe-core.md` (alarms, series, plant
   rules), `modules/tablets-server.md`, `modules/tablets-web.md`, `modules/injectables.md` (extension points used),
   `08-defect-log.md`.
+- **State (16 October):** built on `phase-6/slice-6b`. 6b-0 interfaces ([slice-6b-0-interfaces.md](slice-6b-0-interfaces.md));
+  builder A: OPC UA client driver over node-opcua and the simulator of the nine Tablets units with their faults,
+  endpoint identity (recipe-core 0961, DI-20), OPC UA readings with their original record (tablets 1210, DI-32), the
+  gateway's OPC UA feed; builder B: the bridge of the Tablets alarms into the plant alarm log (tablets 1218), area
+  authorisation (kernel 1190), room rules, spills, penicillin facility, adjacency (recipe-core 0973), step guards and
+  the alarm log in review (0974), status reads (0975), reagent lots (site 0940), the EMS simulator and adapter, the
+  alarm, status board, line station and room screens. Finishing pass: the server's OPC UA adapter worker over the
+  gateway feed (`adapters/opcua`), the trend viewer (`/trends`, zoom and pan over native chunks, from the batch review),
+  the area authorisations of the qualification matrix (routes `plantRules.areaAuthorisations`,
+  `recordAreaAuthorisation`, `withdrawAreaAuthorisation`; screen `/area-authorisations`), handbook modules claimed,
+  lint of the slice.
+- **Defaults taken by the builders and the finishing pass (decision 0004; the owner may change them):**
+  - **D-P6b-A-1** A chunk's samples are kept twice: as received in the inbound message (the original) and as the
+    checked `plant.series` row; the audit trail holds the row hash only. Listed with D-P6b-0-7.
+  - **D-P6b-A-3** The simulator publishes alarm transitions and equipment events on a `<unit>/_events` string node
+    (one JSON value per event), monitored with a queue so no change is lost; a production server's Alarms and Conditions
+    events go through the same transport port.
+  - **D-P6b-B-1** Area authorisation is a qualification of the register (`AREA.<code>`), recorded by the training
+    coordinator, never by the person, fed by the LMS mirror where the site has one.
+  - **D-P6b-B-3** A room with a spill is CLEANING_REQUIRED until a cleaning of it is verified after the spill.
+  - **D-P6b-B-4** The G-06 acknowledgment of an ALARM reading is the plant alarm's acknowledgment, except when the alarm
+    code needs a deviation (acknowledged on the alarm list with its reference).
+  - **D-P6b-B-5** A gateway interface fault that names no unit stays in the device alarm log.
+  - **D-P6b-B-6** Reagent and buffer lots are their own lots (never consumed into the product), with an expiry and an
+    early withdrawal.
+  - **D-P6b-B-7** A room alarm binds the batches in the room, not a step: it blocks the signature of any step of the
+    batch done in that room. A unit alarm raised before any step is bound to the unit is bound to the batch only: it
+    blocks no step signature but blocks the production approval and the QA review (the review gate lists every alarm
+    without its disposition).
+  - **D-P6b-B-8** The EMS has no mirror data class; its adapter runs when any data class of the site is in MIRROR.
+  - **D-P6b-B-9** The status board and the line station are their own contract namespace `equipmentDisplays`.
+  - **D-P6b-L-1** The OPC UA adapter follows the EMS rule (D-P6b-B-8): a STAND_IN site starts no adapter at all, so
+    native series reach the database only at a site that runs its external systems in MIRROR; process readings (G-06)
+    flow on the gateway uplink in every mode. Listed for the owner.
+  - **D-P6b-L-2** "Trend data from a restored archive": the viewer draws only from the native chunks the series routes
+    serve (no stored image, aggregate or cache), so a database restored from its backup, or any copy that holds the
+    chunks, re-renders and zooms as live data. The test is the web test on the chunks as served; a Playwright step on
+    a restored database joins the Phase 6 exit browser suite (6j) with the backup-restore work.
+  - **D-P6b-L-3** A person's area authorisation recorded on the screen is valid from the recording instant (no
+    backdating; the guard counts a record only from its recording time anyway), with an optional end.
+  - **D-P6b-L-4** "In the exception register (DI-26)": the plant alarm log is not written into `recipe.exception_register`
+    (that register follows the engine state row by row and refuses rows the state does not hold); instead every alarm
+    bound to the batch is in the review gate of the production approval and the QA review, and on the batch review
+    screen beside the register. The G-06 alarm readings stay engine exceptions as before.
+- **Quick review (16 October, one pass over the whole slice diff: correctness, security, control coverage):**
+  - **Q-6b-1 (medium, access, fixed):** the acknowledgment of a plant alarm checked ALARM.ACKNOWLEDGE only in the scope
+    of the first bound batch; a room alarm binds every batch in the room, so a person scoped to one product could give
+    the disposition that stands in another product's record. Recipe-core 0976 requires the right in every bound batch's
+    scope; test `[DI-49] a room alarm bound to batches of two products is acknowledged only by a person whose scope holds
+    both` (fails on 0960 alone).
+  - **Q-6b-2 (low, test race, fixed):** the gateway's `[DI-31]` simulator test waited once for a one-shot out-of-order
+    sample, which the server's sampling can replace under load; the wait now fires the fault again (at most once a
+    second) until the driver has seen one.
+  - **Q-6b-3 (low, lint, fixed):** lint errors in builder files (unused import, needless assertions, unsafe `expect.any`
+    assignments, a `String()` of an unknown) that would have failed CI's lint.
+  - **Q-6b-4 (low, boundary, fixed):** the material-rules test sat in recipe-core but imported site-services test code
+    (`deps:check` refused it); moved to `packages/site-services/test/plant-rules/`.
+  - No critical or high finding. Checked without a finding: the step guard (room from the terminal, which the MBR's
+    stage binding already pins, DI-20; START_STEP, SIGN_PERFORMED and VERIFY all checked), the OPC UA session guard on
+    every OPCUA row, raw-equals-shown in the database for readings and chunks, the alarm log insert-only for every role,
+    the review gate over every unacknowledged alarm, the new area-authorisation routes (QUALIFICATION.RECORD and the
+    no-self rule in the kernel, withdrawal reason in the audit entry).
+- **Residuals (for 6j or the owner):** the Playwright step of `[DI-32] trend data from a restored archive re-renders
+  interactively` on a restored database (D-P6b-L-2; proven now by the web test); the DI-49 compression-force excursion
+  end to end from the OPC UA simulator through the gateway uplink into the alarm log is proven in two halves (the
+  gateway's simulator tests up to the process reading, the server's bridge test from the reading on); D-P6b-L-1 (no
+  OPC UA adapter at a STAND_IN site) for the owner.
 
 ### Slice 6c: packaging line completion and serialisation L3/L4
 

@@ -2514,6 +2514,19 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   insertion not database-guarded, the reviewer's routing kept by the server. Local runs (spare clusters 5435, 5437):
   typecheck and lint of the changed files clean; kernel and api-contract 1,643 passed; tablets-server governance, esig,
   config, platform and package tests with tablets-web 643 passed; register valid; handbook checks pass.
+- 2026-10-16: PHASE 6 SLICE 6b (branch phase-6/slice-6b; 6b-0 interfaces, builders A and B, then a finishing pass).
+  Equipment data and alarms: the OPC UA client driver over node-opcua (SignAndEncrypt only, certificate thumbprint,
+  native chunks, setpoint write and read-back, recipe version) and the OPC UA simulator of the nine Tablets units with
+  feed gap, stale value, out of order, recipe mismatch, drift, excursion, reject burst, relocation and certificate
+  change; the gateway's OPC UA feed and the server's OPC UA adapter worker over it; endpoint identity (recipe-core 0961,
+  DI-20); OPC UA readings with their original record (tablets 1210, DI-32); the plant alarm log in batch context with
+  its disposition (recipe-core 0960, DI-49) fed by the Tablets alarms (tablets 1218); the EMS simulator and adapter.
+  Plant rules: area authorisation (kernel 1190, PR-15), clean hold and spills (PR-25, PR-27), penicillin facility
+  (PR-27), adjacency (PR-35), step guards and the alarm log in review (recipe-core 0973 to 0975), reagent lots (site
+  0940, PR-29). Screens: alarm list and acknowledgment, batch alarm log, status board, line station, rooms and spills,
+  trend viewer, area authorisations of the qualification matrix. Quick review: one medium fixed (Q-6b-1, an alarm
+  acknowledged under the first bound batch's scope only; recipe-core 0976), a test race and CI lint errors fixed;
+  defaults D-P6b-A-*, D-P6b-B-*, D-P6b-L-1 to 4 and residuals in the plan's slice 6b section.
 - 2026-10-16: PHASE 6 SLICE 6e (branch phase-6/slice-6e): controlled-substance mode, the draft control IN-53 (status U:
   NDPS Act and Rules not verified; expert decision PENDING, pack draft). 6e-0: IN-53.yaml, requirement row n679
   (unverified), register 242 controls and 679 rows, IN-53 in recipe.engine_name, permissions and meanings (recipe-core
@@ -2544,3 +2557,11 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   run before the session loads, recurrence counted up to now. Local runs (cluster 5439): typecheck, lint of the changed
   files and deps:check clean; the slice's site-services, tablets-server, api-contract and tablets-web tests passed (web
   suite 79 files, 564 tests); register valid; handbook check passes.
+- 2026-10-14: PHASE 6 SLICE 6a interface and builder detail (moved from PROGRESS.md):
+  Slice 6a on `phase-6/slice-6a`: 6a-0 (interface commit) done: `@ebmr/integration-sdk/adapter` (envelope, error
+  classes, retry rule, reconciliation, system contracts), kernel 1180 (integration adapters, `platform.accept_inbound`,
+  integration alarms, reconciliation, `platform.mirror_fresh_or_raise`), namespace `integrations` with its server reads;
+  signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-plan/phase-6/slice-6a-0-interfaces.md`.
+  Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
+  command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
+  none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.

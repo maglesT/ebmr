@@ -4,9 +4,10 @@
  * batches stay sandbox-only, the GMP batch issue GMP-only, by the contract's route installations; each installation has its
  * own gateways and scales). A module replaces only its own index.ts. Phase 3 slice 6: planning, master-data
  * (formulation library) and plant on GMP; the GMP batch family `/api/batches/*` is bound by execution (D-S6-1). Phase 4
- * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP. Phase 4 slice 6b: archive (retention, contingency packs, evidence export, inspection) on GMP. Phase 6 slice 6d: genealogy (genealogy and recall namespaces) on GMP.
+ * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP. Phase 4 slice 6b: archive (retention, contingency packs, evidence export, inspection) on GMP. Phase 6 slice 6b-0: alarms (plant alarm log) and equipment-data (native series, equipment events, original records) on GMP. Phase 6 slice 6d: genealogy (genealogy and recall namespaces) on GMP.
  */
 import * as access from './access/index.ts';
+import * as alarms from './alarms/index.ts';
 import * as archive from './archive/index.ts';
 import * as audit from './audit/index.ts';
 import * as capa from './capa/index.ts';
@@ -16,6 +17,8 @@ import * as containers from './containers/index.ts';
 import * as designer from './designer/index.ts';
 import * as devices from './devices/index.ts';
 import * as esig from './esig/index.ts';
+import * as equipmentData from './equipment-data/index.ts';
+import * as plantRules from './plant-rules/index.ts';
 import * as governance from './governance/index.ts';
 import * as erpShipping from './erp-shipping/index.ts';
 import * as execution from './execution/index.ts';
@@ -63,6 +66,9 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'india', installations: ['GMP'], module: india satisfies FeatureModule },
   { name: 'integrations', installations: ['GMP'], module: integrations satisfies FeatureModule },
   { name: 'capa', installations: ['GMP'], module: capa satisfies FeatureModule },
+  { name: 'alarms', installations: ['GMP'], module: alarms satisfies FeatureModule },
+  { name: 'equipment-data', installations: ['GMP'], module: equipmentData satisfies FeatureModule },
+  { name: 'plant-rules', installations: ['GMP'], module: plantRules satisfies FeatureModule },
   { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
   { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },
   { name: 'controlled', installations: ['GMP'], module: controlled satisfies FeatureModule },
