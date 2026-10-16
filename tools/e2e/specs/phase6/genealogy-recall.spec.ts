@@ -5,14 +5,17 @@
  * which lists the affected batch, the reconciliation delivered against returned per lot and every consignee with their
  * address, and reproduces; the authorised person signs it off through the ceremony.
  *
- * The lot chain is arranged as the genealogy server tests arrange it (superuser, triggers off: a receipt, a consumption, a
- * finished lot and two ERP distribution records with unique codes), so the flow depends on no other spec's batches; the
- * explorer, the recall and its sign-off are the real screens and routes.
+ * The lot chain is arranged as the genealogy server tests arrange it (superuser, triggers off: a receipt, a reservation and
+ * its consumption, a finished lot and two ERP distribution records with unique codes), so the flow depends on no other
+ * spec's batches; every row keeps its foreign keys, so the database still restores from its backup (the trends spec
+ * restores it). The explorer, the recall and its sign-off are the real screens and routes.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
+import { routes } from '@ebmr/api-contract';
 import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.ts';
-import { officeSign } from '../../fixtures/slice6.ts';
+import { officeSign, signedInApi } from '../../fixtures/slice6.ts';
+import { valueOf } from '../../fixtures/test-package.ts';
 import type { E2eWorld } from '../../fixtures/index.ts';
 import { withDb } from './support.ts';
 
@@ -21,8 +24,24 @@ interface Chain {
   codes: { api: string; batch: string; shipments: [string, string]; consignees: [string, string] };
 }
 
-/** The API lot, the batch that consumed it, its finished lot and two shipments to two consignees (unique per call). */
-async function arrangeChain(e2e: E2eWorld): Promise<Chain> {
+/** A DRAFT MBR family of a product of its own (the dc-mini template), created by the MBR author through the designer API. */
+async function draftFamily(e2e: E2eWorld, page: Page, tag: string): Promise<{ familyId: string; productCode: string }> {
+  const api = await signedInApi(page, e2e);
+  const templates = valueOf('designer templates', await api.call(routes.designer.templates));
+  const template = templates.templates.find((t) => t.templateId === 'dc-mini');
+  if (!template) throw new Error('the GMP designer does not offer the dc-mini template');
+  const productCode = `GN-E2E-P${tag}`;
+  const version = valueOf('create the family', await api.call(routes.designer.createFamily, {
+    body: { templateId: 'dc-mini', familyCode: `FAM-GN-E2E-${tag}`, product: { ...template.product, code: productCode }, batchSizes: [{ quantity: '60.000', unit: 'kg' }], markets: ['IN'] },
+  }));
+  return { familyId: version.familyId, productCode };
+}
+
+/**
+ * The API lot, the batch that consumed it (its number allocated and its batch row under a DRAFT family of its own), its
+ * finished lot and two shipments to two consignees (unique per call).
+ */
+async function arrangeChain(e2e: E2eWorld, family: { familyId: string; productCode: string }): Promise<Chain> {
   const tag = randomBytes(3).toString('hex').toUpperCase();
   const chain: Chain = {
     ids: { api: randomUUID(), batch: randomUUID(), lot: randomUUID(), shipments: [randomUUID(), randomUUID()] },
@@ -41,14 +60,21 @@ async function arrangeChain(e2e: E2eWorld): Promise<Chain> {
               f as (insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at,
                                                    received_by_person, received_by_account, correlation_id)
                     values ($3, $7, $5, 'GN-500', 'Genealogy tablets 500 mg', 'FINISHED', 1000, 'units', '2029-01-01T00:00:00Z', $6, $6, $6) returning id),
-              b as (insert into recipe.batch_allocation_link (batch_id, allocation_id, batch_number, person_id, account_id, correlation_id)
-                    values ($2, gen_random_uuid(), $5, $6, $6, $6) returning batch_id),
+              n as (insert into site.batch_number_allocation (id, batch_number, site_code, site_zone, product_code, product_name, edition, batch_kind, batch_size, batch_size_unit,
+                                                              source, allocated_by_person_id, allocated_by_account_id, correlation_id)
+                    values (gen_random_uuid(), $5, $7, $10, $8, 'Genealogy tablets 500 mg', 'TABLETS', 'PROCESSING', 60, 'kg', 'EXTERNAL', $6, $6, $6) returning id),
+              b as (insert into recipe.stub_batch (id, batch_number, family_id, markets, site, line, batch_size, status, created_by_person, created_by_account)
+                    values ($2, $5, $9, '{IN}', $7, 'LINE-1', '60 kg', 'COMPLETED', $6, $6) returning id),
+              l as (insert into recipe.batch_allocation_link (batch_id, allocation_id, batch_number, person_id, account_id, correlation_id)
+                    select b.id, n.id, $5, $6, $6, $6 from b, n returning batch_id),
+              r as (insert into site.lot_reservation (lot_id, batch_id, batch_number, edition, quantity, unit, expires_at, lot_state_version, reserved_by_person, reserved_by_account)
+                    select a.id, $2, $5, 'TABLETS', 10, 'kg', now() + interval '1 day', 1, $6, $6 from a returning id),
               k as (insert into site.lot_consumption (lot_id, reservation_id, batch_id, batch_number, edition, material_code, quantity, unit, quantity_before, quantity_after,
                                                       market_set, identity_basis, consumed_by_person, consumed_by_account, xact_id)
-                    values ($1, gen_random_uuid(), $2, $5, 'TABLETS', 'API-PCM', 10, 'kg', 100, 90, '{IN}', 'INTERMEDIATE', $6, $6, 1) returning id)
+                    select $1, r.id, $2, $5, 'TABLETS', 'API-PCM', 10, 'kg', 100, 90, '{IN}', 'INTERMEDIATE', $6, $6, 1 from r returning id)
          insert into site.finished_lot (lot_id, batch_id, batch_number, edition, product_code, strength, markets, posted_by_person, posted_by_account)
-         values ($3, $2, $5, 'TABLETS', 'GN-500', '500 mg', '{IN}', $6, $6)`,
-        [ids.api, ids.batch, ids.lot, codes.api, codes.batch, randomUUID(), seed.siteCode],
+         select f.id, $2, $5, 'TABLETS', 'GN-500', '500 mg', '{IN}', $6, $6 from f`,
+        [ids.api, ids.batch, ids.lot, codes.api, codes.batch, randomUUID(), seed.siteCode, family.productCode, family.familyId, seed.zone],
       );
       const ship = [
         [ids.shipments[0], codes.shipments[0], codes.consignees[0], 'Pune Distributors', '12 Station Road, Pune', '400'],
@@ -80,7 +106,10 @@ async function choose(group: Locator, name: string): Promise<void> {
 }
 
 test('[PR-57][IN-07] the genealogy explorer traces an API lot forward to the batch, its finished lot and every shipment, as a tree and as a table, and a shipment backward to the API lot @office', async ({ e2e, officePage, persona, evidence }) => {
-  const { ids, codes } = await arrangeChain(e2e);
+  const author = await officePage('GMP', 'PC-DESIGN-01');
+  await signIn.office(author, persona('GMP', 'author'));
+  const { ids, codes } = await arrangeChain(e2e, await draftFamily(e2e, author, randomBytes(3).toString('hex').toUpperCase()));
+  await author.context().close();
   const page = await officePage('GMP', 'PC-QA-01');
   await signIn.office(page, persona('GMP', 'qaInvestigator'));
 
@@ -116,7 +145,10 @@ test('[PR-57][IN-07] the genealogy explorer traces an API lot forward to the bat
 });
 
 test('[IN-29][PR-57] QA runs a mock recall from the API lot to every consignee; it reproduces, reconciles delivered against returned, and the authorised person signs it off through the ceremony @office', async ({ e2e, officePage, persona, evidence }) => {
-  const { ids, codes } = await arrangeChain(e2e);
+  const author = await officePage('GMP', 'PC-DESIGN-01');
+  await signIn.office(author, persona('GMP', 'author'));
+  const { ids, codes } = await arrangeChain(e2e, await draftFamily(e2e, author, randomBytes(3).toString('hex').toUpperCase()));
+  await author.context().close();
   const qa = await officePage('GMP', 'PC-QA-01');
   await signIn.office(qa, persona('GMP', 'qaInvestigator'));
   let recallUrl = '';
