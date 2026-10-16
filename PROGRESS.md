@@ -146,6 +146,10 @@ dashboards (never for GMP decisions; PR-05 overdue reviews, DI-49 alarm trend), 
 and training mode on the sandbox (watermark, TEST- personas, scripted exercises, attempts kept in the sandbox only;
 DI-05). PR-05's dashboard clause names its tests. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
 Defaults D-P6g-0-1 to 10.
+Slice 6j-c (branch `phase-6/slice-6j-c`, 16 October): the one review pass over Phase 6. One high fixed: 6jc-R1, the
+ERP_WMS adapter's MATERIAL.HANDLE reached a person's material acts (reservation cancel, destruction, recovery, returns,
+finished lot, transfer packages); site services 0990 refuses those rows for a non-HUMAN account (DI-14, DI-20).
+Residuals 6jc-R2 to R7 (one medium: controlled-substance reads open to any role) in the plan's "6j-c review".
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
