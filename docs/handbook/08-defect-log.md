@@ -861,6 +861,39 @@ dependency-rule errors: recipe-core's genealogy tests imported site services' te
 only kernel and expr. **Fix.** The genealogy DB tests moved to `packages/site-services/test/genealogy/` (D-P6d-10); the
 assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's files before each push.
 
+### P6i-R1: a mock recall across sites could look complete while a destination's part went further (slice 6i, review)
+- **What went wrong.** `recipe.mock_recall_federation` (recipe-core 1091) called a run complete once every destination
+  site ANSWERED, even when a destination's excerpt reached a further transfer (to a third site, or back to this one)
+  that nobody asked; the explorer's federated trace also left out a transfer back to this site.
+- **Why it matters.** A mock recall and a cross-site trace must never be silently partial (L-41, IN-29): lots made from
+  the material at a third site would be missing from a result shown as complete.
+- **Fix.** [1092_transfer_review_fixes.sql](../../packages/recipe-core/sql/1092_transfer_review_fixes.sql) lists every
+  such transfer as `beyond_one_hop` and keeps the run incomplete; the server's federated trace counts a transfer back
+  here as beyond one hop too ([federation.ts](../../apps/tablets-server/src/features/transfers/federation.ts)).
+- **Test.** `[IN-29] a destination's part that reaches a further transfer leaves the mock recall incomplete (one hop,
+  D-P6i-0-7)` in [transfer.test.ts](../../packages/site-services/test/transfer/transfer.test.ts); it failed before the fix.
+- **Lesson:** "complete" has to name everything that was not asked, not only what failed to answer.
+
+### P6i-R2: the other site's clock refused "now" (slice 6i, review)
+- **What went wrong.** `recipe.answer_federated_genealogy` (1090) refused any as-of point after its own clock. The asking
+  site sends its own "now"; a clock a few milliseconds ahead made the answer a refusal and the result incomplete.
+- **Why it matters.** Two installations never share one clock; a cross-site trace would be incomplete at random.
+- **Fix.** 1092: an as-of point up to 2 seconds ahead is answered once the answering clock has passed it (so the answer
+  is still as of a past instant there); further ahead is refused as before (EBMR-FED-012).
+- **Test.** `[PR-57] an as-of point a moment ahead of the answering site's clock is answered once that instant has
+  passed; one far ahead is refused` in transfer.test.ts; it failed before the fix.
+- **Lesson:** a rule about "the future" between two systems needs a tolerance and a way to wait, not a bare comparison.
+
+### P6i-R3: an unauthenticated route that costs a seal verification had no rate limit (slice 6i, review)
+- **What went wrong.** `/api/federation/genealogy` needs no session (the seal is the authentication) and every request
+  makes the database verify an Ed25519 seal in PL/pgSQL and write a log row and, when refused, an alarm.
+- **Why it matters.** Anyone who can reach the server could load the database and flood the alarm list.
+- **Fix.** The route is counted per client address (30 a minute;
+  [transfers/index.ts](../../apps/tablets-server/src/features/transfers/index.ts#sym=FEDERATION_RATE)).
+- **Test.** `[DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without
+  asking the database (review 6i-R3)` in [transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts).
+- **Lesson:** a route outside the session gate needs its own gate for cost, not only for identity.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

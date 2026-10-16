@@ -97,7 +97,7 @@ excerpt is shown with its own as-of and the result is marked incomplete, never s
 - `[DI-39] a received lot is unusable before local QA acceptance` (release and reservation refused; usable after acceptance and release)
 - `[DI-39] the status and disposition travel with the lot, and only a released intermediate is packaged`
 - `[PR-57] a forward trace crosses a site transfer` (two installations, two databases)
-- `[PR-57] a backward trace from the received lot reaches the origin's input lots`
+- `[PR-57] a backward trace from the received lot reaches the shipped lot at its origin`
 - `[IN-29] a mock recall with one site down is marked incomplete` (and complete once the site answers)
 - remaining hold time carries over and keeps running; rule resolutions are re-resolved and the stricter wins
 - the federation endpoint refuses an unsigned, replayed, misaddressed or unrelated request
@@ -133,5 +133,12 @@ excerpt is shown with its own as-of and the result is marked incomplete, never s
   the gateway keys (tablets 0270) and the seal keys of e-signatures.
 - **D-P6i-0-9** A request is valid for 300 seconds and its nonce once; the answer's as-of is the as-of asked (the asking
   site's time; a future instant at the answering site is refused). Why: replay protection without a session.
+- **D-P6i-0-11** (build) The site-to-site route `POST /api/federation/genealogy` is outside the browser origin gate (it
+  carries no cookie or session; the database checks the request's seal) and is rate limited per client address; production
+  calls other installations over https only. Why: the gate protects session-bearing requests from other pages; this route
+  has no session to ride on.
+- **D-P6i-0-12** (build) Received material is released locally through the ordinary lot release after the acceptance, so
+  the receiving site's own specification and results apply (IN-33). Why: one lot machine and its guards; the origin's CoA
+  is shown to QA, not copied into local results.
 - **D-P6i-0-10** The suspension cascade (Phase 4 slice 5) stays local; the federated mock recall lists the receiving site's
   lots and consignees, and the receiving site's QA acts on them. Why: each site's QA owns its own lots (L-41).

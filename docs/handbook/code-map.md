@@ -41,7 +41,7 @@ of each database function.
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
 | [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
-| [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 2 | 0 | 0 | 0 |
+| [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 0 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 14 | 0 | 3 | 8 |
@@ -81,7 +81,7 @@ of each database function.
 | [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 7 | 4 |
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
 | [ts-genealogy](#ts-genealogy) | Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 6 |
-| [ts-transfers](#ts-transfers) | Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 11 | 2 | 4 |
+| [ts-transfers](#ts-transfers) | Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 11 | 2 | 4 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 3 |
@@ -672,9 +672,9 @@ of each database function.
 
 **Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (2):
+**Migrations** (3):
 
-- `packages/recipe-core/sql`: [1090_genealogy_across_sites.sql](../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [1091_mock_recall_across_sites.sql](../../packages/recipe-core/sql/1091_mock_recall_across_sites.sql)
+- `packages/recipe-core/sql`: [1090_genealogy_across_sites.sql](../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [1091_mock_recall_across_sites.sql](../../packages/recipe-core/sql/1091_mock_recall_across_sites.sql), [1092_transfer_review_fixes.sql](../../packages/recipe-core/sql/1092_transfer_review_fixes.sql)
 
 **Database objects** created in these migrations:
 
@@ -1659,9 +1659,9 @@ of each database function.
 
 **Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
 
-**Migrations** (1):
+**Migrations** (2):
 
-- `apps/tablets-server/sql`: [1290_signing_meanings_transfer.sql](../../apps/tablets-server/sql/1290_signing_meanings_transfer.sql)
+- `apps/tablets-server/sql`: [1290_signing_meanings_transfer.sql](../../apps/tablets-server/sql/1290_signing_meanings_transfer.sql), [1291_peer_installation_read_class.sql](../../apps/tablets-server/sql/1291_peer_installation_read_class.sql)
 
 **Database objects** created in these migrations:
 

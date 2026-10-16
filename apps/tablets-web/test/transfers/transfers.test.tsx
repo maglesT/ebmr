@@ -21,7 +21,9 @@ afterEach(() => {
 const peers = example('transfers-peers');
 const file = example('transfers-package-file');
 const receipt = example('transfers-receipt');
-const refused = example('transfers-import-refused');
+const refusedImport = example('transfers-import-refused');
+if (refusedImport.outcome !== 'REFUSED') throw new Error('the refused import example is not a refusal');
+const refused = refusedImport;
 const federated = example('genealogy-federated-trace');
 const incomplete = example('genealogy-federated-trace-incomplete');
 const recall = example('recall-mock-recall-federated');

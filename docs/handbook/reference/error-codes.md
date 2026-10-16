@@ -533,10 +533,10 @@ files that raise, define or pass it on. To find where a code is raised, open the
 | `EBMR-FED-005` | [packages/kernel/sql/1220_installation_keys.sql](../../../packages/kernel/sql/1220_installation_keys.sql) |
 | `EBMR-FED-006` | [packages/kernel/sql/1220_installation_keys.sql](../../../packages/kernel/sql/1220_installation_keys.sql) |
 | `EBMR-FED-009` | [packages/kernel/sql/1220_installation_keys.sql](../../../packages/kernel/sql/1220_installation_keys.sql) |
-| `EBMR-FED-010` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql) |
-| `EBMR-FED-011` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql) |
-| `EBMR-FED-012` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql) |
-| `EBMR-FED-013` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql) |
+| `EBMR-FED-010` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [packages/recipe-core/sql/1092_transfer_review_fixes.sql](../../../packages/recipe-core/sql/1092_transfer_review_fixes.sql) |
+| `EBMR-FED-011` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [packages/recipe-core/sql/1092_transfer_review_fixes.sql](../../../packages/recipe-core/sql/1092_transfer_review_fixes.sql) |
+| `EBMR-FED-012` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [packages/recipe-core/sql/1092_transfer_review_fixes.sql](../../../packages/recipe-core/sql/1092_transfer_review_fixes.sql) |
+| `EBMR-FED-013` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql), [packages/recipe-core/sql/1092_transfer_review_fixes.sql](../../../packages/recipe-core/sql/1092_transfer_review_fixes.sql) |
 | `EBMR-FED-014` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql) |
 | `EBMR-FED-015` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql) |
 | `EBMR-FED-016` | [packages/recipe-core/sql/1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql) |

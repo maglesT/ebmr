@@ -2527,3 +2527,21 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   run before the session loads, recurrence counted up to now. Local runs (cluster 5439): typecheck, lint of the changed
   files and deps:check clean; the slice's site-services, tablets-server, api-contract and tablets-web tests passed (web
   suite 79 files, 564 tests); register valid; handbook check passes.
+- 2026-10-16: PHASE 6 SLICE 6i (branch phase-6/slice-6i, from main after 6a, 6d, 6f). 6i-0 interface commit first
+  (slice-6i-0-interfaces.md, D-P6i-0-1 to 12; tablets 1290 to 1299 taken, the plan gave 6i no tablets range). Built: kernel
+  1220 (installation identity and key versions, peers trusted after QA's PEER_INSTALLATION_APPROVED, Ed25519 seals with
+  domain separation verified in PL/pgSQL, installation alarms, the site-to-site request log with nonce and 300 s window);
+  site services 0980, 0981 (package from the database's own records: status and release decision, CoA, hold limit as an
+  instant, rule resolutions, backward genealogy excerpt; sealed by the server; import refusals MALFORMED, UNKNOWN_PEER,
+  TAMPERED, WRONG_DESTINATION, DUPLICATE each with an alarm and nothing created; local INTERMEDIATE lot in QUARANTINE;
+  TRANSFER_RECEIPT_ACCEPTED or _REFUSED; release and reservation triggers EBMR-XFR-040, -041); recipe-core 1090 to 1092
+  (TRANSFER node and edges, federated answer and asking side, mock recall query version 2 with the destinations' parts);
+  tablets 1290, 1291. Server feature transfers (installation key file, prepare and seal in one command, import, receipts,
+  alarms, signable acts), federation endpoint outside the origin gate with a rate limit, federated trace, recall fan-out
+  and refresh; screens /transfers, receipt page, explorer "Across sites", mock recall "Other sites". Quick review (one
+  pass): no critical; P6i-R1 (a run whose destination reached a further transfer was called complete), P6i-R2 (an as-of a
+  moment ahead of the answering clock was refused), P6i-R3 (no rate limit on the unauthenticated site-to-site route) fixed
+  with tests. 1290 had been edited after its push; restored and the change moved to 1291. Local runs (cluster 5435): typecheck
+  clean, lint of the changed files clean, deps:check clean; site-services transfer 15, genealogy, lots and shipping 56,
+  api-contract 47, tablets-server transfers, genealogy, contract, platform and esig tests, tablets-web transfers and
+  genealogy 22 passed; register valid; handbook regenerated and check passes.
