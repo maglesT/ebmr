@@ -789,7 +789,10 @@ refusal; the 120-a-minute limit untouched, the test harness's wall-clock nonce p
 and the US and recalled, at a site whose ERP/WMS, LMS, CMMS and L3/L4 systems are their simulators feeding the server's
 adapter workers, with PRESS-01 served by the OPC UA simulator through the site gateway; ten tests, exact outputs (three
 runs gave the same hashes), tagged DI-20, DI-31, DI-32, DI-49, PR-39, PR-42, PR-45, IN-05, IN-17, IN-29, PR-57, INV-05.
-The whole golden folder then ran three times in a row green on the golden cluster (see the defaults for the times).
+The whole golden folder then ran three times in a row green on the golden cluster, 41 tests each (24 min 43 s,
+24 min 9 s, 24 min 18 s; GB-T-03 about 5.5 minutes of it). GB-T-03's performers hold the product training the LMS
+feeds, so the scenario does not depend on the fix of F-6jb-1 (6jc-R16, a product-limited requirement applies only to
+that product's batches); the final run after the merge checks it.
 
 - **D-P6j-b-1** The simulators and the site gateway preload the golden clock library on the cluster's file
   (`EBMR_GOLDEN_CLOCK_LIB`; GB-T-03 is skipped without it), so the times they stamp are the database's. Why: a feed
