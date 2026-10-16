@@ -154,7 +154,11 @@ Second part (rest of the Phase 6 TypeScript, the gateway, the SDK, the web scree
 probed on a migrated database): one high, 6jc-R8 (raised by the lead): a small-order installation or peer key made
 every seal verify. Fixed in kernel 1230 (EBMR-XFR-042; DI-31). Residuals 6jc-R9 to R15, two of them medium for the owner:
 the adapter feeds and the gateway's OPC UA feed are not authenticated (R9), and one person sets the penicillin facility
-and beta-lactam rules (R10). Backlog: docs/build-plan/phase-6/review-backlog.md.
+and beta-lactam rules (R10). From the browser-flow agent (F-6jb-1), one more high fixed: 6jc-R16, a training
+requirement limited to one product refused step work and step signatures on every product at the site (fail closed);
+recipe-core 1100 and tablets 1320 evaluate them in the batch's scope with its product (IN-04, DI-21, DI-17). Left
+(medium, fails closed): other batch acts are still authorised at the location only. Backlog:
+docs/build-plan/phase-6/review-backlog.md.
 Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
