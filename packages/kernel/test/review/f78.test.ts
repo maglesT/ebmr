@@ -28,6 +28,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { seededTestActor } from '../support/seeded-actor.ts';
 
@@ -36,6 +37,7 @@ let reviewer: ActorContext;
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   reviewer = await seededTestActor(db, { roleCode: 'CONTRACT_GIVER_REVIEWER', legalName: 'R. Reviewer' });
 });
 
@@ -58,7 +60,13 @@ describe('F78: platform.create_aggregate_state is ungated (DI-17)', () => {
       `select permission_code from iam.role_permission
         where role_code = 'CONTRACT_GIVER_REVIEWER' and removed_at is null order by 1`,
     );
-    expect(perms.map((p) => p.permission_code)).toEqual(['RECORD.READ']);
+    // Kernel 1204 (IN-30) added CONTRACT_GIVER.READ, a READ permission too; the role stays read-only.
+    expect(perms.map((p) => p.permission_code)).toEqual(['CONTRACT_GIVER.READ', 'RECORD.READ']);
+    const { rows: effects } = await db.admin.query<{ effect: string }>(
+      `select distinct p.effect from iam.role_permission rp join iam.permission p on p.code = rp.permission_code
+        where rp.role_code = 'CONTRACT_GIVER_REVIEWER' and rp.removed_at is null`,
+    );
+    expect(effects.map((e) => e.effect)).toEqual(['READ']);
     const { rows: versions } = await db.admin.query<{ n: string }>(
       `select count(*)::text as n from platform.machine_version
         where machine_code = 'sample_record' and definition_hash is not null`,
@@ -69,7 +77,7 @@ describe('F78: platform.create_aggregate_state is ungated (DI-17)', () => {
     const gated = await settle(
       withCommand(
         db.app,
-        { ...reviewer, correlationId: randomUUID(), reasonCode: 'CONFIGURATION', reasonText: 'F78 positive control' },
+        underChange({ ...reviewer, correlationId: randomUUID(), reasonCode: 'CONFIGURATION', reasonText: 'F78 positive control' }),
         (c) => c.query("select platform.set_setting('time.drift_alarm_threshold_s', '1')"),
       ),
     );

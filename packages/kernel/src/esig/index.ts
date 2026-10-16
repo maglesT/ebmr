@@ -5,6 +5,8 @@
  */
 export * from './canonical.ts';
 export * from './catalogue.ts';
+export * from './dsc.ts';
+export * from './dsc-test-ca.ts';
 export * from './errors.ts';
 export * from './integrity.ts';
 export * from './keys.ts';

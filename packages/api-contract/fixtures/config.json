@@ -1,0 +1,65 @@
+{
+  "areas": [
+    { "code": "PLATFORM_SETTING", "table": "platform.setting_value", "description": "Platform settings: site values of the platform, adapter modes and mirror freshness bounds (6a), reading ages" },
+    { "code": "RBE_RULE", "table": "recipe.rbe_rule_version", "description": "Review-by-exception rules: per review category, listed or not and the least severity shown (DI-26)" }
+  ],
+  "open": {
+    "changeRecordId": "6a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    "number": "CR-2026-014",
+    "title": "QMS mirror switched on",
+    "description": "The QMS adapter is live: QMS status is mirrored and its freshness bound tightened to 30 minutes.",
+    "areas": ["PLATFORM_SETTING"],
+    "state": "OPEN",
+    "raisedBy": { "personId": "7b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e", "legalName": "Prakash Owner", "loginName": "prakash.owner", "role": "" },
+    "raisedAt": { "us": "1791800000000000", "text": "12-OCT-2026 14:13:20 +05:30 (Asia/Kolkata)" },
+    "approvedBy": null,
+    "approvedAt": null,
+    "closedAt": null,
+    "signable": { "aggregateType": "config_change_record", "aggregateId": "CR-2026-014", "meaning": "CONFIG_CHANGE_APPROVED", "expectedState": "OPEN" }
+  },
+  "approved": {
+    "changeRecordId": "8c3d4e5f-6a7b-4c8d-9e0f-1a2b3c4d5e6f",
+    "number": "CR-2026-012",
+    "title": "Late entries shown as action",
+    "description": "Late or back-entered data shown at least as ACTION in every review.",
+    "areas": ["RBE_RULE"],
+    "state": "APPROVED",
+    "raisedBy": { "personId": "7b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e", "legalName": "Prakash Owner", "loginName": "prakash.owner", "role": "" },
+    "raisedAt": { "us": "1791700000000000", "text": "11-OCT-2026 10:26:40 +05:30 (Asia/Kolkata)" },
+    "approvedBy": { "personId": "9d4e5f6a-7b8c-4d9e-8f0a-2b3c4d5e6f7a", "legalName": "Quinn QA", "loginName": "quinn.qa", "role": "" },
+    "approvedAt": { "us": "1791710000000000", "text": "11-OCT-2026 13:13:20 +05:30 (Asia/Kolkata)" },
+    "closedAt": null,
+    "signable": { "aggregateType": "config_change_record", "aggregateId": "CR-2026-012", "meaning": "CONFIG_CHANGE_APPROVED", "expectedState": "OPEN" }
+  },
+  "asOf": {
+    "at": "2026-10-12T00:00:00+05:30",
+    "items": [
+      { "area": "PLATFORM_SETTING", "itemKey": "integration.mode.qms_status", "value": { "value": "STAND_IN" }, "validFrom": "2026-10-01T04:30:00.000000Z", "basis": "BEFORE_CONTROL", "changeRecord": null },
+      { "area": "RBE_RULE", "itemKey": "LATE_ENTRY", "value": { "version": 1, "included": true, "min_severity": "ACTION", "rationale": "Late entries need QA's eyes" }, "validFrom": "2026-10-11T08:00:00.000000Z", "basis": "CHANGE_RECORD", "changeRecord": "CR-2026-012" }
+    ]
+  },
+  "diff": {
+    "from": "2026-10-10T00:00:00+05:30",
+    "to": "2026-10-13T00:00:00+05:30",
+    "differences": [
+      { "area": "PLATFORM_SETTING", "itemKey": "integration.mirror_max_age_s.qms_status", "before": { "value": "60" }, "after": { "value": "30" }, "changeRecords": ["CR-2026-014"] },
+      { "area": "RBE_RULE", "itemKey": "LATE_ENTRY", "before": null, "after": { "version": 1, "included": true, "min_severity": "ACTION", "rationale": "Late entries need QA's eyes" }, "changeRecords": ["CR-2026-012"] }
+    ]
+  },
+  "setting": {
+    "key": "integration.mode.qms_status",
+    "value": "STAND_IN",
+    "defaultValue": "STAND_IN",
+    "valueType": "TEXT",
+    "allowedValues": ["STAND_IN", "MIRROR"],
+    "minValue": null,
+    "maxValue": null,
+    "unit": null,
+    "description": "Whether QMS_STATUS is held by the built-in register (STAND_IN) or mirrored from the QMS by its adapter (MIRROR)",
+    "basis": "D-P6a-5: one mode per data class and site; switching is a configuration change (DI-09 change record from slice 6f)"
+  },
+  "rules": [
+    { "category": "LATE_ENTRY", "mandatory": true, "included": true, "minSeverity": "ACTION", "version": 1, "rationale": "Late entries need QA's eyes", "validFrom": "2026-10-11T08:00:00.000000Z" },
+    { "category": "TIME_SYNC", "mandatory": true, "included": true, "minSeverity": "ALERT", "version": null, "rationale": null, "validFrom": null }
+  ]
+}

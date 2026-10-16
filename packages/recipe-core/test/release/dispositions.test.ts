@@ -18,6 +18,7 @@ import { createChallenge, contentForSigning, sign } from '../../../kernel/src/es
 import { challengeFor, cmd, ensureSealKey, signatureAuth, signWith, testSealKey } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -285,6 +286,7 @@ async function productAndSpecification(content: MbrContent, extraTests: { testCo
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   w = new World(db, await seedCast(db));
   ({ owner, admin } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
@@ -453,8 +455,8 @@ describe('the US disposition (outline 5.2.6; PR-54, INV-39, DI-39)', () => {
 
 describe('two signature rows in one ceremony (D-P4-5)', () => {
   it('[INV-39][PR-54] the AP who also holds the QCU permission releases for the manufacturer and the US in one command: two rows, each its own meaning and content; a stale US evaluation records neither', async () => {
-    const request = await withCommand(db.app, withReason(admin), async (c) => (await c.query<{ id: string }>("select iam.add_role_permission('AUTHORISED_PERSON', 'RELEASE.US_DISPOSITION', 'the AP holds the QCU permission at this site') as id")).rows[0]!.id);
-    await withCommand(db.app, withReason(owner), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the two-row release')", [request]));
+    const request = await withCommand(db.app, underChange(withReason(admin)), async (c) => (await c.query<{ id: string }>("select iam.add_role_permission('AUTHORISED_PERSON', 'RELEASE.US_DISPOSITION', 'the AP holds the QCU permission at this site') as id")).rows[0]!.id);
+    await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the two-row release')", [request]));
 
     const both = async (lot: Lot, usEpoch?: string): Promise<{ mr: string; us: string }> => {
       const gin = await grel(lot.lotId, 'IN');
@@ -637,7 +639,7 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
         c.query("select recipe.record_qp_certification($1, 'CERTIFIED', $2, $3, null)", [lot.lotId, sig, epoch]));
     };
     expect(await codeOf(certify(qp, g.epoch))).toBe('EBMR-DSP-073');
-    await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
+    await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
     try {
       for (const who of [qaReviewer3, ap, head]) expect(await codeOf(certify(who, g.epoch))).toMatch(/EBMR-(ESIG|IAM)-\d{3}/);
       expect(await codeOf(certify(admin, g.epoch))).toMatch(/EBMR-(ESIG|IAM)-\d{3}/);
@@ -653,7 +655,7 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
       const { rows } = await db.app.query<{ source: string; certifier: string; mia_number: string }>("select source, certifier, mia_number from recipe.qp_certification where lot_id = $1", [lot.lotId]);
       expect(rows).toEqual([{ source: 'IN_SYSTEM', certifier: 'Dr. Lena Vogel', mia_number: mia }]);
     } finally {
-      await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
+      await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
     }
   });
 
@@ -751,14 +753,14 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     await manufacturerRelease(lot);
     const id = await transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', await dbNow());
     expect((await takeText(msgFor(lot, await dbNow()))).reason).toMatch(/EBMR-DSP-090/);
-    await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
+    await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
     try {
       const g = await grel(lot.lotId, 'EU');
       await acknowledgeAll(qp, lot.lotId, 'EU', g);
       expect(await codeOf(signed(qp, 'qp_certification', `${lot.lotId}/CERTIFIED`, 'QP_CERTIFIED', 'AWAITING_QP_CERTIFICATION', (c, sig) =>
         c.query("select recipe.record_qp_certification($1, 'CERTIFIED', $2, $3, null)", [lot.lotId, sig, g.epoch])))).toBe('EBMR-DSP-090');
     } finally {
-      await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
+      await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
     }
     await verify(qaReviewer2, id);
     expect(await state(lot.lotId, 'EU')).toBe('CERTIFIED');
@@ -768,7 +770,7 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
   it('[PR-55] an in-system QP rejection is signed QP_REJECTED, never with the certification meaning; the QA fallback of an acknowledgement still works with the switch on', async () => {
     const lot = await readyLot();
     await manufacturerRelease(lot);
-    await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
+    await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'ON')"));
     try {
       const g = await grel(lot.lotId, 'EU');
       // LOW 5: a QA reviewer (no QP permission) still acknowledges through the QA permission; an unknown lot is raised.
@@ -782,7 +784,7 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
       const { rows } = await db.admin.query<{ m: string }>('select s.meaning_code as m from recipe.qp_certification q join esig.signature s on s.id = q.signature_id where q.lot_id = $1', [lot.lotId]);
       expect(rows).toEqual([{ m: 'QP_REJECTED' }]);
     } finally {
-      await withCommand(db.app, withReason(owner), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
+      await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
     }
   });
 });

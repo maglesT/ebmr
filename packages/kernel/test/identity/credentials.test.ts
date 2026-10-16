@@ -10,6 +10,7 @@ import { activateBadge, issueBadge, recordBadgeTest, recordIdentityVerification,
 import { authenticate, changeSecret, type AuthPurpose } from '../../src/identity/authentication.ts';
 import { AuthenticationFailedError, ebmrCode } from '../../src/identity/errors.ts';
 import { openSession, sessionState } from '../../src/identity/sessions.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase, urlFor } from '../support/db.ts';
 import { asDefinerCommand, asTimeTraveller, expectPermissionDenied, expectRefused, pause } from './helpers.ts';
 import {
@@ -28,6 +29,7 @@ let db: TestDatabase;
 let adm: SeedAdministration;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
 });
 afterAll(async () => {
@@ -36,7 +38,7 @@ afterAll(async () => {
 
 type Work<T> = Parameters<typeof withCommand<T>>[2];
 const asAdmin = <T>(work: Work<T>) => withCommand(db.app, withReason(adm.admin), work);
-const policy = (key: string, value: string) => withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE'), (c) => setPolicy(c, key, value, 'test'));
+const policy = (key: string, value: string) => withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE')), (c) => setPolicy(c, key, value, 'test'));
 const uid = (): string => randomBytes(7).toString('hex').toUpperCase();
 
 const wrongSignature = (a: SeededActor) =>

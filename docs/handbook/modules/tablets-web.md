@@ -844,6 +844,15 @@ CAPA, and one CAPA with its deviations, the master version it waits for (effecti
 dates the database computed, events, and the closure through the ceremony (CAPA_ACT), disabled while the server gives
 a `closeProblem`. A QMS mirror row shows its version token and history and offers no act. Tests:
 [capa.test.tsx](../../../apps/tablets-web/test/capa/capa.test.tsx).
+### config: change records, configuration history, RBE rules
+
+[features/config](../../../apps/tablets-web/src/features/config/) (Phase 6 slice 6f, builder A; DI-09, DI-26): change
+records (raise naming the areas, QA approval through the ceremony CONFIG_CHANGE_ACT, close with a note), the
+configuration as of a date and the diff between two dates with the change records, the platform settings each changed
+with a change-record number and a reason, and the RBE rule editor (least severity, rationale, change-record number;
+mandatory categories marked; the rule set of a past date read only). Tests:
+[config.test.tsx](../../../apps/tablets-web/test/config/config.test.tsx).
+
 ### integrations: integration health and one adapter
 
 [features/integrations](../../../apps/tablets-web/src/features/integrations/) (Phase 6 slice 6a, builder A; DI-31):
@@ -860,6 +869,16 @@ manufacturer's approval), `/quality/lots/<id>/receipt` shows a lot's receipt rec
 decides it, with stores' examination of the containers, a missing record, and corrections of WMS values with a reason
 (the original kept), and `/quality/approved-manufacturers` is QA's register (propose, approve through the ceremony with
 MATERIAL_SOURCE_ACT, withdraw with a reason). Tests: [receipt.test.tsx](../../../apps/tablets-web/test/receipt/receipt.test.tsx).
+
+## Governance screens and the DSC step (Phase 6 slice 6f)
+
+[features/governance](../../../apps/tablets-web/src/features/governance/index.tsx): vendor support grants (`/governance/support`), the India DSC option
+(`/governance/dsc`, with the test-CA banner), QA's contract-giver accesses (`/governance/contract-givers`) and the
+reviewer's read-only batch list and record (`/contract-giver`). In the ceremony
+([access/ceremony.tsx](../../../apps/tablets-web/src/features/access/ceremony.tsx)) a challenge with a `dsc` member makes the signer's token sign the
+statement through the local signing bridge ([access/dsc-bridge.ts](../../../apps/tablets-web/src/features/access/dsc-bridge.ts); `window.ebmrDscBridge` or
+the loopback endpoint) before the sign request; the ui-kit SignatureDialog shows the DSC step and the banner. Tests:
+[governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx).
 
 ## How to test this app
 

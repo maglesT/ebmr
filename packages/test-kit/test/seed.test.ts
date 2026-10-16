@@ -12,6 +12,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { identity, sandbox, withCommand } from '@ebmr/kernel';
+import { withChangeRecord } from '../../kernel/test/support/change-record.ts';
 import {
   createGmpDatabase,
   dropDatabase,
@@ -50,7 +51,7 @@ beforeAll(async () => {
   defaultZone = await siteZoneOf(gmp.app);
   // The site moves to another zone through the kernel (iam.set_policy) before the seed runs (DI-27).
   const admin = await passwordActor(gmp, bootstrap.admin, bootstrap.admin.fingerprint, { reasonCode: 'TEST_SETUP', reasonText: 'DI-27 test site zone', correlationId: randomUUID() });
-  await withCommand(gmp.app, admin, (c) => identity.setPolicy(c, 'site.zone', GMP_ZONE, 'DI-27 test: a site outside the default zone'));
+  await withCommand(gmp.app, await withChangeRecord(gmp, admin), (c) => identity.setPolicy(c, 'site.zone', GMP_ZONE, 'DI-27 test: a site outside the default zone'));
   await identity.endSession(gmp.app, admin.sessionId);
   gmpSeed = await seedDemoSite(gmp, 'GMP', bootstrap);
 

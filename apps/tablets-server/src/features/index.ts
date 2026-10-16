@@ -10,10 +10,12 @@ import * as access from './access/index.ts';
 import * as archive from './archive/index.ts';
 import * as audit from './audit/index.ts';
 import * as capa from './capa/index.ts';
+import * as configChange from './config-change/index.ts';
 import * as containers from './containers/index.ts';
 import * as designer from './designer/index.ts';
 import * as devices from './devices/index.ts';
 import * as esig from './esig/index.ts';
+import * as governance from './governance/index.ts';
 import * as erpShipping from './erp-shipping/index.ts';
 import * as execution from './execution/index.ts';
 import * as india from './india/index.ts';
@@ -59,6 +61,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'india', installations: ['GMP'], module: india satisfies FeatureModule },
   { name: 'integrations', installations: ['GMP'], module: integrations satisfies FeatureModule },
   { name: 'capa', installations: ['GMP'], module: capa satisfies FeatureModule },
+  { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
+  { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

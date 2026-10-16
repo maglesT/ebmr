@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { withCommand, type ActorContext } from '@ebmr/kernel';
 import { openPersonaSession, passwordActor } from '@ebmr/test-kit';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { withChangeRecord } from '../../../../../packages/kernel/test/support/change-record.ts';
 import { approvedManufacturer, count, drain, erpWmsRig, goodsReceipt, type ErpWmsRig } from './support.ts';
 
 /** Asymmetric matchers, typed for the object literals they sit in. */
@@ -151,7 +152,7 @@ describe('the ERP/WMS adapter against its simulators (DI-31)', () => {
   it('[DI-31] stale mirror: the WMS heartbeat stops while its data still arrives; after the bound a reservation is refused and names the mirror', async () => {
     const server = rig.server;
     const owner = await passwordActor(server.db, server.seed.bootstrap.owner, server.seed.bootstrap.owner.fingerprint);
-    const setMode = (mode: string) => withCommand(server.db.app, { ...owner, reasonCode: 'TEST', reasonText: 'mirror the lot status from the WMS', correlationId: randomUUID() }, (c) =>
+    const setMode = async (mode: string) => withCommand(server.db.app, await withChangeRecord(server.db, { ...owner, reasonCode: 'TEST', reasonText: 'mirror the lot status from the WMS', correlationId: randomUUID() }), (c) =>
       c.query("select platform.set_setting('integration.mode.erp_lot_status', $1)", [mode]));
     // A released lot of the material, complete receipt, the WMS holding it RELEASED.
     const lot = await receiveLot();

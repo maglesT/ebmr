@@ -71,6 +71,9 @@
  *              EXPORT_PERMISSION_APPROVE  export_permission <permission id>      EXPORT_PERMISSION_APPROVED (QA, never the recorder)
  *              HAZARD_APPROVE             hazard_classification <record id>      HAZARD_CLASSIFICATION_APPROVED (QA, never the recorder)
  *              DEDICATION_APPROVE         area_dedication <record id>            AREA_DEDICATION_APPROVED (QA, never the recorder)
+ * Phase 6 slice 6f (kernel 1202; ns/support.ts):
+ *  - SUPPORT_ACT QA_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_QA_APPROVED (QA), state PENDING
+ *                IT_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_IT_APPROVED (system or process owner), state PENDING
  */
 import { z } from 'zod';
 import { DataValueWire, RunVersion, Uuid } from './common.ts';
@@ -363,6 +366,22 @@ export const SignableAction = z.discriminatedUnion('kind', [
     kind: z.literal('MATERIAL_SOURCE_ACT'),
     act: z.literal('MANUFACTURER_APPROVE'),
     approvedManufacturerId: Uuid,
+  }),
+  z.strictObject({
+    /** Phase 6 slice 6f (ns/config.ts): the quality unit approves a configuration change record (CONFIG_CHANGE_APPROVED, never its raiser; DI-09). */
+    kind: z.literal('CONFIG_CHANGE_ACT'),
+    act: z.literal('APPROVE'),
+    number: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/),
+  }),
+  z.strictObject({
+    /**
+     * Phase 6 slice 6f (ns/support.ts; kernel 1202, DI-08): one of the two customer signatures of a vendor support grant,
+     * QA (SUPPORT_ACCESS_QA_APPROVED) or IT (SUPPORT_ACCESS_IT_APPROVED); two distinct people, never the requester or the
+     * engineer. The second one opens the time-boxed window.
+     */
+    kind: z.literal('SUPPORT_ACT'),
+    act: z.enum(['QA_APPROVE', 'IT_APPROVE']),
+    grantId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

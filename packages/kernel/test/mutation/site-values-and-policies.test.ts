@@ -34,6 +34,7 @@ import {
   testActor,
   type StubWorld,
 } from '../market/helpers.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
@@ -49,12 +50,13 @@ let tightener: ActorContext;
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await publishSeedTables(db);
   world = await seedStubWorld(db);
-  steward = await testActor(db, { roleCode: MARKET_ROLES.siteValues });
-  policyOwner = await testActor(db, { roleCode: MARKET_ROLES.policy });
-  issuer = await testActor(db, { roleCode: MARKET_ROLES.issuer });
-  tightener = await testActor(db, { roleCode: MARKET_ROLES.tightening });
+  steward = underChange(await testActor(db, { roleCode: MARKET_ROLES.siteValues }));
+  policyOwner = underChange(await testActor(db, { roleCode: MARKET_ROLES.policy }));
+  issuer = underChange(await testActor(db, { roleCode: MARKET_ROLES.issuer }));
+  tightener = underChange(await testActor(db, { roleCode: MARKET_ROLES.tightening }));
 }, 120_000);
 
 afterAll(async () => {
@@ -93,7 +95,7 @@ async function dbInstant(offset: string): Promise<string> {
 }
 
 const setFor = (actor: ActorContext, request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom'> & { siteId?: string; effectiveFrom?: string }) =>
-  withCommand(db.app, actor, (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request }));
+  withCommand(db.app, underChange(actor), (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request }));
 
 const set = (request: Omit<SiteValueRequest, 'siteId' | 'effectiveFrom'> & { siteId?: string; effectiveFrom?: string }) => setFor(steward, request);
 
@@ -373,9 +375,12 @@ describe('policy versions: every rule of the version guard', () => {
   it('[DI-22][INV-07][INV-47] a policy version inserted without an actor context is refused as unattributed (EBMR-AUDIT-001)', async () => {
     const { code } = await newPolicy(['OFF', 'ON'], 'ON');
     await expect(
-      asOwner(null, (c) =>
-        c.query("insert into market.policy_version (policy_code, position, effective_from, change_ref, reason) values ($1, 'ON', null, 'CC-M1', 'no actor')", [code]),
-      ),
+      asOwner(null, async (c) => {
+        // Configuration change control (EBMR-CFG-001) also refuses a command-less insert, before the audit trigger is reached;
+        // it is switched off here so that the unattributed-write guard is what this test proves.
+        await c.query('alter table market.policy_version disable trigger a00_config_change');
+        return c.query("insert into market.policy_version (policy_code, position, effective_from, change_ref, reason) values ($1, 'ON', null, 'CC-M1', 'no actor')", [code]);
+      }),
     ).rejects.toThrow('EBMR-AUDIT-001 no actor context');
     const { rows } = await db.app.query<{ n: string }>('select count(*)::text as n from market.policy_version where policy_code = $1', [code]);
     expect(Number(rows[0]?.n)).toBe(1);

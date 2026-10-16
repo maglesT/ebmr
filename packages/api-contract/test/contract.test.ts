@@ -207,13 +207,14 @@ describe('route table', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
       'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
-      'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise', 'capa.recordEffectiveness', 'capa.scheduleCheck', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
+      'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise', 'capa.recordEffectiveness', 'capa.scheduleCheck', 'config.closeChangeRecord', 'config.raiseChangeRecord', 'config.setRbeRule', 'config.setSetting', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'contractGiver.grantAccess', 'contractGiver.revokeAccess', 'esig.createChallenge', 'esig.endDscEnrolment', 'esig.enrolDsc', 'esig.registerDscAnchor', 'esig.setDscMeaning', 'esig.setDscMode', 'execution.command', 'execution.importPackage',
       'execution.issue', 'execution.planBatch', 'india.issueH2', 'integrations.acknowledgeAlarm', 'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'pqr.run', 'quality.correctLotReceipt',
       'quality.examineLotReceipt', 'quality.proposeApprovedManufacturer', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotReceipt',
       'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
+      'support.requestGrant', 'support.revokeGrant',
     ]);
     for (const r of fresh) {
       expect(r.auth, r.id).toBe('SESSION');

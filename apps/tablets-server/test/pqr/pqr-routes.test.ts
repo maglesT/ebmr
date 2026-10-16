@@ -41,7 +41,7 @@ describe('PQR routes over HTTP (IN-01, PR-58)', () => {
   it('[IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot', async () => {
     const body = { productCode: product, periodFrom: from, periodTo: to };
     const x = valueOf(await qa.call(routes.pqr.run, { body }));
-    expect(x).toMatchObject({ productCode: product, periodFrom: from, periodTo: to, queryVersion: 1, reproduces: true, queryProblem: null, signOff: null,
+    expect(x).toMatchObject({ productCode: product, periodFrom: from, periodTo: to, queryVersion: 2, reproduces: true, queryProblem: null, signOff: null,
                               reconciliation: { ok: true, problems: [], batches: { extract: 1, register: 1 } }, ranBy: { legalName: 'Divya Menon', role: 'QA_REVIEWER' } });
     expect(x.batches.map((b) => b.batchId)).toEqual([batchId]);
     expect(x.counts).toMatchObject({ batches: 1, deviations: 0 });

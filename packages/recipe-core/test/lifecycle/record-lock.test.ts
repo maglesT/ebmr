@@ -14,6 +14,7 @@ import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts'
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as containers from '../../src/containers/index.ts';
@@ -39,6 +40,7 @@ const ledger = tempLedger('record-lock', dir.path);
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   w = new World(db, await seedCast(db));
   ({ admin, owner } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
@@ -483,9 +485,9 @@ describe('bulk across packaging orders and the bulk reconciliation (PR-38, INV-2
 describe('who closes an amendment (INV-21; outline 7.2 S10; recipe-core 0872)', () => {
   it('[INV-21] a person who appended an entry does not close the amendment, even where the site lets one role do both (EBMR-LCK-043)', async () => {
     const both = await seedActor(db, { roleCode: 'STAGE_RESPONSIBLE', legalName: 'Bala Both' });
-    const request = await withCommand(db.app, withReason(admin), async (c) =>
+    const request = await withCommand(db.app, underChange(withReason(admin)), async (c) =>
       (await c.query<{ id: string }>("select iam.add_role_permission('STAGE_RESPONSIBLE', 'RECORD.QA_REVIEW', 'the site lets the stage responsible review records') as id")).rows[0]!.id);
-    await withCommand(db.app, withReason(owner), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the closing test')", [request]));
+    await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the closing test')", [request]));
     const { parent, orders } = await processingWithOrders(1);
     await setStatus(parent, 'EXECUTION_COMPLETE');
     await setStatus(orders[0]!, 'CANCELLED');

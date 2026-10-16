@@ -64,6 +64,7 @@ import type { SignableActionHandler, SignableActionRegistry } from '../../platfo
 import { ChallengeBadgeStore } from './badges.ts';
 import { kernelContent, meaningOfIntent, recordContentForSigning, type EsigSignableContext } from './content.ts';
 import { ESIG_GUIDANCE } from './guidance.ts';
+import { dscConfiguration, dscEnrolment, endDscEnrolment, enrolDsc, registerDscAnchor, setDscMeaning, setDscMode } from './dsc.ts';
 import { esigStubHandler } from './stub.ts';
 import { manifestationView, meaningInfo, meaningPhrase, readChallenge, recordSignaturesFor, type StoredChallenge } from './views.ts';
 
@@ -319,7 +320,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
           const stored = await readChallenge(client, s.tokenHash, ch.challengeId);
           if (!stored) throw new Error('the new challenge could not be read back');
           const preview = ch.manifestationPreview;
-          const view: ChallengeView = {
+          const view = {
             challengeId: ch.challengeId,
             aggregateType: body.aggregateType,
             aggregateId: body.aggregateId,
@@ -328,7 +329,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
             meaning: ch.meaning.code,
             expiresAt: app.formatInstant(stored.expiresUs),
             expiresInSeconds: Math.max(1, stored.secondsLeft),
-            requires: isShopFloor(s.deviceClass) ? ['PIN'] : ['USER_ID', 'PASSWORD'],
+            requires: (isShopFloor(s.deviceClass) ? ['PIN'] : ['USER_ID', 'PASSWORD']) as ChallengeView['requires'],
             manifestation: {
               legalName: typeof preview['printed_name'] === 'string' ? preview['printed_name'] : s.legalName,
               loginName: typeof preview['user_id'] === 'string' ? preview['user_id'] : s.loginName,
@@ -338,6 +339,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
               zone: typeof preview['site_zone'] === 'string' ? preview['site_zone'] : app.siteZone.current(),
             },
           };
+          // IN-10 (kernel 1203): the DSC statement the signer's token signs, when this meaning needs a DSC now.
+          const dsc = await esig.dscRequirement(client, ch.challengeId);
+          if (dsc.required && dsc.statement && dsc.mode !== 'OFF') return { ...view, dsc: { mode: dsc.mode, statement: dsc.statement, banner: dsc.banner } };
           return view;
         });
         const view = out.result;
@@ -485,10 +489,14 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
               const expectedState = d.expectedState ?? (handler.expectedStateNow ? await handler.expectedStateNow(client, body.action) : null);
               const delegationId = handler.delegationOf?.(body.action);
               const sig = await esig.sign(client, { challengeId: ch.challengeId, authEventId: ev.authEventId, expectedState, ...(delegationId ? { delegationId } : {}) }, sealKey);
+              // IN-10 (kernel 1203): the DSC over the same content hash, verified against the configured anchor before it is
+              // stored; a meaning that needs one cannot commit without it (EBMR-ESIG-084).
+              await esig.recordDsc(client, sig.signatureId, body.dsc);
               let sig2: Awaited<ReturnType<typeof esig.sign>> | null = null;
               if (ch2 && ev2 && comp) {
                 const state2 = comp.expectedState ?? (await recordContentForSigning(client, comp.aggregateType, comp.aggregateId)).state ?? null;
                 sig2 = await esig.sign(client, { challengeId: ch2.challengeId, authEventId: ev2.authEventId, expectedState: state2 }, sealKey);
+                await esig.recordDsc(client, sig2.signatureId, undefined);
               }
               const applied = await handler.apply(client, ctx, body.action, {
                 signatureId: sig.signatureId,
@@ -544,6 +552,21 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const s = requireSession();
         return { signatures: await recordSignaturesFor(app.pools.app, s.tokenHash, query.aggregateType, query.aggregateId) };
       },
+
+      // Phase 6 slice 6f (IN-10): the India DSC option, under change records (dsc.ts).
+      dscConfiguration: async ({ requireSession }) => {
+        requireSession();
+        return dscConfiguration(app.pools.app);
+      },
+      setDscMode: async ({ body, actor, idempotencyKey, requestHash }) => setDscMode(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
+      registerDscAnchor: async ({ body, actor, idempotencyKey, requestHash }) => registerDscAnchor(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
+      setDscMeaning: async ({ body, actor, idempotencyKey, requestHash }) => setDscMeaning(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
+      dscEnrolment: async ({ requireSession }) => {
+        const s = requireSession();
+        return dscEnrolment(app.pools.app, s.personId, s.accountId);
+      },
+      enrolDsc: async ({ body, actor, idempotencyKey, requestHash }) => enrolDsc(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
+      endDscEnrolment: async ({ body, actor, idempotencyKey, requestHash }) => endDscEnrolment(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
     },
     { rateLimits: { sign: { max: 20, timeWindow: '1 minute', by: 'SESSION' } } },
   );

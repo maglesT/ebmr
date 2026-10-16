@@ -183,6 +183,13 @@ describe('specifications', () => {
     const review = await screen.findByTestId('edition-review');
     await waitFor(() => expect(review.textContent).toContain(`cites ${item?.pharmacopoeia ?? ''} ${item?.cited ?? ''}; effective now ${item?.effective ?? ''}`));
   });
+
+  it('[IN-33] the review list names each master record version citing an older edition, with the limit that cites it', async () => {
+    renderOffice('/quality/specifications', { role: 'QA_REVIEWER' });
+    const mbr = example('specifications-edition-review').mbrs[0];
+    const list = await screen.findByTestId('edition-review-mbrs');
+    await waitFor(() => expect(list.textContent).toContain(`${mbr?.familyCode ?? ''} version ${mbr?.versionNumber ?? ''} (APPROVED), ${mbr?.citedIn ?? ''}: cites IP 2022; effective now 2026`));
+  });
 });
 
 describe('returned goods', () => {

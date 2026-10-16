@@ -21,6 +21,11 @@ export interface ActorContext {
   reasonCode?: string;
   reasonText?: string;
   correlationId?: string;
+  /**
+   * The number of the approved configuration change record a configuration change is made under (DI-09, kernel 1195).
+   * The database refuses a write to a configuration table without it (EBMR-CFG-001).
+   */
+  changeRecord?: string;
 }
 
 export function toDbContext(ctx: ActorContext): Record<string, string> {
@@ -38,6 +43,7 @@ export function toDbContext(ctx: ActorContext): Record<string, string> {
   if (ctx.authEventId) out['auth_event_id'] = ctx.authEventId;
   if (ctx.reasonCode) out['reason_code'] = ctx.reasonCode;
   if (ctx.reasonText) out['reason_text'] = ctx.reasonText;
+  if (ctx.changeRecord) out['change_record'] = ctx.changeRecord;
   return out;
 }
 
