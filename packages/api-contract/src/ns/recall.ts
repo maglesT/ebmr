@@ -76,6 +76,33 @@ export const MockRecallConsigneeView = z.strictObject({
   shipments: z.array(MockRecallShipmentView),
 });
 
+/**
+ * Phase 6 slice 6i (recipe-core 1091; additive): per outbound transfer the run reached, what its destination installation
+ * answered as of the run's own instant (ANSWERED), or why not, with the last excerpt received and its older as-of. The run
+ * is complete only when every transfer ANSWERED (computed by the database; part of what the AP signs off).
+ */
+export const MockRecallRemoteView = z.strictObject({
+  transferId: Uuid,
+  packageNo: z.string().min(1),
+  destination: z.string().min(1),
+  depth: z.number().int().nonnegative(),
+  status: z.enum(['NOT_ASKED', 'ANSWERED', 'UNREACHABLE', 'REFUSED', 'NOT_REGISTERED']),
+  excerptAsOf: Instant.nullable(),
+  detail: z.string().nullable(),
+  /** The destination's lots, batches and shipments (consignee codes) from the excerpt shown. */
+  lots: z.array(z.strictObject({ lotId: Uuid, lotCode: z.string().min(1), materialCode: z.string().nullable(), state: z.string().nullable() })),
+  batches: z.array(z.strictObject({ batchId: Uuid, batchNumber: z.string().min(1) })),
+  shipments: z.array(z.strictObject({ shipmentId: Uuid, shipmentNo: z.string().min(1), consigneeCode: z.string().nullable(), market: z.string().nullable() })),
+});
+export type MockRecallRemoteView = z.infer<typeof MockRecallRemoteView>;
+export const MockRecallFederationView = z.strictObject({
+  complete: z.boolean(),
+  transfers: z.array(MockRecallRemoteView),
+  /** Further transfers the destinations' parts reach (to a third site or back here), not asked: the run is then incomplete (one hop, D-P6i-0-7). */
+  beyondOneHop: z.array(z.strictObject({ transferId: Uuid, packageNo: z.string().min(1), destination: z.string().min(1) })),
+});
+export type MockRecallFederationView = z.infer<typeof MockRecallFederationView>;
+
 export const MockRecallView = MockRecallSummaryView.extend({
   /** Whether a re-run of the same query version as of the same instant gives the stored hash now. */
   reproduces: z.boolean(),
@@ -84,6 +111,8 @@ export const MockRecallView = MockRecallSummaryView.extend({
   consignees: z.array(MockRecallConsigneeView),
   /** Shipment numbers whose distribution record lacks the consignee's address (D-P6d-0-7). */
   incomplete: z.array(z.string()),
+  /** Phase 6 slice 6i (query version 2 and later): the other sites' parts and whether the run is complete. */
+  federation: MockRecallFederationView.optional(),
 });
 export type MockRecallView = z.infer<typeof MockRecallView>;
 
@@ -117,7 +146,7 @@ export const recall = {
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
-    summary: 'Run a mock recall from a lot or a deviation as of an instant (QA, AP); stored with its result hash (IN-29, PR-57)',
+    summary: 'Run a mock recall from a lot or a deviation as of an instant (QA, AP); stored with its result hash; each destination of an outbound transfer is asked for its part (IN-29, PR-57, L-41)',
     body: withAttribution({
       subjectKind: MockRecallSubjectKind,
       subjectId: Uuid,
@@ -125,6 +154,20 @@ export const recall = {
       authorityInformed: z.boolean(),
       authorityReference: z.string().trim().min(1).max(200).optional(),
     }),
+    response: MockRecallView,
+  }),
+  /** Phase 6 slice 6i (additive): ask the destinations that did not answer again, as of the run's own instant. */
+  refreshFederation: defineRoute({
+    id: 'recall.refreshFederation',
+    method: 'POST',
+    path: '/api/recall/mock-recalls/:mockRecallId/federation',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Ask again every destination site that has not answered, as of the mock recall\'s own instant, before the sign-off (L-41, IN-29)',
+    params: z.strictObject({ mockRecallId: Uuid }),
+    body: withAttribution({}),
     response: MockRecallView,
   }),
 } as const;

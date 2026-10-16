@@ -365,6 +365,37 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Handbook:** `modules/integrations.md` (serialisation), `modules/recipe-core.md`, `modules/tablets-server.md`,
   `modules/tablets-web.md`, `08-defect-log.md`.
 
+- **Built (16 October 2026, branch `phase-6/slice-6c`).** Recipe-core 0990, site services 0950, tablets 1230 and 1231 as
+  [slice-6c-0-interfaces.md](slice-6c-0-interfaces.md) section 2 fixes them (plus `tab.assert_pool_rejection`, below);
+  server features `labels` and `serialisation`, the L3 adapter (SRV-L3-ADAPTER-01), the stateful L3/L4 simulator and
+  the printer's EXPIRY challenge, the screens; the clauses deferred to 6c name their tests
+  ([trace-deferrals.md](../phase-4/trace-deferrals.md)). Defaults taken while building (decision 0004):
+  - **D-P6c-18** The serial query is a plain read (a session, as every read): the L3 is asked live and
+    `tab.serial_lookup` answers from the record; no permission beyond the session, since every role that may open a
+    batch record may see its lot and expiry. Why: the floor and QA both look serials up; nothing is written.
+  - **D-P6c-19** QA's rejection of a pool is one command: QA's right and the pool are checked
+    (`tab.assert_pool_rejection`), then the L3 is asked, then its OPEN task is recorded. Why: a badge tap attributes one
+    command (INV-40), and nothing is asked of the L3 for someone who may not reject. A failed call rolls back; the L3
+    answers the same open task to a retry (the simulator opens a new task only after the last one is DONE).
+  - **D-P6c-20** In STAND_IN (the default) an L3 message is refused (WRONG_IDENTITY) and the adapter does not run, so a
+    rejected pool's task stays OPEN and the order is not released through serialisation until the site runs the L3
+    mirror. Why: a rejected pool's lot is not released anyway; the modes never mix (D-P6a-5).
+  - **D-P6c-21** The specimens, the inspection, the line stops and the waiver are rows of their own beside the record,
+    not record entries: the record head's facts are unchanged. The golden drivers' new acts each take a second of the
+    frozen clock, so later instants move and the three packaging orders' true-copy hashes were taken again (defect
+    P6c-3: only instants differ, each one minute later; GB-T-02 order 8467d0bf79c0... to f97928738d30..., GB-T-01
+    order 0 84e7e5dd56c4... to 04b571b906d6..., order 1 8f07940fe378... to 6718a46f8c5e...; the batches' hashes hold).
+  - **D-P6c-22** The post-use inspection is recorded once every G-21 step of the order is performed (not only when none
+    is in progress, D-P6c-6), and the latest inspection is the one that counts.
+- **Residuals (for the lead):** R-6c-1 the specimens and the post-use inspection are not in the record's true copy or
+  batch report yet (D-P6c-21; a report section, with the golden hashes taken again, after 6j); R-6c-2 D-P6c-8 (the
+  labelling declaration outside the content hash, frozen by the DRAFT rule) and D-P6c-10 (no LABEL_TEMPLATE_APPROVED
+  signing meaning) as recorded; R-6c-3 the label store's ISSUE is not linked to the G-21 ISSUE entry (D-P6c-11);
+  R-6c-4 a G-21 step whose master gives no checker signature completes without one (the master's signatures are the
+  designer's rule; PR-16 is proven where the master has a checker); R-6c-5 the GB-T-01 and GB-T-02 drivers record the
+  specimens and the inspection; the first golden run moved the orders' hashes (P6c-3, taken again after a content
+  diff on the libfaketime cluster gate6); the demo stack starts and answers /api/meta (checked at the merge of 6b).
+
 ### Slice 6d: genealogy service and explorer, mock recall, distribution records
 
 - **6d-0 (lead):** `recipe.genealogy(kind text, id uuid, direction text, as_of timestamptz) returns setof
@@ -634,6 +665,19 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Migrations:** kernel 1210 to 1214 (reporting role), recipe-core 1070 to 1079 (reporting views).
 - **Handbook:** `modules/tablets-web.md`, `modules/recipe-core.md`, `03-architecture.md` (reporting path),
   `10-runbooks.md` (training mode), `08-defect-log.md`.
+- **Built (16 October, branch `phase-6/slice-6g`):** interfaces and defaults D-P6g-0-1 to 9 in
+  [slice-6g-0-interfaces.md](slice-6g-0-interfaces.md). Kernel 1210 (role `ebmr_report`, schema `report`, connect policy
+  and segregation check), 1211 (training attempts, sandbox only); recipe-core 1070 (seven report views and the catalogue),
+  1071 (`recipe.change_impact`). Namespaces `dashboards`, `changeImpact` (GMP) and `training` (SANDBOX); screens
+  `/dashboards`, `/change-impact`, `/training`. No tablets migration: the range tablets 1310-1319 is reserved for 6g
+  (lead, 16 October; D-P6g-0-10) and unused. PR-05 "overdue review on the dashboard" now names its tests.
+- **Quick review (one pass):** no critical or high. Residuals for the owner:
+  - R-6g-1 `ebmr_report` has its own connection limit (4) but `kernel.apply_listener_share` does not count it, so on a
+    primary its four connections come out of the slots the application role may use; production reads a replica.
+  - R-6g-2 the export route returns a whole view in one response (no paging); analytics reads the views directly.
+  - R-6g-3 press OEE has no performance factor until master data holds a rated speed (D-P6g-0-6).
+  - R-6g-4 the training exercises are scripted walk-throughs; the person marks steps done (the system does not check the
+    step was done on the screen).
 
 ### Slice 6h: languages (DROPPED, decision 0018: English only)
 
@@ -694,6 +738,28 @@ follow if a language is added after v1.
   to 1099.
 - **Handbook:** `03-architecture.md` (topology), `modules/site-services.md`, `modules/kernel.md`,
   `modules/recipe-core.md`, `08-defect-log.md`.
+- **Built (16 October, branch `phase-6/slice-6i`):** 6i-0 interfaces and defaults D-P6i-0-1 to D-P6i-0-13 in
+  [slice-6i-0-interfaces.md](slice-6i-0-interfaces.md). Kernel 1220 (installation identity and key versions, peer
+  installations trusted after QA's PEER_INSTALLATION_APPROVED, seals with domain separation, Ed25519 in PL/pgSQL,
+  installation alarms, the site-to-site request log); site services 0980, 0981 (package built by the database from its
+  own records and sealed by the server; import refused with an alarm when malformed, from an untrusted sender, tampered,
+  misaddressed or a duplicate; a local INTERMEDIATE lot in QUARANTINE; local QA's TRANSFER_RECEIPT_ACCEPTED or _REFUSED;
+  release and reservation refused before the acceptance and after the hold limit; rule resolutions re-resolved, the
+  stricter winning); recipe-core 1090 to 1093 (TRANSFER node and edges, the federated answer and the asking side, the mock
+  recall across sites); tablets 1300, 1301 (signing meanings and read classes). Server feature `transfers`, the
+  `federation.genealogy` route outside the browser origin gate, `genealogy.federatedTrace`, `recall.run` asking each
+  destination, `recall.refreshFederation`; screens `/transfers`, the receipt page, the explorer's "Across sites" and the
+  mock recall's "Other sites". Tests: two installations in one run at the database (15) and over HTTP with two servers
+  (6), contract and web tests.
+- **Quick review (one pass):** no critical. Three findings fixed with tests (defect log P6i-R1 to R3): a mock recall
+  whose destination's part reached a further transfer was called complete (now `beyond_one_hop`, incomplete); an as-of
+  point a moment ahead of the answering clock was refused (now answered after a wait of up to 2 seconds); the
+  unauthenticated site-to-site route had no rate limit (now 30 a minute per address).
+- **Residuals (for the owner):** federation is one hop (a third site's part is listed, not fetched; D-P6i-0-7); the
+  suspension cascade stays local (D-P6i-0-10); the installation identity and peer list are not yet under the 6f
+  configuration change record; a key rotation needs the peers to approve the new key before packages verify; the
+  transfer-out quantity reduces the lot's available quantity but is not a consumption row (the ERP/WMS moves the stock);
+  federation from a shared kiosk needs the person's tap like any command.
 
 ### Slice 6j: Phase 6 exit
 
@@ -742,7 +808,8 @@ follow if a language is added after v1.
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
 | tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
-| tablets, added | | | | | 6e: tablets 1290-1299 (after 6f's 1276, which re-creates `tab.record_read_problem`, and 6d's 1280-1289; D-P6e-10) | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
+| tablets, assigned 16 Oct | | | | 1280-1289 | 1290-1299 | | 1310-1319 | | 1300-1309 | |
+| tablets, added | | | | | 6e: tablets 1290-1299 (after 6f's 1276, which re-creates `tab.record_read_problem`, and 6d's 1280-1289; D-P6e-10) | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | 1310-1319 (reserved, unused) | | | |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.

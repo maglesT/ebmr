@@ -73,7 +73,7 @@
      "GBT-PVC-001 6 kg"
     ],
     "signatures": 28,
-    "normalisedTrueCopySha256": "84e7e5dd56c4b36bb838a374a9b234571f1de9db038cd774215939131adf3dcf"
+    "normalisedTrueCopySha256": "04b571b906d67f0fbb9480b00e8a26ae6b1f70c737f1625614695eff2ba3c5ff"
    },
    {
     "states": {
@@ -92,7 +92,7 @@
      "GBT-PVC-001 6 kg"
     ],
     "signatures": 28,
-    "normalisedTrueCopySha256": "8f07940fe378f0c6f6374b824d825dc68b6f2e69f36e23f31af7b2828544ca7c"
+    "normalisedTrueCopySha256": "6718a46f8c5e5a82174f64bd3812439e820f922d96c1e4ac481d01138804c11a"
    }
   ],
   "lots": [

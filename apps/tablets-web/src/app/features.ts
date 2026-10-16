@@ -5,6 +5,8 @@
  * Phase 6 slice 6b: plant-status (alarms, status board, line station, rooms);
  * Phase 6 slice 6d: genealogy (explorer, complaint lookup, supply chain, deviation impact, mock recalls).
  * Phase 6 slice 6e: controlled (controlled-substance mode, draft IN-53).
+ * Phase 6 slice 6i: transfers (inter-site packages, peers, receipts, alarms); the explorer and mock recalls ask other sites.
+ * Phase 6 slice 6g: dashboards (dashboards, change impact; GMP) and training (SANDBOX).
  */
 import * as access from '../features/access/index.tsx';
 import * as archive from '../features/archive/index.tsx';
@@ -23,13 +25,17 @@ import * as quality from '../features/quality/index.tsx';
 import * as records from '../features/records/index.tsx';
 import * as pqr from '../features/pqr/index.tsx';
 import * as capa from '../features/capa/index.tsx';
+import * as labels from '../features/labels/index.tsx';
 import * as config from '../features/config/index.tsx';
 import * as controlled from '../features/controlled/index.tsx';
+import * as dashboards from '../features/dashboards/index.tsx';
 import * as genealogy from '../features/genealogy/index.tsx';
+import * as transfers from '../features/transfers/index.tsx';
 import * as governance from '../features/governance/index.tsx';
 import * as release from '../features/release/index.tsx';
 import * as review from '../features/review/index.tsx';
 import * as session from '../features/session/index.tsx';
+import * as training from '../features/training/index.tsx';
 import type { WebFeature } from './feature.ts';
 
 export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
@@ -51,10 +57,14 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['archive', archive satisfies WebFeature],
   ['india', india satisfies WebFeature],
   ['capa', capa satisfies WebFeature],
+  ['labels', labels satisfies WebFeature],
   ['config', config satisfies WebFeature],
   ['governance', governance satisfies WebFeature],
   ['integrations', integrations satisfies WebFeature],
   ['controlled', controlled satisfies WebFeature],
   ['plant-status', plantStatus satisfies WebFeature],
   ['genealogy', genealogy satisfies WebFeature],
+  ['transfers', transfers satisfies WebFeature],
+  ['dashboards', dashboards satisfies WebFeature],
+  ['training', training satisfies WebFeature],
 ];

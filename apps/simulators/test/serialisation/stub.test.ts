@@ -144,3 +144,44 @@ describe('serialisation L3 stub over HTTP', () => {
     expect(await (await fetch(`${base}/`)).text()).toContain('SIMULATOR (DEMO-ONLY)');
   });
 });
+
+describe('the L3/L4 simulator (Phase 6 slice 6c)', () => {
+  it('[PR-42] publishes decommissioning tasks and aggregations on its feed, answers a serial query with its pool, state and profile, and its faults each break one thing (missing events, duplicate serial, stale report, aggregation mismatch)', () => {
+    const l3 = new L3Stub({ seed: 5, clock });
+    const { poolId, serials } = l3.issue(request({ packagingOrder: 'PO-L4', quantity: '3' }));
+    const [s0] = serials as [string];
+    expect(l3.query(s0)).toEqual({ serial: s0, poolId, gtin: EU_GTIN, packagingOrder: 'PO-L4', state: null });
+    l3.applyEvents(poolId, serials.map((serial) => ({ serial, state: 'COMMISSIONED', at })));
+    l3.setProfile(poolId, { lot: 'PO-L4', expiry: '2028-09' });
+    expect(l3.query(s0)).toMatchObject({ state: 'COMMISSIONED', lot: 'PO-L4', expiry: '2028-09' });
+    expect(() => l3.query('NOPE')).toThrow(/no pool holds/);
+    // An aggregation, and the same with one pack more under AGGREGATION_MISMATCH.
+    l3.aggregate({ poolId, parentId: '089012340000000017', childCount: '3' });
+    l3.setFault('AGGREGATION_MISMATCH', true);
+    l3.aggregate({ poolId, parentId: '089012340000000024', childCount: '3' });
+    l3.setFault('AGGREGATION_MISMATCH', false);
+    // A rejection opens a task (published), completing it decommissions its serials (published DONE).
+    const task = l3.reject(poolId, 'lot rejected');
+    expect(task).toMatchObject({ state: 'OPEN', serials });
+    // MISSING_EVENTS: the feed delivers nothing while the task is done; then everything, in order.
+    l3.setFault('MISSING_EVENTS', true);
+    expect(l3.completeTask(task.taskId).state).toBe('DONE');
+    expect(l3.feed.page(0n, 100).messages).toEqual([]);
+    l3.setFault('MISSING_EVENTS', false);
+    const page = l3.feed.page(0n, 100).messages;
+    expect(page.map((m) => `${m.messageType}:${String(m.payload['childCount'] ?? m.payload['state'])}`)).toEqual(['l3.aggregation:3', 'l3.aggregation:4', 'l3.decommission_task:OPEN', 'l3.decommission_task:DONE']);
+    expect(page.every((m) => m.sourceSystem === 'L3')).toBe(true);
+    expect(l3.report(poolId).counts).toMatchObject({ DECOMMISSIONED: '3' });
+    // STALE_REPORT: the heartbeat stops and the report stays as it was.
+    const second = l3.issue(request({ packagingOrder: 'PO-L4B', quantity: '2' }));
+    l3.setFault('STALE_REPORT', true);
+    l3.applyEvents(second.poolId, second.serials.map((serial) => ({ serial, state: 'COMMISSIONED', at })));
+    expect(l3.feed.heartbeatOk()).toBe(false);
+    expect(l3.report(second.poolId).counts.COMMISSIONED).toBe('0');
+    l3.setFault('STALE_REPORT', false);
+    expect(l3.report(second.poolId).counts.COMMISSIONED).toBe('2');
+    // DUPLICATE_SERIAL: a pool of three carries two distinct serials.
+    l3.setFault('DUPLICATE_SERIAL', true);
+    expect(new Set(l3.issue(request({ packagingOrder: 'PO-DUP', quantity: '3' })).serials).size).toBe(2);
+  });
+});

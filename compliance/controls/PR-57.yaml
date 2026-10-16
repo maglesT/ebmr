@@ -74,6 +74,11 @@ tests:
   - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] the genealogy has no table of its own and the application role cannot write the edges or call the internal step"
   - "packages/site-services/test/genealogy/genealogy.test.ts > performance (outline risk 6) > [PR-57] the genealogy of a seeded large site is traced within seconds"
   - "packages/site-services/test/genealogy/recall.test.ts > mock recall (recipe-core 1012; IN-29, PR-57; D-P6d-2) > [IN-29][PR-57] a mock recall from a lot lists the affected batches and lots, every consignee with what it was delivered, and the reconciliation of delivered against returned; it is stored with its as-of point and hash and reproduces"
+  - "packages/site-services/test/transfer/transfer.test.ts > genealogy across sites (recipe-core 1090; PR-57) > [PR-57] a forward trace crosses a site transfer"
+  - "packages/site-services/test/transfer/transfer.test.ts > genealogy across sites (recipe-core 1090; PR-57) > [PR-57] a backward trace from the received lot reaches the shipped lot at its origin"
+  - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked"
+  - "apps/tablets-web/test/transfers/transfers.test.tsx > federated genealogy (PR-57, IN-29) > [PR-57] the explorer asks across sites and shows each site's part with its as-of; an unanswered site makes the result incomplete"
+  - "packages/site-services/test/transfer/transfer.test.ts > review 6i: one hop and clock skew (recipe-core 1092) > [PR-57] an as-of point a moment ahead of the answering site's clock is answered once that instant has passed; one far ahead is refused"
 clauses:
   - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
     tests:
@@ -81,6 +86,7 @@ clauses:
       - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] the as-of point: a trace as of an earlier instant leaves out what was recorded after it, and repeats exactly"
   - clause: "A forward trace from a component lot lists every consignee, matching an ERP extract."
     tests:
+      - "packages/site-services/test/transfer/transfer.test.ts > genealogy across sites (recipe-core 1090; PR-57) > [PR-57] a forward trace crosses a site transfer"
       - "packages/site-services/test/genealogy/genealogy.test.ts > genealogy traversal (recipe.genealogy; PR-57) > [PR-57] a forward trace from a component lot lists every consignee, matching an ERP extract"
       - "packages/site-services/test/genealogy/recovery-distribution.test.ts > distribution records (site services 0961; PR-57; D-P6d-0-6, D-P6d-0-7) > [PR-57] a shipment from the ERP/WMS adapter becomes a distribution record with product name and strength, consignee name and address, date, quantity and lot, in the receiving command"
 expert_decision:

@@ -890,6 +890,17 @@ and is countersigned before weighing) and the register export (opened, it says w
 difference with its deviation, record and sign the checkpoint). Every screen shows the draft banner
 (`CONTROLLED_DRAFT_BANNER`). The prompt is on this page, not yet inside the floor's TB-01 step (residual). Tests:
 [controlled.test.tsx](../../../apps/tablets-web/test/controlled/controlled.test.tsx).
+
+## Label and serialisation screens (Phase 6 slice 6c)
+
+[features/labels](../../../apps/tablets-web/src/features/labels/) on the `labels` and `serialisation` routes: the label
+template designer (record fields only; the India particulars not placed yet are listed) and QA's approval, which waits
+on the database's `approvalProblem`; the label store (transactions offered to the label store's roles only); the
+packaging completion page (coding specimens in order, typed as read off the specimen: the capture form does not show
+the record's coding, review finding P6c-R1; label specimens, withdrawal with a reason, line stops resolved by QA, the
+waiver, the post-use inspection and its verification); the serial lookup and the pools of an order with the L3
+mirror's freshness and why release waits. Tests: [labels.test.tsx](../../../apps/tablets-web/test/labels/labels.test.tsx).
+
 ## Genealogy explorer, complaint lookup and mock recalls (Phase 6 slice 6d)
 
 [features/genealogy](../../../apps/tablets-web/src/features/genealogy/index.tsx): the explorer (`/genealogy`; tree and table
@@ -900,6 +911,23 @@ consignees, whether it reproduces, the AP's sign-off through the ceremony). The 
 every tab of a lot's release screen ([RecurrenceWarning.tsx](../../../apps/tablets-web/src/features/genealogy/RecurrenceWarning.tsx),
 D-P6d-8); the returned-goods screen offers the stores the chemical recovery once QC's signed assessment chose it. Tests:
 [genealogy.test.tsx](../../../apps/tablets-web/test/genealogy/genealogy.test.tsx).
+
+[features/transfers](../../../apps/tablets-web/src/features/transfers/index.tsx) (Phase 6 slice 6i): `/transfers` shows this
+installation and its peers (QA approves a proposed key), the packages sent (built and sealed by the server, downloadable
+as the exchanged file) and received (taken in as received; a refusal shows its reason), and the alarms;
+`/transfers/receipts/$receiptId` shows the origin's status, CoA, rule resolutions and hold time left, with local QA's
+decision. The explorer's "Across sites" option and the mock recall's "Other sites" section show each site's part with its
+as-of point and say when the result is incomplete. Tests: [transfers.test.tsx](../../../apps/tablets-web/test/transfers/transfers.test.tsx).
+
+## Dashboards, change impact and training (Phase 6 slice 6g)
+
+[features/dashboards](../../../apps/tablets-web/src/features/dashboards/index.tsx) (GMP): `/dashboards` shows the eight
+tiles, each with its data-age line, refreshed every five minutes and by "Refresh now", drilling to the review, deviation,
+MBR version and alarm screens, under a banner that they are never used for GMP decisions; `/change-impact` asks for the
+kind and code and shows the lists with an export (JSON with the server's content hash).
+[features/training](../../../apps/tablets-web/src/features/training/index.tsx) (SANDBOX): `/training` shows the
+server's TEST, NOT GMP watermark band (besides the shell's), the personas and the exercises; "Mark done" posts the step of
+the person's own attempt. Tests: `apps/tablets-web/test/dashboards/`.
 
 ## How to test this app
 

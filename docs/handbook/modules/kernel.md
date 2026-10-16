@@ -1512,6 +1512,36 @@ A control column left empty means the register does not name the function; see t
 | [`kernel.apply_listener_share`](../../../packages/kernel/sql/0980_listener_login_roles.sql#sym=kernel.apply_listener_share) | 0980 | `SBX-035` ]<br>`SBX-036` ]<br>`SBX-037` ] |  |
 | [`sandbox.mirror_application_privileges`](../../../packages/kernel/sql/0980_listener_login_roles.sql#sym=sandbox.mirror_application_privileges) | 0980 | `SBX-030` ] | [DI-05](../../../compliance/controls/DI-05.yaml) |
 | [`sandbox.apply_connect_policy`](../../../packages/kernel/sql/1111_connect_policy_unknown_grantee.sql#sym=sandbox.apply_connect_policy) | 1111 | `SBX-038` ] | [DI-05](../../../compliance/controls/DI-05.yaml) |
+## Installation keys and site-to-site seals (Phase 6 slice 6i; kernel 1220)
+
+[1220_installation_keys.sql](../../../packages/kernel/sql/1220_installation_keys.sql)
+([DI-31](../../../compliance/controls/DI-31.yaml)): one installation per site per edition (outline L-41). Each holds an
+Ed25519 key pair: the server keeps the private key (`EBMR_INSTALLATION_KEY_FILE`, DEMO-ONLY; a KMS or HSM in production),
+the database the public keys and verifies every seal itself. `platform.installation_identity` (insert-only versions;
+SYSTEM.CONFIGURE; the code, site and edition never change, only the key). `platform.peer_installation` is another
+installation proposed by the administrator and trusted only after QA signed PEER_INSTALLATION_APPROVED
+(TRANSFER.PEER_APPROVE) and while not revoked. A seal signs `ebmr.<purpose>.v1|` and the SHA-256 of the payload, so a
+package seal never verifies as a federation answer. `platform.ed25519_verify` is the kernel twin of tablets 0270 (the
+kernel cannot call the edition). `platform.installation_alarm` logs refused imports and federation failures (acknowledged
+under ALARM.ACKNOWLEDGE); `platform.accept_federation_request` checks a site-to-site request (trusted sender, seal,
+addressed here, within 300 s, nonce once) and logs every one, a refusal with its alarm, without raising.
+
+**Pitfalls.** A refusal must commit its alarm, so these functions return `{ok: false, ...}` instead of raising. The tests
+are in site services (`packages/site-services/test/transfer/`, two databases).
+
+## The reporting role and training attempts (Phase 6 slice 6g; kernel 1210, 1211)
+
+[1210_reporting_role.sql](../../../packages/kernel/sql/1210_reporting_role.sql): the login role `ebmr_report` (NOINHERIT,
+member of nothing, connection limit 4), CONNECT on GMP databases only, USAGE on the schema `report`, SELECT on its views
+and EXECUTE on their non-volatile row functions, nothing else. `sandbox.segregation_problems()` reports any other
+privilege, a membership, an elevated attribute, a default privilege, a volatile function it could run, and in a sandbox
+that it can connect; `sandbox.apply_connect_policy()` grants and takes CONNECT accordingly. `report.data_as_of()` is the
+read's transaction time on a primary and the last replayed commit on a replica.
+[1211_training_attempts.sql](../../../packages/kernel/sql/1211_training_attempts.sql): `sandbox.training_attempt` and
+`sandbox.training_step`, insert-only, refused in a GMP database whoever writes (EBMR-SBX-039); `sandbox.start_training`
+and `sandbox.complete_training_step` (the person's own attempt only, EBMR-SBX-040). Tests:
+`packages/kernel/test/sandbox/reporting-and-training.test.ts`.
+
 ## How to test the kernel
 
 | What | Command |

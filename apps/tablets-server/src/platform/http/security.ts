@@ -119,6 +119,14 @@ export function duplicateCookieExpiries(url: string, names: readonly string[], h
   return out;
 }
 
+/**
+ * Site-to-site routes (Phase 6 slice 6i; D-P6i-0-11): called by another installation's server, never by a browser. They
+ * carry no cookie or session, so the browser origin gate (a defence against cross-site requests riding on a session)
+ * has nothing to protect there; the request's seal under a trusted installation key is checked by the database, and the
+ * route only reads. Exactly these paths, nothing else.
+ */
+const SITE_TO_SITE_PATHS = new Set(['/api/federation/genealogy']);
+
 /** The API's own spelling: the literal prefix `/api`, then a slash, the query, or nothing. */
 const CANONICAL_API = /^\/api(?:[/?#]|$)/;
 
@@ -143,7 +151,7 @@ export async function installSecurity(scope: FastifyInstance, app: AppContext): 
     if (api) void reply.header('cache-control', 'no-store');
     // Every mutating request that can run a handler (any matched route) or names an API path; a request that matches
     // no route and names no API path only reaches the 404 answer.
-    if ((api || request.routeOptions.url !== undefined) && !SAFE_METHODS.has(request.method)) {
+    if ((api || request.routeOptions.url !== undefined) && !SAFE_METHODS.has(request.method) && !(request.method === 'POST' && SITE_TO_SITE_PATHS.has(request.url))) {
       const origin = request.headers.origin;
       const site = request.headers['sec-fetch-site'];
       if (origin !== app.config.publicOrigin || site !== 'same-origin') {

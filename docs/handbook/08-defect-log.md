@@ -844,6 +844,73 @@ because the lesson is about structure.
 - **Lesson:** a freshness stamp written by the caller proves only that the caller called; make the database check what
   the stamp claims.
 
+### P6c-1: the adapter framework could not read an L3 refusal code (slice 6c)
+- **What went wrong.** The worker read a refusal's EBMR code with `EBMR-[A-Z]+-\d{3}`. The L3 contract's codes, fixed in
+  the 6c-0 interface, carry a digit in their module (`EBMR-L3-105`), so an aggregation mismatch was unclassified and the
+  L3 adapter stopped on it (BLOCKED) instead of recording the refusal with its alarm and moving on.
+- **Why it matters.** One mismatched aggregation would have stopped every later L3 message, the decommissioning tasks
+  among them, and let the mirror age: release would fail closed for every order, not only the one with the mismatch.
+- **Fix.** The framework reads `EBMR-[A-Z][A-Z0-9]*-\d{3}`
+  ([framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts) `ebmrCodeOf`). The test
+  `[PR-42][DI-31] the L3 adapter lands aggregations and decommissioning tasks ...` in
+  [l3-adapter.test.ts](../../apps/tablets-server/test/integrations/l3-adapter.test.ts) counts the OUT_OF_RANGE refusal
+  and needs the worker caught up with nothing stopped.
+- **Lesson:** a pattern over codes is a contract too; test it with the codes of every system, not the first ones.
+
+### P6c-2: a PostgreSQL regular expression with a bound above 255 (slice 6c, during the build)
+- **What went wrong.** Two checks of tablets 1231 used `{1,500}` in a regular expression. PostgreSQL allows at most 255
+  in a bound; the check raised "invalid repetition count(s)" at run time (the migration compiled, the function body
+  is only parsed when called).
+- **Fix.** Length is checked with `length(...) > 500` beside a `+` pattern; the rejection and receiving tests call both.
+- **Lesson:** a PL/pgSQL body is checked when it runs: every branch of a new definer needs a test that reaches it.
+
+### P6c-R1: the specimen capture showed the record's coding (slice 6c, review)
+- **What went wrong.** The packaging completion page showed the record's batch number, dates and MRP beside the form
+  where the operator types what the coding specimen shows. The database compares the typed coding with the record's,
+  but an operator could copy the value on the screen instead of reading the specimen, and the check would pass.
+- **Fix.** The capture form tells the operator to type exactly what the specimen shows and no longer shows the record's
+  coding ([PackagingCompletionPage.tsx](../../apps/tablets-web/src/features/labels/PackagingCompletionPage.tsx)); the
+  web test `[IN-16] the packaging page offers the next coding specimen ...` checks it.
+- **Lesson:** a comparison the database makes is only a check when the person cannot see the answer.
+
+### P6c-3: the golden packaging orders' true-copy hashes moved (slice 6c, CI golden job)
+- **What went wrong.** The 6c build said the specimens and the post-use inspection, being rows of their own, leave the
+  record head and the golden hashes unchanged (D-P6c-21). The first golden run (CI, PR #36) failed three hash checks:
+  GB-T-02's bottle order and GB-T-01's two blister orders. The driver ticks the frozen clock one second before every act
+  (`dbAs`), so the seven or eight new acts per order (the completion view read, three coding and two label specimens,
+  the inspection and its verification) move every later act that many seconds on.
+- **What changed in the true copy.** Diffing the normalised true copy of each order with those acts ticking and with
+  them not ticking (cluster gate6, libfaketime): no key added or removed and no value changed except instants, each one
+  minute later as whole minutes from the issue: GB-T-02 order 9 instants (entries EN-28 to EN-30 at t+24m to t+25m,
+  EN-58 to EN-63 at t+31m to t+32m); each GB-T-01 order 8 instants (EN-28 t+52m to t+53m, EN-29 and EN-30 t+54m to
+  t+55m; the packaging stage's end, its sign-off and lastRecordedUs t+58m to t+59m). With the new acts not ticking the
+  three old hashes come back exactly. The batches' own hashes did not change.
+- **Fix.** The scenario is meant to have these acts and each act takes its own second (the driver's rule), so the pinned
+  hashes are taken again: GB-T-02 order 8467d0bf79c0... to f97928738d30...; GB-T-01 order 0 84e7e5dd56c4... to
+  04b571b906d6...; order 1 8f07940fe378... to 6718a46f8c5e... (full values in
+  [gb-t-02/expected.json](../../apps/tablets-server/test/golden/gb-t-02/expected.json) and
+  [gb-t-01/expected-release.json](../../apps/tablets-server/test/golden/gb-t-01/expected-release.json)).
+- **Lesson:** a row beside the record leaves the record's facts alone, not its clock; a golden output moves with any new
+  act before it, so run the golden job before saying a hash is unchanged.
+
+### P6c-4: the integrations reads answered 500 once the L3 mirror existed (slice 6c, CI)
+- **What went wrong.** Tablets 1231 adds the mirror data class L3_SERIAL_STATUS, but the contract's MirrorDataClassName
+  and the adapter SDK's MIRROR_DATA_CLASSES did not list it, so `integrations.mirrors` built an answer the contract
+  refused (INTERNAL, "does not match the contract").
+- **Fix.** Both enums list L3_SERIAL_STATUS (the contract-enums test keeps them equal); the test `[DI-31] the health page,
+  the adapter detail and the alarm list ...` in
+  [alarm-routes.test.ts](../../apps/tablets-server/test/integrations/alarm-routes.test.ts) now expects the L3 class in
+  the mirror list.
+- **Lesson:** a database catalogue row and the enum that names it are one change; a seed of a new class needs a read of it.
+
+### P6c-5: the label field bindings were not audited (slice 6c, CI)
+- **What went wrong.** recipe-core 0990's `recipe.label_field_binding` was insert-only but not registered as an audited
+  table; the recipe schema's privilege test (every recipe table audited, ADR 0012) listed it.
+- **Fix.** 0990 registers it (`kernel.register_audited_table`, keyed by its code, as esig.meaning_type is); 0990 was not
+  yet merged to main. `[DI-17][INV-01][INV-02][INV-04][INV-17] the application role reads every recipe table ...` in
+  [authorization.test.ts](../../packages/recipe-core/test/lifecycle/authorization.test.ts) passes unchanged.
+- **Lesson:** a reference table is a record table too; the schema meta test is the check, run it with the slice.
+
 ### P6d-R1: the chemical recovery could not be done from the application (slice 6d, review)
 
 **Symptom.** Returned goods that QC assessed and signed for chemical recovery could not be recovered by any user: the
@@ -860,6 +927,39 @@ D-P6d-7) and the form on the returned-goods screen. **Tests.** `[IN-29][PR-48] t
 dependency-rule errors: recipe-core's genealogy tests imported site services' test helpers, and recipe-core may import
 only kernel and expr. **Fix.** The genealogy DB tests moved to `packages/site-services/test/genealogy/` (D-P6d-10); the
 assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's files before each push.
+
+### P6i-R1: a mock recall across sites could look complete while a destination's part went further (slice 6i, review)
+- **What went wrong.** `recipe.mock_recall_federation` (recipe-core 1091) called a run complete once every destination
+  site ANSWERED, even when a destination's excerpt reached a further transfer (to a third site, or back to this one)
+  that nobody asked; the explorer's federated trace also left out a transfer back to this site.
+- **Why it matters.** A mock recall and a cross-site trace must never be silently partial (L-41, IN-29): lots made from
+  the material at a third site would be missing from a result shown as complete.
+- **Fix.** [1092_transfer_review_fixes.sql](../../packages/recipe-core/sql/1092_transfer_review_fixes.sql) lists every
+  such transfer as `beyond_one_hop` and keeps the run incomplete; the server's federated trace counts a transfer back
+  here as beyond one hop too ([federation.ts](../../apps/tablets-server/src/features/transfers/federation.ts)).
+- **Test.** `[IN-29] a destination's part that reaches a further transfer leaves the mock recall incomplete (one hop,
+  D-P6i-0-7)` in [transfer.test.ts](../../packages/site-services/test/transfer/transfer.test.ts); it failed before the fix.
+- **Lesson:** "complete" has to name everything that was not asked, not only what failed to answer.
+
+### P6i-R2: the other site's clock refused "now" (slice 6i, review)
+- **What went wrong.** `recipe.answer_federated_genealogy` (1090) refused any as-of point after its own clock. The asking
+  site sends its own "now"; a clock a few milliseconds ahead made the answer a refusal and the result incomplete.
+- **Why it matters.** Two installations never share one clock; a cross-site trace would be incomplete at random.
+- **Fix.** 1092: an as-of point up to 2 seconds ahead is answered once the answering clock has passed it (so the answer
+  is still as of a past instant there); further ahead is refused as before (EBMR-FED-012).
+- **Test.** `[PR-57] an as-of point a moment ahead of the answering site's clock is answered once that instant has
+  passed; one far ahead is refused` in transfer.test.ts; it failed before the fix.
+- **Lesson:** a rule about "the future" between two systems needs a tolerance and a way to wait, not a bare comparison.
+
+### P6i-R3: an unauthenticated route that costs a seal verification had no rate limit (slice 6i, review)
+- **What went wrong.** `/api/federation/genealogy` needs no session (the seal is the authentication) and every request
+  makes the database verify an Ed25519 seal in PL/pgSQL and write a log row and, when refused, an alarm.
+- **Why it matters.** Anyone who can reach the server could load the database and flood the alarm list.
+- **Fix.** The route is counted per client address (30 a minute;
+  [transfers/index.ts](../../apps/tablets-server/src/features/transfers/index.ts#sym=FEDERATION_RATE)).
+- **Test.** `[DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without
+  asking the database (review 6i-R3)` in [transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts).
+- **Lesson:** a route outside the session gate needs its own gate for cost, not only for identity.
 
 ## Controlled substances (Phase 6 slice 6e, draft IN-53)
 
@@ -972,6 +1072,22 @@ decide whether the race is in the test or in the product (two of the entries abo
   file does not declare, and the trace refuses a listed test the run did not report.
 - Phase 3 exit TypeScript mutation: calculations, entries and signing content at 90 percent or more; five
   high-risk blocks between 84 and 90 percent. Phase 4 SQL kill tests on the "not twins": 862 of 883 mutants killed.
+
+## Slice 6g: dashboards, change impact and training (Phase 6)
+
+### P6g-1: a view's functions run with the reader's rights (found while building)
+
+**Symptom.** A report view calling `recipe.overdue_reviews()` directly would have needed EXECUTE on that recipe function
+for `ebmr_report`, widening the role beyond reading. **Cause.** PostgreSQL checks functions inside a view with the
+caller's EXECUTE right (tables with the owner's). **Fix.** Each view selects from its own STABLE SECURITY DEFINER row
+function in the schema `report`; the segregation check reports any other grant to the role. **Tests.** `the reporting
+role cannot write: ...` (kernel sandbox tests).
+
+### P6g-2: training commands from a kiosk needed a badge tap (found while building)
+
+**Symptom.** Starting an exercise from a shared terminal was refused (EBMR-IAM-120, INV-40). **Fix.** The training
+commands are FRESH_ON_SHARED with the attribution member, as other floor commands. **Tests.** the contract test of
+FRESH_ON_SHARED routes; `[DI-05] a training session's attempts are the person's own ...`.
 
 ## Open residuals for the owner
 

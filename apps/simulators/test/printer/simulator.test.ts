@@ -60,6 +60,18 @@ describe('printer simulator model', () => {
     expect(m.events(0n).events.map((e) => `${e.kind} ${e.value}`)).toEqual(['CHALLENGE_RESULT PASS', 'CHALLENGE_RESULT PASS']);
   });
 
+  it('[PR-36] a wrong expiry on a test unit is rejected by vision and stops the line: the printer logs EXPIRY_REJECTED and LINE_STOPPED and prints nothing more', () => {
+    const clock = new ManualClock();
+    const m = new PrinterModel({ serial: 'PRN-0001', seed: 1, clock, running: true });
+    m.load(job);
+    clock.advance(2_000);
+    const before = m.status().printed;
+    expect(m.challenge('EXPIRY')).toEqual({ ok: true, value: 'PASS' });
+    expect(m.events(0n).events.slice(-2).map((e) => `${e.jobId ?? ''} ${e.kind} ${e.value}`)).toEqual(['J-1 FAULT EXPIRY_REJECTED', 'J-1 FAULT LINE_STOPPED']);
+    clock.advance(30_000);
+    expect(m.status()).toMatchObject({ running: false, printed: before });
+  });
+
   it('MISPRINT: some units fail vision (seeded), the reader still passes', () => {
     const clock = new ManualClock();
     const m = new PrinterModel({ serial: 'PRN-0001', seed: 3, clock, running: true });

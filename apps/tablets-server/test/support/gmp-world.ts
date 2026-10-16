@@ -107,9 +107,9 @@ export async function gmpLifecycleWorld(gmp: TestServer): Promise<World> {
   return new GmpWorld(db, cast, key);
 }
 
-export async function startGmpBatchWorld(content: flow.MbrContent = gmpContent()): Promise<GmpBatchWorld> {
+export async function startGmpBatchWorld(content: flow.MbrContent = gmpContent(), env: Record<string, string> = {}): Promise<GmpBatchWorld> {
   const ledgerDir = mkdtempSync(join(tmpdir(), 'ebmr-gmp-ledger-'));
-  const server = await startSigningServer('GMP', { stub: false, env: { EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } });
+  const server = await startSigningServer('GMP', { stub: false, env: { ...env, EBMR_NUMBER_LEDGER_FILE: join(ledgerDir, 'numbers.ledger.jsonl') } });
   const gmp: ExecServer = Object.assign(server, { exchangeDir: ledgerDir });
   const world = await gmpLifecycleWorld(gmp);
   const v = await world.approvedVersion(content);

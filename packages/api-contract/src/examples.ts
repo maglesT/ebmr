@@ -59,6 +59,8 @@ import pr from '../fixtures/plant-rules.json' with { type: 'json' };
 import eqd from '../fixtures/equipment-data.json' with { type: 'json' };
 import cp from '../fixtures/capa.json' with { type: 'json' };
 import cfg from '../fixtures/config.json' with { type: 'json' };
+import lb from '../fixtures/labels.json' with { type: 'json' };
+import sr from '../fixtures/serialisation.json' with { type: 'json' };
 import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
@@ -66,7 +68,12 @@ import gv from '../fixtures/governance.json' with { type: 'json' };
 import cs from '../fixtures/controlled.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
 import gn from '../fixtures/genealogy.json' with { type: 'json' };
+import db6g from '../fixtures/dashboards.json' with { type: 'json' };
+import ci6g from '../fixtures/change-impact.json' with { type: 'json' };
+import tr6g from '../fixtures/training.json' with { type: 'json' };
 import mr from '../fixtures/recall.json' with { type: 'json' };
+import xf from '../fixtures/transfers.json' with { type: 'json' };
+import fd from '../fixtures/federation.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -371,6 +378,32 @@ export const EXAMPLES = {
   'config-set-setting': { schema: r.config.setSetting.response, data: { ...cfg.setting, value: 'MIRROR' }, routeId: r.config.setSetting.id },
   'config-rbe-rules': { schema: r.config.rbeRules.response, data: { rules: cfg.rules }, routeId: r.config.rbeRules.id },
   'config-set-rbe-rule': { schema: r.config.setRbeRule.response, data: cfg.rules[0], routeId: r.config.setRbeRule.id },
+  // Phase 6 slice 6c: label templates, labelling declarations, the label store, the packaging order's completion evidence.
+  'labels-bindings': { schema: r.labels.bindings.response, data: lb.bindings, routeId: r.labels.bindings.id },
+  'labels-templates': { schema: r.labels.templates.response, data: lb.templates, routeId: r.labels.templates.id },
+  'labels-template': { schema: r.labels.template.response, data: lb.template, routeId: r.labels.template.id },
+  'labels-template-no-mfg': { schema: r.labels.template.response, data: lb.templateNoMfg },
+  'labels-create-template': { schema: r.labels.createTemplate.response, data: lb.template, routeId: r.labels.createTemplate.id },
+  'labels-approve-template': { schema: r.labels.approveTemplate.response, data: lb.templateApproved, routeId: r.labels.approveTemplate.id },
+  'labels-master-labelling': { schema: r.labels.masterLabelling.response, data: lb.master, routeId: r.labels.masterLabelling.id },
+  'labels-declare-labelling': { schema: r.labels.declareLabelling.response, data: lb.masterOk, routeId: r.labels.declareLabelling.id },
+  'labels-store': { schema: r.labels.store.response, data: lb.store, routeId: r.labels.store.id },
+  'labels-open-store-transaction': { schema: r.labels.openStoreTransaction.response, data: lb.store, routeId: r.labels.openStoreTransaction.id },
+  'labels-packaging': { schema: r.labels.packaging.response, data: lb.packaging, routeId: r.labels.packaging.id },
+  'labels-packaging-done': { schema: r.labels.packaging.response, data: lb.packagingDone },
+  'labels-packaging-stopped': { schema: r.labels.packaging.response, data: lb.packagingStopped },
+  'labels-record-coding-specimen': { schema: r.labels.recordCodingSpecimen.response, data: lb.packaging, routeId: r.labels.recordCodingSpecimen.id },
+  'labels-record-label-specimen': { schema: r.labels.recordLabelSpecimen.response, data: lb.packaging, routeId: r.labels.recordLabelSpecimen.id },
+  'labels-void-specimen': { schema: r.labels.voidSpecimen.response, data: lb.packaging, routeId: r.labels.voidSpecimen.id },
+  'labels-record-post-use-inspection': { schema: r.labels.recordPostUseInspection.response, data: lb.packagingDone, routeId: r.labels.recordPostUseInspection.id },
+  'labels-verify-post-use-inspection': { schema: r.labels.verifyPostUseInspection.response, data: lb.packagingDone, routeId: r.labels.verifyPostUseInspection.id },
+  'labels-resolve-line-stop': { schema: r.labels.resolveLineStop.response, data: lb.packaging, routeId: r.labels.resolveLineStop.id },
+  'labels-enable-waiver': { schema: r.labels.enableWaiver.response, data: lb.packagingDone, routeId: r.labels.enableWaiver.id },
+  // Phase 6 slice 6c: serialisation L3/L4 (PR-42).
+  'serialisation-serial': { schema: r.serialisation.serial.response, data: sr.lookup, routeId: r.serialisation.serial.id },
+  'serialisation-batch-pools': { schema: r.serialisation.batchPools.response, data: sr.pools, routeId: r.serialisation.batchPools.id },
+  'serialisation-batch-pools-stale': { schema: r.serialisation.batchPools.response, data: sr.poolsStale },
+  'serialisation-reject-pool': { schema: r.serialisation.rejectPool.response, data: sr.poolsRejected, routeId: r.serialisation.rejectPool.id },
   'records-bright-stock-holds': { schema: r.records.brightStockHolds.response, data: { holds: [rk.hold] }, routeId: r.records.brightStockHolds.id },
   'records-set-bright-stock-hold': { schema: r.records.setBrightStockHold.response, data: rk.hold, routeId: r.records.setBrightStockHold.id },
   // Phase 4 slice 6a: licences, export permissions, the issue check, the allocation register, label particulars and H2.
@@ -417,6 +450,24 @@ export const EXAMPLES = {
   'recall-mock-recall': { schema: r.recall.mockRecall.response, data: mr.mockRecall, routeId: r.recall.mockRecall.id },
   'recall-mock-recall-signed-off': { schema: r.recall.mockRecall.response, data: mr.signedOff },
   'recall-run': { schema: r.recall.run.response, data: mr.mockRecall, routeId: r.recall.run.id },
+  // Phase 6 slice 6i: inter-site transfer packages, peers, alarms, the site-to-site endpoint and the federated reads.
+  'recall-mock-recall-federated': { schema: r.recall.mockRecall.response, data: mr.federated },
+  'recall-refresh-federation': { schema: r.recall.refreshFederation.response, data: mr.federated, routeId: r.recall.refreshFederation.id },
+  'genealogy-federated-trace': { schema: r.genealogy.federatedTrace.response, data: fd.federatedTrace, routeId: r.genealogy.federatedTrace.id },
+  'genealogy-federated-trace-incomplete': { schema: r.genealogy.federatedTrace.response, data: fd.federatedTraceIncomplete },
+  'federation-genealogy': { schema: r.federation.genealogy.response, data: fd.genealogyAnswer, routeId: r.federation.genealogy.id },
+  'transfers-peers': { schema: r.transfers.peers.response, data: { installation: xf.installation, peers: xf.peers }, routeId: r.transfers.peers.id },
+  'transfers-propose-peer': { schema: r.transfers.proposePeer.response, data: xf.peers[1], routeId: r.transfers.proposePeer.id },
+  'transfers-packages': { schema: r.transfers.packages.response, data: { packages: [xf.package] }, routeId: r.transfers.packages.id },
+  'transfers-prepare': { schema: r.transfers.prepare.response, data: xf.file, routeId: r.transfers.prepare.id },
+  'transfers-package-file': { schema: r.transfers.packageFile.response, data: xf.file, routeId: r.transfers.packageFile.id },
+  'transfers-receipts': { schema: r.transfers.receipts.response, data: { receipts: [xf.receiptSummary] }, routeId: r.transfers.receipts.id },
+  'transfers-receipt': { schema: r.transfers.receipt.response, data: xf.receipt, routeId: r.transfers.receipt.id },
+  'transfers-receipt-accepted': { schema: r.transfers.receipt.response, data: xf.receiptAccepted },
+  'transfers-import': { schema: r.transfers.import.response, data: xf.importReceived, routeId: r.transfers.import.id },
+  'transfers-import-refused': { schema: r.transfers.import.response, data: xf.importRefused },
+  'transfers-alarms': { schema: r.transfers.alarms.response, data: { alarms: [xf.alarm] }, routeId: r.transfers.alarms.id },
+  'transfers-acknowledge-alarm': { schema: r.transfers.acknowledgeAlarm.response, data: xf.alarmAcknowledged, routeId: r.transfers.acknowledgeAlarm.id },
   // Phase 4 slice 6b: retention, contingency packs, evidence export and the inspection workspace.
   'archive-batches': { schema: r.archive.batches.response, data: ar.batches, routeId: r.archive.batches.id },
   'archive-batch': { schema: r.archive.batch.response, data: ar.batch, routeId: r.archive.batch.id },
@@ -467,6 +518,21 @@ export const EXAMPLES = {
   'controlled-register-extracts': { schema: r.controlled.registerExtracts.response, data: { banner: cs.banner, extracts: [cs.extractSummary] }, routeId: r.controlled.registerExtracts.id },
   'controlled-run-register': { schema: r.controlled.runRegister.response, data: cs.extract, routeId: r.controlled.runRegister.id },
   'controlled-register-extract': { schema: r.controlled.registerExtract.response, data: cs.extract, routeId: r.controlled.registerExtract.id },
+  // Phase 6 slice 6g: dashboards, change impact, training mode.
+  'dashboards-right-first-time': { schema: r.dashboards.rightFirstTime.response, data: db6g.rightFirstTime, routeId: r.dashboards.rightFirstTime.id },
+  'dashboards-exception-pareto': { schema: r.dashboards.exceptionPareto.response, data: db6g.exceptionPareto, routeId: r.dashboards.exceptionPareto.id },
+  'dashboards-review-cycle-time': { schema: r.dashboards.reviewCycleTime.response, data: db6g.reviewCycleTime, routeId: r.dashboards.reviewCycleTime.id },
+  'dashboards-deviation-ageing': { schema: r.dashboards.deviationAgeing.response, data: db6g.deviationAgeing, routeId: r.dashboards.deviationAgeing.id },
+  'dashboards-hold-time-risk': { schema: r.dashboards.holdTimeRisk.response, data: db6g.holdTimeRisk, routeId: r.dashboards.holdTimeRisk.id },
+  'dashboards-overdue-reviews': { schema: r.dashboards.overdueReviews.response, data: db6g.overdueReviews, routeId: r.dashboards.overdueReviews.id },
+  'dashboards-press-oee': { schema: r.dashboards.pressOee.response, data: db6g.pressOee, routeId: r.dashboards.pressOee.id },
+  'dashboards-alarm-trend': { schema: r.dashboards.alarmTrend.response, data: db6g.alarmTrend, routeId: r.dashboards.alarmTrend.id },
+  'dashboards-catalog': { schema: r.dashboards.catalog.response, data: db6g.catalog, routeId: r.dashboards.catalog.id },
+  'dashboards-export': { schema: r.dashboards.export.response, data: db6g.export, routeId: r.dashboards.export.id },
+  'change-impact-material': { schema: r.changeImpact.query.response, data: ci6g.material, routeId: r.changeImpact.query.id },
+  'training-overview': { schema: r.training.overview.response, data: tr6g.overview, routeId: r.training.overview.id },
+  'training-start': { schema: r.training.start.response, data: tr6g.attempt, routeId: r.training.start.id },
+  'training-complete-step': { schema: r.training.completeStep.response, data: { ...tr6g.attempt, done: [1, 2], complete: true }, routeId: r.training.completeStep.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 6 slice 6f (builder B): the support, contract-giver and DSC routes, each with an example above (contract test). */
@@ -493,8 +559,12 @@ export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records
 
 /** Phase 4 slice 6c: the PQR routes, each with an example above (checked by the contract test). */
 export const PQR_ROUTE_IDS: readonly string[] = Object.values(r.pqr).map((route) => route.id);
+/** Phase 6 slice 6g: the dashboards, change-impact and training routes, each with an example above (checked by the contract test). */
+export const SLICE_6G_ROUTE_IDS: readonly string[] = [...Object.values(r.dashboards), ...Object.values(r.changeImpact), ...Object.values(r.training)].map((route) => route.id);
 /** Phase 6 slice 6d: the genealogy and recall routes, each with an example above (checked by the contract test). */
 export const GENEALOGY_ROUTE_IDS: readonly string[] = [...Object.values(r.genealogy), ...Object.values(r.recall)].map((route) => route.id);
+/** Phase 6 slice 6i: the transfers and federation routes, each with an example above (checked by the contract test). */
+export const TRANSFER_ROUTE_IDS: readonly string[] = [...Object.values(r.transfers), ...Object.values(r.federation)].map((route) => route.id);
 /** Phase 4 slice 6b: the archive routes, each with an example above (checked by the contract test). */
 export const ARCHIVE_ROUTE_IDS: readonly string[] = Object.values(r.archive).map((route) => route.id);
 

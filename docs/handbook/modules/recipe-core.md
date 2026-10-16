@@ -1765,6 +1765,21 @@ of the registers are not verified, so the export layout is generic.
 recorded under another key does not close the stage. A return or destruction confirmed after a checkpoint moves the
 account: the checkpoint stops being current and the next sign-off (or the batch's completion) is refused until it is
 recorded and signed again.
+
+## Label templates and the labelling declaration (Phase 6 slice 6c)
+
+[Recipe-core 0990](../../../packages/recipe-core/sql/0990_label_templates.sql) (IN-31, PR-36; D-P6c-2, D-P6c-8,
+D-P6c-10, D-P6c-17). `recipe.label_field_binding` lists the record fields a layout element may bind (and which an
+India-domestic label must bind, as `recipe.india_label_particulars` gives them); `recipe.create_label_template`
+(LABEL.DESIGN) saves the next version of a code, refusing a value on a template (EBMR-LBL-002) or a field that is not a
+binding (EBMR-LBL-001); a template for a market set with India is INDIA_DOMESTIC. `recipe.approve_label_template`
+(LABEL.APPROVE) is another person's attributed act, refused while `recipe.label_template_approval_problem` names a
+missing India particular (EBMR-LBL-003) or for the designer (EBMR-LBL-004). The labelling declaration of a DRAFT
+packaging master (`recipe.declare_packaging_labelling`, MBR.AUTHOR: per G-21 item its form, template and 211.122(g)
+option) is checked by the trigger `a3_labelling_at_approval` on the version's APPROVE (EBMR-LBL-011): a cut-label item
+without its option, or a template that is not APPROVED, refuses the approval. Tests:
+[label-templates.test.ts](../../../packages/recipe-core/test/labels/label-templates.test.ts).
+
 ## Genealogy, mock recall, deviation impact and recurrence (Phase 6 slice 6d; recipe-core 1010 to 1013)
 
 **What it does.** [1010_genealogy.sql](../../../packages/recipe-core/sql/1010_genealogy.sql)
@@ -1792,6 +1807,47 @@ supply chain).
 differ; `reproduces` says so and the sign-off is refused (EBMR-RCL-012): run it again. Records from the Phase 4 ERP stub
 route may lack the consignee address; they are listed as incomplete, never filled in (D-P6d-0-7). The DB tests are in
 `packages/site-services/test/genealogy/` (they use site services' ERP world; D-P6d-10).
+
+## Genealogy across sites (Phase 6 slice 6i; recipe-core 1090, 1091)
+
+[1090_genealogy_across_sites.sql](../../../packages/recipe-core/sql/1090_genealogy_across_sites.sql)
+([PR-57](../../../compliance/controls/PR-57.yaml)): `recipe.genealogy` gains the node kind TRANSFER (the package id, the
+same node at both sites) with the edges TRANSFERRED (lot to sealed package) and TRANSFER_RECEIVED (package to the
+receiving site's lot). `recipe.answer_federated_genealogy(request, seal)` answers another installation, without a
+session, only from a transfer exchanged with it (one hop, D-P6i-0-7), as of the instant asked; the server seals the
+excerpt. The asking side issues the request (`recipe.issue_federated_request`), keeps an answer only when the database
+verifies its seal and that it answers that request (`recipe.record_federated_excerpt`), and logs failures with an alarm.
+[1091_mock_recall_across_sites.sql](../../../packages/recipe-core/sql/1091_mock_recall_across_sites.sql)
+([IN-29](../../../compliance/controls/IN-29.yaml)): the mock recall's query version 2 lists the outbound transfers it
+reaches; `recipe.record_mock_recall_remote` records what each destination answered (ANSWERED only as of the run's own
+instant) and `recipe.mock_recall_federation` says whether the run is complete; the AP signs that off with the rest.
+
+[1093](../../../packages/recipe-core/sql/1093_federation_actor_and_audit.sql): the four federation functions refuse
+administrators and check GENEALOGY.FEDERATE (asking) or FEDERATION.ANSWER (the endpoint's INTEGRATION identity, role
+FEDERATION_INTERFACE); the request and excerpt logs are audited.
+
+**Pitfalls.** A site that does not answer is shown with its last excerpt and that excerpt's older as-of, never as the
+answer (EBMR-RCL-024). The suspension cascade stays local (D-P6i-0-10).
+
+## Reporting views and change impact (Phase 6 slice 6g; recipe-core 1070, 1071)
+
+**What it does.** [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql): the versioned,
+read-only views in the schema `report` that the dashboards and, later, the analytics module read (decisions 0015, 0016;
+D-P6g-0-1, -2): `batch_outcome_v1`, `exception_v1`, `deviation_ageing_v1`, `hold_time_risk_v1`, `overdue_review_v1`
+([PR-05](../../../compliance/controls/PR-05.yaml)), `press_counter_v1` and `alarm_v1`
+([DI-49](../../../compliance/controls/DI-49.yaml)). Each view selects from a STABLE SECURITY DEFINER row function of the
+same schema, so a reader needs no right on the tables or functions behind it; every row carries `read_at` and
+`data_as_of`. [1071_change_impact.sql](../../../packages/recipe-core/sql/1071_change_impact.sql):
+`recipe.change_impact(kind, ref)` lists the MBR versions, open batches, released lots, markets and configuration history a
+proposed change of a material, specification, equipment, MBR version, rule-table site value or supplier reaches
+(D-P6g-0-8), from the formula pins, batch pins, lot consumption, equipment uses, `recipe.genealogy_forward_set` and
+`platform.config_version`. Both write nothing.
+
+**Pitfalls.** PostgreSQL checks a function called inside a view with the reader's own EXECUTE right, not the view
+owner's: a view that called `recipe.overdue_reviews` directly would need that function granted to `ebmr_report`. Keep the
+pattern (view over a `report.*_rows_vN()` row function). A change of a view's columns or meaning is a new version
+(`_v2`) registered in `report.view_registry`; the old one stays until the analytics module has moved. Tests:
+`packages/site-services/test/reporting/` (fixture world on top of the genealogy world).
 
 ## How to test recipe-core
 

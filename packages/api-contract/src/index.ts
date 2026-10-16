@@ -257,12 +257,47 @@ export {
   GenealogyNodeKind,
   GenealogyNodeView,
   GenealogyTraceView,
+  FederatedPartStatus,
+  FederatedPartView,
+  FederatedTraceView,
   RecurrenceView,
   SupplyChainView,
 } from './ns/genealogy.ts';
-export { MockRecallSubjectKind, MockRecallSummaryView, MockRecallView } from './ns/recall.ts';
+export { MockRecallFederationView, MockRecallRemoteView, MockRecallSubjectKind, MockRecallSummaryView, MockRecallView } from './ns/recall.ts';
+export {
+  CoaLineView,
+  InstallationAlarmView,
+  InstallationCode,
+  InstallationIdentityView,
+  PeerInstallationState,
+  PeerInstallationView,
+  TransferImportView,
+  TransferPackageFileView,
+  TransferPackageView,
+  TransferReceiptState,
+  TransferReceiptSummaryView,
+  TransferReceiptView,
+  TransferRuleView,
+} from './ns/transfers.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
+export {
+  CodedData,
+  CutLabelOption,
+  LABEL_BINDINGS,
+  LabelBinding,
+  LabelForm,
+  LabelLayout,
+  LabelScope,
+  LabelStoreView,
+  LabelTemplateStatus,
+  LabelTemplateView,
+  MasterLabellingView,
+  PackagingCompletionView,
+  SpecimenPosition,
+  StoreTransactionKind,
+} from './ns/labels.ts';
+export { BatchPoolsView, L3MirrorView, SerialLookupView, SerialStatus } from './ns/serialisation.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
 export {
   CheckpointState,
@@ -279,3 +314,25 @@ export {
   RegisterRow,
 } from './ns/controlled.ts';
 export { ContractGiverAccessView, ContractGiverBatchView, ContractGiverRecordView, SupportAccountView, SupportGrantState, SupportGrantView } from './ns/support.ts';
+export {
+  AgeingBucket,
+  AlarmTrendView,
+  ChangeImpactItem,
+  ChangeImpactKind,
+  ChangeImpactView,
+  DeviationAgeingView,
+  ExceptionParetoView,
+  HoldRisk,
+  HoldTimeRiskView,
+  OverdueReviewsView,
+  PressOeeView,
+  ReportCatalogView,
+  ReportExportView,
+  ReviewCycleTimeView,
+  RightFirstTimeView,
+  SiteDate,
+  TrainingAttemptView,
+  TrainingExerciseView,
+  TrainingOverviewView,
+  TrainingPersonaView,
+} from './ns/dashboards.ts';

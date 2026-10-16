@@ -51,6 +51,14 @@ tests:
   - "apps/tablets-server/test/release/grel-tablets-items.test.ts > the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-42][IN-17] E.RECONCILIATION_SERIAL: an open serial reconciliation blocks until its deviation is closed"
   - "apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts > serial pools, events and reports (tablets 0952) > [PR-42] a pool is asked and recorded for a serialised market of an open G-21 step: 1 to 100000 serials, the L3 answer a pool of exactly that quantity, once per step and market; the request and the row carry the record's order, L3 profile and GTIN"
   - "apps/tablets-server/test/mutation/packaging-print-serial-gateway.test.ts > serial pools, events and reports (tablets 0952) > [PR-42] serial events are counted per allowed state change as whole numbers and never move more serials out of a state than are in it; a report is in form, of this pool, counts the quantity issued and exactly the states and unexplained serials the server's own events leave"
+  - "apps/simulators/test/serialisation/stub.test.ts > the L3/L4 simulator (Phase 6 slice 6c) > [PR-42] publishes decommissioning tasks and aggregations on its feed, answers a serial query with its pool, state and profile, and its faults each break one thing (missing events, duplicate serial, stale report, aggregation mismatch)"
+  - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-42] a pool the L3 system issues with a duplicate serial is refused and nothing is recorded (the simulator's DUPLICATE_SERIAL fault)"
+  - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] a query on a commissioned serial returns its lot, expiry and status: the record's lot and expiry for the serial's pool; an L3 lot or expiry that differs is a problem, never the answer"
+  - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42][DI-31] the L3 adapter lands aggregations and decommissioning tasks; an aggregation mismatch, a parent that is no shipper of the order, a missing-events gap and a duplicate delivery each end accepted or refused with an alarm, and the period reconciles; an OPEN task keeps release red until the L3 reports it DONE"
+  - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] a stale L3 report refuses release: with the L3 heartbeat stopped the mirror ages past its bound and E.RECONCILIATION_SERIAL fails closed naming the stale mirror; a fresh synchronisation clears it"
+  - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42][DI-31] malformed and stale L3 messages are refused by the receiving command; a QA rejection records the L3 system's OPEN task, and nobody else records one"
+  - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] the serialisation routes: a serial query through the server answers the record's lot, expiry and status; the pools of the order show the release problem; QA rejects a pool through the L3 and nobody else may"
+  - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [PR-42] the serial lookup shows the record's lot, expiry and status; the pools of an order show a stale L3 mirror and why release waits"
 clauses:
   - clause: "A wrong expiry encoded in a test code is rejected."
     tests:
@@ -60,9 +68,9 @@ clauses:
       - "apps/simulators/test/serialisation/stub.test.ts > serialisation L3 stub model > [PR-42] reports zero unexplained only when every serial has a final state; the report hash is stable and moves with a state"
       - "apps/tablets-server/test/blocks/packaging/completion.test.ts > G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [PR-42] the packaging order does not reach EXECUTION_COMPLETE while its serial pool is unreconciled: a serial event after the closed report its step closed on leaves the pool open, and a newer report the record does not reconcile keeps it so; a clean order completes"
   - clause: "A query on a commissioned serial returns its lot, expiry and status."
-    deferred:
-      phase: 6
-      reason: "Serial status is held by the L3 serialisation system; Phase 4 has the serialisation stub only, and the L3/L4 adapters with contract tests (including serial queries) come in Phase 6 (build outline 11)."
+    tests:
+      - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] a query on a commissioned serial returns its lot, expiry and status: the record's lot and expiry for the serial's pool; an L3 lot or expiry that differs is a problem, never the answer"
+      - "apps/tablets-server/test/integrations/l3-adapter.test.ts > serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] the serialisation routes: a serial query through the server answers the record's lot, expiry and status; the pools of the order show the release problem; QA rejects a pool through the L3 and nobody else may"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

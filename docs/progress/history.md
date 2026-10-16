@@ -2565,3 +2565,76 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
   command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
   none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.
+- 2026-10-16: PHASE 6 SLICE 6i (branch phase-6/slice-6i, from main after 6a, 6d, 6f). 6i-0 interface commit first
+  (slice-6i-0-interfaces.md, D-P6i-0-1 to 12; tablets 1290 to 1299 taken, the plan gave 6i no tablets range). Built: kernel
+  1220 (installation identity and key versions, peers trusted after QA's PEER_INSTALLATION_APPROVED, Ed25519 seals with
+  domain separation verified in PL/pgSQL, installation alarms, the site-to-site request log with nonce and 300 s window);
+  site services 0980, 0981 (package from the database's own records: status and release decision, CoA, hold limit as an
+  instant, rule resolutions, backward genealogy excerpt; sealed by the server; import refusals MALFORMED, UNKNOWN_PEER,
+  TAMPERED, WRONG_DESTINATION, DUPLICATE each with an alarm and nothing created; local INTERMEDIATE lot in QUARANTINE;
+  TRANSFER_RECEIPT_ACCEPTED or _REFUSED; release and reservation triggers EBMR-XFR-040, -041); recipe-core 1090 to 1092
+  (TRANSFER node and edges, federated answer and asking side, mock recall query version 2 with the destinations' parts);
+  tablets 1290, 1291. Server feature transfers (installation key file, prepare and seal in one command, import, receipts,
+  alarms, signable acts), federation endpoint outside the origin gate with a rate limit, federated trace, recall fan-out
+  and refresh; screens /transfers, receipt page, explorer "Across sites", mock recall "Other sites". Quick review (one
+  pass): no critical; P6i-R1 (a run whose destination reached a further transfer was called complete), P6i-R2 (an as-of a
+  moment ahead of the answering clock was refused), P6i-R3 (no rate limit on the unauthenticated site-to-site route) fixed
+  with tests. 1290 had been edited after its push; restored and the change moved to 1291. Local runs (cluster 5435): typecheck
+  clean, lint of the changed files clean, deps:check clean; site-services transfer 15, genealogy, lots and shipping 56,
+  api-contract 47, tablets-server transfers, genealogy, contract, platform and esig tests, tablets-web transfers and
+  genealogy 22 passed; register valid; handbook regenerated and check passes.
+- 2026-10-16: PHASE 6 SLICE 6c (branch phase-6/slice-6c; resumed after a container restart from the 6c-0 interface
+  commit). origin/main merged (slice 6f, PR #33); slice 6b not needed (the vision line stop runs through the printer
+  gateway path). Built: recipe-core 0990 (label templates, layout and record-field bindings only, approved by a second
+  person, an India-domestic template needs every India particular; the packaging master's labelling declaration and its
+  211.122(g) option gating the version's approval), site services 0950 (label store under LABEL_STORE.TRANSACT), tablets
+  1230 (START, MIDDLE and END coding specimens equal to the record's coding, label specimens, the G-21 close and the
+  order's EXECUTION_COMPLETE refused naming the gap, post-use inspection verified by a second person, vision line stops
+  from the printer's EXPIRY_REJECTED / LINE_STOPPED, QA resolution, the reconciliation waiver with a qualifying device,
+  print jobs bound to the master's approved templates), tablets 1231 (L3 schemas and the L3_SERIAL_STATUS mirror,
+  tab.receive_l3_message, decommissioning tasks, aggregations against the record's shippers, the serial query answered
+  from the record, E.RECONCILIATION_SERIAL with the L3 problems and fail-closed freshness). Server features labels and
+  serialisation, the L3 adapter (SRV-L3-ADAPTER-01), the stateful L3/L4 simulator with MISSING_EVENTS, DUPLICATE_SERIAL,
+  STALE_REPORT and AGGREGATION_MISMATCH, the printer's EXPIRY challenge, the screens. The demo seed (release-path) and the
+  GB-T-01/02 drivers record the specimens and the inspection (record head unchanged). The ten 6c clauses name their tests.
+  Quick review (one pass): no critical or high; one medium fixed with a test (the capture form showed the record's
+  coding, P6c-R1); defects P6c-1 (the framework did not read EBMR-L3 codes) and P6c-2 (a PostgreSQL regex bound) fixed
+  during the build. Defaults D-P6c-18 to 22, residuals R-6c-1 to 5 in the plan. Local runs (cluster 5432): typecheck and
+  lint of the changed files clean; the slice's server, recipe-core, site-services, simulator, api-contract and sdk tests
+  (145), the packaging, blister, bottle, G-REL and mutation tests touched by the gate (138), release and GMP seed tests (6),
+  contract coverage and platform tests, the whole dom project (646) passed; register valid; handbook checks pass;
+  dependency and pin checks clean. Not run locally: the golden job (libfaketime, CI) and the E2E stack.
+
+Slice 6c, merge of main with slice 6b (16 October): conflicts resolved keeping both sides (feed system unions with EMS,
+OPCUA and L3; feature list; adapters EMS, OPCUA and L3; contract routes, namespace owners and examples; web router; coverage
+ids; DI-31 tests; modules.yaml; PROGRESS); handbook regenerated. No migration number or database function shared by 6b
+and 6c. CI fixes in the same push: P6c-3 (golden packaging orders' hashes taken again after a content diff: only instants,
+one minute later, from the driver's one-second tick per new act), P6c-4 (L3_SERIAL_STATUS in the contract and SDK
+mirror enums; the integrations mirror read answered 500), P6c-5 (recipe.label_field_binding registered as audited in
+0990). Local: typecheck, lint, boundaries, register, handbook checks; contract and web tests (631); the conflict, 6b, 6c,
+seed and integrations DB tests on 5432 (192); the demo stack answered /api/meta. Golden on gate6: GB-T-02 green with the
+new hash; the GB-T-01 orders' new hashes are the ones the full local and CI runs produced; two later local GB-T-01 runs
+stopped early on the device-nonce rate limit (120 a minute, wall clock, on a fast idle machine) and once on an INTERNAL
+answer in coating; neither touches 6c code; CI is the check.
+
+## 16 October 2026: Phase 6 slice 6g (dashboards, change impact, training mode)
+
+Branch `phase-6/slice-6g` from main (6a, 6b, 6d, 6f merged). 6g-0 interface commit first (slice-6g-0-interfaces.md,
+D-P6g-0-1 to 10). Kernel 1210: login role `ebmr_report` (NOINHERIT, member of nothing, connection limit 4), schema
+`report` with `report.data_as_of()` and the view registry and catalogue; `sandbox.apply_connect_policy` and
+`sandbox.segregation_problems` replaced from 1111 and 1100 (the role connects only to GMP databases and holds only USAGE
+on `report`, SELECT on its views and EXECUTE on their non-volatile row functions). Kernel 1211: training attempts and
+steps, insert-only, refused in a GMP database whoever writes (EBMR-SBX-039, -040). Recipe-core 1070: report views
+batch_outcome, exception, deviation_ageing, hold_time_risk, overdue_review, press_counter and alarm (all `_v1`, each over
+a STABLE SECURITY DEFINER row function because a view's functions run with the reader's EXECUTE right). Recipe-core 1071:
+`recipe.change_impact(kind, ref)` for MATERIAL, SPECIFICATION, EQUIPMENT, MBR_VERSION, SITE_VALUE and SUPPLIER. Server
+features `dashboards` (GMP) and `training` (SANDBOX only); web `/dashboards`, `/change-impact`, `/training`. No tablets
+migration (tablets 1310-1319 reserved by the lead for 6g). Tests: kernel sandbox (reporting role bypass, training store),
+site-services reporting (views, change impact against an independent query), server dashboards routes (PR-05, DI-49,
+data age and refresh, export, 404 per installation, training), contract, web. Changed packages' tests green; the web
+suite had one timing flake (keyed-badge) that passes alone. Demo stack started against cluster 5437 and both
+`/api/meta` answered 200. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
+
+Slice 6c, merge of main with slice 6g (PR #39, 16 October): conflicts in routes and examples (dashboards, changeImpact,
+training beside labels and serialisation), trace deferrals (both sections), PROGRESS and history (both entries);
+handbook regenerated. No migration number or database function shared by 6g and 6c.

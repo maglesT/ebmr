@@ -141,6 +141,13 @@ modules:
     src: [packages/kernel/src/sandbox]
     tests: ['packages/kernel/test/sandbox/**']
 
+  - id: kernel-reporting
+    title: Reporting role, report schema and training attempts (Phase 6 slice 6g)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^121[0-4]_']
+
   - id: kernel-integration
     title: Integration wiring between kernel modules
     page: modules/kernel.md
@@ -156,6 +163,13 @@ modules:
     migrations:
       packages/kernel/sql: ['^118\d_']
     tests: ['packages/kernel/test/inbound/**']
+
+  - id: kernel-transfer
+    title: Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^122\d_']
 
   - id: kernel-area-authorisation
     title: Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15)
@@ -255,6 +269,20 @@ modules:
       packages/site-services/sql: ['^096\d_']
     tests: ['packages/site-services/test/genealogy/**']
 
+  - id: ss-transfer
+    title: Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^09[89]\d_']
+    tests: ['packages/site-services/test/transfer/**']
+
+  - id: ss-reporting
+    title: Reporting views and change-impact DB tests (Phase 6 slice 6g)
+    page: modules/recipe-core.md
+    package: packages/site-services
+    tests: ['packages/site-services/test/reporting/**']
+
   - id: ss-receipt-erp-wms
     title: Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A)
     page: modules/site-services.md
@@ -263,6 +291,13 @@ modules:
       packages/site-services/sql: ['^091\d_']
     tests: ['packages/site-services/test/erp-wms/**']
 
+  - id: ss-label-store
+    title: The label store of printed-material lots and its permission (Phase 6 slice 6c)
+    page: modules/site-services.md
+    package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^0950_']
+    tests: ['packages/site-services/test/lots/label-store.test.ts']
   - id: ss-reagent-lots
     title: Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29)
     page: modules/site-services.md
@@ -320,12 +355,34 @@ modules:
       packages/recipe-core/sql: ['^095\d_']
     tests: ['packages/recipe-core/test/integrations/**']
 
+  - id: rc-labels
+    title: Label templates, their approval and the packaging master's labelling declaration (Phase 6 slice 6c)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^0990_']
+    tests: ['packages/recipe-core/test/labels/**']
+
   - id: rc-genealogy
     title: Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d)
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql: ['^101\d_']
+
+  - id: rc-transfer
+    title: Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^109\d_']
+
+  - id: rc-reporting
+    title: Reporting views and the change-impact query (Phase 6 slice 6g)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^107\d_']
 
   - id: rc-containers
     title: Output containers
@@ -759,6 +816,27 @@ modules:
     screens: [apps/tablets-web/src/features/capa]
     tests: ['apps/tablets-server/test/capa/**', 'apps/tablets-web/test/capa/**']
 
+  - id: ts-labels
+    title: Packaging line completion (specimens, post-use inspection, vision line stops, reconciliation waiver, label templates and store) (Phase 6 slice 6c)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1230_']
+    server: [apps/tablets-server/src/features/labels]
+    contract: [packages/api-contract/src/ns/labels.ts]
+    screens: [apps/tablets-web/src/features/labels]
+    tests: ['apps/tablets-server/test/labels/**', 'apps/tablets-server/test/blocks/packaging/line-completion.test.ts', 'apps/tablets-web/test/labels/**']
+
+  - id: ts-serialisation
+    title: Serialisation L3/L4 (the L3 adapter, serial query, decommissioning tasks, L3 freshness at release) (Phase 6 slice 6c)
+    page: modules/integrations.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1231_']
+    server: [apps/tablets-server/src/features/serialisation]
+    contract: [packages/api-contract/src/ns/serialisation.ts]
+    tests: ['apps/tablets-server/test/integrations/l3-adapter.test.ts']
+
   - id: ts-genealogy
     title: Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d)
     page: modules/tablets-server.md
@@ -769,6 +847,26 @@ modules:
     contract: [packages/api-contract/src/ns/genealogy.ts, packages/api-contract/src/ns/recall.ts]
     screens: [apps/tablets-web/src/features/genealogy]
     tests: ['apps/tablets-server/test/genealogy/**', 'apps/tablets-web/test/genealogy/**']
+
+  - id: ts-transfers
+    title: Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^130\d_']
+    server: [apps/tablets-server/src/features/transfers]
+    contract: [packages/api-contract/src/ns/transfers.ts]
+    screens: [apps/tablets-web/src/features/transfers]
+    tests: ['apps/tablets-server/test/transfers/**', 'apps/tablets-web/test/transfers/**']
+
+  - id: ts-dashboards
+    title: Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/dashboards, apps/tablets-server/src/features/training]
+    contract: [packages/api-contract/src/ns/dashboards.ts]
+    screens: [apps/tablets-web/src/features/dashboards, apps/tablets-web/src/features/training]
+    tests: ['apps/tablets-server/test/dashboards/**', 'apps/tablets-web/test/dashboards/**']
 
   - id: ts-config-change
     title: Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A)

@@ -42,6 +42,14 @@ links to the file that defines it, so you can check it.
 5. Everything shared between the two products (Tablets now, Injectables later) is in `packages/`; everything that
    belongs to one product is in `apps/`.
 
+**Topology (outline L-41).** One installation per site per edition and environment; a company with several sites runs
+several installations, each with its own database and its own Ed25519 installation key (kernel 1220). Material moves
+between sites as a sealed lot-transfer package: the shipping database builds it, the server seals it, the receiving
+database verifies the seal and creates a local lot in QUARANTINE that local QA accepts before use (site services 0980,
+0981). Genealogy questions that cross a transfer are asked of the other installation through its read-only
+`/api/federation/genealogy` route; the request and the answer are both sealed and the answer carries its as-of point
+(recipe-core 1090). There is no hub in v1 (D-P6i-1).
+
 ## 2. Packages and apps
 
 The repository is a pnpm monorepo. Each folder under `packages/` and `apps/` is one npm package named `@ebmr/<name>`.
@@ -655,6 +663,15 @@ real GMP records (DI-05, INV-18; [sandbox README](../../packages/kernel/src/sand
   ([sandbox.watermark](../../packages/kernel/sql/0800_sandbox_installation.sql#sym=sandbox.watermark)).
 - Routes declare `installation: 'GMP' | 'SANDBOX' | 'ANY'`; the server registers only the routes of its kind, and
   every response carries `X-Ebmr-Installation`.
+
+### Training mode and the reporting path (Phase 6 slice 6g)
+
+- **Training mode** is the sandbox installation with a training seed (D-P6g-2): the same server and screens, the
+  sandbox role, the watermark, the `TEST-` personas; the `training` feature runs on the sandbox only and keeps the
+  person's attempts in `sandbox.training_attempt` (kernel 1211), which a GMP database refuses.
+- **The reporting path**: dashboards and the later analytics module read only the versioned views of the schema
+  `report` (recipe-core 1070), as the application role or as `ebmr_report` (SELECT only; kernel 1210); every row says
+  when its data was current. Nothing on this path writes to a GMP table (decision 0015 item 2).
 
 ## 15. Editions and the Injectables extension points
 

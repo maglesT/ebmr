@@ -62,6 +62,14 @@ export const EnvSchema = z.object({
   /** DEMO-ONLY service secrets: the sandbox's sweeper, gateway and monitor; the GMP server's sweeper (D-P4-9). */
   EBMR_SERVICE_KEYS_FILE: z.string().optional(),
   EBMR_OTHER_INSTALLATION_URL: z.string().optional(),
+  /**
+   * DEMO-ONLY as a file (a KMS or HSM in production): this installation's Ed25519 private key ({installationCode,
+   * privateKeyPkcs8}), which seals lot-transfer packages and federation answers (Phase 6 slice 6i; D-P6i-0-8). Unset: the
+   * server seals nothing (prepare and the site-to-site endpoint refuse); the database holds only the public key.
+   */
+  EBMR_INSTALLATION_KEY_FILE: z.string().optional(),
+  /** Seconds the server waits for another site installation's answer (federated genealogy; D-P6i-0-7). */
+  EBMR_FEDERATION_TIMEOUT_S: z.coerce.number().int().min(1).max(60).default(5),
   /** The site's serialisation L3 system (integration-sdk serialisation; G-21, PR-42). Unset: off, serial pool requests are refused. */
   EBMR_L3_URL: z.url().optional(),
   EBMR_SITE_CODE: z.string().default('SITE-1'),
@@ -95,6 +103,10 @@ export interface EnvConfig {
   gatewayUrl: string;
   serviceKeysFile: string | null;
   otherInstallationUrl: string | null;
+  /** EBMR_INSTALLATION_KEY_FILE (Phase 6 slice 6i); null: the server seals no transfer package or federation answer. */
+  installationKeyFile: string | null;
+  /** Seconds to wait for another installation's federation answer. */
+  federationTimeoutS: number;
   /** EBMR_L3_URL without a trailing slash; null: no L3 system, every serialisation call fails closed (PR-42). */
   l3Url: string | null;
   siteCode: string;
@@ -193,6 +205,8 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     gatewayUrl: e.EBMR_GATEWAY_URL,
     serviceKeysFile: e.EBMR_SERVICE_KEYS_FILE ?? null,
     otherInstallationUrl: e.EBMR_OTHER_INSTALLATION_URL ?? null,
+    installationKeyFile: e.EBMR_INSTALLATION_KEY_FILE ?? null,
+    federationTimeoutS: e.EBMR_FEDERATION_TIMEOUT_S,
     l3Url: l3UrlOf(e.EBMR_L3_URL, production),
     siteCode: e.EBMR_SITE_CODE,
     expectedSiteZone: e.EBMR_SITE_ZONE ?? null,

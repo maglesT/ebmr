@@ -34,6 +34,7 @@ import {
 } from './golden-gb-t-02.ts';
 import { PACK_BALANCE } from './golden-packaging.ts';
 import { DemoApp, DemoBatch, sleep, value, type DemoBrowser } from './demo-app.ts';
+import { recordPostUseInspection, recordSpecimens } from './line-completion.ts';
 
 type Json = Record<string, unknown>;
 
@@ -496,6 +497,8 @@ async function bottleOrder(app: DemoApp, parent: DemoBatch, familyId: string, or
   // 100 bottles: 102 labels and cartons issued (the need plus 2 %); 100 used, 1 coded destroyed, 1 returned uncoded.
   await o.command(f.op2, e('p-g21@', 'ISSUE', { item: 'LABEL', lot: await facts('GBT2-LBL-001'), scannedArtwork: LABEL_ARTWORK, quantity: { value: '102', unit: '1' } }));
   await o.command(f.op2, e('p-g21@', 'ISSUE', { item: 'CARTON', lot: await facts('GBT2-CTN-001'), scannedArtwork: BOTTLE_CARTON_ARTWORK, quantity: { value: '102', unit: '1' } }));
+  // Phase 6 slice 6c (IN-16, PR-16): the coding and label specimens of the printed-materials step.
+  await recordSpecimens(app, o, f.op2, 'p-g21@', ['LABEL', 'CARTON']);
   const tb23 = [
     e('p-tb23@', 'CHALLENGE', { device: 'SEALDET', trigger: 'START', result: 'PASS' }),
     e('p-tb23@', 'COUNT_CHECK', { counts: ['30', '30', '30'] }),
@@ -530,6 +533,8 @@ async function bottleOrder(app: DemoApp, parent: DemoBatch, familyId: string, or
   }
   await o.signed(f.op2, { type: 'SIGN_PERFORMED', stepKey: 'p-pk-destroy@' });
   await o.signed(f.ver, { type: 'VERIFY', stepKey: 'p-pk-destroy@', meaning: 'WITNESSED' });
+  // Phase 6 slice 6c (PR-34): printing has ended; the line is inspected after use and a second person verifies it.
+  await recordPostUseInspection(app, o, f.op2, f.ver);
   await o.step('p-pk-count@', f.op2, f.ver, [
     { type: 'RECORD_DATA', stepKey: 'p-pk-count@', item: 'tabletsIssued', value: { kind: 'DECIMAL', value: DEMO_TABLETS, unit: '{tbl}' }, source: { mode: 'MANUAL' } },
     { type: 'RECORD_DATA', stepKey: 'p-pk-count@', item: 'tabletsPacked', value: { kind: 'DECIMAL', value: DEMO_TABLETS, unit: '{tbl}' }, source: { mode: 'MANUAL' } },

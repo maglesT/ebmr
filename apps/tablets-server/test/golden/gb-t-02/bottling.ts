@@ -12,7 +12,7 @@ import {
 import { PACK_BALANCE } from '../../../src/cli/golden-packaging.ts';
 import { tapFor } from '../../esig/support.ts';
 import type { TestBrowser } from '../../support/harness.ts';
-import { dbAs, entry, GoldenBatch, ok, signAct, tapAdvance } from '../gb-t-01/driver.ts';
+import { dbAs, entry, GoldenBatch, ok, recordPostUseInspection, recordSpecimens, signAct, tapAdvance } from '../gb-t-01/driver.ts';
 import { pause, type PackMaster } from '../gb-t-01/packing.ts';
 import { clean } from '../gb-t-01/plant.ts';
 import { asPersona, LINE, SITE, type GoldenWorld } from '../gb-t-01/world.ts';
@@ -116,6 +116,8 @@ export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenB
   const lotFacts = async (code: string): Promise<Json> => (await w.server.db.app.query<{ r: Json }>('select tab.printed_lot_facts($1, $2) as r', [code, g.batchId])).rows[0]?.r ?? {};
   await e('p-g21@', 'ISSUE', { item: 'LABEL', lot: await lotFacts('GBT2-LBL-001'), scannedArtwork: LABEL_ARTWORK, quantity: { value: plan.label.issued, unit: '1' } });
   await e('p-g21@', 'ISSUE', { item: 'CARTON', lot: await lotFacts('GBT2-CTN-001'), scannedArtwork: BOTTLE_CARTON_ARTWORK, quantity: { value: plan.carton.issued, unit: '1' } });
+  // Phase 6 slice 6c (IN-16, PR-16): the coding and label specimens of the printed-materials step.
+  await recordSpecimens(g, 'p-g21@', ['LABEL', 'CARTON']);
   await e('p-tb23@', 'CHALLENGE', { device: 'SEALDET', trigger: 'START', result: 'PASS' });
   await e('p-tb23@', 'COUNT_CHECK', { counts: ['30', '30', '30'] });
   await e('p-tb23@', 'DESICCANT_CHECK', { examined: '20', missing: '0' });
@@ -159,6 +161,8 @@ export async function bottleOrder(w: GoldenWorld, m: PackMaster, parent: GoldenB
   }
   await g.signed('operator2', { type: 'SIGN_PERFORMED', stepKey: 'p-pk-destroy@' });
   await g.signed('verifier1', { type: 'VERIFY', stepKey: 'p-pk-destroy@', meaning: 'WITNESSED' });
+  // Phase 6 slice 6c (PR-34): printing has ended; the line is inspected after use and a second person verifies it.
+  await recordPostUseInspection(g);
   await g.step('p-pk-count@', {
     performer: 'operator2',
     meaning: 'WITNESSED',
