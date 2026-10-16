@@ -169,7 +169,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^122\d_']
+      packages/kernel/sql: ['^122\d_', '^1230_']
 
   - id: kernel-area-authorisation
     title: Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15)
