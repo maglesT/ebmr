@@ -141,6 +141,13 @@ modules:
     src: [packages/kernel/src/sandbox]
     tests: ['packages/kernel/test/sandbox/**']
 
+  - id: kernel-reporting
+    title: Reporting role, report schema and training attempts (Phase 6 slice 6g)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^121[0-4]_']
+
   - id: kernel-integration
     title: Integration wiring between kernel modules
     page: modules/kernel.md
@@ -263,6 +270,12 @@ modules:
       packages/site-services/sql: ['^09[89]\d_']
     tests: ['packages/site-services/test/transfer/**']
 
+  - id: ss-reporting
+    title: Reporting views and change-impact DB tests (Phase 6 slice 6g)
+    page: modules/recipe-core.md
+    package: packages/site-services
+    tests: ['packages/site-services/test/reporting/**']
+
   - id: ss-receipt-erp-wms
     title: Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A)
     page: modules/site-services.md
@@ -341,6 +354,13 @@ modules:
     package: packages/recipe-core
     migrations:
       packages/recipe-core/sql: ['^109\d_']
+
+  - id: rc-reporting
+    title: Reporting views and the change-impact query (Phase 6 slice 6g)
+    page: modules/recipe-core.md
+    package: packages/recipe-core
+    migrations:
+      packages/recipe-core/sql: ['^107\d_']
 
   - id: rc-containers
     title: Output containers
@@ -788,6 +808,15 @@ modules:
     contract: [packages/api-contract/src/ns/transfers.ts]
     screens: [apps/tablets-web/src/features/transfers]
     tests: ['apps/tablets-server/test/transfers/**', 'apps/tablets-web/test/transfers/**']
+
+  - id: ts-dashboards
+    title: Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/dashboards, apps/tablets-server/src/features/training]
+    contract: [packages/api-contract/src/ns/dashboards.ts]
+    screens: [apps/tablets-web/src/features/dashboards, apps/tablets-web/src/features/training]
+    tests: ['apps/tablets-server/test/dashboards/**', 'apps/tablets-web/test/dashboards/**']
 
   - id: ts-config-change
     title: Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A)

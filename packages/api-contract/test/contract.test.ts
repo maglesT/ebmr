@@ -216,7 +216,7 @@ describe('route table', () => {
       'quality.examineLotReceipt', 'quality.proposeApprovedManufacturer', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotReceipt',
       'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'recall.refreshFederation', 'recall.run', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn', 'samples.recoverReturn',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
-      'support.requestGrant', 'support.revokeGrant', 'transfers.acknowledgeAlarm', 'transfers.import', 'transfers.prepare',
+      'support.requestGrant', 'support.revokeGrant', 'training.completeStep', 'training.start', 'transfers.acknowledgeAlarm', 'transfers.import', 'transfers.prepare',
     ]);
     for (const r of fresh) {
       expect(r.auth, r.id).toBe('SESSION');

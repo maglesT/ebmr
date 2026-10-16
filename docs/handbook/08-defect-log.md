@@ -968,6 +968,22 @@ decide whether the race is in the test or in the product (two of the entries abo
 - Phase 3 exit TypeScript mutation: calculations, entries and signing content at 90 percent or more; five
   high-risk blocks between 84 and 90 percent. Phase 4 SQL kill tests on the "not twins": 862 of 883 mutants killed.
 
+## Slice 6g: dashboards, change impact and training (Phase 6)
+
+### P6g-1: a view's functions run with the reader's rights (found while building)
+
+**Symptom.** A report view calling `recipe.overdue_reviews()` directly would have needed EXECUTE on that recipe function
+for `ebmr_report`, widening the role beyond reading. **Cause.** PostgreSQL checks functions inside a view with the
+caller's EXECUTE right (tables with the owner's). **Fix.** Each view selects from its own STABLE SECURITY DEFINER row
+function in the schema `report`; the segregation check reports any other grant to the role. **Tests.** `the reporting
+role cannot write: ...` (kernel sandbox tests).
+
+### P6g-2: training commands from a kiosk needed a badge tap (found while building)
+
+**Symptom.** Starting an exercise from a shared terminal was refused (EBMR-IAM-120, INV-40). **Fix.** The training
+commands are FRESH_ON_SHARED with the attribution member, as other floor commands. **Tests.** the contract test of
+FRESH_ON_SHARED routes; `[DI-05] a training session's attempts are the person's own ...`.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

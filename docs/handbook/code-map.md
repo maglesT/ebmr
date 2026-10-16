@@ -21,7 +21,8 @@ of each database function.
 | [kernel-config](#kernel-config) | Configuration change control (change records, configuration versions, as-of and diff; Phase 6 slice 6f) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 1 | 1 |
 | [kernel-continuity](#kernel-continuity) | Continuity (backup, restore, protected sequences, device hardening) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 8 | 6 |
 | [kernel-authorization](#kernel-authorization) | Authorization (permission catalogue, scopes, signature requirements) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 1 | 9 |
-| [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 7 | 5 |
+| [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 8 | 5 |
+| [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
 | [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
@@ -36,6 +37,7 @@ of each database function.
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
 | [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
 | [ss-transfer](#ss-transfer) | Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 1 | 4 |
+| [ss-reporting](#ss-reporting) | Reporting views and change-impact DB tests (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 2 | 2 |
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
 | [ss-reagent-lots](#ss-reagent-lots) | Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 2 |
 | [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 2 | 2 |
@@ -45,6 +47,7 @@ of each database function.
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
 | [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
 | [rc-transfer](#rc-transfer) | Genealogy across sites, federated queries and the mock recall across sites (Phase 6 slice 6i) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
+| [rc-reporting](#rc-reporting) | Reporting views and the change-impact query (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 2 | 0 | 0 | 0 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
 | [rc-gmp-batch](#rc-gmp-batch) | GMP batch store and issue, packaging orders, allocation register, expiry dating | [modules/recipe-core.md](modules/recipe-core.md) | 14 | 0 | 3 | 8 |
@@ -86,6 +89,7 @@ of each database function.
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
 | [ts-genealogy](#ts-genealogy) | Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 6 |
 | [ts-transfers](#ts-transfers) | Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 11 | 2 | 4 |
+| [ts-dashboards](#ts-dashboards) | Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 5 | 2 | 3 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 3 |
@@ -95,7 +99,7 @@ of each database function.
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 1 | 0 | 0 |
 | [ts-core](#ts-core) | Tablets server spine (app, platform, CLI, golden batches, seed) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 17 | 36 |
 | [tablets-web](#tablets-web) | Tablets screens shell (app, API client, devices) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 0 | 8 | 13 |
-| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 4 | 23 |
+| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 5 | 23 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
 | [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 8 | 5 |
 | [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 13 | 7 |
@@ -330,9 +334,24 @@ of each database function.
 
 **Source** (6): [README.md](../../packages/kernel/src/sandbox/README.md), [identifiers.ts](../../packages/kernel/src/sandbox/identifiers.ts), [index.ts](../../packages/kernel/src/sandbox/index.ts), [installation.ts](../../packages/kernel/src/sandbox/installation.ts), [provision.ts](../../packages/kernel/src/sandbox/provision.ts), [watermark.ts](../../packages/kernel/src/sandbox/watermark.ts)
 
-**Tests** (7): [bootstrap.test.ts](../../packages/kernel/test/sandbox/bootstrap.test.ts), [bypass.test.ts](../../packages/kernel/test/sandbox/bypass.test.ts), [identifier-words.test.ts](../../packages/kernel/test/sandbox/identifier-words.test.ts), [identifiers.test.ts](../../packages/kernel/test/sandbox/identifiers.test.ts), [installation.test.ts](../../packages/kernel/test/sandbox/installation.test.ts), [provision.test.ts](../../packages/kernel/test/sandbox/provision.test.ts), [watermark.test.ts](../../packages/kernel/test/sandbox/watermark.test.ts)
+**Tests** (8): [bootstrap.test.ts](../../packages/kernel/test/sandbox/bootstrap.test.ts), [bypass.test.ts](../../packages/kernel/test/sandbox/bypass.test.ts), [identifier-words.test.ts](../../packages/kernel/test/sandbox/identifier-words.test.ts), [identifiers.test.ts](../../packages/kernel/test/sandbox/identifiers.test.ts), [installation.test.ts](../../packages/kernel/test/sandbox/installation.test.ts), [provision.test.ts](../../packages/kernel/test/sandbox/provision.test.ts), [reporting-and-training.test.ts](../../packages/kernel/test/sandbox/reporting-and-training.test.ts), [watermark.test.ts](../../packages/kernel/test/sandbox/watermark.test.ts)
 
 **Controls** (5): [DI-05](../../compliance/controls/DI-05.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-27](../../compliance/controls/DI-27.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-34](../../compliance/controls/DI-34.yaml)
+
+## kernel-reporting
+
+**Reporting role, report schema and training attempts (Phase 6 slice 6g).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
+
+**Migrations** (2):
+
+- `packages/kernel/sql`: [1210_reporting_role.sql](../../packages/kernel/sql/1210_reporting_role.sql), [1211_training_attempts.sql](../../packages/kernel/sql/1211_training_attempts.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (3): `report.view_registry`, `sandbox.training_attempt`, `sandbox.training_step`
+- Views (1): `report.catalog_v1`
+- Functions (7): `report.catalog_rows_v1`, `report.data_as_of`, `sandbox.apply_connect_policy`, `sandbox.complete_training_step`, `sandbox.segregation_problems`, `sandbox.start_training`, `sandbox.training_sandbox_only`
+- Triggers (8): `a0_sandbox_only on sandbox.training_attempt`, `a0_sandbox_only on sandbox.training_step`, `aa_insert_only on report.view_registry`, `aa_insert_only on sandbox.training_attempt`, `aa_insert_only on sandbox.training_step`, `aa_no_truncate on report.view_registry`, `aa_no_truncate on sandbox.training_attempt`, `aa_no_truncate on sandbox.training_step`
 
 ## kernel-integration
 
@@ -582,6 +601,14 @@ of each database function.
 
 **Controls** (4): [DI-31](../../compliance/controls/DI-31.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 
+## ss-reporting
+
+**Reporting views and change-impact DB tests (Phase 6 slice 6g).** Package `packages/site-services`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
+
+**Tests** (2): [change-impact.test.ts](../../packages/site-services/test/reporting/change-impact.test.ts), [reporting-views.test.ts](../../packages/site-services/test/reporting/reporting-views.test.ts)
+
+**Controls** (2): [DI-49](../../compliance/controls/DI-49.yaml), [PR-05](../../compliance/controls/PR-05.yaml)
+
 ## ss-receipt-erp-wms
 
 **Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
@@ -732,6 +759,19 @@ of each database function.
 
 - Tables (4): `recipe.federated_excerpt`, `recipe.federated_request_failure`, `recipe.federated_request_out`, `recipe.mock_recall_remote`
 - Functions (15): `recipe.answer_federated_genealogy`, `recipe.genealogy`, `recipe.genealogy_node_exists`, `recipe.genealogy_node_views`, `recipe.genealogy_step`, `recipe.issue_federated_request`, `recipe.last_federated_excerpt`, `recipe.mock_recall_content`, `recipe.mock_recall_federation`, `recipe.mock_recall_result_v2`, `recipe.mock_recall_run_query`, `recipe.record_federated_excerpt`, `recipe.record_federation_failure`, `recipe.record_mock_recall_remote`, `recipe.run_mock_recall`
+
+## rc-reporting
+
+**Reporting views and the change-impact query (Phase 6 slice 6g).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
+
+**Migrations** (2):
+
+- `packages/recipe-core/sql`: [1070_reporting_views.sql](../../packages/recipe-core/sql/1070_reporting_views.sql), [1071_change_impact.sql](../../packages/recipe-core/sql/1071_change_impact.sql)
+
+**Database objects** created in these migrations:
+
+- Views (7): `report.alarm_v1`, `report.batch_outcome_v1`, `report.deviation_ageing_v1`, `report.exception_v1`, `report.hold_time_risk_v1`, `report.overdue_review_v1`, `report.press_counter_v1`
+- Functions (10): `recipe.change_impact`, `report.alarm_rows_v1`, `report.batch_outcome_rows_v1`, `report.batch_version`, `report.deviation_ageing_rows_v1`, `report.exception_rows_v1`, `report.hold_time_risk_rows_v1`, `report.overdue_review_rows_v1`, `report.press_counter_rows_v1`, `report.us_at`
 
 ## rc-containers
 
@@ -1801,6 +1841,30 @@ of each database function.
 
 **Controls** (4): [DI-31](../../compliance/controls/DI-31.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 
+## ts-dashboards
+
+**Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+
+**Server files** (5): [dashboards/guidance.ts](../../apps/tablets-server/src/features/dashboards/guidance.ts), [dashboards/index.ts](../../apps/tablets-server/src/features/dashboards/index.ts), [dashboards/reads.ts](../../apps/tablets-server/src/features/dashboards/reads.ts), [training/exercises.ts](../../apps/tablets-server/src/features/training/exercises.ts), [training/index.ts](../../apps/tablets-server/src/features/training/index.ts)
+
+**Contract** (1): [dashboards.ts](../../packages/api-contract/src/ns/dashboards.ts)
+
+**Routes** (5):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| GET | `/api/change-impact` | `changeImpact.query` | [dashboards.ts](../../packages/api-contract/src/ns/dashboards.ts) |
+| GET | `/api/dashboards/export` | `dashboards.export` | [dashboards.ts](../../packages/api-contract/src/ns/dashboards.ts) |
+| GET | `/api/training` | `training.overview` | [dashboards.ts](../../packages/api-contract/src/ns/dashboards.ts) |
+| POST | `/api/training/attempts` | `training.start` | [dashboards.ts](../../packages/api-contract/src/ns/dashboards.ts) |
+| POST | `/api/training/attempts/:attemptId/steps` | `training.completeStep` | [dashboards.ts](../../packages/api-contract/src/ns/dashboards.ts) |
+
+**Screens** (4): [dashboards/ChangeImpactPage.tsx](../../apps/tablets-web/src/features/dashboards/ChangeImpactPage.tsx), [dashboards/DashboardsPage.tsx](../../apps/tablets-web/src/features/dashboards/DashboardsPage.tsx), [dashboards/index.tsx](../../apps/tablets-web/src/features/dashboards/index.tsx), [training/index.tsx](../../apps/tablets-web/src/features/training/index.tsx)
+
+**Tests** (2): [tablets-server/test/dashboards/dashboards-routes.test.ts](../../apps/tablets-server/test/dashboards/dashboards-routes.test.ts), [tablets-web/test/dashboards/dashboards.test.tsx](../../apps/tablets-web/test/dashboards/dashboards.test.tsx)
+
+**Controls** (3): [DI-05](../../compliance/controls/DI-05.yaml), [DI-49](../../compliance/controls/DI-49.yaml), [PR-05](../../compliance/controls/PR-05.yaml)
+
 ## ts-config-change
 
 **Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
@@ -2070,7 +2134,7 @@ of each database function.
 
 **Source** (11): [client.ts](../../packages/api-contract/src/client.ts), [common.ts](../../packages/api-contract/src/common.ts), [examples.ts](../../packages/api-contract/src/examples.ts), [index.ts](../../packages/api-contract/src/index.ts), [intents.ts](../../packages/api-contract/src/intents.ts), [route.ts](../../packages/api-contract/src/route.ts), [routes.ts](../../packages/api-contract/src/routes.ts), [signable.ts](../../packages/api-contract/src/signable.ts), [strict-csp.ts](../../packages/api-contract/src/strict-csp.ts), [tablet-entries.ts](../../packages/api-contract/src/tablet-entries.ts), [vocab/roles.ts](../../packages/api-contract/src/vocab/roles.ts)
 
-**Tests** (4): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
+**Tests** (5): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [dashboards.test.ts](../../packages/api-contract/test/dashboards.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
 
 **Controls** (23): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-57](../../compliance/controls/PR-57.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
 

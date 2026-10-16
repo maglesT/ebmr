@@ -664,6 +664,15 @@ real GMP records (DI-05, INV-18; [sandbox README](../../packages/kernel/src/sand
 - Routes declare `installation: 'GMP' | 'SANDBOX' | 'ANY'`; the server registers only the routes of its kind, and
   every response carries `X-Ebmr-Installation`.
 
+### Training mode and the reporting path (Phase 6 slice 6g)
+
+- **Training mode** is the sandbox installation with a training seed (D-P6g-2): the same server and screens, the
+  sandbox role, the watermark, the `TEST-` personas; the `training` feature runs on the sandbox only and keeps the
+  person's attempts in `sandbox.training_attempt` (kernel 1211), which a GMP database refuses.
+- **The reporting path**: dashboards and the later analytics module read only the versioned views of the schema
+  `report` (recipe-core 1070), as the application role or as `ebmr_report` (SELECT only; kernel 1210); every row says
+  when its data was current. Nothing on this path writes to a GMP table (decision 0015 item 2).
+
 ## 15. Editions and the Injectables extension points
 
 Tablets is built to v1.0 first; Injectables follows (decision

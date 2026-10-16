@@ -1768,6 +1768,26 @@ FEDERATION_INTERFACE); the request and excerpt logs are audited.
 **Pitfalls.** A site that does not answer is shown with its last excerpt and that excerpt's older as-of, never as the
 answer (EBMR-RCL-024). The suspension cascade stays local (D-P6i-0-10).
 
+## Reporting views and change impact (Phase 6 slice 6g; recipe-core 1070, 1071)
+
+**What it does.** [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql): the versioned,
+read-only views in the schema `report` that the dashboards and, later, the analytics module read (decisions 0015, 0016;
+D-P6g-0-1, -2): `batch_outcome_v1`, `exception_v1`, `deviation_ageing_v1`, `hold_time_risk_v1`, `overdue_review_v1`
+([PR-05](../../../compliance/controls/PR-05.yaml)), `press_counter_v1` and `alarm_v1`
+([DI-49](../../../compliance/controls/DI-49.yaml)). Each view selects from a STABLE SECURITY DEFINER row function of the
+same schema, so a reader needs no right on the tables or functions behind it; every row carries `read_at` and
+`data_as_of`. [1071_change_impact.sql](../../../packages/recipe-core/sql/1071_change_impact.sql):
+`recipe.change_impact(kind, ref)` lists the MBR versions, open batches, released lots, markets and configuration history a
+proposed change of a material, specification, equipment, MBR version, rule-table site value or supplier reaches
+(D-P6g-0-8), from the formula pins, batch pins, lot consumption, equipment uses, `recipe.genealogy_forward_set` and
+`platform.config_version`. Both write nothing.
+
+**Pitfalls.** PostgreSQL checks a function called inside a view with the reader's own EXECUTE right, not the view
+owner's: a view that called `recipe.overdue_reviews` directly would need that function granted to `ebmr_report`. Keep the
+pattern (view over a `report.*_rows_vN()` row function). A change of a view's columns or meaning is a new version
+(`_v2`) registered in `report.view_registry`; the old one stays until the analytics module has moved. Tests:
+`packages/site-services/test/reporting/` (fixture world on top of the genealogy world).
+
 ## How to test recipe-core
 
 - Everything in the package: `pnpm vitest run --project db packages/recipe-core/test` (long; on a 4-CPU pod run only

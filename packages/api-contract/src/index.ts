@@ -283,3 +283,25 @@ export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryV
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
 export { ContractGiverAccessView, ContractGiverBatchView, ContractGiverRecordView, SupportAccountView, SupportGrantState, SupportGrantView } from './ns/support.ts';
+export {
+  AgeingBucket,
+  AlarmTrendView,
+  ChangeImpactItem,
+  ChangeImpactKind,
+  ChangeImpactView,
+  DeviationAgeingView,
+  ExceptionParetoView,
+  HoldRisk,
+  HoldTimeRiskView,
+  OverdueReviewsView,
+  PressOeeView,
+  ReportCatalogView,
+  ReportExportView,
+  ReviewCycleTimeView,
+  RightFirstTimeView,
+  SiteDate,
+  TrainingAttemptView,
+  TrainingExerciseView,
+  TrainingOverviewView,
+  TrainingPersonaView,
+} from './ns/dashboards.ts';
