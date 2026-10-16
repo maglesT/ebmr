@@ -123,7 +123,16 @@ describe('posting the finished lot of a packaging order (tablets 1201, tab.post_
     expect(orderStatus).not.toBe('EXECUTION_COMPLETE');
     expect(await messageOf(post(orderId))).toMatch(new RegExp(`EBMR-TAB-850 batch .* is PACKAGING ${orderStatus}: a finished lot is posted`));
 
-    await w.gmp.db.admin.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [orderId]);
+    // Arranged: the order complete (the completion gates, tablets 0952 and 1230, are proven in blocks/packaging).
+    const c = await w.gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query("set local session_replication_role = 'replica'");
+      await c.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE' where batch_id = $1", [orderId]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
     expect(await messageOf(post(orderId, 'two words'))).toMatch(/EBMR-TAB-851 the unit of the posted quantity is a UCUM code/);
     // The world's product has no product master yet: no shelf life, so no expiry.
     expect(await messageOf(post(orderId))).toMatch(new RegExp(`EBMR-TAB-852 the expiry of batch ${orderNumber.replace(/[/.]/g, '\\$&')} cannot be computed`));

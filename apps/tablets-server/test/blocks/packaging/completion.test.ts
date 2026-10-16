@@ -21,7 +21,7 @@ import { configuredL3Client, fetchSerialReport, requestSerialPool, sendSerialEve
 import { parseConfig } from '../../../src/config.ts';
 import { fakeTimers, laxEntry, recorder, stateOf, type Entry } from '../granulation/db-support.ts';
 import { asSetup } from '../compression/plant-support.ts';
-import { ARTWORK, CARTON_MATERIAL, GTIN, LINE_UNIT, lineUnit, minimalMbr, occupyLine, packPhase } from './db-support.ts';
+import { ARTWORK, CARTON_MATERIAL, GTIN, LINE_UNIT, lineUnit, minimalMbr, occupyLine, packPhase, productMaster } from './db-support.ts';
 
 type Json = Record<string, unknown>;
 let sbx: ExecServer;
@@ -74,6 +74,25 @@ async function performAndVerify(d: RunDriver, stepKey: string, meaning: 'VERIFIE
   return s === 'AWAITING_VERIFICATION' ? signedOutcome(d, 'verifier1', { type: 'VERIFY', stepKey, meaning }) : 'ok';
 }
 const issueEntry: Entry = { kind: 'ISSUE', item: 'CARTON', lot: { id: 'TEST-CTN-C1', material: CARTON_MATERIAL, status: 'RELEASED', artwork: ARTWORK }, scannedArtwork: ARTWORK, quantity: { value: '1020', unit: '1' } };
+
+/**
+ * Phase 6 slice 6c (tablets 1230; IN-16, PR-16): the step's specimens: START, MIDDLE and END coding specimens showing the
+ * record's coding (the product master in effect gives the expiry) and a label specimen of each item.
+ */
+async function specimens(r: Run, items: string[]): Promise<void> {
+  await productMaster(sbx, r.d.runId);
+  const coded = await r.sql<Json>("select tab.g21_expected_coding($1, 'p-g21@') as r", [r.d.runId]);
+  await withCommand(sbx.db.app, await r.as('operator1'), async (c) => {
+    for (const p of ['START', 'MIDDLE', 'END']) await c.query("select tab.record_coding_specimen($1, 'p-g21@', $2, $3::jsonb)", [r.d.runId, p, JSON.stringify(coded)]);
+    for (const i of items) await c.query("select tab.record_label_specimen($1, 'p-g21@', $2, null)", [r.d.runId, i]);
+  });
+}
+/** Phase 6 slice 6c (tablets 1230; PR-34): the post-use inspection of the line, passed and verified by another person. */
+async function postUseInspection(r: Run): Promise<void> {
+  const id = await withCommand(sbx.db.app, await r.as('operator1'), async (c) =>
+    (await c.query<{ r: string }>('select tab.record_post_use_inspection($1, $2::jsonb, null) as r', [r.d.runId, JSON.stringify({ noPrintedMaterial: true, noProduct: true, noDocuments: true, lineClean: true })])).rows[0]?.r);
+  await withCommand(sbx.db.app, await r.as('verifier1'), (c) => c.query('select tab.verify_post_use_inspection($1)', [id]));
+}
 
 /** A fake L3 system: pools of the asked quantity, and the report it is told to give. */
 function fakeL3(): L3Client & { next: PoolReport | null } {
@@ -142,6 +161,7 @@ describe('G-21 when time passes and steps and the batch close (recipe-core 0581,
     await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
     expect(await r.rec.record('p-g21', issueEntry)).toBe('ok');
     expect(await r.rec.record('p-g21', { kind: 'RECONCILIATION', item: 'CARTON', used: '1000', setupWaste: '10', damaged: '0', codedDestroyed: '10', uncodedReturned: '0', specimens: '0' })).toBe('ok');
+    await specimens(r, ['CARTON']);
     expect(await performAndVerify(r.d, 'p-g21@')).toBe('ok');
     await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-destroy@' });
     const disposal = (category: string, quantity: string, batchCoded: boolean): Entry => ({
@@ -171,6 +191,8 @@ describe('G-21 when time passes and steps and the batch close (recipe-core 0581,
       const closed = await withCommand(sbx.db.app, await r.as('operator1'), (c) => fetchSerialReport(c, l3, pool.poolId));
       expect(await r.rec.record('p-g21', closed as Entry)).toBe('ok');
       expect(await signedOutcome(r.d, 'operator1', { type: 'SIGN_PERFORMED', stepKey: 'p-g21@' })).toBe('ok');
+      // Slice 6c (PR-34): the line's post-use inspection, verified by a second person, before the order completes.
+      await postUseInspection(r);
       const complete = async (): Promise<string> => {
         const v = (await stateOf(sbx, r.d.runId)).steps['p-g21@']?.['status'] === 'AWAITING_VERIFICATION' ? await signedOutcome(r.d, 'verifier1', { type: 'VERIFY', stepKey: 'p-g21@', meaning: 'VERIFIED' }) : 'ok';
         if (v !== 'ok' || (await stateOf(sbx, r.d.runId))['status'] === 'EXECUTION_COMPLETE') return v;
