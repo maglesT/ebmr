@@ -17,8 +17,16 @@
  * each project with its own files; a failure in either kills the mutant.
  *
  * Usage: tsx tools/sql-mutation/src/run.ts [--count] [--verify] [--baseline] [--group <name>[,<name>...]] [--only <ids>]
- *                                          [--workers <n>] [--out <dir>] [--own-cluster]
+ *                                          [--functions <names>] [--workers <n>] [--out <dir>] [--resume] [--own-cluster]
+ *                                          [--audit-equivalents]
  *   --count        mutant counts per group (no database);
+ *   --functions    only the mutants of these functions (schema.name, comma-separated), in the groups that hold them:
+ *                  a function a later migration re-created is run without the rest of its group;
+ *   --resume       keep the results <out>/report.json already holds for the same mutants (same id, group, line,
+ *                  operator, original and replacement) and run only the others; report.json is written after every
+ *                  mutant, so a run stopped by a restart resumes where it stopped (same commit, same --out);
+ *   --audit-equivalents  list the entries of equivalent.json that no longer fit their mutant (no database); a run
+ *                  applies an entry only when it fits (see staleEquivalent);
  *   --verify       build the templates and run the checks above, nothing else;
  *   --baseline     also run each group's tests once on the unmutated templates and report the times and limits;
  *   --own-cluster  the cluster is this run's alone (a CI job's service or a spare cluster): drop the databases the
@@ -126,10 +134,10 @@ export function projectOf(test: string): Project {
 
 /**
  * The target's tests plus those written specifically to kill its mutants: <package>/test/mutation/<group>.test.ts in
- * the kernel, recipe-core and the tablets server.
+ * the kernel, site services, recipe-core and the tablets server.
  */
 export function testsFor(target: Target): string[] {
-  const extra = ['packages/kernel/test', 'packages/recipe-core/test', 'apps/tablets-server/test']
+  const extra = ['packages/kernel/test', 'packages/site-services/test', 'packages/recipe-core/test', 'apps/tablets-server/test']
     .map((d) => `${d}/mutation/${target.group}.test.ts`)
     .filter((f) => existsSync(join(ROOT, f)) && !target.tests.includes(f));
   return [...target.tests, ...extra];
@@ -146,6 +154,33 @@ export function testsByProject(target: Target): Map<Project, string[]> {
 export function loadEquivalents(): Record<string, string> {
   const file = join(ROOT, 'tools/sql-mutation/equivalent.json');
   return existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Record<string, string>) : {};
+}
+
+/**
+ * Why an equivalent.json entry does not fit the mutant it is keyed to, or undefined when it fits. An entry is keyed by
+ * mutant number, and a later migration that re-creates the function renumbers its mutants, so an entry can come to name
+ * another mutation: applied, it would count a live mutant as equivalent. An entry fits when its mutant exists and, if
+ * the reason cites places as <migration number>:<line> (for example `0950:290`), one of them is the mutant's own
+ * migration and line. A run applies only fitting entries; the others run as ordinary mutants.
+ */
+export function staleEquivalent(reason: string, mutant: Pick<Mutant, 'file' | 'line'> | undefined): string | undefined {
+  if (!mutant) return 'no such mutant in the current definition';
+  const cited = [...reason.matchAll(/\b(\d{4})[a-z_]*:(\d+)\b/g)].map((m) => ({ file: m[1], line: Number(m[2]) }));
+  if (cited.length === 0) return undefined;
+  const own = /(?:^|\/)(\d{4})[^/]*$/.exec(mutant.file)?.[1];
+  if (cited.some((c) => c.file === own && c.line === mutant.line)) return undefined;
+  return `cites ${cited.map((c) => `${c.file}:${c.line}`).join(', ')}; the mutant is at ${own ?? mutant.file}:${mutant.line}`;
+}
+
+/**
+ * The result a resumed run keeps for mutant `m` of `group`: the earlier result of the same mutation (same id, group,
+ * line, operator, original and replacement), or undefined when there is none or the mutant has changed since.
+ */
+export function earlierResult(earlier: readonly Result[], group: string, m: Omit<Mutant, 'statement'>): Result | undefined {
+  return earlier.find(
+    (r) => r.id === m.id && r.group === group && r.line === m.line && r.file === m.file && r.operator === m.operator &&
+      r.original === m.original && r.replacement === m.replacement,
+  );
 }
 
 /** The live definitions of each function a target names (every overload). */
@@ -606,18 +641,36 @@ async function main(): Promise<void> {
   if (unknown.length > 0) throw new Error(`unknown group(s): ${unknown.join(', ')}`);
   const targets = TARGETS.filter((t) => !only || only.has(t.group));
   const onlyIds = arg('only') ? new Set((arg('only') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) : undefined;
+  // --functions: the mutants of these functions only, in the groups that hold them.
+  const onlyFunctions = arg('functions') ? new Set((arg('functions') ?? '').split(',').map((x) => x.trim()).filter(Boolean)) : undefined;
+  const strayFunctions = onlyFunctions ? [...onlyFunctions].filter((f) => !targets.some((t) => t.functions.includes(f))) : [];
+  if (strayFunctions.length > 0) throw new Error(`--functions names functions no planned group holds: ${strayFunctions.join(', ')}`);
   const equivalents = loadEquivalents();
+  const allMutants = new Map([...defs.values()].flatMap((d) => mutantsOf(d).map((m) => [m.id, m] as const)));
+  if (process.argv.includes('--audit-equivalents')) {
+    let stale = 0;
+    for (const [id, why] of Object.entries(equivalents)) {
+      const problem = staleEquivalent(why, allMutants.get(id));
+      if (problem) {
+        stale++;
+        const m = allMutants.get(id);
+        console.log(`STALE ${id}: ${problem}${m ? ` (now ${m.operator} \`${m.original}\` -> \`${m.replacement}\`)` : ''}`);
+      }
+    }
+    console.log(`${stale} of ${Object.keys(equivalents).length} equivalent entries do not fit their mutant; a run runs those as ordinary mutants`);
+    return;
+  }
   const plan = targets
     .map((t) => {
-      const tdefs = definitionsFor(t, defs);
+      const tdefs = definitionsFor(t, defs).filter((d) => !onlyFunctions || onlyFunctions.has(d.name));
       const mutants = tdefs.flatMap((d) => mutantsOf(d).map((m) => ({ m, d }))).filter(({ m }) => !onlyIds || onlyIds.has(m.id));
       return { target: t, defs: tdefs, mutants, projects: [...testsByProject(t).keys()] };
     })
-    .filter((p) => !onlyIds || p.mutants.length > 0);
+    .filter((p) => (!onlyIds && !onlyFunctions) || p.mutants.length > 0);
   let total = 0;
   for (const p of plan) {
     total += p.mutants.length;
-    console.log(`${p.target.group}: ${p.mutants.length} mutants in ${p.target.functions.length} functions (${p.projects.join(' + ')})`);
+    console.log(`${p.target.group}: ${p.mutants.length} mutants in ${new Set(p.defs.map((d) => d.name)).size} functions (${p.projects.join(' + ')})`);
   }
   console.log(`total: ${total} mutants in ${plan.length} groups`);
   if (onlyIds) {
@@ -630,6 +683,22 @@ async function main(): Promise<void> {
   const workers = Number(arg('workers') ?? '2');
   const outDir = resolve(ROOT, arg('out') ?? '.reports/sql-mutation');
   mkdirSync(outDir, { recursive: true });
+  // --resume: the results an earlier run of the same mutants left in this report directory are kept, not run again.
+  const reportFile = join(outDir, 'report.json');
+  const earlier: Result[] = process.argv.includes('--resume') && existsSync(reportFile) ? (JSON.parse(readFileSync(reportFile, 'utf8')) as Result[]) : [];
+  const kept = new Map<string, Result[]>();
+  for (const p of plan) {
+    const done: Result[] = [];
+    p.mutants = p.mutants.filter(({ m }) => {
+      const { statement: _st, ...info } = m;
+      void _st;
+      const r = earlierResult(earlier, p.target.group, info);
+      if (r) done.push(r);
+      return !r;
+    });
+    kept.set(p.target.group, done);
+  }
+  if (earlier.length > 0) console.log(`resumed: ${[...kept.values()].reduce((n, rs) => n + rs.length, 0)} results kept from ${reportFile}`);
   const onSignal = (signal: NodeJS.Signals) => {
     console.error(`${signal}: dropping the run's databases`);
     void cleanUp().finally(() => process.exit(130));
@@ -637,7 +706,7 @@ async function main(): Promise<void> {
   process.once('SIGINT', onSignal);
   process.once('SIGTERM', onSignal);
 
-  const all: Result[] = [];
+  const all: Result[] = [...kept.values()].flat();
   const timing = new Map<string, GroupLimits>();
   // The sweep drops other databases, so it runs only on a cluster the run has to itself (--own-cluster).
   if (process.argv.includes('--own-cluster')) startOid = await highestDatabaseOid();
@@ -652,6 +721,10 @@ async function main(): Promise<void> {
     if (process.argv.includes('--verify')) return;
 
     for (const p of plan) {
+      if (p.mutants.length === 0 && !process.argv.includes('--baseline')) {
+        console.log(`${p.target.group}: every mutant has a kept result`);
+        continue;
+      }
       const limits = await baseline(t, p.target);
       timing.set(p.target.group, limits);
       console.log(
@@ -661,24 +734,30 @@ async function main(): Promise<void> {
       const groupStarted = process.hrtime.bigint();
       const rs = await pool(p.mutants, workers, async ({ m, d }, i) => {
         const why = equivalents[m.id];
-        if (why) {
+        const stale = why === undefined ? undefined : staleEquivalent(why, m);
+        if (stale) console.log(`  ${m.id}: its equivalent.json entry does not fit (${stale}); run as an ordinary mutant`);
+        if (why && !stale) {
           const { statement: _st, ...rest } = m;
           void _st;
-          return { ...rest, group: p.target.group, status: 'EQUIVALENT' as const, detail: why };
+          const r: Result = { ...rest, group: p.target.group, status: 'EQUIVALENT', detail: why };
+          all.push(r);
+          return r;
         }
         const r = await runMutant(t, placement, p.target, limits, m, d);
         if (r.status === 'SURVIVED') console.log(`  SURVIVED ${r.id} ${r.operator} ${r.file}:${r.line} [${r.original}] -> [${r.replacement}]`);
         if (onlyIds) console.log(`  ${r.status} ${r.id} ${r.operator} [${r.original}] -> [${r.replacement}] in ${seconds(r.ms)} s${r.detail ? `: ${r.detail}` : ''}`);
         if ((i + 1) % 25 === 0) console.log(`  ${p.target.group}: ${i + 1}/${p.mutants.length}`);
+        // Written after every mutant, so that --resume loses at most the mutants running when the run stopped.
+        all.push(r);
+        writeFileSync(reportFile, JSON.stringify(all, null, 2));
         return r;
       });
-      all.push(...rs);
       const left = await sweepLeftovers();
       if (left.length > 0) console.log(`  dropped ${left.length} databases the tests left behind: ${left.join(', ')}`);
-      const s = score(rs);
+      const s = score([...(kept.get(p.target.group) ?? []), ...rs]);
       const secs = Number((process.hrtime.bigint() - groupStarted) / 1_000_000_000n);
       console.log(`${p.target.group}: score ${s.score.toFixed(1)} % (${s.detected}/${s.valid} detected, ${s.invalid} invalid) in ${secs} s`);
-      writeFileSync(join(outDir, 'report.json'), JSON.stringify(all, null, 2));
+      writeFileSync(reportFile, JSON.stringify(all, null, 2));
     }
   } finally {
     await cleanUp();
