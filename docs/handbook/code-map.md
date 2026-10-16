@@ -35,6 +35,7 @@ of each database function.
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 17 | 0 | 8 | 26 |
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 5 | 12 |
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
+| [ss-controlled](#ss-controlled) | WMS moves of a controlled API lot need a dual-custody transfer record (Phase 6 slice 6e, draft IN-53) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 1 |
 | [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
 | [ss-transfer](#ss-transfer) | Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 1 | 4 |
 | [ss-reporting](#ss-reporting) | Reporting views and change-impact DB tests (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 2 | 2 |
@@ -63,6 +64,7 @@ of each database function.
 | [rc-after-release](#rc-after-release) | After release (suspension, re-confirmation, recall, rejection, disposal) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 0 |
 | [rc-record-lock](#rc-record-lock) | Record lock, bulk reconciliation and amendment | [modules/recipe-core.md](modules/recipe-core.md) | 5 | 0 | 0 | 0 |
 | [rc-india](#rc-india) | India issue gates, label particulars and Schedule H2 payload | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 2 | 5 |
+| [rc-controlled](#rc-controlled) | Controlled-substance mode, product flag, dual custody, yield-checkpoint account, register export (Phase 6 slice 6e, draft IN-53) | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 0 | 1 |
 | [rc-pqr](#rc-pqr) | Product quality review extract | [modules/recipe-core.md](modules/recipe-core.md) | 2 | 0 | 1 | 2 |
 | [rc-execution](#rc-execution) | Execution store and engine (steps, entries, exceptions, change paths, hand-over, approvals) | [modules/recipe-core.md](modules/recipe-core.md) | 84 | 0 | 55 | 59 |
 | [rc-flow](#rc-flow) | Flows, validator and limits | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 18 | 14 |
@@ -96,14 +98,15 @@ of each database function.
 | [ts-dashboards](#ts-dashboards) | Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 5 | 2 | 3 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
+| [ts-controlled](#ts-controlled) | Controlled-substance routes, the CONTROLLED_ACT ceremony and screens (Phase 6 slice 6e, draft IN-53) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 9 | 2 | 1 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 3 |
 | [ts-archive](#ts-archive) | Archive, evidence export and inspection | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 11 | 0 | 0 |
 | [ts-india](#ts-india) | India features (licences, labels, expiry rule) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 15 | 5 | 8 |
 | [ts-execution](#ts-execution) | Execution on the shop floor (batches, entries, lots) | [modules/tablets-server.md](modules/tablets-server.md) | 16 | 25 | 97 | 44 |
 | [ts-meta](#ts-meta) | Meta routes (health, version) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 1 | 0 | 0 |
-| [ts-core](#ts-core) | Tablets server spine (app, platform, CLI, golden batches, seed) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 17 | 36 |
+| [ts-core](#ts-core) | Tablets server spine (app, platform, CLI, golden batches, seed) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 0 | 18 | 36 |
 | [tablets-web](#tablets-web) | Tablets screens shell (app, API client, devices) | [modules/tablets-web.md](modules/tablets-web.md) | 0 | 0 | 8 | 13 |
-| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 5 | 25 |
+| [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 6 | 26 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
 | [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 8 | 5 |
 | [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 13 | 7 |
@@ -114,7 +117,7 @@ of each database function.
 | [injectables-server](#injectables-server) | Injectables server (placeholder) | [modules/injectables.md](modules/injectables.md) | 0 | 0 | 1 | 0 |
 | [injectables-web](#injectables-web) | Injectables screens (placeholder) | [modules/injectables.md](modules/injectables.md) | 0 | 0 | 1 | 0 |
 | [tools-boundaries](#tools-boundaries) | Dependency boundaries and clock ban tests | [modules/tools.md](modules/tools.md) | 0 | 0 | 3 | 0 |
-| [tools-demo](#tools-demo) | Demo set-up and run | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
+| [tools-demo](#tools-demo) | Demo set-up and run | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 0 |
 | [tools-dev-env](#tools-dev-env) | Development pod set-up | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
 | [tools-e2e](#tools-e2e) | End-to-end browser suite | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 18 |
 | [tools-handbook](#tools-handbook) | Handbook generator and link checker | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
@@ -568,6 +571,22 @@ of each database function.
 **Tests** (2): [capa-qms.test.ts](../../packages/site-services/test/integrations/capa-qms.test.ts), [lims-inbound.test.ts](../../packages/site-services/test/integrations/lims-inbound.test.ts)
 
 **Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [PR-51](../../compliance/controls/PR-51.yaml)
+
+## ss-controlled
+
+**WMS moves of a controlled API lot need a dual-custody transfer record (Phase 6 slice 6e, draft IN-53).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
+
+**Migrations** (1):
+
+- `packages/site-services/sql`: [0970_controlled_wms_moves.sql](../../packages/site-services/sql/0970_controlled_wms_moves.sql)
+
+**Database objects** created in these migrations:
+
+- Functions (1): `site.apply_wms_stock_move`
+
+**Tests** (1): [controlled.test.ts](../../packages/site-services/test/controlled/controlled.test.ts)
+
+**Controls** (1): [IN-53](../../compliance/controls/IN-53.yaml)
 
 ## ss-genealogy
 
@@ -1028,6 +1047,22 @@ of each database function.
 **Tests** (2): [india-h2-and-allocation.test.ts](../../packages/recipe-core/test/mutation/india-h2-and-allocation.test.ts), [india-issue-gate.test.ts](../../packages/recipe-core/test/mutation/india-issue-gate.test.ts)
 
 **Controls** (5): [DI-35](../../compliance/controls/DI-35.yaml), [IN-18](../../compliance/controls/IN-18.yaml), [IN-27](../../compliance/controls/IN-27.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-31](../../compliance/controls/IN-31.yaml)
+
+## rc-controlled
+
+**Controlled-substance mode, product flag, dual custody, yield-checkpoint account, register export (Phase 6 slice 6e, draft IN-53).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
+
+**Migrations** (6):
+
+- `packages/recipe-core/sql`: [1030_controlled_substance_catalogue.sql](../../packages/recipe-core/sql/1030_controlled_substance_catalogue.sql), [1031_controlled_product_flag.sql](../../packages/recipe-core/sql/1031_controlled_product_flag.sql), [1032_controlled_custody.sql](../../packages/recipe-core/sql/1032_controlled_custody.sql), [1033_controlled_checkpoint.sql](../../packages/recipe-core/sql/1033_controlled_checkpoint.sql), [1034_controlled_register.sql](../../packages/recipe-core/sql/1034_controlled_register.sql), [1035_controlled_batch_end.sql](../../packages/recipe-core/sql/1035_controlled_batch_end.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (8): `plant.controlled_product`, `plant.controlled_product_approval`, `recipe.controlled_checkpoint`, `recipe.controlled_checkpoint_signature`, `recipe.controlled_custody`, `recipe.controlled_custody_signature`, `recipe.controlled_custody_use`, `recipe.controlled_register_extract`
+- Functions (31): `plant.approve_controlled_product`, `plant.controlled_materials`, `plant.controlled_product_approved`, `plant.controlled_product_content`, `plant.controlled_product_state`, `plant.controlled_record_state`, `plant.material_is_controlled`, `plant.record_controlled_product`, `recipe.batch_controlled_materials`, `recipe.controlled_balance`, `recipe.controlled_batch_end_guard`, `recipe.controlled_batch_end_problem`, `recipe.controlled_checkpoint_content`, `recipe.controlled_checkpoint_current`, `recipe.controlled_checkpoint_problem`, `recipe.controlled_checkpoint_state`, `recipe.controlled_consumption_guard`, `recipe.controlled_custodians`, `recipe.controlled_custody_content`, `recipe.controlled_custody_state`, `recipe.controlled_moved_materials`, `recipe.controlled_register_reproduces`, `recipe.controlled_register_sha256`, `recipe.controlled_register_v1`, `recipe.controlled_sign_off_guard`, `recipe.controlled_transfer_for`, `recipe.propose_controlled_custody`, `recipe.record_controlled_checkpoint`, `recipe.run_controlled_register`, `recipe.sign_controlled_checkpoint`, `recipe.sign_controlled_custody`
+- Triggers (11): `a1_controlled_batch_end on recipe.execution_state`, `a1_controlled_checkpoint on recipe.execution_command`, `zz_immutable on plant.controlled_product`, `zz_immutable on plant.controlled_product_approval`, `zz_immutable on recipe.controlled_checkpoint`, `zz_immutable on recipe.controlled_checkpoint_signature`, `zz_immutable on recipe.controlled_custody`, `zz_immutable on recipe.controlled_custody_signature`, `zz_immutable on recipe.controlled_custody_use`, `zz_immutable on recipe.controlled_register_extract`, `zzc_controlled_dual_custody on site.lot_consumption`
+
+**Controls** (1): [IN-53](../../compliance/controls/IN-53.yaml)
 
 ## rc-pqr
 
@@ -2045,6 +2080,42 @@ of each database function.
 
 **Controls** (3): [DI-08](../../compliance/controls/DI-08.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-30](../../compliance/controls/IN-30.yaml)
 
+## ts-controlled
+
+**Controlled-substance routes, the CONTROLLED_ACT ceremony and screens (Phase 6 slice 6e, draft IN-53).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+
+**Migrations** (2):
+
+- `apps/tablets-server/sql`: [1250_controlled_signing_content.sql](../../apps/tablets-server/sql/1250_controlled_signing_content.sql), [1290_controlled_read.sql](../../apps/tablets-server/sql/1290_controlled_read.sql)
+
+**Database objects** created in these migrations:
+
+- Functions (4): `tab.controlled_pair_ok`, `tab.controlled_preview`, `tab.controlled_signing_content`, `tab.record_read_problem`
+
+**Server files** (2): [index.ts](../../apps/tablets-server/src/features/controlled/index.ts), [reads.ts](../../apps/tablets-server/src/features/controlled/reads.ts)
+
+**Contract** (1): [controlled.ts](../../packages/api-contract/src/ns/controlled.ts)
+
+**Routes** (9):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| GET | `/api/controlled/batches/:batchId/balance` | `controlled.balance` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| POST | `/api/controlled/checkpoints` | `controlled.recordCheckpoint` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| GET | `/api/controlled/custody` | `controlled.custody` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| POST | `/api/controlled/custody` | `controlled.proposeCustody` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| GET | `/api/controlled/products` | `controlled.products` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| POST | `/api/controlled/products` | `controlled.recordProduct` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| GET | `/api/controlled/register-extracts` | `controlled.registerExtracts` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| POST | `/api/controlled/register-extracts` | `controlled.runRegister` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+| GET | `/api/controlled/register-extracts/:extractId` | `controlled.registerExtract` | [controlled.ts](../../packages/api-contract/src/ns/controlled.ts) |
+
+**Screens** (4): [ControlledBalancePage.tsx](../../apps/tablets-web/src/features/controlled/ControlledBalancePage.tsx), [ControlledPage.tsx](../../apps/tablets-web/src/features/controlled/ControlledPage.tsx), [index.tsx](../../apps/tablets-web/src/features/controlled/index.tsx), [reads.ts](../../apps/tablets-web/src/features/controlled/reads.ts)
+
+**Tests** (2): [tablets-server/test/controlled/controlled-routes.test.ts](../../apps/tablets-server/test/controlled/controlled-routes.test.ts), [tablets-web/test/controlled/controlled.test.tsx](../../apps/tablets-web/test/controlled/controlled.test.tsx)
+
+**Controls** (1): [IN-53](../../compliance/controls/IN-53.yaml)
+
 ## ts-pqr
 
 **Product quality review.** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
@@ -2222,7 +2293,7 @@ of each database function.
 
 **Source** (35): [app.ts](../../apps/tablets-server/src/app.ts), [cli/demo-app.ts](../../apps/tablets-server/src/cli/demo-app.ts), [cli/golden-gb-t-02.ts](../../apps/tablets-server/src/cli/golden-gb-t-02.ts), [cli/golden-packaging.ts](../../apps/tablets-server/src/cli/golden-packaging.ts), [cli/line-completion.ts](../../apps/tablets-server/src/cli/line-completion.ts), [cli/openapi.ts](../../apps/tablets-server/src/cli/openapi.ts), [cli/release-path.ts](../../apps/tablets-server/src/cli/release-path.ts), [cli/review-batch.ts](../../apps/tablets-server/src/cli/review-batch.ts), [cli/setup.ts](../../apps/tablets-server/src/cli/setup.ts), [config.ts](../../apps/tablets-server/src/config.ts), [index.ts](../../apps/tablets-server/src/index.ts), [main.ts](../../apps/tablets-server/src/main.ts), [platform/auth/actor.ts](../../apps/tablets-server/src/platform/auth/actor.ts), [platform/auth/attribution.ts](../../apps/tablets-server/src/platform/auth/attribution.ts), [platform/auth/change-tickets.ts](../../apps/tablets-server/src/platform/auth/change-tickets.ts), [platform/auth/device-proof.ts](../../apps/tablets-server/src/platform/auth/device-proof.ts), [platform/auth/nonces.ts](../../apps/tablets-server/src/platform/auth/nonces.ts), [platform/auth/session.ts](../../apps/tablets-server/src/platform/auth/session.ts), [platform/clock.ts](../../apps/tablets-server/src/platform/clock.ts), [platform/context.ts](../../apps/tablets-server/src/platform/context.ts), [platform/db/commands.ts](../../apps/tablets-server/src/platform/db/commands.ts), [platform/db/pools.ts](../../apps/tablets-server/src/platform/db/pools.ts), [platform/db/read.ts](../../apps/tablets-server/src/platform/db/read.ts), [platform/http/bind.ts](../../apps/tablets-server/src/platform/http/bind.ts), [platform/http/errors.ts](../../apps/tablets-server/src/platform/http/errors.ts), [platform/http/guidance.ts](../../apps/tablets-server/src/platform/http/guidance.ts), [platform/http/json-body.ts](../../apps/tablets-server/src/platform/http/json-body.ts), [platform/http/logging.ts](../../apps/tablets-server/src/platform/http/logging.ts), [platform/http/refusal.ts](../../apps/tablets-server/src/platform/http/refusal.ts), [platform/http/security.ts](../../apps/tablets-server/src/platform/http/security.ts), [platform/http/static.ts](../../apps/tablets-server/src/platform/http/static.ts), [platform/installation.ts](../../apps/tablets-server/src/platform/installation.ts), [platform/ports.ts](../../apps/tablets-server/src/platform/ports.ts), [platform/rule-tables.ts](../../apps/tablets-server/src/platform/rule-tables.ts), [platform/site-zone.ts](../../apps/tablets-server/src/platform/site-zone.ts)
 
-**Tests** (17): [contract/coverage.test.ts](../../apps/tablets-server/test/contract/coverage.test.ts), [golden/clock.test.ts](../../apps/tablets-server/test/golden/clock.test.ts), [golden/gb-t-01/gb-t-01.test.ts](../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [golden/gb-t-02/gb-t-02.test.ts](../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [mutation/sandbox-and-import.test.ts](../../apps/tablets-server/test/mutation/sandbox-and-import.test.ts), [package.test.ts](../../apps/tablets-server/test/package.test.ts), [platform/header-limit.test.ts](../../apps/tablets-server/test/platform/header-limit.test.ts), [platform/invariants.test.ts](../../apps/tablets-server/test/platform/invariants.test.ts), [platform/read-db.test.ts](../../apps/tablets-server/test/platform/read-db.test.ts), [platform/security-encoded-path.test.ts](../../apps/tablets-server/test/platform/security-encoded-path.test.ts), [platform/security.test.ts](../../apps/tablets-server/test/platform/security.test.ts), [platform/startup.test.ts](../../apps/tablets-server/test/platform/startup.test.ts), [platform/unstorable-text.test.ts](../../apps/tablets-server/test/platform/unstorable-text.test.ts), [seed/demo-seed-gate.test.ts](../../apps/tablets-server/test/seed/demo-seed-gate.test.ts), [seed/gmp-seed.test.ts](../../apps/tablets-server/test/seed/gmp-seed.test.ts), [seed/release-seed.test.ts](../../apps/tablets-server/test/seed/release-seed.test.ts), [seed/review-batch.test.ts](../../apps/tablets-server/test/seed/review-batch.test.ts)
+**Tests** (18): [contract/coverage.test.ts](../../apps/tablets-server/test/contract/coverage.test.ts), [golden/clock.test.ts](../../apps/tablets-server/test/golden/clock.test.ts), [golden/gb-t-01/gb-t-01.test.ts](../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [golden/gb-t-02/gb-t-02.test.ts](../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [mutation/sandbox-and-import.test.ts](../../apps/tablets-server/test/mutation/sandbox-and-import.test.ts), [package.test.ts](../../apps/tablets-server/test/package.test.ts), [platform/header-limit.test.ts](../../apps/tablets-server/test/platform/header-limit.test.ts), [platform/invariants.test.ts](../../apps/tablets-server/test/platform/invariants.test.ts), [platform/read-db.test.ts](../../apps/tablets-server/test/platform/read-db.test.ts), [platform/security-encoded-path.test.ts](../../apps/tablets-server/test/platform/security-encoded-path.test.ts), [platform/security.test.ts](../../apps/tablets-server/test/platform/security.test.ts), [platform/startup.test.ts](../../apps/tablets-server/test/platform/startup.test.ts), [platform/unstorable-text.test.ts](../../apps/tablets-server/test/platform/unstorable-text.test.ts), [seed/demo-seed-gate.test.ts](../../apps/tablets-server/test/seed/demo-seed-gate.test.ts), [seed/gmp-seed.test.ts](../../apps/tablets-server/test/seed/gmp-seed.test.ts), [seed/release-seed.test.ts](../../apps/tablets-server/test/seed/release-seed.test.ts), [seed/review-batch.test.ts](../../apps/tablets-server/test/seed/review-batch.test.ts), [support/nonce-pacer.test.ts](../../apps/tablets-server/test/support/nonce-pacer.test.ts)
 
 **Controls** (36): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-13](../../compliance/controls/DI-13.yaml), [DI-14](../../compliance/controls/DI-14.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-19](../../compliance/controls/DI-19.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-27](../../compliance/controls/DI-27.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-38](../../compliance/controls/DI-38.yaml), [IN-05](../../compliance/controls/IN-05.yaml), [IN-16](../../compliance/controls/IN-16.yaml), [IN-17](../../compliance/controls/IN-17.yaml), [IN-19](../../compliance/controls/IN-19.yaml), [IN-24](../../compliance/controls/IN-24.yaml), [IN-39](../../compliance/controls/IN-39.yaml), [PR-02](../../compliance/controls/PR-02.yaml), [PR-08](../../compliance/controls/PR-08.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-22](../../compliance/controls/PR-22.yaml), [PR-31](../../compliance/controls/PR-31.yaml), [PR-34](../../compliance/controls/PR-34.yaml), [PR-37](../../compliance/controls/PR-37.yaml), [PR-38](../../compliance/controls/PR-38.yaml), [PR-39](../../compliance/controls/PR-39.yaml), [PR-43](../../compliance/controls/PR-43.yaml), [PR-44](../../compliance/controls/PR-44.yaml), [PR-45](../../compliance/controls/PR-45.yaml), [PR-47](../../compliance/controls/PR-47.yaml), [PR-53](../../compliance/controls/PR-53.yaml), [PR-56](../../compliance/controls/PR-56.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 
@@ -2242,9 +2313,9 @@ of each database function.
 
 **Source** (11): [client.ts](../../packages/api-contract/src/client.ts), [common.ts](../../packages/api-contract/src/common.ts), [examples.ts](../../packages/api-contract/src/examples.ts), [index.ts](../../packages/api-contract/src/index.ts), [intents.ts](../../packages/api-contract/src/intents.ts), [route.ts](../../packages/api-contract/src/route.ts), [routes.ts](../../packages/api-contract/src/routes.ts), [signable.ts](../../packages/api-contract/src/signable.ts), [strict-csp.ts](../../packages/api-contract/src/strict-csp.ts), [tablet-entries.ts](../../packages/api-contract/src/tablet-entries.ts), [vocab/roles.ts](../../packages/api-contract/src/vocab/roles.ts)
 
-**Tests** (5): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [dashboards.test.ts](../../packages/api-contract/test/dashboards.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
+**Tests** (6): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [controlled.test.ts](../../packages/api-contract/test/controlled.test.ts), [dashboards.test.ts](../../packages/api-contract/test/dashboards.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
 
-**Controls** (25): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-57](../../compliance/controls/PR-57.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
+**Controls** (26): [DI-04](../../compliance/controls/DI-04.yaml), [DI-05](../../compliance/controls/DI-05.yaml), [DI-08](../../compliance/controls/DI-08.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-01](../../compliance/controls/IN-01.yaml), [IN-10](../../compliance/controls/IN-10.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [IN-30](../../compliance/controls/IN-30.yaml), [IN-31](../../compliance/controls/IN-31.yaml), [IN-33](../../compliance/controls/IN-33.yaml), [IN-53](../../compliance/controls/IN-53.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-19](../../compliance/controls/PR-19.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-36](../../compliance/controls/PR-36.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-57](../../compliance/controls/PR-57.yaml), [PR-58](../../compliance/controls/PR-58.yaml)
 
 ## expr
 
@@ -2342,7 +2413,7 @@ of each database function.
 
 **Source** (5): [cli.ts](../../tools/demo/src/cli.ts), [index.ts](../../tools/demo/src/index.ts), [paths.ts](../../tools/demo/src/paths.ts), [processes.ts](../../tools/demo/src/processes.ts), [stack.ts](../../tools/demo/src/stack.ts)
 
-**Tests** (1): [demo-devices.test.ts](../../tools/demo/test/demo-devices.test.ts)
+**Tests** (2): [demo-devices.test.ts](../../tools/demo/test/demo-devices.test.ts), [processes.test.ts](../../tools/demo/test/processes.test.ts)
 
 ## tools-dev-env
 

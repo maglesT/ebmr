@@ -389,6 +389,18 @@ export const SignableAction = z.discriminatedUnion('kind', [
     grantId: Uuid,
   }),
   z.strictObject({
+    /**
+     * Phase 6 slice 6e (ns/controlled.ts; recipe-core 1031 to 1033, draft IN-53): FLAG_APPROVE, a second QA person's
+     * approval of a controlled-substance flag (CONTROLLED_PRODUCT_APPROVED); CUSTODY_FIRST and CUSTODY_SECOND, the two
+     * custodians of a custody record (CONTROLLED_CUSTODY_RECORDED by the proposer, CONTROLLED_CUSTODY_COUNTERSIGNED by
+     * another person); BALANCE_SIGN, the account at a yield checkpoint (CONTROLLED_BALANCE_SIGNED).
+     */
+    kind: z.literal('CONTROLLED_ACT'),
+    act: z.enum(['FLAG_APPROVE', 'CUSTODY_FIRST', 'CUSTODY_SECOND', 'BALANCE_SIGN']),
+    /** The flag record, the custody record or the checkpoint. */
+    subjectId: Uuid,
+  }),
+  z.strictObject({
     /** Phase 6 slice 6d (ns/recall.ts): the authorised person signs off a mock recall that still reproduces (IN-29, D-P6d-2). */
     kind: z.literal('MOCK_RECALL_SIGN_OFF'),
     mockRecallId: Uuid,

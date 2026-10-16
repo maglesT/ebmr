@@ -129,6 +129,7 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
   try {
     server = await startServer('GMP', {
       prepared: { database, seed },
+      paceDeviceNonces: true,
       env: { EBMR_SEAL_KEY_FILE: join(keysDir, 'keys', 'gmp-seal-key.json'), EBMR_NUMBER_LEDGER_FILE: join(keysDir, 'numbers.ledger.jsonl') },
     });
   } catch (e) {

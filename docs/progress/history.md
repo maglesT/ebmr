@@ -2527,6 +2527,23 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   trend viewer, area authorisations of the qualification matrix. Quick review: one medium fixed (Q-6b-1, an alarm
   acknowledged under the first bound batch's scope only; recipe-core 0976), a test race and CI lint errors fixed;
   defaults D-P6b-A-*, D-P6b-B-*, D-P6b-L-1 to 4 and residuals in the plan's slice 6b section.
+- 2026-10-16: PHASE 6 SLICE 6e (branch phase-6/slice-6e): controlled-substance mode, the draft control IN-53 (status U:
+  NDPS Act and Rules not verified; expert decision PENDING, pack draft). 6e-0: IN-53.yaml, requirement row n679
+  (unverified), register 242 controls and 679 rows, IN-53 in recipe.engine_name, permissions and meanings (recipe-core
+  1030), interfaces and defaults D-P6e-1 to 10 (docs/build-plan/phase-6/slice-6e-0-interfaces.md). Database: the product
+  flag as a configuration area under change control with a second QA signature, fail-safe in effect (1031); dual custody
+  of dispensing, transfer, return and destruction, the guard on site.lot_consumption (1032); the batch account and the
+  stage sign-off guard on recipe.execution_command (1033); the reproducible register export with its hash (1034); WMS
+  moves of a controlled lot without a transfer record raise the PR-46 location exception (site services 0970); the
+  ceremony's content definers (tablets 1250) and the read rule (tablets 1290, after 6f's 1276 which re-creates
+  tab.record_read_problem; D-P6e-10). Contract ns/controlled.ts and CONTROLLED_ACT, server feature controlled, screens
+  /controlled and /controlled/batches/$batchId with the draft banner. Quick review: no critical or high; one core medium
+  fixed with a test (a batch could complete after its last checkpoint: recipe-core 1035, EBMR-CSM-043); build defects
+  P6e-B1 (kernel witness flag) and P6e-B2 (read rule range) in the defect log. Residuals in the plan (prompt not inside
+  the floor's TB-01 step; guards proven with superuser-written store rows, not a full engine run of a flagged product;
+  RETURN corrects the account only; aborted batches not held). Local runs (cluster 5439): typecheck and lint of changed
+  files clean, deps:check clean, register valid, handbook check passes; site services, api-contract and tablets-web
+  (846 passed), recipe-core execution and release (162 passed), the 17 IN-53 tests and the catalogue meta tests passed.
 - 2026-10-16: PHASE 6 SLICE 6d (branch phase-6/slice-6d; resumed after a container restart). origin/main (slice 6f) merged.
   Built on the earlier builder's 6d-0 interfaces, SQL (recipe-core 1010 to 1013, site services 0960, 0961, tablets 1280)
   and server feature: the web feature `genealogy` (explorer with tree, table, kind filter, as-of instant and CSV export;
@@ -2540,6 +2557,14 @@ Each brief = role + scope (two editions, India+US+EU, stricter wins, accuracy fi
   run before the session loads, recurrence counted up to now. Local runs (cluster 5439): typecheck, lint of the changed
   files and deps:check clean; the slice's site-services, tablets-server, api-contract and tablets-web tests passed (web
   suite 79 files, 564 tests); register valid; handbook check passes.
+- 2026-10-14: PHASE 6 SLICE 6a interface and builder detail (moved from PROGRESS.md):
+  Slice 6a on `phase-6/slice-6a`: 6a-0 (interface commit) done: `@ebmr/integration-sdk/adapter` (envelope, error
+  classes, retry rule, reconciliation, system contracts), kernel 1180 (integration adapters, `platform.accept_inbound`,
+  integration alarms, reconciliation, `platform.mirror_fresh_or_raise`), namespace `integrations` with its server reads;
+  signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-plan/phase-6/slice-6a-0-interfaces.md`.
+  Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
+  command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
+  none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.
 - 2026-10-16: PHASE 6 SLICE 6i (branch phase-6/slice-6i, from main after 6a, 6d, 6f). 6i-0 interface commit first
   (slice-6i-0-interfaces.md, D-P6i-0-1 to 12; tablets 1290 to 1299 taken, the plan gave 6i no tablets range). Built: kernel
   1220 (installation identity and key versions, peers trusted after QA's PEER_INSTALLATION_APPROVED, Ed25519 seals with

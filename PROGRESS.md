@@ -1,8 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6d and 6i).
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6c, 6d and 6g).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6c, 6d, 6e, 6g and 6i).
 
 ## What this is
 
@@ -116,6 +115,11 @@ adapter worker; endpoint identity (DI-20), native series and original records (D
 context and in review (DI-49), the EMS feed; plant rules PR-15, PR-22, PR-25, PR-27, PR-29, PR-35; screens including the
 trend viewer and the area authorisations. Quick review: Q-6b-1 (alarm acknowledgment scope, recipe-core 0976) fixed.
 Defaults and residuals in the plan's slice 6b section.
+Slice 6e (branch `phase-6/slice-6e`, 16 October, ready for PR): controlled-substance mode, the draft control IN-53 (status
+U, NDPS not verified; register 242 controls, 679 rows): product flag under change control with a second QA signature,
+dual custody of dispensing, transfers, returns and destruction (database guards), the controlled account closed at every
+stage sign-off and at batch completion, the reproducible register export; screens with the draft banner. Quick review: one
+core medium fixed (recipe-core 1035). Defaults D-P6e-1 to 10 and residuals in the plan; tablets 1290 added after 6f's and 6d's ranges.
 Slice 6d (branch `phase-6/slice-6d`, 16 October, ready for PR): `recipe.genealogy` both ways at any depth as of an
 instant over the insert-only event rows (no genealogy table), chemical recovery of returned goods (site services 0960,
 route `samples.recoverReturn`), distribution records from the ERP adapter (0961), mock recall stored with its hash and

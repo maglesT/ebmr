@@ -299,6 +299,20 @@ export {
 } from './ns/labels.ts';
 export { BatchPoolsView, L3MirrorView, SerialLookupView, SerialStatus } from './ns/serialisation.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
+export {
+  CheckpointState,
+  CheckpointView,
+  CONTROLLED_DRAFT_BANNER,
+  ControlledBalanceView,
+  ControlledProductView,
+  ControlledRecordState,
+  CustodyKind,
+  CustodyState,
+  CustodyView,
+  RegisterExtractSummary,
+  RegisterExtractView,
+  RegisterRow,
+} from './ns/controlled.ts';
 export { ContractGiverAccessView, ContractGiverBatchView, ContractGiverRecordView, SupportAccountView, SupportGrantState, SupportGrantView } from './ns/support.ts';
 export {
   AgeingBucket,

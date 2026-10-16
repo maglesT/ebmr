@@ -961,6 +961,44 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
   asking the database (review 6i-R3)` in [transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts).
 - **Lesson:** a route outside the session gate needs its own gate for cost, not only for identity.
 
+## Controlled substances (Phase 6 slice 6e, draft IN-53)
+
+### P6e-R1: a batch could complete after its last controlled checkpoint (slice 6e, review)
+- **What went wrong.** The stage sign-off guard (recipe-core 1033) closes the controlled-API account at every stage
+  sign-off, but nothing held the end of the batch: a return or a destruction confirmed after the last sign-off moved
+  the account, and the batch could still reach EXECUTION_COMPLETE with that movement accounted nowhere.
+- **Why it matters.** The account of a controlled API closes with no unexplained difference at every checkpoint
+  (IN-53); the end of the batch is the last one.
+- **Fix.** The move to EXECUTION_COMPLETE is refused (EBMR-CSM-043) while a controlled material that moved into the
+  batch has no signed checkpoint that is still current (recipe-core
+  [1035](../../packages/recipe-core/sql/1035_controlled_batch_end.sql)). An aborted or cancelled batch is not held; its
+  account is recorded afterwards.
+- **Test.** `[IN-53] a yield checkpoint with an unexplained difference of the controlled API is refused` (its last part)
+  in [controlled.test.ts](../../packages/site-services/test/controlled/controlled.test.ts).
+- **Lesson:** a guard on each step needs one on the end too, or the last movement escapes.
+
+### P6e-B1: a kernel witness meaning on a custody record (slice 6e, build)
+- **What went wrong.** The second custodian's meaning was first declared with the kernel's witness flag, which asks the
+  record for a witnessed act (terminal and time) and its window (EBMR-ESIG-050). A custody record names no act terminal,
+  so every countersignature was refused.
+- **Fix.** Like DESTRUCTION_WITNESSED (recipe-core 0840), CONTROLLED_CUSTODY_COUNTERSIGNED is a WITNESS-class meaning
+  without the kernel's witness window: it excludes the proposer and is independent of the first signature, and the
+  command refuses the first custodian (EBMR-CSM-022). Found by the first DB test run, before the commit.
+- **Lesson:** read what a meaning flag asks of the record before using it.
+
+### P6e-B2: a read rule changed inside the slice's range would have been undone (slice 6e, build)
+- **What went wrong.** Who may preview a record for signing is `tab.record_read_problem`, re-created in full by each
+  slice that changes it. Slice 6e's tablets range (1250 to 1258) runs before 6f's 1276, which re-creates it from 1042:
+  a change made in 1250 would have been undone, and the custodians on the floor could not see what they sign.
+- **Fix.** The read rule of the controlled records is in tablets
+  [1290](../../apps/tablets-server/sql/1290_controlled_read.sql), after 1276 and 6d's 1280 (default D-P6e-10; the plan's
+  migration table gains it; first numbered 1280, renumbered when 6d merged with that number).
+- **Test.** `[IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another
+  person second, never the same person twice` in
+  [controlled-routes.test.ts](../../apps/tablets-server/test/controlled/controlled-routes.test.ts).
+- **Lesson:** a function re-created in full belongs to the highest migration that touches it; check the numbers after
+  your range, not only inside it.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

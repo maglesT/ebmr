@@ -7,8 +7,13 @@ import { REPO_ROOT } from './paths.ts';
 export interface RunningProcess {
   name: string;
   child: ChildProcess;
+  /** The last output lines (at most TAIL_LINES), kept also when echo is off, for a start-up failure's message. */
+  tail(): string[];
   stop(): Promise<void>;
 }
+
+/** Output lines a process keeps for tail(). */
+export const TAIL_LINES = 40;
 
 export interface SpawnOptions {
   name: string;
@@ -30,10 +35,13 @@ export function spawnNode(opts: SpawnOptions): RunningProcess {
     env: { ...process.env, ...opts.env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
+  const recent: string[] = [];
   for (const stream of [child.stdout, child.stderr]) {
     if (!stream) continue;
     const rl = createInterface({ input: stream });
     rl.on('line', (line) => {
+      recent.push(line);
+      if (recent.length > TAIL_LINES) recent.shift();
       opts.onLine?.(line);
       if (opts.echo ?? true) process.stdout.write(`${tint}[${opts.name}]\u001b[0m ${line}\n`);
     });
@@ -41,6 +49,7 @@ export function spawnNode(opts: SpawnOptions): RunningProcess {
   return {
     name: opts.name,
     child,
+    tail: () => [...recent],
     stop: () =>
       new Promise<void>((resolve) => {
         if (child.exitCode !== null || child.signalCode !== null) {

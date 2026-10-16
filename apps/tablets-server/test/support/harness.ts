@@ -40,6 +40,7 @@ import {
   type SiteSeed,
 } from '@ebmr/test-kit';
 import { buildApp, type BuiltApp } from '../../src/app.ts';
+import { DEVICE_NONCE_RATE_LIMIT } from '../../src/features/session/index.ts';
 import { parseConfig, type ServerConfig } from '../../src/config.ts';
 import { newSessionToken, tokenHash } from '../../src/platform/auth/session.ts';
 
@@ -63,6 +64,37 @@ export interface ServerOptions {
    * copy of the template (the golden batches); dropped at close like a copy.
    */
   prepared?: { database: string; seed: SiteSeed };
+  /**
+   * Keep each terminal's device-nonce requests under the server's limit (DEVICE_NONCE_RATE_LIMIT, per terminal key and
+   * per address, counted on the wall clock): a long scripted run (the golden batches) waits instead of being refused when
+   * a fast runner would ask for more nonces in a minute than a person at the terminal could. The limit is unchanged.
+   */
+  paceDeviceNonces?: boolean;
+}
+
+/** Wall-clock pacing of device-nonce requests (ServerOptions.paceDeviceNonces): a rolling window under each limit. */
+export class NoncePacer {
+  private readonly byKey = new Map<string, number[]>();
+  constructor(
+    private readonly perTerminal: number,
+    private readonly perAddress: number,
+    private readonly windowMs: number,
+  ) {}
+  async take(terminal: string): Promise<void> {
+    for (;;) {
+      const now = Date.now();
+      const wait = Math.max(this.waitFor(terminal, this.perTerminal, now), this.waitFor('*', this.perAddress, now));
+      if (wait <= 0) break;
+      await new Promise((r) => setTimeout(r, wait));
+    }
+    const now = Date.now();
+    for (const k of [terminal, '*']) this.byKey.set(k, [...(this.byKey.get(k) ?? []), now]);
+  }
+  private waitFor(key: string, max: number, now: number): number {
+    const recent = (this.byKey.get(key) ?? []).filter((t) => t > now - this.windowMs);
+    this.byKey.set(key, recent);
+    return recent.length < max ? 0 : (recent[0] ?? now) + this.windowMs - now + 1;
+  }
 }
 
 export interface TestBrowser {
@@ -146,6 +178,8 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
   const config: ServerConfig = built.ctx.config;
   const seed = t.seed;
 
+  // A margin under each limit and a window a little longer than the server's minute (the counts are the server's own).
+  const pacer = opts.paceDeviceNonces ? new NoncePacer(DEVICE_NONCE_RATE_LIMIT.max - 10, DEVICE_NONCE_RATE_LIMIT.addressMax - 20, 61_000) : null;
   const makeBrowser = (terminalCode?: string): TestBrowser => {
     const code = terminalCode ?? (kind === 'GMP' ? 'PC-DESIGN-01' : 'TEST-PC-01');
     const key: DeviceKey | null = terminalOf(seed, code).key;
@@ -192,6 +226,7 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
         const spki = key.publicKeySpki;
         // As the browser does: the nonce request names the terminal's key (the nonce is bound to it) and shows the nonce
         // of this browser's last proof (its proof ticket, counted toward the terminal's own rate limit).
+        if (pacer) await pacer.take(code);
         const r = await client.call(routes.session.deviceNonce, { body: { spki, ...(state.lastNonce !== undefined ? { lastNonce: state.lastNonce } : {}) } });
         if (!r.ok) throw new Error(`no nonce: ${JSON.stringify(r.error)}`);
         state.lastNonce = r.value.nonce;

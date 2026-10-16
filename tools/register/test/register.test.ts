@@ -41,9 +41,9 @@ describe('catalog parser', () => {
 });
 
 describe('control register', () => {
-  it('[meta] is valid: 241 controls, schema, references to requirement rows', () => {
+  it('[meta] is valid: 242 controls (the draft IN-53 included), schema, references to requirement rows', () => {
     expect(validateRegister()).toEqual([]);
-    expect(loadControls()).toHaveLength(241);
+    expect(loadControls()).toHaveLength(242);
   });
 
   it('[meta] every requirement row is used by a control or documented as not an eBMR function', () => {

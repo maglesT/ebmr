@@ -161,7 +161,9 @@ describe('the inbound package (site services 0981; L-41)', () => {
     expect(await refusal(goa.releaseForFurtherProcessing(received.lotId))).toMatch(/EBMR-XFR-040 .* not yet accepted/);
     expect(await refusal(goa.bypassReservation(received.lotId))).toMatch(/EBMR-XFR-040/);
     // The decision is QA's: the stores and an administrator are refused; a signature by another person is refused.
-    expect(await refusal(goa.decide(received.receiptId, 'ACCEPTED', null, goa.stores))).toMatch(/EBMR-IAM-054 .*NO_SIGNING_PERMISSION/);
+    // The stores sign other acts (dual custody of a controlled API, recipe-core 1030, IN-53), so the refusal is the
+    // authority check of this meaning, not the readiness check.
+    expect(await refusal(goa.decide(received.receiptId, 'ACCEPTED', null, goa.stores))).toMatch(/EBMR-ESIG-040 .*TRANSFER_RECEIPT_ACCEPTED.*ROLE_NOT_HELD_WITH_PERMISSION_IN_SCOPE/);
     const sig = await signFor(goa.db, goa.ap, { type: 'transfer_receipt', id: received.receiptId }, 'TRANSFER_RECEIPT_ACCEPTED', 'RECEIVED');
     expect(await refusal(goa.run(goa.qa, "select site.decide_transfer_receipt($1, 'ACCEPTED', $2, null) as r", [received.receiptId, sig]))).toMatch(/EBMR-XFR-036/);
     // Accepted by local QA: the receipt is ACCEPTED, then the ordinary release makes the lot usable.

@@ -7,8 +7,8 @@ How the eBMR code base is organised, how to run it, and how to change it safely.
 
 | Path | What lives there |
 |---|---|
-| `compliance/controls/` | One YAML file per regulatory control (241). The source of truth for what the system must do, which phase proves it, and the expert's decision. |
-| `compliance/requirements/` | The 678 clause-level requirements (n-numbers) the controls are built from. |
+| `compliance/controls/` | One YAML file per regulatory control (242: the 241 of the review pack and the draft IN-53). The source of truth for what the system must do, which phase proves it, and the expert's decision. |
+| `compliance/requirements/` | The 679 clause-level requirements (n-numbers) the controls are built from. |
 | `compliance/schema/` | JSON schema every control file must satisfy. |
 | `compliance/phase.yaml` | The phase the repository is in. CI requires a passing test for every control due by this phase. |
 | `packages/kernel` | Compliance kernel shared by both editions: identity, access, e-signatures, audit trail, time, sealing, control register, market-profile engine, retention, true copies. Imports nothing else in the repo. |

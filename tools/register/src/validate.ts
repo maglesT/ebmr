@@ -9,7 +9,7 @@ import { Ajv2020 } from 'ajv/dist/2020.js';
 import { loadControls, loadRequirements, ROOT, SCHEMA_FILE, type ControlRecord } from './register.ts';
 import { missingListedTests, type DeclaredTest } from './test-index.ts';
 
-export const EXPECTED_COUNTS = { DI: 50, PR: 60, ST: 79, IN: 52 } as const;
+export const EXPECTED_COUNTS = { DI: 50, PR: 60, ST: 79, IN: 53 } as const;
 
 /** Text compared word for word: runs of white space count as one space. */
 export const words = (s: string): string => s.replace(/\s+/g, ' ').trim();

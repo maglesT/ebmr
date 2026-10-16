@@ -1060,6 +1060,16 @@ against the code before relying on it.
 | [`site.suspend_export_permission`](../../../packages/site-services/sql/0885_india_licences.sql#sym=site.suspend_export_permission) | 0885 | `IND-015` unknown export permission …<br>`IND-019` export permission … is …; only an approved permission is suspended |
 | [`site.suspend_manufacturing_licence`](../../../packages/site-services/sql/0885_india_licences.sql#sym=site.suspend_manufacturing_licence) | 0885 | `IND-008` unknown licence …<br>`IND-012` licence … is …; only an approved licence is suspended |
 
+## Controlled API lots in the WMS (site services 0970)
+
+Phase 6 slice 6e, draft control [IN-53](../../../compliance/controls/IN-53.yaml).
+[0970](../../../packages/site-services/sql/0970_controlled_wms_moves.sql) re-creates `site.apply_wms_stock_move` (0911)
+with one addition: a move of a lot whose material is controlled for some product in effect (`plant.material_is_controlled`,
+recipe-core 1031) needs a CONFIRMED TRANSFER custody record from and to the same locations for exactly the quantity sent
+(`recipe.controlled_transfer_for`, recipe-core 1032), which the move uses once. A move without one already happened, so it
+is recorded with the problem, the alarm and the location exception of 0911, which blocks the lot until QA closes it with a
+deviation (D-P6a-7). Test: the WMS block of
+[controlled.test.ts](../../../packages/site-services/test/controlled/controlled.test.ts).
 ## Chemical recovery and distribution records (Phase 6 slice 6d; site services 0960, 0961)
 
 [0960_chemical_recovery.sql](../../../packages/site-services/sql/0960_chemical_recovery.sql)

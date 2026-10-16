@@ -27,6 +27,7 @@ import * as config from '../../src/features/config/index.tsx';
 import * as genealogy from '../../src/features/genealogy/index.tsx';
 import * as transfers from '../../src/features/transfers/index.tsx';
 import * as governance from '../../src/features/governance/index.tsx';
+import * as controlled from '../../src/features/controlled/index.tsx';
 import * as india from '../../src/features/india/index.tsx';
 import * as integrations from '../../src/features/integrations/index.tsx';
 import * as notifications from '../../src/features/notifications/index.tsx';
@@ -93,7 +94,7 @@ export function renderOffice(path: string, opts: OfficeOptions = {}) {
   setTransport(transport);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
   const root = createRootRoute({ component: () => <Outlet /> });
-  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...review.routes(root), ...release.routes(root), ...notifications.routes(root), ...designer.routes(root), ...records.routes(root), ...pqr.routes(root), ...india.routes(root), ...capa.routes(root), ...integrations.routes(root), ...plantStatus.routes(root), ...config.routes(root), ...governance.routes(root), ...labels.routes(root), ...genealogy.routes(root), ...transfers.routes(root)]);
+  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...review.routes(root), ...release.routes(root), ...notifications.routes(root), ...designer.routes(root), ...records.routes(root), ...pqr.routes(root), ...india.routes(root), ...capa.routes(root), ...integrations.routes(root), ...plantStatus.routes(root), ...config.routes(root), ...governance.routes(root), ...controlled.routes(root), ...labels.routes(root), ...genealogy.routes(root), ...transfers.routes(root)]);
   const router = createRouter({ routeTree: tree, history: createMemoryHistory({ initialEntries: [path] }) });
   const ceremony = opts.ceremony ?? signedCeremony();
   const tap = fakeTap();

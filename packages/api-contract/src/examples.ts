@@ -65,6 +65,7 @@ import rc from '../fixtures/receipt.json' with { type: 'json' };
 import ind from '../fixtures/india.json' with { type: 'json' };
 import pq from '../fixtures/pqr.json' with { type: 'json' };
 import gv from '../fixtures/governance.json' with { type: 'json' };
+import cs from '../fixtures/controlled.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
 import gn from '../fixtures/genealogy.json' with { type: 'json' };
 import db6g from '../fixtures/dashboards.json' with { type: 'json' };
@@ -507,6 +508,16 @@ export const EXAMPLES = {
   'esig-dsc-enrolment': { schema: r.esig.dscEnrolment.response, data: gv.dscEnrolment, routeId: r.esig.dscEnrolment.id },
   'esig-enrol-dsc': { schema: r.esig.enrolDsc.response, data: gv.dscEnrolment, routeId: r.esig.enrolDsc.id },
   'esig-end-dsc-enrolment': { schema: r.esig.endDscEnrolment.response, data: { ...gv.dscEnrolment, enrolments: gv.dscEnrolment.enrolments.map((e) => ({ ...e, live: false })) }, routeId: r.esig.endDscEnrolment.id },
+  // Phase 6 slice 6e: controlled-substance mode (IN-53, draft).
+  'controlled-products': { schema: r.controlled.products.response, data: { banner: cs.banner, products: [cs.product, cs.productPending] }, routeId: r.controlled.products.id },
+  'controlled-record-product': { schema: r.controlled.recordProduct.response, data: cs.productPending, routeId: r.controlled.recordProduct.id },
+  'controlled-custody': { schema: r.controlled.custody.response, data: { banner: cs.banner, records: [cs.dispenseAwaiting, cs.dispenseConfirmed, cs.transfer, cs.destructionProposed] }, routeId: r.controlled.custody.id },
+  'controlled-propose-custody': { schema: r.controlled.proposeCustody.response, data: cs.destructionProposed, routeId: r.controlled.proposeCustody.id },
+  'controlled-balance': { schema: r.controlled.balance.response, data: cs.balance, routeId: r.controlled.balance.id },
+  'controlled-record-checkpoint': { schema: r.controlled.recordCheckpoint.response, data: cs.checkpointExplained, routeId: r.controlled.recordCheckpoint.id },
+  'controlled-register-extracts': { schema: r.controlled.registerExtracts.response, data: { banner: cs.banner, extracts: [cs.extractSummary] }, routeId: r.controlled.registerExtracts.id },
+  'controlled-run-register': { schema: r.controlled.runRegister.response, data: cs.extract, routeId: r.controlled.runRegister.id },
+  'controlled-register-extract': { schema: r.controlled.registerExtract.response, data: cs.extract, routeId: r.controlled.registerExtract.id },
   // Phase 6 slice 6g: dashboards, change impact, training mode.
   'dashboards-right-first-time': { schema: r.dashboards.rightFirstTime.response, data: db6g.rightFirstTime, routeId: r.dashboards.rightFirstTime.id },
   'dashboards-exception-pareto': { schema: r.dashboards.exceptionPareto.response, data: db6g.exceptionPareto, routeId: r.dashboards.exceptionPareto.id },
@@ -536,6 +547,9 @@ export const GOVERNANCE_ROUTE_IDS: readonly string[] = [
   r.esig.enrolDsc,
   r.esig.endDscEnrolment,
 ].map((route) => route.id);
+
+/** Phase 6 slice 6e: the controlled routes, each with an example above (checked by the controlled contract test). */
+export const CONTROLLED_ROUTE_IDS: readonly string[] = Object.values(r.controlled).map((route) => route.id);
 
 /** Phase 4 slice 6a: the india routes, each with an example above (checked by the india contract test). */
 export const INDIA_ROUTE_IDS: readonly string[] = Object.values(r.india).map((route) => route.id);
