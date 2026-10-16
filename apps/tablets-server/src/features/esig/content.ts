@@ -36,7 +36,7 @@ export function contentNotFound(aggregateType: string, aggregateId: string): Err
 }
 
 /** The kernel's content to be signed as the database answers it (esig.content_for_signing's shape). */
-function contentOf(aggregateType: string, aggregateId: string, r: Record<string, unknown>): esig.ContentForSigning {
+export function contentOf(aggregateType: string, aggregateId: string, r: Record<string, unknown>): esig.ContentForSigning {
   const out: esig.ContentForSigning = { exists: r['exists'] === true, aggregateType, aggregateId };
   if (typeof r['problem'] === 'string') out.problem = r['problem'];
   if (out.exists) {

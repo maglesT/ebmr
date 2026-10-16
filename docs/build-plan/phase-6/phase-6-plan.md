@@ -62,7 +62,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 | 6e | Controlled-substance mode (decision 0001 item 14 = A) | IN-53 (draft, added) | 6a-0 |
 | 6f | Governance: configuration change control and diff as of a date, RBE rules under change control, support grant, contract-giver reviewer, notification delivery, India DSC with the test CA, designer and PQR residuals | DI-08, DI-09 x2, DI-26, PR-52, IN-30, IN-39, IN-10, IN-27, IN-33, PR-09, PR-49 | none |
 | 6g | Dashboards, change-impact explorer, training mode; the read-only reporting path | PR-05 | 6b, 6d |
-| 6h | Languages: Hindi and Gujarati, MBR translations approved with the version, language shown recorded | (R-34, outline 7.4; no exit control) | screens of 6a to 6g settled |
+| 6h | **Dropped (decision 0018: English only).** Was: languages, MBR translations approved with the version, language shown recorded | (R-34, outline 7.4; no exit control) | screens of 6a to 6g settled |
 | 6i | Inter-site transfer packages and federated genealogy with as-of points (L-41) | PR-57 (sites), DI-31 (package) | 6d |
 | 6j | Phase 6 exit: clauses, trace at 6, golden batches, browser suite, one review pass | all of the above | all |
 
@@ -490,6 +490,77 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     verified by the server, so it does not conflict with ADR 0006 (no signing on offline devices).
   - **D-P6f-4** The IN-10 clause is proven with the test CA standing for the CCA root (decision 0001 item 3); the real
     chain is verified at deployment. Listed for the owner (question 4).
+- **Builder A defaults (15 October; kernel 1195 and 1196, recipe-core 1050 and 1051, tablets 1270):**
+  - **D-P6f-A-1** Configuration change records are kernel rows (`platform.change_record`: raised, approved by the quality
+    unit's CONFIG_CHANGE_APPROVED e-signature by someone other than the raiser, closed). The MBR change record
+    (`recipe.change_record`, PR-06) keeps governing master records. A QMS feed of change records is deployment.
+  - **D-P6f-A-2** Rows written under the software-release identity (migrations) are a release, which has its own change
+    control; they need no change record and are kept as versions with basis RELEASE.
+  - **D-P6f-A-3** Areas in v1: platform settings (with the 6a adapter modes and freshness bounds), identity and
+    e-signature policies, the signature catalogue, market policies, site values, RBE rules. Slice 6b registers its alarm
+    limits with `platform.register_config_area`; the DI-09 scan test fails on any table named like configuration that is
+    neither registered nor listed with a reason. Roles and permissions, retention rules, rule tables (their own signed
+    approval) and report templates are not areas in v1 (owner question below).
+  - **D-P6f-A-4** "As of a date" reads the version whose validity started last before it: the recorded instant, or the
+    effective instant for market policies; site values are keyed with their effective date.
+  - **D-P6f-A-5** An RBE rule sets per review category the least severity the review shows; a mandatory category is never
+    switched off; customer-added exception types wait for configurable exception types.
+  - **D-P6f-A-6** The validation reference of a REVIEW_BY_EXCEPTION reduction must be one of the validations recorded on
+    the MBR version's change record; checked at SUBMIT by replacing the PR-07 guard function (same name; machine unchanged).
+  - **D-P6f-A-7** An excursion notifies both departments always (the G-11 `notify` roles stay the run's own record).
+  - **D-P6f-A-8** Raising and closing: PROCESS_OWNER, CSV_DI_LEAD, MASTER_DATA_STEWARD, QA_MBR_APPROVER; approving:
+    QA_REVIEWER, QA_MBR_APPROVER.
+  - **D-P6f-A-9** (lead decision, 15 October; kernel 1196) Role definitions (`iam.role`), the permission sets of roles
+    (`iam.role_permission`, a removal included) and the retention rules (`records.retention_rule_set`,
+    `records.retention_rule`) are configuration areas under the same guard and as-of versioning. Reason: they decide who
+    may sign and how long GMP records are kept; the stricter rule wins. A person's role grant and a delegation from one
+    person to another stay their own signed IAM acts (not configuration); whether a meaning may be delegated is the
+    signature catalogue (ESIG_MEANING).
+  - **D-P6f-A-10** (lead decision) The drift-from-baseline alarm of DI-09 stays in Phase 7, with DI-06.
+- **Builder B defaults (recorded at the slice close, 16 October; kernel 1202 to 1206, recipe-core 1060 to 1062, tablets
+  1275, 1276):**
+  - **D-P6f-B-1** A support grant names one active, personal account holding VENDOR_SUPPORT, the vendor, the purpose and
+    1 to `iam.support_grant_max_hours` hours (default 8, at most 72); the window starts at the second approval; no
+    extension (a new request); one live grant per account; QA, IT or the requester's side may revoke it early.
+  - **D-P6f-B-2** The two customer signatures are QA (SUPPORT_ACCESS_QA_APPROVED: the quality-unit approver or the
+    authorised person) and IT (SUPPORT_ACCESS_IT_APPROVED: the system or process owner), two distinct people, neither the
+    requester nor the engineer. Each support login and each refusal raises an alert for review.
+  - **D-P6f-B-3** The contract giver's reviewer reads the batches of one loan licence through an access QA grants for at
+    most `recipe.contract_giver_access_max_days` (default 90, 1 to 365); every record opened is logged; the account holds
+    READ permissions only (checked at grant and at each read) and the server keeps it on its own routes.
+  - **D-P6f-B-4** The DSC statement is the database's canonical JSON of the challenge id, record, content version, content
+    hash and meaning; the server parses X.509 and verifies chain and signature (the database cannot), the database checks
+    what it can (same transaction, the challenge's statement, the chain ends at the live anchor) and refuses to commit a
+    required DSC that is missing.
+  - **D-P6f-B-5** The trust anchor and the per-meaning setting are set by the quality unit (MBR.APPROVE, never an
+    administrator) under a change record (kernel 1205); a LICENSED anchor cannot be registered in v1.
+  - **D-P6f-B-6** The signing bridge is a local program on the signer's PC on the loopback interface (127.0.0.1:8746); a page
+    may install its own (`window.ebmrDscBridge`) for the demo's token simulator and the tests. No private key reaches the
+    browser or the server.
+  - **D-P6f-B-7** The MBR edition review lists versions not RETIRED or WITHDRAWN whose content cites a recorded edition
+    older than the effective one; an edition not recorded yet is never listed as older (the specification rule).
+  - **D-P6f-B-8** The PQR extract version 2 adds `cpp`: the VALID values of the CRITICAL parameters (PROCESS_PARAMETER, IPC,
+    PROCESS_ENDPOINT) and the CURRENT derived values of CRITICAL calculations of each batch, from the record and its issued
+    master; an extract of version 1 still reproduces with version 1.
+  - **D-P6f-B-9** (review fix, kernel 1206) A DSC is accepted only from the certificate enrolled for the signer: the person
+    enrols their own token's certificate in their own command with a proof of possession over a statement naming the
+    person and account; a certificate is live for one person only; a new enrolment ends the old one; an enrolment counts
+    only under the anchor it was verified against; the person or QA ends one.
+  - **D-P6f-B-10** PR-49 (the third-recurrence warning on the certification screen) is listed in the slice table row for 6f
+    but its feature and test are specified in slice 6d (deviation impact and recurrence); it is built there, not in 6f.
+- **Review (one pass, 16 October):** one high fixed with tests: a DSC from any certificate of the CA was accepted beside
+  any person's signature (kernel 1206, D-P6f-B-9; EBMR-ESIG-086 to 088). Clause mappings: the eleven 6f clauses deferred to
+  Phase 6 by decision 0011 (DI-08.1, DI-09.2 and .3, DI-26.3, PR-52.2, IN-30.2, IN-39.2, IN-10.2, IN-27.1, IN-33.1, PR-09.2)
+  now name their passing tests.
+- **Residuals (6f):**
+  - The DSC checks no certificate revocation (CRL or OCSP) and no key-usage or path-length extension; the test CA has no
+    revocation service. With a licensed CA at deployment, revocation and key usage are checked (IN-10, question 4).
+  - An enrolment is the signer's own act with a proof of possession; no second person compares the certificate subject
+    with the person's verified identity (a deployment SOP or a later identity check).
+  - The designer's PPE and decontamination steps (IN-27) are inserted when a family is created from a template; a later
+    edit that removes them is caught by MBR review and approval, not by a database guard (application feature class).
+  - The contract giver's reviewer is kept on its own routes by the server (bind.ts); the database scopes and logs the
+    reads of its own functions only (as planned, class "other" for the routing).
 - **Migrations:** kernel 1195 to 1209 (configuration versions, support grant, contract-giver role, DSC), recipe-core
   1050 to 1069 (RBE rules, designer, edition review, PQR CPP), site-services none.
 - **Handbook:** `modules/kernel.md` (configuration, DSC, support), `modules/recipe-core.md`, `modules/tablets-web.md`,
@@ -524,7 +595,10 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **Handbook:** `modules/tablets-web.md`, `modules/recipe-core.md`, `03-architecture.md` (reporting path),
   `10-runbooks.md` (training mode), `08-defect-log.md`.
 
-### Slice 6h: languages (Hindi and Gujarati)
+### Slice 6h: languages (DROPPED, decision 0018: English only)
+
+Decision 0018 (owner, 15 October): English only; this slice is not built. The text below is kept as the design to
+follow if a language is added after v1.
 
 - **Database guards first (core, language never changes a limit, unit or meaning; outline 7.4):** MBR instruction
   translations are stored per MBR version and language, reviewed bilingually and approved with that version (a
@@ -590,7 +664,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 - **6j-b golden batches and browser suite:** GB-T-01 and GB-T-02 unchanged with exact outputs (adapters in stand-in
   mode); a new GB-T-03 "connected" (ERP/WMS and LMS/CMMS mirrors, OPC UA press, L3/L4 serialisation, mock recall from
   its API lot) with exact outputs; browser flows for the integration health page with a stale mirror refusal, alarm
-  acknowledgment, trend viewer, genealogy explorer and mock recall, controlled dispensing, Hindi step screen.
+  acknowledgment, trend viewer, genealogy explorer and mock recall, controlled dispensing, English step screen.
 - **6j-c review:** one review pass over Phase 6 (serious defects only, decision 0008), critical and high fixed with
   their tests, at most 2 fix rounds, residuals to the backlog for the owner.
 - **Final run:** the full suite, golden batches, browser suite, `pnpm trace` at 6, `pnpm handbook:check`, all green in
@@ -628,6 +702,7 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
 | tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
+| tablets, added | | | | | | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.
@@ -647,14 +722,10 @@ released migration; replace a function in a new one.
   slice 6a (for example D-6a-7 in PROGRESS.md).
 - **D-P6-7** Golden batches: GB-T-01 and GB-T-02 outputs stay exact; one new GB-T-03 "connected"; roller compaction
   and bilayer stay Phase 7 (D-P4-15).
+## Owner questions (owner, 15 October: no questions are asked; each default below is taken as the decision)
 
-## Open for the owner (defaults stand until answered)
-
-1. **Regional language** (product choice): Gujarati (default, D-P6h-1) or another (Marathi, Telugu, Tamil, Kannada,
-   Bengali). Default: Gujarati.
-2. **Translation approval** (regulatory weight: MBR instructions are GMP content): who is the bilingual reviewer for
-   the UI catalogue and the demo MBR translations? Default: model drafts marked DRAFT, shown as "draft translation";
-   real approval by the customer's bilingual reviewer at deployment (D-P6h-2).
+1. **Languages:** answered by the owner, decision 0018: English only; slice 6h dropped.
+2. **Translation approval:** no longer applies (decision 0018).
 3. **IN-53 wording and scope** (legal weight): the draft control text paraphrases outline decision 14; the NDPS
    register export format and importing-market controls (US DEA, EU) are not verified. Default: outline wording,
    status U, `expert_decision` PENDING, generic export, importing-market controls out of v1 (D-P6e-2, D-P6e-3).
@@ -704,7 +775,7 @@ reconcile). Contract tests per adapter against its simulator. Demo flows as `@of
   suite, all green in one final run. Mutation campaigns stay for deployment.
 - **Demo:** ERP, QMS, LMS and CMMS exchanging data under injected faults (a stale LMS mirror refuses a step
   signature); a press excursion over OPC UA acknowledged with a comment in the batch's alarm log; a serial query; a
-  mock recall from an API lot to every consignee; controlled dispensing under dual custody; Hindi and Gujarati step
+  mock recall from an API lot to every consignee; controlled dispensing under dual custody; English step
   screens; a lot transferred between two sites and accepted by local QA.
 
 ## Order, agents and close

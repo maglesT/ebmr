@@ -44,8 +44,9 @@ describe('reference documents (DMS stand-in)', () => {
   it('[PR-03][DI-04] lists the seeded DEMO-ONLY documents with their hash, all EFFECTIVE today', async () => {
     const author = await server.asPersona('author');
     const r = valueOf(await author.call(routes.designer.referenceDocuments));
-    // 39, plus the references of the golden batches' masters (Phase 4 slice 7b, reference-catalogue.ts).
-    expect(r.documents).toHaveLength(61);
+    // 39, plus the references of the golden batches' masters (Phase 4 slice 7b, reference-catalogue.ts), plus the PPE
+    // and decontamination SOPs of a hazardous product (Phase 6 slice 6f, IN-27).
+    expect(r.documents).toHaveLength(63);
     expect(r.documents.every((d) => d.status === 'EFFECTIVE' && /^[0-9a-f]{64}$/.test(d.hash))).toBe(true);
     expect(r.documents.map((d) => d.code)).toContain('SYS-WEIGH-01');
   });

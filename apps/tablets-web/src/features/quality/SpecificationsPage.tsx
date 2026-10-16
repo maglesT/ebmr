@@ -205,6 +205,15 @@ function EditionReview() {
           </li>
         ))}
       </ul>
+      <h3>Master records citing an older edition</h3>
+      {q.data && q.data.mbrs.length === 0 ? <p>No master record cites an edition older than the one effective now.</p> : null}
+      <ul data-testid="edition-review-mbrs">
+        {q.data?.mbrs.map((i) => (
+          <li key={`${i.versionId}:${i.citedIn}:${i.pharmacopoeia}`}>
+            {i.familyCode} version {i.versionNumber} ({i.state ?? 'no state'}), {i.citedIn}: cites {i.pharmacopoeia} {i.cited}; effective now {i.effective}
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }

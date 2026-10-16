@@ -62,8 +62,42 @@ export function PqrExtractPage() {
           ))}
         </ul>
       </Section>
+      <Section title="Critical process parameters, IPC results and yields (typed, as recorded)" testId="pqr-cpp">
+        {v.cpp.length === 0 ? <p>No typed CPP value in this extract (query version {v.queryVersion}).</p> : null}
+        {v.cpp.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Batch</th>
+                <th scope="col">Parameter or calculation</th>
+                <th scope="col">Step</th>
+                <th scope="col">Attempt</th>
+                <th scope="col">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {v.cpp.map((c) => (
+                <tr key={`${c.batchNumber}:${c.ref}`} data-testid={`pqr-cpp-${c.batchNumber}-${c.id}`} data-failed={String(c.failed)}>
+                  <td>{c.batchNumber}</td>
+                  <td>{c.id}</td>
+                  <td>{c.step}</td>
+                  <td>{c.attempt}</td>
+                  <td>{cppValue(c.value)}{c.failed ? ' (failed its limits)' : ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+      </Section>
     </>
   );
+}
+
+/** A typed value as recorded: a decimal with its unit, a series of readings, or the value itself. */
+function cppValue(v: Record<string, unknown>): string {
+  if (Array.isArray(v['values'])) return `${(v['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof v['unit'] === 'string' ? v['unit'] : ''}`.trim();
+  if ('value' in v) return `${typeof v['value'] === 'string' ? v['value'] : JSON.stringify(v['value'])}${typeof v['unit'] === 'string' ? ` ${v['unit']}` : ''}`;
+  return JSON.stringify(v);
 }
 
 function Reconciliation({ view: v }: { view: PqrExtractView }) {

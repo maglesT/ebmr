@@ -8,6 +8,7 @@
 import {
   routes,
   type FinishedLotView,
+  type MbrEditionReviewItem,
   type LotDecisionProposalView,
   type ReturnView,
   type SampleView,
@@ -237,7 +238,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const { rows } = await pool.query<{ r: { specificationId: string; siteCode: string; materialCode: string; version: number; testCode: string; pharmacopoeia: 'IP'; cited: string; effective: string }[] }>(
         'select site.specification_edition_review() as r',
       );
-      return { items: rows[0]?.r ?? [] };
+      // IN-33 (recipe-core 1061): the master records citing an older edition are on the same list.
+      const mbrs = await pool.query<{ r: MbrEditionReviewItem[] }>('select recipe.mbr_edition_review() as r');
+      return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r ?? [] };
     },
     lotReleaseCheck: async ({ params, requireSession }) => {
       requireSession();

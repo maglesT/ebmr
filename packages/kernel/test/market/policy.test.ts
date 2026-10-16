@@ -16,6 +16,7 @@ import {
   setPolicyVersion,
   type PolicyVersion,
 } from '../../src/market/policy.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { seedActor } from '../identity/seed.ts';
 import { approvalIntegrity, approvePolicyVersion, asApp, MARKET_ROLES, signApproval, testActor } from './helpers.ts';
@@ -23,6 +24,7 @@ import { approvalIntegrity, approvePolicyVersion, asApp, MARKET_ROLES, signAppro
 let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
 });
 afterAll(async () => {
   await db.drop();
@@ -40,7 +42,7 @@ async function asAdmin(sql: string, params: unknown[] = [], reasonCode?: string)
   const client = await db.admin.connect();
   try {
     await client.query('begin');
-    await client.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(await testActor(db, reasonCode ? { reasonCode } : {})))]);
+    await client.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(underChange(await testActor(db, reasonCode ? { reasonCode } : {}))))]);
     await client.query(sql, params);
     await client.query('commit');
   } catch (error) {
@@ -131,12 +133,12 @@ describe('approval of a policy version (DI-09) and the level of a switch', () =>
   it('[INV-47][DI-09] the author of a loosening cannot approve it, and nobody outside the quality unit can sign the approval', async () => {
     const author = await seedActor(db, { roleCode: MARKET_ROLES.policy });
     const code = `S9.self${randomUUID().slice(0, 6)}`;
-    await withCommand(db.app, { ...author, correlationId: randomUUID() }, (c) =>
+    await withCommand(db.app, underChange({ ...author, correlationId: randomUUID() }), (c) =>
       definePolicy(c, { code, title: 'self-approval test', level: 'TENANT', positions: ['OFF', 'ON'], defaultPosition: 'ON', controls: ['DI-09'] }),
     );
     const own = await approvePolicyVersion(db, code, 'OFF', author);
     await expect(
-      withCommand(db.app, { ...author, correlationId: randomUUID() }, (c) => setPolicyVersion(c, code, 'OFF', { approvalId: own, changeRef: 'CC-203' })),
+      withCommand(db.app, underChange({ ...author, correlationId: randomUUID() }), (c) => setPolicyVersion(c, code, 'OFF', { approvalId: own, changeRef: 'CC-203' })),
     ).rejects.toThrow('EBMR-MKT-075');
     const operator = await seedActor(db, { roleCode: 'OPERATOR' });
     await expect(signApproval(db, operator, await policyVersionApprovalTarget(db.app, code, 'OFF'))).rejects.toThrow('EBMR-ESIG-040');

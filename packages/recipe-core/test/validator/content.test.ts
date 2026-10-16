@@ -536,6 +536,14 @@ describe('risk-based reductions (IN-02)', () => {
     expect(errors(validate(m))).toEqual([]);
   });
 
+  it('[PR-52] review by exception on a step without a validation reference is an error at configuration time', () => {
+    const m = clone(loadFixture('tablet-granulation-compression'));
+    m.riskReductions.push({ id: 'RR-RBE', kind: 'REVIEW_BY_EXCEPTION', subjects: ['p-blend-clear'], riskClass: 'LOW', rationale: 'RA-GRAN-01' });
+    expect(errors(validate(m)).find((f) => f.rule === 'GMP-RISK')?.message).toMatch(/RR-RBE \(review by exception\) has no validation reference.*PR-52/);
+    m.riskReductions[m.riskReductions.length - 1] = { id: 'RR-RBE', kind: 'REVIEW_BY_EXCEPTION', subjects: ['p-blend-clear'], riskClass: 'LOW', rationale: 'RA-GRAN-01', validationRef: 'PV-RBE-01' };
+    expect(errors(validate(m))).toEqual([]);
+  });
+
   it('[IN-02] a reduction cannot apply to a step of the wrong kind (one-verifier mode on a manual step)', () => {
     const m = clone(loadFixture('tablet-granulation-compression'));
     m.riskReductions.push({ id: 'RR-BAD', kind: 'ONE_VERIFIER', subjects: ['p-disp-api'], riskClass: 'LOW', rationale: 'RA-GRAN-01' });

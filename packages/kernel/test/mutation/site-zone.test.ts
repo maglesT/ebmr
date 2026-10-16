@@ -24,12 +24,14 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../src/db/command.ts';
 import { setPolicy } from '../../src/identity/admin.ts';
 import { seedAdministration, withReason, type SeedAdministration } from '../identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 
 let db: TestDatabase;
 let adm: SeedAdministration;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
 });
 afterAll(async () => {
@@ -38,7 +40,7 @@ afterAll(async () => {
 
 /** The administrator (IAM.POLICY_MANAGE) sets a policy value through iam.set_policy, in a command with its reason. */
 const setAs = (key: string, value: string, reason = 'DI-19 test: policy change'): Promise<void> =>
-  withCommand(db.app, withReason(adm.admin, 'POLICY_CHANGE', reason), (c: pg.PoolClient) => setPolicy(c, key, value, reason));
+  withCommand(db.app, underChange(withReason(adm.admin, 'POLICY_CHANGE', reason)), (c: pg.PoolClient) => setPolicy(c, key, value, reason));
 
 /** The value in force (iam.policy_text: the last recorded value, else the default). */
 async function inForce(key: string): Promise<string> {

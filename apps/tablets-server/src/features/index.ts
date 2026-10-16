@@ -11,12 +11,14 @@ import * as alarms from './alarms/index.ts';
 import * as archive from './archive/index.ts';
 import * as audit from './audit/index.ts';
 import * as capa from './capa/index.ts';
+import * as configChange from './config-change/index.ts';
 import * as containers from './containers/index.ts';
 import * as designer from './designer/index.ts';
 import * as devices from './devices/index.ts';
 import * as esig from './esig/index.ts';
 import * as equipmentData from './equipment-data/index.ts';
 import * as plantRules from './plant-rules/index.ts';
+import * as governance from './governance/index.ts';
 import * as erpShipping from './erp-shipping/index.ts';
 import * as execution from './execution/index.ts';
 import * as india from './india/index.ts';
@@ -65,6 +67,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'alarms', installations: ['GMP'], module: alarms satisfies FeatureModule },
   { name: 'equipment-data', installations: ['GMP'], module: equipmentData satisfies FeatureModule },
   { name: 'plant-rules', installations: ['GMP'], module: plantRules satisfies FeatureModule },
+  { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
+  { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

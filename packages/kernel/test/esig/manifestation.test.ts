@@ -9,6 +9,7 @@ import { withCommand } from '../../src/db/command.ts';
 import { getManifestation, manifestationExport, renderManifestation } from '../../src/esig/manifestation.ts';
 import { renamePerson, setPolicy as setIamPolicy } from '../../src/identity/admin.ts';
 import { seedAdministration, withReason } from '../identity/seed.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import {
   asSuperuserTransaction,
@@ -26,6 +27,7 @@ let db: TestDatabase;
 beforeAll(async () => {
   db = await createTestDatabase();
   await ensureSealKey(db);
+  await ensureFixtureChangeRecord(db);
 });
 
 afterAll(async () => {
@@ -106,7 +108,7 @@ describe('manifestation elements (DI-36)', () => {
     const op = await testActor(db);
     const id = await createStub(db, op);
     try {
-      await withCommand(db.app, withReason({ ...admin, siteZone: 'Asia/Kolkata' }), (c) => setIamPolicy(c, 'site.zone', 'Europe/Berlin', 'test: site in the EU'));
+      await withCommand(db.app, underChange(withReason({ ...admin, siteZone: 'Asia/Kolkata' })), (c) => setIamPolicy(c, 'site.zone', 'Europe/Berlin', 'test: site in the EU'));
       // A command still declaring the old zone is refused when it starts (DI-27), so it cannot sign.
       await expectRefused(signStub(db, op, id, { meaning: 'PERFORMED' }), 'EBMR-IAM-118', /declares the time zone Asia\/Kolkata/);
       const berlin = { ...op, siteZone: 'Europe/Berlin' };
@@ -122,7 +124,7 @@ describe('manifestation elements (DI-36)', () => {
       // leaves the policy switched for the tests that follow.
       const zone = (await db.admin.query<{ z: string }>("select iam.policy_text('site.zone') as z")).rows[0]?.z ?? 'Asia/Kolkata';
       if (zone !== 'Asia/Kolkata') {
-        await withCommand(db.app, withReason({ ...admin, siteZone: zone }), (c) => setIamPolicy(c, 'site.zone', 'Asia/Kolkata', 'test: back to the Indian site'));
+        await withCommand(db.app, underChange(withReason({ ...admin, siteZone: zone })), (c) => setIamPolicy(c, 'site.zone', 'Asia/Kolkata', 'test: back to the Indian site'));
       }
     }
   });

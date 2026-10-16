@@ -524,6 +524,9 @@ const risk = defineRule('GMP-RISK', 'Every risk-based reduction has a risk class
     if (r.rationale === undefined) out.push(error(r.id, `${name} has no linked risk assessment with a written rationale`));
     else if (a.references.has(r.rationale) && a.references.get(r.rationale)?.kind !== 'RISK_ASSESSMENT') out.push(error(r.id, `${name} links ${r.rationale}, which is not a risk assessment`));
     if (r.subjects.length === 0) out.push(error(r.id, `${name} applies to nothing`));
+    if (r.kind === 'REVIEW_BY_EXCEPTION' && (r.validationRef === undefined || r.validationRef.trim() === '')) {
+      out.push(error(r.id, `${name} has no validation reference; review by exception on a step is enabled only with one, under change control (PR-52)`));
+    }
     for (const s of r.subjects) {
       const node = a.nodes.get(s)?.node;
       const phase = node?.kind === 'phase' ? node : undefined;

@@ -10,6 +10,7 @@ import { withCommand } from '../../src/db/command.ts';
 import { batchFlags, evaluateStubScope, setSiteValue, siteValuePreview, type SiteValueRequest } from '../../src/market/repository.ts';
 import { seedActor } from '../identity/seed.ts';
 import { inSecondRole } from '../records/helpers.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import {
   approvalIntegrity,
@@ -29,6 +30,7 @@ let db: TestDatabase;
 let world: StubWorld;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await publishSeedTables(db);
   world = await seedStubWorld(db);
 });
@@ -212,7 +214,7 @@ describe('QA approval of a loosening (F24, F76) and what it covers (F25)', () =>
     const qa = await approverActor(db, 'QA_REVIEWER');
     const own = await approveSiteLoosening(db, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request }, qa);
     const asSteward = await inSecondRole(db, qa, MARKET_ROLES.siteValues);
-    await expect(withCommand(db.app, asSteward, (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request, qaApprovalId: own }))).rejects.toThrow(
+    await expect(withCommand(db.app, underChange(asSteward), (c) => setSiteValue(c, { siteId: world.siteId, effectiveFrom: '2026-01-01', ...request, qaApprovalId: own }))).rejects.toThrow(
       'EBMR-MKT-066',
     );
   });

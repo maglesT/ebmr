@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { toDbContext, withCommand, type ActorContext } from '../../src/db/command.ts';
 import { Instant } from '../../src/time/instant.ts';
 import { evaluateAtInstants, guardInstants } from '../../src/time/entry-time.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { grantPermission, installStubHooks, registerValidatedTimeSource, stubSignature, testActor, withTriggersDisabled } from './helpers.ts';
 
@@ -16,6 +17,7 @@ let db: TestDatabase;
 let instrument: ActorContext;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   await installStubHooks(db);
   instrument = await testActor(db, { source: 'INTEGRATION', legalName: 'Balance interface' });
 });
@@ -213,7 +215,7 @@ describe('late-entry window', () => {
   });
 
   it('[INV-16] a fixed late-entry window (policy value, e.g. 15 min for injectables) is measured from the event', async () => {
-    const qa = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'POLICY_CHANGE', reasonText: 'edition default' });
+    const qa = underChange(await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'POLICY_CHANGE', reasonText: 'edition default' }));
     await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
     await withCommand(db.app, qa, async (c) => {
       await c.query("select platform.set_setting('time.late_entry_window_mode', 'FIXED_INTERVAL')");
@@ -230,15 +232,15 @@ describe('late-entry window', () => {
   });
 
   it('[INV-16] changing a time policy needs a reason and the permission, and values outside the allowed set are refused', async () => {
-    const noReason = await testActor(db, { roleCode: 'PROCESS_OWNER' });
+    const noReason = underChange(await testActor(db, { roleCode: 'PROCESS_OWNER' }));
     await expect(withCommand(db.app, noReason, (c) => c.query("select platform.set_setting('time.late_entry_window_min', '10')"))).rejects.toThrow(
       'EBMR-PLAT-022',
     );
-    const operator = await testActor(db, { roleCode: 'OPERATOR', reasonCode: 'X' });
+    const operator = underChange(await testActor(db, { roleCode: 'OPERATOR', reasonCode: 'X' }));
     await expect(withCommand(db.app, operator, (c) => c.query("select platform.set_setting('time.late_entry_window_min', '10')"))).rejects.toThrow(
       'EBMR-PLAT-006',
     );
-    const qa = await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'X' });
+    const qa = underChange(await testActor(db, { roleCode: 'PROCESS_OWNER', reasonCode: 'X' }));
     await grantPermission(db, 'PROCESS_OWNER', 'platform.settings.change');
     await expect(withCommand(db.app, qa, (c) => c.query("select platform.set_setting('time.late_entry_window_mode', 'NEVER')"))).rejects.toThrow('EBMR-PLAT-021');
     await expect(withCommand(db.app, qa, (c) => c.query("select platform.set_setting('time.late_entry_window_min', '2000')"))).rejects.toThrow('EBMR-PLAT-021');

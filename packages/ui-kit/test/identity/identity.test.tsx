@@ -214,6 +214,16 @@ describe('what is signed', () => {
     expect(pw.getAttribute('value')).toBeNull();
   });
 
+  it('[IN-10] a challenge that needs the India DSC shows the token step with the test-CA banner; without one there is none', () => {
+    const dsc = { mode: 'TEST_CA' as const, statement: '{"format":"EBMR-DSC-1"}', banner: 'Test certificate authority: not legally valid' };
+    const { unmount } = render(<SignatureDialog {...handlers} state="awaitingSecret" context={ctx({ kiosk: false, challenge: { ...CHALLENGE(['USER_ID', 'PASSWORD']), dsc } })} title="Sign" secondsLeft={100} signerName="Asha Rao" />);
+    expect(screen.getByText('Test certificate authority: not legally valid')).toBeTruthy();
+    expect(screen.getByTestId('dsc-step').textContent).toContain('Class 3 digital signature certificate');
+    unmount();
+    render(<SignatureDialog {...handlers} state="awaitingSecret" context={ctx({ kiosk: false, challenge: CHALLENGE(['USER_ID', 'PASSWORD']) })} title="Sign" secondsLeft={100} signerName="Asha Rao" />);
+    expect(screen.queryByTestId('dsc-step')).toBeNull();
+  });
+
   it('[DI-36] after signing the stored manifestation is shown with date and time, offset and zone; an invalid one says so', () => {
     render(<SignatureDialog {...handlers} state="done" context={ctx({ manifestation: MANIFESTATION })} title="Sign" secondsLeft={null} signerName="x" />);
     expect(screen.getByText('28-SEP-2026 14:40:00 +05:30 (Asia/Kolkata)')).toBeTruthy();

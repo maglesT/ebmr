@@ -38,6 +38,7 @@ import { marketSetProblem } from './adapters/market-minima.ts';
 import { contentFromTemplate, FamilyInputError, KNOWN_MARKETS } from './family.ts';
 import { compositionGate, withFormulaBom } from './formula-choice.ts';
 import { DESIGNER_GUIDANCE } from './guidance.ts';
+import { hazardContext, NoContainedAreaError, withContainment } from './hazard.ts';
 import { slotPool } from './limits.ts';
 
 export { registerSignableActions } from './signables.ts';
@@ -409,8 +410,25 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
             // database), and the pin, which the database checks against the content (EBMR-FRM-019, INV-25).
             const chosen = body.formulaVersionId ? await formula.formulaVersionForMbr(c, body.formulaVersionId) : null;
             const withBom = chosen ? withFormulaBom(content, chosen) : content;
-            const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(withBom));
-            const v = await lifecycle.createVersion(c, familyId, withBom, `Created from template ${template.templateId}${chosen ? ` with formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)}` : ''}`);
+            // IN-27 (Phase 6 slice 6f): a hazardous product's MBR gets the PPE and decontamination steps and only contained areas.
+            const hazard = await hazardContext(c, withBom.header.product.code);
+            let contained: flow.MbrContent;
+            try {
+              contained = withContainment(withBom, hazard);
+            } catch (error) {
+              if (!(error instanceof NoContainedAreaError)) throw error;
+              throw refusal(422, {
+                code: 'DESIGNER_NO_CONTAINED_AREA',
+                kind: 'NOT_ALLOWED',
+                whatHappened: 'The family was not created.',
+                why: `The product is classed ${error.classes.join(', ')}, and no room or line is dedicated and contained for that class with a second QA person's approval.`,
+                controls: ['IN-27'],
+                whatYouCanDo: ['Ask QA to record and approve the dedication of a contained room or line for the class first.'],
+                whoCanHelp: ['QA (hazard classes and area dedications)'],
+              });
+            }
+            const familyId = await lifecycle.defineFamily(c, lifecycle.familyOf(contained));
+            const v = await lifecycle.createVersion(c, familyId, contained, `Created from template ${template.templateId}${chosen ? ` with formula ${chosen.productCode} ${chosen.strength} version ${String(chosen.versionNumber)}` : ''}${hazard.classes.length > 0 ? `; ${hazard.classes.join(', ')} product: protective equipment and decontamination steps added, contained areas only (IN-27)` : ''}`);
             if (chosen) await formula.pinFormula(c, v.versionId, chosen.versionId);
             return { versionId: v.versionId };
           }),

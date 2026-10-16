@@ -540,17 +540,19 @@ function timeConstraint(r: Reader, v: unknown, path: string): TimeConstraint | u
 }
 
 function riskReduction(r: Reader, v: unknown, path: string): RiskReduction | undefined {
-  const o = r.object(v, path, ['id', 'kind', 'subjects'], ['riskClass', 'rationale']);
+  const o = r.object(v, path, ['id', 'kind', 'subjects'], ['riskClass', 'rationale', 'validationRef']);
   if (!o) return undefined;
   const id = r.id(o, 'id', path);
   const kind = r.literal(o, 'kind', path, REDUCTION_KINDS);
   const subjects = r.strings(o, 'subjects', path, ID);
   const riskClass = r.string(o, 'riskClass', path);
   const rationale = r.id(o, 'rationale', path);
+  const validationRef = r.string(o, 'validationRef', path);
   if (!id || !kind || !subjects) return undefined;
   const out: RiskReduction = { id, kind, subjects };
   opt(out, 'riskClass', riskClass);
   opt(out, 'rationale', rationale);
+  opt(out, 'validationRef', validationRef);
   return out;
 }
 

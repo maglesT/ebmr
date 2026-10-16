@@ -95,6 +95,10 @@ export const DEMO_REFERENCE_DOCUMENTS: readonly ReferenceDocumentSeed[] = [
   { kind: 'EQUIPMENT_CLASS', code: 'EQC-BAL', version: '1', title: 'Balance, platform, calibrated', effectiveFrom: '2024-01-01', summary: 'Equipment class of the dispensing and floor balances.' },
   { kind: 'EQUIPMENT_CLASS', code: 'EQC-BLENDER', version: '1', title: 'Octagonal blender', effectiveFrom: '2024-01-01', summary: 'Equipment class of the blender (process equipment).' },
   { kind: 'HOLD_STUDY', code: 'HS-PCM-01', version: '1', title: 'Hold-time study: dispensed materials and final blend', effectiveFrom: '2024-01-01', summary: 'Maximum hold of dispensed materials before charging and of the final blend before compression.' },
+  // Phase 6 slice 6f (IN-27): the SOPs the designer pins when it adds the PPE and decontamination steps of a hazardous
+  // product (designer/hazard.ts).
+  { kind: 'SOP', code: 'SOP-HAZ-PPE', version: '1', title: 'Personal protective equipment for hazardous products', effectiveFrom: '2024-01-01', summary: 'Gowning, gloves, respiratory protection and breathing air for cytotoxic, hormone and steroid products; checks before entry.' },
+  { kind: 'SOP', code: 'SOP-HAZ-DECON', version: '1', title: 'Decontamination and de-gowning after hazardous product handling', effectiveFrom: '2024-01-01', summary: 'Deactivation and cleaning of surfaces and equipment, waste segregation, de-gowning sequence; independent check.' },
   // The golden batch GB-T-01 (Phase 3 slice 6d; an invented formula, decision 0006 part 3; template gb-t-01).
   ...gbt01ReferenceDocuments(),
 ];

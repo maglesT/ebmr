@@ -21,6 +21,7 @@ import { notifications } from './ns/notifications.ts';
 import { erpShipping, qpPackage } from './ns/qp-shipping.ts';
 import { india } from './ns/india.ts';
 import { integrations } from './ns/integrations.ts';
+import { config } from './ns/config.ts';
 import { capa } from './ns/capa.ts';
 import { alarms } from './ns/alarms.ts';
 import { equipmentData, equipmentDisplays } from './ns/equipment-data.ts';
@@ -32,8 +33,9 @@ import { review } from './ns/review.ts';
 import { samples } from './ns/samples.ts';
 import { session } from './ns/session.ts';
 import { specifications } from './ns/specifications.ts';
+import { contractGiver, support } from './ns/support.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules } as const;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver } as const;
 export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
@@ -72,4 +74,7 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   equipmentData: 'P6',
   equipmentDisplays: 'P6',
   plantRules: 'P6',
+  config: 'P6',
+  support: 'P6',
+  contractGiver: 'P6',
 };

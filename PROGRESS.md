@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slice 6b).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f and 6b).
 
 ## What this is
 
@@ -23,9 +23,11 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
 - Decision 0010 (10 October): Tablets to v1.0 (Phases 3, 4, 6, 7) first, Injectables after. Shared-code changes keep
   the injectables extension points open; the trace gate must leave injectables-only controls out before phase.yaml passes 4.
 - Token economy (owner, 9 October): see CLAUDE.md. Top model for building, design and security fixes; Sonnet for
-  quick reviews; Haiku for mechanical jobs. Few agents (2 to 3 at a time), short reports, short command output.
+  quick reviews; Haiku for mechanical jobs. Up to 5 agents at a time and overlapping independent slices (decision 0017), short reports, short command output.
 - Defaults: take the default for any open question (decision 0004) and record it.
-- Merge a PR yourself when CI is green. Push each checked commit. No deletion without the owner's OK.
+- Merge a PR yourself when CI is green, then start the next slice at once: keep going slice after slice without waiting
+  for the owner (owner, 15 October); take every decision yourself (owner, 15 October: "dont ask any decisions take it"),
+  record each with its reason; only the hard rules stay the owner's (never weaken a control or change `expert_decision`). Push each checked commit. No deletion without the owner's OK.
 - Never edit an existing migration; add new ones. Never weaken a control or change `expert_decision`.
 - Paraphrase regulations. No patent formulations. No model names in commits. Never commit the scratchpad `src/`
   folder (copyrighted pharmacopoeia texts). Do not use the repositories maglesT/ds or
@@ -97,7 +99,7 @@ Phase 4 is closed (PRs #26, #27, #28). Phase 6 (decision 0010): integrations and
 decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (branch `phase-6/plan`): slices 6a
 adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
 6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
-training mode, 6h Hindi and Gujarati, 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
+training mode, (6h languages dropped: English only, decision 0018), 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
 - Slice 6a (branch `phase-6/slice-6a`, 14 October): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to
   1182: inbound messages accepted whole or not at all, de-duplicated, gaps alarmed; integration identities that never
   sign; mirrors that fail closed, EBMR-INT-010), one worker framework started with the server for MIRROR systems;
@@ -113,6 +115,12 @@ signatures, defaults D-P6a-0-1 to 11 and the builder A/B split in `docs/build-pl
 Builders A and B merged: one adapter worker framework (`adapters/framework.ts`, source reason on every receiving
 command, defect P6a-I1), the adapters start with the server in MIRROR mode (`adapters/start.ts`; STAND_IN starts
 none) and show their worker health on the integrations routes; defaults D-P6a-I-1 to 3.
+Slice 6f (merged to main, PR #33, 16 October): configuration change control with versions and a diff
+as of any date (kernel 1195, 1196; roles, permission sets, retention rules included), RBE rules under change records and
+RBE on a step only with a validation reference, support grants (two customer signatures, time-boxed), the contract
+giver's read-only reviewer, excursion notifications, designer PPE and containment, MBR edition review, typed CPP values in
+the PQR, the India DSC with a test CA (kernel 1203, 1205) and, from the review, enrolment of the signer's own certificate
+(kernel 1206; a high fixed). The eleven 6f clauses now name their tests. Defaults D-P6f-A-*, D-P6f-B-*; residuals in the plan.
 Slice 6b on `phase-6/slice-6b` (16 October, ready for its PR): OPC UA driver, simulator, gateway feed and the server's
 adapter worker; endpoint identity (DI-20), native series and original records (DI-32), the plant alarm log in batch
 context and in review (DI-49), the EMS feed; plant rules PR-15, PR-22, PR-25, PR-27, PR-29, PR-35; screens including the

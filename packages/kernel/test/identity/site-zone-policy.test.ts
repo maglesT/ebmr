@@ -33,6 +33,7 @@ import { toDbContext, withCommand } from '../../src/db/command.ts';
 import { KERNEL_MIGRATIONS, migrate } from '../../src/db/migrate.ts';
 import { setPolicy } from '../../src/identity/admin.ts';
 import { ebmrCode } from '../../src/identity/errors.ts';
+import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../support/db.ts';
 import { expectRefused } from './helpers.ts';
 import { SEED_ZONE, seedActor, seedAdministration, withReason, type SeedAdministration, type SeededActor } from './seed.ts';
@@ -41,6 +42,7 @@ let db: TestDatabase;
 let adm: SeedAdministration;
 beforeAll(async () => {
   db = await createTestDatabase();
+  await ensureFixtureChangeRecord(db);
   adm = await seedAdministration(db);
 });
 afterAll(async () => {
@@ -68,7 +70,7 @@ async function trail(): Promise<{ values: number; events: number }> {
 /** The administrator sets site.zone, declaring the zone in force now (EBMR-IAM-118 refuses any other). */
 async function setSiteZone(value: string, reason = 'DI-27 test: the site time zone'): Promise<void> {
   const declared = await siteZone();
-  await withCommand(db.app, withReason({ ...adm.admin, siteZone: declared }, 'POLICY_CHANGE', reason), (c) => setPolicy(c, 'site.zone', value, reason));
+  await withCommand(db.app, underChange(withReason({ ...adm.admin, siteZone: declared }, 'POLICY_CHANGE', reason)), (c) => setPolicy(c, 'site.zone', value, reason));
 }
 
 // Whatever a test does, the site is back in the seed's zone for the next one.
@@ -110,7 +112,7 @@ async function rolledBack(database: TestDatabase, work: (c: pg.PoolClient) => Pr
 
 /** A site.zone row written straight into iam.policy_value in a validated command, as `role` (null: the superuser itself). */
 async function insertSiteZoneRow(c: pg.PoolClient, actor: SeededActor, role: string | null, value: string): Promise<void> {
-  await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(withReason(actor, 'TEST_SETUP', 'DI-27 test: a site.zone row written directly')))]);
+  await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(underChange(withReason(actor, 'TEST_SETUP', 'DI-27 test: a site.zone row written directly'))))]);
   if (role !== null) await c.query(`set local role ${role}`);
   await c.query(
     "insert into iam.policy_value (key, value, set_by_person, set_by_account, reason) values ('site.zone', $1, $2, $3, 'DI-27 test: written directly')",
@@ -223,11 +225,11 @@ describe('the site policy site.zone takes only the IANA time zone name of a plac
   it('[DI-27] the zone check does not open the policy to anyone else: a person without IAM.POLICY_MANAGE is refused before the value is looked at', async () => {
     const operator = await seedActor(db);
     await expectRefused(
-      withCommand(db.app, withReason(operator, 'POLICY_CHANGE'), (c) => setPolicy(c, 'site.zone', 'Europe/Berlin', 'not mine to change')),
+      withCommand(db.app, underChange(withReason(operator, 'POLICY_CHANGE')), (c) => setPolicy(c, 'site.zone', 'Europe/Berlin', 'not mine to change')),
       'EBMR-IAM-040',
     );
     await expectRefused(
-      withCommand(db.app, withReason(operator, 'POLICY_CHANGE'), (c) => setPolicy(c, 'site.zone', 'IST', 'not mine to change')),
+      withCommand(db.app, underChange(withReason(operator, 'POLICY_CHANGE')), (c) => setPolicy(c, 'site.zone', 'IST', 'not mine to change')),
       'EBMR-IAM-040',
     );
     expect(await siteZone()).toBe(SEED_ZONE);
@@ -271,7 +273,7 @@ describe('the table iam.policy_value itself refuses a site.zone row the site rul
       const reason = 'DI-27 test: the row guard is disabled';
       const refused = await rolledBack(db, async (c) => {
         await guardOff(c);
-        await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(withReason({ ...adm.admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason)))]);
+        await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(underChange(withReason({ ...adm.admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason))))]);
         await c.query('select iam.set_policy($1, $2, $3)', ['site.zone', value, reason]);
       });
       expect([value, ebmrCode(refused)]).toEqual([value, 'EBMR-IAM-119']);
@@ -335,6 +337,7 @@ describe('kernel 0940 applies only where the site zone in force is the IANA time
 /** A fresh database rewound to its state before kernel 0940, with its administrator; dropped afterwards. */
 async function withDatabaseBefore0940(work: (database: TestDatabase, admin: SeededActor) => Promise<void>): Promise<void> {
   const database = await createTestDatabase();
+  await ensureFixtureChangeRecord(database);
   try {
     const { admin } = await seedAdministration(database);
     const c = await database.admin.connect();
@@ -395,7 +398,7 @@ describe('kernel 0940 cannot be raced by an iam.set_policy call already under wa
       const release = deferred();
       // The administrator's call runs the body kernel 0130 released: it records IST and waits to commit.
       const caller = settle(
-        withCommand(race.app, withReason({ ...admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason), async (c) => {
+        withCommand(race.app, underChange(withReason({ ...admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason)), async (c) => {
           await setPolicy(c, 'site.zone', 'IST', reason);
           recorded.resolve();
           await release.promise;
@@ -424,10 +427,10 @@ describe('kernel 0940 cannot be raced by an iam.set_policy call already under wa
 
         // The administrator corrects the policy (still through the 0130 body), and 0940 then applies; IST is refused from then on.
         const fix = 'DI-27 test: site zone corrected before kernel 0940';
-        await withCommand(race.app, withReason({ ...admin, siteZone: 'IST' }, 'POLICY_CHANGE', fix), (c) => setPolicy(c, 'site.zone', SEED_ZONE, fix));
+        await withCommand(race.app, underChange(withReason({ ...admin, siteZone: 'IST' }, 'POLICY_CHANGE', fix)), (c) => setPolicy(c, 'site.zone', SEED_ZONE, fix));
         expect((await migrate(runner, [{ ...KERNEL_MIGRATIONS, include: /^0940_/ }])).map((m) => m.name)).toEqual([MIGRATION_0940_FILE]);
         await expectRefused(
-          withCommand(race.app, withReason({ ...admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason), (c) => setPolicy(c, 'site.zone', 'IST', reason)),
+          withCommand(race.app, underChange(withReason({ ...admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason)), (c) => setPolicy(c, 'site.zone', 'IST', reason)),
           'EBMR-IAM-119',
           REFUSAL,
         );
@@ -447,7 +450,7 @@ describe('kernel 0940 cannot be raced by an iam.set_policy call already under wa
         await runner.query(MIGRATION_0940);
         // The administrator's call runs the body kernel 0130 released, the one committed now; its checks pass.
         const reason = 'DI-27 test: IST set while kernel 0940 is applied';
-        const caller = settle(withCommand(race.app, withReason({ ...admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason), (c) => setPolicy(c, 'site.zone', 'IST', reason)));
+        const caller = settle(withCommand(race.app, underChange(withReason({ ...admin, siteZone: SEED_ZONE }, 'POLICY_CHANGE', reason)), (c) => setPolicy(c, 'site.zone', 'IST', reason)));
         const state = await waitingOrSettled(
           race,
           "select count(*)::int as n from pg_locks where database = (select oid from pg_database where datname = current_database()) and relation = 'iam.policy_value'::regclass and not granted",

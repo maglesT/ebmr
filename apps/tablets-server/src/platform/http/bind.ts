@@ -118,6 +118,13 @@ const ALLOWED_WITHOUT_ROLE = new Set(['session.get', 'session.chooseRole', 'sess
  */
 const QP_READER_ROLE = 'EU_QP_READER';
 const ALLOWED_FOR_QP_READER = new Set([...ALLOWED_WITHOUT_ROLE, 'qpPackage.readerPackages', 'qpPackage.readerFile']);
+/**
+ * Phase 6 slice 6f (IN-30): a session of an account holding the contract giver's reviewer role (CONTRACT_GIVER_REVIEWER,
+ * read permissions only) reaches only its own batch routes and the session routes; the database scopes those reads to
+ * the batches of the loan licence a live access names and logs each record opened.
+ */
+const CONTRACT_GIVER_ROLE = 'CONTRACT_GIVER_REVIEWER';
+const ALLOWED_FOR_CONTRACT_GIVER = new Set([...ALLOWED_WITHOUT_ROLE, 'contractGiver.batches', 'contractGiver.batch']);
 /** Body members never part of a request hash, a log line or a proof subject. */
 const SECRET_MEMBERS = ['attribution', 'credentials', 'proof', 'secret', 'pin', 'password', 'newSecret', 'currentSecret', 'changeTicket'];
 
@@ -343,6 +350,16 @@ export async function admitSession(app: AppContext, routeId: string, session: Re
       why: 'A QP account is read-only and scoped to the lot its access names.',
       controls: ['DI-14', 'DI-17'],
       whatYouCanDo: ['Open the package list.'],
+    });
+  }
+  if ((session.roleCode === CONTRACT_GIVER_ROLE || session.roles.includes(CONTRACT_GIVER_ROLE)) && !ALLOWED_FOR_CONTRACT_GIVER.has(routeId)) {
+    throw refusal(403, {
+      code: 'CONTRACT_GIVER_SCOPE',
+      kind: 'NOT_ALLOWED',
+      whatHappened: 'This account reads the records of its contract giver\'s batches only.',
+      why: 'The contract giver\'s reviewer is read-only and scoped to the batches of the loan licence its access names (IN-30).',
+      controls: ['IN-30', 'DI-17'],
+      whatYouCanDo: ['Open the batch list.'],
     });
   }
   if (session.roleCode === null && !ALLOWED_WITHOUT_ROLE.has(routeId)) {
