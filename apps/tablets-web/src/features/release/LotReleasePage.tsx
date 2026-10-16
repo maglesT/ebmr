@@ -11,6 +11,7 @@
  *    reason), each through esig.describe and the ceremony (RELEASE_ACT); the decision once recorded;
  *  - the notifications of the decision to production and QA (IN-39 clause 2);
  *  - slice 4: the US, EU and India tabs (MarketTabs.tsx);
+ *  - Phase 6 slice 6d: the recurrence warning of the lot's deviations above every tab (PR-49, genealogy.recurrence);
  *  - slice 5: the "After release" tab (AfterRelease.tsx, Disposal.tsx): suspension causes, forward trace, the AP's
  *    re-confirmation, recall and rejection after release per market, and the disposal (opened by `?tab=AFTER`).
  * Every gate, state, item status and meaning is the server's; the browser computes none of them.
@@ -26,6 +27,7 @@ import { useOffered } from '../../app/roles.ts';
 import { useRouteParams, useRouteSearch } from '../floor/params.ts';
 import { GateProblems } from '../review/parts.tsx';
 import { NotificationList } from '../notifications/NotificationList.tsx';
+import { RecurrenceWarning } from '../genealogy/RecurrenceWarning.tsx';
 import { AfterReleaseTab } from './AfterRelease.tsx';
 import { IndiaTab, MarketTab } from './MarketTabs.tsx';
 import { GrelChecklist, SinceReview } from './parts.tsx';
@@ -66,6 +68,7 @@ function LotRelease({ view: v }: { view: LotReleaseView }) {
         </Link>{' '}
         · lot {words(v.lotStatus)} · markets {v.markets.join(', ')}
       </p>
+      <RecurrenceWarning lotId={v.lotId} />
       <div role="tablist" aria-label="Release of the lot">
         {TABS.map((t) => (
           <button
