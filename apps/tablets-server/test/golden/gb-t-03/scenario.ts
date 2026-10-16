@@ -35,8 +35,9 @@ import { finishedLot, manufacturerRelease, productSpecification, reviewRecord } 
 import { asPersona, type GoldenWorld } from '../gb-t-01/world.ts';
 import { bottleOrder, setUpBottleLine, type BottleRun } from '../gb-t-02/bottling.ts';
 import { BLEND, COMPRESSION } from '../gb-t-02/scenario.ts';
-import { blending, compression, dispensing, TOOLING_SET } from '../gb-t-02/stages.ts';
+import { blending, compression, DISPENSE, dispensing, TOOLING_SET } from '../gb-t-02/stages.ts';
 import type { Connected } from './connected.ts';
+import type { PressRig } from './opcua.ts';
 
 type Json = Record<string, unknown>;
 
@@ -82,7 +83,8 @@ async function dbNowUs(w: GoldenWorld): Promise<string> {
 
 /** GB-T-02's bottle master with its printed-materials step serialised for the US (the US carton's GTIN). */
 export function serialisedBottleMaster(familyCode: string): flow.MbrContent {
-  const content = JSON.parse(JSON.stringify(bottleMasterContent(familyCode, ['IN', 'US']))) as Json;
+  // Authorised for the EU too, as GB-T-02's (its cartoning step then carries the anti-tampering check the order records).
+  const content = JSON.parse(JSON.stringify(bottleMasterContent(familyCode, ['IN', 'US', 'EU']))) as Json;
   let found = 0;
   const visit = (n: unknown): void => {
     if (Array.isArray(n)) {
@@ -119,7 +121,7 @@ export async function setUpGbt03(w: GoldenWorld, cx: Connected): Promise<Gbt03Ma
     }),
     'the tooling set',
   );
-  await setUpBottleLine(w);
+  await setUpBottleLine(w, { calibrate: false });
   const dc = await approveMaster(w, dcMasterContent('GBT03-100-DC', ['IN', 'US']), {
     changeRecord: 'CC-GBT03-001', title: 'GB-T-03 direct compression, connected site (invented)', riskAssessment: 'RA-GBT03-001', rationaleRef: 'QRM-GBT03-IPC',
     validationRef: 'VR-GBT03', sandboxRun: 'SBX-GBT03-001', sizeId: GBT02_SIZE_ID, markets: ['IN', 'US'],
@@ -127,7 +129,7 @@ export async function setUpGbt03(w: GoldenWorld, cx: Connected): Promise<Gbt03Ma
   });
   const bottle = await approveMaster(w, serialisedBottleMaster('GBT03-100-BT30'), {
     changeRecord: 'CC-GBT03-002', title: 'GB-T-03 HDPE bottle of 30, serialised for the US (invented)', riskAssessment: 'RA-GBT03-002', rationaleRef: 'QRM-GBT03-IPC',
-    validationRef: 'VR-GBT03-PK', sandboxRun: 'SBX-GBT03-BT-001', sizeId: BOTTLE_SIZE_ID, markets: ['IN', 'US'],
+    validationRef: 'VR-GBT03-PK', sandboxRun: 'SBX-GBT03-BT-001', sizeId: BOTTLE_SIZE_ID, markets: ['IN', 'US', 'EU'],
     numbering: { ruleCode: 'GBT03-PACK', productCode: GBT02_PRODUCT.productCode, kind: 'PACKAGING', format: '{PARENT}/P{SEQ:2}' },
   });
 
@@ -180,10 +182,12 @@ export async function setUpGbt03(w: GoldenWorld, cx: Connected): Promise<Gbt03Ma
   return { dc, bottle };
 }
 
+/** GB-T-02's dispensing, the cellulose weighed from its identity-tested lot (a batch for the US needs one; IN-24). */
+const DISPENSE_GBT03 = DISPENSE.map(([item, bom, lot, net]) => [item, bom, lot === 'GBT2-MCC-V01' ? 'GBT2-MCC-001' : lot, net] as const);
 const RESERVE = { 'MAT-EXF': '10.000', 'MAT-MCC-102': '8.400', 'MAT-CCS': '1.000', 'MAT-SIO2': '0.200', 'MAT-MGST': '0.400' };
 
 /** The batch for India and the US from dispensing to the release for packing, the mirrors synchronised before each stage. */
-export async function runBatch(w: GoldenWorld, cx: Connected, m: Gbt03Masters, onCompression?: (g: GoldenBatch) => Promise<void>): Promise<{ batch: GoldenBatch; bulk: { id: string; label: string }[] }> {
+export async function runBatch(w: GoldenWorld, cx: Connected, m: Gbt03Masters, press: PressRig): Promise<{ batch: GoldenBatch; bulk: { id: string; label: string }[] }> {
   w.b['technician1'] = await w.server.asPersona('technician1');
   w.b['technician2'] = await w.server.asPersona('technician2');
   for (const u of [UNITS.BLENDER, UNITS.PRESS]) await clean(w, 'EQUIPMENT', u.code);
@@ -192,12 +196,12 @@ export async function runBatch(w: GoldenWorld, cx: Connected, m: Gbt03Masters, o
   const g = await GoldenBatch.plan(w, { familyId: m.dc.familyId, markets: ['IN', 'US'], batchSize: GBT02_SIZE_ID });
   await g.issue('100000');
   await g.reserveLots(RESERVE, GBT02_LOTS);
-  await dispensing(g);
+  await dispensing(g, DISPENSE_GBT03);
   await cx.sync();
   const { blendLabel } = await blending(g, BLEND);
   await cx.sync();
-  await onCompression?.(g);
-  const bulk = await compression(g, { blendLabel, ...COMPRESSION });
+  // The OPC UA press reports through the site gateway while the batch holds it (opcua.ts).
+  const bulk = await compression(g, { blendLabel, ...COMPRESSION }, { duringRun: (x) => press.run(x) });
   return { batch: g, bulk };
 }
 
@@ -208,6 +212,9 @@ export interface SerialFacts {
   /** The L3 release problem with the mirror older than its bound, and after the next synchronisation. */
   staleMirror: { problem: string | null; grelSerial: string; after: string | null };
 }
+
+/** The most serial events one request to the L3 system carries (its protocol's limit). */
+const L3_EVENTS_MAX = 1000;
 
 /** The serialisation of the order through the L3/L4 system (the bottle order's hooks). */
 function serialisation(w: GoldenWorld, cx: Connected): { hooks: Parameters<typeof bottleOrder>[6]; facts: () => Promise<Omit<SerialFacts, 'staleMirror'>> } {
@@ -234,7 +241,10 @@ function serialisation(w: GoldenWorld, cx: Connected): { hooks: Parameters<typeo
         await g.d.ok('operator2', entry('p-g21@', 'SERIAL_POOL', { poolId, market: 'US', gtin: US_GTIN, quantity: SERIALS.pool }));
         const t = await at();
         const commission: SerialChange[] = serials.map((serial) => ({ serial, from: null, state: 'COMMISSIONED', at: t }));
-        await withCommand(w.server.db.app, await asOp(g), (c) => sendSerialEvents(c, l3, poolId, commission));
+        // The L3 protocol takes at most 1,000 events a request: the coder sends them in its own batches.
+        for (let i = 0; i < commission.length; i += L3_EVENTS_MAX) {
+          await withCommand(w.server.db.app, await asOp(g), (c) => sendSerialEvents(c, l3, poolId, commission.slice(i, i + L3_EVENTS_MAX)));
+        }
       },
       async afterShippers(g, ssccs) {
         // The packs aggregated to their shippers in the L4 system; the L3 feed brings the aggregations to the eBMR.
@@ -252,7 +262,9 @@ function serialisation(w: GoldenWorld, cx: Connected): { hooks: Parameters<typeo
         const samples = serials.slice(Number(SERIALS.destroyed), Number(SERIALS.destroyed) + Number(SERIALS.samples)).map((serial): SerialChange => ({ serial, from: 'COMMISSIONED', state: 'SAMPLE', at: t }));
         await withCommand(w.server.db.app, await asOp(g), (c) => sendSerialEvents(c, l3, poolId, [...destroyed, ...samples]));
         const closed = await withCommand(w.server.db.app, await asOp(g), (c) => fetchSerialReport(c, l3, poolId));
-        await g.d.ok('operator2', { type: 'RECORD_ENTRY', stepKey: 'p-g21@', entry: closed } as never);
+        // The report's SERIAL_RECONCILIATION entry, as the database gave it, closes the pool on the printed-materials step.
+        const { kind, ...data } = closed;
+        await g.d.ok('operator2', entry('p-g21@', String(kind), data));
       },
     },
     async facts() {

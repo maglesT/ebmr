@@ -59,7 +59,7 @@ async function connectedFacts(w: GoldenWorld, cx: Connected): Promise<ConnectedF
     },
     cmms: {
       calibrations: await q<number>("select count(*)::int as r from plant.calibration where reference like 'CMMS-CAL-%'"),
-      workOrders: await q<number>("select count(*)::int as r from plant.maintenance_work_order where work_order like 'CMMS-WO-%'").catch(() => -1),
+      workOrders: await q<number>("select count(distinct work_order)::int as r from plant.cmms_work_order where work_order like 'CMMS-WO-%'"),
     },
   };
 }
@@ -89,6 +89,7 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
     w = await startGoldenWorld();
     await setUpPlant(w);
     cx = await connect(w);
+    press = await connectPress(w);
   }, 1_800_000);
   afterAll(async () => {
     vi.useRealTimers();
@@ -103,10 +104,9 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
     const later = Number(/^\d{1,4}$/.test(process.env['EBMR_GOLDEN_LATER_DAYS'] ?? '') ? process.env['EBMR_GOLDEN_LATER_DAYS'] : '0');
     const start = BigInt(Math.floor(Date.now() / 1000 / 86_400) + 1 + later) * 86_400n;
     freezeAt(start);
-    const { batch, bulk } = await runBatch(w, cx, masters, async (g) => {
-      press = await connectPress(w, g);
-    });
-    run.press = await press?.facts(batch.batchId);
+    if (!press) throw new Error('the OPC UA press did not start');
+    const { batch, bulk } = await runBatch(w, cx, masters, press);
+    run.press = await press.facts(batch.batchId);
     const rel = await packReleaseAndRecall(w, cx, masters, batch, bulk);
     const numbers = [batch.batchNumber, rel.order.batchNumber];
     run.batch = await resultsOf(w, batch.batchId, numbers, start * 1_000_000n);

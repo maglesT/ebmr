@@ -82,6 +82,8 @@ jobs:
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5433/postgres
       EBMR_FAKETIME_FILE: /var/lib/postgresql/faketime-golden/offset
+      # GB-T-03 (slice 6j-b) starts its simulators and the site gateway under the same clock library (connected.ts).
+      EBMR_GOLDEN_CLOCK_LIB: /usr/local/lib/ebmr/golden-clock.so
     steps:
       - uses: actions/checkout@v4
       # The golden clock library (tools/dev-env/golden-clock, slice 6j-b) in place of libfaketime, which reads its file

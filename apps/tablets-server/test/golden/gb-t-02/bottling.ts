@@ -19,8 +19,12 @@ import { asPersona, LINE, SITE, type GoldenWorld } from '../gb-t-01/world.ts';
 
 type Json = Record<string, unknown>;
 
-/** The bottle line PL-1: its units, balance and torque tester, qualified, calibrated, cleaned and verified. */
-export async function setUpBottleLine(w: GoldenWorld): Promise<void> {
+/**
+ * The bottle line PL-1: its units, balance and torque tester, qualified, calibrated, cleaned and verified. A site whose
+ * calibrations come from its CMMS (GB-T-03, CMMS_CALIBRATION a MIRROR) passes `calibrate: false`: the CMMS calibrates
+ * the instruments there; GB-T-02 records them in the logbook as before.
+ */
+export async function setUpBottleLine(w: GoldenWorld, opts: { calibrate?: boolean } = {}): Promise<void> {
   for (const k of ['technician1', 'technician2', 'steward']) w.b[k] = await w.server.asPersona(k);
   const st = w.b['steward'] as TestBrowser;
   const p = routes.plant;
@@ -37,7 +41,7 @@ export async function setUpBottleLine(w: GoldenWorld): Promise<void> {
     ok(await st.call(p.equipmentEvent, { params: { code }, body: { event: 'EVENT', kind: 'QUALIFIED', detail: 'IQ/OQ/PQ approved', reference: `QUAL-${code}` } }), `the qualification of ${code}`);
   }
   const tech = w.b['technician1'] as TestBrowser;
-  for (const code of [PACK_BALANCE, TORQUE_TESTER]) {
+  for (const code of opts.calibrate === false ? [] : [PACK_BALANCE, TORQUE_TESTER]) {
     await asPersona(w.server, tech, 'technician1', (c) => c.query("select plant.record_calibration($1, clock_timestamp() + interval '1 year', 'PASS', 'PASS', $2)", [code, `CAL-${code}`]));
   }
   const boot = w.seed.bootstrap;

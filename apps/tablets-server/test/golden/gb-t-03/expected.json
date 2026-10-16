@@ -1,0 +1,44 @@
+{
+  "worksheet": {
+    "dispensing": {
+      "dispApi": "10.000",
+      "dispMcc": "8.400",
+      "dispCcs": "1.000",
+      "dispSio": "0.200",
+      "dispMgs": "0.400"
+    },
+    "blending": {
+      "dispRecon": "100.00",
+      "blendYield": "99.40"
+    },
+    "compression": {
+      "compT": "20.000",
+      "compYield": "97.50",
+      "compYieldAB": "98.25",
+      "compAcc": "99.85",
+      "coresNet": "19.500"
+    },
+    "bottling": {
+      "packYield": "98.46",
+      "packs": "3200"
+    },
+    "serials": {
+      "pool": "3214",
+      "commissioned": "3200",
+      "destroyed": "10",
+      "samples": "4",
+      "perShipper": "100",
+      "shippers": "32"
+    }
+  },
+  "fromTheRun": {
+    "batch": {},
+    "order": {},
+    "lot": {},
+    "release": {},
+    "serialisation": {},
+    "connected": {},
+    "press": {},
+    "recall": {}
+  }
+}

@@ -49,6 +49,20 @@ export function freezeAt(epochSeconds: bigint): void {
   writeFrozen(epochSeconds);
 }
 
+/**
+ * Lets the frozen database clock run on at real speed from the instant it stands at (the offset form), for a part of a
+ * scenario whose data come from processes stamping their own times (GB-T-03's OPC UA press, which needs increasing
+ * source times); returns that instant. The scenario freezes it again with freezeAt, at a fixed instant after it.
+ */
+export function runFromFrozen(): bigint {
+  const frozen = frozenSeconds();
+  if (frozen === null) throw new Error('the golden clock is not frozen');
+  const host = BigInt(Math.floor(Date.now() / 1000));
+  if (frozen < host) throw new Error(`the golden clock stands before the host's clock (${String(frozen)} < ${String(host)}); an offset only runs ahead`);
+  writeFileSync(FAKETIME_FILE, `+${String(frozen - host)}s\n`);
+  return frozen;
+}
+
 /** Moves the database clock forward by `seconds` (whole seconds, > 0). Moving it back is refused. */
 export function advanceSeconds(seconds: number): void {
   if (!Number.isInteger(seconds) || seconds <= 0) throw new Error(`the golden clock only moves forward, by whole seconds (asked ${String(seconds)})`);

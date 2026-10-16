@@ -14,18 +14,21 @@
  * with, on the same timestamp file): the times they stamp (feed messages, the L3 pool's issue) are the database's.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import type { ActorContext } from '@ebmr/kernel';
+import { routes } from '@ebmr/api-contract';
+import { withCommand, type ActorContext } from '@ebmr/kernel';
+import { passwordActor, terminalOf } from '@ebmr/test-kit';
 import { CMMS_ADAPTER } from '../../../src/features/integrations/adapters/cmms/index.ts';
 import { erpWmsWorker } from '../../../src/features/integrations/adapters/erp-wms/index.ts';
 import { feedWorker, type AdapterWorker, type CycleReport } from '../../../src/features/integrations/adapters/framework.ts';
 import { L3_ADAPTER } from '../../../src/features/integrations/adapters/l3/index.ts';
 import { LMS_ADAPTER } from '../../../src/features/integrations/adapters/lms/index.ts';
 import { FEED_ADAPTER_ROLE } from '../../../src/features/integrations/adapters/start.ts';
-import { setMirrorMode } from '../../../../../packages/kernel/test/integrations/support.ts';
-import type { TestDatabase } from '../../../../../packages/kernel/test/support/db.ts';
 import { adapterActor, adapterIdentity, type AdapterIdentity } from '../../integrations/erp-wms/support.ts';
+import { grantedPerson } from '../../support/granted-person.ts';
 import { FAKETIME_FILE } from '../clock.ts';
+import { ok, signAct } from '../gb-t-01/driver.ts';
 import type { GoldenWorld } from '../gb-t-01/world.ts';
 
 type Json = Record<string, unknown>;
@@ -132,10 +135,34 @@ export async function settle(w: AdapterWorker, n = 4): Promise<CycleReport> {
   throw new Error(`adapter ${w.def.code} did not catch up: ${JSON.stringify(last)}`);
 }
 
+/** The configuration change record under which the site's data classes go live as MIRROR (DI-09). */
+export const MIRROR_CHANGE = 'CR-GBT03-INT-001';
+
 /**
- * The simulators, the adapter identities and their workers, and the mirror data classes switched to MIRROR (a
- * configuration change of the site's owner under its change record, as kernel/test/integrations/support.ts makes it).
+ * The mirror data classes switched to MIRROR under an approved configuration change record (DI-09): the steward raises
+ * it for the platform settings, QA approves it with its signature (CONFIG_CHANGE_ACT), and the process owner (a person
+ * holding PROCESS_OWNER, which no seeded persona holds) sets each class's mode under it.
  */
+async function mirrorModes(w: GoldenWorld): Promise<void> {
+  const server = w.server;
+  const steward = await server.asPersona('steward');
+  ok(
+    await steward.call(routes.config.raiseChangeRecord, {
+      body: { number: MIRROR_CHANGE, title: 'Site systems live as mirrors (GB-T-03)', description: 'ERP/WMS, LMS, CMMS and the L3/L4 system feed the eBMR as MIRROR data', areas: ['PLATFORM_SETTING'] },
+    }),
+    'the change record',
+  );
+  ok(await signAct(w, await server.asPersona('qaInvestigator'), 'qaInvestigator', { kind: 'CONFIG_CHANGE_ACT', act: 'APPROVE', number: MIRROR_CHANGE }), 'the change record\'s approval');
+  const owner = await grantedPerson(server, 'PROCESS_OWNER', 'Prakash Iyer');
+  const po = await passwordActor(server.db, owner, terminalOf(w.seed, 'PC-QA-01').fingerprint);
+  for (const cls of MIRRORED_CLASSES) {
+    await withCommand(server.db.app, { ...po, reasonCode: 'CONFIG_CHANGE', reasonText: `${cls} fed by its system (GB-T-03)`, correlationId: randomUUID(), changeRecord: MIRROR_CHANGE }, (c) =>
+      c.query('select platform.set_setting($1, $2)', [`integration.mode.${cls.toLowerCase()}`, 'MIRROR']),
+    );
+  }
+}
+
+/** The simulators, the adapter identities and their workers, and the mirror data classes switched to MIRROR. */
 export async function connect(w: GoldenWorld): Promise<Connected> {
   const server = w.server;
   const sims = await Promise.all((['ERP', 'WMS', 'LMS', 'CMMS', 'L3'] as const).map((k) => spawnSim(k)));
@@ -157,8 +184,7 @@ export async function connect(w: GoldenWorld): Promise<Connected> {
       const worker = feedWorker(server.db.app, id.code, spec, open, { endpoint: simOf(name).feed, timeoutMs: 5000 });
       adapters[name] = { name, id, worker, sim: simOf(name) };
     }
-    const db = server.db as unknown as TestDatabase;
-    for (const cls of MIRRORED_CLASSES) await setMirrorMode(db, cls, 'MIRROR');
+    await mirrorModes(w);
   } catch (e) {
     await Promise.all(sims.map((s) => s.close()));
     throw e;
