@@ -109,7 +109,8 @@ async function template(db: Db, id: string): Promise<LabelTemplateView> {
 
 async function store(db: Db, lotId: string): Promise<LabelStoreView> {
   const lot = (await db.query<{ lot_code: string; material_name: string; material_kind: string; status: string | null; balance: string }>(
-    'select l.lot_code, l.material_name, l.material_kind, site.lot_state(l.id) as status, site.label_store_balance(l.id)::text as balance from site.material_lot l where l.id = $1',
+    `select l.lot_code, l.material_name, l.material_kind, (select s.state from platform.aggregate_state s where s.aggregate_type = 'material_lot' and s.aggregate_id = l.id) as status,
+            site.label_store_balance(l.id)::text as balance from site.material_lot l where l.id = $1`,
     [lotId],
   )).rows[0];
   if (!lot || lot.material_kind !== 'PRINTED_PACKAGING') {

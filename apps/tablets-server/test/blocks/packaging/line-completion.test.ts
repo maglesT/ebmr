@@ -19,6 +19,7 @@ import { adminActor, enrol, fakeGateway, type FakeGateway } from '../../devices/
 import { actorOfBrowser } from '../../esig/support.ts';
 import { asPersonaInRole, importAndIssue, RunDriver, startExecServer, writePackage, type ExecServer } from '../../execution/support.ts';
 import { fakeTimers, recorder, stateOf, type Entry } from '../granulation/db-support.ts';
+import { requestSerialPool, type L3Client } from '../../../src/features/execution/serialisation.ts';
 import { ARTWORK, CARTON_MATERIAL, GTIN, LINE_UNIT, lineUnit, minimalMbr, occupyLine, packPhase, productMaster } from './db-support.ts';
 
 type Json = Record<string, unknown>;
@@ -301,6 +302,18 @@ describe('packaging line completion in the database (tablets 1230)', () => {
     const draft = await template(['BATCH_NUMBER'], false);
     await declare(r, 'CARTON', null, version, draft.id);
     expect((await loadedJob(r, draft.ref))['refused']).toMatch(/EBMR-LBL-063 /);
+  });
+
+  it('[PR-42] a pool the L3 system issues with a duplicate serial is refused and nothing is recorded (the simulator\'s DUPLICATE_SERIAL fault)', async () => {
+    const r = await run([packPhase('p-g21', 'G-21', { markets: { US: { gtin: GTIN } }, serialisation: { markets: ['US'] } })]);
+    await r.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-g21@' });
+    const duplicating: L3Client = {
+      requestPool: () => Promise.resolve({ poolId: `TEST-POOL-${randomUUID().slice(0, 8).toUpperCase()}`, serials: ['S1', 'S2', 'S1'], issuedAt: '1790584618000000' }),
+      sendEvents: () => Promise.resolve(),
+      report: () => Promise.reject(new Error('no report')),
+    };
+    await expect(withCommand(sbx.db.app, await r.as('operator1'), (c) => requestSerialPool(c, duplicating, { batchId: r.d.runId, stepKey: 'p-g21@', market: 'US', quantity: '3' }))).rejects.toThrow(/no pool of the quantity asked.*EBMR-EXE-297/);
+    expect(await r.sql<string>('select count(*)::text as r from tab.serial_pool where batch_id = $1', [r.d.runId])).toBe('0');
   });
 });
 
