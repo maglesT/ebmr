@@ -253,10 +253,28 @@ export {
   GenealogyNodeKind,
   GenealogyNodeView,
   GenealogyTraceView,
+  FederatedPartStatus,
+  FederatedPartView,
+  FederatedTraceView,
   RecurrenceView,
   SupplyChainView,
 } from './ns/genealogy.ts';
-export { MockRecallSubjectKind, MockRecallSummaryView, MockRecallView } from './ns/recall.ts';
+export { MockRecallFederationView, MockRecallRemoteView, MockRecallSubjectKind, MockRecallSummaryView, MockRecallView } from './ns/recall.ts';
+export {
+  CoaLineView,
+  InstallationAlarmView,
+  InstallationCode,
+  InstallationIdentityView,
+  PeerInstallationState,
+  PeerInstallationView,
+  TransferImportView,
+  TransferPackageFileView,
+  TransferPackageView,
+  TransferReceiptState,
+  TransferReceiptSummaryView,
+  TransferReceiptView,
+  TransferRuleView,
+} from './ns/transfers.ts';
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';

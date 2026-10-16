@@ -63,6 +63,8 @@ import gv from '../fixtures/governance.json' with { type: 'json' };
 import ar from '../fixtures/archive.json' with { type: 'json' };
 import gn from '../fixtures/genealogy.json' with { type: 'json' };
 import mr from '../fixtures/recall.json' with { type: 'json' };
+import xf from '../fixtures/transfers.json' with { type: 'json' };
+import fd from '../fixtures/federation.json' with { type: 'json' };
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -384,6 +386,24 @@ export const EXAMPLES = {
   'recall-mock-recall': { schema: r.recall.mockRecall.response, data: mr.mockRecall, routeId: r.recall.mockRecall.id },
   'recall-mock-recall-signed-off': { schema: r.recall.mockRecall.response, data: mr.signedOff },
   'recall-run': { schema: r.recall.run.response, data: mr.mockRecall, routeId: r.recall.run.id },
+  // Phase 6 slice 6i: inter-site transfer packages, peers, alarms, the site-to-site endpoint and the federated reads.
+  'recall-mock-recall-federated': { schema: r.recall.mockRecall.response, data: mr.federated },
+  'recall-refresh-federation': { schema: r.recall.refreshFederation.response, data: mr.federated, routeId: r.recall.refreshFederation.id },
+  'genealogy-federated-trace': { schema: r.genealogy.federatedTrace.response, data: fd.federatedTrace, routeId: r.genealogy.federatedTrace.id },
+  'genealogy-federated-trace-incomplete': { schema: r.genealogy.federatedTrace.response, data: fd.federatedTraceIncomplete },
+  'federation-genealogy': { schema: r.federation.genealogy.response, data: fd.genealogyAnswer, routeId: r.federation.genealogy.id },
+  'transfers-peers': { schema: r.transfers.peers.response, data: { installation: xf.installation, peers: xf.peers }, routeId: r.transfers.peers.id },
+  'transfers-propose-peer': { schema: r.transfers.proposePeer.response, data: xf.peers[1], routeId: r.transfers.proposePeer.id },
+  'transfers-packages': { schema: r.transfers.packages.response, data: { packages: [xf.package] }, routeId: r.transfers.packages.id },
+  'transfers-prepare': { schema: r.transfers.prepare.response, data: xf.file, routeId: r.transfers.prepare.id },
+  'transfers-package-file': { schema: r.transfers.packageFile.response, data: xf.file, routeId: r.transfers.packageFile.id },
+  'transfers-receipts': { schema: r.transfers.receipts.response, data: { receipts: [xf.receiptSummary] }, routeId: r.transfers.receipts.id },
+  'transfers-receipt': { schema: r.transfers.receipt.response, data: xf.receipt, routeId: r.transfers.receipt.id },
+  'transfers-receipt-accepted': { schema: r.transfers.receipt.response, data: xf.receiptAccepted },
+  'transfers-import': { schema: r.transfers.import.response, data: xf.importReceived, routeId: r.transfers.import.id },
+  'transfers-import-refused': { schema: r.transfers.import.response, data: xf.importRefused },
+  'transfers-alarms': { schema: r.transfers.alarms.response, data: { alarms: [xf.alarm] }, routeId: r.transfers.alarms.id },
+  'transfers-acknowledge-alarm': { schema: r.transfers.acknowledgeAlarm.response, data: xf.alarmAcknowledged, routeId: r.transfers.acknowledgeAlarm.id },
   // Phase 4 slice 6b: retention, contingency packs, evidence export and the inspection workspace.
   'archive-batches': { schema: r.archive.batches.response, data: ar.batches, routeId: r.archive.batches.id },
   'archive-batch': { schema: r.archive.batch.response, data: ar.batch, routeId: r.archive.batch.id },
@@ -449,6 +469,8 @@ export const RECORDS_LOCK_ROUTE_IDS: readonly string[] = Object.values(r.records
 export const PQR_ROUTE_IDS: readonly string[] = Object.values(r.pqr).map((route) => route.id);
 /** Phase 6 slice 6d: the genealogy and recall routes, each with an example above (checked by the contract test). */
 export const GENEALOGY_ROUTE_IDS: readonly string[] = [...Object.values(r.genealogy), ...Object.values(r.recall)].map((route) => route.id);
+/** Phase 6 slice 6i: the transfers and federation routes, each with an example above (checked by the contract test). */
+export const TRANSFER_ROUTE_IDS: readonly string[] = [...Object.values(r.transfers), ...Object.values(r.federation)].map((route) => route.id);
 /** Phase 4 slice 6b: the archive routes, each with an example above (checked by the contract test). */
 export const ARCHIVE_ROUTE_IDS: readonly string[] = Object.values(r.archive).map((route) => route.id);
 
