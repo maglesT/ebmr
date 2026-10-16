@@ -12,7 +12,7 @@ of each database function.
 | Module | Title | Handbook page | Migrations | Routes | Tests | Controls |
 |---|---|---|---|---|---|---|
 | [kernel-audit](#kernel-audit) | Audit trail | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 5 | 10 |
-| [kernel-iam](#kernel-iam) | Identity and access (persons, accounts, roles, qualifications, devices, credentials, sessions) | [modules/kernel.md](modules/kernel.md) | 13 | 0 | 10 | 12 |
+| [kernel-iam](#kernel-iam) | Identity and access (persons, accounts, roles, qualifications, devices, credentials, sessions) | [modules/kernel.md](modules/kernel.md) | 13 | 0 | 11 | 12 |
 | [kernel-esig](#kernel-esig) | Electronic signatures | [modules/kernel.md](modules/kernel.md) | 11 | 0 | 12 | 8 |
 | [kernel-market](#kernel-market) | Market rules (market profiles, site values, policies) | [modules/kernel.md](modules/kernel.md) | 8 | 0 | 11 | 6 |
 | [kernel-qp-evidence](#kernel-qp-evidence) | QP batch package, true copies, contingency forms, evidence export and disposal requests | [modules/kernel.md](modules/kernel.md) | 8 | 0 | 7 | 15 |
@@ -23,6 +23,7 @@ of each database function.
 | [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 7 | 5 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
+| [kernel-area-authorisation](#kernel-area-authorisation) | Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 80 | 39 |
 | [ss-batch-numbers](#ss-batch-numbers) | Batch number register | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 5 |
 | [ss-india](#ss-india) | India licences and export permission | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 2 | 3 |
@@ -32,10 +33,11 @@ of each database function.
 | [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 15 | 0 | 4 | 11 |
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
+| [ss-reagent-lots](#ss-reagent-lots) | Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 0 |
 | [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 2 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 17 | 0 | 18 | 35 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
-| [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 1 | 0 | 1 | 3 |
+| [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 5 | 0 | 3 | 3 |
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
 | [rc-containers](#rc-containers) | Output containers | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
 | [rc-consumption](#rc-consumption) | Batch side of material consumption | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 1 |
@@ -73,8 +75,8 @@ of each database function.
 | [ts-qp-package](#ts-qp-package) | EU QP batch package and certification message intake | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 0 | 0 |
 | [ts-erp-shipping](#ts-erp-shipping) | ERP shipping interlock | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 0 | 0 | 0 |
 | [ts-records](#ts-records) | Record lock and bright stock | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 7 | 3 | 9 |
-| [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 7 | 4 |
-| [ts-alarms](#ts-alarms) | Plant alarm log and equipment data (Phase 6 slice 6b) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 9 | 2 | 2 |
+| [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 0 | 6 | 8 | 4 |
+| [ts-alarms](#ts-alarms) | Plant alarm log, equipment data, plant rules and their screens (Phase 6 slice 6b) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 27 | 11 | 2 |
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 2 |
 | [ts-archive](#ts-archive) | Archive, evidence export and inspection | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 11 | 0 | 0 |
@@ -86,8 +88,8 @@ of each database function.
 | [api-contract](#api-contract) | Route table and shared shapes | [modules/api-contract.md](modules/api-contract.md) | 0 | 0 | 3 | 17 |
 | [expr](#expr) | Calculation language | [modules/expr.md](modules/expr.md) | 0 | 0 | 18 | 2 |
 | [integration-sdk](#integration-sdk) | Integration SDK (device drivers) | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 8 | 5 |
-| [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 11 | 7 |
-| [simulators](#simulators) | Device and ERP simulators | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 9 | 2 |
+| [site-gateway](#site-gateway) | Site gateway | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 13 | 7 |
+| [simulators](#simulators) | Device and ERP simulators | [modules/integrations.md](modules/integrations.md) | 0 | 0 | 11 | 2 |
 | [ui-kit](#ui-kit) | UI kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 12 | 16 |
 | [test-kit](#test-kit) | Test kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 3 | 6 |
 | [validation-kit](#validation-kit) | Validation kit | [modules/shared-kits.md](modules/shared-kits.md) | 0 | 0 | 1 | 0 |
@@ -139,7 +141,7 @@ of each database function.
 
 **Source** (8): [README.md](../../packages/kernel/src/identity/README.md), [admin.ts](../../packages/kernel/src/identity/admin.ts), [authentication.ts](../../packages/kernel/src/identity/authentication.ts), [authority.ts](../../packages/kernel/src/identity/authority.ts), [errors.ts](../../packages/kernel/src/identity/errors.ts), [index.ts](../../packages/kernel/src/identity/index.ts), [secrets.ts](../../packages/kernel/src/identity/secrets.ts), [sessions.ts](../../packages/kernel/src/identity/sessions.ts)
 
-**Tests** (10): [access.test.ts](../../packages/kernel/test/identity/access.test.ts), [accounts.test.ts](../../packages/kernel/test/identity/accounts.test.ts), [attribution.test.ts](../../packages/kernel/test/identity/attribution.test.ts), [authority.test.ts](../../packages/kernel/test/identity/authority.test.ts), [credentials.test.ts](../../packages/kernel/test/identity/credentials.test.ts), [devices-sessions.test.ts](../../packages/kernel/test/identity/devices-sessions.test.ts), [generic.test.ts](../../packages/kernel/test/identity/generic.test.ts), [secrets.test.ts](../../packages/kernel/test/identity/secrets.test.ts), [seed.test.ts](../../packages/kernel/test/identity/seed.test.ts), [site-zone-policy.test.ts](../../packages/kernel/test/identity/site-zone-policy.test.ts)
+**Tests** (11): [access.test.ts](../../packages/kernel/test/identity/access.test.ts), [accounts.test.ts](../../packages/kernel/test/identity/accounts.test.ts), [area-authorisation.test.ts](../../packages/kernel/test/identity/area-authorisation.test.ts), [attribution.test.ts](../../packages/kernel/test/identity/attribution.test.ts), [authority.test.ts](../../packages/kernel/test/identity/authority.test.ts), [credentials.test.ts](../../packages/kernel/test/identity/credentials.test.ts), [devices-sessions.test.ts](../../packages/kernel/test/identity/devices-sessions.test.ts), [generic.test.ts](../../packages/kernel/test/identity/generic.test.ts), [secrets.test.ts](../../packages/kernel/test/identity/secrets.test.ts), [seed.test.ts](../../packages/kernel/test/identity/seed.test.ts), [site-zone-policy.test.ts](../../packages/kernel/test/identity/site-zone-policy.test.ts)
 
 **Controls** (12): [DI-14](../../compliance/controls/DI-14.yaml), [DI-15](../../compliance/controls/DI-15.yaml), [DI-16](../../compliance/controls/DI-16.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-19](../../compliance/controls/DI-19.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-21](../../compliance/controls/DI-21.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-27](../../compliance/controls/DI-27.yaml), [DI-38](../../compliance/controls/DI-38.yaml), [PR-15](../../compliance/controls/PR-15.yaml)
 
@@ -338,6 +340,18 @@ of each database function.
 
 **Controls** (4): [DI-14](../../compliance/controls/DI-14.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-26](../../compliance/controls/DI-26.yaml), [DI-31](../../compliance/controls/DI-31.yaml)
 
+## kernel-area-authorisation
+
+**Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15).** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
+
+**Migrations** (1):
+
+- `packages/kernel/sql`: [1190_area_authorisation.sql](../../packages/kernel/sql/1190_area_authorisation.sql)
+
+**Database objects** created in these migrations:
+
+- Functions (4): `iam.area_authorisation_code`, `iam.area_authorisation_problem`, `iam.create_area_authorisation_type`, `iam.person_area_authorised`
+
 ## kernel-installation
 
 **Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests.** Package `packages/kernel`. Handbook: [modules/kernel.md](modules/kernel.md).
@@ -508,6 +522,21 @@ of each database function.
 
 **Controls** (7): [DI-14](../../compliance/controls/DI-14.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-26](../../compliance/controls/DI-26.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
 
+## ss-reagent-lots
+
+**Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
+
+**Migrations** (1):
+
+- `packages/site-services/sql`: [0940_reagent_lots.sql](../../packages/site-services/sql/0940_reagent_lots.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (2): `site.reagent_lot`, `site.reagent_lot_withdrawal`
+- Functions (3): `site.reagent_lot_problem`, `site.record_reagent_lot`, `site.withdraw_reagent_lot`
+
+**Tests** (1): [materials.test.ts](../../packages/recipe-core/test/plant-rules/materials.test.ts)
+
 ## ss-core
 
 **Site services package entry and shared tests.** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
@@ -564,17 +593,18 @@ of each database function.
 
 **Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (1):
+**Migrations** (5):
 
-- `packages/recipe-core/sql`: [0960_plant_alarms_series_interfaces.sql](../../packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql)
+- `packages/recipe-core/sql`: [0960_plant_alarms_series_interfaces.sql](../../packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql), [0961_opcua_endpoint_identity.sql](../../packages/recipe-core/sql/0961_opcua_endpoint_identity.sql), [0973_plant_room_rules.sql](../../packages/recipe-core/sql/0973_plant_room_rules.sql), [0974_plant_step_guards_and_review.sql](../../packages/recipe-core/sql/0974_plant_step_guards_and_review.sql), [0975_plant_status_reads.sql](../../packages/recipe-core/sql/0975_plant_status_reads.sql)
 
 **Database objects** created in these migrations:
 
-- Tables (10): `plant.alarm`, `plant.alarm_ack`, `plant.alarm_batch`, `plant.alarm_code`, `plant.alarm_transition`, `plant.device_original`, `plant.equipment_state_event`, `plant.series`, `plant.series_tag`, `plant.step_equipment`
-- Views (2): `plant.alarm_status`, `plant.batch_alarm_log`
-- Functions (16): `plant.acknowledge_alarm`, `plant.alarm_problem`, `plant.batch_alarms`, `plant.batch_context_at`, `plant.bind_step_equipment`, `plant.define_alarm_code`, `plant.payload_subject`, `plant.raise_alarm`, `plant.raw_states_value`, `plant.receive_equipment_alarm`, `plant.receive_equipment_event`, `plant.receive_series_chunk`, `plant.record_device_original`, `plant.series_chunk_hash`, `plant.series_in_context`, `plant.source_time_or_raise`
+- Tables (19): `plant.alarm`, `plant.alarm_ack`, `plant.alarm_batch`, `plant.alarm_code`, `plant.alarm_transition`, `plant.area_adjacency`, `plant.area_rule`, `plant.area_spill`, `plant.beta_lactam_class`, `plant.device_original`, `plant.equipment_state_event`, `plant.facility_rule`, `plant.opcua_endpoint`, `plant.opcua_endpoint_session`, `plant.opcua_endpoint_unit`, `plant.reagent_use`, `plant.series`, `plant.series_tag`, `plant.step_equipment`
+- Views (6): `plant.alarm_status`, `plant.area_adjacency_current`, `plant.area_rule_current`, `plant.batch_alarm_log`, `plant.opcua_endpoint_current`, `plant.room_cleaning_state`
+- Functions (44): `plant.acknowledge_alarm`, `plant.adjacency_problem`, `plant.alarm_problem`, `plant.area_last_cleaned`, `plant.area_occupancy_rules_check`, `plant.batch_alarm_review_problems`, `plant.batch_alarms`, `plant.batch_beta_lactam`, `plant.batch_context_at`, `plant.bind_step_equipment`, `plant.classified_beta_lactam`, `plant.classify_beta_lactam`, `plant.clearance_room_rules_check`, `plant.define_alarm_code`, `plant.define_area_adjacency`, `plant.device_area`, `plant.enrol_opcua_endpoint`, `plant.line_station`, `plant.material_lot_penicillin_check`, `plant.opcua_data_guard`, `plant.opcua_unit_problem`, `plant.payload_subject`, `plant.penicillin_problem`, `plant.raise_alarm`, `plant.raw_states_value`, `plant.receive_equipment_alarm`, `plant.receive_equipment_event`, `plant.receive_opcua_endpoint_session`, `plant.receive_series_chunk`, `plant.record_device_original`, `plant.record_reagent_use`, `plant.record_spill`, `plant.retire_opcua_endpoint`, `plant.room_conditions`, `plant.room_start_problem`, `plant.series_chunk_hash`, `plant.series_in_context`, `plant.set_area_rule`, `plant.set_facility_rule`, `plant.source_time_or_raise`, `plant.status_board`, `plant.step_rules_check`, `plant.step_rules_problem`, `recipe.review_gate_problems`
+- Triggers (7): `ab_opcua_endpoint_guard on plant.alarm`, `ab_opcua_endpoint_guard on plant.equipment_state_event`, `ab_opcua_endpoint_guard on plant.series`, `ab_plant_penicillin_lot on site.material_lot`, `ab_plant_room_rules on plant.area_occupancy`, `ab_plant_room_rules on plant.clearance`, `ad_plant_step_rules on recipe.execution_command`
 
-**Tests** (1): [plant-alarms-series.test.ts](../../packages/recipe-core/test/integrations/plant-alarms-series.test.ts)
+**Tests** (3): [equipment-data/opcua-endpoint-identity.test.ts](../../packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts), [integrations/plant-alarms-series.test.ts](../../packages/recipe-core/test/integrations/plant-alarms-series.test.ts), [plant-rules/room-rules.test.ts](../../packages/recipe-core/test/plant-rules/room-rules.test.ts)
 
 **Controls** (3): [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-49](../../compliance/controls/DI-49.yaml)
 
@@ -1467,7 +1497,7 @@ of each database function.
 
 **Integration health, mirrors and integration alarms.** Package `apps/tablets-server`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Server files** (12): [adapters/cmms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/cmms/index.ts), [adapters/erp-wms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/erp-wms/index.ts), [adapters/erp-wms/moves.ts](../../apps/tablets-server/src/features/integrations/adapters/erp-wms/moves.ts), [adapters/erp-wms/outbound.ts](../../apps/tablets-server/src/features/integrations/adapters/erp-wms/outbound.ts), [adapters/framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts), [adapters/lims/index.ts](../../apps/tablets-server/src/features/integrations/adapters/lims/index.ts), [adapters/lms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/lms/index.ts), [adapters/qms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/qms/index.ts), [adapters/start.ts](../../apps/tablets-server/src/features/integrations/adapters/start.ts), [guidance.ts](../../apps/tablets-server/src/features/integrations/guidance.ts), [index.ts](../../apps/tablets-server/src/features/integrations/index.ts), [reads.ts](../../apps/tablets-server/src/features/integrations/reads.ts)
+**Server files** (14): [adapters/cmms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/cmms/index.ts), [adapters/ems/index.ts](../../apps/tablets-server/src/features/integrations/adapters/ems/index.ts), [adapters/erp-wms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/erp-wms/index.ts), [adapters/erp-wms/moves.ts](../../apps/tablets-server/src/features/integrations/adapters/erp-wms/moves.ts), [adapters/erp-wms/outbound.ts](../../apps/tablets-server/src/features/integrations/adapters/erp-wms/outbound.ts), [adapters/framework.ts](../../apps/tablets-server/src/features/integrations/adapters/framework.ts), [adapters/lims/index.ts](../../apps/tablets-server/src/features/integrations/adapters/lims/index.ts), [adapters/lms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/lms/index.ts), [adapters/opcua/index.ts](../../apps/tablets-server/src/features/integrations/adapters/opcua/index.ts), [adapters/qms/index.ts](../../apps/tablets-server/src/features/integrations/adapters/qms/index.ts), [adapters/start.ts](../../apps/tablets-server/src/features/integrations/adapters/start.ts), [guidance.ts](../../apps/tablets-server/src/features/integrations/guidance.ts), [index.ts](../../apps/tablets-server/src/features/integrations/index.ts), [reads.ts](../../apps/tablets-server/src/features/integrations/reads.ts)
 
 **Contract** (1): [integrations.ts](../../packages/api-contract/src/ns/integrations.ts)
 
@@ -1484,19 +1514,29 @@ of each database function.
 
 **Screens** (4): [AdapterPage.tsx](../../apps/tablets-web/src/features/integrations/AdapterPage.tsx), [IntegrationsPage.tsx](../../apps/tablets-web/src/features/integrations/IntegrationsPage.tsx), [index.tsx](../../apps/tablets-web/src/features/integrations/index.tsx), [reads.ts](../../apps/tablets-web/src/features/integrations/reads.ts)
 
-**Tests** (7): [tablets-server/test/integrations/adapter-startup.test.ts](../../apps/tablets-server/test/integrations/adapter-startup.test.ts), [tablets-server/test/integrations/alarm-routes.test.ts](../../apps/tablets-server/test/integrations/alarm-routes.test.ts), [tablets-server/test/integrations/contract-enums.test.ts](../../apps/tablets-server/test/integrations/contract-enums.test.ts), [tablets-server/test/integrations/erp-wms/contract.test.ts](../../apps/tablets-server/test/integrations/erp-wms/contract.test.ts), [tablets-server/test/integrations/erp-wms/soak.test.ts](../../apps/tablets-server/test/integrations/erp-wms/soak.test.ts), [tablets-server/test/integrations/feed-adapters.test.ts](../../apps/tablets-server/test/integrations/feed-adapters.test.ts), [tablets-web/test/integrations/integrations.test.tsx](../../apps/tablets-web/test/integrations/integrations.test.tsx)
+**Tests** (8): [tablets-server/test/integrations/adapter-startup.test.ts](../../apps/tablets-server/test/integrations/adapter-startup.test.ts), [tablets-server/test/integrations/alarm-routes.test.ts](../../apps/tablets-server/test/integrations/alarm-routes.test.ts), [tablets-server/test/integrations/contract-enums.test.ts](../../apps/tablets-server/test/integrations/contract-enums.test.ts), [tablets-server/test/integrations/ems/ems-adapter.test.ts](../../apps/tablets-server/test/integrations/ems/ems-adapter.test.ts), [tablets-server/test/integrations/erp-wms/contract.test.ts](../../apps/tablets-server/test/integrations/erp-wms/contract.test.ts), [tablets-server/test/integrations/erp-wms/soak.test.ts](../../apps/tablets-server/test/integrations/erp-wms/soak.test.ts), [tablets-server/test/integrations/feed-adapters.test.ts](../../apps/tablets-server/test/integrations/feed-adapters.test.ts), [tablets-web/test/integrations/integrations.test.tsx](../../apps/tablets-web/test/integrations/integrations.test.tsx)
 
 **Controls** (4): [DI-14](../../compliance/controls/DI-14.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [PR-17](../../compliance/controls/PR-17.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
 
 ## ts-alarms
 
-**Plant alarm log and equipment data (Phase 6 slice 6b).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
+**Plant alarm log, equipment data, plant rules and their screens (Phase 6 slice 6b).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
 
-**Server files** (5): [alarms/guidance.ts](../../apps/tablets-server/src/features/alarms/guidance.ts), [alarms/index.ts](../../apps/tablets-server/src/features/alarms/index.ts), [alarms/reads.ts](../../apps/tablets-server/src/features/alarms/reads.ts), [equipment-data/index.ts](../../apps/tablets-server/src/features/equipment-data/index.ts), [equipment-data/reads.ts](../../apps/tablets-server/src/features/equipment-data/reads.ts)
+**Migrations** (2):
 
-**Contract** (2): [alarms.ts](../../packages/api-contract/src/ns/alarms.ts), [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts)
+- `apps/tablets-server/sql`: [1210_opcua_process_readings.sql](../../apps/tablets-server/sql/1210_opcua_process_readings.sql), [1218_plant_alarm_bridge.sql](../../apps/tablets-server/sql/1218_plant_alarm_bridge.sql)
 
-**Routes** (9):
+**Database objects** created in these migrations:
+
+- Tables (1): `tab.process_reading_native`
+- Functions (8): `tab.bridge_device_alarm`, `tab.bridge_process_alarm`, `tab.bridge_process_alarm_ack`, `tab.bridge_step_device`, `tab.ingest_opcua_readings`, `tab.process_device_endpoint`, `tab.process_reading_native_required`, `tab.status_quality`
+- Triggers (5): `ac_tab_process_reading_native on tab.process_reading`, `zb_plant_alarm_ack_bridge on tab.process_alarm_ack`, `zb_plant_alarm_bridge on tab.process_reading`, `zb_plant_device_alarm_bridge on tab.device_alarm`, `zb_plant_step_equipment_bridge on tab.step_device`
+
+**Server files** (8): [alarms/guidance.ts](../../apps/tablets-server/src/features/alarms/guidance.ts), [alarms/index.ts](../../apps/tablets-server/src/features/alarms/index.ts), [alarms/reads.ts](../../apps/tablets-server/src/features/alarms/reads.ts), [equipment-data/index.ts](../../apps/tablets-server/src/features/equipment-data/index.ts), [equipment-data/reads.ts](../../apps/tablets-server/src/features/equipment-data/reads.ts), [plant-rules/guidance.ts](../../apps/tablets-server/src/features/plant-rules/guidance.ts), [plant-rules/index.ts](../../apps/tablets-server/src/features/plant-rules/index.ts), [plant-rules/reads.ts](../../apps/tablets-server/src/features/plant-rules/reads.ts)
+
+**Contract** (3): [alarms.ts](../../packages/api-contract/src/ns/alarms.ts), [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts), [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts)
+
+**Routes** (27):
 
 | Method | Path | Route | Contract file |
 |---|---|---|---|
@@ -1507,10 +1547,30 @@ of each database function.
 | GET | `/api/equipment-data/batches/:batchId/originals` | `equipmentData.originals` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
 | GET | `/api/equipment-data/batches/:batchId/series` | `equipmentData.batchSeries` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
 | GET | `/api/equipment-data/events` | `equipmentData.events` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+| GET | `/api/equipment-data/line-station/:code` | `equipmentDisplays.lineStation` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
 | GET | `/api/equipment-data/series` | `equipmentData.series` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+| GET | `/api/equipment-data/status-board` | `equipmentDisplays.statusBoard` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
 | GET | `/api/equipment-data/tags` | `equipmentData.tags` | [equipment-data.ts](../../packages/api-contract/src/ns/equipment-data.ts) |
+| GET | `/api/plant-rules/adjacencies` | `plantRules.adjacencies` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/adjacencies` | `plantRules.defineAdjacency` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/area-authorisation-records/:recordId/withdraw` | `plantRules.withdrawAreaAuthorisation` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| GET | `/api/plant-rules/area-authorisations` | `plantRules.areaAuthorisations` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/area-authorisations` | `plantRules.createAreaAuthorisation` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/area-authorisations/:code/records` | `plantRules.recordAreaAuthorisation` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/beta-lactam` | `plantRules.classifyBetaLactam` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/facilities/:site` | `plantRules.setFacilityRule` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| GET | `/api/plant-rules/reagent-lots` | `plantRules.reagentLots` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/reagent-lots` | `plantRules.recordReagentLot` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/reagent-lots/:lotCode/withdraw` | `plantRules.withdrawReagentLot` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/reagent-uses` | `plantRules.recordReagentUse` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| GET | `/api/plant-rules/rooms` | `plantRules.rooms` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| GET | `/api/plant-rules/rooms/:code/conditions` | `plantRules.roomConditions` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/rooms/:code/rule` | `plantRules.setRoomRule` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
+| POST | `/api/plant-rules/rooms/:code/spills` | `plantRules.recordSpill` | [plant-rules.ts](../../packages/api-contract/src/ns/plant-rules.ts) |
 
-**Tests** (2): [alarm-routes.test.ts](../../apps/tablets-server/test/alarms/alarm-routes.test.ts), [contract-enums.test.ts](../../apps/tablets-server/test/alarms/contract-enums.test.ts)
+**Screens** (12): [AcknowledgeAlarm.tsx](../../apps/tablets-web/src/features/plant-status/AcknowledgeAlarm.tsx), [AlarmParts.tsx](../../apps/tablets-web/src/features/plant-status/AlarmParts.tsx), [AlarmsPage.tsx](../../apps/tablets-web/src/features/plant-status/AlarmsPage.tsx), [AreaAuthorisationsPage.tsx](../../apps/tablets-web/src/features/plant-status/AreaAuthorisationsPage.tsx), [BatchAlarmLog.tsx](../../apps/tablets-web/src/features/plant-status/BatchAlarmLog.tsx), [LineStationPage.tsx](../../apps/tablets-web/src/features/plant-status/LineStationPage.tsx), [RoomsPage.tsx](../../apps/tablets-web/src/features/plant-status/RoomsPage.tsx), [StatusBoardPage.tsx](../../apps/tablets-web/src/features/plant-status/StatusBoardPage.tsx), [TrendChart.tsx](../../apps/tablets-web/src/features/plant-status/TrendChart.tsx), [TrendsPage.tsx](../../apps/tablets-web/src/features/plant-status/TrendsPage.tsx), [index.tsx](../../apps/tablets-web/src/features/plant-status/index.tsx), [reads.ts](../../apps/tablets-web/src/features/plant-status/reads.ts)
+
+**Tests** (11): [tablets-server/test/alarms/alarm-bridge.test.ts](../../apps/tablets-server/test/alarms/alarm-bridge.test.ts), [tablets-server/test/alarms/alarm-routes.test.ts](../../apps/tablets-server/test/alarms/alarm-routes.test.ts), [tablets-server/test/alarms/area-authorisation-matrix.test.ts](../../apps/tablets-server/test/alarms/area-authorisation-matrix.test.ts), [tablets-server/test/alarms/area-authorisation-signature.test.ts](../../apps/tablets-server/test/alarms/area-authorisation-signature.test.ts), [tablets-server/test/alarms/contract-enums.test.ts](../../apps/tablets-server/test/alarms/contract-enums.test.ts), [tablets-server/test/alarms/plant-displays.test.ts](../../apps/tablets-server/test/alarms/plant-displays.test.ts), [tablets-server/test/equipment-data/opcua-adapter.test.ts](../../apps/tablets-server/test/equipment-data/opcua-adapter.test.ts), [tablets-server/test/equipment-data/opcua-readings.test.ts](../../apps/tablets-server/test/equipment-data/opcua-readings.test.ts), [tablets-web/test/plant-status/area-authorisations.test.tsx](../../apps/tablets-web/test/plant-status/area-authorisations.test.tsx), [tablets-web/test/plant-status/plant-status.test.tsx](../../apps/tablets-web/test/plant-status/plant-status.test.tsx), [tablets-web/test/plant-status/trends.test.tsx](../../apps/tablets-web/test/plant-status/trends.test.tsx)
 
 **Controls** (2): [DI-32](../../compliance/controls/DI-32.yaml), [DI-49](../../compliance/controls/DI-49.yaml)
 
@@ -1775,9 +1835,9 @@ of each database function.
 
 **Site gateway.** Package `apps/site-gateway`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Source** (16): [api.ts](../../apps/site-gateway/src/api.ts), [clock.ts](../../apps/site-gateway/src/clock.ts), [config.ts](../../apps/site-gateway/src/config.ts), [drivers/mt-sics.ts](../../apps/site-gateway/src/drivers/mt-sics.ts), [drivers/opcua.ts](../../apps/site-gateway/src/drivers/opcua.ts), [drivers/printer-sim.ts](../../apps/site-gateway/src/drivers/printer-sim.ts), [drivers/process-sim.ts](../../apps/site-gateway/src/drivers/process-sim.ts), [gateway.ts](../../apps/site-gateway/src/gateway.ts), [index.ts](../../apps/site-gateway/src/index.ts), [journal.ts](../../apps/site-gateway/src/journal.ts), [main.ts](../../apps/site-gateway/src/main.ts), [print-journal.ts](../../apps/site-gateway/src/print-journal.ts), [printer-uplink.ts](../../apps/site-gateway/src/printer-uplink.ts), [process-journal.ts](../../apps/site-gateway/src/process-journal.ts), [process-uplink.ts](../../apps/site-gateway/src/process-uplink.ts), [uplink.ts](../../apps/site-gateway/src/uplink.ts)
+**Source** (18): [api.ts](../../apps/site-gateway/src/api.ts), [clock.ts](../../apps/site-gateway/src/clock.ts), [config.ts](../../apps/site-gateway/src/config.ts), [drivers/mt-sics.ts](../../apps/site-gateway/src/drivers/mt-sics.ts), [drivers/opcua-node.ts](../../apps/site-gateway/src/drivers/opcua-node.ts), [drivers/opcua.ts](../../apps/site-gateway/src/drivers/opcua.ts), [drivers/printer-sim.ts](../../apps/site-gateway/src/drivers/printer-sim.ts), [drivers/process-sim.ts](../../apps/site-gateway/src/drivers/process-sim.ts), [gateway.ts](../../apps/site-gateway/src/gateway.ts), [index.ts](../../apps/site-gateway/src/index.ts), [journal.ts](../../apps/site-gateway/src/journal.ts), [main.ts](../../apps/site-gateway/src/main.ts), [opcua-feed.ts](../../apps/site-gateway/src/opcua-feed.ts), [print-journal.ts](../../apps/site-gateway/src/print-journal.ts), [printer-uplink.ts](../../apps/site-gateway/src/printer-uplink.ts), [process-journal.ts](../../apps/site-gateway/src/process-journal.ts), [process-uplink.ts](../../apps/site-gateway/src/process-uplink.ts), [uplink.ts](../../apps/site-gateway/src/uplink.ts)
 
-**Tests** (11): [capture-readiness.test.ts](../../apps/site-gateway/test/capture-readiness.test.ts), [delivery-readiness.test.ts](../../apps/site-gateway/test/delivery-readiness.test.ts), [device-config.test.ts](../../apps/site-gateway/test/device-config.test.ts), [gateway.test.ts](../../apps/site-gateway/test/gateway.test.ts), [journal-write-failure.test.ts](../../apps/site-gateway/test/journal-write-failure.test.ts), [journal.test.ts](../../apps/site-gateway/test/journal.test.ts), [opcua-driver-shape.test.ts](../../apps/site-gateway/test/opcua-driver-shape.test.ts), [package.test.ts](../../apps/site-gateway/test/package.test.ts), [printer.test.ts](../../apps/site-gateway/test/printer.test.ts), [process.test.ts](../../apps/site-gateway/test/process.test.ts), [upload-wait.test.ts](../../apps/site-gateway/test/upload-wait.test.ts)
+**Tests** (13): [capture-readiness.test.ts](../../apps/site-gateway/test/capture-readiness.test.ts), [delivery-readiness.test.ts](../../apps/site-gateway/test/delivery-readiness.test.ts), [device-config.test.ts](../../apps/site-gateway/test/device-config.test.ts), [gateway.test.ts](../../apps/site-gateway/test/gateway.test.ts), [journal-write-failure.test.ts](../../apps/site-gateway/test/journal-write-failure.test.ts), [journal.test.ts](../../apps/site-gateway/test/journal.test.ts), [opcua-driver-shape.test.ts](../../apps/site-gateway/test/opcua-driver-shape.test.ts), [opcua-driver.test.ts](../../apps/site-gateway/test/opcua-driver.test.ts), [opcua-simulator.test.ts](../../apps/site-gateway/test/opcua-simulator.test.ts), [package.test.ts](../../apps/site-gateway/test/package.test.ts), [printer.test.ts](../../apps/site-gateway/test/printer.test.ts), [process.test.ts](../../apps/site-gateway/test/process.test.ts), [upload-wait.test.ts](../../apps/site-gateway/test/upload-wait.test.ts)
 
 **Controls** (7): [DI-20](../../compliance/controls/DI-20.yaml), [DI-28](../../compliance/controls/DI-28.yaml), [DI-30](../../compliance/controls/DI-30.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [PR-20](../../compliance/controls/PR-20.yaml), [PR-36](../../compliance/controls/PR-36.yaml)
 
@@ -1785,9 +1845,9 @@ of each database function.
 
 **Device and ERP simulators.** Package `apps/simulators`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Source** (34): [cmms/main.ts](../../apps/simulators/src/cmms/main.ts), [cmms/model.ts](../../apps/simulators/src/cmms/model.ts), [erp/catalogue.ts](../../apps/simulators/src/erp/catalogue.ts), [erp/feed.ts](../../apps/simulators/src/erp/feed.ts), [erp/main.ts](../../apps/simulators/src/erp/main.ts), [erp/model.ts](../../apps/simulators/src/erp/model.ts), [erp/serve.ts](../../apps/simulators/src/erp/serve.ts), [erp/server.ts](../../apps/simulators/src/erp/server.ts), [index.ts](../../apps/simulators/src/index.ts), [lims/main.ts](../../apps/simulators/src/lims/main.ts), [lims/model.ts](../../apps/simulators/src/lims/model.ts), [lms/main.ts](../../apps/simulators/src/lms/main.ts), [lms/model.ts](../../apps/simulators/src/lms/model.ts), [printer/main.ts](../../apps/simulators/src/printer/main.ts), [printer/model.ts](../../apps/simulators/src/printer/model.ts), [printer/server.ts](../../apps/simulators/src/printer/server.ts), [process/console.ts](../../apps/simulators/src/process/console.ts), [process/main.ts](../../apps/simulators/src/process/main.ts), [process/model.ts](../../apps/simulators/src/process/model.ts), [process/server.ts](../../apps/simulators/src/process/server.ts), [qms/main.ts](../../apps/simulators/src/qms/main.ts), [qms/model.ts](../../apps/simulators/src/qms/model.ts), [scale/console.ts](../../apps/simulators/src/scale/console.ts), [scale/main.ts](../../apps/simulators/src/scale/main.ts), [scale/model.ts](../../apps/simulators/src/scale/model.ts), [scale/server.ts](../../apps/simulators/src/scale/server.ts), [serialisation/main.ts](../../apps/simulators/src/serialisation/main.ts), [serialisation/model.ts](../../apps/simulators/src/serialisation/model.ts), [serialisation/server.ts](../../apps/simulators/src/serialisation/server.ts), [system-feed/feed.ts](../../apps/simulators/src/system-feed/feed.ts), [system-feed/plugin.ts](../../apps/simulators/src/system-feed/plugin.ts), [system-feed/server.ts](../../apps/simulators/src/system-feed/server.ts), [wms/main.ts](../../apps/simulators/src/wms/main.ts), [wms/model.ts](../../apps/simulators/src/wms/model.ts)
+**Source** (38): [cmms/main.ts](../../apps/simulators/src/cmms/main.ts), [cmms/model.ts](../../apps/simulators/src/cmms/model.ts), [ems/main.ts](../../apps/simulators/src/ems/main.ts), [ems/model.ts](../../apps/simulators/src/ems/model.ts), [erp/catalogue.ts](../../apps/simulators/src/erp/catalogue.ts), [erp/feed.ts](../../apps/simulators/src/erp/feed.ts), [erp/main.ts](../../apps/simulators/src/erp/main.ts), [erp/model.ts](../../apps/simulators/src/erp/model.ts), [erp/serve.ts](../../apps/simulators/src/erp/serve.ts), [erp/server.ts](../../apps/simulators/src/erp/server.ts), [index.ts](../../apps/simulators/src/index.ts), [lims/main.ts](../../apps/simulators/src/lims/main.ts), [lims/model.ts](../../apps/simulators/src/lims/model.ts), [lms/main.ts](../../apps/simulators/src/lms/main.ts), [lms/model.ts](../../apps/simulators/src/lms/model.ts), [opcua/main.ts](../../apps/simulators/src/opcua/main.ts), [opcua/server.ts](../../apps/simulators/src/opcua/server.ts), [printer/main.ts](../../apps/simulators/src/printer/main.ts), [printer/model.ts](../../apps/simulators/src/printer/model.ts), [printer/server.ts](../../apps/simulators/src/printer/server.ts), [process/console.ts](../../apps/simulators/src/process/console.ts), [process/main.ts](../../apps/simulators/src/process/main.ts), [process/model.ts](../../apps/simulators/src/process/model.ts), [process/server.ts](../../apps/simulators/src/process/server.ts), [qms/main.ts](../../apps/simulators/src/qms/main.ts), [qms/model.ts](../../apps/simulators/src/qms/model.ts), [scale/console.ts](../../apps/simulators/src/scale/console.ts), [scale/main.ts](../../apps/simulators/src/scale/main.ts), [scale/model.ts](../../apps/simulators/src/scale/model.ts), [scale/server.ts](../../apps/simulators/src/scale/server.ts), [serialisation/main.ts](../../apps/simulators/src/serialisation/main.ts), [serialisation/model.ts](../../apps/simulators/src/serialisation/model.ts), [serialisation/server.ts](../../apps/simulators/src/serialisation/server.ts), [system-feed/feed.ts](../../apps/simulators/src/system-feed/feed.ts), [system-feed/plugin.ts](../../apps/simulators/src/system-feed/plugin.ts), [system-feed/server.ts](../../apps/simulators/src/system-feed/server.ts), [wms/main.ts](../../apps/simulators/src/wms/main.ts), [wms/model.ts](../../apps/simulators/src/wms/model.ts)
 
-**Tests** (9): [erp-wms/erp-wms.test.ts](../../apps/simulators/test/erp-wms/erp-wms.test.ts), [erp/catalogue.test.ts](../../apps/simulators/test/erp/catalogue.test.ts), [package.test.ts](../../apps/simulators/test/package.test.ts), [printer/simulator.test.ts](../../apps/simulators/test/printer/simulator.test.ts), [process/equipment-kinds.test.ts](../../apps/simulators/test/process/equipment-kinds.test.ts), [process/simulator.test.ts](../../apps/simulators/test/process/simulator.test.ts), [scale/simulator.test.ts](../../apps/simulators/test/scale/simulator.test.ts), [serialisation/stub.test.ts](../../apps/simulators/test/serialisation/stub.test.ts), [system-feed/simulators.test.ts](../../apps/simulators/test/system-feed/simulators.test.ts)
+**Tests** (11): [ems/ems.test.ts](../../apps/simulators/test/ems/ems.test.ts), [erp-wms/erp-wms.test.ts](../../apps/simulators/test/erp-wms/erp-wms.test.ts), [erp/catalogue.test.ts](../../apps/simulators/test/erp/catalogue.test.ts), [opcua/opcua-simulator.test.ts](../../apps/simulators/test/opcua/opcua-simulator.test.ts), [package.test.ts](../../apps/simulators/test/package.test.ts), [printer/simulator.test.ts](../../apps/simulators/test/printer/simulator.test.ts), [process/equipment-kinds.test.ts](../../apps/simulators/test/process/equipment-kinds.test.ts), [process/simulator.test.ts](../../apps/simulators/test/process/simulator.test.ts), [scale/simulator.test.ts](../../apps/simulators/test/scale/simulator.test.ts), [serialisation/stub.test.ts](../../apps/simulators/test/serialisation/stub.test.ts), [system-feed/simulators.test.ts](../../apps/simulators/test/system-feed/simulators.test.ts)
 
 **Controls** (2): [DI-31](../../compliance/controls/DI-31.yaml), [PR-42](../../compliance/controls/PR-42.yaml)
 

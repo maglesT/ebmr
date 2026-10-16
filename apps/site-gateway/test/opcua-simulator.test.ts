@@ -66,8 +66,18 @@ describe('the OPC UA driver against the simulator', () => {
       await until(() => kinds().has('RECIPE_MISMATCH'), 10_000, 'recipe mismatch alarm');
       expect(r.feed.published().some((m) => m.messageType === 'opcua.equipment_event' && (m.payload as { kind: string }).kind === 'RECIPE_MISMATCH')).toBe(true);
       await sim.fault('RECIPE_MISMATCH', false);
-      await sim.fault('OUT_OF_ORDER', true);
-      await until(() => kinds().has('OUT_OF_ORDER'), 10_000, 'out-of-order alarm');
+      // OUT_OF_ORDER is one sample per unit, once. The server samples each variable at its sampling interval, so under
+      // load the next regular sample can replace the older one before it is sampled (OPC UA sampling, not a loss in the
+      // driver): the fault is fired again, at most once a second, until the driver has seen one.
+      let fired = 0;
+      await until(async () => {
+        if (kinds().has('OUT_OF_ORDER')) return true;
+        if (performance.now() - fired > 1000) {
+          fired = performance.now();
+          await sim.fault('OUT_OF_ORDER', true);
+        }
+        return false;
+      }, 15_000, 'out-of-order alarm');
       await sim.fault('WRONG_BATCH', true);
       await until(() => kinds().has('WRONG_UNIT'), 10_000, `wrong unit alarm ${JSON.stringify([...kinds()])} ${JSON.stringify(r.alarms.slice(-3))}`);
       await sim.fault('REJECT_BURST', true);
