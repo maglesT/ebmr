@@ -10,6 +10,7 @@ import * as access from './access/index.ts';
 import * as archive from './archive/index.ts';
 import * as audit from './audit/index.ts';
 import * as capa from './capa/index.ts';
+import * as controlled from './controlled/index.ts';
 import * as configChange from './config-change/index.ts';
 import * as containers from './containers/index.ts';
 import * as designer from './designer/index.ts';
@@ -63,6 +64,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'capa', installations: ['GMP'], module: capa satisfies FeatureModule },
   { name: 'config-change', installations: ['GMP'], module: configChange satisfies FeatureModule },
   { name: 'governance', installations: ['GMP'], module: governance satisfies FeatureModule },
+  { name: 'controlled', installations: ['GMP'], module: controlled satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

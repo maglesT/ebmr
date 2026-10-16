@@ -1,0 +1,463 @@
+{
+  "product": {
+    "productCode": "TRM-50",
+    "materialsInEffect": [
+      "API-TRAMADOL"
+    ],
+    "records": [
+      {
+        "recordId": "3c4d5e6f-0000-4000-8000-000000000001",
+        "controlled": true,
+        "materialCodes": [
+          "API-TRAMADOL"
+        ],
+        "basisRef": "NDPS manufacturing licence ML-17 (draft)",
+        "recordedBy": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e1",
+          "legalName": "Priya QA",
+          "loginName": "priya.qa",
+          "role": "QA_MBR_APPROVER"
+        },
+        "recordedAt": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        },
+        "state": "APPROVED",
+        "approvedBy": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e2",
+          "legalName": "Ravi Reviewer",
+          "loginName": "ravi.qa",
+          "role": "QA_REVIEWER"
+        },
+        "approvedAt": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ]
+  },
+  "productPending": {
+    "productCode": "TRM-100",
+    "materialsInEffect": [
+      "API-TRAMADOL"
+    ],
+    "records": [
+      {
+        "recordId": "3c4d5e6f-0000-4000-8000-000000000002",
+        "controlled": true,
+        "materialCodes": [
+          "API-TRAMADOL"
+        ],
+        "basisRef": "NDPS manufacturing licence ML-17 (draft)",
+        "recordedBy": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e1",
+          "legalName": "Priya QA",
+          "loginName": "priya.qa",
+          "role": "QA_MBR_APPROVER"
+        },
+        "recordedAt": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        },
+        "state": "RECORDED",
+        "approvedBy": null,
+        "approvedAt": null
+      }
+    ]
+  },
+  "dispenseConfirmed": {
+    "custodyId": "3c4d5e6f-0000-4000-8000-000000000030",
+    "kind": "DISPENSE",
+    "lotId": "3c4d5e6f-0000-4000-8000-000000000020",
+    "lotCode": "L-TRM-0042",
+    "materialCode": "API-TRAMADOL",
+    "quantity": "2.000",
+    "unit": "kg",
+    "batchId": "3c4d5e6f-0000-4000-8000-000000000010",
+    "batchNumber": "N2600123",
+    "fromLocation": null,
+    "toLocation": null,
+    "note": null,
+    "proposedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e3",
+      "legalName": "Dinesh Dispenser",
+      "loginName": "dinesh.d",
+      "role": "DISPENSER"
+    },
+    "proposedAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "CONFIRMED",
+    "custodians": [
+      {
+        "position": "FIRST",
+        "person": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e3",
+          "legalName": "Dinesh Dispenser",
+          "loginName": "dinesh.d",
+          "role": "DISPENSER"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        }
+      },
+      {
+        "position": "SECOND",
+        "person": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e4",
+          "legalName": "Vani Verifier",
+          "loginName": "vani.v",
+          "role": "VERIFIER"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "used": true
+  },
+  "dispenseAwaiting": {
+    "custodyId": "3c4d5e6f-0000-4000-8000-000000000031",
+    "kind": "DISPENSE",
+    "lotId": "3c4d5e6f-0000-4000-8000-000000000020",
+    "lotCode": "L-TRM-0042",
+    "materialCode": "API-TRAMADOL",
+    "quantity": "2.000",
+    "unit": "kg",
+    "batchId": "3c4d5e6f-0000-4000-8000-000000000010",
+    "batchNumber": "N2600123",
+    "fromLocation": null,
+    "toLocation": null,
+    "note": null,
+    "proposedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e3",
+      "legalName": "Dinesh Dispenser",
+      "loginName": "dinesh.d",
+      "role": "DISPENSER"
+    },
+    "proposedAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "AWAITING_COUNTERSIGN",
+    "custodians": [
+      {
+        "position": "FIRST",
+        "person": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e3",
+          "legalName": "Dinesh Dispenser",
+          "loginName": "dinesh.d",
+          "role": "DISPENSER"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "used": false
+  },
+  "destructionProposed": {
+    "custodyId": "3c4d5e6f-0000-4000-8000-000000000032",
+    "kind": "DESTRUCTION",
+    "lotId": "3c4d5e6f-0000-4000-8000-000000000020",
+    "lotCode": "L-TRM-0042",
+    "materialCode": "API-TRAMADOL",
+    "quantity": "0.050",
+    "unit": "kg",
+    "batchId": "3c4d5e6f-0000-4000-8000-000000000010",
+    "batchNumber": "N2600123",
+    "fromLocation": null,
+    "toLocation": null,
+    "note": "Rejected tablets, incinerated (SOP-WM-04)",
+    "proposedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e3",
+      "legalName": "Dinesh Dispenser",
+      "loginName": "dinesh.d",
+      "role": "DISPENSER"
+    },
+    "proposedAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "PROPOSED",
+    "custodians": [],
+    "used": false
+  },
+  "transfer": {
+    "custodyId": "3c4d5e6f-0000-4000-8000-000000000033",
+    "kind": "TRANSFER",
+    "lotId": "3c4d5e6f-0000-4000-8000-000000000020",
+    "lotCode": "L-TRM-0042",
+    "materialCode": "API-TRAMADOL",
+    "quantity": "3.000",
+    "unit": "kg",
+    "batchId": null,
+    "batchNumber": null,
+    "fromLocation": "WH-A-01",
+    "toLocation": "DISP-01",
+    "note": null,
+    "proposedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e3",
+      "legalName": "Dinesh Dispenser",
+      "loginName": "dinesh.d",
+      "role": "WAREHOUSE_LABELLING"
+    },
+    "proposedAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "CONFIRMED",
+    "custodians": [
+      {
+        "position": "FIRST",
+        "person": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e3",
+          "legalName": "Dinesh Dispenser",
+          "loginName": "dinesh.d",
+          "role": "WAREHOUSE_LABELLING"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        }
+      },
+      {
+        "position": "SECOND",
+        "person": {
+          "personId": "1a2b3c4d-0000-4000-8000-0000000000e4",
+          "legalName": "Vani Verifier",
+          "loginName": "vani.v",
+          "role": "VERIFIER"
+        },
+        "at": {
+          "us": "1791612000000000",
+          "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+        }
+      }
+    ],
+    "used": true
+  },
+  "checkpoint": {
+    "checkpointId": "3c4d5e6f-0000-4000-8000-000000000040",
+    "stageKey": "S-BLEND@",
+    "materialCode": "API-TRAMADOL",
+    "unit": "kg",
+    "dispensed": "2.000",
+    "consumed": "1.950",
+    "inProcess": "0.050",
+    "returned": "0",
+    "destroyed": "0",
+    "difference": "0.000",
+    "explanation": null,
+    "deviationId": null,
+    "deviationRef": null,
+    "recordedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e5",
+      "legalName": "Suresh Supervisor",
+      "loginName": "suresh.s",
+      "role": "SHIFT_SUPERVISOR"
+    },
+    "recordedAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "SIGNED",
+    "current": true
+  },
+  "checkpointExplained": {
+    "checkpointId": "3c4d5e6f-0000-4000-8000-000000000041",
+    "stageKey": "S-COMPRESS@",
+    "materialCode": "API-TRAMADOL",
+    "unit": "kg",
+    "dispensed": "2.000",
+    "consumed": "1.900",
+    "inProcess": "0",
+    "returned": "0",
+    "destroyed": "0",
+    "difference": "0.100",
+    "explanation": "Weighing uncertainty of the dispensing balance",
+    "deviationId": "3c4d5e6f-0000-4000-8000-000000000050",
+    "deviationRef": "DEV-SITE-1-2026-00017",
+    "recordedBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e5",
+      "legalName": "Suresh Supervisor",
+      "loginName": "suresh.s",
+      "role": "SHIFT_SUPERVISOR"
+    },
+    "recordedAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "state": "RECORDED",
+    "current": true
+  },
+  "balance": {
+    "batchId": "3c4d5e6f-0000-4000-8000-000000000010",
+    "batchNumber": "N2600123",
+    "productCode": "TRM-50",
+    "banner": "Draft: NDPS rules not verified (IN-53, status U)",
+    "materials": [
+      {
+        "materialCode": "API-TRAMADOL",
+        "unit": "kg",
+        "dispensed": "2.000",
+        "returned": "0",
+        "destroyed": "0",
+        "checkpoints": [
+          {
+            "checkpointId": "3c4d5e6f-0000-4000-8000-000000000041",
+            "stageKey": "S-COMPRESS@",
+            "materialCode": "API-TRAMADOL",
+            "unit": "kg",
+            "dispensed": "2.000",
+            "consumed": "1.900",
+            "inProcess": "0",
+            "returned": "0",
+            "destroyed": "0",
+            "difference": "0.100",
+            "explanation": "Weighing uncertainty of the dispensing balance",
+            "deviationId": "3c4d5e6f-0000-4000-8000-000000000050",
+            "deviationRef": "DEV-SITE-1-2026-00017",
+            "recordedBy": {
+              "personId": "1a2b3c4d-0000-4000-8000-0000000000e5",
+              "legalName": "Suresh Supervisor",
+              "loginName": "suresh.s",
+              "role": "SHIFT_SUPERVISOR"
+            },
+            "recordedAt": {
+              "us": "1791612000000000",
+              "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+            },
+            "state": "RECORDED",
+            "current": true
+          },
+          {
+            "checkpointId": "3c4d5e6f-0000-4000-8000-000000000040",
+            "stageKey": "S-BLEND@",
+            "materialCode": "API-TRAMADOL",
+            "unit": "kg",
+            "dispensed": "2.000",
+            "consumed": "1.950",
+            "inProcess": "0.050",
+            "returned": "0",
+            "destroyed": "0",
+            "difference": "0.000",
+            "explanation": null,
+            "deviationId": null,
+            "deviationRef": null,
+            "recordedBy": {
+              "personId": "1a2b3c4d-0000-4000-8000-0000000000e5",
+              "legalName": "Suresh Supervisor",
+              "loginName": "suresh.s",
+              "role": "SHIFT_SUPERVISOR"
+            },
+            "recordedAt": {
+              "us": "1791612000000000",
+              "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+            },
+            "state": "SIGNED",
+            "current": true
+          }
+        ]
+      }
+    ]
+  },
+  "extractSummary": {
+    "extractId": "3c4d5e6f-0000-4000-8000-000000000060",
+    "materialCode": "API-TRAMADOL",
+    "from": "2026-10-01",
+    "to": "2026-10-16",
+    "resultSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e2",
+      "legalName": "Ravi Reviewer",
+      "loginName": "ravi.qa",
+      "role": "QA_REVIEWER"
+    },
+    "runAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "rows": 3
+  },
+  "extract": {
+    "extractId": "3c4d5e6f-0000-4000-8000-000000000060",
+    "materialCode": "API-TRAMADOL",
+    "from": "2026-10-01",
+    "to": "2026-10-16",
+    "resultSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runBy": {
+      "personId": "1a2b3c4d-0000-4000-8000-0000000000e2",
+      "legalName": "Ravi Reviewer",
+      "loginName": "ravi.qa",
+      "role": "QA_REVIEWER"
+    },
+    "runAt": {
+      "us": "1791612000000000",
+      "text": "16-OCT-2026 12:00:00 +05:30 (Asia/Kolkata)"
+    },
+    "rows": 3,
+    "banner": "Draft: NDPS rules not verified (IN-53, status U)",
+    "reproduces": true,
+    "result": {
+      "queryVersion": 1,
+      "materialCode": "API-TRAMADOL",
+      "from": "2026-10-01",
+      "to": "2026-10-16",
+      "statusNote": "Draft control IN-53: NDPS Act and Rules not verified; generic layout (D-P6e-3)",
+      "rows": [
+        {
+          "at": "2026-10-14T05:00:00.000000Z",
+          "movement": "RECEIPT",
+          "ref": "3c4d5e6f-0000-4000-8000-000000000020",
+          "lot": "L-TRM-0042",
+          "quantity": "10.000",
+          "unit": "kg",
+          "batch": null,
+          "persons": [
+            "1a2b3c4d-0000-4000-8000-0000000000e3"
+          ],
+          "detail": "SUP-77"
+        },
+        {
+          "at": "2026-10-15T06:00:00.000000Z",
+          "movement": "TRANSFER",
+          "ref": "3c4d5e6f-0000-4000-8000-000000000033",
+          "lot": "L-TRM-0042",
+          "quantity": "3.000",
+          "unit": "kg",
+          "batch": null,
+          "persons": [
+            "1a2b3c4d-0000-4000-8000-0000000000e3",
+            "1a2b3c4d-0000-4000-8000-0000000000e4"
+          ],
+          "detail": "WH-A-01 -> DISP-01"
+        },
+        {
+          "at": "2026-10-16T06:30:00.000000Z",
+          "movement": "DISPENSE",
+          "ref": "3c4d5e6f-0000-4000-8000-000000000070",
+          "lot": "L-TRM-0042",
+          "quantity": "2.000",
+          "unit": "kg",
+          "batch": "N2600123",
+          "persons": [
+            "1a2b3c4d-0000-4000-8000-0000000000e3",
+            "1a2b3c4d-0000-4000-8000-0000000000e4"
+          ],
+          "detail": null
+        }
+      ],
+      "totals": {
+        "RECEIPT": "10.000",
+        "TRANSFER": "3.000",
+        "DISPENSE": "2.000"
+      }
+    }
+  },
+  "banner": "Draft: NDPS rules not verified (IN-53, status U)"
+}

@@ -6,7 +6,7 @@
 import { sha256Hex } from '@ebmr/expr';
 import { routes, type SignableAction, type SignatureCredentials } from '@ebmr/api-contract';
 import type { Result } from '@ebmr/api-contract';
-import { personaIn, valueOf } from '../esig/support.ts';
+import { personaIn, tapFor, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from './harness.ts';
 
 export function credentialsOf(server: TestServer, key: string): SignatureCredentials {
@@ -31,9 +31,10 @@ export async function signAction(
   const preview = await b.call(routes.esig.content, { query: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, intent: meaning } });
   if (!preview.ok) return preview;
   const hash = opts.tamper ? sha256Hex(`${preview.value.canonicalText} `) : sha256Hex(preview.value.canonicalText);
-  const challenge = await b.call(routes.esig.createChallenge, {
-    body: { aggregateType: d.aggregateType, aggregateId: d.aggregateId, contentVersion: preview.value.contentVersion, meaning, clientContentHash: hash, action },
-  });
+  const challengeBody = { aggregateType: d.aggregateType, aggregateId: d.aggregateId, contentVersion: preview.value.contentVersion, meaning, clientContentHash: hash, action };
+  // On a shop-floor kiosk the challenge carries the signer's fresh badge tap (INV-40; Phase 6 slice 6e: custodians sign there).
+  const attribution = b.terminal.includes('KIOSK') ? { attribution: await tapFor(b, personaIn(server, personaKey), 'POST', '/api/esig/challenges', challengeBody) } : {};
+  const challenge = await b.call(routes.esig.createChallenge, { body: challengeBody, ...attribution });
   if (!challenge.ok) return challenge;
   const body = { challengeId: challenge.value.challengeId, credentials: opts.credentials ?? credentialsOf(server, personaKey), action };
   return b.call(routes.esig.sign, { body: { ...body, proof: await b.proof('POST', '/api/esig/sign', body) } });

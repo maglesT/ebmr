@@ -246,4 +246,18 @@ export {
 export { CapaCheckStatus, CapaCheckView, CapaSourceKind, CapaState, CapaSummaryView, CapaView } from './ns/capa.ts';
 export { ChangeRecordNumber, ChangeRecordState, ChangeRecordView, ConfigAreaCode, ConfigDifferenceView, ConfigItemView, IsoInstant, PlatformSettingView, RbeRuleView, RbeSeverity } from './ns/config.ts';
 export { ApprovedManufacturerState, ApprovedManufacturerView, DeliveryReceivedView, LotReceiptView, RECEIPT_ROUTE_IDS, SupplierBatchInput } from './ns/receipt.ts';
+export {
+  CheckpointState,
+  CheckpointView,
+  CONTROLLED_DRAFT_BANNER,
+  ControlledBalanceView,
+  ControlledProductView,
+  ControlledRecordState,
+  CustodyKind,
+  CustodyState,
+  CustodyView,
+  RegisterExtractSummary,
+  RegisterExtractView,
+  RegisterRow,
+} from './ns/controlled.ts';
 export { ContractGiverAccessView, ContractGiverBatchView, ContractGiverRecordView, SupportAccountView, SupportGrantState, SupportGrantView } from './ns/support.ts';
