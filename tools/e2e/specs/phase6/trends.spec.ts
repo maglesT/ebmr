@@ -20,7 +20,7 @@ import { SERVER_MAIN, serverEnv, spawnNode, waitForHttp, WEB_DIST, type RunningP
 import pg from 'pg';
 import { ADMIN_URL, dropDatabase, urlFor } from '@ebmr/test-kit';
 import { axe, cspViolations, expect, pickTerminal, signIn, test, VIEWPORTS } from '../../fixtures/index.ts';
-import { administration, endSessions, envelope, occupancyWindow, receive, registerAdapter, withDb } from './support.ts';
+import { administration, endSessions, envelope, occupancyWindow, openTile, receive, registerAdapter, withDb } from './support.ts';
 
 const TAG = 'room.rh_pct';
 
@@ -52,10 +52,18 @@ function chunk(chunkNo: string, samples: Sample[]): Record<string, unknown> {
   return { subjectKind: 'AREA', subjectCode: 'DISP-1', tag: TAG, unit: '%RH', chunkNo, samples, chunkHash };
 }
 
-/** The trend of the batch's humidity: the chart, its window line, and the sample rows as text. */
-async function openTrend(page: Page, origin: string, batchId: string): Promise<{ window: string; rows: string[] }> {
-  await page.goto(`${origin}/trends?batchId=${batchId}&tag=${TAG}`);
+/**
+ * The trend of the batch's humidity, opened as QA does from the batch's review (its "Trends of the batch" link) with the
+ * tag chosen: the chart, its window line, and the sample rows as text.
+ */
+async function openTrend(page: Page, batchNumber: string): Promise<{ window: string; rows: string[] }> {
+  await openTile(page, 'Batch record review');
+  await page.getByTestId(`review-batch-${batchNumber}`).getByRole('link', { name: batchNumber }).click();
+  await page.getByTestId('batch-trends-link').click();
   await expect(page.getByRole('heading', { name: 'Trends', level: 1 })).toBeVisible();
+  const tag = page.getByRole('radiogroup', { name: 'Tag' }).getByRole('radio', { name: `${TAG} (%RH)`, exact: true });
+  await tag.locator('xpath=ancestor::label[1]').click();
+  await expect(tag).toBeChecked();
   const chart = page.getByTestId('trend-chart');
   await expect(chart).toBeVisible();
   await expect(page.getByRole('img', { name: `Trend of ${TAG}` })).toBeVisible();
@@ -87,7 +95,7 @@ async function zoomAndPan(page: Page, total: number): Promise<number> {
 
 test('[DI-32] the trend viewer draws a batch\'s room series from the native samples as received, zooms and pans; after a backup and restore of the database the same trend re-renders interactively from the restored chunks @office', async ({ browser, e2e, officePage, persona, evidence }) => {
   test.setTimeout(420_000);
-  const { batchId } = JSON.parse(readFileSync(join(e2e.state.keysDir, 'gmp-review-batch.json'), 'utf8')) as { batchId: string };
+  const { batchId, batchNumber } = JSON.parse(readFileSync(join(e2e.state.keysDir, 'gmp-review-batch.json'), 'utf8')) as { batchId: string; batchNumber: string };
   // Twelve samples inside the time the batch occupied DISP-1 (the set-up's occupancy; the series binds to the batch by
   // its source times); the ninth is BAD (no value).
   let samples: Sample[] = [];
@@ -127,7 +135,7 @@ test('[DI-32] the trend viewer draws a batch\'s room series from the native samp
   await signIn.office(page, qa);
   let live: { window: string; rows: string[] } = { window: '', rows: [] };
   await evidence.step('QA opens the trends of the batch for the room humidity', 'Every sample as received with its source time, raw value, status and chunk; the BAD sample has no value and breaks the line', async () => {
-    live = await openTrend(page, e2e.url('GMP'), batchId);
+    live = await openTrend(page, batchNumber);
     // Every sample sent, as received (the series of the batch holds only this spec's chunks on a fresh database).
     for (const x of samples) {
       const cells = page.getByTestId(`trend-sample-${x.sourceTime}`).locator('td');
@@ -190,7 +198,7 @@ test('[DI-32] the trend viewer draws a batch\'s room series from the native samp
       await pickTerminal(again, origin, 'PC-QA-01');
       await signIn.office(again, qa);
       await evidence.step('QA opens the same trend on the restored database', 'The trend re-renders from the restored chunks, sample for sample, and zooms and pans as before', async () => {
-        const back = await openTrend(again, origin, batchId);
+        const back = await openTrend(again, batchNumber);
         expect(back.rows).toEqual(live.rows);
         expect(back.window).toBe(live.window);
         await zoomAndPan(again, live.rows.length);

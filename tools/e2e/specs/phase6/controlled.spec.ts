@@ -18,7 +18,7 @@ import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.t
 import { signWithCeremony } from '../../fixtures/floor.ts';
 import { gmpKiosk, officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
-import { ensureChangeRecord, fixture, lotState, withDb } from './support.ts';
+import { ensureChangeRecord, fixture, lotState, openTile, withDb } from './support.ts';
 
 const BANNER = 'Draft: NDPS rules not verified (IN-53, status U)';
 
@@ -27,14 +27,13 @@ async function choose(group: Locator, name: string): Promise<void> {
   await expect(group.getByRole('radio', { name, exact: true })).toBeChecked();
 }
 
-async function openControlled(page: Page, base: string): Promise<void> {
-  await page.goto(`${base}/controlled`);
+async function openControlled(page: Page): Promise<void> {
+  await openTile(page, 'Controlled substances (draft)');
   await expect(page.getByRole('heading', { name: 'Controlled substances', level: 1 })).toBeVisible();
   await expect(page.getByTestId('controlled-banner')).toContainText(BANNER);
 }
 
 test('[IN-53] controlled dispensing under dual custody: QA flags the product and a second QA person approves; the stores person proposes and signs first, cannot countersign; a verifier at the kiosk countersigns @office', async ({ browser, e2e, officePage, persona, evidence }) => {
-  const base = e2e.url('GMP');
   const tag = randomBytes(3).toString('hex').toUpperCase();
   const material = `API-CTL-E2E-${tag}`;
   const lot = { id: randomUUID(), code: `L-CTL-E2E-${tag}` };
@@ -83,7 +82,7 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
   const qa = await officePage('GMP', 'PC-QA-04');
   await signIn.office(qa, approver);
   await evidence.step('QA records the controlled-substance flag of the product for the controlled API material, under the change record', 'The draft banner is on the screen; the flag is recorded and awaits a second QA person', async () => {
-    await openControlled(qa, base);
+    await openControlled(qa);
     const form = qa.getByTestId('controlled-record-flag');
     await form.getByRole('textbox', { name: 'Product code' }).fill(product);
     await choose(form.getByRole('radiogroup', { name: 'Controlled substance' }), 'Controlled');
@@ -101,7 +100,7 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
   const qa2 = await officePage('GMP', 'PC-QA-04');
   await signIn.office(qa2, second);
   await evidence.step('A second QA person approves the flag through the ceremony', 'The flag is APPROVED and in effect for the material', async () => {
-    await openControlled(qa2, base);
+    await openControlled(qa2);
     const item = qa2.getByTestId(`controlled-product-${product}`);
     await item.getByRole('button', { name: `Approve the flag of ${product}` }).click();
     await officeSign(qa2, `Approve the controlled-substance flag of ${product}`, second);
@@ -112,7 +111,7 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
 
   let batch = { id: '', number: '' };
   await evidence.step('The issuer plans a GB-T-01 batch from the open order and issues it through the ceremony', 'The batch is issued', async () => {
-    await planning.goto(`${base}/planning`);
+    await openTile(planning, 'Planning');
     const card = planning.getByTestId(`order-${orderNo}`);
     const plan = card.getByTestId('plan-form');
     // The line: the E2E set-up's plant has a line (PL-1, the bottle line), offered as a choice once the plant list loads.
@@ -144,7 +143,7 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
   await signIn.office(wh, stores);
   const record = () => wh.getByTestId('controlled-custody').locator('[data-testid^="controlled-custody-"]').first();
   await evidence.step('The stores person proposes the dispensing of 2.500 kg of the controlled lot to the batch and signs as the first custodian', 'The dispensing names the batch; after the first signature it awaits the second custodian', async () => {
-    await openControlled(wh, base);
+    await openControlled(wh);
     const custody = wh.getByTestId('controlled-custody');
     await custody.getByRole('textbox', { name: 'Lot (id)' }).fill(lot.id);
     await custody.getByRole('textbox', { name: 'Batch (id)' }).fill(batch.id);
@@ -182,7 +181,7 @@ test('[IN-53] controlled dispensing under dual custody: QA flags the product and
   const kiosk = await gmpKiosk(browser, e2e, 'KIOSK-DISP-1');
   await signIn.kiosk(kiosk, verifier);
   await evidence.step('A verifier at the dispensing kiosk countersigns as the second custodian (badge and PIN)', 'The dispensing is CONFIRMED with two different custodians', async () => {
-    await openControlled(kiosk, base);
+    await openControlled(kiosk);
     const custody = kiosk.getByTestId('controlled-custody');
     await custody.getByRole('textbox', { name: 'Lot (id)' }).fill(lot.id);
     const item = custody.locator('[data-testid^="controlled-custody-"]').first();

@@ -17,7 +17,7 @@ import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.t
 import { officeSign, signedInApi } from '../../fixtures/slice6.ts';
 import { valueOf } from '../../fixtures/test-package.ts';
 import type { E2eWorld } from '../../fixtures/index.ts';
-import { fixture, lotState, withDb } from './support.ts';
+import { fixture, lotState, openTile, withDb } from './support.ts';
 
 interface Chain {
   ids: { api: string; batch: string; lot: string; shipments: [string, string] };
@@ -106,7 +106,7 @@ test('[PR-57][IN-07] the genealogy explorer traces an API lot forward to the bat
   await signIn.office(page, persona('GMP', 'qaInvestigator'));
 
   await evidence.step('Trace the API lot forward', 'Lot, batch (consumed), finished lot and both shipments, with their depth; the counts say 2 lots, 1 batch, 2 shipments', async () => {
-    await page.goto(`${e2e.url('GMP')}/genealogy`);
+    await openTile(page, 'Genealogy explorer');
     await expect(page.getByRole('heading', { name: 'Genealogy explorer', level: 1 })).toBeVisible();
     const ask = page.getByTestId('genealogy-ask');
     await choose(ask.getByRole('radiogroup', { name: 'Start from' }), 'Lot');
@@ -128,8 +128,15 @@ test('[PR-57][IN-07] the genealogy explorer traces an API lot forward to the bat
   }, page);
 
   await evidence.step('Trace the first shipment backward', 'From the shipment to the finished lot, the batch and the API lot it consumed', async () => {
-    await page.goto(`${e2e.url('GMP')}/genealogy?kind=SHIPMENT&id=${ids.shipments[0]}&direction=BACKWARD`);
-    const tree = page.getByTestId('genealogy-result').getByTestId('genealogy-tree');
+    const ask = page.getByTestId('genealogy-ask');
+    await choose(ask.getByRole('radiogroup', { name: 'Start from' }), 'Shipment');
+    await ask.getByRole('textbox', { name: 'Record id' }).fill(ids.shipments[0]);
+    await choose(ask.getByRole('radiogroup', { name: 'Direction' }), 'Backward (where it came from)');
+    await ask.getByRole('button', { name: 'Trace' }).click();
+    const result = page.getByTestId('genealogy-result');
+    await expect(result.getByRole('heading', { name: `Backward genealogy of ${codes.shipments[0]}` })).toBeVisible();
+    await choose(result.getByRole('radiogroup', { name: 'Show as' }), 'Tree');
+    const tree = result.getByTestId('genealogy-tree');
     for (const label of [codes.shipments[0], codes.batch, codes.api]) await expect(tree.getByTestId(`genealogy-node-${label}`).first()).toBeVisible();
     await expect(tree.getByTestId(`genealogy-node-${codes.shipments[1]}`)).toHaveCount(0);
   }, page);
@@ -146,7 +153,7 @@ test('[IN-29][PR-57] QA runs a mock recall from the API lot to every consignee; 
   let recallUrl = '';
 
   await evidence.step('QA runs a mock recall from the API lot', 'The recall reproduces; it lists the batch, the finished lot delivered 650 units with nothing returned, and both consignees with their addresses', async () => {
-    await qa.goto(`${e2e.url('GMP')}/recall`);
+    await openTile(qa, 'Mock recalls');
     await expect(qa.getByRole('heading', { name: 'Mock recalls', level: 1 })).toBeVisible();
     const form = qa.getByTestId('mock-recall-run');
     await choose(form.getByRole('radiogroup', { name: 'From' }), 'Lot');
@@ -175,7 +182,9 @@ test('[IN-29][PR-57] QA runs a mock recall from the API lot to every consignee; 
   const ap = await officePage('GMP', 'PC-QA-05');
   await signIn.office(ap, apPerson);
   await evidence.step('The authorised person signs the mock recall off', 'The ceremony signs it; the recall shows who signed it off', async () => {
-    await ap.goto(recallUrl);
+    await openTile(ap, 'Mock recalls');
+    const id = recallUrl.split('/').pop() ?? '';
+    await ap.getByTestId(`mock-recall-${id}`).getByRole('link').click();
     await ap.getByTestId('mock-recall-sign-off').getByRole('button', { name: 'Sign off the mock recall' }).click();
     await officeSign(ap, new RegExp(`^Sign off the mock recall from ${codes.api} as of `), apPerson);
     await expect(ap.getByTestId('mock-recall-signed')).toContainText(`Signed off by ${apPerson.legalName}`);

@@ -16,7 +16,7 @@ import { tapBadge } from '../../fixtures/floor.ts';
 import { gmpKiosk } from '../../fixtures/slice6.ts';
 import { withCommand } from '@ebmr/kernel';
 import { freshTap, openPersonaSession } from '@ebmr/test-kit';
-import { administration, because, endSessions, envelope, occupancyWindow, receive, registerAdapter, withDb } from './support.ts';
+import { administration, because, endSessions, envelope, occupancyWindow, receive, openTile, registerAdapter, withDb } from './support.ts';
 
 test('[DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknowledged at the kiosk with the action taken and the comment a GMP-critical alarm needs, and shows so in the batch\'s alarm log @office', async ({ browser, e2e, officePage, persona, evidence }) => {
   const { batchId, batchNumber } = JSON.parse(readFileSync(join(e2e.state.keysDir, 'gmp-review-batch.json'), 'utf8')) as { batchId: string; batchNumber: string };
@@ -46,7 +46,7 @@ test('[DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknow
     const comment = 'Materials of the batch were in closed containers throughout the excursion';
 
     await evidence.step('The operator opens the plant alarms at the DISP-1 kiosk', 'The EMS alarm of DISP-1 is open, GMP-critical, with its reading against the limit and the batch it is bound to', async () => {
-      await kiosk.goto(`${e2e.url('GMP')}/alarms`);
+      await openTile(kiosk, 'Plant alarms');
       await expect(kiosk.getByRole('heading', { name: 'Plant alarms', level: 1 })).toBeVisible();
       const row = kiosk.getByTestId(`alarm-${alarmId}`);
       await expect(row).toHaveAttribute('data-gmp-critical', 'true');
@@ -77,7 +77,8 @@ test('[DI-49][INV-40] an EMS room alarm bound to the batch in the room is acknow
     const qa = await officePage('GMP', 'PC-QA-01');
     await signIn.office(qa, persona('GMP', 'qaInvestigator'));
     await evidence.step('QA opens the review of the batch', 'The batch\'s alarm log lists the alarm with its source times and the acknowledgment: who, the action taken and the comment', async () => {
-      await qa.goto(`${e2e.url('GMP')}/review/${batchId}`);
+      await openTile(qa, 'Batch record review');
+      await qa.getByTestId(`review-batch-${batchNumber}`).getByRole('link', { name: batchNumber }).click();
       const log = qa.getByTestId('batch-alarm-log');
       await expect(log.getByRole('heading', { name: 'Alarm log of the batch' })).toBeVisible();
       const row = log.getByTestId(`batch-alarm-${alarmId}`);

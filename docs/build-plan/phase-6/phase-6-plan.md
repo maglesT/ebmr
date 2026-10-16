@@ -789,8 +789,11 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
 - **D-P6j-b-e2e-1** What no screen makes is arranged in the E2E database with the kernel's own commands under real
   identities (adapter identities registered like devices, the mirror mode under a change record, a training coordinator
   through the access workflow); rows only the receipt or ERP paths write are superuser inserts as the server tests make
-  them, keeping every foreign key so the database still restores (the trends flow restores it). `tools/e2e` depends on
-  `@ebmr/kernel` for this. Why: no route makes them, and the flows prove the screens, not the set-up.
+  them, inside a command of the demo set's stores person, keeping every foreign key and giving each lot its state, so
+  every read still answers within its contract and the database still restores (the trends flow restores it; the first
+  full run found both gaps). A flow that binds something to the shared review batch undoes its gate in its clean-up (the
+  alarm flow acknowledges its alarm if it failed first). `tools/e2e` depends on `@ebmr/kernel` for this. Why: no route
+  makes these rows, and the flows prove the screens, not the set-up.
 - **D-P6j-b-e2e-2** No adapter worker or simulator runs on the E2E stack: each adapter's messages go through its receiving
   command under its own INTEGRATION identity, the worker's path below HTTP. The simulator-driven exchange under faults is
   GB-T-03's and the demo's. Why: the E2E stack would otherwise need five more processes for checks the adapter tests make.

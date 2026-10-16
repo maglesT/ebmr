@@ -16,7 +16,7 @@ import { axe, cspViolations, expect, pin, signIn, test } from '../../fixtures/in
 import { issueTestBatch, open, recordClearanceEntries, startWithTap, tapBadge } from '../../fixtures/floor.ts';
 import { exportDcMiniPackage, packageTag } from '../../fixtures/test-package.ts';
 import {
-  administration, ageMirror, because, letters, endSessions, envelope, grantedPerson, nowUs, receive, registerAdapter, sessionOf, setMirrorMode, syncMirror, withDb,
+  administration, ageMirror, because, letters, endSessions, envelope, grantedPerson, nowUs, openTile, receive, registerAdapter, sessionOf, setMirrorMode, syncMirror, withDb,
 } from './support.ts';
 
 const LMS = 'LMS_QUALIFICATION';
@@ -33,11 +33,10 @@ test('[DI-31] the integration health page shows the LMS mirror fresh after a syn
   });
   const page = await officePage('GMP', 'PC-QA-01');
   await signIn.office(page, viewer);
-  const base = e2e.url('GMP');
   const mirror = page.getByTestId(`mirror-${LMS}`);
   try {
     await evidence.step('Open the integration health page after the LMS adapter has synchronised', 'The LMS adapter is listed; the LMS qualification mirror is fresh, within its 60-minute bound', async () => {
-      await page.goto(`${base}/integrations`);
+      await openTile(page, 'Integration health');
       await expect(page.getByRole('heading', { name: 'Integration health', level: 1 })).toBeVisible();
       await expect(page.getByTestId(`adapter-${arranged.lms.code}`)).toContainText('(Lms)');
       await expect(mirror).toHaveAttribute('data-stale', 'false');
@@ -45,20 +44,20 @@ test('[DI-31] the integration health page shows the LMS mirror fresh after a syn
       return { stale: await mirror.getAttribute('data-stale') };
     }, page);
 
+    await evidence.step('Open the adapter', 'The adapter page shows its health, worker and the messages it sent (none yet)', async () => {
+      await page.getByRole('link', { name: arranged.lms.code, exact: true }).click();
+      await expect(page.getByTestId('adapter-health')).toBeVisible();
+      await expect(page.getByTestId('adapter-messages')).toBeVisible();
+    }, page);
+
     await withDb(e2e, 'GMP', (db) => ageMirror(db, LMS, 2 * 3600));
-    await evidence.step('The LMS heartbeat stops for two hours while its data stays; open the page again', 'The mirror is stale and blocking: synchronised 2 h ago, more than its 60-minute bound; steps that read it are refused until the adapter synchronises; call the LMS system owner', async () => {
-      await page.reload();
+    await evidence.step('The LMS heartbeat stops for two hours while its data stays; go back to the health page', 'The mirror is stale and blocking: synchronised 2 h ago, more than its 60-minute bound; steps that read it are refused until the adapter synchronises; call the LMS system owner', async () => {
+      await page.goBack();
       await expect(mirror).toHaveAttribute('data-stale', 'true');
       await expect(mirror).toContainText('Stale, blocking: synchronised 2 h ago, more than its bound of 60 min');
       await expect(mirror).toContainText('Steps that read this data are refused until the Lms adapter synchronises again (call the Lms system owner).');
       await axe.check(page);
       return { stale: await mirror.getAttribute('data-stale') };
-    }, page);
-
-    await evidence.step('Open the adapter', 'The adapter page shows its health, worker and the messages it sent (none yet)', async () => {
-      await page.getByRole('link', { name: arranged.lms.code, exact: true }).click();
-      await expect(page.getByTestId('adapter-health')).toBeVisible();
-      await expect(page.getByTestId('adapter-messages')).toBeVisible();
     }, page);
     expect(await cspViolations(page)).toEqual([]);
   } finally {

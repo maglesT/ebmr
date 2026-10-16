@@ -16,9 +16,10 @@
  */
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type pg from 'pg';
+import type { Page } from '@playwright/test';
 import { identity, toDbContext, withCommand, type ActorContext } from '@ebmr/kernel';
 import { openDatabase, openPersonaSession, passwordActor, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
-import type { E2eWorld } from '../../fixtures/index.ts';
+import { expect, type E2eWorld } from '../../fixtures/index.ts';
 
 export type Installation = 'GMP' | 'SANDBOX';
 type Json = Record<string, unknown>;
@@ -272,4 +273,14 @@ export async function fixture<T>(db: DatabaseHandle, seed: SiteSeed, label: stri
 /** A lot's state row and its history, as a received lot starts (the material-lot machine's first state). */
 export async function lotState(c: pg.PoolClient, lotId: string): Promise<void> {
   await c.query("select platform.create_aggregate_state('material_lot', 'material_lot', $1)", [lotId]);
+}
+
+/**
+ * Opens a function from the home screen's tiles, as a person does (client-side navigation). A page load boots the SPA
+ * again and identifies the terminal, which counts toward the address's identification allowance (60 a minute, shared by
+ * every browser of the E2E stack): the flows load a page once per terminal and navigate inside the app after.
+ */
+export async function openTile(page: Page, title: string): Promise<void> {
+  await page.getByRole('navigation', { name: 'Functions' }).getByRole('link', { name: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) }).click();
+  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('What do you want to do?');
 }
