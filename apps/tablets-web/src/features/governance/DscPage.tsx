@@ -11,7 +11,8 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
-import { DSC_READS } from './reads.ts';
+import { dscBridge } from '../access/dsc-bridge.ts';
+import { DSC_ENROLMENT_READS, DSC_READS } from './reads.ts';
 
 export function DscPage() {
   const q = useApiQuery(routes.esig.dscConfiguration);
@@ -39,8 +40,56 @@ export function DscPage() {
           <p>Needs a DSC while the option is on: {c.meanings.filter((m) => m.required).map((m) => m.meaning).join(', ') || 'no meaning'}.</p>
         </Section>
       ) : null}
+      {c && c.mode !== 'OFF' ? <DscEnrolment /> : null}
       {qa ? <DscChanges meanings={c?.meanings.map((m) => m.meaning) ?? []} /> : null}
     </>
+  );
+}
+
+/**
+ * The signer's own certificate (kernel 1206; IN-10): a DSC is accepted only from the certificate enrolled for the person
+ * who signs. The token signs the enrolment statement through the local signing bridge; the server verifies it.
+ */
+function DscEnrolment() {
+  const q = useApiQuery(routes.esig.dscEnrolment);
+  const enrol = useCommand(routes.esig.enrolDsc, DSC_ENROLMENT_READS);
+  const end = useCommand(routes.esig.endDscEnrolment, DSC_ENROLMENT_READS);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
+  const e = q.data;
+  const live = e?.enrolments.find((x) => x.live);
+  const run = async (): Promise<void> => {
+    if (!e?.statement) return;
+    setBridgeError(null);
+    try {
+      const dsc = await dscBridge().sign(e.statement);
+      await enrol.run({ body: { dsc } });
+    } catch (error) {
+      setBridgeError(error instanceof Error ? error.message : String(error));
+    }
+  };
+  return (
+    <Section title="Your certificate" testId="dsc-enrolment">
+      <p>Only the certificate enrolled for you is accepted beside your signature. Enrol the certificate of your own token; enrolling again replaces it.</p>
+      {q.error ? <RefusalMessage error={q.error.error} /> : null}
+      <ul>
+        {(e?.enrolments ?? []).map((x) => (
+          <li key={x.enrolmentId} data-testid={`dsc-enrolment-${x.enrolmentId}`}>
+            {x.leafSubject} (serial {x.leafSerial}, valid to {x.leafValidTo}, {x.anchorLabel}): {x.live ? 'in use' : 'ended'}
+          </li>
+        ))}
+      </ul>
+      <ActButton label="Enrol the certificate of my token" onPress={() => void run()} disabled={!e?.statement || enrol.busy} />
+      {bridgeError ? <p role="alert">The signing token did not answer: {bridgeError}</p> : null}
+      <ActResult error={enrol.error} done={enrol.done} label="Your certificate is enrolled." />
+      {live ? (
+        <>
+          <Field name="dscEndReason" label="Reason to end the enrolment" value={reason} onChange={setReason} />
+          <ActButton label="End my enrolment" onPress={() => (reason.trim() ? end.run({ body: { enrolmentId: live.enrolmentId, reason: reason.trim() } }) : null)} disabled={reason.trim() === '' || end.busy} />
+          <ActResult error={end.error} done={end.done} label="The enrolment is ended." />
+        </>
+      ) : null}
+    </Section>
   );
 }
 

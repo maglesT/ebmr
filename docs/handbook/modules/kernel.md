@@ -1153,6 +1153,15 @@ commit such a signature without its DSC (EBMR-ESIG-084). The anchors and per-mea
 its certificates are not legally valid (banner TEST_CA_BANNER). Messages EBMR-ESIG-080 to -085 (090 to 099 belong to the
 stub of kernel 0250). Tests: [dsc.test.ts](../../../packages/kernel/test/esig/dsc.test.ts).
 
+**DSC enrolment ([1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql), review fix
+of IN-10).** A DSC is accepted only from the certificate enrolled for the person who signs. The person enrols the
+certificate of their own token in their own command: the token signs `esig.dsc_enrolment_statement` (the person and the
+account), the server verifies chain and signature ([dsc.ts](../../../packages/kernel/src/esig/dsc.ts#sym=enrolDsc)) and
+`esig.enrol_dsc_certificate` stores it (`esig.dsc_enrolment`, insert-only). A certificate is live for one person only
+(EBMR-ESIG-086); a new enrolment ends the person's old one; an enrolment counts only under the anchor it was verified
+against. `esig.end_dsc_enrolment` ends one (the person, or QA with MBR.APPROVE; EBMR-ESIG-088). `esig.record_dsc_signature`
+(replaced) refuses a certificate that is not the signer's live enrolment (EBMR-ESIG-087).
+
 > **Why this exists**
 > - **Pharma reason:** supplier access is limited, approved by the regulated company and time-boxed (Annex 11, 21 CFR
 >   11.10(d)); the IT Act recognises a digital signature with a licensed CA's certificate (sections 3A and 5, paraphrased).

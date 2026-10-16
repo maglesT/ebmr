@@ -118,9 +118,9 @@ clauses:
     tests:
       - "apps/tablets-web/test/review/review.test.tsx > exception register > [DI-26] a clean record shows \"no exception\" with its summary, on the register and on the record review, and offers no item to review"
   - clause: "Try to edit an RBE rule without a change record. Blocked."
-    deferred:
-      phase: 6
-      reason: "Review-by-exception rules are fixed in code; an editable RBE rule under a change record is not built yet and comes in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/review/rbe-rules.test.ts > review-by-exception rules are versioned configuration under change control (DI-26, DI-09) > [DI-26] editing an RBE rule without a change record is blocked"
+      - "apps/tablets-server/test/config/config-routes.test.ts > configuration change records and RBE rules over HTTP (DI-09, DI-26) > [DI-09][DI-26] an RBE rule is changed only under a change record QA approved with its signature; the change shows in the diff with the record"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

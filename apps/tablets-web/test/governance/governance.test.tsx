@@ -4,7 +4,7 @@
  */
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { example } from '@ebmr/api-contract/examples';
 import { apiState } from '../../src/api/client.ts';
 import { renderOffice } from '../office/support.tsx';
@@ -54,6 +54,23 @@ describe('the India DSC option', () => {
     expect((await screen.findByTestId('dsc-mode')).textContent).toContain('test certificate authority');
     expect(screen.getByText('Test certificate authority: not legally valid')).toBeTruthy();
     expect(screen.getByTestId('dsc-configuration').textContent).toContain('APPROVED, MANUFACTURER_RELEASE');
+  });
+
+  it('[IN-10] a signer enrols the certificate of their own token: the token signs the enrolment statement through the bridge', async () => {
+    const sign = vi.fn((statement: string) => Promise.resolve({ signature: `${'A'.repeat(40)}${statement.length}`, chain: ['B'.repeat(120), 'C'.repeat(120)] }));
+    window.ebmrDscBridge = { sign };
+    try {
+      const ui = renderOffice('/governance/dsc', { role: 'AUTHORISED_PERSON' });
+      const e = example('esig-dsc-enrolment');
+      const section = await screen.findByTestId('dsc-enrolment');
+      expect((await within(section).findByTestId(`dsc-enrolment-${e.enrolments[0]!.enrolmentId}`)).textContent).toContain('in use');
+      await userEvent.click(within(section).getByRole('button', { name: 'Enrol the certificate of my token' }));
+      await waitFor(() => expect(ui.posts('/api/esig/dsc/enrolment')).toHaveLength(1));
+      expect(sign).toHaveBeenCalledWith(e.statement);
+      expect(ui.posts('/api/esig/dsc/enrolment')[0]?.body).toEqual({ dsc: { signature: `${'A'.repeat(40)}${String(e.statement?.length)}`, chain: ['B'.repeat(120), 'C'.repeat(120)] } });
+    } finally {
+      delete window.ebmrDscBridge;
+    }
   });
 });
 

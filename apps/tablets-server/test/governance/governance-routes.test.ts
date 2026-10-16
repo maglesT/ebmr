@@ -123,6 +123,16 @@ describe('the India DSC step with a test CA over HTTP (IN-10)', () => {
     const act: SignableAction = { kind: 'SUPPORT_ACT', act: 'QA_APPROVE', grantId: g.grantId };
     const creds = password(personaIn(server, 'approver'));
     const good = (statement: string) => ({ signature: esig.signDscStatement(signer, statement).toString('base64'), chain: [signer.der, ca.subCa.der, ca.root.der].map((d) => d.toString('base64')) });
+    // Kernel 1206: only the certificate enrolled for the signer is accepted; the token signs the enrolment statement.
+    const notEnrolled = await sign(qa, act, creds, good);
+    expect(codeOf(notEnrolled.result)).toBe('EBMR-ESIG-087');
+    const enr = valueOf(await qa.call(routes.esig.dscEnrolment));
+    expect(enr).toMatchObject({ banner: esig.TEST_CA_BANNER, enrolments: [] });
+    const enrolled = valueOf(await qa.call(routes.esig.enrolDsc, { body: { dsc: good(enr.statement ?? '') } }));
+    expect(enrolled.enrolments).toEqual([expect.objectContaining({ live: true, leafSubject: expect.stringContaining('Meera Iyer') as unknown })]);
+    // Nobody else enrols the same certificate.
+    const enrOther = valueOf(await admin.call(routes.esig.dscEnrolment));
+    expect(codeOf(await admin.call(routes.esig.enrolDsc, { body: { dsc: good(enrOther.statement ?? '') } }))).toBe('EBMR-ESIG-086');
     const none = await sign(qa, act, creds, () => undefined);
     expect(none.banner).toBe(esig.TEST_CA_BANNER);
     expect(codeOf(none.result)).toBe('EBMR-ESIG-084');
@@ -136,6 +146,9 @@ describe('the India DSC step with a test CA over HTTP (IN-10)', () => {
     const { rows } = await server.db.admin.query<{ mode: string }>(
       "select d.mode from esig.dsc_signature d join esig.signature s on s.id = d.signature_id where s.aggregate_type = 'support_grant' and s.aggregate_id = $1", [g.grantId]);
     expect(rows).toEqual([{ mode: 'TEST_CA' }]);
+    // The signer ends their own enrolment.
+    const ended = valueOf(await qa.call(routes.esig.endDscEnrolment, { body: { enrolmentId: enrolled.enrolments[0]!.enrolmentId, reason: 'test over' } }));
+    expect(ended.enrolments[0]?.live).toBe(false);
     valueOf(await qa.call(routes.esig.setDscMode, { body: { mode: 'OFF', ...change } }));
   }, 300_000);
 });

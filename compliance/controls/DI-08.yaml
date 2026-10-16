@@ -48,9 +48,11 @@ tests:
   - "apps/tablets-web/test/governance/governance.test.tsx > vendor support grants > [DI-08] IT's administrator requests a grant for a named engineer, for the hours stated"
 clauses:
   - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
-    deferred:
-      phase: 6
-      reason: "No vendor support account and no customer-approved, time-boxed support grant exist yet, so there is no support login to refuse; they come with the Phase 6 integrations and extras (owner decision 0011)."
+    tests:
+      - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] a support login without a time-boxed grant is refused, and the refusal is logged with a HIGH alert"
+      - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] the grant ends by itself: the open session expires, commands are refused and a new login is refused"
+      - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] a revoked grant ends at once; a session opened from an older login event is refused"
+      - "apps/tablets-server/test/governance/governance-routes.test.ts > vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it"
   - clause: "A full tenant export re-opens in the stand-alone viewer with audit trails and signature manifestations intact."
     deferred:
       phase: 7

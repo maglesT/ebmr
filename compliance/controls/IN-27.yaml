@@ -31,11 +31,11 @@ tests:
   - "apps/tablets-server/test/designer/hazard-containment.test.ts > the designer for a hazardous product (IN-27) > [IN-27] a product without a hazard class keeps the template as it is"
 clauses:
   - clause: "classify a product as cytotoxic; the MBR designer adds PPE and decontamination steps"
-    deferred:
-      phase: 6
-      reason: "The MBR designer does not yet insert PPE and decontamination steps for a hazardous product (slice 6a residual); it is built in Phase 6 (owner decision 0011)."
+    tests:
+      - "apps/tablets-server/test/designer/hazard-containment.test.ts > the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas"
   - clause: "and offers only contained areas."
     tests:
+      - "apps/tablets-server/test/designer/hazard-containment.test.ts > the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas"
       - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-27][PR-27] a hazardous product is issued only on a line dedicated and contained for its hazard class; QA records both from the risk assessment, never an administrator, and a second QA person approves each"
 expert_decision:
   status: PENDING

@@ -130,3 +130,26 @@ export async function recordDsc(client: pg.PoolClient, signatureId: string, dsc:
   ]);
   return true;
 }
+
+/**
+ * Enrols the signer's own certificate (kernel 1206; review fix of IN-10): in the person's own command, the token signs
+ * esig.dsc_enrolment_statement (the person and the account), the server verifies the chain to the live anchor and that
+ * proof of possession, and the database records the certificate for that person only. A signing DSC is accepted only
+ * from the signer's live enrolment (EBMR-ESIG-087). Returns the enrolment id.
+ */
+export async function enrolDsc(client: pg.PoolClient, dsc: DscSubmission): Promise<string> {
+  const { rows } = await client.query<{ r: { statement: string; anchor: string; at: string } }>('select esig.dsc_enrolment_input() as r');
+  const r = rows[0]?.r;
+  if (!r) throw new EsigError('EBMR-ESIG-082', 'no live trust anchor is configured for the India DSC');
+  const verified = verifyDsc(r.statement, dsc, Buffer.from(r.anchor, 'base64'), new Date(r.at));
+  const { rows: out } = await client.query<{ id: string }>('select esig.enrol_dsc_certificate($1::jsonb) as id', [
+    JSON.stringify({ signature: dsc.signature, chain: dsc.chain, ...verified }),
+  ]);
+  return out[0]?.id as string;
+}
+
+/** The text the token signs to enrol a certificate for this person and account (esig.dsc_enrolment_statement). */
+export async function dscEnrolmentStatement(db: Db, personId: string, accountId: string): Promise<string> {
+  const { rows } = await db.query<{ s: string }>('select esig.dsc_enrolment_statement($1, $2) as s', [personId, accountId]);
+  return rows[0]?.s as string;
+}

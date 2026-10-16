@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-2801 objects.
+2807 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -417,7 +417,11 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`esig.create_challenge`](../../../packages/kernel/sql/0230_esig_sign.sql#sym=esig.create_challenge) | function | [0230_esig_sign.sql](../../../packages/kernel/sql/0230_esig_sign.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.current_meaning`](../../../packages/kernel/sql/0210_esig_catalogue.sql#sym=esig.current_meaning) | function | [0210_esig_catalogue.sql](../../../packages/kernel/sql/0210_esig_catalogue.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.dsc_configuration`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_configuration) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
+| [`esig.dsc_enrolment_input`](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql#sym=esig.dsc_enrolment_input) | function | [1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
+| [`esig.dsc_enrolment_statement`](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql#sym=esig.dsc_enrolment_statement) | function | [1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
+| [`esig.dsc_enrolments_of`](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql#sym=esig.dsc_enrolments_of) | function | [1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.dsc_live_anchor`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_live_anchor) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
+| [`esig.dsc_live_enrolment`](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql#sym=esig.dsc_live_enrolment) | function | [1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.dsc_meaning_required`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_meaning_required) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.dsc_mode`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_mode) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.dsc_of`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_of) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
@@ -427,6 +431,8 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`esig.dsc_requirement`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_requirement) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.dsc_statement`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_statement) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.dsc_verification_input`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.dsc_verification_input) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
+| [`esig.end_dsc_enrolment`](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql#sym=esig.end_dsc_enrolment) | function | [1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
+| [`esig.enrol_dsc_certificate`](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql#sym=esig.enrol_dsc_certificate) | function | [1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.evidence_package`](../../../packages/kernel/sql/0240_esig_integrity.sql#sym=esig.evidence_package) | function | [0240_esig_integrity.sql](../../../packages/kernel/sql/0240_esig_integrity.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.forbid_change`](../../../packages/kernel/sql/0200_esig_foundation.sql#sym=esig.forbid_change) | function | [0200_esig_foundation.sql](../../../packages/kernel/sql/0200_esig_foundation.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.forbid_truncate`](../../../packages/kernel/sql/0220_esig_signatures.sql#sym=esig.forbid_truncate) | function | [0220_esig_signatures.sql](../../../packages/kernel/sql/0220_esig_signatures.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
@@ -448,7 +454,7 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`esig.policy_values`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.policy_values) | function | [0200_esig_foundation.sql](../../../packages/kernel/sql/0200_esig_foundation.sql) | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.protect_log`](../../../packages/kernel/sql/0200_esig_foundation.sql#sym=esig.protect_log) | function | [0200_esig_foundation.sql](../../../packages/kernel/sql/0200_esig_foundation.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.provide`](../../../packages/kernel/sql/0200_esig_foundation.sql#sym=esig.provide) | function | [0200_esig_foundation.sql](../../../packages/kernel/sql/0200_esig_foundation.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
-| [`esig.record_dsc_signature`](../../../packages/kernel/sql/1203_india_dsc.sql#sym=esig.record_dsc_signature) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
+| [`esig.record_dsc_signature`](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql#sym=esig.record_dsc_signature) | function | [1203_india_dsc.sql](../../../packages/kernel/sql/1203_india_dsc.sql) | [1206_dsc_signer_enrolment.sql](../../../packages/kernel/sql/1206_dsc_signer_enrolment.sql) | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.record_signatures`](../../../packages/kernel/sql/0230_esig_sign.sql#sym=esig.record_signatures) | function | [0230_esig_sign.sql](../../../packages/kernel/sql/0230_esig_sign.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.record_signing_failure`](../../../packages/kernel/sql/0230_esig_sign.sql#sym=esig.record_signing_failure) | function | [0230_esig_sign.sql](../../../packages/kernel/sql/0230_esig_sign.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |
 | [`esig.register_content_provider`](../../../packages/kernel/sql/0200_esig_foundation.sql#sym=esig.register_content_provider) | function | [0200_esig_foundation.sql](../../../packages/kernel/sql/0200_esig_foundation.sql) |  | [kernel-esig](../code-map.md#kernel-esig) |

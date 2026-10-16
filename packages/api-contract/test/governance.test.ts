@@ -11,7 +11,7 @@ describe('the support, contract-giver and DSC routes (Phase 6 slice 6f)', () => 
     const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
     for (const r of Object.values(routes.support)) expect([r.installation, r.path.startsWith('/api/support/')], r.id).toEqual(['GMP', true]);
     for (const r of Object.values(routes.contractGiver)) expect([r.installation, r.path.startsWith('/api/contract-giver/')], r.id).toEqual(['GMP', true]);
-    expect(GOVERNANCE_ROUTE_IDS).toHaveLength(Object.keys(routes.support).length + Object.keys(routes.contractGiver).length + 4);
+    expect(GOVERNANCE_ROUTE_IDS).toHaveLength(Object.keys(routes.support).length + Object.keys(routes.contractGiver).length + 7);
     for (const id of GOVERNANCE_ROUTE_IDS) expect(exampled.has(id), `${id} has an example`).toBe(true);
     for (const [name, e] of Object.entries(EXAMPLES).filter(([n]) => /^(support|contract-giver|esig-.*dsc)/.test(n))) {
       expect(e.schema.safeParse(e.data).success, name).toBe(true);

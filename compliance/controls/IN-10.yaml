@@ -35,9 +35,11 @@ clauses:
     tests:
       - "packages/kernel/test/esig/invalidation.test.ts > INV-09 bypass > [INV-09][IN-10] a disabled invalidation trigger stops all signing, and a change made behind it is detected"
   - clause: "Sign a release with a DSC; it validates against the CCA root chain."
-    deferred:
-      phase: 6
-      reason: "The Class 3 DSC or eSign second signature is an interface that stays off until a licensed provider is configured after the legal opinion (build outline, India option and open decision 3); the provider integration comes with the Phase 6 adapters."
+    tests:
+      - "packages/kernel/test/esig/dsc.test.ts > India DSC with a test CA (kernel 1203; IN-10) > [IN-10] a release signed with a DSC validates against the CA root chain (test CA), stored beside the password signature"
+      - "packages/kernel/test/esig/dsc.test.ts > India DSC with a test CA (kernel 1203; IN-10) > [IN-10] a broken chain is refused and nothing is signed"
+      - "packages/kernel/test/esig/dsc.test.ts > India DSC with a test CA (kernel 1203; IN-10) > [IN-10] a DSC over another content hash, or none, is refused; nothing is signed"
+      - "apps/tablets-server/test/governance/governance-routes.test.ts > the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

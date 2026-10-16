@@ -47,9 +47,10 @@ clauses:
       - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [INV-30][PR-52] production approval waits for every exception to be dispositioned, then QA review follows it: QA review and item dispositions before it are refused, as the application role"
       - "packages/recipe-core/test/review/review.test.ts > production approval and QA review (outline 5.2.2; INV-30, PR-52) > [INV-30][PR-52] a completed record with every exception dispositioned is approved by production, with the approver's own signature only"
   - clause: "Enabling review by exception on a step with no validation reference is refused."
-    deferred:
-      phase: 6
-      reason: "A review-by-exception reduction needs a risk class and rationale but no validation reference yet; the reference is added in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/review/rbe-rules.test.ts > review by exception on a step needs a validation reference (PR-52) > [PR-52] RBE on a step without a validation reference is refused"
+      - "packages/recipe-core/test/review/rbe-rules.test.ts > review by exception on a step needs a validation reference (PR-52) > [PR-52] RBE on a step citing a validation that is not on the version's change record, or without a risk class, is refused"
+      - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-52] review by exception on a step without a validation reference is an error at configuration time"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

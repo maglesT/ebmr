@@ -78,6 +78,26 @@ export const DscConfigurationView = z.strictObject({
 });
 export type DscConfigurationView = z.infer<typeof DscConfigurationView>;
 
+/**
+ * The signer's own DSC enrolment (kernel 1206; IN-10): a DSC is accepted only from the certificate enrolled for the person
+ * who signs. `statement` is what the token signs to enrol (the person and the account); null while the option is off.
+ */
+export const DscEnrolmentView = z.strictObject({
+  statement: z.string().min(1).nullable(),
+  banner: z.string().nullable(),
+  enrolments: z.array(z.strictObject({
+    enrolmentId: Uuid,
+    leafSubject: z.string(),
+    leafSerial: z.string(),
+    leafSha256: z.string(),
+    leafValidTo: z.string(),
+    anchorLabel: z.string(),
+    recordedAt: z.string(),
+    live: z.boolean(),
+  })),
+});
+export type DscEnrolmentView = z.infer<typeof DscEnrolmentView>;
+
 export const ChallengeView = z.strictObject({
   challengeId: Uuid,
   aggregateType: z.string(),
@@ -266,5 +286,39 @@ export const esig = {
     summary: 'Whether a signature meaning needs a DSC while the option is on (QA, change record)',
     body: withAttribution({ meaning: z.string().min(1).max(64), required: z.boolean(), changeRecord: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/), reason: z.string().trim().min(1).max(2000) }),
     response: DscConfigurationView,
+  }),
+  dscEnrolment: defineRoute({
+    id: 'esig.dscEnrolment',
+    method: 'GET',
+    path: '/api/esig/dsc/enrolment',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The signed-in person\'s DSC enrolments and the statement their token signs to enrol a certificate (IN-10)',
+    response: DscEnrolmentView,
+  }),
+  enrolDsc: defineRoute({
+    id: 'esig.enrolDsc',
+    method: 'POST',
+    path: '/api/esig/dsc/enrolment',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Enrol the certificate of your own token: its signature over the enrolment statement and its chain (IN-10)',
+    body: withAttribution({ dsc: DscSubmission }),
+    response: DscEnrolmentView,
+  }),
+  endDscEnrolment: defineRoute({
+    id: 'esig.endDscEnrolment',
+    method: 'POST',
+    path: '/api/esig/dsc/enrolment/end',
+    installation: 'ANY',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'End a DSC enrolment (a lost token, a new certificate): your own, or anyone\'s as QA (IN-10)',
+    body: withAttribution({ enrolmentId: Uuid, reason: z.string().trim().min(1).max(2000) }),
+    response: DscEnrolmentView,
   }),
 } as const;

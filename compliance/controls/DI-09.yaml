@@ -58,13 +58,16 @@ clauses:
     tests:
       - "packages/site-services/test/quality/specifications.test.ts > specifications (IN-33) > [DI-09] the system administrator cannot change a specification limit: drafting, approving and writing the limits directly are all refused, and the limits in effect stay as approved"
   - clause: "Submit a configuration change without a change-record ID. Rejected."
-    deferred:
-      phase: 6
-      reason: "No test tagged DI-09 asserts that a configuration change without a change-record ID is rejected (the UNCHANGED-version test only supplies one), so whether this is proven is unsure; deferred with the configuration-diff feature for a tagged test (owner decision 0011)."
+    tests:
+      - "packages/kernel/test/config/change-control.test.ts > a configuration change needs an approved change record (DI-09) > [DI-09] a configuration change without a change-record id is rejected: adapter mode, freshness bound, identity and e-signature policy, signature catalogue"
+      - "packages/kernel/test/config/change-control.test.ts > a configuration change needs an approved change record (DI-09) > [DI-09] an unknown, unapproved, closed or other-area change record is refused"
+      - "packages/kernel/test/config/change-control.test.ts > a configuration change needs an approved change record (DI-09) > [DI-09] bypass attempts: the application role cannot write a configuration table or a change record directly, and a hand-set context does not count"
+      - "apps/tablets-server/test/config/config-routes.test.ts > configuration change records and RBE rules over HTTP (DI-09, DI-26) > [DI-09] a platform setting (an adapter mode) is not changed under an unknown change record, and the settings list shows the definitions"
   - clause: "A configuration diff can be retrieved for any past date."
-    deferred:
-      phase: 6
-      reason: "There is no configuration diff as of a past date yet; it is built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/kernel/test/config/change-control.test.ts > configuration versions and the diff for a past date (DI-09, D-P6f-1) > [DI-09] a configuration diff for a past date: the configuration valid then, and what changed since, with the change records"
+      - "packages/kernel/test/config/change-control.test.ts > configuration versions and the diff for a past date (DI-09, D-P6f-1) > [DI-09] the history starts complete: rows written before change control and by the software release are versions too"
+      - "apps/tablets-web/test/config/config.test.tsx > configuration change control screens (DI-09, DI-26) > [DI-09] the configuration diff between two dates lists each change with its change record; a setting change carries its change record"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

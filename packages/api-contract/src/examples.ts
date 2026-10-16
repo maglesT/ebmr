@@ -407,6 +407,9 @@ export const EXAMPLES = {
   'esig-set-dsc-mode': { schema: r.esig.setDscMode.response, data: gv.dsc, routeId: r.esig.setDscMode.id },
   'esig-register-dsc-anchor': { schema: r.esig.registerDscAnchor.response, data: gv.dsc, routeId: r.esig.registerDscAnchor.id },
   'esig-set-dsc-meaning': { schema: r.esig.setDscMeaning.response, data: gv.dsc, routeId: r.esig.setDscMeaning.id },
+  'esig-dsc-enrolment': { schema: r.esig.dscEnrolment.response, data: gv.dscEnrolment, routeId: r.esig.dscEnrolment.id },
+  'esig-enrol-dsc': { schema: r.esig.enrolDsc.response, data: gv.dscEnrolment, routeId: r.esig.enrolDsc.id },
+  'esig-end-dsc-enrolment': { schema: r.esig.endDscEnrolment.response, data: { ...gv.dscEnrolment, enrolments: gv.dscEnrolment.enrolments.map((e) => ({ ...e, live: false })) }, routeId: r.esig.endDscEnrolment.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 6 slice 6f (builder B): the support, contract-giver and DSC routes, each with an example above (contract test). */
@@ -417,6 +420,9 @@ export const GOVERNANCE_ROUTE_IDS: readonly string[] = [
   r.esig.setDscMode,
   r.esig.registerDscAnchor,
   r.esig.setDscMeaning,
+  r.esig.dscEnrolment,
+  r.esig.enrolDsc,
+  r.esig.endDscEnrolment,
 ].map((route) => route.id);
 
 /** Phase 4 slice 6a: the india routes, each with an example above (checked by the india contract test). */

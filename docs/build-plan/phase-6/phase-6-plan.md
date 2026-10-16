@@ -450,6 +450,50 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
     person to another stay their own signed IAM acts (not configuration); whether a meaning may be delegated is the
     signature catalogue (ESIG_MEANING).
   - **D-P6f-A-10** (lead decision) The drift-from-baseline alarm of DI-09 stays in Phase 7, with DI-06.
+- **Builder B defaults (recorded at the slice close, 16 October; kernel 1202 to 1206, recipe-core 1060 to 1062, tablets
+  1275, 1276):**
+  - **D-P6f-B-1** A support grant names one active, personal account holding VENDOR_SUPPORT, the vendor, the purpose and
+    1 to `iam.support_grant_max_hours` hours (default 8, at most 72); the window starts at the second approval; no
+    extension (a new request); one live grant per account; QA, IT or the requester's side may revoke it early.
+  - **D-P6f-B-2** The two customer signatures are QA (SUPPORT_ACCESS_QA_APPROVED: the quality-unit approver or the
+    authorised person) and IT (SUPPORT_ACCESS_IT_APPROVED: the system or process owner), two distinct people, neither the
+    requester nor the engineer. Each support login and each refusal raises an alert for review.
+  - **D-P6f-B-3** The contract giver's reviewer reads the batches of one loan licence through an access QA grants for at
+    most `recipe.contract_giver_access_max_days` (default 90, 1 to 365); every record opened is logged; the account holds
+    READ permissions only (checked at grant and at each read) and the server keeps it on its own routes.
+  - **D-P6f-B-4** The DSC statement is the database's canonical JSON of the challenge id, record, content version, content
+    hash and meaning; the server parses X.509 and verifies chain and signature (the database cannot), the database checks
+    what it can (same transaction, the challenge's statement, the chain ends at the live anchor) and refuses to commit a
+    required DSC that is missing.
+  - **D-P6f-B-5** The trust anchor and the per-meaning setting are set by the quality unit (MBR.APPROVE, never an
+    administrator) under a change record (kernel 1205); a LICENSED anchor cannot be registered in v1.
+  - **D-P6f-B-6** The signing bridge is a local program on the signer's PC on the loopback interface (127.0.0.1:8746); a page
+    may install its own (`window.ebmrDscBridge`) for the demo's token simulator and the tests. No private key reaches the
+    browser or the server.
+  - **D-P6f-B-7** The MBR edition review lists versions not RETIRED or WITHDRAWN whose content cites a recorded edition
+    older than the effective one; an edition not recorded yet is never listed as older (the specification rule).
+  - **D-P6f-B-8** The PQR extract version 2 adds `cpp`: the VALID values of the CRITICAL parameters (PROCESS_PARAMETER, IPC,
+    PROCESS_ENDPOINT) and the CURRENT derived values of CRITICAL calculations of each batch, from the record and its issued
+    master; an extract of version 1 still reproduces with version 1.
+  - **D-P6f-B-9** (review fix, kernel 1206) A DSC is accepted only from the certificate enrolled for the signer: the person
+    enrols their own token's certificate in their own command with a proof of possession over a statement naming the
+    person and account; a certificate is live for one person only; a new enrolment ends the old one; an enrolment counts
+    only under the anchor it was verified against; the person or QA ends one.
+  - **D-P6f-B-10** PR-49 (the third-recurrence warning on the certification screen) is listed in the slice table row for 6f
+    but its feature and test are specified in slice 6d (deviation impact and recurrence); it is built there, not in 6f.
+- **Review (one pass, 16 October):** one high fixed with tests: a DSC from any certificate of the CA was accepted beside
+  any person's signature (kernel 1206, D-P6f-B-9; EBMR-ESIG-086 to 088). Clause mappings: the eleven 6f clauses deferred to
+  Phase 6 by decision 0011 (DI-08.1, DI-09.2 and .3, DI-26.3, PR-52.2, IN-30.2, IN-39.2, IN-10.2, IN-27.1, IN-33.1, PR-09.2)
+  now name their passing tests.
+- **Residuals (6f):**
+  - The DSC checks no certificate revocation (CRL or OCSP) and no key-usage or path-length extension; the test CA has no
+    revocation service. With a licensed CA at deployment, revocation and key usage are checked (IN-10, question 4).
+  - An enrolment is the signer's own act with a proof of possession; no second person compares the certificate subject
+    with the person's verified identity (a deployment SOP or a later identity check).
+  - The designer's PPE and decontamination steps (IN-27) are inserted when a family is created from a template; a later
+    edit that removes them is caught by MBR review and approval, not by a database guard (application feature class).
+  - The contract giver's reviewer is kept on its own routes by the server (bind.ts); the database scopes and logs the
+    reads of its own functions only (as planned, class "other" for the routing).
 - **Migrations:** kernel 1195 to 1209 (configuration versions, support grant, contract-giver role, DSC), recipe-core
   1050 to 1069 (RBE rules, designer, edition review, PQR CPP), site-services none.
 - **Handbook:** `modules/kernel.md` (configuration, DSC, support), `modules/recipe-core.md`, `modules/tablets-web.md`,

@@ -313,5 +313,21 @@
         "required": false
       }
     ]
+  },
+  "dscEnrolment": {
+    "statement": "{\"account_id\":\"5a6b7c8d-0000-4000-8000-000000000002\",\"format\":\"EBMR-DSC-ENROL-1\",\"person_id\":\"5a6b7c8d-0000-4000-8000-000000000001\"}",
+    "banner": "Test certificate authority: not legally valid",
+    "enrolments": [
+      {
+        "enrolmentId": "5a6b7c8d-0000-4000-8000-000000000003",
+        "leafSubject": "C=IN, O=eBMR test, CN=Meera Iyer (TEST Class 3)",
+        "leafSerial": "1F2E3D",
+        "leafSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "leafValidTo": "2027-10-12T04:40:00.000Z",
+        "anchorLabel": "eBMR TEST CA",
+        "recordedAt": "2026-10-12T04:45:00.000Z",
+        "live": true
+      }
+    ]
   }
 }

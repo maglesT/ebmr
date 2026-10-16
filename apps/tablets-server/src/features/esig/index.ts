@@ -64,7 +64,7 @@ import type { SignableActionHandler, SignableActionRegistry } from '../../platfo
 import { ChallengeBadgeStore } from './badges.ts';
 import { kernelContent, meaningOfIntent, recordContentForSigning, type EsigSignableContext } from './content.ts';
 import { ESIG_GUIDANCE } from './guidance.ts';
-import { dscConfiguration, registerDscAnchor, setDscMeaning, setDscMode } from './dsc.ts';
+import { dscConfiguration, dscEnrolment, endDscEnrolment, enrolDsc, registerDscAnchor, setDscMeaning, setDscMode } from './dsc.ts';
 import { esigStubHandler } from './stub.ts';
 import { manifestationView, meaningInfo, meaningPhrase, readChallenge, recordSignaturesFor, type StoredChallenge } from './views.ts';
 
@@ -561,6 +561,12 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       setDscMode: async ({ body, actor, idempotencyKey, requestHash }) => setDscMode(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
       registerDscAnchor: async ({ body, actor, idempotencyKey, requestHash }) => registerDscAnchor(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
       setDscMeaning: async ({ body, actor, idempotencyKey, requestHash }) => setDscMeaning(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
+      dscEnrolment: async ({ requireSession }) => {
+        const s = requireSession();
+        return dscEnrolment(app.pools.app, s.personId, s.accountId);
+      },
+      enrolDsc: async ({ body, actor, idempotencyKey, requestHash }) => enrolDsc(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
+      endDscEnrolment: async ({ body, actor, idempotencyKey, requestHash }) => endDscEnrolment(app.pools.app, actor(), idempotencyKey ?? '', requestHash, body),
     },
     { rateLimits: { sign: { max: 20, timeWindow: '1 minute', by: 'SESSION' } } },
   );

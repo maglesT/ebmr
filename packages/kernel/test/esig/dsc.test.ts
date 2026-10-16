@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../src/db/command.ts';
-import { dscRequirement, recordDsc, TEST_CA_BANNER, type DscSubmission } from '../../src/esig/dsc.ts';
+import { dscEnrolmentStatement, dscRequirement, enrolDsc, recordDsc, TEST_CA_BANNER, type DscSubmission } from '../../src/esig/dsc.ts';
 import { createTestCa, issueTestCertificate, issueTestSigner, signDscStatement, type TestCa, type TestCertificate } from '../../src/esig/dsc-test-ca.ts';
 import { sign } from '../../src/esig/signing.ts';
 import { withChangeRecord } from '../support/change-record.ts';
@@ -41,6 +41,12 @@ const goodDsc = (statement: string, cert: TestCertificate = signerCert, chainCa:
 async function asQa<T>(sql: string, params: unknown[], change = false): Promise<T[]> {
   const ctx = { ...(await cmd(db, qa)) };
   return withCommand(db.app, change ? await withChangeRecord(db, ctx) : ctx, async (c) => (await c.query(sql, params)).rows as T[]);
+}
+
+/** The person's own command enrolling `cert` (kernel 1206): the token signs the enrolment statement. */
+async function enrol(who: SeededActor, cert: TestCertificate, chainCa: TestCa = ca, statement?: string): Promise<string> {
+  const st = statement ?? (await dscEnrolmentStatement(db.app, who.personId, who.accountId));
+  return withCommand(db.app, await cmd(db, who), (c) => enrolDsc(c, goodDsc(st, cert, chainCa)));
 }
 
 /** Challenge, authenticate, then sign and record the DSC in one command, as the server does. */
@@ -87,6 +93,8 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
     await asQa(`select esig.register_dsc_anchor('TEST_CA', 'eBMR TEST CA', 'CN=eBMR TEST CA (not legally valid)', $1, 'demo and validation tests')`, [ca.root.der], true);
     await asQa(`select esig.set_policy('esig.india_dsc', 'TEST_CA', 'demo of the India DSC option with a test CA', 'CR-TEST-FIXTURE')`, [], true);
     expect((await db.app.query<{ m: string }>('select esig.dsc_mode() as m')).rows[0]?.m).toBe('TEST_CA');
+    // The AP enrols the certificate of their own token (kernel 1206).
+    expect(await enrol(ap, signerCert)).toMatch(/[0-9a-f-]{36}/);
   });
 
   it('[IN-10] a release signed with a DSC validates against the CA root chain (test CA), stored beside the password signature', async () => {
@@ -161,5 +169,44 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
       const s = await sign(c, { challengeId: ch3.challengeId, authEventId: ev3, expectedState: 'OPEN' }, testSealKey);
       await c.query('select esig.record_dsc_signature($1, $2::jsonb)', [s.signatureId, JSON.stringify({ signature: b64(Buffer.alloc(256, 1)), chain: [b64(signerCert.der), b64(Buffer.alloc(100, 7))], leafSha256: '0'.repeat(64), algorithm: 'rsa-sha256', leafSubject: 'x', leafSerial: '1', leafValidFrom: '2026-01-01T00:00:00Z', leafValidTo: '2027-01-01T00:00:00Z' })]);
     }), 'EBMR-ESIG-085', /trust anchor/);
+  });
+
+  it('[IN-10] a DSC is accepted only from the certificate enrolled for the signer: another person\'s certificate, a stolen enrolment or an ended one is refused', async () => {
+    const { rows } = await db.app.query<{ t: Date }>('select clock_timestamp() as t');
+    const now = rows[0]?.t as Date;
+    const ap2 = await testActor(db, { roleCode: 'AUTHORISED_PERSON', legalName: 'Second Authorised Person' });
+    const cert2 = issueTestSigner(ca, 'Second Authorised Person (TEST Class 3)', now);
+    const before = await dbCount(db, 'select 1 from esig.signature');
+    // The AP signs with a valid certificate of the test CA that is not theirs (not enrolled for them): refused.
+    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, cert2)), 'EBMR-ESIG-087', /enrolled for the signer/);
+    // Another person cannot enrol the AP's certificate, even holding its key.
+    await expectRefused(enrol(ap2, signerCert), 'EBMR-ESIG-086', /another person/);
+    // An enrolment proof over another person's statement does not verify.
+    await expectRefused(enrol(ap2, cert2, ca, await dscEnrolmentStatement(db.app, ap.personId, ap.accountId)), 'EBMR-ESIG-085');
+    // A certificate of another CA is not enrolled.
+    const other = createTestCa(now, 'Another CA');
+    await expectRefused(enrol(ap2, issueTestSigner(other, 'Stranger', now), other), 'EBMR-ESIG-085', /trust anchor/);
+    expect(await dbCount(db, 'select 1 from esig.signature')).toBe(before);
+    // Enrolled, the second AP's own certificate signs; the first AP still cannot use it.
+    const e2 = await enrol(ap2, cert2);
+    await expectRefused(signRelease(await createStub(db, author), (s) => goodDsc(s, cert2)), 'EBMR-ESIG-087');
+    // An operator cannot end someone else's enrolment; QA can, and then the certificate is refused.
+    await expectRefused(withCommand(db.app, await cmd(db, author), (c) => c.query('select esig.end_dsc_enrolment($1, $2)', [e2, 'not mine'])), 'EBMR-IAM-040');
+    await asQa('select esig.end_dsc_enrolment($1, $2)', [e2, 'token reported lost']);
+    await expectRefused(asQa('select esig.end_dsc_enrolment($1, $2)', [e2, 'twice']), 'EBMR-ESIG-088');
+    const ch = await challengeFor(db, ap2, await createStub(db, author), { meaning: 'MANUFACTURER_RELEASE' });
+    const req = await dscRequirement(db.app, ch.challengeId);
+    const ev = await signatureAuth(db, ap2, ap2, ch.challengeId);
+    await expectRefused(withCommand(db.app, await cmd(db, ap2), async (c) => {
+      const s = await sign(c, { challengeId: ch.challengeId, authEventId: ev, expectedState: 'OPEN' }, testSealKey);
+      await recordDsc(c, s.signatureId, goodDsc(req.statement ?? '', cert2));
+    }), 'EBMR-ESIG-087');
+    // The list shows the ended enrolment; nothing is written directly.
+    const list = (await db.app.query<{ l: { live: boolean; leafSubject: string }[] }>('select esig.dsc_enrolments_of($1) as l', [ap2.personId])).rows[0]?.l;
+    expect(list).toEqual([expect.objectContaining({ live: false, leafSubject: expect.stringContaining('Second Authorised Person') as unknown })]);
+    await expectPermissionDenied(db.app.query(`insert into esig.dsc_enrolment select * from esig.dsc_enrolment where id = $1`, [e2]));
+    await expectPermissionDenied(db.app.query(`delete from esig.dsc_enrolment_end where enrolment_id = $1`, [e2]));
+    // The first AP's own enrolled certificate still signs.
+    expect(await signRelease(await createStub(db, author), (s) => goodDsc(s))).toMatch(/[0-9a-f-]{36}/);
   });
 });

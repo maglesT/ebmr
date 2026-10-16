@@ -77,9 +77,9 @@ clauses:
       - "packages/recipe-core/test/release/india.test.ts > the India gates of the GMP issue (recipe-core 0891; D-6-1, D-6-2) > [IN-30] a loan-licence batch is issued under the loan licence naming its product and the host licence of the site; its record carries both licence numbers and the technical agreement"
       - "packages/site-services/test/india/licences.test.ts > manufacturing and loan licences (site services 0885) > [IN-30] a loan licence names an approved host manufacturing licence of the site and its technical agreement; a batch under it carries both licence numbers, and it stops counting with its host"
   - clause: "and a contract-giver reviewer cannot edit."
-    deferred:
-      phase: 6
-      reason: "There is no read-only access for the contract giver's reviewer yet (slice 6a residual); it is built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/release/india.test.ts > the contract giver reviewer (recipe-core 1060, kernel 1204; IN-30) > [IN-30] a contract-giver reviewer cannot edit: read-only, scoped to the loan licence's batches, every write path refused"
+      - "apps/tablets-server/test/governance/governance-routes.test.ts > the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -5,7 +5,7 @@
  * configured after the legal opinion. While the anchor is a test CA, every screen shows TEST_CA_BANNER.
  */
 import { X509Certificate } from 'node:crypto';
-import type { DscConfigurationView } from '@ebmr/api-contract';
+import type { DscConfigurationView, DscEnrolmentView, DscSubmission } from '@ebmr/api-contract';
 import { esig, type ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
 import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
@@ -81,4 +81,36 @@ export async function setDscMeaning(pool: pg.Pool, actor: ActorContext, key: str
     return null;
   });
   return dscConfiguration(pool);
+}
+
+/**
+ * The signed-in person's DSC enrolments (kernel 1206; review fix of IN-10): a DSC is accepted only from the certificate
+ * enrolled for the signer. The statement is what their token signs to enrol; none while the option is off.
+ */
+export async function dscEnrolment(db: Pick<pg.Pool, 'query'>, personId: string, accountId: string): Promise<DscEnrolmentView> {
+  const mode = (await dscConfiguration(db)).mode;
+  const { rows } = await db.query<{ l: DscEnrolmentView['enrolments'] }>('select esig.dsc_enrolments_of($1) as l', [personId]);
+  return {
+    statement: mode === 'OFF' ? null : await esig.dscEnrolmentStatement(db, personId, accountId),
+    banner: mode === 'TEST_CA' ? esig.TEST_CA_BANNER : null,
+    enrolments: rows[0]?.l ?? [],
+  };
+}
+
+/** Enrols the certificate of the person's own token, in their own command (the server verifies the proof first). */
+export async function enrolDsc(pool: pg.Pool, actor: ActorContext, key: string, hash: string, body: { dsc: DscSubmission }): Promise<DscEnrolmentView> {
+  await withIdempotentActorCommand(pool, { ...actor, reasonCode: 'DSC_ENROLMENT', reasonText: 'enrol the certificate of my own token' }, key, hash, async (c) => {
+    await esig.enrolDsc(c, body.dsc);
+    return null;
+  });
+  return dscEnrolment(pool, actor.personId, actor.accountId);
+}
+
+/** Ends an enrolment: the person's own, or anyone's by the quality unit. */
+export async function endDscEnrolment(pool: pg.Pool, actor: ActorContext, key: string, hash: string, body: { enrolmentId: string; reason: string }): Promise<DscEnrolmentView> {
+  await withIdempotentActorCommand(pool, { ...actor, reasonCode: 'DSC_ENROLMENT_END', reasonText: body.reason }, key, hash, async (c) => {
+    await c.query('select esig.end_dsc_enrolment($1, $2)', [body.enrolmentId, body.reason]);
+    return null;
+  });
+  return dscEnrolment(pool, actor.personId, actor.accountId);
 }

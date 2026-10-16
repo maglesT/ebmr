@@ -35,9 +35,8 @@ clauses:
     tests:
       - "packages/recipe-core/test/blocks/process.test.ts > G-11 environmental condition check > [IN-39][PR-25] a pressure difference below its action limit stops the step, links a deviation and notifies production and QA"
   - clause: "and both departments are notified."
-    deferred:
-      phase: 6
-      reason: "The run records the notification to production and QA with the exception (the engine's NOTIFICATION effect, asserted by the test of the clause above), but only manufacturer release decisions reach the departments' notification centre; delivering the excursion notification to people is built in Phase 6 (owner decision 0011; first deferred from Phase 3 to 4)."
+    tests:
+      - "apps/tablets-server/test/notifications/excursion-notifications.test.ts > excursion notifications (IN-39, recipe-core 1051) > [IN-39] both departments are notified: an excursion at a room check is delivered to production and QA with the exception that caused it"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
