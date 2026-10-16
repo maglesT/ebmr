@@ -208,11 +208,14 @@ describe('route table', () => {
     expect(fresh.map((r) => r.id).sort()).toEqual([
       'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
       'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise', 'capa.recordEffectiveness', 'capa.scheduleCheck', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'esig.createChallenge', 'execution.command', 'execution.importPackage',
-      'execution.issue', 'execution.planBatch', 'india.issueH2', 'integrations.acknowledgeAlarm', 'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
+      'execution.issue', 'execution.planBatch', 'india.issueH2', 'integrations.acknowledgeAlarm', 
+      'labels.approveTemplate', 'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',
+      'labels.recordLabelSpecimen', 'labels.recordPostUseInspection', 'labels.resolveLineStop', 'labels.verifyPostUseInspection', 'labels.voidSpecimen',
+      'masterData.addFormulaVersion', 'masterData.createFormula', 'notifications.acknowledge', 'planning.planPackagingOrder', 'plant.completeCleaning',
       'plant.defineArea', 'plant.defineDetector', 'plant.defineEquipment', 'plant.defineEquipmentClass', 'plant.defineTestPiece',
       'plant.defineToolingSet', 'plant.defineUtility', 'plant.equipmentEvent', 'plant.recordClearance', 'plant.startCleaning', 'pqr.run', 'quality.correctLotReceipt',
       'quality.examineLotReceipt', 'quality.proposeApprovedManufacturer', 'quality.receiveDelivery', 'quality.receiveLot', 'quality.recordLotReceipt',
-      'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn',
+      'quality.registerEvidenceDocument', 'quality.withdrawManufacturerApproval', 'records.appendAmendmentEntry', 'records.closeBulk', 'samples.assessReturn', 'samples.dispose', 'samples.pull', 'samples.receiveReturn', 'serialisation.rejectPool',
       'specifications.draft', 'specifications.markEdition', 'specifications.postFinishedLot', 'specifications.proposeLotDecision',
     ]);
     for (const r of fresh) {
@@ -364,6 +367,23 @@ describe('route table', () => {
     expect(body({ productCode: 'GBT01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(true);
     expect(body({ productCode: 'GBT01', periodFrom: '2025-10-01T00:00:00Z', periodTo: '2026-09-30' })).toBe(false);
     expect(body({ productCode: 'GBT 01', periodFrom: '2025-10-01', periodTo: '2026-09-30' })).toBe(false);
+  });
+
+  it('[IN-31][PR-36] the labels and serialisation namespaces (Phase 6 slice 6c) are GMP only, each route with an example, reads plain and commands FRESH_ON_SHARED; a template layout binds record fields only (D-P6c-2)', () => {
+    const exampled = new Set(Object.values(EXAMPLES).map((e) => ('routeId' in e ? e.routeId : undefined)));
+    for (const r of [...Object.values(routes.labels), ...Object.values(routes.serialisation)]) {
+      expect(exampled.has(r.id), `${r.id} has an example`).toBe(true);
+      expect(r.installation, r.id).toBe('GMP');
+      expect(r.attribution, r.id).toBe(r.mutating ? 'FRESH_ON_SHARED' : 'NONE');
+    }
+    const body = (b: unknown) => routes.labels.createTemplate.body?.safeParse(b).success;
+    const layout = { width: '80', height: '40', elements: [{ field: 'MFG_DATE', x: '2', y: '17', caption: 'Mfg.' }] };
+    expect(body({ code: 'CTN-IN', scope: 'INDIA_DOMESTIC', markets: ['IN'], layout })).toBe(true);
+    expect(body({ code: 'CTN-IN', scope: 'INDIA_DOMESTIC', markets: ['IN'], layout: { ...layout, elements: [{ field: 'MFG_DATE', x: '2', y: '17', value: '2026-10-01' }] } })).toBe(false);
+    expect(body({ code: 'CTN-IN', scope: 'INDIA_DOMESTIC', markets: ['IN'], layout: { ...layout, elements: [{ field: 'FREE_TEXT', x: '2', y: '17' }] } })).toBe(false);
+    const coded = (b: unknown) => routes.labels.recordCodingSpecimen.body?.safeParse(b).success;
+    expect(coded({ position: 'MIDDLE', coded: { batch: 'PK26-0012', mfgDate: '2026-10-01', expiryDate: '2028-09' } })).toBe(true);
+    expect(coded({ position: 'LATE', coded: { batch: 'PK26-0012', mfgDate: '2026-10-01', expiryDate: '2028-09' } })).toBe(false);
   });
 
   it('the archive namespace (Phase 4 slice 6b) is GMP only, each route with an example; paper-form commands are FRESH_ON_SHARED; ARCHIVE_ACT certifies an export or signs a forms reconciliation', () => {
