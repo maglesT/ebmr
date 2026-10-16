@@ -39,6 +39,7 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-31] dispenses, blends and compresses the worksheet's quantities, with its yields"
   - "packages/recipe-core/test/engine/exceptions.test.ts > limit tiers at execution (PR-08) > [PR-31] the yield step does not complete without its verifier (the performer cannot verify it, the next step waits), and an independent recalculation from the recorded quantities matches the yield the record shows"
   - "packages/recipe-core/test/validator/content.test.ts > risk-based reductions (IN-02) > [PR-31] a yield step without a verifier cannot be approved: each yield and reconciliation step of the master needs a checker who is not the performer"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [IN-17][PR-31] dispenses, blends and compresses the worksheet's quantities, with its yields"
 clauses:
   - clause: "A yield of 94.0% against limits of 95.0-101.0% creates an investigation automatically and blocks release."
     tests:

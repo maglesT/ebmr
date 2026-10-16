@@ -58,6 +58,7 @@ tests:
   - "packages/site-services/test/reporting/reporting-views.test.ts > report views (recipe-core 1070) > [DI-49] the alarm view holds every alarm once, whatever number of batches it is bound to, with its acknowledgment"
   - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period"
   - "apps/tablets-web/test/dashboards/dashboards.test.tsx > dashboards (GMP) > [DI-49] the alarm trend shows the count of every alarm of the period, by day and code"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-20][DI-32][DI-49] the OPC UA press reports its enrolled endpoint's session and native series of the compression through the site gateway, and its reject-burst alarm is acknowledged with a comment in the batch's alarm log"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

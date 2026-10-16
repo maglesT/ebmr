@@ -43,6 +43,7 @@ tests:
   - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again"
   - "apps/tablets-web/test/transfers/transfers.test.tsx > federated genealogy (PR-57, IN-29) > [IN-29] a mock recall with one site down is shown incomplete with the last excerpt; QA asks the sites again"
   - "packages/site-services/test/transfer/transfer.test.ts > review 6i: one hop and clock skew (recipe-core 1092) > [IN-29] a destination's part that reaches a further transfer leaves the mock recall incomplete (one hop, D-P6i-0-7)"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [IN-29][PR-57] the mock recall from the API lot reaches the batch, the order, the finished lot and both consignees of the ERP's shipments, reproduces, and is signed off by the AP"
 clauses:
   - clause: "from a defective API lot, list every finished batch"
     tests:

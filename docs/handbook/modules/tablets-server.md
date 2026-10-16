@@ -27,7 +27,7 @@ page explains them; it does not repeat every file name.
 | Demo and end-to-end set-up, golden-batch masters, OpenAPI | [src/cli/](../../../apps/tablets-server/src/cli/) |
 | Migrations of the `tab` schema (128 files, `0001` to `1209`) | [sql/](../../../apps/tablets-server/sql/) |
 | Tests (one folder per area) | [test/](../../../apps/tablets-server/test/) |
-| Golden batches GB-T-01 and GB-T-02 | [test/golden/](../../../apps/tablets-server/test/golden/) |
+| Golden batches GB-T-01, GB-T-02 and GB-T-03 | [test/golden/](../../../apps/tablets-server/test/golden/) |
 | The route table and the request and response shapes | [packages/api-contract](../../../packages/api-contract/) ([module guide](api-contract.md)) |
 | The screens that call these routes | [apps/tablets-web](../../../apps/tablets-web/) ([module guide](tablets-web.md)) |
 

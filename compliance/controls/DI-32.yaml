@@ -216,6 +216,7 @@ tests:
   - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] a unit's window is read page by page by chunk number and drawn once every page is in"
   - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] samples are ordered by source time across chunks and times keep every microsecond"
   - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-32] a chunk is held as received and as the checked series row; the audit trail holds the row hash only (D-P6b-A-1)"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-20][DI-32][DI-49] the OPC UA press reports its enrolled endpoint's session and native series of the compression through the site gateway, and its reject-burst alarm is acknowledged with a comment in the batch's alarm log"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

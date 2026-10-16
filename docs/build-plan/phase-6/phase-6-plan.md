@@ -776,6 +776,60 @@ follow if a language is added after v1.
 - **Final run:** the full suite, golden batches, browser suite, `pnpm trace` at 6, `pnpm handbook:check`, all green in
   one run.
 
+#### 6j-b golden batches
+
+The golden cluster runs under the golden clock library (`tools/dev-env/golden-clock`, 3cec207) in place of libfaketime:
+the INTERNAL stops of earlier GB-T-01 runs were backends aborting because libfaketime read its file with `fopen` inside
+the time calls PostgreSQL makes from its timeout signal handler. CI's golden job builds it with `cc` and preloads it
+(replayed on a throwaway cluster: build, preload, offset and frozen forms, eight parallel 5 ms statement timeouts on a
+frozen clock without an abort). GB-T-01 and GB-T-02 ran three times in a row green with their exact outputs unchanged
+(15 min 56 s, 19 min 56 s, 19 min 13 s; no INTERNAL stop, no backend abort in the cluster's log and no device-nonce
+refusal; the 120-a-minute limit untouched, the test harness's wall-clock nonce pacer of PR #37 unchanged). GB-T-03 "connected" is new
+(`apps/tablets-server/test/golden/gb-t-03`, README there): GB-T-02's product serialised for the US, released for India
+and the US and recalled, at a site whose ERP/WMS, LMS, CMMS and L3/L4 systems are their simulators feeding the server's
+adapter workers, with PRESS-01 served by the OPC UA simulator through the site gateway; ten tests, exact outputs (three
+runs gave the same hashes), tagged DI-20, DI-31, DI-32, DI-49, PR-39, PR-42, PR-45, IN-05, IN-17, IN-29, PR-57, INV-05.
+The whole golden folder then ran three times in a row green on the golden cluster (see the defaults for the times).
+
+- **D-P6j-b-1** The simulators and the site gateway preload the golden clock library on the cluster's file
+  (`EBMR_GOLDEN_CLOCK_LIB`; GB-T-03 is skipped without it), so the times they stamp are the database's. Why: a feed
+  message or an alarm is bound to the batch by its source time.
+- **D-P6j-b-2** The OPC UA series need increasing source times, so during the compression run the frozen clock runs on
+  at real speed (`runFromFrozen`) while the gateway connects, the reject burst is raised and cleared and a chunk of every
+  press tag lands; it is then frozen exactly ten minutes after the instant it stood at, taken from the twenty minutes
+  before the run's first weight check (every 25 minutes). Only what does not depend on the machine's speed is compared
+  (the accepted sessions, the alarm log, the tags with native chunks in the batch's context, raw values kept, refusals).
+  Why: the true copies keep one hash, and a slow runner fails loudly (the clock never moves back) instead of drifting.
+- **D-P6j-b-3** The gateway runs as its own process (`apps/site-gateway/src/main.ts`) with one endpoint, its scale
+  unplugged and its uplink unreachable; only its OPC UA feed is used. The press alarm is the press's Alarms-and-Conditions
+  occurrence (REJECT_BURST) on that feed; a tag-limit excursion travels the gateway's process path (its uplink session to
+  a listening server), which GB-T-03 does not start. Why: the server under test answers in-process (inject), and the
+  alarm log and its acknowledgment are the same for both paths.
+- **D-P6j-b-4** The driver runs each adapter worker's cycle at fixed points (`Connected.sync`, the OPCUA worker until a
+  condition holds) instead of the server's 5 s timer. Why: the number and order of synchronisations would otherwise
+  depend on the machine's speed.
+- **D-P6j-b-5** The mirror modes go live under an approved configuration change record (steward raises it over HTTP, QA
+  signs CONFIG_CHANGE_APPROVED, a person granted PROCESS_OWNER through the access workflow sets each mode in a database
+  command under it). Why: no seeded persona holds PROCESS_OWNER; the change control is the real one, not the test
+  fixture record.
+- **D-P6j-b-6** GB-T-03 weighs the cellulose from the identity-tested lot GBT2-MCC-001 (a US batch needs an identity
+  result, IN-24), its bottle master is authorised for India, the US and the EU as GB-T-02's (so cartoning carries the
+  anti-tampering check the shared bottle order records), its calibrations come from the CMMS only (the logbook refuses
+  them in MIRROR, EBMR-PLANT-025). GB-T-02 takes these as optional parameters and runs act for act as before.
+- **D-P6j-b-7** The stale L3 mirror is shown on the US G-REL item E.RECONCILIATION_SERIAL before QA's review (RED with
+  the mirror named, GREEN after the next synchronisation); after the India release the US signer acknowledges the items
+  marked "since review" (finding F-6jb-g1). The recall's `resultSha256` (a digest over run-specific identifiers) is left
+  out of its normalised hash ("reproduces" checks it), and a lot code's batch number is replaced by its ordinal.
+- **D-P6j-b-8** CI's golden job timeout is 60 minutes (GB-T-03 adds about 6 minutes locally, more on the runner).
+
+Finding for the 6j-c review and the owner:
+
+- **F-6jb-g1 (medium, usability; fail-safe)** The manufacturer release locks the records (recipe-core 0870,
+  FIRST_DISPOSITION), and the lock bumps the BATCH evidence epoch, so `tab.grel_changed_since` (tablets 1163) marks every
+  Tablets G-REL item resting on those records "since review" for the next market's signer although no evidence changed:
+  the US quality-control unit must acknowledge 8 items before its disposition (EBMR-DSP-038). Not changed here: whether
+  a lock counts as a change since review is a release-design decision.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - 6a-0: the inbound envelope and error classes (`@ebmr/integration-sdk/adapter`), `platform.accept_inbound`,

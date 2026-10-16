@@ -315,6 +315,8 @@ tests:
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31][DI-32] EMS: room temperature and humidity chunks land in plant.series as received; the room conditions show the latest sample"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS feed gap alarms"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS: the soak with every fault in turn reconciles (no silent loss)"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [PR-42][PR-39][DI-31] serialises the US cartons through the L3/L4 system: the worksheet's pool, commissioning, destruction, specimens and aggregations, the L3 report closing the step; a stale L3 mirror refuses the US release item and a synchronisation clears it"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-31][DI-20] the ERP/WMS, LMS, CMMS and L3 adapters landed every message of the scenario with nothing refused or alarmed, and each mirror is fresh at the end"
 expert_decision:
   status: PENDING
   pack_version: "0.9"
