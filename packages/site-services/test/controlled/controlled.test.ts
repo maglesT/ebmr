@@ -136,7 +136,22 @@ async function signOffRow(batch: Batch, stage: string): Promise<string> {
   }
 }
 
-describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1034)', () => {
+/** The batch's stored state moved to EXECUTION_COMPLETE by the superuser with triggers on, rolled back after. */
+async function completeRow(batch: Batch): Promise<string> {
+  const c = await db.admin.connect();
+  try {
+    await c.query('begin');
+    await c.query("update recipe.execution_state set status = 'EXECUTION_COMPLETE', state = jsonb_set(state, '{status}', '\"EXECUTION_COMPLETE\"') where batch_id = $1", [batch.id]);
+    return 'completed';
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
+  } finally {
+    await c.query('rollback');
+    c.release();
+  }
+}
+
+describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', () => {
   it('[IN-53] the flag is recorded by QA under an approved change record and takes effect on a second QA person\'s signature; a pending flag counts at once, a pending unflagging only once approved', async () => {
     const lot = await w.releasedLot('API');
     const product = unique('P');
@@ -250,6 +265,10 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1034)', (
     expect(await signOffRow(batch, 'S-BLEND')).not.toMatch(/EBMR-CSM/);
     const row = (await db.app.query<Json>('select difference::text as d, returned::text as r from recipe.controlled_checkpoint where id = $1', [explained])).rows[0];
     expect(row).toMatchObject({ d: '0.050', r: '0.050' });
+    // The batch completes only with the account closed: a return confirmed after the last checkpoint holds it (quick review).
+    expect(await completeRow(batch)).not.toMatch(/EBMR-CSM/);
+    await custody({ kind: 'RETURN', lotId: lot.lotId, batchId: batch.id, quantity: '0.010' });
+    expect(await completeRow(batch)).toMatch(/EBMR-CSM-043/);
     // Another stage has its own checkpoint; the table refuses a direct write.
     expect(await signOffRow(batch, 'S-COMPRESS')).toMatch(/EBMR-CSM-042/);
     expect(await refusal(db.app.query("insert into recipe.controlled_checkpoint_signature (checkpoint_id, signature_id, person_id, account_id) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())", [explained]))).toMatch(/permission denied/);
@@ -308,6 +327,7 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1034)', (
     // One person dispenses, as before; no checkpoint is asked at a stage sign-off; no custody record is kept.
     expect(await w.consume(batch, reservation, lot.materialCode, '1')).toMatchObject({ batch_id: batch.id });
     expect(await signOffRow(batch, 'S-BLEND')).not.toMatch(/EBMR-CSM/);
+    expect(await completeRow(batch)).not.toMatch(/EBMR-CSM/);
     expect(await refusal(propose(w.cast.dispenser, { kind: 'DISPENSE', lotId: lot.lotId, batchId: batch.id, quantity: '1' }))).toMatch(/EBMR-CSM-014/);
     expect((await db.app.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([]);
     // The same API flagged for another product does not reach this product's batches.
