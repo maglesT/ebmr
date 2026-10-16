@@ -150,6 +150,9 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 - **Direct compression** — making tablets by compressing a dry blend without granulation. Example: GB-T-02.
 - **Disintegrant, glidant, lubricant, binder, diluent** — excipient roles. See the [primer](01-pharma-primer.md).
 - **Dispensing** — weighing each ingredient from stock into labelled containers for a batch. Block G-07 and TB-01.
+- **Dual custody** — two different people sign each handover of a controlled substance: the first custodian who
+  dispenses, transfers, returns or destroys it, and a second one (the witness of a destruction) who countersigns; one
+  person never fills both places. Where: `recipe.controlled_custody` in [recipe-core](modules/recipe-core.md); IN-53.
 - **Disposition** — the decision on a lot or an exception. For lots: manufacturer release or market disposition.
   For exceptions: `NO_IMPACT` or `DEVIATION_RAISED`. Where: [recipe-core](modules/recipe-core.md).
 - **Dissolution** — a test that measures how fast the tablet releases its active in a liquid. Appears as a finished-lot
@@ -187,7 +190,7 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
   [recipe-core](modules/recipe-core.md); INV-41.
 - **Excipient** — any ingredient other than the active.
 - **Expert decision** — the external expert's verdict on a control (`PENDING`, `FOLLOW`, `DONT_FOLLOW`, `MODIFY`). All
-  241 are `PENDING`. Never change it yourself. Where: each file in `compliance/controls/`.
+  242 are `PENDING` (the 241 of the review pack and the draft IN-53, whose `pack_version` is `draft`). Never change it yourself. Where: each file in `compliance/controls/`.
 - **Export permission** — an Indian permission to make a product only for export when it is not approved for India.
   Where: `ns/india.ts`; D-6-2.
 - **Expression language** — the project's own exact-decimal calculation language with units and rounding. Where:
@@ -307,6 +310,10 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 - **NOT_READY, READY, RELEASED, RELEASE_SUSPENDED, RECALLED** — release states. See the *state names* list at the end.
 
 ## O
+- **NDPS** — India's Narcotic Drugs and Psychotropic Substances Act 1985 and Rules 1985: the law on making and keeping
+  stock accounts of such substances. Not in the inputs, so not verified (status U): the draft control IN-53 and its
+  register export follow outline decision 14 until it is. Where: controlled-substance mode in
+  [recipe-core](modules/recipe-core.md).
 - **Occurred_at / recorded_at** — two times per event. `recorded_at` is the database clock and rules ordering and
   audit; `occurred_at` is a claimed or source time with a trust level (`DEVICE_SYNCED` or `DEVICE_UNSYNC`...). INV-16.
 - **OOS (out of specification)** — a lab result outside its limit. Starts a lab investigation. Where:
@@ -441,7 +448,7 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 
 ## Control-ID families
 
-The register holds 241 controls in four families, one YAML file each in
+The register holds 242 controls in four families (241 from the review pack and the draft IN-53, controlled substances), one YAML file each in
 [compliance/controls/](../../compliance/controls/). A control has an ID, a title, the editions, a type (`ENFORCED`,
 `CONFIGURABLE`, `DESIGN_CHOICE`), a target phase, the regulatory sources and a behaviour text. Tests that prove a control
 carry its ID in the test name.

@@ -6,7 +6,7 @@ Each control of the register ([compliance/controls/](../../../compliance/control
 and the test files that prove it, as the register records them. The tests carry the control ID in their names, for
 example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose files the control names.
 
-241 controls: 24 IMPLEMENTED, 217 SPECIFIED.
+242 controls: 25 IMPLEMENTED, 217 SPECIFIED.
 
 ## DI-01
 
@@ -1357,6 +1357,28 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 - Guard: market.evaluate_stub_scope and ResolutionContextProvider: scope market sets (batch, pack, site, union over line, room, equipment and person, per consuming batch for lots; PIC/S counts as EU for sterile line rules)
 - Guard: Issue: India is always in the batch market set; a market the MBR is not approved for is refused (ENG-ISSUE-MARKETS)
 - Tests: [apps/tablets-server/test/designer/market-set.test.ts](../../../apps/tablets-server/test/designer/market-set.test.ts), [apps/tablets-server/test/designer/routes.test.ts](../../../apps/tablets-server/test/designer/routes.test.ts), [apps/tablets-server/test/designer/template.test.ts](../../../apps/tablets-server/test/designer/template.test.ts), [apps/tablets-web/test/designer/document-complete.test.tsx](../../../apps/tablets-web/test/designer/document-complete.test.tsx), [packages/kernel/test/market/catalog-refs.test.ts](../../../packages/kernel/test/market/catalog-refs.test.ts), [packages/kernel/test/market/engine-guards.test.ts](../../../packages/kernel/test/market/engine-guards.test.ts), [packages/kernel/test/market/engine.test.ts](../../../packages/kernel/test/market/engine.test.ts), [packages/kernel/test/market/evaluations.test.ts](../../../packages/kernel/test/market/evaluations.test.ts), [packages/kernel/test/market/impact.test.ts](../../../packages/kernel/test/market/impact.test.ts), [packages/kernel/test/market/in52.test.ts](../../../packages/kernel/test/market/in52.test.ts), [packages/kernel/test/market/inv28.property.test.ts](../../../packages/kernel/test/market/inv28.property.test.ts), [packages/kernel/test/market/rule-tables.test.ts](../../../packages/kernel/test/market/rule-tables.test.ts), [packages/kernel/test/market/site-values.test.ts](../../../packages/kernel/test/market/site-values.test.ts), [packages/kernel/test/market/validate.test.ts](../../../packages/kernel/test/market/validate.test.ts), [packages/kernel/test/mutation/site-values-and-policies.test.ts](../../../packages/kernel/test/mutation/site-values-and-policies.test.ts), [packages/kernel/test/review/f20.test.ts](../../../packages/kernel/test/review/f20.test.ts), [packages/kernel/test/review/f21.test.ts](../../../packages/kernel/test/review/f21.test.ts), [packages/kernel/test/review/f22.test.ts](../../../packages/kernel/test/review/f22.test.ts), [packages/kernel/test/review/f23.test.ts](../../../packages/kernel/test/review/f23.test.ts), [packages/kernel/test/review/f24.test.ts](../../../packages/kernel/test/review/f24.test.ts), [packages/kernel/test/review/f25.test.ts](../../../packages/kernel/test/review/f25.test.ts), [packages/kernel/test/review/f27.test.ts](../../../packages/kernel/test/review/f27.test.ts), [packages/kernel/test/review/f76.test.ts](../../../packages/kernel/test/review/f76.test.ts), [packages/kernel/test/review/f80.test.ts](../../../packages/kernel/test/review/f80.test.ts), [packages/recipe-core/test/engine/stage.test.ts](../../../packages/recipe-core/test/engine/stage.test.ts)
+
+## IN-53
+
+**Controlled substances (India NDPS).** [IN-53.yaml](../../../compliance/controls/IN-53.yaml). Target phase 6; editions tablets, injectables; IMPLEMENTED.
+
+- Modules: [ss-controlled](../code-map.md#ss-controlled), [rc-controlled](../code-map.md#rc-controlled), [ts-controlled](../code-map.md#ts-controlled), [api-contract](../code-map.md#api-contract)
+- Code: [packages/recipe-core/sql/1030_controlled_substance_catalogue.sql](../../../packages/recipe-core/sql/1030_controlled_substance_catalogue.sql)
+- Code: [packages/recipe-core/sql/1031_controlled_product_flag.sql](../../../packages/recipe-core/sql/1031_controlled_product_flag.sql)
+- Code: [packages/recipe-core/sql/1032_controlled_custody.sql](../../../packages/recipe-core/sql/1032_controlled_custody.sql)
+- Code: [packages/recipe-core/sql/1033_controlled_checkpoint.sql](../../../packages/recipe-core/sql/1033_controlled_checkpoint.sql)
+- Code: [packages/recipe-core/sql/1034_controlled_register.sql](../../../packages/recipe-core/sql/1034_controlled_register.sql)
+- Code: [packages/recipe-core/sql/1035_controlled_batch_end.sql](../../../packages/recipe-core/sql/1035_controlled_batch_end.sql)
+- Code: [packages/site-services/sql/0970_controlled_wms_moves.sql](../../../packages/site-services/sql/0970_controlled_wms_moves.sql)
+- Code: [apps/tablets-server/sql/1250_controlled_signing_content.sql](../../../apps/tablets-server/sql/1250_controlled_signing_content.sql)
+- Code: [apps/tablets-server/sql/1280_controlled_read.sql](../../../apps/tablets-server/sql/1280_controlled_read.sql)
+- Code: [packages/api-contract/src/ns/controlled.ts](../../../packages/api-contract/src/ns/controlled.ts)
+- Code: [apps/tablets-server/src/features/controlled/index.ts](../../../apps/tablets-server/src/features/controlled/index.ts)
+- Code: [apps/tablets-web/src/features/controlled/index.tsx](../../../apps/tablets-web/src/features/controlled/index.tsx)
+- Guard: recipe.controlled_consumption_guard (zzc_controlled_dual_custody on site.lot_consumption)
+- Guard: recipe.controlled_sign_off_guard (a1_controlled_checkpoint on recipe.execution_command)
+- Guard: recipe.controlled_batch_end_guard (a1_controlled_batch_end on recipe.execution_state)
+- Tests: [apps/tablets-server/test/controlled/controlled-routes.test.ts](../../../apps/tablets-server/test/controlled/controlled-routes.test.ts), [apps/tablets-web/test/controlled/controlled.test.tsx](../../../apps/tablets-web/test/controlled/controlled.test.tsx), [packages/api-contract/test/controlled.test.ts](../../../packages/api-contract/test/controlled.test.ts), [packages/site-services/test/controlled/controlled.test.ts](../../../packages/site-services/test/controlled/controlled.test.ts)
 
 ## PR-01
 

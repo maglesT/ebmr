@@ -38,8 +38,8 @@ no passing test. The validation pack of Phase 7 is generated from the same data.
 
 | File | What it holds |
 |---|---|
-| [compliance/controls/&lt;ID&gt;.yaml](../../../compliance/controls/) | one file per control (241: DI 50, PR 60, ST 79, IN 52): title, editions, type, `target_phase`, the requirement rows it covers, `behaviour`, `catalog_test`, `implemented_by`, `tests`, `clauses`, `expert_decision`, `build_status` |
-| [compliance/requirements/requirements.jsonl](../../../compliance/requirements/) | 678 clause-level requirement rows (n-numbers) |
+| [compliance/controls/&lt;ID&gt;.yaml](../../../compliance/controls/) | one file per control (242: DI 50, PR 60, ST 79, IN 53; IN-53 is the draft added by slice 6e): title, editions, type, `target_phase`, the requirement rows it covers, `behaviour`, `catalog_test`, `implemented_by`, `tests`, `clauses`, `expert_decision`, `build_status` |
+| [compliance/requirements/requirements.jsonl](../../../compliance/requirements/) | 679 clause-level requirement rows (n-numbers; n679 is IN-53's unverified NDPS row) |
 | [compliance/schema/control.schema.json](../../../compliance/schema/) | the schema of a control file |
 | [compliance/phase.yaml](../../../compliance/phase.yaml) | the current phase (4) and the editions the gate covers (tablets) |
 
@@ -271,6 +271,17 @@ When you add a migration, a feature folder, a contract file or a screens folder:
 Test: [handbook.test.ts](../../../tools/handbook/test/handbook.test.ts) runs the same checks in the suite and proves
 each one on a fixture (an unclaimed migration, a missing symbol, a symbol named only in a comment, a wrong anchor,
 links inside code ignored, a pending page, GitHub slugs).
+
+## Adding a control to the register (slice 6e, IN-53)
+
+A new control is added only as a plan describes it (never by weakening another). The steps slice 6e took for the draft
+IN-53: write `compliance/controls/<ID>.yaml` with `expert_decision: {status: PENDING, pack_version: draft}` and nothing
+else in it (the build never sets a decision); add its requirement row to `compliance/requirements/requirements.jsonl`
+with the next `n` and `verified: unverified` when the source is not in the inputs; raise `EXPECTED_COUNTS` in
+[validate.ts](../../../tools/register/src/validate.ts) and the `[meta]` counts in
+[register.test.ts](../../../tools/register/test/register.test.ts) in the same commit; put the id into the names a test
+run may cite (`recipe.engine_name`, a new recipe-core migration; `engine-names-sql.test.ts` counts the register); and map
+its catalog test to `clauses` once its tests exist. `pnpm register:import` keeps a control that no catalog lists.
 
 ## How to test the tools
 

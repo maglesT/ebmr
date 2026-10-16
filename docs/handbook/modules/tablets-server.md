@@ -1465,6 +1465,20 @@ PPE and decontamination operations to every stage of a hazardous product's new M
 Tests: [governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts),
 [hazard-containment.test.ts](../../../apps/tablets-server/test/designer/hazard-containment.test.ts).
 
+## ts-controlled: controlled-substance mode
+
+[features/controlled](../../../apps/tablets-server/src/features/controlled/) (contract
+[ns/controlled.ts](../../../packages/api-contract/src/ns/controlled.ts); recipe-core 1031 to 1035, site services 0970;
+draft IN-53). Reads `products`, `custody` (by lot or batch), `balance` (per controlled material of a batch, with its
+checkpoints), `registerExtracts`, `registerExtract` (with `reproduces`); writes `recordProduct` (the request's
+`changeRecord` goes into the actor context, DI-09), `proposeCustody`, `recordCheckpoint`, `runRegister`. The signed acts
+are CONTROLLED_ACT: FLAG_APPROVE, CUSTODY_FIRST, CUSTODY_SECOND, BALANCE_SIGN. The records are GOVERNANCE-class; their
+content is read through [tablets 1250](../../../apps/tablets-server/sql/1250_controlled_signing_content.sql) and who may
+preview them is [tablets 1280](../../../apps/tablets-server/sql/1280_controlled_read.sql) (numbered after 6f's 1276,
+which re-creates `tab.record_read_problem`; D-P6e-10). Every response carries the draft banner. Guidance for EBMR-CSM-*
+(EBMR-CSM-020 tells the dispenser to have the custody record countersigned). Tests:
+[controlled-routes.test.ts](../../../apps/tablets-server/test/controlled/controlled-routes.test.ts).
+
 ## ts-integrations: integration health and the adapters
 
 [features/integrations](../../../apps/tablets-server/src/features/integrations/) (contract

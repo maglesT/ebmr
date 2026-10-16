@@ -376,6 +376,14 @@ slice ends demonstrable, with green CI, its quick review, its handbook pages and
   - **D-P6e-3** The register export layout is generic (material, lot, date, movement, quantity, persons) until the
     statutory forms are verified.
 - **Migrations:** site-services 0970 to 0979, recipe-core 1030 to 1049, tablets 1250 to 1259.
+- **Built (16 October, branch `phase-6/slice-6e`):** interfaces and defaults D-P6e-1 to D-P6e-10 in
+  [slice-6e-0-interfaces.md](slice-6e-0-interfaces.md). Migrations recipe-core 1030 to 1035, site services 0970, tablets
+  1250 and 1280. Quick review: no critical or high; one core medium fixed with a test (a batch could complete after its
+  last controlled checkpoint: recipe-core 1035, EBMR-CSM-043). Residuals: (a) the dual-custody prompt is on the controlled
+  page, not inside the floor's TB-01 step screen; (b) the stage sign-off and batch-end guards are proven with rows the
+  superuser writes into the store (the guard fires first), not yet with a full engine run of a flagged product (GB/E2E
+  in 6j); (c) a RETURN moves the quantity back in the account only, the lot register's stock is corrected by the stores'
+  return path (D-P6e-7); (d) an aborted or cancelled batch is not held for its account (recorded afterwards).
 - **Handbook:** `modules/recipe-core.md`, `modules/site-services.md`, `modules/tablets-web.md`, `modules/tools.md`
   (adding a control to the register), `02-glossary.md` (NDPS, dual custody), `08-defect-log.md`.
 
@@ -635,7 +643,7 @@ follow if a language is added after v1.
 | site-services (0903) | 0910-0939 | 0940-0949 | 0950-0959 | 0960-0969 | 0970-0979 | none | none | none | 0980-0999 | none |
 | recipe-core (0932) | 0940-0959 | 0960-0989 | 0990-1009 | 1010-1029 | 1030-1049 | 1050-1069 | 1070-1079 | 1080-1089 | 1090-1099 | 1100-1109 |
 | tablets (1209) | 1229, 1259 (taken by 6a: signing meanings that must run in that order) | 1210-1228 | 1230-1249 | none | 1250-1258 | none | none | none | none | 1260-1269 |
-| tablets, added | | | | | | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
+| tablets, added | | | | | 6e: tablets 1280-1289 (after 6f's 1276, which re-creates `tab.record_read_problem`; D-P6e-10) | 6f: tablets 1270-1279 (A 1270-1274, B 1275-1279) | | | | |
 
 Each new file carries its `-- Handbook:` line. New permissions and meanings go in the builder's range. Never edit a
 released migration; replace a function in a new one.

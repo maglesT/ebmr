@@ -1719,6 +1719,53 @@ Phase 6 slice 6f, builder B.
   [pqr-extract.test.ts](../../../packages/recipe-core/test/release/pqr-extract.test.ts) recomputes the values in TypeScript
   from the stored records.
 
+## Controlled-substance mode (recipe-core 1030 to 1035)
+
+Phase 6 slice 6e; draft control [IN-53](../../../compliance/controls/IN-53.yaml), status U (the NDPS Act and Rules are
+not verified); interfaces and defaults D-P6e-1 to 10 in
+[slice-6e-0-interfaces.md](../../build-plan/phase-6/slice-6e-0-interfaces.md).
+
+**Pharma context.** A product that contains a narcotic or psychotropic substance is made under an exact stock account
+of that substance: it is moved and dispensed under dual custody, every difference is explained, rejects are destroyed
+under witness, and the quantities go into statutory registers. The control paraphrases outline decision 14; the forms
+of the registers are not verified, so the export layout is generic.
+
+- [1030](../../../packages/recipe-core/sql/1030_controlled_substance_catalogue.sql): permissions CONTROLLED.RECORD,
+  .APPROVE, .CUSTODY, .BALANCE, .REGISTER; meanings CONTROLLED_PRODUCT_APPROVED, CONTROLLED_CUSTODY_RECORDED,
+  CONTROLLED_CUSTODY_COUNTERSIGNED (witness class, never the proposer; not a kernel witness-window meaning, as
+  DESTRUCTION_WITNESSED), CONTROLLED_BALANCE_SIGNED; IN-53 in `recipe.engine_name`.
+- [1031](../../../packages/recipe-core/sql/1031_controlled_product_flag.sql): `plant.controlled_product`, a
+  configuration area (CONTROLLED_PRODUCT, kernel 1195: a change record in the command), approved by a second QA person
+  (`plant.approve_controlled_product`). `plant.controlled_materials(product)` is fail-safe like the hazard class: a
+  pending flag counts at once, a pending unflagging only once approved; `'{}'` for an unflagged product.
+- [1032](../../../packages/recipe-core/sql/1032_controlled_custody.sql): `recipe.controlled_custody` (DISPENSE,
+  TRANSFER, RETURN, DESTRUCTION) with its two signatures; the guard `zzc_controlled_dual_custody` on
+  `site.lot_consumption` refuses a consumption of a controlled material without a CONFIRMED DISPENSE record of the same
+  lot, batch and exact quantity, one of whose custodians is the dispenser (EBMR-CSM-020), and records the use once.
+- [1033](../../../packages/recipe-core/sql/1033_controlled_checkpoint.sql): `recipe.controlled_balance`, the checkpoint
+  (dispensed = consumed + in process + returned + destroyed + difference, exact decimals, D-P6e-1) and the guard
+  `a1_controlled_checkpoint` before insert on `recipe.execution_command`: an accepted SIGN_OFF_STAGE of a batch with a
+  controlled movement needs a signed, current checkpoint for that stage (EBMR-CSM-042). A difference other than zero is
+  recorded only with an explanation and a deviation linked to the batch (EBMR-CSM-035, -036).
+- [1034](../../../packages/recipe-core/sql/1034_controlled_register.sql): `recipe.controlled_register_v1` and the stored
+  extract with its SHA-256; `recipe.controlled_register_reproduces` re-runs it (as the PQR extract).
+- [1035](../../../packages/recipe-core/sql/1035_controlled_batch_end.sql): the move to EXECUTION_COMPLETE needs every
+  moved controlled material's account signed and current (EBMR-CSM-043; review P6e-R1).
+
+> **Why this exists**
+> - **Pharma reason:** a controlled substance unaccounted for, or handled by one person alone, is a diversion risk and a
+>   breach of the stock-account duty.
+> - **Control:** [IN-53](../../../compliance/controls/IN-53.yaml) (draft).
+> - **Code:** the guards above; the WMS side is site services 0970.
+> - **Tests:** [controlled.test.ts](../../../packages/site-services/test/controlled/controlled.test.ts) (kept with the site
+>   tests because it needs real lots and consumptions).
+> - **Error:** `EBMR-CSM-001` to `EBMR-CSM-059`.
+
+**Pitfalls.** The stage key of a checkpoint is the frame key the sign-off names (`<stage>@<context>`); a checkpoint
+recorded under another key does not close the stage. A return or destruction confirmed after a checkpoint moves the
+account: the checkpoint stops being current and the next sign-off (or the batch's completion) is refused until it is
+recorded and signed again.
+
 ## How to test recipe-core
 
 - Everything in the package: `pnpm vitest run --project db packages/recipe-core/test` (long; on a 4-CPU pod run only

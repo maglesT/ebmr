@@ -192,7 +192,7 @@ already in `/opt/pw-browsers`. `pnpm e2e` is a shortcut with the same lock.
 
 ### Register and trace: control IDs in test names
 
-The **control register** is data: one YAML file per control in [compliance/controls/](../../compliance/controls/) (241
+The **control register** is data: one YAML file per control in [compliance/controls/](../../compliance/controls/) (242
 controls: DI, PR, IN, ST families). [compliance/phase.yaml](../../compliance/phase.yaml) says the current phase (4) and
 the editions the gate covers (tablets). A control is **due** when its `target_phase` is at or before the current phase.
 The tooling ([tools/register](../../tools/register/src/)) ties tests to controls:

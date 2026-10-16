@@ -880,6 +880,17 @@ statement through the local signing bridge ([access/dsc-bridge.ts](../../../apps
 the loopback endpoint) before the sign request; the ui-kit SignatureDialog shows the DSC step and the banner. Tests:
 [governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx).
 
+## Controlled substances (feature `controlled`, Phase 6 slice 6e)
+
+[features/controlled](../../../apps/tablets-web/src/features/controlled/) (draft IN-53): `/controlled` shows the product
+flags (QA records under a change record; a second QA person approves), dual custody (propose, then the first custodian's
+and the second custodian's signatures; the dispensing form prompts that the record covers the lot, batch and exact net
+and is countersigned before weighing) and the register export (opened, it says whether it still reproduces);
+`/controlled/batches/$batchId` is the balance panel at the yield steps (the server's figures and difference, an explained
+difference with its deviation, record and sign the checkpoint). Every screen shows the draft banner
+(`CONTROLLED_DRAFT_BANNER`). The prompt is on this page, not yet inside the floor's TB-01 step (residual). Tests:
+[controlled.test.tsx](../../../apps/tablets-web/test/controlled/controlled.test.tsx).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.
