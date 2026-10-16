@@ -40,11 +40,15 @@ import {
   type ScaleReading,
 } from '@ebmr/integration-sdk/scale';
 import { systemClock, type GatewayClock } from './clock.ts';
-import type { DeviceConfig, GatewayConfig } from './config.ts';
+import type { DeviceConfig, GatewayConfig, OpcuaEndpointConfig } from './config.ts';
+import type { EquipmentKind } from '@ebmr/integration-sdk/process';
 import { MtSicsDriver, type CommandResult } from './drivers/mt-sics.ts';
 import { Journal } from './journal.ts';
 import { PrinterGateway } from './printer-uplink.ts';
 import { ProcessGateway } from './process-uplink.ts';
+import { OpcuaDriver, type OpcuaDriverAlarm, type OpcuaTransport, type OpcuaUnit } from './drivers/opcua.ts';
+import { NodeOpcuaTransport } from './drivers/opcua-node.ts';
+import { OpcuaFeed } from './opcua-feed.ts';
 import { Uplink, newApiToken } from './uplink.ts';
 
 /**
@@ -57,7 +61,7 @@ export const CAPTURE_ACK_WAIT_MS = 5000;
 
 export interface GatewayAlarmRecord {
   atUs: string;
-  source: 'driver' | 'journal' | 'uplink' | 'capture' | 'process' | 'printer';
+  source: 'driver' | 'journal' | 'uplink' | 'capture' | 'process' | 'printer' | 'opcua';
   kind: string;
   deviceCode: string | null;
   message: string;
@@ -71,6 +75,8 @@ export interface GatewayOptions {
   driver?: { commandTimeoutMs?: number; backoffInitialMs?: number; backoffMaxMs?: number; connectTimeoutMs?: number };
   /** Do not start the uplink loops (tests drive login and flush themselves). */
   manualUplink?: boolean;
+  /** Slice 6b: the OPC UA transport per endpoint (tests; default node-opcua). */
+  opcuaTransport?: (e: OpcuaEndpointConfig) => OpcuaTransport;
 }
 
 interface Instrument {
@@ -92,6 +98,11 @@ export class SiteGateway {
   process: ProcessGateway | null = null;
   /** The line printers, when configured (Phase 3 slice 4a). */
   printer: PrinterGateway | null = null;
+  /** The OPC UA endpoints' drivers and their feed, when configured (Phase 6 slice 6b). */
+  readonly opcuaDrivers = new Map<string, OpcuaDriver>();
+  opcuaFeed: OpcuaFeed | null = null;
+  /** A test's transport per endpoint (default node-opcua). */
+  opcuaTransport: ((e: OpcuaEndpointConfig) => OpcuaTransport) | null = null;
   private readonly live = new Map<string, { listeners: Set<LiveListener>; timer: NodeJS.Timeout; busy: boolean }>();
   private installationMismatch = false;
   private readonly log: (message: string) => void;
@@ -151,7 +162,9 @@ export class SiteGateway {
       }),
     });
     for (const i of g.instruments.values()) i.driver.start();
-    if (config.processDevices.length > 0) {
+    g.opcuaTransport = options.opcuaTransport ?? null;
+    const units = g.startOpcua();
+    if (config.processDevices.length > 0 || units.length > 0) {
       // Presses and coaters (Phase 3 slice 3a): their own journal and uplink, under this gateway's session.
       g.process = await ProcessGateway.start({
         uplink: config.uplink,
@@ -167,8 +180,10 @@ export class SiteGateway {
         onAlarm: (a) => g.alarm('process', a.kind, a.deviceCode, a.message, a.details),
         onDriverAlarm: (a) => g.alarm('driver', a.kind, a.deviceCode, a.message, a.details),
         log: g.log,
+        units,
       });
     }
+    if (g.opcuaFeed) await g.opcuaFeed.serve(config.opcuaFeedListen.host, config.opcuaFeedListen.port);
     if (config.printers.length > 0) {
       // Line printers (Phase 3 slice 4a): their own journal and uplink, under this gateway's session.
       g.printer = await PrinterGateway.start({
@@ -191,9 +206,39 @@ export class SiteGateway {
     return g;
   }
 
+  /**
+   * Slice 6b (builder A): the OPC UA drivers of the configured endpoints and their feed (./opcua-feed.ts); returns the
+   * units the process path reads through them. Their transport is node-opcua unless a test gives one.
+   */
+  private startOpcua(): { config: { code: string; equipment: EquipmentKind; expectedSerial: string }; driver: OpcuaUnit }[] {
+    const endpoints = this.config.opcuaEndpoints;
+    if (endpoints.length === 0) return [];
+    const feed = OpcuaFeed.open({ dir: join(this.config.journalDir, 'opcua'), gatewayCode: this.config.gatewayCode, clock: this.clock, onAlarm: (a) => this.alarm('opcua', a.kind, null, a.message, a.details) });
+    this.opcuaFeed = feed;
+    const out: { config: { code: string; equipment: EquipmentKind; expectedSerial: string }; driver: OpcuaUnit }[] = [];
+    for (const e of endpoints) {
+      const transport = this.opcuaTransport?.(e) ?? new NodeOpcuaTransport({ pkiDir: this.config.opcuaPkiDir, units: e.units.map((u) => u.equipmentCode) });
+      const driver = new OpcuaDriver({
+        code: e.code, endpoint: e.endpoint, equipment: Object.fromEntries(e.units.map((u) => [u.equipmentCode, u.equipment])), transport, clock: this.clock,
+        sink: feed.sink(), nextChunkNo: (unit, tag) => feed.nextChunkNo(unit, tag), gapAfterMs: this.config.opcuaGapAfterMs,
+      });
+      driver.on('alarm', (a: OpcuaDriverAlarm) => this.alarm('opcua', a.kind, a.endpointCode, a.message, a.details));
+      driver.on('state', (s: string) => {
+        this.log(`${e.code}: ${s}`);
+        for (const u of e.units) this.process?.connectionChanged(u.code);
+      });
+      this.opcuaDrivers.set(e.code, driver);
+      for (const u of e.units) out.push({ config: { code: u.code, equipment: u.equipment, expectedSerial: u.equipmentCode }, driver: driver.unit(u.equipmentCode) });
+      driver.start();
+    }
+    return out;
+  }
+
   async stop(): Promise<void> {
     for (const l of this.live.values()) clearInterval(l.timer);
     this.live.clear();
+    for (const d of this.opcuaDrivers.values()) await d.stop();
+    await this.opcuaFeed?.close();
     await this.process?.stop();
     await this.printer?.stop();
     await this.uplink.stop();
