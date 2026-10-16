@@ -318,6 +318,8 @@ tests:
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS feed gap alarms"
   - "apps/tablets-server/test/integrations/ems/ems-adapter.test.ts > the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS: the soak with every fault in turn reconciles (no silent loss)"
   - "apps/tablets-server/test/execution/gmp-batch.test.ts > a product-limited qualification requirement applies to batches of that product only (6jc-R16) > [DI-31][IN-04][INV-26] a requirement limited to this batch's product, held only from a stale LMS mirror, is still refused (STALE_QUALIFICATION_SOURCE)"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [PR-42][PR-39][DI-31] serialises the US cartons through the L3/L4 system: the worksheet's pool, commissioning, destruction, specimens and aggregations, the L3 report closing the step; a stale L3 mirror refuses the US release item and a synchronisation clears it"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-31][DI-20] the ERP/WMS, LMS, CMMS and L3 adapters landed every message of the scenario with nothing refused or alarmed, and each mirror is fresh at the end"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

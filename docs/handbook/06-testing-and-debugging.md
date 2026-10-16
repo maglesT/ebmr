@@ -38,7 +38,7 @@ again at the layer the user meets.
 ```mermaid
 flowchart TB
   E2E["Browser suite (Playwright, tools/e2e)\nreal server, real browser, demo personas"]
-  GOLD["Golden batches GB-T-01, GB-T-02\nwhole batches over HTTP, database under libfaketime"]
+  GOLD["Golden batches GB-T-01, GB-T-02, GB-T-03\nwhole batches over HTTP, database under the golden clock"]
   SRV["server project: apps/tablets-server/test\nroutes through app.inject + database guards as the app role"]
   DOM["dom project: ui-kit and tablets-web components\nhappy-dom, no database"]
   DB["db project: packages/*, tools/*, gateway, simulators\nSQL guards, kernel, recipe-core, site-services"]
@@ -126,21 +126,25 @@ NOT SAVED until the server answers for its idempotency key
 
 ### Golden batches
 
-A **golden batch** is a complete batch run end to end whose every output is known in advance. Two exist:
+A **golden batch** is a complete batch run end to end whose every output is known in advance. Three exist:
 
 - **GB-T-01**: wet granulation, blisters, India. A happy variant and an exception-rich variant, then the release of
   two blister orders. [gb-t-01/README.md](../../apps/tablets-server/test/golden/gb-t-01/README.md).
 - **GB-T-02**: direct compression, bottles, US added after vendor history INELIGIBLE.
   [gb-t-02/README.md](../../apps/tablets-server/test/golden/gb-t-02/README.md).
+- **GB-T-03 "connected"**: GB-T-02's product at a site whose ERP/WMS, LMS, CMMS and serialisation L3/L4 systems feed
+  the eBMR as mirrors, with an OPC UA press behind the site gateway; serialised for the US, released for India and the
+  US, then a mock recall from its API lot. The simulators and the gateway run as their own processes.
+  [gb-t-03/README.md](../../apps/tablets-server/test/golden/gb-t-03/README.md).
 
 The driver acts over HTTP as the seeded personas. Each batch's outputs must equal `expected.json` exactly: the
 quantities and yields of a hand-made worksheet (never changed to make a run pass), and the states, exceptions,
 genealogy, signature count and the SHA-256 of the normalised **true copy** (the exported batch record) from the first
 reviewed run.
 
-A batch takes many hours of process time (blending, drying, holds). The golden PostgreSQL runs under **libfaketime**, so
-the test moves the database's clock instead of waiting
-([Database reference, libfaketime](05-database.md#libfaketime-for-the-golden-batches)). GB-T-01 freezes the clock and
+A batch takes many hours of process time (blending, drying, holds). The golden PostgreSQL runs under the **golden clock
+library**, so the test moves the database's clock instead of waiting
+([Database reference, golden clock](05-database.md#the-golden-clock-for-the-golden-batches)). GB-T-01 freezes the clock and
 ticks one second before each act, so every run gives the same times and the same hash. Without `EBMR_FAKETIME_FILE`
 the golden tests do not run (`describe.runIf(goldenClockAvailable)`), so the ordinary suite skips them.
 
@@ -149,10 +153,12 @@ Run them on the `golden` cluster, one file at a time:
 ```bash
 EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5435/postgres \
 EBMR_FAKETIME_FILE=/var/lib/postgresql/faketime-golden/offset \
+EBMR_GOLDEN_CLOCK_LIB=/usr/local/lib/ebmr/golden-clock.so \
 pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism
 ```
 
-GB-T-01 takes about 20 minutes. Useful variables: `EBMR_GOLDEN_DUMP=<file>` writes the run's outputs for review;
+GB-T-03 runs only with `EBMR_GOLDEN_CLOCK_LIB` (the library its simulators and the gateway preload). GB-T-01 takes
+about 15 to 20 minutes, GB-T-02 about 4, GB-T-03 about 6. Useful variables: `EBMR_GOLDEN_DUMP=<file>` writes the run's outputs for review;
 `EBMR_GOLDEN_LATER_DAYS=<n>` starts the clock n days later, to show the hashes do not depend on the day (keep n under
 about 45: the personas' passwords age out after 90 days, DI-19).
 
@@ -248,7 +254,7 @@ not edit files while CI runs locally: it reads them at different moments, and a 
 |---|---|---|
 | `checks` | typecheck, lint, `deps:check`, `pins:check`, `register:validate`, web build | 20 min |
 | `tests` (4 shards) | `pnpm vitest run --shard=i/4` with blob reports, each shard with its own PostgreSQL 16 on 5432. The suite took 55 minutes on one 2-core runner at the end of Phase 2, so it was split. | 45 min |
-| `golden` | a PostgreSQL 16 cluster under libfaketime on 5433; `pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism` with a JSON report | 45 min |
+| `golden` | a PostgreSQL 16 cluster under the golden clock library (built in the job) on 5433; `pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism` with a JSON report | 45 min |
 | `report` | needs `checks`, `tests`, `golden`. Merges the shard blobs into `.reports/vitest.json`, prints a failed-test summary, then `pnpm trace --require-golden` and `pnpm openapi`. Runs even when a shard failed, so you see the summary. | |
 | `e2e` | Playwright in Chromium (`pnpm --filter @ebmr/e2e test`); uploads reports, evidence and traces | 45 min |
 | `traceability` | needs `checks`, `report`, `e2e`. `pnpm trace:e2e`: the trace with the Vitest, golden and Playwright reports all required | |

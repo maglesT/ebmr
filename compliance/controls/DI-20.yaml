@@ -224,6 +224,8 @@ tests:
   - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-20] a changed certificate, an insecure session, another URL, a blocked or retired endpoint and an unserved unit are refused; data follow the verdict"
   - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-20] equipment events and OPC UA alarms of a unit without a valid session are refused as well"
   - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-20] enrolment: the registry permission, an instrument in a plant room or line, units installed there and served once; the tables refuse direct writes"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-31][DI-20] the ERP/WMS, LMS, CMMS and L3 adapters landed every message of the scenario with nothing refused or alarmed, and each mirror is fresh at the end"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-20][DI-32][DI-49] the OPC UA press reports its enrolled endpoint's session and native series of the compression through the site gateway, and its reject-burst alarm is acknowledged with a comment in the batch's alarm log"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

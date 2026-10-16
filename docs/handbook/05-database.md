@@ -553,13 +553,21 @@ GMP times come from the database clock, never from the application or the browse
 - **Site time.** Entries store UTC plus the site's zone (policy `site.zone`). "Today" is computed in the site's zone,
   not in a zone the client names ([defect log, P1-F27](08-defect-log.md#p1-f27-today-taken-in-a-zone-the-client-named)).
 
-### libfaketime for the golden batches
+### The golden clock for the golden batches
 
-The golden batches GB-T-01 and GB-T-02 run a whole batch, many hours of process time, in minutes. Their PostgreSQL runs
-under **libfaketime**, a library preloaded into the server process that changes what the operating system tells it the
-time is. The test writes the time into a file (`FAKETIME_TIMESTAMP_FILE`, read again on every call because
-`FAKETIME_NO_CACHE=1`); the database reads the faked time through `clock_timestamp()` as usual. Nothing in the GMP code
-knows about a test clock.
+The golden batches GB-T-01, GB-T-02 and GB-T-03 run a whole batch, many hours of process time, in minutes. Their
+PostgreSQL runs under the **golden clock library**
+([tools/dev-env/golden-clock](../../tools/dev-env/golden-clock/golden-clock.c)), a library preloaded into the server
+process that changes what the operating system tells it the wall-clock time is (monotonic clocks are left alone). The
+test writes the time into a file (`FAKETIME_TIMESTAMP_FILE`, read again on every call); the database reads the faked
+time through `clock_timestamp()` as usual. Nothing in the GMP code knows about a test clock.
+
+It replaced libfaketime in Phase 6 slice 6j-b. libfaketime read its file with `fopen` inside every time call, and
+PostgreSQL asks for the time inside its timeout signal handler: a signal landing while the backend was inside `malloc`
+corrupted the heap, the backend aborted and every connection was reset (INTERNAL stops in golden runs). The golden
+clock reads the file with `open`, `pread` and `close` only and allocates nothing, so it is safe inside a signal handler.
+While the clock stands still, PostgreSQL's own timeouts (the device pools' statement timeout, the deadlock check) do not
+come due; no golden expectation depends on them.
 
 - The file holds either an offset (`+<seconds>s`) or a frozen instant (`YYYY-MM-DD HH:MM:SS`, UTC). GB-T-01 freezes the
   clock and ticks one second before each act, so every run produces the same times and the same true-copy hash.
@@ -567,7 +575,9 @@ knows about a test clock.
   ([freezeAt](../../apps/tablets-server/test/golden/clock.ts#sym=freezeAt),
   [advanceSeconds](../../apps/tablets-server/test/golden/clock.ts#sym=advanceSeconds)).
 - It runs on its own cluster (`golden`, port 5435 on a development pod; in CI the golden job's own cluster on 5433),
-  because libfaketime applies to the whole server process.
+  because the library applies to the whole server process. CI's golden job and the setup script build it with
+  [build.sh](../../tools/dev-env/golden-clock/build.sh) (a C compiler only) and preload it through the cluster's
+  `environment` file.
 
 How to run them is in [Testing and debugging](06-testing-and-debugging.md#golden-batches).
 
@@ -600,7 +610,7 @@ Variables:
 | `EBMR_MIGRATIONS` | regular expression limiting which kernel, site-services and recipe-core files the `db` template gets, for example `^0(0|1)` while developing one module. The full suite always applies everything. |
 | `EBMR_TEMPLATE_DB` | use an already migrated template instead of building one (the SQL mutation harness sets it) |
 | `EBMR_SERVER_TEMPLATES` | JSON file naming prepared GMP and sandbox templates for the `server` project (the SQL mutation harness sets it) |
-| `EBMR_FAKETIME_FILE` | the libfaketime file; without it the golden tests do not run |
+| `EBMR_FAKETIME_FILE` | the golden clock file; without it the golden tests do not run |
 
 Pools in test-kit are opened with `openPool` and ended with `endPool`, which waits until every socket has closed.
 `pg-pool`'s own `end()` returns earlier, and a forced drop right after it killed backends still closing (FATAL 57P01;
@@ -620,7 +630,7 @@ created by [tools/dev-env/runpod-setup.sh](../../tools/dev-env/runpod-setup.sh):
 | `main` | 5432 | default `EBMR_PG_ADMIN_URL`; everyday tests, the demo databases |
 | `ci` | 5433 | spare, for a second test run or a mutation run in parallel |
 | `ci2` | 5434 | spare, as above |
-| `golden` | 5435 | runs under libfaketime, for the golden batches only |
+| `golden` | 5435 | runs under the golden clock library, for the golden batches only |
 
 Point any test or tool at another cluster with
 `EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5433/postgres`. Check what is up with `pg_lsclusters`;

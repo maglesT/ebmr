@@ -72,28 +72,34 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
-  # The golden batches (Phase 3 slice 6c, D-S6-6): their PostgreSQL runs under libfaketime on its own cluster, so a
+  # The golden batches (Phase 3 slice 6c, D-S6-6): their PostgreSQL runs under a faked clock on its own cluster, so a
   # batch of many hours runs in minutes; the test moves the offset file forward only, and nothing in the GMP code reads
-  # a test clock. The other jobs never preload libfaketime; their golden tests do not run (runIf EBMR_FAKETIME_FILE).
+  # a test clock. The other jobs never preload the clock library; their golden tests do not run (runIf EBMR_FAKETIME_FILE).
   golden:
-    name: Golden batches (libfaketime cluster)
+    name: Golden batches (golden clock cluster)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8.
+    timeout-minutes: 60
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5433/postgres
       EBMR_FAKETIME_FILE: /var/lib/postgresql/faketime-golden/offset
+      # GB-T-03 (slice 6j-b) starts its simulators and the site gateway under the same clock library (connected.ts).
+      EBMR_GOLDEN_CLOCK_LIB: /usr/local/lib/ebmr/golden-clock.so
     steps:
       - uses: actions/checkout@v4
-      - name: Start a PostgreSQL 16 cluster under libfaketime
+      # The golden clock library (tools/dev-env/golden-clock, slice 6j-b) in place of libfaketime, which reads its file
+      # with fopen inside time calls PostgreSQL makes from its SIGALRM handler and so corrupted backends' heaps.
+      - name: Start a PostgreSQL 16 cluster under the golden clock library
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q faketime
+          sudo install -d -m 0755 /usr/local/lib/ebmr
+          bash tools/dev-env/golden-clock/build.sh "$RUNNER_TEMP/golden-clock.so"
+          sudo install -m 0755 "$RUNNER_TEMP/golden-clock.so" /usr/local/lib/ebmr/golden-clock.so
           sudo pg_createcluster 16 golden --port 5433 --locale C.UTF-8
           sudo install -d -m 0777 /var/lib/postgresql/faketime-golden
           echo '+0s' | sudo tee "$EBMR_FAKETIME_FILE" > /dev/null
           sudo chmod 0666 "$EBMR_FAKETIME_FILE"
-          printf "LD_PRELOAD = '%s'\nFAKETIME_TIMESTAMP_FILE = '%s'\nFAKETIME_NO_CACHE = '1'\nDONT_FAKE_MONOTONIC = '1'\n" \
-            "$(ls /usr/lib/x86_64-linux-gnu/faketime/libfaketimeMT.so.1)" "$EBMR_FAKETIME_FILE" | sudo tee -a /etc/postgresql/16/golden/environment
+          printf "LD_PRELOAD = '%s'\nFAKETIME_TIMESTAMP_FILE = '%s'\n" \
+            /usr/local/lib/ebmr/golden-clock.so "$EBMR_FAKETIME_FILE" | sudo tee -a /etc/postgresql/16/golden/environment
           sudo pg_ctlcluster 16 golden start
           until pg_isready -h localhost -p 5433; do sleep 1; done
           sudo -u postgres psql -p 5433 -v ON_ERROR_STOP=1 -c "create role ebmr_dev superuser login password 'ebmr_dev'"
@@ -104,7 +110,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # One file at a time: the clock file is shared, and GB-T-01 (slice 6d) freezes it while the clock test reads it as
-      # an offset. GB-T-01 runs about 20 minutes.
+      # an offset.
       - run: pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism --reporter=default --reporter=json --outputFile.json=.reports/vitest-golden.json
       # The golden results are read by the trace beside the shards' report (tools/register cli --golden), so a clause
       # proven only by a golden batch counts (Phase 4 slice 7: GB-T-01 continued to release proves IN-16 and PR-22).

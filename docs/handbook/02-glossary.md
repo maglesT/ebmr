@@ -216,7 +216,8 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 - **GMP** — Good Manufacturing Practice. See the [primer](01-pharma-primer.md). A "GMP installation" is a real one
   (`InstallationKind` `GMP`); a *sandbox* is the other kind.
 - **Golden batch** — a fully scripted demo batch whose expected quantities were computed by hand before the first run,
-  then run end to end in tests. GB-T-01 and GB-T-02. Where: `apps/tablets-server/test/golden/`.
+  then run end to end in tests. GB-T-01, GB-T-02 and GB-T-03 (the connected site). Where:
+  `apps/tablets-server/test/golden/`.
 - **Governing market** — the market whose rule decided a resolved value. Stored with each rule evaluation (INV-29).
 - **Granulation** — making powder into grains. Wet granulation adds a liquid binder; dry granulation compacts powder.
 - **G-xx, G-REL** — see *generic blocks and gates* at the end. G-REL is the release gate.

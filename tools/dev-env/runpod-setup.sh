@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sets up a fresh RunPod container (Ubuntu 22.04, root, no systemd) for this repository:
 # Node 22 and pnpm (the version in package.json), PostgreSQL 16 with the clusters the local-ci skill uses,
-# libfaketime and a golden cluster under it, and Playwright's Chromium in /opt/pw-browsers.
+# the golden clock library and a golden cluster preloading it, and Playwright's Chromium in /opt/pw-browsers.
 #
 # The container disk is erased when the pod stops: run this after every pod start, then commit and push often.
 # Safe to run again: every step checks what is already there.
@@ -23,9 +23,10 @@
 #   ci3    5436  spare; the fourth shard of the sharded run
 # main, ci, ci2 and ci3 run with fsync, synchronous_commit and full_page_writes off (test databases only; see
 # tune_test_cluster); golden keeps the defaults.
-#   golden 5435  under libfaketime (as the CI golden job, which uses 5433 on its own runner)
+#   golden 5435  under the golden clock library (as the CI golden job, which uses 5433 on its own runner)
 #     EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5435/postgres \
 #     EBMR_FAKETIME_FILE=/var/lib/postgresql/faketime-golden/offset \
+#     EBMR_GOLDEN_CLOCK_LIB=/usr/local/lib/ebmr/golden-clock.so \
 #     pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism
 set -euo pipefail
 
@@ -133,7 +134,7 @@ do_setup() {
   log "Base packages"
   $SUDO apt-get update -q
   $SUDO apt-get install -y -q --no-install-recommends \
-    ca-certificates curl gnupg lsb-release sudo git locales faketime util-linux >/dev/null
+    ca-certificates curl gnupg lsb-release sudo git locales gcc libc6-dev util-linux >/dev/null
   $SUDO locale-gen C.UTF-8 en_US.UTF-8 >/dev/null 2>&1 || true
 
   log "Node ${NODE_MAJOR}"
@@ -169,18 +170,28 @@ do_setup() {
     for d in posix right; do [ -d "/usr/share/zoneinfo/$d" ] && $SUDO mv "/usr/share/zoneinfo/$d" /usr/share/zoneinfo-legacy/; done
   fi
 
-  log "Golden cluster environment (libfaketime)"
+  # The golden clock library (tools/dev-env/golden-clock, slice 6j-b) replaces libfaketime in the golden cluster:
+  # libfaketime reads its file with fopen inside time calls that PostgreSQL makes from its SIGALRM handler, which
+  # corrupted backends' heaps (signal 6 aborts, INTERNAL answers in golden runs).
+  log "Golden cluster environment (golden clock library)"
+  GOLDEN_CLOCK=/usr/local/lib/ebmr/golden-clock.so
+  $SUDO install -d -m 0755 /usr/local/lib/ebmr
+  tmp_so="$(mktemp)"
+  bash "$(dirname "$0")/golden-clock/build.sh" "$tmp_so"
+  $SUDO install -m 0755 "$tmp_so" "$GOLDEN_CLOCK"
+  rm -f "$tmp_so"
   $SUDO install -d -m 0777 "$FAKETIME_DIR"
   [ -f "$FAKETIME_DIR/offset" ] || echo '+0s' | $SUDO tee "$FAKETIME_DIR/offset" >/dev/null
   $SUDO chmod 0666 "$FAKETIME_DIR/offset"
   if ! pg_lsclusters -h | awk '{print $2}' | grep -qx golden; then
     $SUDO pg_createcluster "$PG" golden --port 5435 --locale C.UTF-8 >/dev/null
   fi
-  # Checked on every run, so a first run stopped half-way is repaired (and the running cluster restarted to load it).
-  if ! grep -q '^LD_PRELOAD' "/etc/postgresql/${PG}/golden/environment"; then
-    printf "LD_PRELOAD = '%s'\nFAKETIME_TIMESTAMP_FILE = '%s'\nFAKETIME_NO_CACHE = '1'\nDONT_FAKE_MONOTONIC = '1'\n" \
-      "$(ls /usr/lib/"$(uname -m)"-linux-gnu/faketime/libfaketimeMT.so.1)" "$FAKETIME_DIR/offset" \
-      | $SUDO tee -a "/etc/postgresql/${PG}/golden/environment" >/dev/null
+  # Checked on every run, so a first run stopped half-way (or a cluster still preloading libfaketime) is repaired, and
+  # the running cluster restarted to load it.
+  genv="/etc/postgresql/${PG}/golden/environment"
+  if ! grep -qx "LD_PRELOAD = '$GOLDEN_CLOCK'" "$genv"; then
+    $SUDO sed -i -e '/^LD_PRELOAD/d' -e '/^FAKETIME_/d' -e '/^DONT_FAKE_MONOTONIC/d' "$genv"
+    printf "LD_PRELOAD = '%s'\nFAKETIME_TIMESTAMP_FILE = '%s'\n" "$GOLDEN_CLOCK" "$FAKETIME_DIR/offset" | $SUDO tee -a "$genv" >/dev/null
     if pg_lsclusters -h | awk '$2=="golden" {print $4}' | grep -qx online; then $SUDO pg_ctlcluster "$PG" golden restart; fi
   fi
 
