@@ -296,6 +296,7 @@ tests:
   - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-31] a package the database refuses is shown with its reason; nothing was taken in"
   - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-31] QA approves a proposed installation key through the ceremony; the stores are not offered it"
   - "packages/api-contract/test/contract.test.ts > route table > [DI-31][DI-39] the transfers and federation namespaces (Phase 6 slice 6i) are GMP only, each route with an example; stores and alarm acts are FRESH_ON_SHARED; the site-to-site endpoint needs no session and is read-only; TRANSFER_RECEIPT_DECIDE needs a reason to refuse"
+  - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

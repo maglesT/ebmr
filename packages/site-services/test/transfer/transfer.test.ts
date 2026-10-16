@@ -343,3 +343,38 @@ describe('the mock recall across sites (recipe-core 1091; IN-29)', () => {
     expect(await refusal(pune.run(pune.qa, "select recipe.record_mock_recall_remote($1, $2, 'UNREACHABLE', null, 'too late') as r", [id, first.packageId]))).toMatch(/EBMR-RCL-020/);
   }, 120_000);
 });
+
+describe('review 6i: one hop and clock skew (recipe-core 1092)', () => {
+  it('[IN-29] a destination\'s part that reaches a further transfer leaves the mock recall incomplete (one hop, D-P6i-0-7)', async () => {
+    // PUNE ships lot2 to GOA; GOA accepts, releases and ships part of it on (back to PUNE): a second hop.
+    const lot2 = await pune.releasedIntermediate('50');
+    const p = await pune.ship(lot2.id, goa, '20');
+    const r = await goa.receive(p.payload, p.seal);
+    await goa.decide(r.receiptId!, 'ACCEPTED');
+    await goa.locallyTested(r.lotId!);
+    await goa.releaseForFurtherProcessing(r.lotId!);
+    const onward = await goa.ship(r.lotId!, pune, '5');
+    const id = await pune.run<string>(pune.qa, "select recipe.run_mock_recall('LOT', $1, null, false, null) as r", [lot2.id]);
+    const asOf = await pune.scalar<string>('select platform.timestamptz_to_epoch_us(as_of) as v from recipe.mock_recall where id = $1', [id]);
+    const asked = await pune.ask(goa, p.packageId, 'FORWARD', asOf);
+    expect(asked.ok).toBe(true);
+    await pune.run(pune.qa, "select recipe.record_mock_recall_remote($1, $2, 'ANSWERED', $3, null) as r", [id, p.packageId, asked.excerptId]);
+    const f = await pune.scalar<{ complete: boolean; beyond_one_hop: Array<{ transfer_id: string; destination: string }>; transfers: Array<{ status: string }> }>(
+      'select recipe.mock_recall_federation($1) as v', [id]);
+    expect(f.transfers.map((t) => t.status)).toEqual(['ANSWERED']);
+    expect(f.beyond_one_hop).toEqual([expect.objectContaining({ transfer_id: onward.packageId, destination: pune.code })]);
+    expect(f.complete).toBe(false);
+  }, 60_000);
+
+  it('[PR-57] an as-of point a moment ahead of the answering site\'s clock is answered once that instant has passed; one far ahead is refused', async () => {
+    const request = async (aheadMs: bigint) => {
+      const req = JSON.stringify({
+        format: 'ebmr.federation-request.v1', nonce: randomUUID(), from: pune.code, to: goa.code, issuedAtUs: String(BigInt(Date.now()) * 1000n),
+        query: { transferId: first.packageId, direction: 'FORWARD', asOfUs: String((BigInt(Date.now()) + aheadMs) * 1000n) },
+      });
+      return (await goa.db.app.query<{ r: { ok: boolean; reason?: string } }>('select recipe.answer_federated_genealogy($1, $2) as r', [req, sealOf(pune.key, 'federation-request', req)])).rows[0]!.r;
+    };
+    expect(await request(1500n)).toMatchObject({ ok: true });
+    expect((await request(30_000n)).reason).toMatch(/EBMR-FED-012/);
+  });
+});

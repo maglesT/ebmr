@@ -6,8 +6,8 @@
 --
 --   * tab.kernel_signing_meanings: CREATE OR REPLACE from its latest definition (tablets 1280) with TRANSFER_RECEIPT_ACCEPTED
 --     and TRANSFER_RECEIPT_REFUSED on transfer_receipt and PEER_INSTALLATION_APPROVED on peer_installation.
---   * tab.aggregate_read_class: CREATE OR REPLACE from 1280: a transfer receipt and a peer installation are RECORD-class
---     records (QA, who signs both, reads them).
+--   * tab.aggregate_read_class: CREATE OR REPLACE from 1280: a transfer receipt is a RECORD-class record (a peer
+--     installation stays GOVERNANCE).
 -- Slice 6i had no tablets range; it takes 1290 to 1299 (D-P6i-0-1), after slice 6d's 1280 to 1289. The latest definition
 -- on main is 1280; a slice that merges after this one re-creates these functions from this definition (or this one from
 -- theirs) so that no slice's entries are lost. Nothing else changes.
@@ -50,9 +50,8 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
                                         'config_change_record',
                                         -- Phase 6 slice 6d (recipe-core 1012; IN-29): the AP's sign-off of a mock recall
                                         'mock_recall',
-                                        -- Phase 6 slice 6i (site services 0981, kernel 1220; L-41, DI-39, DI-31): local QA's decision
-                                        -- on a received lot, and QA's approval of a peer installation's key (QA signs it, so QA reads it)
-                                        'transfer_receipt', 'peer_installation')
+                                        -- Phase 6 slice 6i (site services 0981; L-41, DI-39): local QA's decision on a received lot
+                                        'transfer_receipt')
               then 'RECORD' else 'GOVERNANCE' end
 $$;
 
@@ -138,7 +137,7 @@ language sql immutable set search_path = pg_catalog, pg_temp as $$
            when 'mock_recall' then array['MOCK_RECALL_SIGNED_OFF']
            -- Phase 6 slice 6i (site services 0981, kernel 1220; L-41, DI-39, DI-31): local QA accepts or refuses a received
            -- lot-transfer package, transfer_receipt <id>, state RECEIVED; QA approves a peer installation's key,
-           -- peer_installation <id>, state PROPOSED.
+           -- peer_installation <id>, state PROPOSED (GOVERNANCE class).
            when 'transfer_receipt' then array['TRANSFER_RECEIPT_ACCEPTED', 'TRANSFER_RECEIPT_REFUSED']
            when 'peer_installation' then array['PEER_INSTALLATION_APPROVED']
            else '{}'::text[]

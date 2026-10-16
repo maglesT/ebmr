@@ -95,7 +95,12 @@ export const MockRecallRemoteView = z.strictObject({
   shipments: z.array(z.strictObject({ shipmentId: Uuid, shipmentNo: z.string().min(1), consigneeCode: z.string().nullable(), market: z.string().nullable() })),
 });
 export type MockRecallRemoteView = z.infer<typeof MockRecallRemoteView>;
-export const MockRecallFederationView = z.strictObject({ complete: z.boolean(), transfers: z.array(MockRecallRemoteView) });
+export const MockRecallFederationView = z.strictObject({
+  complete: z.boolean(),
+  transfers: z.array(MockRecallRemoteView),
+  /** Further transfers the destinations' parts reach (to a third site or back here), not asked: the run is then incomplete (one hop, D-P6i-0-7). */
+  beyondOneHop: z.array(z.strictObject({ transferId: Uuid, packageNo: z.string().min(1), destination: z.string().min(1) })),
+});
 export type MockRecallFederationView = z.infer<typeof MockRecallFederationView>;
 
 export const MockRecallView = MockRecallSummaryView.extend({

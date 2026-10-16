@@ -230,7 +230,12 @@ function Federation({ v }: { v: MockRecallView }) {
         </Banner>
       ) : (
         <Banner tone="error" title="Incomplete: not every destination site answered as of the run's instant">
-          <p data-testid="mock-recall-federation-incomplete">{f.transfers.filter((t) => t.status !== 'ANSWERED').map((t) => `${t.destination} (${words(t.status)})`).join(', ')}</p>
+          <p data-testid="mock-recall-federation-incomplete">
+            {[
+              ...f.transfers.filter((t) => t.status !== 'ANSWERED').map((t) => `${t.destination} (${words(t.status)})`),
+              ...f.beyondOneHop.map((b) => `${b.packageNo} to ${b.destination} (beyond one hop)`),
+            ].join(', ')}
+          </p>
         </Banner>
       )}
       <ul>

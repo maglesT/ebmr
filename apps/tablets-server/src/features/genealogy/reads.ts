@@ -303,6 +303,7 @@ export async function mockRecallView(app: AppContext, db: Db, id: string): Promi
 
 interface FederationRow {
   complete: boolean;
+  beyond_one_hop: { transfer_id: string; package_no: string; destination: string }[];
   transfers: { transfer_id: string; package_no: string; destination: string; depth: number; status: MockRecallFederationView['transfers'][number]['status']; excerpt_id: string | null; excerpt_as_of_us: string | null; detail: string | null }[];
 }
 
@@ -316,6 +317,7 @@ export async function mockRecallFederation(app: AppContext, db: Db, id: string):
   const payloads = new Map((await db.query<{ id: string; payload: string }>('select id::text, payload from recipe.federated_excerpt where id = any ($1::uuid[])', [ids])).rows.map((r) => [r.id, r.payload]));
   return {
     complete: f.complete,
+    beyondOneHop: f.beyond_one_hop.map((b) => ({ transferId: b.transfer_id, packageNo: b.package_no, destination: b.destination })),
     transfers: f.transfers.map((t) => {
       const nodes = t.excerpt_id ? ((JSON.parse(payloads.get(t.excerpt_id) ?? '{"nodes":[]}') as { nodes: NodeRow[] }).nodes) : [];
       return {

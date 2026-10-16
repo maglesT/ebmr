@@ -144,7 +144,6 @@ const edgeView = (r: ExcerptRow): GenealogyEdgeView => ({
 /** The local trace and, for every transfer it reaches, the other site's part (contract genealogy.federatedTrace). */
 export async function federatedTrace(app: AppContext, db: Db, kind: GenealogyNodeKind, id: string, direction: GenealogyDirection, asked: string | undefined): Promise<FederatedTraceView> {
   const local = await trace(app, db, kind, id, direction, asked);
-  const me = (await db.query<{ code: string | null }>('select (platform.current_installation()).installation_code as code')).rows[0]?.code ?? null;
   const transfers = local.nodes.filter((n) => n.kind === 'TRANSFER');
   const remote: FederatedPartView[] = [];
   const beyond = new Map<string, { transferId: string; packageNo: string; peer: string }>();
@@ -153,9 +152,10 @@ export async function federatedTrace(app: AppContext, db: Db, kind: GenealogyNod
     const a = await askPeer(app, db, peer, t.id, direction, local.asOf.us);
     const nodes = (a.excerpt?.nodes ?? []).map(nodeView);
     for (const n of nodes) {
+      // Any further transfer in another site's part (to a third site, or back to this one) is beyond one hop: the result
+      // says so and is incomplete (review 6i-R1; D-P6i-0-7).
       if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => x.id === n.id)) continue;
-      const far = otherEnd(n);
-      if (far !== me) beyond.set(n.id, { transferId: n.id, packageNo: n.label, peer: far });
+      beyond.set(n.id, { transferId: n.id, packageNo: n.label, peer: otherEnd(n) });
     }
     remote.push({
       transferId: t.id,
