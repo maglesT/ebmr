@@ -989,6 +989,38 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
     expect(await state(lot.lotId, 'EU')).toBe('NOT_READY');
   });
 
+  // recipe.verify_qp_transcription#18 (qp-certification): a transcribed certification takes effect at its verification,
+  // so the checks of an EU outcome run again then: a lot whose release was suspended meanwhile is not certified.
+  // recipe.register_qp#13: nobody registers themselves as a qualified person (S14).
+  it('[DI-30][INV-39][DI-39] a transcription verified after the lot\'s release was suspended is refused, and the lot stays uncertified; QA never registers itself as QP', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    let imp = (await db.admin.query<{ m: string | null; c: string | null }>('select (recipe.lot_importer($1)).mia_number as m, (recipe.lot_importer($1)).code as c', [lot.lotId])).rows[0]!;
+    if (!imp.m) {
+      const code = `EUV-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const def = { code, name: `Importer ${code}`, technicalAgreementRef: 'TA-2026-013', miaNumber: 'DE-MIA-2024-413', publicKey: Buffer.alloc(32, 13).toString('base64'), products: [lot.productCode] };
+      const sha = (await db.app.query<{ h: string }>("select encode(sha256(convert_to(recipe.eu_importer_canonical($1::jsonb), 'UTF8')), 'hex') as h", [JSON.stringify(def)])).rows[0]!.h;
+      const sig = await signAs(qaReviewer3, 'eu_importer', `${code}/${sha}`, 'EU_IMPORTER_APPROVED', 'NEW');
+      await w.run(qaReviewer3, (c) => c.query('select recipe.register_eu_importer($1::jsonb, $2)', [JSON.stringify(def), sig]));
+      imp = { m: def.miaNumber, c: code };
+    }
+    expect(await state(lot.lotId, 'EU')).toBe('AWAITING_QP_CERTIFICATION');
+    const at = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+    const f = ['CERTIFIED', 'Dr. Lena Vogel', imp.m, at, 'QP-CERT-2026-1013', null] as const;
+    const sha = (await db.app.query<{ h: string }>('select recipe.qp_details_sha256($1, $2, $3, $4, $5, $6) as h', [...f])).rows[0]!.h;
+    const id = await signed(qaReviewer3, 'qp_transcription', `${lot.lotId}/${sha}`, 'QP_CERTIFICATION_RECORDED', 'AWAITING_QP_CERTIFICATION', async (c, sig) =>
+      (await c.query<{ id: string }>('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [lot.lotId, ...f, sig])).rows[0]!.id);
+    // A deviation linked after the release suspends it (slice 5a, L-19): the lot no longer awaits certification.
+    await deviationOnLot(lot.lotId);
+    expect(await state(lot.lotId, 'IN')).toBe('RELEASE_SUSPENDED');
+    expect(await codeOf(signed(qaReviewer2, 'qp_transcription_check', id, 'QP_CERTIFICATION_VERIFIED', 'TRANSCRIBED', (c, sig) =>
+      c.query('select recipe.verify_qp_transcription($1, $2)', [id, sig])))).toBe('EBMR-DSP-033');
+    expect(await state(lot.lotId, 'EU')).not.toBe('CERTIFIED');
+    // S14: QA registers a QP on the importer's authorisation, never itself.
+    const reg = await signAs(qaReviewer3, 'qp_register', `${qaReviewer3.personId}/REGISTER/${imp.c}/${imp.m}`, 'QP_REGISTERED', 'NONE');
+    expect(await codeOf(w.run(qaReviewer3, (c) => c.query("select recipe.register_qp($1, 'REGISTER', $2, $3, $4)", [qaReviewer3.personId, imp.c, imp.m, reg])))).toBe('EBMR-DSP-065');
+  });
+
   // recipe.record_release_with_us_disposition#16, #19: both rows of a two-row release are made in this ceremony; a
   // manufacturer release signature of an earlier command does not join a US signature made now.
   it('[D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)', async () => {

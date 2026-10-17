@@ -154,5 +154,15 @@ describe('the structured certification message (DI-39)', () => {
     // The application role cannot write the register or an acknowledgement, nor take a message in without the check.
     expect(await w.gmp.db.app.query("insert into recipe.qp_message_ack (message_id, message_sha256, outcome, reason, person_id, account_id) values ('x', $1, 'REFUSED', 'x', gen_random_uuid(), gen_random_uuid())", ['0'.repeat(64)]).then(() => 'ok', (e: Error) => e.message)).toMatch(/permission denied/);
     expect(await w.gmp.db.app.query("select recipe.take_qp_message('{}', true)").then(() => 'ok', (e: Error) => e.message)).toMatch(/permission denied/);
+    // Mutation triage T11 (tab.take_qp_certification_message#1, #6, #8): the database refuses a message whose signature
+    // is missing or not 64 bytes, also when the application role calls it directly (the route checks the form first).
+    const qaActor = await actorOf(w.gmp, 'qaInvestigator');
+    const text = JSON.stringify({ format: 'ebmr.qp-certification.v1', messageId: `MSG-${randomUUID()}`, importerCode, lotCode, batchNumber, productCode: w.content.header.product.code,
+                                  outcome: 'CERTIFIED', certifier: { name: 'Dr. Lena Vogel', miaNumber: 'DE-MIA-2024-118' }, certifiedAt: new Date().toISOString() });
+    for (const signature of ['', 'AAAA', null, Buffer.alloc(63, 1).toString('base64')]) {
+      const ack = await withCommand(w.gmp.db.app, { ...qaActor, correlationId: randomUUID() }, async (c) =>
+        (await c.query<{ a: { outcome: string; reason: string } }>('select tab.take_qp_certification_message($1, $2) as a', [text, signature])).rows[0]!.a);
+      expect(ack, String(signature)).toMatchObject({ outcome: 'REFUSED', reason: expect.stringMatching(/EBMR-DSP-082/) as unknown });
+    }
   });
 });
