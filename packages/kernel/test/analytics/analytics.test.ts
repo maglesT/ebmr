@@ -125,7 +125,9 @@ beforeAll(async () => {
     `insert into iam.role_permission (role_code, permission_code) values
        ('QA_REVIEWER', 'ANALYTICS.VIEW'), ('QA_REVIEWER', 'ANALYTICS.DISPOSITION'),
        ('CSV_DI_LEAD', 'ANALYTICS.DISPOSITION'), ('CSV_DI_LEAD', 'ANALYTICS.DI_REVIEW')`,
-    `select analytics.register_input('VIEW', '${INPUT}', 1, '6A-1', 'GMP batch', 'test input: the batch outcomes')`,
+    // Recipe-core 1115 (slice 6A-1) registers it in the template; registered here only where it is not.
+    `select analytics.register_input('VIEW', '${INPUT}', 1, '6A-1', 'GMP batch', 'test input: the batch outcomes')
+      where not exists (select 1 from analytics.input_registry where name = '${INPUT}')`,
   ]);
   [qa, diLead, operator] = await Promise.all([
     seedActor(gmp, { roleCode: 'QA_REVIEWER' }),
@@ -184,7 +186,10 @@ describe('the analytics role (kernel 1240, 1242)', () => {
               or has_table_privilege('ebmr_analytics', c.oid, 'TRUNCATE'))
          and has_schema_privilege('ebmr_analytics', n.oid, 'USAGE')
        order by 1`);
-    expect(rows).toEqual([{ t: 'analytics.input_catalog_v1', write: false }, { t: INPUT, write: false }]);
+    // Exactly the catalogue and the catalogued views (slice 6A-1 registers its inputs in recipe-core 1115), none writable.
+    const { rows: catalogued } = await gmp.admin.query<{ name: string }>("select name from analytics.input_catalog_v1 where kind = 'VIEW'");
+    expect(catalogued.map((c) => c.name)).toContain(INPUT);
+    expect(rows).toEqual(['analytics.input_catalog_v1', ...catalogued.map((c) => c.name)].sort().map((t) => ({ t, write: false })));
     // In a GMP database the role holds only what its inputs and the runner functions need.
     expect(await segregationProblems(gmp.app)).toEqual([]);
     // Any extra grant is reported.
@@ -563,8 +568,12 @@ describe('the runner functions (kernel 1242) and the read views (kernel 1243)', 
         from pg_proc p where p.pronamespace = 'analytics'::regnamespace order by 1`);
     const appVolatile = rows.filter((r) => r.app && r.volatile);
     expect(appVolatile.map((r) => r.fn)).toEqual([
+      'analytics.person_flag_dispositions(uuid)',
       'analytics.person_flags(timestamp with time zone,timestamp with time zone)',
       'analytics.record_disposition(uuid,text,text,text,uuid,text)',
+      // Slice 6A-1 (kernel 1245): method versions and reference sets under change control.
+      'analytics.set_method_version(jsonb)',
+      'analytics.set_reference_set(jsonb)',
     ]);
     const { rows: perms } = await gmp.admin.query<{ code: string }>("select code from iam.permission where code like 'ANALYTICS.%'");
     const known = new Set(perms.map((p) => p.code));

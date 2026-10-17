@@ -12,6 +12,9 @@ import { randomUUID } from 'node:crypto';
 import type { Writable } from 'node:stream';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import { AnalyticsRunner } from './analytics/runner.ts';
+import type { MethodImplementation } from './analytics/implementation.ts';
+import { createAnalyticsPool } from './analytics/pool.ts';
 import type { EnvConfig, ServerConfig } from './config.ts';
 import { FEATURES, type FeatureEntry } from './features/index.ts';
 import { webCryptoDeviceProvider } from './platform/auth/device-proof.ts';
@@ -37,6 +40,11 @@ export interface AppDeps {
   features?: readonly FeatureEntry[];
   /** How often the site policy site.zone is re-read while no request does it (default SITE_ZONE_CHECK_INTERVAL_MS). */
   siteZoneCheckIntervalMs?: number;
+  /**
+   * Phase 6A slice 6A-1 (tests): the method implementations the analytics runner holds instead of the running code's
+   * (analytics/implementation.ts), and its poll interval.
+   */
+  analytics?: { implementations?: readonly MethodImplementation[]; pollMs?: number };
 }
 
 /** Request line plus headers a request may carry (see the http options below). */
@@ -49,6 +57,8 @@ export const NODE_KEEP_ALIVE_TIMEOUT_MS = 5_000;
 export interface BuiltApp {
   app: FastifyInstance;
   ctx: AppContext;
+  /** The analytics runner (GMP with EBMR_ANALYTICS on; ADR 0020), or null. */
+  analytics: AnalyticsRunner | null;
   /** Closes the server and, when buildApp opened them, the pools. */
   close(): Promise<void>;
 }
@@ -133,10 +143,24 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     await installSpa(app, ctx);
     await app.ready();
     const siteZoneWatch = siteZone.watch(deps.siteZoneCheckIntervalMs ?? SITE_ZONE_CHECK_INTERVAL_MS);
+    // Phase 6A slice 6A-1: the analytics runner, on the GMP installation only (D-6A-6), on its own login (ADR 0020 point 3).
+    const analytics = config.analytics.enabled
+      ? new AnalyticsRunner({
+          pool: createAnalyticsPool(config.analytics.url),
+          log: app.log,
+          siteZone: () => siteZone.current(),
+          commit: config.analytics.commit,
+          ...(deps.analytics?.implementations ? { implementations: deps.analytics.implementations } : {}),
+          ...(deps.analytics?.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
+        })
+      : null;
+    analytics?.start();
     return {
       app,
       ctx,
+      analytics,
       async close() {
+        await analytics?.stop();
         await siteZoneWatch.stop();
         await app.close();
         await ctx.readDb.destroy().catch(() => undefined);

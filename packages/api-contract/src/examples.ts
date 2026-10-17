@@ -75,6 +75,7 @@ import mr from '../fixtures/recall.json' with { type: 'json' };
 import xf from '../fixtures/transfers.json' with { type: 'json' };
 import fd from '../fixtures/federation.json' with { type: 'json' };
 import ana from '../fixtures/analytics.json' with { type: 'json' };
+import anaConfig from '../fixtures/analytics-config.json' with { type: 'json' };
 import anaAudit from '../fixtures/analytics-audit.json' with { type: 'json' };
 import anaMspc from '../fixtures/analytics-mspc.json' with { type: 'json' };
 import anaProfile from '../fixtures/analytics-profile.json' with { type: 'json' };
@@ -540,6 +541,9 @@ export const EXAMPLES = {
   'training-overview': { schema: r.training.overview.response, data: tr6g.overview, routeId: r.training.overview.id },
   'training-start': { schema: r.training.start.response, data: tr6g.attempt, routeId: r.training.start.id },
   'training-complete-step': { schema: r.training.completeStep.response, data: { ...tr6g.attempt, done: [1, 2], complete: true }, routeId: r.training.completeStep.id },
+  // Phase 6A slice 6A-1: the analytics configuration writes (the analytics namespace's own examples are ANALYTICS_EXAMPLES).
+  'analytics-config-method-version': { schema: r.analyticsConfig.setMethodVersion.response, data: anaConfig.methodVersion, routeId: r.analyticsConfig.setMethodVersion.id },
+  'analytics-config-reference-set': { schema: r.analyticsConfig.setReferenceSet.response, data: anaConfig.referenceSet, routeId: r.analyticsConfig.setReferenceSet.id },
 } as const satisfies Record<string, Example>;
 
 const an = ANALYTICS_NAMESPACES;

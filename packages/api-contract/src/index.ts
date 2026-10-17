@@ -15,6 +15,7 @@ export * from './signable.ts';
 export * from './routes.ts';
 export * from './analytics-namespaces.ts';
 export * from './ns/analytics.ts';
+export * from './ns/analytics-config.ts';
 export * from './ns/analytics-spc.ts';
 export * from './ns/analytics-mspc.ts';
 export * from './ns/analytics-audit.ts';
