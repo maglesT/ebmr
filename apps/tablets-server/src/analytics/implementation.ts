@@ -38,10 +38,10 @@ export function implementation<I, P extends Parameters>(impl: MethodImplementati
 
 /** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10); each method slice adds its own line. */
 export const IMPLEMENTATIONS: readonly MethodImplementation[] = [
-  ...SPC_IMPLEMENTATIONS, // 6A-2 (spc.ts)
   // Slice 6A-4: the audit-trail methods (audit.ts).
   implementation<AuditInput, AuditRulesParameters>(ATA_RULES_IMPLEMENTATION),
   implementation<AuditInput, AuditBaselineParameters>(ATA_BASELINE_IMPLEMENTATION),
+  ...SPC_IMPLEMENTATIONS, // 6A-2 (spc.ts)
   // Slice 6A-5: the review priority (review.ts).
   implementation<ReviewInput, ReviewPriorityParameters>(REVIEW_PRIORITY_IMPLEMENTATION),
 ];

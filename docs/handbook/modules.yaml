@@ -199,6 +199,7 @@ modules:
     screens: [apps/tablets-web/src/features/analytics-audit]
     tests:
       - 'apps/tablets-web/test/analytics-audit/**'
+
   - id: analytics-spc
     title: Advisory analytics SPC (Phase 6A slice 6A-2) - control charts, capability, drift alerts, deviation-rate comparisons
     page: modules/analytics.md

@@ -1393,6 +1393,7 @@ export const TARGETS: Target[] = [
     tests: [r('analytics/audit-inputs.test.ts'), s('analytics/audit.test.ts')],
     threshold: 90,
   },
+  // ---- 6A-2, deviation-rate inputs (recipe-core 1130): the shift boundaries and the deviation and step-shift facts. ----
   {
     group: 'analytics-rate-inputs',
     functions: ['report.shift_boundaries_problem', 'report.check_shift_boundaries', 'report.shift_of', 'report.deviation_fact_rows_v1', 'report.step_shift_rows_v1'],

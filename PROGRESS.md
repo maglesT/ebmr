@@ -211,7 +211,7 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   and the restricted readers (DI_REVIEW) in kernel 1261 and recipe-core 1151. Routes `analyticsAudit` (bound), screens
   `/analytics/audit-flags`, and the review panel lists flagged entries first for the DI lead (DI-25). Defaults
   D-6A-4-1 to 11 in the plan. Own review: one medium fixed (open keys cut by the list limit).
-- **6A-2 (17 October, branch `phase-6a/slice-2`, pushed, no PR yet):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
+- **6A-2 (17 October, branch `phase-6a/slice-2`; merged as PR #45):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
   3, 5), CAP.INDEX (Cpk, Ppk, Bissell intervals, Anderson-Darling, from 25 batches), DRIFT.TREND (slope projection,
   EWMA) and RATE.DEVIATION (Wilson, Garwood, one-sided Fisher, Benjamini-Hochberg, funnel) in `packages/analytics`,
   checked against SciPy reference values and published examples; runner wiring `analytics/spc.ts`; recipe-core 1130
