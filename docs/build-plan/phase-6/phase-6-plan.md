@@ -1138,6 +1138,12 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
   as equivalent: an owner-level writer is an input.
 - **D-P6j-T1-3** The plant-rules confirmation run waits until the group's first run on stream p6-3 has finished (65 of
   221 mutants at triage); one --only run then covers the tests written here and the later survivors.
+- **D-P6j-T7-1** (mutation triage T7: the Stryker survivors) A handler's `requireSession()` whose removal survives is
+  defence in depth, not a gap: `bindRoutes` refuses a SESSION route without a live session (`admitSession`) before the
+  handler runs. Recorded in one line, no test.
+- **D-P6j-T7-2** A mutant that an existing test of the same package kills, but in a folder outside the feature's test
+  list (`stryker.phase6.config.mjs`), is recorded as killed by that test after a hand-applied check; the feature's
+  test list is not widened during the campaign (decision 0019: no re-run).
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

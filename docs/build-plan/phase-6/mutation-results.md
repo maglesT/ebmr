@@ -119,6 +119,127 @@ kernel `db/command.ts`; recipe-core `flow/*`, `validator/rules-content.ts`; the 
 - `server-serialisation` (server, concurrency 2): 159 mutants (38 static, skipped) in 330 s, of which about 30 s for
   the dry run with the server templates. Score 80.2 % (97 killed, 24 without coverage) against 90 %.
 
+## Part 1, Stryker: triage (T7)
+
+Triage of the first-run survivors and NoCoverage mutants in the 90 % zone of each feature, under the owner's rule of
+17 October (important issues only; no re-testing of minor ones; no Stryker re-run). The question for each: is the
+TypeScript the only place the rule is enforced? Where a database function or trigger enforces the same refusal
+(decision 0008 section 2), the survivor is defence in depth and recorded in one line. First-run scores are from the
+features' JSON reports (`node stryker.phase6.config.mjs --summary`), high-risk zone / other zone. Decisions D-P6j-T7-1
+and D-P6j-T7-2 (phase-6 plan, slice 6j).
+
+**Result: no Priority 1 defect.** Two rules were found enforced only in the TypeScript and untested; both now have
+killing tests in their package's own test folder, each proved against the original (passes) and against the
+hand-applied mutants (fails), then reverted. One more cluster is killed by an existing test outside the feature's test
+list (D-P6j-T7-2). No confirmation run (owner, 17 October: optional; decision 0019 allows one, not used).
+
+Common to every server feature (one line each, no test):
+- `requireSession()` removed in a read handler: defence in depth; `bindRoutes` refuses a SESSION route without a live
+  session before the handler runs (D-P6j-T7-1).
+- Signable handlers' `previewContent` / `dryRun` not-found guards, `prepareForChallenge` (its result is not used: the
+  kernel's `esig.create_challenge` computes and checks the hash) and `apply` return objects: the ceremony and the
+  definer the handler calls (`esig.sign`, the act's own SQL function) are the enforcement; display and response shape.
+- Refusal texts, `notFound` messages, `?? null` / `?? ''` defaults of parameters the SQL function validates again,
+  view mapping of reads (people's names, instants, optional fields): display.
+
+### server-controlled: 61.6 % / 61.9 %
+
+- No TypeScript-only rule. Dual custody (IN-53), the flag approval and the balance sign-off are enforced by
+  `recipe.sign_controlled_custody`, `plant.approve_controlled_product` and `recipe.sign_controlled_checkpoint`; the 33
+  survivors and 28 NoCoverage of `controlled/index.ts` are the signable handler's preview/dry-run guards and response
+  objects, `requireSession()` and not-found messages (above). P3, DB-enforced / display.
+
+### server-transfers: 64.2 % / 53.9 %
+
+- **Killed (new test): the federation's https-only rule in production (DI-13), `transfers/federation.ts:108`, 3
+  NoCoverage.** The database keeps a peer's base URL as http or https and does not know the environment, so this
+  refusal exists only in `askPeer`. Test `apps/tablets-server/test/transfers/federation-https.test.ts`: `[DI-13] [DI-31]
+  production refuses a peer registered with an http address before anything is sent, and the refusal is logged` and
+  `[DI-13] production calls a peer registered with an https address, and development an http one` (askPeer with a
+  stand-in database client and fetch). Hand-applied mutants: the condition `false`, `endsWith`, the negation removed:
+  all fail the test.
+- Seals: DB-enforced. `site.seal_transfer_package` refuses a seal that does not verify under the installation's current
+  key (`platform.own_seal_valid`, kernel 1220); `recipe.answer_federated_genealogy` and `recipe.record_federated_excerpt`
+  verify the other side's seals. So `currentKey()`'s `serverHoldsKey` check (index.ts:77), `keys.ts` (the Ed25519 type
+  check, `rawPublicKeyOf`, the key file read) and the `'utf8'` encodings at keys.ts:26 (equivalent: Node reads an empty
+  encoding as utf8) are P3. federation.ts `reasonOf`, the failure-detail texts and the excerpt-to-view mapping:
+  display. index.ts:152 (the refusal code taken from the reason): message.
+
+### server-governance: 28.2 % (high-risk zone only)
+
+- **Killed (new test): the DSC trust anchor must be a self-signed certification-authority root (IN-10),
+  `esig/dsc.ts:48`, 2 survivors and the 422 refusal's NoCoverage.** The database stores the anchor's DER and subject but
+  does not parse X.509, so `subjectOf` is the only check. Test in
+  `apps/tablets-server/test/governance/governance-routes.test.ts`: `[IN-10] a trust anchor is only a self-signed
+  certification-authority root: a sub-CA, a signer's certificate or bytes that are no certificate are refused and
+  nothing is stored`. Hand-applied mutants: the condition `false` and `||` to `&&`: both fail the test.
+- Support grants (DI-08): `iam.request_support_grant`, `iam.approve_support_grant`, `iam.revoke_support_grant` enforce;
+  the handler survivors are of the common kinds above. Contract giver (IN-30): `recipe.contract_giver_accesses`,
+  `recipe.contract_giver_batches` and `recipe.read_contract_giver_batch` check the role, read-only use and the live access
+  and log each read; the 212 NoCoverage of `governance/index.ts` are mostly the reviewer's batch views (no
+  governance-folder test reads a batch through the route) and `decimalText`: display. DSC mode, meaning and enrolment
+  routes (dsc.ts:37-111): reason codes and banner texts; `esig.set_policy`, `esig.set_dsc_meaning`, `esig.enrol_dsc_certificate`
+  enforce. P3.
+
+### server-config-change: 46.9 % / 80.0 %
+
+- No TypeScript-only rule. The change-record requirement and the setting's validation are in
+  `platform.set_setting` (through `kernelConfig.setPlatformSetting`) and `recipe.set_rbe_rule`. Note: the
+  `setSetting` route body (`config-change/index.ts:82-86`) survives as a whole: no test in `test/config` calls the
+  route; the kernel's own tests cover the function. P3 (route coverage, DB-enforced); the rest are `requireSession()`,
+  the `state` filter of a list and not-found messages.
+
+### server-labels: 43.8 %
+
+- No TypeScript-only rule. Template approval, specimens, post-use inspection, line stops and the waiver are SQL
+  functions (`recipe.declare_packaging_label`, `tab.record_*_specimen`, `tab.void_packaging_specimen`,
+  `tab.record_post_use_inspection`, `tab.verify_post_use_inspection`, `tab.resolve_line_stop`,
+  `tab.enable_reconciliation_waiver`); their routes are NoCoverage here (their behaviour is in the SQL group
+  packaging-labels-and-line-completion). index.ts:116 (a label lot's material kind in a read) and the views: display.
+  P3.
+
+### server-quality-receipt: 62.2 % / 52.4 %
+
+- No TypeScript-only rule. The receipt, approved-manufacturer and issue gates are SQL; `site.issue_gate_problem` at
+  receipt.ts:82-84 is a read for the screen (the stale-mirror EBMR-INT-010 is caught to show it, the gate itself refuses
+  in the database). The rest: view mapping. P3.
+
+### sdk-adapter: 22.0 % / 41.9 %
+
+- No TypeScript-only rule. `platform.accept_inbound` (kernel 1180) validates the envelope again: each field's pattern,
+  the payload size (1 MiB), the idempotency key and hash, the sequence; the reconciliation report is validated by the
+  database too (kernel 1180, the report's period, counts and checksum). Mirror freshness and the stale refusal are
+  `platform.mirror_freshness` / `platform.mirror_fresh_or_raise`. So the survivors in `envelope.ts`, `mirror.ts`,
+  `reconciliation.ts` and the system contracts `systems/*.ts` (zod schema shapes: regex anchors, enum members, min/max)
+  are P3, schema shape re-validated by the database and the system's apply functions. `errors.ts`: the retry class of an
+  error (TRANSPORT SQLSTATEs) is retry timing; a refusal retried is de-duplicated by the idempotency key. P3.
+
+### sdk-equipment-data: 57.7 % / 53.9 %
+
+- No signature is verified here (the gateway's readings carry none in these contracts; the scale reading's signature
+  is in `scale/reading.ts`, not part of this campaign). The equipment-data rules are recomputed by the database
+  (recipe-core 0960): `plant.raw_states_value` (the raw text states the shown value exactly, DI-32), the chunk hash
+  (`plant.series_chunk_hash`), the sample order and quality. So `canonicalDecimal`, `shownValueProblem`, the regexes and
+  the series-chunk refinements are P3, schema shape re-validated. `serialisation/wire.ts`: `poolReport`,
+  `canonicalReportText` and `reportReconciles` are used only by the L3 simulator and tests (the serial release gate is
+  in the database); the rest are path builders and schema shapes. P3, simulator / schema shape.
+
+### server-genealogy: 29.4 % / 61.0 %
+
+- **Killed by an existing test outside the feature's test list (D-P6j-T7-2): `recordRemote` and the outbound-transfer
+  asking of a mock recall (`genealogy/index.ts:121-137`).** The feature runs only `test/genealogy`; the federation part
+  of a mock recall is tested in `test/transfers/transfer-routes.test.ts` (`[IN-29] a mock recall with one site down is
+  marked incomplete, ...`). Hand-applied `recordRemote` as a no-op: that file fails (2 of 6 tests). No new test.
+- The rest: `requireSession()`, `refreshFederation` (NoCoverage here, covered by the same [IN-29] test), the default
+  as-of and authority reference parameters (`recipe.run_mock_recall` validates), views. P3.
+
+### Not triaged
+
+- `kernel-config-and-dsc` (rc=1, no report) and `server-integrations-highrisk` (no report): nothing to triage.
+- `gateway-opcua`: stopped at 21 % (rc=124), only an incremental file; no final report.
+- Features outside this assignment (server-plant-rules, server-equipment-data, server-dashboards-and-training,
+  server-serialisation, simulators) are not triaged here.
+
 ## Part 2: the Phase 4 leftovers
 
 | Item | What runs | Result |
