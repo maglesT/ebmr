@@ -1162,6 +1162,33 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
   approver, EBMR-IAM-188) is recorded as defence in depth with a test that proves the segregation itself, not as an
   equivalent mutant.
 
+#### 6j exit demo (branch `phase-6/slice-6j-demo`, 17 October)
+
+- `pnpm demo:phase6-exit` (tools/e2e/demo/run.ts) runs the demo list above as one command and writes the dated record
+  `docs/build-plan/phase-6/exit-demo.md` with its screenshots in `exit-demo/` (per item: what was done, what each step
+  measured, times, PASS or FAIL). Re-runnable: every name is unique per run, so ids and hashes change, outcomes do not.
+- **D-P6j-D-1** The demo is a Playwright project outside the browser suite (`tools/e2e/playwright.demo.config.ts`; the
+  suite's config reads `specs/` only, so its counts do not change): the demo's own flows (`tools/e2e/demo/*.demo.ts`,
+  tagged `@demo`) and the 6j-b mock recall, controlled dispensing and English step flows as they are. Item 7 runs as a
+  vitest file outside the suite's projects (`vitest.demo.config.ts`, `apps/tablets-server/test/demo/transfer.demo.ts`):
+  two GMP servers on HTTP as the 6i route tests run them (the E2E stack has one GMP and one sandbox installation).
+- **D-P6j-D-2** The connected stack (`tools/e2e/demo/global-setup.ts`) is the E2E stack plus every simulator as its own
+  process and the adapters started by the servers themselves (service-keys entries with the feed endpoint, MIRROR modes
+  under the E2E change record, before the servers start). The ERP, QMS, LMS and CMMS adapters run on the sandbox
+  installation, because the stale-mirror step signature is on a TEST- batch at the sandbox kiosk; the integration health
+  page and its routes are GMP-only, so item 1's evidence is the database's record of messages, refusals, de-duplications
+  and alarms.
+- **D-P6j-D-3** The stale LMS mirror is shown in real time: the LMS mirror bound is set to its minimum (60 s, the
+  change-controlled `integration.mirror_max_age_s.lms_qualification`) and the LMS simulator's STALE_MIRROR fault stops
+  the adapter's synchronisation; the 6j-b flow moves the last synchronisation into the past instead.
+- **D-P6j-D-4** Item 2 uses the press's REJECT_BURST on the OPC UA feed (OPC UA simulator, a GMP site gateway holding the
+  enrolled endpoint, the GMP server's OPCUA adapter), as GB-T-03 does (D-P6j-b-3). A tag-limit excursion over the
+  gateway's process uplink is not shown: the GMP server of the demo stack runs no gateway listener (only the sandbox
+  server does), and building that path was outside the demo's time box. The press's use by the review batch is
+  arranged (an open equipment use after its verified cleaning), so the alarm binds to that batch.
+- **D-P6j-D-5** Screenshots of the record are JPEG at quality 50 (`EBMR_E2E_EVIDENCE_JPEG=1` in the evidence fixture);
+  the evidence reporter also keeps a failed test's first error and JPEG screenshots.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - 6a-0: the inbound envelope and error classes (`@ebmr/integration-sdk/adapter`), `platform.accept_inbound`,

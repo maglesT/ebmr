@@ -20,7 +20,7 @@ import type { DatabaseHandle } from '@ebmr/test-kit';
 import { expect, pin, signIn, test } from '../fixtures/index.ts';
 import { issueTestBatch, open, recordClearanceEntries, startWithTap, tapBadge } from '../fixtures/floor.ts';
 import { exportDcMiniPackage, packageTag } from '../fixtures/test-package.ts';
-import { administration, because, endSessions, ensureChangeRecord, grantedPerson, letters, nowUs, openTile, sessionOf, withDb } from '../specs/phase6/support.ts';
+import { administration, because, endSessions, ensureChangeRecord, grantedPerson, letters, nowUs, sessionOf, withDb } from '../specs/phase6/support.ts';
 import { demoState, fault, one, sim, until } from './demo-support.ts';
 
 type System = 'ERP' | 'QMS' | 'LMS' | 'CMMS';
@@ -43,7 +43,7 @@ async function counts(db: DatabaseHandle, code: string): Promise<Counts> {
 
 const alarmsOf = (c: Counts, kind: string): number => c.alarms[kind] ?? 0;
 
-test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected faults (malformed, duplicate, out of order, link cut): each refused or de-duplicated with an alarm, no partial value, the count reconciles @demo', async ({ e2e, officePage, persona, evidence }) => {
+test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected faults (malformed, duplicate, out of order, link cut): each refused or de-duplicated with an alarm, no partial value, the count reconciles @demo', async ({ e2e, persona, evidence }) => {
   test.setTimeout(900_000);
   const d = demoState();
   const tag = letters(5).toUpperCase();
@@ -70,8 +70,6 @@ test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected fau
   };
   const origin: Record<System, string> = { ERP: d.sims.ERP, QMS: d.sims.QMS, LMS: d.sims.LMS, CMMS: d.sims.CMMS };
   const db = (await import('@ebmr/test-kit')).openDatabase(e2e.state.databases.SANDBOX, 'SANDBOX');
-  const page = await officePage('SANDBOX', 'TEST-PC-01');
-  await signIn.office(page, persona('SANDBOX', 'qcApprover'));
   try {
     for (const s of ['ERP', 'QMS', 'LMS', 'CMMS'] as const) {
       const code = d.adapters[s];
@@ -149,13 +147,15 @@ test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected fau
       });
     }
 
-    await evidence.step('The integration health page lists the four adapters with their workers and the alarms the faults raised', 'Every adapter is listed; the integration alarms of the faults are shown', async () => {
-      await openTile(page, 'Integration health');
-      for (const s of ['ERP', 'QMS', 'LMS', 'CMMS'] as const) await expect(page.getByTestId(`adapter-${d.adapters[s]}`)).toBeVisible();
-      const shown = await page.locator('[data-testid^="alarm-"]').count();
-      expect(shown).toBeGreaterThan(0);
-      return { alarmsShown: shown };
-    }, page);
+    await evidence.step('The four adapters after the faults (the integration health page is a GMP screen; the sandbox runs these adapters here, see the record)', 'Every adapter received and alarmed as above; the alarms are open for the system owners', async () => {
+      const out: Record<string, string> = {};
+      for (const s of ['ERP', 'QMS', 'LMS', 'CMMS'] as const) {
+        const c = await counts(db, d.adapters[s]);
+        out[s] = `adapter ${d.adapters[s]}: accepted ${String(c.accepted)}, refused ${String(c.refused)}, de-duplicated ${String(c.dedup)}, alarms ${JSON.stringify(c.alarms)}`;
+        expect(c.accepted).toBeGreaterThan(0);
+      }
+      return out;
+    });
   } finally {
     for (const s of ['ERP', 'QMS', 'LMS', 'CMMS'] as const) for (const f of ['MALFORMED', 'DUPLICATE', 'OUT_OF_ORDER', 'LINK_CUT']) await fault(origin[s], f, false).catch(() => undefined);
     await db.close();

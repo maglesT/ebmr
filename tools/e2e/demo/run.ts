@@ -53,7 +53,8 @@ function run(cmd: string, args: string[], env: Record<string, string>): number {
   return r.status ?? 1;
 }
 
-const clean = (s: string): string => s.replace(/\u001b\[[0-9;]*m/g, '');
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, 'g');
+const clean = (s: string): string => s.replace(ANSI, '');
 const cell = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v)).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 function main(): number {
