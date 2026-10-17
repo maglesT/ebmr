@@ -194,7 +194,7 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   package `@ebmr/analytics` (`statOf`, registry, canonical hashing), the five ADR 0020 boundary rules with fixtures, the
   contract namespaces `ns/analytics*.ts` with examples (joining `routes.ts` when bound, D-6A-0-4), `analyticsHistory`
   (test-kit), and DI-51 to DI-53 and PR-61 in the register (246 controls, 680 rows) with their first tests.
-- **6A-1 (17 October, branch `phase-6a/slice-1`, pushed, no PR yet):** the runner in the tablets server (GMP only, as
+- **6A-1 (17 October, PR #44, merged):** the runner in the tablets server (GMP only, as
   `ebmr_analytics`, one REPEATABLE READ READ ONLY snapshot, nightly at 02:00 and on newly completed batches, a failed
   run leaves no output), recipe-core 1115 (input views `batch_fact_v1`, `cpp_value_v1`, `step_use_v1` on the role's
   allow-list), kernel 1245 (method versions and reference sets by `ANALYTICS.METHOD` under an approved change record,
@@ -203,6 +203,13 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   (ml-matrix, @stdlib quantiles), the runner's number lint ban, and the golden batches with the runner on. Defaults
   D-6A-1-1 to 23 in the plan. Quick review: one medium fixed (a version validated with an earlier build could not
   be retired after an upgrade; D-6A-1-23); golden GB-T-01 to GB-T-03 passed with the runner on.
+- **6A-2 (17 October, branch `phase-6a/slice-2`, pushed, no PR yet):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
+  3, 5), CAP.INDEX (Cpk, Ppk, Bissell intervals, Anderson-Darling, from 25 batches), DRIFT.TREND (slope projection,
+  EWMA) and RATE.DEVIATION (Wilson, Garwood, one-sided Fisher, Benjamini-Hochberg, funnel) in `packages/analytics`,
+  checked against SciPy reference values and published examples; runner wiring `analytics/spc.ts`; recipe-core 1130
+  (`report.deviation_fact_v1`, `report.step_shift_v1`, setting `site.shift_boundaries`); routes `analyticsSpc` and the
+  screens `/analytics/spc`, `/analytics/rates`; the PQR screen links to them as an advisory annex. Defaults D-6A-2-1 to
+  15 in the plan; residuals for the lead there (reference sets not yet passed to runs; flags repeat on every run).
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).

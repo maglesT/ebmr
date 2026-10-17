@@ -10,7 +10,7 @@
  * The signals concern the newest batch, so a run flags a drift that is current, not one that has passed. A series with
  * fewer batches than the window is skipped with the reason.
  */
-import type { Method, MethodResult, Parameters, ReferenceModel, Skipped } from '../../method.ts';
+import type { Method, MethodResult, Parameters, Skipped } from '../../method.ts';
 import { statOf } from '../../numeric/from-decimal.ts';
 import type { FlagDraft, OutputDraft, Reason } from '../../types.ts';
 import { seriesRef, specificationValues, type BatchValueInput } from '../spc/input.ts';
@@ -47,7 +47,7 @@ export function batchesToCross(fitNow: number, slope: number, lower: number | nu
   return null;
 }
 
-export function runDrift(input: BatchValueInput, params: DriftParameters, _ref: ReferenceModel | null): MethodResult {
+export function runDrift(input: BatchValueInput, params: DriftParameters): MethodResult {
   const outputs: OutputDraft[] = [];
   const flags: FlagDraft[] = [];
   const skipped: Skipped[] = [];
@@ -89,7 +89,7 @@ export function runDrift(input: BatchValueInput, params: DriftParameters, _ref: 
     const evidence = window.map((p) => ({ kind: 'BATCH', ref: p.batchId }));
     if (slopeSignal) {
       const limit = fit.slope > 0 ? `upper limit ${s.specification.upper ?? ''}` : `lower limit ${s.specification.lower ?? ''}`;
-      const when = toCross === 0 ? 'the fitted line is already beyond it' : `reached in about ${toCross!.toPrecision(2)} batches`;
+      const when = toCross === 0 ? 'the fitted line is already beyond it' : `reached in about ${toCross.toPrecision(2)} batches`;
       flags.push({
         subjectKind: 'PRODUCT_ITEM', subjectRef, rule: 'DRIFT_SLOPE', severity: 'ATTENTION',
         reasons: [{ code: 'DRIFT_SLOPE', text: `The last ${w.toString()} batches (${window[0]!.batchNumber} to ${newest.batchNumber}) of ${s.item} trend ${fit.slope > 0 ? 'up' : 'down'} (p = ${fit.p.toPrecision(2)}) toward the ${limit}: ${when}`, evidence }],
@@ -98,7 +98,7 @@ export function runDrift(input: BatchValueInput, params: DriftParameters, _ref: 
     if (ewmaSignal) {
       flags.push({
         subjectKind: 'PRODUCT_ITEM', subjectRef, rule: 'DRIFT_EWMA', severity: 'ATTENTION',
-        reasons: [{ code: 'DRIFT_EWMA', text: `The EWMA of ${s.item} at batch ${newest.batchNumber} lies ${e!.z[last]! > centre ? 'above' : 'below'} its ${params.ewmaL.toString()} sigma limit around ${s.specification.target === null ? 'the mean' : 'the master\'s target'}`,
+        reasons: [{ code: 'DRIFT_EWMA', text: `The EWMA of ${s.item} at batch ${newest.batchNumber} lies ${e.z[last]! > centre ? 'above' : 'below'} its ${params.ewmaL.toString()} sigma limit around ${s.specification.target === null ? 'the mean' : 'the master\'s target'}`,
                     evidence: [{ kind: 'BATCH', ref: newest.batchId }] }],
       });
     }

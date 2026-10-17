@@ -7,6 +7,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   andersonDarling,
+  CAP_INDEX,
+  DRIFT_TREND,
+  RATE_DEVIATION,
   benjaminiHochberg,
   bissellInterval,
   c4,
@@ -23,10 +26,7 @@ import {
   normalCdf,
   outputHash,
   parameterProblems,
-  runCapability,
-  runDrift,
   runImr,
-  runRates,
   runXbarS,
   tTwoSidedP,
   wilsonInterval,
@@ -202,7 +202,7 @@ describe('CAP.INDEX', () => {
   const params = defaultParameters('CAP.INDEX') as CapabilityParameters;
 
   it('agrees with the offline reference: Ppk, Cpk, Bissell intervals and the Anderson-Darling statistic and p-value', () => {
-    const r = runCapability(series(ref.capability.values, { lower: dt('7'), upper: dt('13') }), params, null);
+    const r = CAP_INDEX.run(series(ref.capability.values, { lower: dt('7'), upper: dt('13') }), params, null);
     const v = r.outputs[0]!.values;
     expect(v).toMatchObject({ status: 'SHOWN', batches: 40, specLower: '7', specUpper: '13' });
     close(v['mean'] as number, ref.capability.mean);
@@ -226,25 +226,25 @@ describe('CAP.INDEX', () => {
     const ad = andersonDarling(ref.skewed.values.map(Number));
     close(ad.statistic, ref.skewed.andersonDarlingScipy, 1e-8);
     expect(ad.pValue).toBeLessThan(0.05);
-    const r = runCapability(series(ref.skewed.values, { upper: dt('12') }), params, null);
+    const r = CAP_INDEX.run(series(ref.skewed.values, { upper: dt('12') }), params, null);
     expect(r.outputs[0]!.values['normalityNote']).toMatch(/depart from normality/);
     expect(r.outputs[0]!.reasons.map((x) => x.code)).toContain('NORMALITY_DEPARTS');
   });
 
   it('[DI-52] capability is not shown below 25 batches', () => {
-    const r = runCapability(series(ref.capability.values.slice(0, 24), { lower: dt('7'), upper: dt('13') }), params, null);
+    const r = CAP_INDEX.run(series(ref.capability.values.slice(0, 24), { lower: dt('7'), upper: dt('13') }), params, null);
     expect(r.outputs).toHaveLength(1);
     const v = r.outputs[0]!.values;
     expect(v).toMatchObject({ status: 'NOT_SHOWN', batches: 24, notShownReason: 'Capability is shown from 25 completed batches; there are 24' });
     expect(v).not.toHaveProperty('cpk');
     expect(v).not.toHaveProperty('ppk');
-    expect(runCapability(series(ref.capability.values.slice(0, 25), { lower: dt('7'), upper: dt('13') }), params, null).outputs[0]!.values['status']).toBe('SHOWN');
+    expect(CAP_INDEX.run(series(ref.capability.values.slice(0, 25), { lower: dt('7'), upper: dt('13') }), params, null).outputs[0]!.values['status']).toBe('SHOWN');
     // Without a specification limit there is nothing to compare with.
-    expect(runCapability(series(ref.capability.values), params, null).outputs[0]!.values['status']).toBe('NOT_SHOWN');
+    expect(CAP_INDEX.run(series(ref.capability.values), params, null).outputs[0]!.values['status']).toBe('NOT_SHOWN');
   });
 
   it('one-sided: only the stated limit counts; Bissell at n = 50 and k = 1.33 by hand', () => {
-    const r = runCapability(series(ref.capability.values, { upper: dt('13') }), params, null);
+    const r = CAP_INDEX.run(series(ref.capability.values, { upper: dt('13') }), params, null);
     const v = r.outputs[0]!.values;
     close(v['ppk'] as number, (13 - ref.capability.mean) / (3 * ref.capability.sigmaOverall));
     const b = bissellInterval(1.33, 50, 0.95);
@@ -257,7 +257,7 @@ describe('DRIFT.TREND', () => {
   const params = defaultParameters('DRIFT.TREND') as DriftParameters;
 
   it('a significant rising slope projected past the upper limit within 5 batches raises DRIFT_SLOPE naming the window', () => {
-    const r = runDrift(series(ref.drift.values, { lower: dt('7.0'), upper: dt('8.1'), target: dt('7.5') }), params, null);
+    const r = DRIFT_TREND.run(series(ref.drift.values, { lower: dt('7.0'), upper: dt('8.1'), target: dt('7.5') }), params, null);
     const v = r.outputs[0]!.values;
     close(v['slope'] as number, ref.drift.slope, 1e-12);
     close(v['slopeP'] as number, ref.drift.p, 1e-7);
@@ -269,7 +269,7 @@ describe('DRIFT.TREND', () => {
     expect(flag.reasons[0].text).toMatch(/The last 10 batches \(B-001 to B-010\) of x trend up/);
     expect(flag.reasons[0].evidence).toHaveLength(10);
     // The same trend with a far limit is not a drift alert.
-    expect(runDrift(series(ref.drift.values, { upper: dt('20') }), params, null).flags.filter((f) => f.rule === 'DRIFT_SLOPE')).toEqual([]);
+    expect(DRIFT_TREND.run(series(ref.drift.values, { upper: dt('20') }), params, null).flags.filter((f) => f.rule === 'DRIFT_SLOPE')).toEqual([]);
   });
 
   it('the EWMA agrees with the reference recursion, and signals when the newest point lies beyond its limit', () => {
@@ -278,10 +278,10 @@ describe('DRIFT.TREND', () => {
     close(e.halfWidth[0]!, 2.7 * 0.1 * Math.sqrt((0.2 / 1.8) * (1 - 0.64)), 1e-12);
     const flat = Array.from({ length: 15 }, (_, k) => (k % 2 === 0 ? '7.4' : '7.6'));
     const shifted = [...flat, '7.9', '8.0', '7.9', '8.0', '7.9'];
-    const r = runDrift(series(shifted, { target: dt('7.5'), lower: dt('6'), upper: dt('9') }), params, null);
+    const r = DRIFT_TREND.run(series(shifted, { target: dt('7.5'), lower: dt('6'), upper: dt('9') }), params, null);
     expect(r.flags.map((f) => f.rule)).toContain('DRIFT_EWMA');
-    expect(runDrift(series(flat, { target: dt('7.5') }), params, null).flags).toEqual([]);
-    expect(runDrift(series(flat.slice(0, 9)), params, null).skipped[0]!.reason).toMatch(/last 10 batches/);
+    expect(DRIFT_TREND.run(series(flat, { target: dt('7.5') }), params, null).flags).toEqual([]);
+    expect(DRIFT_TREND.run(series(flat.slice(0, 9)), params, null).skipped[0]!.reason).toMatch(/last 10 batches/);
   });
 });
 
@@ -327,7 +327,7 @@ describe('RATE.DEVIATION', () => {
   };
 
   it('finds the room with three times the rate, keeps the others within limits and counts a batch-only deviation as unattributed', () => {
-    const r = runRates(rateInput(), params, null);
+    const r = RATE_DEVIATION.run(rateInput(), params, null);
     const room = r.outputs.filter((o) => o.values['grouping'] === 'ROOM');
     expect(room.map((o) => o.subjectRef)).toEqual(['P|ROOM:R-1', 'P|ROOM:R-2', 'P|ROOM:R-3']);
     const r2 = room.find((o) => o.values['group'] === 'R-2')!.values;
@@ -350,7 +350,7 @@ describe('RATE.DEVIATION', () => {
     const input = rateInput();
     const p = input.products[0]!;
     const batches = p.batches.map((b, k) => (k === 29 ? { ...b, groups: { ...b.groups, ROOM: ['R-9'] } } : b));
-    const r = runRates({ products: [{ ...p, batches }] }, params, null);
+    const r = RATE_DEVIATION.run({ products: [{ ...p, batches }] }, params, null);
     expect(r.outputs.find((o) => o.subjectRef === 'P|ROOM:R-9')!.values).toMatchObject({ status: 'TOO_FEW_BATCHES', batches: 1, notComparedReason: 'fewer than 5 batches (1)' });
     const compared = r.outputs.filter((o) => o.values['grouping'] === 'ROOM' && o.values['status'] === 'COMPARED');
     const q = benjaminiHochberg(compared.map((o) => o.values['pValue'] as number));

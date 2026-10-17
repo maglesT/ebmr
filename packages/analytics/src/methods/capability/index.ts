@@ -12,7 +12,7 @@
  * Below `minBatches` batches, or without a specification limit, the output says NOT_SHOWN with the reason and gives no
  * index (D-6A-8: capability is shown from 25 batches).
  */
-import type { Method, MethodResult, Parameters, ReferenceModel } from '../../method.ts';
+import type { Method, MethodResult, Parameters } from '../../method.ts';
 import { statOf } from '../../numeric/from-decimal.ts';
 import { normalQuantile } from '../../numeric/quantiles.ts';
 import type { OutputDraft } from '../../types.ts';
@@ -57,7 +57,7 @@ export function andersonDarling(xs: readonly number[]): { statistic: number; adj
   return { statistic: a2, adjusted: a, pValue: Math.min(1, Math.max(0, p)) };
 }
 
-export function runCapability(input: BatchValueInput, params: CapabilityParameters, _ref: ReferenceModel | null): MethodResult {
+export function runCapability(input: BatchValueInput, params: CapabilityParameters): MethodResult {
   const outputs: OutputDraft[] = [];
   for (const s of input.series) {
     const subjectRef = seriesRef(s);

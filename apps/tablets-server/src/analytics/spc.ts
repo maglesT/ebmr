@@ -60,7 +60,7 @@ interface MethodImplementation<I = unknown, P extends Parameters = Parameters> {
   assemble(rows: Readonly<Record<string, readonly InputRow[]>>, params: P): I;
   readonly method: Method<I, P>;
 }
-const implementation = <I, P extends Parameters>(impl: MethodImplementation<I, P>): MethodImplementation => impl as unknown as MethodImplementation;
+const implementation = <I, P extends Parameters>(impl: MethodImplementation<I, P>): MethodImplementation => impl;
 
 type Rows = Readonly<Record<string, readonly InputRow[]>>;
 

@@ -19,7 +19,7 @@
  *     a deviation attributed within the grouping, clipped to [0, 1].
  * One output per group (subject GROUP, `<product>|<grouping>:<group>`), so a flag names its own output.
  */
-import type { Method, MethodResult, Parameters, ReferenceModel } from '../../method.ts';
+import type { Method, MethodResult, Parameters } from '../../method.ts';
 import { chiSquareQuantile, normalQuantile } from '../../numeric/quantiles.ts';
 import type { FlagDraft, OutputDraft } from '../../types.ts';
 
@@ -113,7 +113,7 @@ export function benjaminiHochberg(ps: readonly number[]): number[] {
 const pct = (x: number): string => `${(x * 100).toPrecision(3)} %`;
 const LABEL: Readonly<Record<Grouping, string>> = { STEP: 'Step', EQUIPMENT: 'Equipment', ROOM: 'Room', MATERIAL_LOT: 'Material lot', SUPPLIER: 'Supplier', SHIFT: 'Shift' };
 
-export function runRates(input: RateInput, params: RateParameters, _ref: ReferenceModel | null): MethodResult {
+export function runRates(input: RateInput, params: RateParameters): MethodResult {
   const outputs: OutputDraft[] = [];
   const flags: FlagDraft[] = [];
   const z = normalQuantile((1 + params.confidence) / 2);
