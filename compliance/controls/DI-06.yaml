@@ -22,7 +22,11 @@ behaviour: |-
   - Validation evidence includes boundary tests (just inside, on and just outside) for every critical limit, and negative tests of error handling.
 catalog_test: Enable an interface that is not in the approved description. The drift alarm fires. Every critical limit shows boundary-test evidence in the matrix.
 implemented_by: {}
-tests: []
+tests:
+  - "packages/kernel/test/config/release-identity.test.ts > the approved system description (kernel 1300) > [DI-06] an interface is described only by the system owner under an approved change record, and an administrator never does"
+  - "packages/kernel/test/config/release-identity.test.ts > the approved system description (kernel 1300) > [DI-06] a described interface is in force until it is withdrawn, and every version names its change record"
+  - "packages/test-kit/test/seed.test.ts > test-kit validation approvals (slice 7-0, kernel 1300, D-P7-12) > [DI-03][DI-06] a seeded GMP site approves the validation summary of its release and its system description through real signed acts"
+  - "apps/tablets-server/test/validation/role-permissions.test.ts > the Phase 7 permissions of the Tablets roles (tablets 1400) > [DI-06] CONFIG.SYSTEM_DESCRIPTION is held by the system owner and the CSV and data-integrity lead"
 clauses:
   - clause: "Enable an interface that is not in the approved description. The drift alarm fires."
     deferred:

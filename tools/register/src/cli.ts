@@ -1,7 +1,8 @@
 /**
  * Register CLI.
  *   import     catalogs -> compliance/controls/*.yaml (keeps decisions and build progress)
- *   validate   schema, IDs, requirement references, listed tests exist, catalog-test clauses (reviews F14, F15)
+ *   validate   schema, IDs, requirement references, listed tests exist, catalog-test clauses (reviews F14, F15), and
+ *              the files under compliance/validation/ (Phase 7 slice 7-0: schema, order, known controls and tests)
  *   pins       exact workspace pins (ADR 0015)
  *   trace      traceability matrix from a Vitest JSON report (--results <file>) and, when present, the
  *              Playwright JSON report (--playwright <file>; --require-playwright fails without it): passing tests
@@ -17,6 +18,7 @@ import { existsSync } from 'node:fs';
 import { appendListedTests, testsToAdd } from './sync.ts';
 import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from './trace.ts';
 import { validateRegister } from './validate.ts';
+import { validationFileErrors } from './validation-files.ts';
 
 function fail(title: string, errors: string[]): never {
   console.error(`${title}: ${errors.length} problem(s)`);
@@ -57,9 +59,10 @@ switch (command) {
     break;
   }
   case 'validate': {
-    const errors = validateRegister();
+    const controls = loadControls();
+    const errors = [...validateRegister(controls), ...validationFileErrors(undefined, controls)];
     if (errors.length) fail('register invalid', errors);
-    console.log(`register valid: ${loadControls().length} controls`);
+    console.log(`register valid: ${controls.length} controls and the compliance/validation files`);
     break;
   }
   case 'pins': {

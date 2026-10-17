@@ -1,0 +1,108 @@
+{
+  "description": "Gateway feed signature v1 test vectors (docs/build-plan/phase-7/slice-7-0-interfaces.md section 2). Regenerate with packages/integration-sdk/test/adapter/feed-signature-vectors.generate.ts.",
+  "version": 1,
+  "domain": "ebmr-gateway-feed-v1",
+  "key": {
+    "label": "TEST-ONLY Ed25519 key made for these vectors. It is enrolled nowhere and must never be used by a gateway.",
+    "privateKeyPkcs8Pem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIJ30Tu+eG73ksgs2gE+R5YXYmDX/4/7eQiaQs3p9PN7I\n-----END PRIVATE KEY-----\n",
+    "publicKeySpkiDerHex": "302a300506032b657003210031e209fd3404274a44a5597cde3141b6490a2d2356431dad2113e4cf91ff6126",
+    "keyId": "578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0"
+  },
+  "vectors": [
+    {
+      "name": "first series chunk",
+      "gatewayCode": "GW-TEST-ONLY-01",
+      "keyId": "578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "envelope": {
+        "sourceSystem": "OPCUA",
+        "messageType": "opcua.series_chunk",
+        "sourceRecordId": "GRAN-01/inlet_temp/1",
+        "sourceTimestamp": "1760000000000000",
+        "sequenceNo": "1",
+        "idempotencyKey": "GW-TEST-ONLY-01-0e8e4f987e039598f2e56982d1b1821755b491253ea854cc",
+        "schemaVersion": "1",
+        "payloadHash": "adbae26dfc4848da1913bf981519c3c776c5ecc35f4881ad7b5d8e644c0b1e8e",
+        "payload": {
+          "tag": "inlet_temp",
+          "samples": [
+            {
+              "t": "1760000000000000",
+              "v": "61.25",
+              "unit": "Cel",
+              "status": "Good"
+            }
+          ]
+        }
+      },
+      "messageText": "ebmr-gateway-feed-v1\nGW-TEST-ONLY-01\nOPCUA\nopcua.series_chunk@1\n1\nGW-TEST-ONLY-01-0e8e4f987e039598f2e56982d1b1821755b491253ea854cc\nadbae26dfc4848da1913bf981519c3c776c5ecc35f4881ad7b5d8e644c0b1e8e\n578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "messageHex": "65626d722d676174657761792d666565642d76310a47572d544553542d4f4e4c592d30310a4f504355410a6f706375612e7365726965735f6368756e6b40310a310a47572d544553542d4f4e4c592d30312d3065386534663938376530333935393866326535363938326431623138323137353562343931323533656138353463630a616462616532366466633438343864613139313362663938313531396333633737366335656363333566343838316164376235643865363434633062316538650a35373862303264336436346365613336333339626261333531653139636135633931393762636466636333623564303061323564643031303630653262366630",
+      "signature": "MyhNQ+lkmSRHVS4Yfp0zTQIfGPWwC3Aw1X5fOpKOwC09+QLH7CbPjjBjjbmu31fzOYg6hfOHr3ReA6paA6fVCw=="
+    },
+    {
+      "name": "alarm at a four-digit sequence",
+      "gatewayCode": "GW-TEST-ONLY-01",
+      "keyId": "578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "envelope": {
+        "sourceSystem": "OPCUA",
+        "messageType": "opcua.alarm",
+        "sourceRecordId": "GRAN-01/alarm/77",
+        "sourceTimestamp": "1760000000000000",
+        "sequenceNo": "4271",
+        "idempotencyKey": "GW-TEST-ONLY-01-751eb71819d0bcdf4234a8fbdc2f2514eca00fa5138927e4",
+        "schemaVersion": "1",
+        "payloadHash": "bb35831fb39ce000333c2553ac4c150ef4954f03f6ae726c6bb2182d01b62d53",
+        "payload": {
+          "alarm": "HIGH_TEMP",
+          "state": "RAISED"
+        }
+      },
+      "messageText": "ebmr-gateway-feed-v1\nGW-TEST-ONLY-01\nOPCUA\nopcua.alarm@1\n4271\nGW-TEST-ONLY-01-751eb71819d0bcdf4234a8fbdc2f2514eca00fa5138927e4\nbb35831fb39ce000333c2553ac4c150ef4954f03f6ae726c6bb2182d01b62d53\n578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "messageHex": "65626d722d676174657761792d666565642d76310a47572d544553542d4f4e4c592d30310a4f504355410a6f706375612e616c61726d40310a343237310a47572d544553542d4f4e4c592d30312d3735316562373138313964306263646634323334613866626463326632353134656361303066613531333839323765340a626233353833316662333963653030303333336332353533616334633135306566343935346630336636616537323663366262323138326430316236326435330a35373862303264336436346365613336333339626261333531653139636135633931393762636466636333623564303061323564643031303630653262366630",
+      "signature": "oomF26QDznk4x+wiP94He5LVPIO7ggO3JK/KOGaETcYTyL9zDLmgpdHEpHikBeeAvSPUzNQJcBBkvx06TD9mDQ=="
+    },
+    {
+      "name": "equipment event above 2^53 (a float would round it)",
+      "gatewayCode": "GW-TEST-ONLY-01",
+      "keyId": "578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "envelope": {
+        "sourceSystem": "OPCUA",
+        "messageType": "opcua.equipment_event",
+        "sourceRecordId": "GRAN-01/event/9007199254740993",
+        "sourceTimestamp": "1760000000000000",
+        "sequenceNo": "9007199254740993",
+        "idempotencyKey": "GW-TEST-ONLY-01-4b67a96c88a8b211e1f4d3a808d39b36bd93a2c8b175e4eb",
+        "schemaVersion": "1",
+        "payloadHash": "0276fdd4fcf7489a763b13c82041cc33d76b4b609bc1dc60bcf18f6d9c400178",
+        "payload": {
+          "event": "RECIPE_LOADED",
+          "recipe": "R-1@3"
+        }
+      },
+      "messageText": "ebmr-gateway-feed-v1\nGW-TEST-ONLY-01\nOPCUA\nopcua.equipment_event@1\n9007199254740993\nGW-TEST-ONLY-01-4b67a96c88a8b211e1f4d3a808d39b36bd93a2c8b175e4eb\n0276fdd4fcf7489a763b13c82041cc33d76b4b609bc1dc60bcf18f6d9c400178\n578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "messageHex": "65626d722d676174657761792d666565642d76310a47572d544553542d4f4e4c592d30310a4f504355410a6f706375612e65717569706d656e745f6576656e7440310a393030373139393235343734303939330a47572d544553542d4f4e4c592d30312d3462363761393663383861386232313165316634643361383038643339623336626439336132633862313735653465620a303237366664643466636637343839613736336231336338323034316363333364373662346236303962633164633630626366313866366439633430303137380a35373862303264336436346365613336333339626261333531653139636135633931393762636466636333623564303061323564643031303630653262366630",
+      "signature": "enzVYik1wLBV+Ifc9oy4qZDn2FEU1mka7U8jwuJHm/DAKNgdemarOFjvk0xsnGnP+QDYU/HM/OwuH/r9nDNcDw=="
+    },
+    {
+      "name": "endpoint session at the largest 18-digit sequence",
+      "gatewayCode": "GW-TEST-ONLY-01",
+      "keyId": "578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "envelope": {
+        "sourceSystem": "OPCUA",
+        "messageType": "opcua.endpoint_session",
+        "sourceRecordId": "GRAN-01/session/1",
+        "sourceTimestamp": "1760000000000000",
+        "sequenceNo": "999999999999999999",
+        "idempotencyKey": "GW-TEST-ONLY-01-0ed73b4cbac4f319ac80be6630cd40ed6d66b912b750b35a",
+        "schemaVersion": "1",
+        "payloadHash": "7289405f49b4a7f8e367348bf61fe630f1679bc1001590637d9884d9c91b5b87",
+        "payload": {
+          "endpoint": "GRAN-01",
+          "securityPolicy": "Basic256Sha256"
+        }
+      },
+      "messageText": "ebmr-gateway-feed-v1\nGW-TEST-ONLY-01\nOPCUA\nopcua.endpoint_session@1\n999999999999999999\nGW-TEST-ONLY-01-0ed73b4cbac4f319ac80be6630cd40ed6d66b912b750b35a\n7289405f49b4a7f8e367348bf61fe630f1679bc1001590637d9884d9c91b5b87\n578b02d3d64cea36339bba351e19ca5c9197bcdfcc3b5d00a25dd01060e2b6f0",
+      "messageHex": "65626d722d676174657761792d666565642d76310a47572d544553542d4f4e4c592d30310a4f504355410a6f706375612e656e64706f696e745f73657373696f6e40310a3939393939393939393939393939393939390a47572d544553542d4f4e4c592d30312d3065643733623463626163346633313961633830626536363330636434306564366436366239313262373530623335610a373238393430356634396234613766386533363733343862663631666536333066313637396263313030313539303633376439383834643963393162356238370a35373862303264336436346365613336333339626261333531653139636135633931393762636466636333623564303061323564643031303630653262366630",
+      "signature": "kHJH1jif1TZrNwOguRSdohEYaobBza8qGMg+UHkPLPkX15rL3br3xGGWaiwHzCl4lRqA2AZcMX/akAaeTYCmDw=="
+    }
+  ]
+}

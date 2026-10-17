@@ -383,6 +383,10 @@ tests:
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the federation request and answer (kernel 1220, recipe-core 1093) > [DI-31] the asking site keeps only an answer that answers exactly its request"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > acts with no other test in the group (kernel 1220, 1221, site services 0980, recipe-core 1091) > [DI-18] [DI-31] an installation alarm is acknowledged once, with a note, by a person who holds ALARM.ACKNOWLEDGE and never by an administrator"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > acts with no other test in the group (kernel 1220, 1221, site services 0980, recipe-core 1091) > [DI-31] a package is sealed by the person who prepared it, and only a package that exists is sealed"
+  - "packages/integration-sdk/test/adapter/feed-signature.test.ts > the gateway feed signature v1 (DI-31; slice 7-0 section 2) > [DI-31] the feed signature message is built exactly as the v1 vectors"
+  - "packages/integration-sdk/test/adapter/feed-signature.test.ts > the gateway feed signature v1 (DI-31; slice 7-0 section 2) > [DI-31] the feed signature no longer verifies when the sequence, the type, the payload hash or any other signed line changes"
+  - "packages/integration-sdk/test/adapter/feed-signature.test.ts > the gateway feed signature v1 (DI-31; slice 7-0 section 2) > [DI-31] a gateway code, key id, payload hash or sequence outside its rule is refused before anything is signed"
+  - "packages/integration-sdk/test/adapter/feed-signature.test.ts > the gateway feed signature v1 (DI-31; slice 7-0 section 2) > [DI-31] an envelope may carry a gateway signature of the v1 shape only"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

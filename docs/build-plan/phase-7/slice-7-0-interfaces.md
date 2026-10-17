@@ -219,3 +219,48 @@ Each record states the commit, the host and the inputs, so a later run can be co
 - **D-P7-0-5** `schema_release()` hashes the migration ledger rather than reading a version the server reports, because
   the database cannot trust what a client says it is.
 - **D-P7-0-6** The bundle schema is versioned; a generator refuses a bundle whose `bundleVersion` it does not know.
+
+## 9. As built in the 7-0 commit (the lead, 17 October 2026)
+
+Additive to the sections above; slices build on these names.
+
+- **Messages.** `EBMR-VAL-001` no approved summary (kernel 1300); `EBMR-VAL-002` unknown bundle version, `EBMR-VAL-007`
+  bundle does not match the schema, `EBMR-VAL-008` an array out of order or a repeated key (`parseBundle`,
+  `packages/validation-kit/src/bundle/validate.ts`); `EBMR-VAL-003` malformed approval, `EBMR-VAL-004` not the running
+  release, `EBMR-VAL-005` already approved, `EBMR-VAL-006` no signature or not the approver's own (kernel 1300);
+  `EBMR-INT-036` a malformed interface of the system description. Next free: `EBMR-VAL-009`, `EBMR-INT-037`.
+- **One more permission:** `CONFIG.SYSTEM_DESCRIPTION` (GMP, WRITE): the writer `platform.describe_interface(def)`
+  needs it, under an approved change record of area SYSTEM_DESCRIPTION. Kernel 1300 grants it to PROCESS_OWNER and
+  CSV_DI_LEAD, and `VALIDATION.APPROVE_SUMMARY` to QA_REVIEWER and QA_MBR_APPROVER (as kernel 1195 grants CONFIG.*: a
+  signature meaning's permission is held by a kernel role, DI-35); tablets 1400 grants `CONTROLLED.READ` to every role
+  holding a CONTROLLED.* permission and to QA_REVIEWER. No recipe-core migration was needed (recipe-core 1200-1204 stay
+  free).
+- **The signed aggregate** of a summary approval is `validation_summary`, id `<schema release>@<summary sha256>`, meaning
+  `VALIDATION_SUMMARY_APPROVED`, expected state `PROPOSED`. The system description is `platform.system_interface`
+  (one version per adapter code, status DESCRIBED or WITHDRAWN; a LOOPBACK interface's host is a loopback name; an
+  OPCUA interface has a signed feed), read by `platform.system_description()` and `platform.interface_described(code)`.
+- **Kernel callers:** `config.schemaRelease`, `config.releaseOfLedger` (the same value from the files, for
+  `tools/validation`), `config.approveValidationSummary`, `config.validationSummaryProblem`, `config.describeInterface`,
+  `config.systemDescription`, `config.interfaceDescribed` (`packages/kernel/src/config/release.ts`).
+- **Test-kit helpers** take the people as `ValidationActs` (`app`, `qa()`, `qaSign(aggregate, meaning, state)`,
+  `systemOwner()`): `approveValidationSummary(acts, opts?)` and `approveSystemDescription(acts, interfaces)`;
+  `seededValidationActs(db, seed)` builds them for a seeded site (QA persona `qaInvestigator`, the bootstrap process
+  owner, a DEMO-ONLY seal key). The server's feature seed adapts `FeatureSeedContext.signAs` the same way.
+- **D-P7-0-7 Where the helpers are called.** Slice 7c, which adds the two interlocks, adds the calls to the GMP test
+  set-ups, the golden set-ups and the browser set-up in the same PR, and takes a golden output again there if the
+  approvals' audit entries move it (D-P7-12). Why: a call before the interlock exists changes golden outputs for
+  nothing, and 7c is the one slice that can show each set-up needs it. Slices merged before 7c are unaffected; slices
+  after it start from a main that has the calls.
+- **The feed signature** is `feedSignatureMessage` in `packages/integration-sdk/src/adapter/feed-signature.ts`, with 4
+  vectors in `packages/integration-sdk/fixtures/feed-signature-v1.json` (a key made for the test only) and their
+  generator `test/adapter/feed-signature-vectors.generate.ts`. The OPC UA event message type is `opcua.equipment_event`
+  (section 2's `opcua.event` means it). The SDK has no shared adapter options type, so it exports `AdapterTls` and
+  `AdapterTransportOptions { tls? }` for the server's adapters to extend (7a).
+- **The bundle** schema, types, `parseBundle`, `canonicalJson` and `bundleSha256` are in
+  `packages/validation-kit/src/bundle/`, with `fixtures/example-bundle.json`.
+- **The files of 1c** are in `compliance/validation/` with their schemas in `compliance/schema/`, checked by
+  `register:validate` (`tools/register/src/validation-files.ts`). `control-class.yaml` lists IN-12 as `other` and
+  names the Phase 4 "other" controls that later plans enforce in the database as `core`, with reasons.
+- **The migration-order check** is `tools/register/src/migration-order.ts` with its `[meta]` test; it compares the
+  working tree with `origin/main` (the CI tests job fetches one commit of it) and skips with the reason locally when
+  `origin/main` is missing.

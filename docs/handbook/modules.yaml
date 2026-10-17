@@ -107,11 +107,12 @@ modules:
     tests: ['packages/kernel/test/platform/**']
 
   - id: kernel-config
-    title: Configuration change control (change records, configuration versions, as-of and diff; Phase 6 slice 6f)
+    title: Configuration change control (change records, configuration versions, as-of and diff; Phase 6 slice 6f); the release identity, validation-summary approval and approved system description (Phase 7 slice 7-0)
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^1195_', '^1196_']
+      packages/kernel/sql: ['^1195_', '^1196_', '^1300_']
+      apps/tablets-server/sql: ['^1400_']
     src: [packages/kernel/src/config]
     tests: ['packages/kernel/test/config/**']
 
@@ -1153,7 +1154,7 @@ modules:
     tests: ['packages/test-kit/test/**']
 
   - id: validation-kit
-    title: Validation kit
+    title: Validation kit (evidence bundle schema and types, pack generators)
     page: modules/shared-kits.md
     package: packages/validation-kit
     src: [packages/validation-kit/src]
@@ -1219,6 +1220,11 @@ modules:
     page: modules/tools.md
     package: tools/regulatory
     src: [tools/regulatory]
+
+  - id: tools-validation
+    title: Validation pack tooling (evidence bundle, inventory, pack, IQ and OQ; built in slice 7c)
+    page: modules/tools.md
+    package: tools/validation
 
   - id: tools-sql-mutation
     title: SQL mutation harness

@@ -27,6 +27,9 @@ import {
   seedDemoSite,
   siteZoneOf,
   uniqueSuffix,
+  approveSystemDescription,
+  approveValidationSummary,
+  seededValidationActs,
   type DatabaseHandle,
   type SiteSeed,
 } from '../src/index.ts';
@@ -362,3 +365,37 @@ describe('test-kit installations', () => {
     }
   }, LONG);
 });
+
+describe('test-kit validation approvals (slice 7-0, kernel 1300, D-P7-12)', () => {
+  it('[DI-03][DI-06] a seeded GMP site approves the validation summary of its release and its system description through real signed acts', async () => {
+    const acts = await seededValidationActs(gmp, gmpSeed);
+    expect(await summaryProblem()).toMatch(/^EBMR-VAL-001/);
+    const summary = await approveValidationSummary(acts);
+    expect(await summaryProblem()).toBeNull();
+    const row = await gmp.admin.query<{ person: string; meaning: string }>(
+      `select s.approved_by_person::text as person, g.meaning_code as meaning
+         from platform.validation_summary s join esig.signature g on g.id = s.approved_signature where s.id = $1`,
+      [summary.id],
+    );
+    expect(row.rows).toEqual([{ person: personOf('qaInvestigator'), meaning: 'VALIDATION_SUMMARY_APPROVED' }]);
+    const cr = await approveSystemDescription(acts, [
+      { adapterCode: 'OPCUA-GW-1', sourceSystem: 'OPCUA', endpointHost: '127.0.0.1', transport: 'LOOPBACK', signedFeed: true, status: 'DESCRIBED' },
+      { adapterCode: 'ERP-1', sourceSystem: 'ERP_WMS', endpointHost: 'erp.plant.test', transport: 'MTLS', signedFeed: false, status: 'DESCRIBED' },
+    ]);
+    const described = await gmp.app.query<{ a: boolean; b: boolean; c: boolean }>(
+      "select platform.interface_described('OPCUA-GW-1') as a, platform.interface_described('ERP-1') as b, platform.interface_described('LMS-1') as c");
+    expect(described.rows[0]).toEqual({ a: true, b: true, c: false });
+    const state = await gmp.app.query<{ s: string }>('select platform.change_record_state(id) as s from platform.change_record where number = $1', [cr]);
+    expect(state.rows[0]?.s).toBe('CLOSED');
+  }, LONG);
+});
+
+async function summaryProblem(): Promise<string | null> {
+  return (await gmp.app.query<{ p: string | null }>('select platform.validation_summary_problem() as p')).rows[0]?.p ?? null;
+}
+
+function personOf(key: string): string {
+  const p = gmpSeed.personas.find((x) => x.key === key);
+  if (!p) throw new Error(`no persona ${key}`);
+  return p.personId;
+}

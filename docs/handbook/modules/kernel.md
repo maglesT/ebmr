@@ -1115,6 +1115,33 @@ slice 6f, builder A; [DI-09](../../../compliance/controls/DI-09.yaml); defaults 
   configuration table fails that scan until it is registered. Tests that set configuration for another purpose use the
   fixture record of [support/change-record.ts](../../../packages/kernel/test/support/change-record.ts) (`underChange`).
 
+## The release identity, the validation summary and the system description (Phase 7 slice 7-0; kernel 1300)
+
+[1300_release_identity_and_validation.sql](../../../packages/kernel/sql/1300_release_identity_and_validation.sql)
+([DI-03](../../../compliance/controls/DI-03.yaml), [DI-06](../../../compliance/controls/DI-06.yaml); interfaces in
+[slice-7-0-interfaces.md](../../build-plan/phase-7/slice-7-0-interfaces.md) section 4). The Tablets roles get
+CONTROLLED.READ in [tablets 1400](../../../apps/tablets-server/sql/1400_validation_and_controlled_read_roles.sql); kernel
+1300 grants VALIDATION.APPROVE_SUMMARY (QA_REVIEWER, QA_MBR_APPROVER) and CONFIG.SYSTEM_DESCRIPTION (PROCESS_OWNER,
+CSV_DI_LEAD) itself.
+
+- **Release identity.** `platform.schema_release()` is the SHA-256 over the migration ledger
+  (`public.schema_migration`): one line `namespace/name/checksum` per row, in byte order of namespace then name, joined
+  by a line feed. A database upgraded slice by slice and a fresh one give the same value, and `config.releaseOfLedger`
+  computes it from the files, so the IQ compares the bundle with the database.
+- **Validation summary.** `platform.approve_validation_summary(release, summary sha256, title, signature)` needs
+  VALIDATION.APPROVE_SUMMARY (QA) and the approver's own VALIDATION_SUMMARY_APPROVED signature over aggregate
+  `validation_summary`, id `<release>@<summary sha256>`. Only the running release is approved (EBMR-VAL-003 to -006).
+  `platform.validation_summary_problem()` gives EBMR-VAL-001 on a GMP installation whose running release has no
+  approved summary; slice 7c calls it at batch issue.
+- **System description.** Configuration area SYSTEM_DESCRIPTION (`platform.system_interface`), written by
+  `platform.describe_interface(def)` (CONFIG.SYSTEM_DESCRIPTION, the system owner) under an approved change record.
+  `platform.interface_described(code)` and `platform.system_description()` read the versions in force; slice 7c refuses
+  an interface that is not described (EBMR-INT-035).
+- **CONTROLLED.READ** is catalogued here and granted in tablets 1400; slice 7a gates the controlled reads with it.
+- **Tests:** `packages/kernel/test/config/release-identity.test.ts`; the test-kit helpers `approveValidationSummary`,
+  `approveSystemDescription` and `seededValidationActs` (`packages/test-kit/src/validation.ts`) do the same acts with
+  real signatures for GMP test databases, golden and browser set-ups.
+
 ## Vendor support, the contract giver's reviewer and the India DSC (kernel 1202 to 1205)
 
 Phase 6 slice 6f, builder B.
