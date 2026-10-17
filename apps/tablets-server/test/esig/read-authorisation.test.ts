@@ -180,8 +180,18 @@ describe('F34: the database (tablets 0410)', () => {
 
   it('[IN-53][DI-17] a controlled-substance record is read as content to be signed only in a role that records or signs that kind, or reviews governance records (tablets 1290; mutation triage)', async () => {
     const q = async <T extends Record<string, unknown>>(text: string, args: unknown[]): Promise<T | undefined> => (await gmp.db.admin.query<T>(text, args)).rows[0];
+    // Phase 7 slice 7a (tablets 1414, 6jc-R2): the reader is a real session, because CONTROLLED.READ is also decided in
+    // the scope of the reader's grant; an unknown record is judged in the session's site.
+    const sessions = new Map<string, string>();
+    const readerOf = async (role: string): Promise<string> => {
+      const known = sessions.get(role);
+      if (known) return known;
+      const h = hashOf(gmp, await loginOf(gmp, await grantedPerson(gmp, role, `Reader in role ${role.toLowerCase().replace(/_/g, ' ')}`)));
+      sessions.set(role, h);
+      return h;
+    };
     const problem = async (role: string, type: string): Promise<string | null> =>
-      (await q<{ p: string | null }>('select tab.record_read_problem(row(null, null, null, $1, false)::tab.reader, $2, $3) as p', [role, type, randomUUID()]))?.p ?? null;
+      (await q<{ p: string | null }>('select tab.record_read_problem(tab.reader_of($1), $2, $3) as p', [await readerOf(role), type, randomUUID()]))?.p ?? null;
     const holder = async (perm: string): Promise<string> => {
       const r = await q<{ role: string }>("select role_code as role from iam.role_permission where permission_code = $1 and removed_at is null order by 1 limit 1", [perm]);
       if (!r) throw new Error(`SETUP: no role holds ${perm}`);
@@ -200,7 +210,11 @@ describe('F34: the database (tablets 0410)', () => {
       expect(await problem(outsider, type), type).toMatch(new RegExp(`^${type} records are read only by the roles that record or sign them \\(IN-53\\); the role OPERATOR does not$`));
       for (const perm of perms) expect(await problem(await holder(perm), type), `${type} by a holder of ${perm}`).toBeNull();
       expect(await problem(governance, type), `${type} by ${governance}`).toBeNull();
+      // A governance reader without CONTROLLED.READ passes the rule of 1290 and is refused by 1414's (IN-53, 6jc-R2).
+      expect(await problem('CSV_DI_LEAD', type), `${type} by CSV_DI_LEAD`).toMatch(/lacks CONTROLLED\.READ: controlled-substance records are read only by the controlled-substance roles and QA \(IN-53\)$/);
     }
+    const lead = await q<{ gov: boolean; read: boolean }>("select tab.role_may('CSV_DI_LEAD', tab.governance_read_permissions()) as gov, tab.role_may('CSV_DI_LEAD', array['CONTROLLED.READ']) as read", []);
+    expect(lead, 'SETUP: CSV_DI_LEAD reads governance records and holds no CONTROLLED.READ').toEqual({ gov: true, read: false });
   });
 });
 

@@ -10,6 +10,8 @@
  *  - balance and checkpoints: the account per controlled material of a batch; the checkpoint is recorded here and signed
  *    with BALANCE_SIGN; a stage sign-off without it is refused by the database.
  *  - register extracts: run, list and read (with whether the result still reproduces).
+ * Every read is the session's own (Phase 7 slice 7a, 6jc-R2): tablets 1413 needs CONTROLLED.READ in the record's scope,
+ * else EBMR-CSM-060 or 061 (403).
  * The signed records are GOVERNANCE-class: their content is read through tablets 1250 (tab.controlled_preview,
  * tab.controlled_signing_content), as the support grants' is through 1275.
  */
@@ -39,6 +41,23 @@ export const guidance: Readonly<Record<string, GuidanceEntry>> = {
     whatHappened: 'Controlled-substance mode refused this.',
     whatYouCanDo: ['Read the reason below; the controlled-substance page shows the custody records and the batch account.'],
     whoCanHelp: ['QA', 'The shift supervisor'],
+    controls: ['IN-53'],
+  },
+  // Phase 7 slice 7a (6jc-R2): the reads need CONTROLLED.READ in the record's scope (tablets 1413, 1414).
+  'EBMR-CSM-060': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'Controlled-substance records are read only by the controlled-substance roles and QA. Nothing of them is shown.',
+    whatYouCanDo: ['Ask a custodian, the shift supervisor or QA.'],
+    whoCanHelp: ['QA', 'The system administrator (role grants)'],
+    controls: ['IN-53'],
+  },
+  'EBMR-CSM-061': {
+    status: 403,
+    kind: 'NOT_ALLOWED',
+    whatHappened: 'Your role reads controlled-substance records only for another site or product. Nothing of this one is shown.',
+    whatYouCanDo: ['Ask a person whose role covers this site and product.'],
+    whoCanHelp: ['QA', 'The system administrator (role grants)'],
     controls: ['IN-53'],
   },
   'EBMR-CSM-020': {
@@ -148,56 +167,51 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   };
   bindRoutes(scope, app, routes.controlled, {
     products: async ({ requireSession }) => {
-      requireSession();
-      return { banner: BANNER, products: await productViews(app, pool) };
+      return { banner: BANNER, products: await productViews(app, pool, requireSession().tokenHash) };
     },
-    recordProduct: async ({ body, actor, idempotencyKey, requestHash }) => {
+    recordProduct: async ({ body, actor, idempotencyKey, requestHash, requireSession }) => {
       const { attribution: _a, changeRecord, ...p } = body;
       void _a;
       await write({ actor, idempotencyKey, requestHash }, 'select plant.record_controlled_product($1::jsonb)::text as r', [JSON.stringify(p)], { changeRecord });
-      const [v] = await productViews(app, pool, p.productCode);
+      const [v] = await productViews(app, pool, requireSession().tokenHash, p.productCode);
       if (!v) throw notFound(`product ${p.productCode}`);
       return v;
     },
     custody: async ({ query, requireSession }) => {
-      requireSession();
-      return { banner: BANNER, records: await custodyViews(app, pool, query) };
+      return { banner: BANNER, records: await custodyViews(app, pool, requireSession().tokenHash, query) };
     },
-    proposeCustody: async ({ body, actor, idempotencyKey, requestHash }) => {
+    proposeCustody: async ({ body, actor, idempotencyKey, requestHash, requireSession }) => {
       const { attribution: _a, ...p } = body;
       void _a;
       const id = await write({ actor, idempotencyKey, requestHash }, 'select recipe.propose_controlled_custody($1::jsonb)::text as r', [JSON.stringify(compact(p))]);
-      const [v] = await custodyViews(app, pool, { custodyId: id });
+      const [v] = await custodyViews(app, pool, requireSession().tokenHash, { custodyId: id });
       if (!v) throw notFound('custody record');
       return v;
     },
     balance: async ({ params, requireSession }) => {
-      requireSession();
-      const v = await balanceView(app, pool, params.batchId);
+      const v = await balanceView(app, pool, requireSession().tokenHash, params.batchId);
       if (!v) throw notFound('batch');
       return v;
     },
-    recordCheckpoint: async ({ body, actor, idempotencyKey, requestHash }) => {
+    recordCheckpoint: async ({ body, actor, idempotencyKey, requestHash, requireSession }) => {
       const { attribution: _a, ...p } = body;
       void _a;
       const id = await write({ actor, idempotencyKey, requestHash }, 'select recipe.record_controlled_checkpoint($1::jsonb)::text as r', [JSON.stringify(compact(p))]);
-      const [v] = await checkpointViews(app, pool, { checkpointId: id });
+      const [v] = await checkpointViews(app, pool, requireSession().tokenHash, { checkpointId: id });
       if (!v) throw notFound('checkpoint');
       return v;
     },
     registerExtracts: async ({ requireSession }) => {
-      requireSession();
-      return { banner: BANNER, extracts: (await extractViews(app, pool)).summaries };
+      return { banner: BANNER, extracts: (await extractViews(app, pool, requireSession().tokenHash)).summaries };
     },
-    runRegister: async ({ body, actor, idempotencyKey, requestHash }) => {
+    runRegister: async ({ body, actor, idempotencyKey, requestHash, requireSession }) => {
       const id = await write({ actor, idempotencyKey, requestHash }, 'select recipe.run_controlled_register($1, $2::date, $3::date)::text as r', [body.materialCode, body.from, body.to]);
-      const { full } = await extractViews(app, pool, id);
+      const { full } = await extractViews(app, pool, requireSession().tokenHash, id);
       if (!full) throw notFound('register export');
       return full;
     },
     registerExtract: async ({ params, requireSession }) => {
-      requireSession();
-      const { full } = await extractViews(app, pool, params.extractId);
+      const { full } = await extractViews(app, pool, requireSession().tokenHash, params.extractId);
       if (!full) throw notFound('register export');
       return full;
     },
