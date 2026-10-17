@@ -151,6 +151,32 @@ export const FEATURES = {
     other: [`${S}/transfers/reads.ts`, `${S}/transfers/guidance.ts`],
     tests: [`${T}/transfers/*.test.ts`],
   },
+  // ---- Part 2 (decision 0019): the Phase 4 server features whose Stryker survivors decision 0012 left to deployment.
+  //      Their Phase 4 reports were lost with that container, so they run again here, high-risk files first. ----
+  'p4-server-release': {
+    kind: 'server',
+    high: [`${S}/release/index.ts`, `${S}/release/after-release.ts`, `${S}/release/signables.ts`],
+    other: [`${S}/release/reads.ts`],
+    tests: [`${T}/release/*.test.ts`],
+  },
+  'p4-server-records': {
+    kind: 'server',
+    high: [`${S}/records/index.ts`, `${S}/records/signables.ts`, `${S}/archive/index.ts`],
+    other: [`${S}/records/reads.ts`, `${S}/archive/facts.ts`],
+    tests: [`${T}/records/*.test.ts`],
+  },
+  'p4-server-india': {
+    kind: 'server',
+    high: [`${S}/india/index.ts`],
+    other: [],
+    tests: [`${T}/india/*.test.ts`],
+  },
+  'p4-server-pqr': {
+    kind: 'server',
+    high: [`${S}/pqr/index.ts`, `${S}/pqr/signables.ts`],
+    other: [`${S}/pqr/reads.ts`],
+    tests: [`${T}/pqr/*.test.ts`],
+  },
   // ---- Simulators: the behaviour the adapter, gateway and golden-batch tests rely on (80 %) ----
   simulators: {
     kind: 'unit',
