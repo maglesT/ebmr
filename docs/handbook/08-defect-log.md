@@ -1052,6 +1052,29 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 - **Lesson:** a function re-created in full belongs to the highest migration that touches it; check the numbers after
   your range, not only inside it.
 
+### 6jc-R2: any session read the controlled register and balance (Phase 6 exit review, decision 0022)
+- **What went wrong.** The controlled-substance routes checked only that a session existed, and read the tables of
+  recipe-core 1031 to 1034 with the application role, which could SELECT them all and run their read functions. An
+  operator on a kiosk, a system administrator, or anyone holding the application's database credentials read every
+  flag, custody record (who held which lot), batch account and register export.
+- **Why it matters.** Draft IN-53 limits these records to the people who hold them in custody and to QA. The register
+  and the balance show where a narcotic or psychotropic API is and how much of it, which is what a diversion needs.
+- **Fix.** Recipe-core [1214](../../packages/recipe-core/sql/1214_controlled_reads_closed.sql) revokes the application
+  role's reads of the eight tables and fourteen read functions (the writers keep their grants). Tablets
+  [1413](../../apps/tablets-server/sql/1413_controlled_reads_gated.sql) adds gated definers for the session behind the
+  request: CONTROLLED.READ (tablets 1400), no administrator, and a grant whose scope covers the record's {site, product};
+  lists are filtered row by row, a named batch or record out of scope is refused (EBMR-CSM-060, 061: 403). Tablets
+  [1414](../../apps/tablets-server/sql/1414_controlled_record_read.sql) asks the same rule of the signing preview and of
+  `tab.record_read_problem` (signatures and their audit chains), keeping every rule of 1290. Open: the audit
+  viewer still reads the chains of the controlled records by role (GOVERNANCE class) and shows custody and checkpoint
+  entries on the lot and batch chains (RECORD.READ); a residual for the owner.
+- **Test.** `[IN-53] the controlled register and balance reads need CONTROLLED.READ` and the other tests of
+  [controlled-read.test.ts](../../apps/tablets-server/test/controlled/controlled-read.test.ts) (HTTP 403, the bypass,
+  product and site scope, the preview); the bypass of 1214 again in the package database in
+  [controlled.test.ts](../../packages/site-services/test/controlled/controlled.test.ts).
+- **Lesson:** a read route that checks only "a session exists" is no control; when the data is restricted, the grant on
+  the table is the first thing to close.
+
 ## Floor screens (web)
 
 ### P2-F57 to F65: the shop-floor forms under real use

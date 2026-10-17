@@ -70,7 +70,7 @@ async function flag(product: string, materials: string[], approve = true): Promi
 
 const propose = (who: SeededActor, p: Json): Promise<string> => one<string>(who, 'select recipe.propose_controlled_custody($1::jsonb) as r', [JSON.stringify(p)]);
 const custodyState = async (id: string): Promise<string> =>
-  (await db.app.query<{ s: string }>('select recipe.controlled_custody_state($1) as s', [id])).rows[0]?.s ?? '';
+  (await db.admin.query<{ s: string }>('select recipe.controlled_custody_state($1) as s', [id])).rows[0]?.s ?? '';
 const recordCustodySig = (who: SeededActor, id: string, sig: string): Promise<string> => one<string>(who, 'select recipe.sign_controlled_custody($1, $2) as r', [id, sig]);
 
 async function signCustody(who: SeededActor, id: string): Promise<string> {
@@ -141,7 +141,7 @@ describe('controlled-substance mode, rule by rule (IN-53, draft; recipe-core 103
     expect(await refusal(recordCustodySig(w.cast.warehouse, id2, witnessSig))).toMatch(/EBMR-CSM-023 a custodian records the signature they gave themselves/);
     expect(await custodyState(id2)).toBe('AWAITING_COUNTERSIGN');
     expect(await recordCustodySig(w.cast.witness, id2, witnessSig)).toBe('CONFIRMED');
-    expect((await db.app.query<{ c: string[] }>('select recipe.controlled_custodians($1) as c', [id2])).rows[0]?.c).toEqual([w.cast.dispenser.personId, w.cast.witness.personId]);
+    expect((await db.admin.query<{ c: string[] }>('select recipe.controlled_custodians($1) as c', [id2])).rows[0]?.c).toEqual([w.cast.dispenser.personId, w.cast.witness.personId]);
   });
 
   it('[IN-53][DI-35] a checkpoint signature and a flag approval are recorded only by the person who gave them', async () => {
@@ -166,7 +166,7 @@ describe('controlled-substance mode, rule by rule (IN-53, draft; recipe-core 103
     const product = unique('P');
     await flag(product, [m1]);
     await flag(product, [m1, m2], false);
-    expect((await db.app.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([m1, m2].sort());
+    expect((await db.admin.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([m1, m2].sort());
   });
 
   it('[IN-53] a custody act is a positive decimal in the lot\'s unit, never more than the lot holds, and a dispensing goes only into a running batch', async () => {
@@ -239,6 +239,6 @@ describe('controlled-substance mode, rule by rule (IN-53, draft; recipe-core 103
     // Once the API is dispensed, the account counts the API alone (not the excipient).
     await custody({ kind: 'DISPENSE', lotId: api.lot.lotId, batchId: api.batch.id, quantity: '1' });
     await w.consume(api.batch, api.reservation, api.lot.materialCode, '1');
-    expect((await db.app.query<{ b: Json }>('select recipe.controlled_balance($1, $2) as b', [api.batch.id, api.lot.materialCode])).rows[0]?.b).toMatchObject({ dispensed: '1', unit: 'kg' });
+    expect((await db.admin.query<{ b: Json }>('select recipe.controlled_balance($1, $2) as b', [api.batch.id, api.lot.materialCode])).rows[0]?.b).toMatchObject({ dispensed: '1', unit: 'kg' });
   });
 });

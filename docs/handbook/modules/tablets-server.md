@@ -1518,6 +1518,35 @@ preview them is [tablets 1290](../../../apps/tablets-server/sql/1290_controlled_
 6f's 1276, which re-creates `tab.record_read_problem`; D-P6e-10). Every response carries the draft banner. Guidance for EBMR-CSM-*
 (EBMR-CSM-020 tells the dispenser to have the custody record countersigned). Tests:
 [controlled-routes.test.ts](../../../apps/tablets-server/test/controlled/controlled-routes.test.ts).
+
+**Who reads the records (Phase 7 slice 7a, 6jc-R2; draft IN-53; decision 0022).** Each read, including the views read
+back after a write, is the session's own: the route passes the session's token hash to a gated definer of
+[tablets 1413](../../../apps/tablets-server/sql/1413_controlled_reads_gated.sql) (`tab.controlled_products`,
+`tab.controlled_custody`, `tab.controlled_checkpoints`, `tab.controlled_balance`, `tab.controlled_register_extracts`).
+The application role no longer reads the tables (recipe-core 1214). `tab.controlled_reader_problem` lets a session read
+only when its role holds CONTROLLED.READ now (tablets 1400 grants it to every role holding a CONTROLLED.* permission and
+to QA_REVIEWER), the role is not an administration role, the account is not a break-glass account, and the account
+holds the role through a grant whose scope covers the record's {site, product}:
+
+| Record | Scope |
+|---|---|
+| A flag | the session's site and the product |
+| A custody record | the lot's site, and the batch's product when the record names a batch |
+| A checkpoint or a batch's account | the batch's site and product |
+| A register export | the session's site, with no product (the register covers every product of the material) |
+
+A list (flags, custody records of a lot, register exports) needs CONTROLLED.READ at the session's site. It then shows
+only the rows in scope. A batch, a custody record or a checkpoint asked for by its id, and out of scope, is refused. A
+grant limited to a product never covers a record that has no product, such as a transfer or the register. The codes are
+EBMR-CSM-060 (no CONTROLLED.READ, or an administrator) and EBMR-CSM-061 (not in this scope); both answer 403 with
+guidance. [Tablets 1414](../../../apps/tablets-server/sql/1414_controlled_record_read.sql) asks the same rule in two more
+places: `tab.controlled_preview`, after the meaning's permission, and `tab.record_read_problem` for the three
+controlled types, after the rule of 1290. So a governance reader without CONTROLLED.READ (the CSV/DI lead, an auditor)
+no longer previews a controlled record or reads its signatures and their chains. A later migration that re-creates
+either function starts from 1414. Not yet covered: the audit viewer reads the chains of the controlled records by role
+(the GOVERNANCE class of tablets 0420) and shows the custody and checkpoint entries on the lot's and the batch's chains
+(RECORD.READ), because recipe-core 1032 and 1033 file them there. The product flag and the draft banner are unchanged. Tests:
+[controlled-read.test.ts](../../../apps/tablets-server/test/controlled/controlled-read.test.ts).
 ## ts-genealogy: genealogy, complaint lookup and mock recall
 
 Phase 6 slice 6d. [features/genealogy](../../../apps/tablets-server/src/features/genealogy/index.ts) serves the `genealogy`
