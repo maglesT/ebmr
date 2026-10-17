@@ -296,7 +296,7 @@ the database cannot make. Killing tests were proved against the original (pass) 
 | Item | What runs | Result |
 |---|---|---|
 | Scope A kill confirmation (232) | the four scope A groups run whole (D-P6j-M-7): the whole run is the kill confirmation and the new first run | release-gate 211 / 240 (**87.9 %**, Phase 4 47.2 %); release-gate-market-items 49 / 51 (**96.1 %**, 74.5 %); manufacturer-release 158 / 163 (**96.9 %**, 63.6 %); tablets-release-items 175 / 254 (**68.9 %**, 59.3 %). Phase 4's survivor list was lost, so the whole run stands for the confirmation: 115 survivors left in the four groups (Phase 4: 298), triaged in "Part 2 triage (T11)" |
-| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); after-release-decisions 187 / 192 (**97.4 %**, 76.6 %); shipping-interlock 75 / 75 (**100 %**, 85.5 %); the other three: SCOPE_B_REST |
+| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); after-release-decisions 187 / 192 (**97.4 %**, 76.6 %); shipping-interlock 75 / 75 (**100 %**, 85.5 %); record-lock-and-amendment 161 / 163 (**98.8 %**, 85.3 %); bulk-and-bright-stock and execution-complete-forms still running at the close of the T11 triage (not triaged, time box) |
 | us-disposition | first full run (146 mutants) | 83 / 146 (**56.8 %**, first score); 12 survivors aimed at by new tests (confirmation 11 / 12, the twelfth's near miss added after it), 2 equivalent, 49 P3: about 94 / 146 after triage |
 | qp-certification | first full run | 106 / 182 (**58.2 %**, first score); 17 survivors aimed at by new tests, 2 equivalent, 57 P3 |
 | market-changes | first full run | 62 / 153 (**40.5 %**, first score); 30 survivors aimed at by new tests (confirmation 26 / 30, 3 more tests added after it), 1 equivalent, 60 P3 |
@@ -490,7 +490,12 @@ exercised, or a refusal that a later layer repeats (named below).
   EBMR-ESIG-043/044, after-release.test.ts), `recipe.release_suspension_content#1` (the existence check of a finished
   lot reads another row: content for a lot id that is no finished lot, which the act refuses).
 - shipping-interlock: 75 / 75 (**100 %**; 14 equivalent marked by the harness; Phase 4 85.5 %).
-- record-lock-and-amendment, bulk-and-bright-stock, execution-complete-forms: RECORD_LOCK_LINE
+- record-lock-and-amendment: 161 / 163 (**98.8 %**; 3 equivalent marked by the harness; Phase 4 85.3 %). P3:
+  `recipe.lock_at_first_disposition#9` (`e.event = 'LOCKED'` to `<>`: differs only for a batch already holding a lock
+  event at a lot's first disposition, which then gets a second LOCKED event or a refusal, never an unlocked record),
+  `recipe.append_amendment_entry#8` (lock only).
+- bulk-and-bright-stock, execution-complete-forms: **not triaged, time box** (stream p4-d was still on
+  bulk-and-bright-stock, the last but one group, when this triage closed).
 
 ### equipment-data-and-alarms (triage T1)
 
