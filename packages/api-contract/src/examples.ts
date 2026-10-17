@@ -567,6 +567,7 @@ export const ANALYTICS_EXAMPLES = {
   'analytics-mspc-candidates': { schema: an.analyticsMspc.candidates.response, data: anaMspc.candidates, routeId: an.analyticsMspc.candidates.id },
   'analytics-audit-flags': { schema: an.analyticsAudit.flags.response, data: anaAudit.flags, routeId: an.analyticsAudit.flags.id },
   'analytics-audit-flag': { schema: an.analyticsAudit.flag.response, data: anaAudit.flag, routeId: an.analyticsAudit.flag.id },
+  'analytics-audit-entries': { schema: an.analyticsAudit.entries.response, data: anaAudit.entries, routeId: an.analyticsAudit.entries.id },
   'analytics-review-priority': { schema: an.analyticsReview.priority.response, data: anaReview.priority, routeId: an.analyticsReview.priority.id },
   'analytics-review-unscored': { schema: an.analyticsReview.priority.response, data: anaReview.unscored, routeId: an.analyticsReview.priority.id },
   'analytics-profile-batch': { schema: an.analyticsProfile.batch.response, data: anaProfile.batch, routeId: an.analyticsProfile.batch.id },

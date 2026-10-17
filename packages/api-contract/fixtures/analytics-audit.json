@@ -50,6 +50,16 @@
         "disposition": null,
         "drill": "/analytics/audit-flags/f6000000-0000-4000-8000-000000000004"
       }
+    ],
+    "repeats": [
+      {
+        "flagId": "f6000000-0000-4000-8000-000000000004",
+        "raisedCount": 3,
+        "firstRaisedAt": {
+          "us": "1791529200000000",
+          "text": "11-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+        }
+      }
     ]
   },
   "flag": {
@@ -156,6 +166,28 @@
           "text": "12-OCT-2026 12:10:00 +05:30 (Asia/Kolkata)"
         },
         "current": true
+      }
+    ]
+  },
+  "entries": {
+    "advisory": true,
+    "notForGmpDecisions": true,
+    "method": null,
+    "run": null,
+    "dataAgeSeconds": 3600,
+    "batchId": "b6000000-0000-4000-8000-000000000012",
+    "entries": [
+      {
+        "eventId": "88",
+        "chainKey": "batch:b6000000-0000-4000-8000-000000000012",
+        "flags": [
+          {
+            "flagId": "f6000000-0000-4000-8000-000000000004",
+            "rule": "LATE_ENTRY",
+            "severity": "INFO",
+            "verdict": null
+          }
+        ]
       }
     ]
   }

@@ -33,3 +33,6 @@ export {
   type Severity,
   type SubjectKind,
 } from './types.ts';
+// Slice 6A-4: the audit-trail methods (rules, then per-person baselines).
+export * as audit from './methods/audit/index.ts';
+export { ATA_BASELINE, ATA_RULES, type AuditBaselineParameters, type AuditInput, type AuditRulesParameters } from './methods/audit/index.ts';
