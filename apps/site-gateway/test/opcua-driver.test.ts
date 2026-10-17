@@ -3,7 +3,7 @@
  * transport plays the endpoint, so each rule is exercised exactly (the real node-opcua transport against the simulator
  * is opcua-simulator.test.ts).
  */
-import { mkdtempSync } from 'node:fs';
+import { appendFileSync, closeSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -259,5 +259,118 @@ describe('the OPC UA client driver', () => {
     expect(f2.nextChunkNo('PRESS-01', 'force.main_kN')).toBe(8n);
     expect(f2.reconciliation(0n, 10n)).toMatchObject({ sourceCount: '1' });
     await f2.close();
+  });
+});
+
+// Mutation triage T12 (Phase 6 slice 6j; decision 0019): rules of the gateway that only this TypeScript enforces (the
+// database never sees what the gateway drops, and cannot tell which endpoint of the gateway sent an alarm).
+describe('the OPC UA driver and feed: what only the gateway can check (T12)', () => {
+  it('[DI-31] a malformed data change, a setpoint value of a tag without a setpoint and a tag of another kind of unit each alarm MALFORMED and are never chunked', async () => {
+    const { t, d, feed, alarms } = await rig();
+    await until(() => d.state === 'ONLINE', 2000, 'online');
+    t.onChange?.({ nodeId: opcuaNodeId('PRESS-01', 'force.main_kN'), sample: { sourceTime: '1000', serverTime: null, raw: '12.5', value: '12.5', status: 'GOOD' } });
+    t.onChange?.({ nodeId: `${opcuaNodeId('PRESS-01', 'tablet.count')}/setpoint`, sample: { sourceTime: '1000', serverTime: null, raw: '5', value: '5', status: '0x00000000' } });
+    t.push('pan.speed_rpm', 1000n, '1.0'); // a coater's tag: the press has none
+    expect(alarms.map((a) => a.kind)).toEqual(['MALFORMED', 'MALFORMED', 'MALFORMED']);
+    await d.stop();
+    expect(feed.published().filter((m) => m.messageType === 'opcua.series_chunk')).toHaveLength(0);
+  });
+
+  it('[DI-31][DI-20] a malformed alarm or event alarms MALFORMED; an alarm naming a unit this endpoint does not serve, or a room, is refused (WRONG_UNIT) and never published', async () => {
+    const { t, d, feed, alarms } = await rig();
+    await until(() => d.state === 'ONLINE', 2000, 'online');
+    const alarm: EquipmentAlarmV1 = {
+      subjectKind: 'EQUIPMENT', subjectCode: 'PRESS-01', occurrenceId: 'occ-1', transition: 'RAISED', alarmCode: 'REJECT_BURST', severity: '700', tag: null, value: null, limit: null, limitKind: null,
+      message: 'Reject burst', occurredAt: '1790000000000000',
+    };
+    // PRESS-02 may be served by another endpoint of the same gateway: the feed is the gateway's, so only the driver can
+    // bind an alarm to the endpoint that raised it.
+    t.onAlarm?.({ ...alarm, subjectCode: 'PRESS-02', occurrenceId: 'occ-2' });
+    t.onAlarm?.({ ...alarm, subjectKind: 'AREA', subjectCode: 'PRESS-01', occurrenceId: 'occ-3' }); // a room, whatever its code
+    t.onAlarm?.({ ...alarm, severity: 'high' });
+    t.onEvent?.({ equipmentCode: 'PRESS-01', eventId: 'e-1', kind: 'NO_SUCH_KIND', state: null, recipeVersion: null, message: 'x', occurredAt: '1790000000000000' } as unknown as EquipmentEventV1);
+    expect(alarms.map((a) => a.kind)).toEqual(['WRONG_UNIT', 'WRONG_UNIT', 'MALFORMED', 'MALFORMED']);
+    expect(types(feed).filter((x) => x === 'opcua.alarm' || x === 'opcua.equipment_event')).toEqual([]);
+  });
+
+  it('[DI-31][DI-32] the process view: refused while the session is lost (never the last values); a BAD sample shows no value; a doubtful setpoint is not shown; the active alarms of the unit\'s tags are passed on', async () => {
+    const { t, d } = await rig();
+    await until(() => d.state === 'ONLINE', 2000, 'online');
+    t.push('force.main_kN', 1000n, '12.5');
+    t.push('turret.speed_rpm', 1000n, '40.0', '0x80000000');
+    t.onChange?.({ nodeId: opcuaSetpointNodeId('PRESS-01', 'force.main_kN'), sample: { sourceTime: '1000', serverTime: null, raw: '12.50', value: '12.50', status: '0x40000000' } });
+    t.onChange?.({ nodeId: opcuaActiveAlarmsNodeId('PRESS-01'), sample: { sourceTime: '1000', serverTime: null, raw: 'FORCE_MAIN_HIGH|force.main_kN;SPEED_LOW|turret.speed_rpm;bad code|force.main_kN', value: null, status: '0x00000000' } });
+    const r = await d.unit('PRESS-01').read();
+    if (!r.ok) throw new Error('not ok');
+    expect(r.sample.values.map((v) => v.tag)).toEqual(['force.main_kN']);
+    expect(r.sample.setpoints).toEqual([]);
+    expect(r.sample.alarms).toEqual([{ code: 'FORCE_MAIN_HIGH', tag: 'force.main_kN' }]);
+    t.lost?.('socket reset');
+    expect(await d.unit('PRESS-01').read()).toMatchObject({ ok: false, error: 'OFFLINE' });
+  });
+
+  it('[DI-31] the feed journal at restart: a torn last line (never acknowledged) is dropped; a damaged line before the end refuses to open, never truncating the feed', async () => {
+    const clock = new TestClock();
+    const make = async (): Promise<string> => {
+      const dir = mkdtempSync(join(tmpdir(), 'opcua-feed-'));
+      const f = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', clock });
+      for (const id of ['e-1', 'e-2', 'e-3']) f.sink().event({ equipmentCode: 'PRESS-01', eventId: id, kind: 'FAULT', state: null, recipeVersion: null, message: 'x', occurredAt: '1' });
+      await f.close();
+      return dir;
+    };
+    const torn = await make();
+    appendFileSync(join(torn, 'opcua-feed.jsonl'), '{"sourceSystem":"OPCUA","messageTy');
+    const f1 = OpcuaFeed.open({ dir: torn, gatewayCode: 'GW-TEST', clock });
+    expect(f1.head()).toBe(3n);
+    await f1.close();
+    const damaged = await make();
+    const path = join(damaged, 'opcua-feed.jsonl');
+    const lines = readFileSync(path, 'utf8').split('\n');
+    lines[1] = '{"damaged';
+    writeFileSync(path, lines.join('\n'));
+    expect(() => OpcuaFeed.open({ dir: damaged, gatewayCode: 'GW-TEST', clock })).toThrow(/damaged at line 2/);
+  });
+
+  it('[DI-31] a journal that cannot be written alarms once and stops the feed: nothing more is published, the head stays, the heartbeat answers 503', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opcua-feed-'));
+    const alarms: string[] = [];
+    const feed = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', clock: new TestClock(), onAlarm: (a) => alarms.push(a.kind) });
+    const ev = (id: string): EquipmentEventV1 => ({ equipmentCode: 'PRESS-01', eventId: id, kind: 'FAULT', state: null, recipeVersion: null, message: 'x', occurredAt: '1' });
+    feed.sink().event(ev('e-1'));
+    const port = await feed.serve('127.0.0.1', 0);
+    expect((await fetch(`http://127.0.0.1:${port.toString()}/opcua/v1/heartbeat`)).status).toBe(200);
+    // The journal's descriptor becomes read-only: the next write fails as a full or failed disk would.
+    const priv = feed as unknown as { fd: number };
+    closeSync(priv.fd);
+    priv.fd = openSync(join(dir, 'opcua-feed.jsonl'), 'r');
+    feed.sink().event(ev('e-2'));
+    feed.sink().event(ev('e-3'));
+    expect(alarms).toEqual(['FEED_JOURNAL_FAILED']);
+    expect(feed.head()).toBe(1n);
+    expect(feed.healthy).toBe(false);
+    expect((await fetch(`http://127.0.0.1:${port.toString()}/opcua/v1/heartbeat`)).status).toBe(503);
+    await feed.close();
+  });
+
+  it('[DI-31] the feed protocol pages the journal in order, without a gap or a repeat, and refuses malformed requests', async () => {
+    const feed = OpcuaFeed.open({ dir: mkdtempSync(join(tmpdir(), 'opcua-feed-')), gatewayCode: 'GW-TEST', clock: new TestClock() });
+    for (let i = 1; i <= 5; i++) feed.sink().event({ equipmentCode: 'PRESS-01', eventId: `e-${i.toString()}`, kind: 'FAULT', state: null, recipeVersion: null, message: 'x', occurredAt: i.toString() });
+    const port = await feed.serve('127.0.0.1', 0);
+    const get = async (q: string): Promise<{ status: number; body: { messages?: { sequenceNo: string }[]; head?: string } }> => {
+      const r = await fetch(`http://127.0.0.1:${port.toString()}/opcua/v1/${q}`);
+      return { status: r.status, body: (await r.json()) as { messages?: { sequenceNo: string }[]; head?: string } };
+    };
+    const seqs = async (q: string) => (await get(q)).body.messages?.map((m) => m.sequenceNo);
+    expect(await seqs('feed?after=0&limit=2')).toEqual(['1', '2']);
+    expect(await seqs('feed?after=2&limit=2')).toEqual(['3', '4']);
+    expect(await seqs('feed?after=4&limit=100')).toEqual(['5']);
+    expect(await get('feed?after=9&limit=2')).toEqual({ status: 200, body: { messages: [], head: '5' } });
+    expect(await seqs('feed')).toEqual(['1', '2', '3', '4', '5']);
+    expect((await get('feed?after=-1&limit=2')).status).toBe(400);
+    expect((await get('feed?after=0&limit=0')).status).toBe(400);
+    expect((await get('reconciliation?from=5&to=5')).status).toBe(400);
+    expect((await get('reconciliation?from=1&to=6')).body).toMatchObject({ sourceCount: '5' });
+    expect((await fetch(`http://127.0.0.1:${port.toString()}/opcua/v1/feed`, { method: 'POST' })).status).toBe(405);
+    await feed.close();
   });
 });
