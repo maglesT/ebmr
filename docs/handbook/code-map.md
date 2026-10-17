@@ -31,7 +31,7 @@ of each database function.
 | [analytics-mspc](#analytics-mspc) | Multivariate monitoring (Phase 6A slice 6A-3) - method MSPC.PCA (T-squared, Q, contributions), reference sets in runs for SPC and PCA, repeated flags shown once | [modules/analytics.md](modules/analytics.md) | 2 | 0 | 0 | 1 |
 | [analytics-review](#analytics-review) | Review priority (Phase 6A slice 6A-5) - the review facts, REVIEW.PRIORITY v1, the review queue ordered by it with its reasons | [modules/analytics.md](modules/analytics.md) | 1 | 0 | 1 | 1 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
-| [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 5 | 0 | 3 | 4 |
+| [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 6 | 0 | 3 | 4 |
 | [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 0 | 0 |
 | [kernel-area-authorisation](#kernel-area-authorisation) | Area authorisation per person for controlled areas (Phase 6 slice 6b, PR-15) | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 0 | 0 |
 | [kernel-installation](#kernel-installation) | Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests | [modules/kernel.md](modules/kernel.md) | 4 | 0 | 83 | 41 |
@@ -95,7 +95,7 @@ of each database function.
 | [ts-qp-package](#ts-qp-package) | EU QP batch package and certification message intake | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 0 | 0 |
 | [ts-erp-shipping](#ts-erp-shipping) | ERP shipping interlock | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 0 | 0 | 0 |
 | [ts-records](#ts-records) | Record lock and bright stock | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 7 | 5 | 11 |
-| [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 1 | 6 | 9 | 6 |
+| [ts-integrations](#ts-integrations) | Integration health, mirrors and integration alarms | [modules/integrations.md](modules/integrations.md) | 2 | 6 | 9 | 6 |
 | [ts-alarms](#ts-alarms) | Plant alarm log, equipment data, plant rules and their screens (Phase 6 slice 6b) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 27 | 13 | 9 |
 | [ts-capa](#ts-capa) | CAPA register and closure (Phase 6 slice 6a, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 9 | 2 | 3 |
 | [ts-labels](#ts-labels) | Packaging line completion (specimens, post-use inspection, vision line stops, reconciliation waiver, label templates and store) (Phase 6 slice 6c) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 17 | 2 | 7 |
@@ -554,9 +554,9 @@ of each database function.
 
 **Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness).** Package `packages/kernel`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Migrations** (5):
+**Migrations** (6):
 
-- `packages/kernel/sql`: [1180_inbound_adapter_framework.sql](../../packages/kernel/sql/1180_inbound_adapter_framework.sql), [1181_inbound_overrides_and_lms_mirror.sql](../../packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql), [1182_mirror_sync_caught_up.sql](../../packages/kernel/sql/1182_mirror_sync_caught_up.sql), [1186_lms_qualification_inbound.sql](../../packages/kernel/sql/1186_lms_qualification_inbound.sql), [1305_source_signature_marker.sql](../../packages/kernel/sql/1305_source_signature_marker.sql)
+- `packages/kernel/sql`: [1180_inbound_adapter_framework.sql](../../packages/kernel/sql/1180_inbound_adapter_framework.sql), [1181_inbound_overrides_and_lms_mirror.sql](../../packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql), [1182_mirror_sync_caught_up.sql](../../packages/kernel/sql/1182_mirror_sync_caught_up.sql), [1186_lms_qualification_inbound.sql](../../packages/kernel/sql/1186_lms_qualification_inbound.sql), [1305_source_signature_marker.sql](../../packages/kernel/sql/1305_source_signature_marker.sql), [1306_transport_peer_advisory.sql](../../packages/kernel/sql/1306_transport_peer_advisory.sql)
 
 **Database objects** created in these migrations:
 
@@ -1899,9 +1899,9 @@ of each database function.
 
 **Integration health, mirrors and integration alarms.** Package `apps/tablets-server`. Handbook: [modules/integrations.md](modules/integrations.md).
 
-**Migrations** (1):
+**Migrations** (2):
 
-- `apps/tablets-server/sql`: [1405_gateway_feed_signature.sql](../../apps/tablets-server/sql/1405_gateway_feed_signature.sql)
+- `apps/tablets-server/sql`: [1405_gateway_feed_signature.sql](../../apps/tablets-server/sql/1405_gateway_feed_signature.sql), [1406_gateway_feed_one_adapter.sql](../../apps/tablets-server/sql/1406_gateway_feed_one_adapter.sql)
 
 **Database objects** created in these migrations:
 
