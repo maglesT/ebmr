@@ -37,6 +37,8 @@ tests:
   - "apps/tablets-server/test/review/audit-events-once.test.ts > the audit-trail review's event list (recipe-core 0931) > [INV-48][DI-25] gives the events of the record's scope exactly as its query with the window read first"
   - "apps/tablets-server/test/review/review-routes.test.ts > the CORRECT_ENTRY route (outline 5.2.3 path (a); S25) > [DI-25][DI-24][DI-07] a value changed after entry, on a field classed non-critical, shows with its original in the checker's step view, in the exception register with both values and the reason, and in the audit-trail review list"
   - "packages/recipe-core/test/review/review.test.ts > no configuration defers the audit-trail review (DI-25) > [DI-25] no setting, policy, rule key or e-signature or access policy of the installation offers to defer or skip the audit-trail review, the review gates read no configuration, and the QA review and the disposition wait for the signed review"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE) > [DI-25][DI-53] the entries route names the flagged entries of a batch's audit-trail review scope, and only those"
+  - "apps/tablets-web/test/analytics-audit/audit.test.tsx > audit-trail flags (GMP) > [DI-25] the audit-trail review panel orders flagged entries first and still lists every entry"
 clauses:
   - clause: "Change a value after entry. It appears in the checker's step view and in the batch review list."
     tests:

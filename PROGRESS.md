@@ -203,7 +203,15 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   (ml-matrix, @stdlib quantiles), the runner's number lint ban, and the golden batches with the runner on. Defaults
   D-6A-1-1 to 23 in the plan. Quick review: one medium fixed (a version validated with an earlier build could not
   be retired after an upgrade; D-6A-1-23); golden GB-T-01 to GB-T-03 passed with the runner on.
-- **6A-2 (17 October, branch `phase-6a/slice-2`, pushed, no PR yet):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
+- **6A-1 merged (PR #44).** **6A-4 (17 October, branch `phase-6a/slice-4`, pushed, no PR yet):** audit-trail anomaly
+  detection. `ATA.RULES` v1 (late, back-dated, corrections above the site percentile, two terminals, terminal digits,
+  repeat until pass, off-hours configuration) and `ATA.BASELINE` v1 (robust z against the person's own 13 weeks, 6 weeks
+  of history) in `packages/analytics/src/methods/audit/`, wired in the runner. Inputs kernel 1260 (`auth_fact_v1`) and
+  recipe-core 1150 (`audit_fact_v1`, `manual_digit_v1`; no values), on the analytics role's allow-list only. Flag keys
+  and the restricted readers (DI_REVIEW) in kernel 1261 and recipe-core 1151. Routes `analyticsAudit` (bound), screens
+  `/analytics/audit-flags`, and the review panel lists flagged entries first for the DI lead (DI-25). Defaults
+  D-6A-4-1 to 11 in the plan. Own review: one medium fixed (open keys cut by the list limit).
+- **6A-2 (17 October, branch `phase-6a/slice-2`; merged as PR #45):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
   3, 5), CAP.INDEX (Cpk, Ppk, Bissell intervals, Anderson-Darling, from 25 batches), DRIFT.TREND (slope projection,
   EWMA) and RATE.DEVIATION (Wilson, Garwood, one-sided Fisher, Benjamini-Hochberg, funnel) in `packages/analytics`,
   checked against SciPy reference values and published examples; runner wiring `analytics/spc.ts`; recipe-core 1130

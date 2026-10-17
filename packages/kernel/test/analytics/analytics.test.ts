@@ -568,6 +568,11 @@ describe('the runner functions (kernel 1242) and the read views (kernel 1243)', 
         from pg_proc p where p.pronamespace = 'analytics'::regnamespace order by 1`);
     const appVolatile = rows.filter((r) => r.app && r.volatile);
     expect(appVolatile.map((r) => r.fn)).toEqual([
+      // Slice 6A-4 (kernel 1261, recipe-core 1151): the audit-trail flags by key and the entries behind them, for
+      // data-integrity review only.
+      'analytics.audit_flag_entries(uuid)',
+      'analytics.audit_flagged_entries(uuid)',
+      'analytics.audit_flags(timestamp with time zone,timestamp with time zone)',
       'analytics.person_flag_dispositions(uuid)',
       'analytics.person_flags(timestamp with time zone,timestamp with time zone)',
       'analytics.record_disposition(uuid,text,text,text,uuid,text)',

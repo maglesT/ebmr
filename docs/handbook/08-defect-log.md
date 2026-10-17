@@ -1142,6 +1142,24 @@ role cannot write: ...` (kernel sandbox tests).
 commands are FRESH_ON_SHARED with the attribution member, as other floor commands. **Tests.** the contract test of
 FRESH_ON_SHARED routes; `[DI-05] a training session's attempts are the person's own ...`.
 
+## Slice 6A-4: audit-trail anomaly detection (Phase 6A)
+
+### P6A4-1: an open audit-trail flag could drop out of the list (found in the slice's own review)
+
+**Symptom.** The audit-trail flags list without a period (the open flags) took the newest 500 keys and only then kept
+the open ones, so with many dispositioned keys an older open key was not listed; the flag detail looked its key up in
+the same capped list and could show a dispositioned key as open. **Cause.** The filter ran after the limit, in the
+server. **Fix.** `auditKeys` filters open keys, or the one key asked for, in the query before the limit. **Tests.** the
+server's `[DI-53] a flag sends no notification and closes only with a disposition` (open list, period list and detail
+of a re-raised key).
+
+### P6A4-2: a re-run raises every hit again (design note, found while building)
+
+**Symptom.** Each run of the audit-trail methods assesses the whole 26-week window, so QA would have to disposition the
+same hit after every nightly run. **Fix.** A flag's key (method, rule, subject, first evidence of the first reason;
+kernel 1261 `analytics.flag_key`) groups the repeats; a disposition on any flag of a key closes it (D-6A-4-5). The
+flag table still grows by one row per hit and run; measure at a real site.
+
 ## Phase 6 mutation campaign (decision 0019)
 
 ### M6-D1: a typed lot code stopped receiving for the rest of the day (medium, fails safe; site services 1002)
