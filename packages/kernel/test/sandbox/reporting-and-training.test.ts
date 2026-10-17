@@ -155,10 +155,14 @@ describe('the reporting role (kernel 1210)', () => {
       // On a primary the data is current at the read (age zero or a few microseconds).
       expect(r.age).toMatch(/^00:00:00(\.\d+)?$/);
     }
-    const { rows: views } = await gmp.admin.query<{ v: string }>(
-      "select c.relname as v from pg_catalog.pg_class c where c.relnamespace = 'report'::regnamespace and c.relkind = 'v' order by 1",
+    const { rows: views } = await gmp.admin.query<{ v: string; reportable: boolean }>(
+      `select c.relname as v, has_table_privilege('ebmr_report', c.oid, 'SELECT') or has_table_privilege('ebmr_app', c.oid, 'SELECT') as reportable
+         from pg_catalog.pg_class c where c.relnamespace = 'report'::regnamespace and c.relkind = 'v' order by 1`,
     );
-    expect(views.map((v) => v.v).sort()).toEqual(rows.map((r) => r.view_name).sort());
+    // Every view the reporting or application role can read is catalogued. Phase 6A slice 6A-4 (D-6A-4-2): the facts
+    // about persons the audit-trail methods read are on the analytics role's allow-list only, readable by neither.
+    expect(views.filter((v) => v.reportable).map((v) => v.v).sort()).toEqual(rows.map((r) => r.view_name).sort());
+    expect(views.filter((v) => !v.reportable).map((v) => v.v).sort()).toEqual(['audit_fact_v1', 'auth_fact_v1', 'manual_digit_v1']);
   });
 });
 
