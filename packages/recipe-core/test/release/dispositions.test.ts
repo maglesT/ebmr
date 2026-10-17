@@ -648,6 +648,25 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
       const reg = await signAs(qaReviewer3, 'qp_register', `${qp.personId}/REGISTER/${importerCode}/${mia}`, 'QP_REGISTERED', 'NONE');
       await w.run(qaReviewer3, (c) => c.query("select recipe.register_qp($1, 'REGISTER', $2, $3, $4)", [qp.personId, importerCode, mia, reg]));
       g = await grel(lot.lotId, 'EU');
+      // Mutation triage T11 (record_qp_certification#33 to #46): the QP's own acknowledgement of each since-review item
+      // for this lot, the EU and this epoch; near misses (another market, person, epoch, lot or item) do not count.
+      const since = g.items.filter((i) => i.since_review).map((i) => i.id);
+      expect(since.length).toBeGreaterThan(0);
+      const near: [string, string, string, string, string][] = [[lot.lotId, 'EU', 'E.NOT_AN_ITEM', g.epoch, qp.personId]];
+      for (const id of since) {
+        near.push([lot.lotId, 'IN', id, g.epoch, qp.personId], [lot.lotId, 'EU', id, g.epoch, ap.personId], [lot.lotId, 'EU', id, '0'.repeat(64), qp.personId], [randomUUID(), 'EU', id, g.epoch, qp.personId]);
+      }
+      const fx = await db.admin.connect();
+      try {
+        await fx.query('begin');
+        await fx.query("set local session_replication_role = 'replica'");
+        for (const r of near) await fx.query('insert into recipe.grel_acknowledgement (lot_id, market, item_id, epoch, person_id, account_id) values ($1, $2, $3, $4, $5, $5)', r);
+        await fx.query('commit');
+      } finally {
+        fx.release();
+      }
+      const unacknowledged = await certify(qp, g.epoch).then(() => 'ok', (e: unknown) => (e instanceof Error ? e.message : String(e)));
+      expect(unacknowledged).toMatch(/EBMR-DSP-076 the lot cannot be certified: .*changed after the QA review and is not acknowledged/);
       await acknowledgeAll(qp, lot.lotId, 'EU', g);
       expect(await codeOf(certify(qp, 'e'.repeat(64)))).toBe('EBMR-DSP-075');
       await certify(qp, g.epoch);
