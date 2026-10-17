@@ -26,7 +26,8 @@
 --                          the material lots consumed by its entries (lot code and supplier pairs; D-6A-1-4).
 --
 -- Each is registered on the analytics role's allow-list (kernel 1242 analytics.register_input), together with the
--- 6g view report.batch_outcome_v1 that the runner polls for newly completed batches (D-6A-1-5). The views write
+-- 6g view report.batch_outcome_v1 that the runner polls for newly completed batches, and in the report catalogue
+-- (report.view_registry) with SELECT to the reporting and application roles, as the 6g views are (D-6A-1-5). The views write
 -- nothing and decide nothing; nothing outside the analytics schema reads analytics (DI-51), and these views do not
 -- read it either.
 
@@ -176,6 +177,13 @@ create view report.batch_fact_v1 as select * from report.batch_fact_rows_v1();
 create view report.cpp_value_v1 as select * from report.cpp_value_rows_v1();
 create view report.step_use_v1 as select * from report.step_use_rows_v1();
 revoke all on report.batch_fact_v1, report.cpp_value_v1, report.step_use_v1 from public;
+-- Report views like the 6g ones: the reporting role and the dashboards' documented export read them too (D-6A-1-5).
+grant execute on function report.batch_fact_rows_v1(), report.cpp_value_rows_v1(), report.step_use_rows_v1() to ebmr_app, ebmr_report;
+grant select on report.batch_fact_v1, report.cpp_value_v1, report.step_use_v1 to ebmr_app, ebmr_report;
+insert into report.view_registry (view_name, version, grain, description) values
+  ('batch_fact_v1', 1, 'GMP batch record', 'Product and strength, MBR version and family, record kind, review status, issue and completion times and release of each GMP batch record (analytics input)'),
+  ('cpp_value_v1', 1, 'critical value (one per reading)', 'Critical process parameters, IPC results, endpoints and critical calculations as decimal text with the master''s outermost limits and target (analytics input)'),
+  ('step_use_v1', 1, 'executed step and unit', 'Step key and phase, unit and class, room, start and end, persons and consumed material lots of each executed step (analytics input)');
 
 -- The analytics role's allow-list (kernel 1242): SELECT on each view and EXECUTE on the row function behind it.
 select analytics.register_input('VIEW', 'report.batch_outcome_v1', 1, '6A-1', 'batch record',

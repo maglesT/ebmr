@@ -177,8 +177,8 @@ Defaults of 6A-1 (taken without asking, as the owner's rule says; each is the de
   The room is the unit's room, else the room the batch occupied when the step started, else the batch's own room. The
   persons are the performers, data enterers and correctors. The lots come from the consumptions the step's entries
   name. Added columns: `batch_number`, `step_id`.
-- **D-6A-1-5** The input views hold GMP batches only. They are granted to the analytics role only (not to the reporting
-  or application roles, and not in the dashboards' report catalogue).
+- **D-6A-1-5** The input views hold GMP batches only. They are report views like the 6g ones: in the report catalogue,
+  readable by the reporting role and the dashboards' documented export, and on the analytics role's allow-list.
 - **D-6A-1-6** A method version or reference set never changes. A later row of the same version (or set id) may only
   retire it, and a retired one stays retired. Table triggers enforce this for every writer, the release included
   (EBMR-ANA-013, -014).

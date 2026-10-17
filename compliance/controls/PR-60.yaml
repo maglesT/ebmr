@@ -24,7 +24,9 @@ behaviour: |-
     - Critical-use models (e.g. automated visual inspection [I]) must be static, validated and monitored.
 catalog_test: In the AI feature inventory, no feature changes GMP data without a human e-signature.
 implemented_by: {}
-tests: []
+tests:
+  - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [PR-60] the analytics catalogue lists every method and none changes GMP data"
+  - "apps/tablets-web/test/analytics/analytics.test.tsx > analytics screens (GMP) > [PR-60] the overview lists every method with its intended use and \"changes GMP data: no\""
 clauses:
   - clause: "In the AI feature inventory, no feature changes GMP data without a human e-signature."
     deferred:
