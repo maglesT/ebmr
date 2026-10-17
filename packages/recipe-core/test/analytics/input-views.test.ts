@@ -212,7 +212,7 @@ describe('the analytics input views (recipe-core 1115)', () => {
     const family = (await db.admin.query<{ code: string }>('select code from recipe.mbr_family where id = $1', [master.familyId])).rows[0]!.code;
     expect(await row(batches[0]!.id)).toEqual({
       batch_id: batches[0]!.id, batch_number: batches[0]!.number, product_code: master.content.header.product.code, strength: master.content.header.product.strength,
-      mbr_version_id: master.versionId, family_code: family, record_kind: 'PROCESSING', status: expect.any(String), released: false,
+      mbr_version_id: master.versionId, family_code: family, record_kind: 'PROCESSING', status: expect.any(String) as unknown, released: false,
     });
     // Released once its finished lot carries the manufacturer's RELEASED decision (TEST FIXTURE rows).
     const lot = randomUUID();

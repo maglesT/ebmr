@@ -42,6 +42,21 @@ const notFound = () =>
 
 const RESTRICTED = new Set(['PERSON', 'ACCOUNT']);
 
+/** JSON text that must be an object (a method version's parameters or acceptance criteria). */
+function jsonObject(text: string, what: string): Record<string, unknown> {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    value = undefined;
+  }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw refusal(422, { code: 'EBMR-ANA-015', kind: 'INVALID_INPUT', whatHappened: 'The method version was not recorded.', why: `The ${what} are not a JSON object.`,
+                         whatYouCanDo: [`Give the ${what} as a JSON object.`], whoCanHelp: ['QA'], controls: ['DI-52'] });
+  }
+  return value as Record<string, unknown>;
+}
+
 /** Runs a read as the person, after the database checks the permission (ANALYTICS.VIEW unless another is named). */
 async function asViewer<T>(pool: pg.Pool, actor: Actor, work: (c: pg.PoolClient) => Promise<T>): Promise<T> {
   try {
@@ -127,14 +142,16 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
 
   bindRoutes(scope, app, routes.analyticsConfig, {
     setMethodVersion: async ({ body, actor, idempotencyKey, requestHash }) => {
-      const problems = methodDefinitionProblems(body.method, body.parameters);
+      const parameters = jsonObject(body.parametersJson, 'parameters');
+      const acceptance = jsonObject(body.acceptanceJson, 'acceptance criteria');
+      const problems = methodDefinitionProblems(body.method, parameters);
       if (problems.length > 0) {
         throw refusal(422, { code: 'EBMR-ANA-015', kind: 'INVALID_INPUT', whatHappened: 'The method version was not recorded.', why: problems.join('; '),
                              whatYouCanDo: ['Give parameters that fit the method (the catalogue lists its defaults).'], whoCanHelp: ['QA'], controls: ['DI-52'] });
       }
       const def = {
-        method: body.method, version: body.version, status: body.status, title: body.title, intendedUse: body.intendedUse, acceptance: body.acceptance,
-        parameters: body.parameters, parametersSha256: parametersSha256(body.parameters), codeIdentity: codeIdentity(app.config.analytics.commit), validationRef: body.validationRef,
+        method: body.method, version: body.version, status: body.status, title: body.title, intendedUse: body.intendedUse, acceptance,
+        parameters, parametersSha256: parametersSha256(parameters), codeIdentity: codeIdentity(app.config.analytics.commit), validationRef: body.validationRef,
       };
       const ctx = { ...actor({ reasonCode: 'CONFIG_CHANGE', reasonText: body.reason }), changeRecord: body.changeRecord };
       const out = await withIdempotentActorCommand(pool, ctx, idempotencyKey ?? '', requestHash, async (c) =>

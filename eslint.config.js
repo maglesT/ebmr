@@ -63,6 +63,16 @@ const numberFieldBan = {
   ],
 };
 
+// The analytics runner (ADR 0020 point 5): a GMP value becomes a JavaScript number only through statOf in
+// @ebmr/analytics, never through Number(), parseFloat, parseInt or unary + in the runner itself.
+// tools/boundaries/test/number-ban.test.ts proves each form is caught there and nowhere else.
+const runnerNumberBan = [
+  { selector: "CallExpression[callee.name='Number']", message: 'In the analytics runner a value becomes a number only through statOf (@ebmr/analytics; ADR 0020 point 5).' },
+  { selector: "CallExpression[callee.name=/^parse(Float|Int)$/]", message: 'In the analytics runner a value becomes a number only through statOf (@ebmr/analytics; ADR 0020 point 5).' },
+  { selector: "CallExpression[callee.object.name='Number'][callee.property.name=/^parse(Float|Int)$/]", message: 'In the analytics runner a value becomes a number only through statOf (@ebmr/analytics; ADR 0020 point 5).' },
+  { selector: "UnaryExpression[operator='+']", message: 'In the analytics runner a value becomes a number only through statOf (@ebmr/analytics; ADR 0020 point 5).' },
+];
+
 export default tseslint.config(
   {
     ignores: [
@@ -96,6 +106,10 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': 'error',
       'no-restricted-syntax': ['error', ...clockBan],
     },
+  },
+  {
+    files: ['apps/tablets-server/src/analytics/**/*.ts'],
+    rules: { 'no-restricted-syntax': ['error', ...clockBan, ...runnerNumberBan] },
   },
   {
     // Browser code: the web app and the UI kit (plan section 3).

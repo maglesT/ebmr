@@ -11,6 +11,7 @@
 import type pg from 'pg';
 import { canonicalText, sha256Hex } from '@ebmr/analytics';
 import type { InputRow, InputSpec } from './implementation.ts';
+import { connectRetrying } from './pool.ts';
 
 /** What begin_run records about one input (interfaces section 2, analytics.run inputs). */
 export interface InputRecord {
@@ -58,7 +59,7 @@ export function canonicalRows(rows: readonly Record<string, unknown>[]): { rows:
 export async function readSnapshot(pool: pg.Pool, specs: readonly InputSpec[]): Promise<Snapshot> {
   const queries = specs.map((s) => ({ spec: s, q: inputQuery(s) }));
   if (new Set(specs.map((s) => s.view)).size !== specs.length) throw new InputSpecError('a method reads each view once (its rows are keyed by the view)');
-  const client = await pool.connect();
+  const client = await connectRetrying(pool);
   try {
     await client.query('begin transaction isolation level repeatable read read only');
     const { rows: asOf } = await client.query<{ t: string }>(

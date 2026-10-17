@@ -29,6 +29,7 @@ import { outputHash, type FlagDraft, type MethodId, type OutputDraft, type Param
 import { codeRuns, methodDefinitionProblems, parametersSha256, runtimeOf } from './catalog.ts';
 import { IMPLEMENTATIONS, type MethodImplementation } from './implementation.ts';
 import { readSnapshot, type InputRecord } from './inputs.ts';
+import { connectRetrying, queryRetrying } from './pool.ts';
 
 export type RunTrigger = 'SCHEDULED' | 'BATCH_COMPLETE' | 'ON_DEMAND';
 
@@ -118,7 +119,7 @@ export class AnalyticsRunner {
 
   /** Whether the nightly run is due now (the site-zone day and hour from the database clock). */
   async nightlyDue(): Promise<boolean> {
-    const { rows } = await this.o.pool.query<{ day: string; hour: number }>(
+    const { rows } = await queryRetrying<{ day: string; hour: number }>(this.o.pool,
       "select to_char(statement_timestamp() at time zone $1, 'YYYY-MM-DD') as day, extract(hour from statement_timestamp() at time zone $1)::integer as hour",
       [this.o.siteZone()],
     );
@@ -136,7 +137,7 @@ export class AnalyticsRunner {
 
   /** The batches completed since the last poll (none on the first poll, which is the baseline). */
   async pollCompleted(): Promise<string[]> {
-    const { rows } = await this.o.pool.query<{ batch_id: string }>('select batch_id::text from report.batch_outcome_v1 where completed_at is not null');
+    const { rows } = await queryRetrying<{ batch_id: string }>(this.o.pool, 'select batch_id::text from report.batch_outcome_v1 where completed_at is not null');
     const now = new Set(rows.map((r) => r.batch_id));
     const previous = this.seen;
     this.seen = now;
@@ -152,7 +153,7 @@ export class AnalyticsRunner {
   }
 
   private async runAllNow(trigger: RunTrigger): Promise<RunReport[]> {
-    const { rows } = await this.o.pool.query<EffectiveVersion>(
+    const { rows } = await queryRetrying<EffectiveVersion>(this.o.pool,
       'select method, version, parameters, parameters_sha256, code_identity from analytics.effective_methods() order by method, version',
     );
     const reports: RunReport[] = [];
@@ -197,7 +198,7 @@ export class AnalyticsRunner {
 
   private async record(v: EffectiveVersion, trigger: RunTrigger, inputs: InputRecord[], outputs: readonly OutputDraft[], flags: readonly FlagDraft[], skipped: number): Promise<RunReport> {
     const sha = outputHash(outputs, flags);
-    const client = await this.o.pool.connect();
+    const client = await connectRetrying(this.o.pool);
     try {
       await client.query('begin');
       const { rows } = await client.query<{ id: string }>('select analytics.begin_run($1, $2, null, $3, $4::jsonb, $5::jsonb)::text as id', [
@@ -230,7 +231,7 @@ export class AnalyticsRunner {
   }
 
   private async recordFailure(v: EffectiveVersion, trigger: RunTrigger, inputs: InputRecord[], message: string): Promise<string> {
-    const client = await this.o.pool.connect();
+    const client = await connectRetrying(this.o.pool);
     try {
       await client.query('begin');
       const { rows } = await client.query<{ id: string }>('select analytics.begin_run($1, $2, null, $3, $4::jsonb, $5::jsonb)::text as id', [

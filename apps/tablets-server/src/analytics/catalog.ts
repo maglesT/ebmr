@@ -54,7 +54,7 @@ export function parametersSha256(parameters: unknown): string {
 /** Problems with a method version a person asks for; empty when it may be written. */
 export function methodDefinitionProblems(method: string, parameters: Readonly<Record<string, unknown>>): string[] {
   if (!isMethodId(method)) return [`${method} is not an analytics method (the catalogue lists ${METHOD_IDS.join(', ')})`];
-  return parameterProblems(method, parameters as Parameters);
+  return parameterProblems(method, parameters);
 }
 
 const PACKAGE = `@ebmr/analytics ${ANALYTICS_PACKAGE_VERSION}`;

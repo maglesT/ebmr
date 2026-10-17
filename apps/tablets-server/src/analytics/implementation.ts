@@ -30,7 +30,7 @@ export interface MethodImplementation<I = unknown, P extends Parameters = Parame
 
 /** An implementation as the runner holds it (each is typed by its own input and parameters where it is written). */
 export function implementation<I, P extends Parameters>(impl: MethodImplementation<I, P>): MethodImplementation {
-  return impl as unknown as MethodImplementation;
+  return impl;
 }
 
 /** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10). */

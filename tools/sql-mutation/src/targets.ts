@@ -1365,4 +1365,21 @@ export const TARGETS: Target[] = [
     tests: [k('analytics/analytics.test.ts')],
     threshold: 90,
   },
+  // ---- 6A-1, analytics foundation (kernel 1245; recipe-core 1115; ADR 0020): method versions and reference sets that
+  //      never change and are written by ANALYTICS.METHOD under an approved change record (DI-52, DI-09), the restricted
+  //      dispositions of person flags (DI-53), and the input views' values, limits, steps and lots (DI-51). ----
+  {
+    group: 'analytics-method-change',
+    functions: ['analytics.method_version_rules', 'analytics.reference_set_rules', 'analytics.set_method_version', 'analytics.set_reference_set',
+                'analytics.person_flag_dispositions'],
+    tests: [k('analytics/method-change.test.ts')],
+    threshold: 90,
+  },
+  {
+    group: 'analytics-inputs',
+    functions: ['report.engine_instant', 'report.outer_limits', 'report.cpp_values_of', 'report.batch_fact_rows_v1', 'report.cpp_value_rows_v1',
+                'report.step_use_rows_v1'],
+    tests: [r('analytics/input-views.test.ts')],
+    threshold: 90,
+  },
 ];

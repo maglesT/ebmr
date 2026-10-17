@@ -8,6 +8,8 @@
  *
  * The server computes what the person does not choose: the SHA-256 of the canonical parameters and the code identity
  * of a method version; the model and its SHA-256 of a reference set, from the model candidate it is approved from.
+ * A method version's parameters and acceptance criteria travel as JSON text (each an object): request bodies carry no
+ * fractional JSON number (the request hash is canonical JSON, which refuses one; D-6A-1-18).
  */
 import { z } from 'zod';
 import { Instant, Uuid, withAttribution } from '../common.ts';
@@ -48,8 +50,10 @@ export const analyticsConfig = {
       status: Status,
       title: Text,
       intendedUse: Text,
-      acceptance: z.record(z.string(), z.unknown()),
-      parameters: z.record(z.string(), z.unknown()),
+      /** JSON text of an object: the acceptance criteria. */
+      acceptanceJson: z.string().trim().min(2).max(20_000),
+      /** JSON text of an object: the parameters (the catalogue's method defaults are the starting point). */
+      parametersJson: z.string().trim().min(2).max(20_000),
       validationRef: z.string().trim().min(1).max(200),
       changeRecord: ChangeRecordNumber,
       reason: Text,
