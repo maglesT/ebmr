@@ -1,0 +1,51 @@
+after-release-suspension: 137 mutants in 15 functions (db + server)
+after-release-decisions: 198 mutants in 18 functions (db)
+shipping-interlock: 89 mutants in 5 functions (db + server)
+total: 424 mutants in 3 groups
+templates built in 32 s: ebmr_mut_base_d44a7ff8, ebmr_stpl_2bcc12759c80, ebmr_sandbox_tplf2fdd47d055e
+checked 38 functions: each re-applied unmutated leaves its pg_proc row unchanged; owners ebmr_owner (78); a copy of each template has the template's database privileges
+after-release-suspension: baseline db 89 s (limit 266 s), server 10 s (limit 240 s)
+  SURVIVED recipe.genealogy_downstream_lots#10 LOGICAL packages/recipe-core/sql/1011_genealogy_recovery_and_dosage_form.sql:29 [and] -> [or]
+  SURVIVED recipe.genealogy_downstream_lots#11 RELATIONAL packages/recipe-core/sql/1011_genealogy_recovery_and_dosage_form.sql:29 [=] -> [<>]
+  after-release-suspension: 25/137
+  after-release-suspension: 50/137
+  after-release-suspension: 75/137
+  after-release-suspension: 100/137
+  after-release-suspension: 125/137
+after-release-suspension: score 98.5 % (132/134 detected, 0 invalid) in 2359 s
+after-release-decisions: baseline db 60 s (limit 240 s)
+  SURVIVED recipe.release_suspension_content#1 RELATIONAL packages/recipe-core/sql/0840_after_release.sql:609 [=] -> [<>]
+  after-release-decisions: 25/198
+  after-release-decisions: 50/198
+  SURVIVED recipe.record_after_release_decision#37 GUARD_REMOVED packages/recipe-core/sql/0840_after_release.sql:732 [raise exception using errcode = 'P0001', message = 'EBMR-ARL-016 a person involv] -> [null]
+  after-release-decisions: 75/198
+  SURVIVED recipe.record_after_release_decision#60 LOGICAL packages/recipe-core/sql/0840_after_release.sql:761 [and] -> [or]
+  SURVIVED recipe.record_after_release_decision#61 RELATIONAL packages/recipe-core/sql/0840_after_release.sql:761 [=] -> [<>]
+  after-release-decisions: 100/198
+  after-release-decisions: 125/198
+  after-release-decisions: 150/198
+  SURVIVED recipe.witness_disposal#16 GUARD_REMOVED packages/recipe-core/sql/0840_after_release.sql:957 [raise exception using errcode = 'P0001', message = 'EBMR-ARL-043 the witness of ] -> [null]
+  after-release-decisions: 175/198
+after-release-decisions: score 97.4 % (187/192 detected, 1 invalid) in 3475 s
+shipping-interlock: baseline db 40 s (limit 240 s), server 6 s (limit 240 s)
+  shipping-interlock: 25/89
+  shipping-interlock: 50/89
+  shipping-interlock: 75/89
+shipping-interlock: score 100.0 % (75/75 detected, 0 invalid) in 281 s
+# SQL mutation report
+
+| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| after-release-suspension | db 89, server 10 | db 266, server 240 | 137 | 0 | 3 | 132 | 2 | 98.5 % | 90 % |
+| after-release-decisions | db 60 | db 240 | 198 | 1 | 5 | 187 | 5 | 97.4 % | 90 % |
+| shipping-interlock | db 40, server 6 | db 240, server 240 | 89 | 0 | 14 | 75 | 0 | 100.0 % | 90 % |
+
+## Surviving mutants
+
+- after-release-suspension recipe.genealogy_downstream_lots (packages/recipe-core/sql/1011_genealogy_recovery_and_dosage_form.sql:29) LOGICAL: `and` -> `or`
+- after-release-suspension recipe.genealogy_downstream_lots (packages/recipe-core/sql/1011_genealogy_recovery_and_dosage_form.sql:29) RELATIONAL: `=` -> `<>`
+- after-release-decisions recipe.release_suspension_content (packages/recipe-core/sql/0840_after_release.sql:609) RELATIONAL: `=` -> `<>`
+- after-release-decisions recipe.record_after_release_decision (packages/recipe-core/sql/0840_after_release.sql:732) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ARL-016 a person involv` -> `null`
+- after-release-decisions recipe.record_after_release_decision (packages/recipe-core/sql/0840_after_release.sql:761) LOGICAL: `and` -> `or`
+- after-release-decisions recipe.record_after_release_decision (packages/recipe-core/sql/0840_after_release.sql:761) RELATIONAL: `=` -> `<>`
+- after-release-decisions recipe.witness_disposal (packages/recipe-core/sql/0840_after_release.sql:957) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ARL-043 the witness of ` -> `null`

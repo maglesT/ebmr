@@ -217,3 +217,236 @@ qp-certification: baseline db 77 s (limit 240 s), server 16 s (limit 240 s)
   SURVIVED recipe.register_eu_importer#21 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:398 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-060 the importer''s] -> [null]
   SURVIVED recipe.register_eu_importer#24 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:400 [=] -> [<>]
   SURVIVED recipe.register_eu_importer#26 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:401 [raise exception using errcode = 'P0001', message = format('EBMR-DSP-061 importer] -> [null]
+  SURVIVED recipe.register_eu_importer#39 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:411 [raise exception using errcode = 'P0001', message = format('EBMR-DSP-062 product ] -> [null]
+  SURVIVED recipe.register_qp#1 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:428 [or] -> [and]
+  SURVIVED recipe.register_qp#3 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:429 [raise exception using errcode = 'P0001', message = format('EBMR-DSP-063 %s is no] -> [null]
+  SURVIVED recipe.register_qp#7 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:432 [or] -> [and]
+  SURVIVED recipe.register_qp#8 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:433 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-064 a QP is registe] -> [null]
+  qp-certification: 125/182
+  SURVIVED recipe.register_qp#13 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:436 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-065 nobody register] -> [null]
+  SURVIVED recipe.register_qp#17 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:439 [raise exception using errcode = 'P0001', message = format('EBMR-DSP-066 the pers] -> [null]
+  SURVIVED recipe.take_qp_message#6 LOGICAL packages/recipe-core/sql/0826_qp_review_fixes.sql:151 [or] -> [and]
+  SURVIVED recipe.take_qp_message#8 LOGICAL packages/recipe-core/sql/0826_qp_review_fixes.sql:151 [or] -> [and]
+  SURVIVED recipe.take_qp_message#9 GUARD_REMOVED packages/recipe-core/sql/0826_qp_review_fixes.sql:152 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-080 the message is ] -> [null]
+  SURVIVED recipe.take_qp_message#19 BOOLEAN packages/recipe-core/sql/0826_qp_review_fixes.sql:158 [false] -> [true]
+  SURVIVED recipe.take_qp_message#26 LOGICAL packages/recipe-core/sql/0826_qp_review_fixes.sql:162 [and] -> [or]
+  SURVIVED recipe.take_qp_message#29 LOGICAL packages/recipe-core/sql/0826_qp_review_fixes.sql:162 [and] -> [or]
+  SURVIVED recipe.take_qp_message#32 GUARD_REMOVED packages/recipe-core/sql/0826_qp_review_fixes.sql:164 [raise exception using errcode = 'P0001', message = format('EBMR-DSP-083 no finis] -> [null]
+  SURVIVED recipe.take_qp_message#38 GUARD_REMOVED packages/recipe-core/sql/0826_qp_review_fixes.sql:167 [raise exception using errcode = 'P0001', message = format('EBMR-DSP-084 importer] -> [null]
+  SURVIVED recipe.take_qp_message#44 GUARD_REMOVED packages/recipe-core/sql/0826_qp_review_fixes.sql:171 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-085 the message nam] -> [null]
+  qp-certification: 150/182
+  SURVIVED recipe.take_qp_message#52 GUARD_REMOVED packages/recipe-core/sql/0826_qp_review_fixes.sql:174 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-068 a QP rejection ] -> [null]
+  SURVIVED recipe.verify_qp_transcription#4 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:521 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-070 there is no tra] -> [null]
+  SURVIVED recipe.verify_qp_transcription#7 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:525 [=] -> [<>]
+  SURVIVED recipe.verify_qp_transcription#9 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:527 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-071 the transcripti] -> [null]
+  SURVIVED recipe.verify_qp_transcription#18 GUARD_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:535 [raise exception using errcode = 'P0001', message = v_p] -> [null]
+  SURVIVED recipe.eu_pending_transcription_problem#2 LOGICAL packages/recipe-core/sql/0826_qp_review_fixes.sql:43 [and] -> [or]
+  SURVIVED tab.take_qp_certification_message#1 BOOLEAN apps/tablets-server/sql/1180_qp_message_intake.sql:16 [false] -> [true]
+  qp-certification: 175/182
+  SURVIVED tab.take_qp_certification_message#6 LOGICAL apps/tablets-server/sql/1180_qp_message_intake.sql:31 [and] -> [or]
+  SURVIVED tab.take_qp_certification_message#8 LOGICAL apps/tablets-server/sql/1180_qp_message_intake.sql:31 [and] -> [or]
+  SURVIVED tab.take_qp_certification_message#10 BOOLEAN apps/tablets-server/sql/1180_qp_message_intake.sql:32 [false] -> [true]
+qp-certification: score 58.2 % (106/182 detected, 0 invalid) in 5260 s
+# SQL mutation report
+
+| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| release-gate | db 145, server 31 | db 434, server 240 | 240 | 0 | 0 | 211 | 29 | 87.9 % | 90 % |
+| release-gate-market-items | db 83 | db 249 | 51 | 0 | 0 | 49 | 2 | 96.1 % | 90 % |
+| manufacturer-release | db 175 | db 525 | 165 | 0 | 2 | 158 | 5 | 96.9 % | 90 % |
+| tablets-release-items | server 12 | server 240 | 254 | 0 | 0 | 175 | 79 | 68.9 % | 90 % |
+| qp-certification | db 77, server 16 | db 240, server 240 | 182 | 0 | 0 | 106 | 76 | 58.2 % | 90 % |
+
+## Surviving mutants
+
+- release-gate recipe.grel_evaluate (packages/recipe-core/sql/0951_qms_status_at_release.sql:62) RELATIONAL: `=` -> `<>`
+- release-gate recipe.grel_evaluate (packages/recipe-core/sql/0951_qms_status_at_release.sql:62) LOGICAL: `and` -> `or`
+- release-gate recipe.grel_evaluate (packages/recipe-core/sql/0951_qms_status_at_release.sql:62) RELATIONAL: `=` -> `<>`
+- release-gate recipe.grel_evaluate (packages/recipe-core/sql/0951_qms_status_at_release.sql:66) RELATIONAL: `=` -> `<>`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:59) LOGICAL: `and` -> `or`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:59) RELATIONAL: `=` -> `<>`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:59) LOGICAL: `and` -> `or`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:60) BOOLEAN: `false` -> `true`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:94) RELATIONAL: `>` -> `>=`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:138) RELATIONAL: `>` -> `>=`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:140) RELATIONAL: `>` -> `>=`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:147) LOGICAL: `and` -> `or`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:157) RELATIONAL: `>` -> `>=`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:169) RELATIONAL: `>` -> `>=`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:172) RELATIONAL: `>` -> `>=`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:188) BOOLEAN: `true` -> `false`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:189) BOOLEAN: `true` -> `false`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:208) BOOLEAN: `false` -> `true`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:226) BOOLEAN: `false` -> `true`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:243) BOOLEAN: `false` -> `true`
+- release-gate recipe.grel_core_items (packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:258) RELATIONAL: `>` -> `>=`
+- release-gate recipe.release_gate_problems (packages/recipe-core/sql/0781_manufacturer_release.sql:770) RELATIONAL: `=` -> `<>`
+- release-gate recipe.release_gate_problems (packages/recipe-core/sql/0781_manufacturer_release.sql:770) LOGICAL: `and` -> `or`
+- release-gate recipe.release_gate_problems (packages/recipe-core/sql/0781_manufacturer_release.sql:770) RELATIONAL: `=` -> `<>`
+- release-gate recipe.release_gate_problems (packages/recipe-core/sql/0781_manufacturer_release.sql:770) RELATIONAL: `<` -> `<=`
+- release-gate recipe.release_deviations (packages/recipe-core/sql/0781_manufacturer_release.sql:269) LOGICAL: `or` -> `and`
+- release-gate recipe.release_deviations (packages/recipe-core/sql/0781_manufacturer_release.sql:269) RELATIONAL: `=` -> `<>`
+- release-gate recipe.investigation_unjustifiable_for (packages/recipe-core/sql/0783_justification_links.sql:43) LOGICAL: `or` -> `and`
+- release-gate recipe.investigation_unjustifiable_for (packages/recipe-core/sql/0783_justification_links.sql:43) RELATIONAL: `=` -> `<>`
+- release-gate-market-items recipe.grel_market_items (packages/recipe-core/sql/0822_market_dispositions.sql:214) LOGICAL: `or` -> `and`
+- release-gate-market-items recipe.grel_market_items (packages/recipe-core/sql/0822_market_dispositions.sql:226) RELATIONAL: `>=` -> `>`
+- manufacturer-release recipe.record_manufacturer_release (packages/recipe-core/sql/0823_manufacturer_release_cascade.sql:91) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-REL-016 a person involv` -> `null`
+- manufacturer-release recipe.record_manufacturer_release (packages/recipe-core/sql/0823_manufacturer_release_cascade.sql:105) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-REL-018 the signed chec` -> `null`
+- manufacturer-release recipe.investigation_justification_of (packages/recipe-core/sql/0781_manufacturer_release.sql:290) LOGICAL: `and` -> `or`
+- manufacturer-release recipe.investigation_justification_of (packages/recipe-core/sql/0781_manufacturer_release.sql:290) LOGICAL: `and` -> `or`
+- manufacturer-release recipe.investigation_justification_of (packages/recipe-core/sql/0781_manufacturer_release.sql:291) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_container_release (apps/tablets-server/sql/1162_grel_edition_items.sql:198) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:173) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:176) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:176) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:177) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:176) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:179) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:179) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_held_containers (apps/tablets-server/sql/1162_grel_edition_items.sql:179) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_item_of (apps/tablets-server/sql/1162_grel_edition_items.sql:102) BOOLEAN: `false` -> `true`
+- tablets-release-items tab.grel_posted_quantity (apps/tablets-server/sql/1162_grel_edition_items.sql:384) BOOLEAN: `false` -> `true`
+- tablets-release-items tab.grel_posted_quantity (apps/tablets-server/sql/1162_grel_edition_items.sql:392) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_printed_tablets (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:142) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_printed_tablets (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:169) BOOLEAN: `false` -> `true`
+- tablets-release-items tab.grel_recon_packs (apps/tablets-server/sql/1162_grel_edition_items.sql:335) BOOLEAN: `false` -> `true`
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:236) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:241) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:241) NOT_REMOVED: `not ` -> ``
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:241) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:241) NOT_REMOVED: `not ` -> ``
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:242) NOT_REMOVED: `not ` -> ``
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:242) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_recon_printed (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:242) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_rule_sets (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:188) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_rule_sets (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:194) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_unresolved (apps/tablets-server/sql/1162_grel_edition_items.sql:87) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_unresolved (apps/tablets-server/sql/1162_grel_edition_items.sql:88) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_unresolved (apps/tablets-server/sql/1162_grel_edition_items.sql:94) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:243) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:247) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:247) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:247) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:248) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:250) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:250) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:250) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_whole_batch_parents (apps/tablets-server/sql/1162_grel_edition_items.sql:251) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:97) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:98) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:99) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:100) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:100) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:107) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:108) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:109) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:109) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:110) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:109) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:110) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:110) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:110) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:111) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:111) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:111) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:112) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:113) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:113) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:113) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:113) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:114) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:115) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:115) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:115) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:115) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:115) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:116) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:116) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:117) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:117) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:117) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:118) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:118) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:119) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:120) RELATIONAL: `=` -> `<>`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:120) LOGICAL: `and` -> `or`
+- tablets-release-items tab.grel_changed_since (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:120) RELATIONAL: `>` -> `>=`
+- tablets-release-items tab.grel_next_hold (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:57) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_next_hold (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:67) LOGICAL: `or` -> `and`
+- tablets-release-items tab.grel_next_hold (apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:76) LOGICAL: `or` -> `and`
+- qp-certification recipe.eu_certification_gate_problems (packages/recipe-core/sql/0824_qp_certification.sql:236) NOT_REMOVED: `not ` -> ``
+- qp-certification recipe.eu_certification_gate_problems (packages/recipe-core/sql/0824_qp_certification.sql:239) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.eu_certification_gate_problems (packages/recipe-core/sql/0824_qp_certification.sql:239) LOGICAL: `and` -> `or`
+- qp-certification recipe.eu_certification_gate_problems (packages/recipe-core/sql/0824_qp_certification.sql:239) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.eu_certification_gate_problems (packages/recipe-core/sql/0824_qp_certification.sql:241) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.eu_importer_canonical (packages/recipe-core/sql/0824_qp_certification.sql:373) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.eu_importer_content (packages/recipe-core/sql/0824_qp_certification.sql:264) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.eu_outcome_problem (packages/recipe-core/sql/0824_qp_certification.sql:208) LOGICAL: `or` -> `and`
+- qp-certification recipe.eu_outcome_problem (packages/recipe-core/sql/0824_qp_certification.sql:211) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.eu_outcome_problem (packages/recipe-core/sql/0824_qp_certification.sql:221) RELATIONAL: `>` -> `>=`
+- qp-certification recipe.eu_outcome_problem (packages/recipe-core/sql/0824_qp_certification.sql:221) RELATIONAL: `<` -> `<=`
+- qp-certification recipe.qp_certification_content (packages/recipe-core/sql/0824_qp_certification.sql:341) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.qp_certification_content (packages/recipe-core/sql/0824_qp_certification.sql:345) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.qp_certification_content (packages/recipe-core/sql/0824_qp_certification.sql:345) LOGICAL: `and` -> `or`
+- qp-certification recipe.qp_certification_content (packages/recipe-core/sql/0824_qp_certification.sql:345) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.qp_certification_content (packages/recipe-core/sql/0824_qp_certification.sql:345) LOGICAL: `and` -> `or`
+- qp-certification recipe.qp_certification_content (packages/recipe-core/sql/0824_qp_certification.sql:345) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.qp_register_content (packages/recipe-core/sql/0824_qp_certification.sql:275) LOGICAL: `or` -> `and`
+- qp-certification recipe.qp_register_content (packages/recipe-core/sql/0824_qp_certification.sql:278) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.qp_transcription_content (packages/recipe-core/sql/0824_qp_certification.sql:294) LOGICAL: `or` -> `and`
+- qp-certification recipe.qp_transcription_content (packages/recipe-core/sql/0824_qp_certification.sql:294) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:88) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-075 the signed EU c` -> `null`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:96) LOGICAL: `and` -> `or`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:96) LOGICAL: `and` -> `or`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:96) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:97) LOGICAL: `and` -> `or`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:97) LOGICAL: `and` -> `or`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:102) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DSP-076 the lot ` -> `null`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:104) LOGICAL: `or` -> `and`
+- qp-certification recipe.record_qp_certification (packages/recipe-core/sql/0826_qp_review_fixes.sql:105) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-068 a QP rejection ` -> `null`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:485) LOGICAL: `or` -> `and`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:489) LOGICAL: `or` -> `and`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:490) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-068 a QP rejection ` -> `null`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:496) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:496) LOGICAL: `and` -> `or`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:496) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:497) NOT_REMOVED: `not ` -> ``
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:497) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.record_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:498) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-069 a transcription` -> `null`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:386) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:387) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:387) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:387) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:388) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:388) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:389) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-060 an EU importer ` -> `null`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:397) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:398) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-060 the importer''s` -> `null`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:400) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:401) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DSP-061 importer` -> `null`
+- qp-certification recipe.register_eu_importer (packages/recipe-core/sql/0824_qp_certification.sql:411) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DSP-062 product ` -> `null`
+- qp-certification recipe.register_qp (packages/recipe-core/sql/0824_qp_certification.sql:428) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_qp (packages/recipe-core/sql/0824_qp_certification.sql:429) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DSP-063 %s is no` -> `null`
+- qp-certification recipe.register_qp (packages/recipe-core/sql/0824_qp_certification.sql:432) LOGICAL: `or` -> `and`
+- qp-certification recipe.register_qp (packages/recipe-core/sql/0824_qp_certification.sql:433) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-064 a QP is registe` -> `null`
+- qp-certification recipe.register_qp (packages/recipe-core/sql/0824_qp_certification.sql:436) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-065 nobody register` -> `null`
+- qp-certification recipe.register_qp (packages/recipe-core/sql/0824_qp_certification.sql:439) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DSP-066 the pers` -> `null`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:151) LOGICAL: `or` -> `and`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:151) LOGICAL: `or` -> `and`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:152) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-080 the message is ` -> `null`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:158) BOOLEAN: `false` -> `true`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:162) LOGICAL: `and` -> `or`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:162) LOGICAL: `and` -> `or`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:164) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DSP-083 no finis` -> `null`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:167) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DSP-084 importer` -> `null`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:171) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-085 the message nam` -> `null`
+- qp-certification recipe.take_qp_message (packages/recipe-core/sql/0826_qp_review_fixes.sql:174) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-068 a QP rejection ` -> `null`
+- qp-certification recipe.verify_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:521) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-070 there is no tra` -> `null`
+- qp-certification recipe.verify_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:525) RELATIONAL: `=` -> `<>`
+- qp-certification recipe.verify_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:527) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DSP-071 the transcripti` -> `null`
+- qp-certification recipe.verify_qp_transcription (packages/recipe-core/sql/0824_qp_certification.sql:535) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = v_p` -> `null`
+- qp-certification recipe.eu_pending_transcription_problem (packages/recipe-core/sql/0826_qp_review_fixes.sql:43) LOGICAL: `and` -> `or`
+- qp-certification tab.take_qp_certification_message (apps/tablets-server/sql/1180_qp_message_intake.sql:16) BOOLEAN: `false` -> `true`
+- qp-certification tab.take_qp_certification_message (apps/tablets-server/sql/1180_qp_message_intake.sql:31) LOGICAL: `and` -> `or`
+- qp-certification tab.take_qp_certification_message (apps/tablets-server/sql/1180_qp_message_intake.sql:31) LOGICAL: `and` -> `or`
+- qp-certification tab.take_qp_certification_message (apps/tablets-server/sql/1180_qp_message_intake.sql:32) BOOLEAN: `false` -> `true`
