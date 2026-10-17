@@ -102,6 +102,30 @@ describe('the reporting role (kernel 1210)', () => {
     expect(await segregationProblems(gmp.app)).toEqual([]);
   });
 
+  it('[DI-17][DI-30] the segregation check reports the reporting role missing, each elevated attribute alone and a membership either way (mutation triage, kernel 1210)', async () => {
+    // Each change is made in a transaction that is rolled back: roles are cluster-wide, and no other session sees an
+    // uncommitted change of the catalogue.
+    const inTx = async (change: string): Promise<string[]> => {
+      const c = await gmp.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query(change);
+        return (await c.query<{ p: string }>('select p from sandbox.segregation_problems() p')).rows.map((r) => r.p);
+      } finally {
+        await c.query('rollback');
+        c.release();
+      }
+    };
+    const elevated = 'ebmr_report has an elevated role attribute (superuser, createdb, createrole, replication, bypassrls or inherit)';
+    for (const attr of ['superuser', 'createdb', 'createrole', 'replication', 'bypassrls', 'inherit']) {
+      expect(await inTx(`alter role ebmr_report ${attr}`), attr).toContain(elevated);
+    }
+    expect(await inTx('grant ebmr_app to ebmr_report')).toContain('ebmr_report is a member of role ebmr_app');
+    expect(await inTx('grant ebmr_report to ebmr_app')).toContain('ebmr_app is a member of role ebmr_report');
+    expect(await inTx('alter role ebmr_report rename to ebmr_report_renamed_by_test')).toContain('the reporting role ebmr_report does not exist');
+    expect(await segregationProblems(gmp.app)).toEqual([]);
+  });
+
   it('the reporting role is a member of nothing, has no elevated attribute and never connects to a sandbox', async () => {
     const { rows } = await gmp.admin.query<{ rolinherit: boolean; rolsuper: boolean; rolcreaterole: boolean; rolbypassrls: boolean; rolconnlimit: number; members: number }>(
       `select r.rolinherit, r.rolsuper, r.rolcreaterole, r.rolbypassrls, r.rolconnlimit,
@@ -142,6 +166,9 @@ describe('training attempts stay in the sandbox (kernel 1211)', () => {
   it('[DI-05] the training attempts are refused in a GMP database, whoever writes', async () => {
     const actor = await seededTestActor(gmp);
     await expect(withCommand(gmp.app, { ...actor, correlationId: randomUUID() }, (c) => c.query("select sandbox.start_training('EX-FLOOR-1', 1, 3)")))
+      .rejects.toThrow(/Training runs only on the sandbox installation.*EBMR-SBX-039/);
+    // The step command refuses on its own guard too, before it looks for the attempt (mutation triage, complete_training_step#1).
+    await expect(withCommand(gmp.app, { ...actor, correlationId: randomUUID() }, (c) => c.query('select sandbox.complete_training_step(gen_random_uuid(), 1)')))
       .rejects.toThrow(/Training runs only on the sandbox installation.*EBMR-SBX-039/);
     // Not even the table owner or a superuser can put training state into a GMP database.
     await expect(gmp.admin.query(

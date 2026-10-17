@@ -216,6 +216,50 @@ describe('the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11)', () => {
     await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
   });
 
+  it('[DI-31][PR-23] G-REL carries the QMS item for a finished lot in MIRROR mode only, and the market items of US and EU for a finished lot only (mutation triage, recipe.grel_evaluate)', async () => {
+    // Two fixture lots of SITE-1: one posted as a finished lot (fixture row, triggers off), one that is not.
+    const finished = await fixtureLot();
+    const other = await fixtureLot();
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      await c.query(
+        `insert into site.finished_lot (lot_id, batch_id, batch_number, edition, product_code, strength, markets, posted_by_person, posted_by_account)
+         values ($1, gen_random_uuid(), $2, 'TABLETS', 'FG-1', '10 mg', '{IN,US}', gen_random_uuid(), gen_random_uuid())`,
+        [finished.lotId, unique('B-')],
+      );
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    type Grel = { ready: boolean; items: { id: string; status: string }[] };
+    const grel = async (lotId: string, market: string): Promise<Grel> =>
+      (await db.app.query<{ g: Grel }>('select recipe.grel_evaluate($1, $2) as g', [lotId, market])).rows[0]!.g;
+    const qmsItem = (g: Grel) => g.items.filter((i) => i.id === 'G2.QMS_STATUS');
+    try {
+      await setMirrorMode(db, 'QMS_STATUS', 'MIRROR');
+      await syncMirror(db, qmsAdapter, 'QMS_STATUS');
+      const ref = unique('QD-');
+      await receive(db, qmsAdapter, 'site.receive_qms_deviation_status',
+        envelopeFor(qmsAdapter, 'qms.deviation_status', status(ref, 'OPEN', 'v1', [finished.lotCode, other.lotCode])));
+      // MIRROR: the finished lot's checklist carries the QMS item, RED for the open deviation, and is not ready.
+      const g = await grel(finished.lotId, 'IN');
+      expect(qmsItem(g)).toMatchObject([{ status: 'RED' }]);
+      expect(g.ready).toBe(false);
+      // A lot that is not a finished lot gets no QMS item, though another lot is one.
+      expect(qmsItem(await grel(other.lotId, 'IN'))).toEqual([]);
+      // Nor gets it the market items of US: its checklist for US is its checklist for IN.
+      const us = await grel(other.lotId, 'US');
+      expect(us.items.map((i) => i.id).sort()).toEqual((await grel(other.lotId, 'IN')).items.map((i) => i.id).sort());
+      // STAND_IN: no QMS item at all, the finished lot's either.
+      await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
+      expect(qmsItem(await grel(finished.lotId, 'IN'))).toEqual([]);
+    } finally {
+      await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
+    }
+  });
+
   it('[DI-31] a release with a stale QMS mirror is refused even with a matching fetch record', async () => {
     await setMirrorMode(db, 'QMS_STATUS', 'MIRROR');
     try {
