@@ -144,15 +144,26 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
     setMethodVersion: async ({ body, actor, idempotencyKey, requestHash }) => {
       const parameters = jsonObject(body.parametersJson, 'parameters');
       const acceptance = jsonObject(body.acceptanceJson, 'acceptance criteria');
-      const problems = methodDefinitionProblems(body.method, parameters);
+      let def = {
+        method: body.method, version: body.version, status: body.status, title: body.title, intendedUse: body.intendedUse, acceptance,
+        parameters, parametersSha256: parametersSha256(parameters), codeIdentity: codeIdentity(app.config.analytics.commit), validationRef: body.validationRef,
+      };
+      let current: { parameters: Record<string, unknown>; parameters_sha256: string; intended_use: string; code_identity: string } | undefined;
+      if (body.status === 'RETIRED') {
+        // A retirement keeps what the version in force recorded (its parameters, intended use and code identity), so a
+        // version validated with an earlier build can still be retired after an upgrade (D-6A-1-23).
+        const { rows } = await pool.query<{ parameters: Record<string, unknown>; parameters_sha256: string; intended_use: string; code_identity: string }>(
+          `select parameters, parameters_sha256, intended_use, code_identity from analytics.method_version_v1
+            where method = $1 and version = $2 order by valid_from desc, recorded_at desc limit 1`, [body.method, body.version]);
+        current = rows[0];
+        if (current) def = { ...def, parameters: current.parameters, parametersSha256: current.parameters_sha256, intendedUse: current.intended_use, codeIdentity: current.code_identity };
+      }
+      // A retirement of a recorded version is not checked against today's parameter schema (it does not run again).
+      const problems = current ? [] : methodDefinitionProblems(def.method, def.parameters);
       if (problems.length > 0) {
         throw refusal(422, { code: 'EBMR-ANA-015', kind: 'INVALID_INPUT', whatHappened: 'The method version was not recorded.', why: problems.join('; '),
                              whatYouCanDo: ['Give parameters that fit the method (the catalogue lists its defaults).'], whoCanHelp: ['QA'], controls: ['DI-52'] });
       }
-      const def = {
-        method: body.method, version: body.version, status: body.status, title: body.title, intendedUse: body.intendedUse, acceptance,
-        parameters, parametersSha256: parametersSha256(parameters), codeIdentity: codeIdentity(app.config.analytics.commit), validationRef: body.validationRef,
-      };
       const ctx = { ...actor({ reasonCode: 'CONFIG_CHANGE', reasonText: body.reason }), changeRecord: body.changeRecord };
       const out = await withIdempotentActorCommand(pool, ctx, idempotencyKey ?? '', requestHash, async (c) =>
         (await c.query<{ id: string }>('select analytics.set_method_version($1::jsonb)::text as id', [JSON.stringify(def)])).rows[0]!.id);

@@ -104,6 +104,12 @@ describe('the analytics routes (GMP)', () => {
     const cap = page.versions.filter((v) => v.method === 'CAP.INDEX');
     expect(cap.map((v) => [v.status, v.validTo === null, v.changeRecord])).toEqual([['EFFECTIVE', false, number], ['RETIRED', true, number]]);
     expect(valueOf(await qa.call(routes.analytics.catalog)).methods.find((m) => m.id === 'CAP.INDEX')!.effectiveVersions).toEqual([]);
+    // A version validated with an earlier build is retired as recorded (its parameters, use and code identity kept).
+    await releaseMethodVersion(gmp, 'RATE.DEVIATION', 1, { codeIdentity: '@ebmr/analytics 0.0.9 (commit 1a2b3c4)' });
+    const retired = valueOf(await qa.call(routes.analyticsConfig.setMethodVersion, {
+      body: { ...body, method: 'RATE.DEVIATION', status: 'RETIRED', parametersJson: '{}', intendedUse: 'ignored for a retirement', changeRecord: number },
+    }));
+    expect(retired.version).toMatchObject({ method: 'RATE.DEVIATION', status: 'RETIRED', codeIdentity: '@ebmr/analytics 0.0.9 (commit 1a2b3c4)', intendedUse: 'advisory probe of the runner' });
     // The configuration history shows the method like any other area, with its record.
     const areas = valueOf(await qa.call(routes.config.areas)).areas.map((a) => a.code);
     expect(areas).toEqual(expect.arrayContaining(['ANALYTICS_METHOD', 'ANALYTICS_REFERENCE']));

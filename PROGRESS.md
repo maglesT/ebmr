@@ -201,7 +201,8 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   never changed once in force; the screens' views; restricted dispositions), the routes (`analytics` bound,
   `analyticsConfig` new), the screens `/analytics`, `/analytics/methods`, `/analytics/flags`, the libraries pinned
   (ml-matrix, @stdlib quantiles), the runner's number lint ban, and the golden batches with the runner on. Defaults
-  D-6A-1-1 to 22 in the plan.
+  D-6A-1-1 to 23 in the plan. Quick review: one medium fixed (a version validated with an earlier build could not
+  be retired after an upgrade; D-6A-1-23); golden GB-T-01 to GB-T-03 passed with the runner on.
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).

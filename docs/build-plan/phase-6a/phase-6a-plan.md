@@ -215,6 +215,9 @@ Defaults of 6A-1 (taken without asking, as the owner's rule says; each is the de
   before the outputs are read. The run uses the test's probe method, because no production method exists yet.
 - **D-6A-1-22** A flag the person may not see answers 404 (EBMR-ANA-016), which does not reveal that a restricted flag
   exists.
+- **D-6A-1-23** A retirement through the route keeps what the version in force recorded: its parameters, their hash,
+  its intended use and its code identity. A version validated with an earlier build can then still be retired after
+  an upgrade (found in the slice's own review).
 
 ### Slice 6A-2: SPC, capability, drift alerts and deviation-rate comparisons (items 1 and 3)
 

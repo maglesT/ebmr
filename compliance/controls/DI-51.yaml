@@ -46,6 +46,9 @@ tests:
   - "packages/recipe-core/test/analytics/input-views.test.ts > the analytics input views (recipe-core 1115) > [DI-51] report.batch_fact_v1 gives each GMP batch with its product, master version and family, status and release"
   - "packages/recipe-core/test/analytics/input-views.test.ts > the analytics input views (recipe-core 1115) > [DI-51] report.step_use_v1 gives each executed step with its unit, room, times, persons and consumed lots"
   - "packages/recipe-core/test/analytics/input-views.test.ts > the analytics input views (recipe-core 1115) > [DI-51] the inputs are on the analytics role's allow-list; it reads them and nothing behind them, and the segregation check stays clean"
+  - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > [DI-51] the golden batches keep their exact outputs with the analytics runner on"
+  - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [DI-51] the golden batches keep their exact outputs with the analytics runner on"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-51] the golden batches keep their exact outputs with the analytics runner on"
 expert_decision:
   status: PENDING
   pack_version: draft
