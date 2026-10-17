@@ -1,0 +1,2717 @@
+[32m05:24:01 (1273228) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/p4-server-records.incremental.json, a full mutation testing run will be performed.
+[32m05:24:01 (1273228) INFO ProjectReader[39m Found 5 of 3166 file(s) to be mutated.
+[32m05:24:02 (1273228) INFO Instrumenter[39m Instrumented 5 source file(s) with 837 mutant(s)
+[32m05:24:06 (1273228) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m05:24:08 (1273228) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m05:24:09 (1273228) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m05:25:01 (1273228) INFO DryRunExecutor[39m Initial test run succeeded. Ran 10 tests in 52 seconds (net 6595.437856000004 ms, overhead 45527.562143999996 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~42m) 204/800 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~42m) 205/800 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~42m) 206/800 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~33m) 208/800 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~29m) 211/800 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~31m) 214/800 tested (2 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~36m) 218/800 tested (3 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~41m) 221/800 tested (3 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~1m, remaining: ~30m) 225/800 tested (3 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~1m, remaining: ~28m) 227/800 tested (4 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~1m, remaining: ~27m) 229/800 tested (6 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~2m, remaining: ~25m) 232/800 tested (9 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~2m, remaining: ~24m) 234/800 tested (11 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~2m, remaining: ~23m) 236/800 tested (13 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~2m, remaining: ~23m) 238/800 tested (15 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~2m, remaining: ~22m) 240/800 tested (16 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~2m, remaining: ~22m) 242/800 tested (17 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~3m, remaining: ~20m) 246/800 tested (19 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~3m, remaining: ~20m) 248/800 tested (20 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~3m, remaining: ~19m) 250/800 tested (21 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~3m, remaining: ~19m) 252/800 tested (22 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~3m, remaining: ~18m) 255/800 tested (24 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~3m, remaining: ~18m) 257/800 tested (25 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~4m, remaining: ~17m) 261/800 tested (28 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~4m, remaining: ~17m) 263/800 tested (29 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~4m, remaining: ~17m) 264/800 tested (30 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~4m, remaining: ~17m) 266/800 tested (32 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~4m, remaining: ~17m) 268/800 tested (34 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~4m, remaining: ~17m) 270/800 tested (36 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~5m, remaining: ~16m) 273/800 tested (38 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~5m, remaining: ~16m) 275/800 tested (39 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~5m, remaining: ~17m) 278/800 tested (39 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~5m, remaining: ~17m) 281/800 tested (39 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~5m, remaining: ~18m) 284/800 tested (39 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~5m, remaining: ~18m) 287/800 tested (39 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~6m, remaining: ~19m) 289/800 tested (39 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~6m, remaining: ~19m) 292/800 tested (39 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~6m, remaining: ~18m) 294/800 tested (39 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~6m, remaining: ~18m) 297/800 tested (40 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~6m, remaining: ~17m) 301/800 tested (41 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~6m, remaining: ~17m) 303/800 tested (41 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~7m, remaining: ~17m) 304/800 tested (42 survived, 0 timed out)
+Mutation testing 29% (elapsed: ~7m, remaining: ~17m) 307/800 tested (44 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~7m, remaining: ~16m) 309/800 tested (45 survived, 0 timed out)
+Mutation testing 31% (elapsed: ~7m, remaining: ~16m) 311/800 tested (46 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~7m, remaining: ~15m) 315/800 tested (47 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~7m, remaining: ~15m) 318/800 tested (47 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~8m, remaining: ~15m) 320/800 tested (48 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~8m, remaining: ~15m) 323/800 tested (49 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~8m, remaining: ~14m) 325/800 tested (51 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~8m, remaining: ~14m) 328/800 tested (54 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~8m, remaining: ~14m) 330/800 tested (56 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~8m, remaining: ~14m) 332/800 tested (58 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~9m, remaining: ~14m) 334/800 tested (59 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~9m, remaining: ~13m) 337/800 tested (61 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~9m, remaining: ~13m) 340/800 tested (61 survived, 0 timed out)
+Mutation testing 42% (elapsed: ~9m, remaining: ~13m) 343/800 tested (62 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~9m, remaining: ~12m) 346/800 tested (62 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~9m, remaining: ~12m) 350/800 tested (63 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~10m, remaining: ~11m) 353/800 tested (64 survived, 0 timed out)
+Mutation testing 46% (elapsed: ~10m, remaining: ~11m) 355/800 tested (64 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~10m, remaining: ~11m) 358/800 tested (65 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~10m, remaining: ~11m) 359/800 tested (66 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~10m, remaining: ~11m) 363/800 tested (68 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~10m, remaining: ~10m) 365/800 tested (69 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~11m, remaining: ~10m) 368/800 tested (70 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~11m, remaining: ~10m) 370/800 tested (71 survived, 0 timed out)
+Mutation testing 52% (elapsed: ~11m, remaining: ~10m) 372/800 tested (73 survived, 0 timed out)
+Mutation testing 52% (elapsed: ~11m, remaining: ~10m) 374/800 tested (75 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~11m, remaining: ~9m) 377/800 tested (76 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~11m, remaining: ~9m) 380/800 tested (78 survived, 0 timed out)
+Mutation testing 55% (elapsed: ~12m, remaining: ~9m) 382/800 tested (79 survived, 0 timed out)
+Mutation testing 56% (elapsed: ~12m, remaining: ~9m) 385/800 tested (79 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~12m, remaining: ~9m) 387/800 tested (81 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~12m, remaining: ~9m) 390/800 tested (81 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~12m, remaining: ~8m) 392/800 tested (81 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~12m, remaining: ~8m) 396/800 tested (82 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~13m, remaining: ~8m) 400/800 tested (82 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~13m, remaining: ~8m) 401/800 tested (83 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~13m, remaining: ~8m) 401/800 tested (83 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~13m, remaining: ~8m) 401/800 tested (83 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~13m, remaining: ~8m) 401/800 tested (83 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~13m, remaining: ~8m) 401/800 tested (83 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~14m, remaining: ~9m) 401/800 tested (83 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~14m, remaining: ~9m) 402/800 tested (84 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~14m, remaining: ~8m) 406/800 tested (85 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~14m, remaining: ~8m) 410/800 tested (87 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~14m, remaining: ~8m) 412/800 tested (87 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~14m, remaining: ~8m) 416/800 tested (89 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~15m, remaining: ~8m) 418/800 tested (90 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~15m, remaining: ~7m) 422/800 tested (92 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~15m, remaining: ~7m) 426/800 tested (96 survived, 0 timed out)
+Mutation testing 68% (elapsed: ~15m, remaining: ~7m) 430/800 tested (96 survived, 0 timed out)
+Mutation testing 68% (elapsed: ~15m, remaining: ~7m) 432/800 tested (96 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~15m, remaining: ~6m) 435/800 tested (97 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~16m, remaining: ~6m) 438/800 tested (97 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~16m, remaining: ~6m) 440/800 tested (99 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~16m, remaining: ~6m) 443/800 tested (99 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~16m, remaining: ~6m) 447/800 tested (100 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~16m, remaining: ~6m) 450/800 tested (100 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~16m, remaining: ~6m) 454/800 tested (101 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 458/800 tested (103 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 462/800 tested (105 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 466/800 tested (106 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 470/800 tested (106 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 475/800 tested (111 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 479/800 tested (112 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~18m, remaining: ~6m) 482/800 tested (112 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~18m, remaining: ~6m) 485/800 tested (114 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~18m, remaining: ~6m) 488/800 tested (117 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~18m, remaining: ~6m) 491/800 tested (117 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~18m, remaining: ~6m) 494/800 tested (119 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~18m, remaining: ~6m) 498/800 tested (119 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~19m, remaining: ~6m) 502/800 tested (120 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~19m, remaining: ~6m) 506/800 tested (120 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~19m, remaining: ~6m) 508/800 tested (121 survived, 0 timed out)
+Mutation testing 76% (elapsed: ~19m, remaining: ~6m) 512/800 tested (122 survived, 0 timed out)
+Mutation testing 76% (elapsed: ~19m, remaining: ~5m) 514/800 tested (122 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~19m, remaining: ~5m) 518/800 tested (123 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~20m, remaining: ~5m) 523/800 tested (123 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~20m, remaining: ~5m) 527/800 tested (123 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~20m, remaining: ~5m) 532/800 tested (123 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~20m, remaining: ~5m) 537/800 tested (123 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~20m, remaining: ~5m) 540/800 tested (124 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~20m, remaining: ~4m) 544/800 tested (125 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~21m, remaining: ~4m) 546/800 tested (126 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~21m, remaining: ~4m) 550/800 tested (126 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~21m, remaining: ~4m) 554/800 tested (127 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~21m, remaining: ~3m) 558/800 tested (127 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~21m, remaining: ~3m) 562/800 tested (129 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~21m, remaining: ~3m) 567/800 tested (130 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~22m, remaining: ~3m) 572/800 tested (130 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~22m, remaining: ~3m) 577/800 tested (131 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~22m, remaining: ~3m) 582/800 tested (131 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~22m, remaining: ~3m) 586/800 tested (132 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~22m, remaining: ~3m) 592/800 tested (133 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~22m, remaining: ~3m) 597/800 tested (133 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~23m, remaining: ~3m) 602/800 tested (133 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~23m, remaining: ~3m) 606/800 tested (133 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~23m, remaining: ~3m) 611/800 tested (133 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~23m, remaining: ~3m) 615/800 tested (133 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~23m, remaining: ~3m) 620/800 tested (133 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~23m, remaining: ~3m) 624/800 tested (133 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~24m, remaining: ~3m) 630/800 tested (133 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~24m, remaining: ~2m) 636/800 tested (133 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~24m, remaining: ~2m) 641/800 tested (133 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~24m, remaining: ~2m) 648/800 tested (133 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~24m, remaining: ~2m) 654/800 tested (134 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~24m, remaining: ~2m) 660/800 tested (134 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~25m, remaining: ~2m) 667/800 tested (135 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~25m, remaining: ~2m) 674/800 tested (135 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~25m, remaining: ~2m) 680/800 tested (136 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~25m, remaining: ~2m) 684/800 tested (137 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~25m, remaining: ~2m) 689/800 tested (139 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~25m, remaining: ~2m) 694/800 tested (141 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~26m, remaining: ~2m) 700/800 tested (141 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~26m, remaining: ~2m) 706/800 tested (141 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~26m, remaining: ~1m) 712/800 tested (141 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~26m, remaining: ~1m) 718/800 tested (141 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~26m, remaining: ~1m) 724/800 tested (141 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~26m, remaining: ~1m) 728/800 tested (141 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~27m, remaining: ~1m) 734/800 tested (141 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~27m, remaining: ~1m) 740/800 tested (141 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~27m, remaining: ~1m) 744/800 tested (141 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~27m, remaining: ~1m) 750/800 tested (141 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~27m, remaining: ~1m) 754/800 tested (141 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~27m, remaining: <1m) 760/800 tested (141 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~28m, remaining: <1m) 764/800 tested (141 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~28m, remaining: <1m) 770/800 tested (141 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~28m, remaining: <1m) 774/800 tested (141 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~28m, remaining: <1m) 780/800 tested (141 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~28m, remaining: <1m) 784/800 tested (141 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~28m, remaining: <1m) 791/800 tested (141 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~29m, remaining: <1m) 796/800 tested (141 survived, 0 timed out)
+
+All tests
+  archive-routes.test.ts
+    ✓ archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify (killed 71)
+    ✓ archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go (killed 15)
+    ✓ archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged (killed 36)
+    ✓ archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification (killed 69)
+    ✓ archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read (killed 23)
+    ~ archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it (covered 75)
+    ✓ archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules (killed 13)
+  records-routes.test.ts
+    ✓ records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404 (killed 66)
+    ✓ records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21][R-04] QA opens an amendment through the ceremony (the server reads its number), production appends an entry, another QA person closes it over the entries: LOCKED again; a malformed act signs nothing (killed 147)
+    ✓ records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text (killed 16)
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:43:73
+-     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
++     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || false ? 'FORM_28' : null;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:43:73
+-     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
++     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form !== '28A' ? 'FORM_28' : null;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:43:82
+-     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
++     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === "" ? 'FORM_28' : null;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:71:30
+-     const status = r.status ?? 'ISSUED';
++     const status = r.status ?? "";
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/facts.ts:72:33
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? []).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:72:34
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? [""]).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:72:90
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || false || m === 'EU');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:72:90
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m !== 'US' || m === 'EU');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:72:96
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === "" || m === 'EU');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:72:104
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || false);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:72:104
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m !== 'EU');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:72:110
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === "");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:74:28
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === 'ABORTED' ? "" : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:74:65
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? "" : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:74:113
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? "" : 'IN_PROGRESS';
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/facts.ts:78:9
+-         ? { state: 'CERTIFIED', date: r.eu_certified }
++         ? {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:78:18
+-         ? { state: 'CERTIFIED', date: r.eu_certified }
++         ? { state: "", date: r.eu_certified }
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/facts.ts:80:11
+-           ? { state: 'FINALLY_REJECTED', date: r.eu_rejected }
++           ? {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:80:20
+-           ? { state: 'FINALLY_REJECTED', date: r.eu_rejected }
++           ? { state: "", date: r.eu_rejected }
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/facts.ts:81:11
+-           : { state: 'PENDING' };
++           : {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:81:20
+-           : { state: 'PENDING' };
++           : { state: "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:88:51
+-       supports: (r.packed_into ?? []).filter((x) => x !== batchId),
++       supports: (r.packed_into ?? []).filter((x) => true),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:88:51
+-       supports: (r.packed_into ?? []).filter((x) => x !== batchId),
++       supports: (r.packed_into ?? []).filter((x) => false),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:88:51
+-       supports: (r.packed_into ?? []).filter((x) => x !== batchId),
++       supports: (r.packed_into ?? []).filter((x) => x === batchId),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:89:52
+-       dependsOn: (r.packed_from ?? []).filter((x) => x !== batchId),
++       dependsOn: (r.packed_from ?? []).filter((x) => true),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:89:52
+-       dependsOn: (r.packed_from ?? []).filter((x) => x !== batchId),
++       dependsOn: (r.packed_from ?? []).filter((x) => false),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:89:52
+-       dependsOn: (r.packed_from ?? []).filter((x) => x !== batchId),
++       dependsOn: (r.packed_from ?? []).filter((x) => x === batchId),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/archive/facts.ts:96:76
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date && r.manufacture_date) : null,
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:43:27
+-     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
++     return form === '25' || false ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:43:36
+-     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
++     return form === '25' || form === "" ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:43:56
+-     return form === '25' || form === '25A' ? 'FORM_25' : form === '28' || form === '28A' ? 'FORM_28' : null;
++     return form === '25' || form === '25A' ? 'FORM_25' : true ? 'FORM_28' : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:70:7
+-     if (!r) return null;
++     if (false) return null;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/facts.ts:71:18
+-     const status = r.status ?? 'ISSUED';
++     const status = r.status && 'ISSUED';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/archive/facts.ts:72:19
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = r.markets ?? ['IN'];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/facts.ts:72:20
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets && ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/facts.ts:72:48
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter(() => undefined);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:72:76
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => true);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:72:76
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => false);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/facts.ts:72:76
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => (m === 'IN' || m === 'US') && m === 'EU');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:72:76
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => false || m === 'EU');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/facts.ts:72:76
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' && m === 'US' || m === 'EU');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:72:76
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => false || m === 'US' || m === 'EU');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:72:76
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m !== 'IN' || m === 'US' || m === 'EU');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:72:82
+-     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === 'IN' || m === 'US' || m === 'EU');
++     const markets = (r.markets ?? ['IN']).filter((m): m is records.Market => m === "" || m === 'US' || m === 'EU');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:74:5
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       false ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:74:16
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === "" ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:74:40
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === 'ABORTED' ? 'ABORTED' : false ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:74:51
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === 'ABORTED' ? 'ABORTED' : status === "" ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:74:79
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : false ? 'COMPLETED' : 'IN_PROGRESS';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:74:90
+-       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === 'EXECUTION_COMPLETE' ? 'COMPLETED' : 'IN_PROGRESS';
++       status === 'ABORTED' ? 'ABORTED' : status === 'CANCELLED' ? 'CANCELLED' : status === "" ? 'COMPLETED' : 'IN_PROGRESS';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/archive/facts.ts:75:49
+-     const eu: records.BatchRetentionFacts['eu'] = !markets.includes('EU')
++     const eu: records.BatchRetentionFacts['eu'] = markets.includes('EU')
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:75:67
+-     const eu: records.BatchRetentionFacts['eu'] = !markets.includes('EU')
++     const eu: records.BatchRetentionFacts['eu'] = !markets.includes("")
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/archive/facts.ts:88:15
+-       supports: (r.packed_into ?? []).filter((x) => x !== batchId),
++       supports: r.packed_into ?? [],
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/facts.ts:88:33
+-       supports: (r.packed_into ?? []).filter((x) => x !== batchId),
++       supports: (r.packed_into ?? ["Stryker was here"]).filter((x) => x !== batchId),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/facts.ts:88:44
+-       supports: (r.packed_into ?? []).filter((x) => x !== batchId),
++       supports: (r.packed_into ?? []).filter(() => undefined),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/archive/facts.ts:89:16
+-       dependsOn: (r.packed_from ?? []).filter((x) => x !== batchId),
++       dependsOn: r.packed_from ?? [],
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/facts.ts:89:34
+-       dependsOn: (r.packed_from ?? []).filter((x) => x !== batchId),
++       dependsOn: (r.packed_from ?? ["Stryker was here"]).filter((x) => x !== batchId),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/facts.ts:89:45
+-       dependsOn: (r.packed_from ?? []).filter((x) => x !== batchId),
++       dependsOn: (r.packed_from ?? []).filter(() => undefined),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:96:24
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: true ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:96:24
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: false ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/facts.ts:96:24
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: outcome === 'ABORTED' && outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:96:24
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: false || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:96:24
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: outcome !== 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:96:36
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: outcome === "" || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/facts.ts:96:49
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: outcome === 'ABORTED' || false ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/archive/facts.ts:96:49
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: outcome === 'ABORTED' || outcome !== 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/facts.ts:96:61
+-         abortCancelDate: outcome === 'ABORTED' || outcome === 'CANCELLED' ? (r.abort_date ?? r.manufacture_date) : null,
++         abortCancelDate: outcome === 'ABORTED' || outcome === "" ? (r.abort_date ?? r.manufacture_date) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:33:16
+-     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
++     refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:33:24
+-     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
++     refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:33:51
+-     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
++     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: "", whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:33:82
+-     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
++     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: "", why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:33:116
+-     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
++     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: ``, whatYouCanDo: ['Reload the batch list.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:33:157
+-     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
++     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:33:158
+-     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: ['Reload the batch list.'] });
++     refusal(404, { code: 'EBMR-API-NO-BATCH', kind: 'INVALID_INPUT', whatHappened: 'This batch was not found.', why: `${batchId} is no batch.`, whatYouCanDo: [""] });
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:65:10
+-     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
++     return true ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:65:10
+-     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
++     return false ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/index.ts:65:10
+-     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
++     return eu.state !== 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:65:23
+-     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
++     return eu.state === "" ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:65:35
+-     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
++     return eu.state === 'PENDING' ? {} : { eu: eu.state, euDate: eu.date };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:65:41
+-     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
++     return eu.state === 'PENDING' ? { eu: "", euDate: null } : { eu: eu.state, euDate: eu.date };
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:65:69
+-     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : { eu: eu.state, euDate: eu.date };
++     return eu.state === 'PENDING' ? { eu: 'PENDING', euDate: null } : {};
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/archive/index.ts:84:162
+-     const scheduled = (await db.query<{ s: boolean }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s ?? false;
++     const scheduled = (await db.query<{ s: boolean }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s ?? true;
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:91:18
+-     if (scheduled) {
+-       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', ['batch', f.batchId])).rows[0]?.r;
+-       if (!r) throw new Error('retention was not read');
+-       status = r.effective.status;
+-       retainUntil = r.effective.retainUntil;
+-       governingRules = r.own.governingRules;
+-       governedBy = r.effective.governedBy;
+-       openBecause = r.effective.openBecause.flatMap((o) => o.reasons.map((x) => `${o.recordKey}: ${x}`));
+-       const now = (await db.query<{ n: Record<string, unknown> }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(inputs)])).rows[0]?.n ?? {};
+-       for (const k of Object.keys(now).sort()) {
+-         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
+-       }
+-     } else {
++     if (scheduled) {} else {
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:92:15
+-       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', ['batch', f.batchId])).rows[0]?.r;
++       const r = (await db.query<{
++     r: {
++       own: OwnJson;
++       effective: EffectiveJson;
++       inputs: Record<string, unknown>;
++     };
++   }>('select records.retention_of($1, $2) as r', ['batch', f.batchId])).rows[0].r;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:92:115
+-       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', ['batch', f.batchId])).rows[0]?.r;
++       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>("", ['batch', f.batchId])).rows[0]?.r;
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:92:159
+-       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', ['batch', f.batchId])).rows[0]?.r;
++       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', [])).rows[0]?.r;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:92:160
+-       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', ['batch', f.batchId])).rows[0]?.r;
++       const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', ["", f.batchId])).rows[0]?.r;
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/archive/index.ts:93:9
+-       if (!r) throw new Error('retention was not read');
++       if (r) throw new Error('retention was not read');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:93:9
+-       if (!r) throw new Error('retention was not read');
++       if (true) throw new Error('retention was not read');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:93:9
+-       if (!r) throw new Error('retention was not read');
++       if (false) throw new Error('retention was not read');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:93:29
+-       if (!r) throw new Error('retention was not read');
++       if (!r) throw new Error("");
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:98:51
+-       openBecause = r.effective.openBecause.flatMap((o) => o.reasons.map((x) => `${o.recordKey}: ${x}`));
++       openBecause = r.effective.openBecause.flatMap(() => undefined);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:98:72
+-       openBecause = r.effective.openBecause.flatMap((o) => o.reasons.map((x) => `${o.recordKey}: ${x}`));
++       openBecause = r.effective.openBecause.flatMap((o) => o.reasons.map(() => undefined));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:98:79
+-       openBecause = r.effective.openBecause.flatMap((o) => o.reasons.map((x) => `${o.recordKey}: ${x}`));
++       openBecause = r.effective.openBecause.flatMap((o) => o.reasons.map((x) => ``));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/archive/index.ts:99:17
+-       const now = (await db.query<{ n: Record<string, unknown> }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(inputs)])).rows[0]?.n ?? {};
++       const now = (await db.query<{
++     n: Record<string, unknown>;
++   }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(inputs)])).rows[0]?.n && {};
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:99:17
+-       const now = (await db.query<{ n: Record<string, unknown> }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(inputs)])).rows[0]?.n ?? {};
++       const now = (await db.query<{
++     n: Record<string, unknown>;
++   }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(inputs)])).rows[0].n ?? {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:99:65
+-       const now = (await db.query<{ n: Record<string, unknown> }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(inputs)])).rows[0]?.n ?? {};
++       const now = (await db.query<{ n: Record<string, unknown> }>("", [JSON.stringify(inputs)])).rows[0]?.n ?? {};
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:99:126
+-       const now = (await db.query<{ n: Record<string, unknown> }>('select records.normalize_retention_inputs($1::jsonb) as n', [JSON.stringify(inputs)])).rows[0]?.n ?? {};
++       const now = (await db.query<{ n: Record<string, unknown> }>('select records.normalize_retention_inputs($1::jsonb) as n', [])).rows[0]?.n ?? {};
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/archive/index.ts:100:21
+-       for (const k of Object.keys(now).sort()) {
++       for (const k of Object.keys(now)) {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:100:46
+-       for (const k of Object.keys(now).sort()) {
+-         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
+-       }
++       for (const k of Object.keys(now).sort()) {}
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:101:11
+-         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
++         if (true) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:101:11
+-         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
++         if (false) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/index.ts:101:11
+-         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
++         if (JSON.stringify(now[k]) === JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:101:78
+-         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
++         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(``);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/archive/index.ts:101:109
+-         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] ?? null)}, the record now gives ${JSON.stringify(now[k])}`);
++         if (JSON.stringify(now[k]) !== JSON.stringify(r.inputs[k])) drift.push(`${k}: stored ${JSON.stringify(r.inputs[k] && null)}, the record now gives ${JSON.stringify(now[k])}`);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:106:31
+-       if (!own) throw new Error('retention was not evaluated');
++       if (!own) throw new Error("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:107:39
+-       status = own.status === 'DATED' ? 'DATED' : 'OPEN';
++       status = own.status === 'DATED' ? "" : 'OPEN';
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:110:43
+-       governedBy = own.status === 'DATED' ? [key] : [];
++       governedBy = own.status === 'DATED' ? [] : [];
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:111:43
+-       openBecause = own.status === 'NONE' ? ['no retention rule applies yet'] : own.openReasons;
++       openBecause = own.status === 'NONE' ? [] : own.openReasons;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:111:44
+-       openBecause = own.status === 'NONE' ? ['no retention rule applies yet'] : own.openReasons;
++       openBecause = own.status === 'NONE' ? [""] : own.openReasons;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:168:27
+-       state: head?.state ?? 'NONE',
++       state: head?.state ?? "",
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:231:66
+-   async function batchList(db: Db): Promise<ArchiveBatchSummary[]> {
+-     const { rows } = await db.query<{ id: string; batch_number: string; status: string | null; forms: ArchiveBatchSummary['formsState']; exports: number; certified: number }>(
+-       `select b.id, b.batch_number, s.state ->> 'status' as status, records.form_reconciliation_state(b.id) as forms,
+-               (select count(*)::int from records.evidence_export e where e.subject_type = 'batch' and e.subject_id = b.id::text) as exports,
+-               (select count(*)::int from records.evidence_export e join records.evidence_export_certification c on c.export_id = e.id
+-                 where e.subject_type = 'batch' and e.subject_id = b.id::text) as certified
+-          from recipe.batch_execution b left join recipe.execution_state s on s.batch_id = b.id
+-         order by b.issued_at desc, b.id limit 200`,
+-     );
+-     return rows.map((r) => ({ batchId: r.id, batchNumber: r.batch_number, status: r.status ?? 'ISSUED', formsState: r.forms, exports: r.exports, certifiedExports: r.certified }));
+-   }
++   async function batchList(db: Db): Promise<ArchiveBatchSummary[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:233:5
+-       `select b.id, b.batch_number, s.state ->> 'status' as status, records.form_reconciliation_state(b.id) as forms,
+-               (select count(*)::int from records.evidence_export e where e.subject_type = 'batch' and e.subject_id = b.id::text) as exports,
+-               (select count(*)::int from records.evidence_export e join records.evidence_export_certification c on c.export_id = e.id
+-                 where e.subject_type = 'batch' and e.subject_id = b.id::text) as certified
+-          from recipe.batch_execution b left join recipe.execution_state s on s.batch_id = b.id
+-         order by b.issued_at desc, b.id limit 200`,
++       ``,
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:240:19
+-     return rows.map((r) => ({ batchId: r.id, batchNumber: r.batch_number, status: r.status ?? 'ISSUED', formsState: r.forms, exports: r.exports, certifiedExports: r.certified }));
++     return rows.map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:240:27
+-     return rows.map((r) => ({ batchId: r.id, batchNumber: r.batch_number, status: r.status ?? 'ISSUED', formsState: r.forms, exports: r.exports, certifiedExports: r.certified }));
++     return rows.map((r) => ({}));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/archive/index.ts:240:81
+-     return rows.map((r) => ({ batchId: r.id, batchNumber: r.batch_number, status: r.status ?? 'ISSUED', formsState: r.forms, exports: r.exports, certifiedExports: r.certified }));
++     return rows.map((r) => ({ batchId: r.id, batchNumber: r.batch_number, status: r.status && 'ISSUED', formsState: r.forms, exports: r.exports, certifiedExports: r.certified }));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:240:93
+-     return rows.map((r) => ({ batchId: r.id, batchNumber: r.batch_number, status: r.status ?? 'ISSUED', formsState: r.forms, exports: r.exports, certifiedExports: r.certified }));
++     return rows.map((r) => ({ batchId: r.id, batchNumber: r.batch_number, status: r.status ?? "", formsState: r.forms, exports: r.exports, certifiedExports: r.certified }));
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:256:19
+-     } catch (error) {
+-       await client.query('rollback');
+-       if (error instanceof HttpRefusal) throw error;
+-       throw commands.asKernelError(error);
+-     } finally {
++     } catch (error) {} finally {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:257:24
+-       await client.query('rollback');
++       await client.query("");
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:258:9
+-       if (error instanceof HttpRefusal) throw error;
++       if (true) throw error;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:258:9
+-       if (error instanceof HttpRefusal) throw error;
++       if (false) throw error;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:266:16
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:266:24
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: "", kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:266:50
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: "", whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:266:79
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: "", why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:266:155
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: ``, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:266:211
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: [], whatYouCanDo: ['Copy the batch once it has been issued.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:266:212
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: [""], whatYouCanDo: ['Copy the batch once it has been issued.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:266:236
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:266:237
+-     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: ['Copy the batch once it has been issued.'] });
++     refusal(409, { code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'There is no record of this batch to copy yet. Nothing was recorded.', why: `Batch ${f.batchNumber} has no audit trail.`, controls: ['DI-41'], whatYouCanDo: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:291:162
+-     const generatedAt = (await c.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]?.t ?? '';
++     const generatedAt = (await c.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]?.t ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:311:27
+-     if (!x) throw new Error(`${what} was not found after it was recorded`);
++     if (!x) throw new Error(``);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:323:44
+-       batches: async ({ requireSession }) => {
+-         requireSession();
+-         return { batches: await batchList(pool) };
+-       },
++       batches: async ({ requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/archive/index.ts:324:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:325:14
+-         return { batches: await batchList(pool) };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:341:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:345:21
+-           if (exists) {
+-             await records.updateRetentionInputs(c, key, inputs, body.reason);
+-           } else {
++           if (exists) {} else {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:356:52
+-             await records.createRetentionSchedule(c, 'batch', f.batchId, type, inputs);
++             await records.createRetentionSchedule(c, "", f.batchId, type, inputs);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:359:143
+-           for (const [sup, dep] of [...f.supports.map((d) => [f.batchId, d]), ...f.dependsOn.map((s) => [s, f.batchId])] as [string, string][]) {
+-             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, `batch:${dep}`])).rows[0]?.n;
+-             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
+-           }
++           for (const [sup, dep] of [...f.supports.map((d) => [f.batchId, d]), ...f.dependsOn.map((s) => [s, f.batchId])] as [string, string][]) {}
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:360:24
+-             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, `batch:${dep}`])).rows[0]?.n;
++             const both = (await c.query<{
++     n: number;
++   }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, `batch:${dep}`])).rows[0].n;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:360:54
+-             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, `batch:${dep}`])).rows[0]?.n;
++             const both = (await c.query<{ n: number }>("", [`batch:${sup}`, `batch:${dep}`])).rows[0]?.n;
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:360:144
+-             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, `batch:${dep}`])).rows[0]?.n;
++             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [])).rows[0]?.n;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:360:145
+-             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, `batch:${dep}`])).rows[0]?.n;
++             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [``, `batch:${dep}`])).rows[0]?.n;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:360:161
+-             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, `batch:${dep}`])).rows[0]?.n;
++             const both = (await c.query<{ n: number }>('select count(*)::int as n from records.retention_schedule where record_key in ($1, $2)', [`batch:${sup}`, ``])).rows[0]?.n;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:361:15
+-             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
++             if (true) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:361:15
+-             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
++             if (false) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/archive/index.ts:361:15
+-             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
++             if (both !== 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:361:68
+-             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
++             if (both === 2) await records.linkRetentionDependency(c, ``, `batch:${dep}`, 'BULK_PACKED_INTO');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:361:84
+-             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
++             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, ``, 'BULK_PACKED_INTO');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:361:100
+-             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, 'BULK_PACKED_INTO');
++             if (both === 2) await records.linkRetentionDependency(c, `batch:${sup}`, `batch:${dep}`, "");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:369:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:377:78
+-         if (['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(f.status)) {
+-           throw refusal(409, {
+-             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
+-             controls: ['DI-43'], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
+-           });
+-         }
++         if (['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(f.status)) {}
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:378:28
+-           throw refusal(409, {
+-             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
+-             controls: ['DI-43'], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
+-           });
++           throw refusal(409, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:379:17
+-             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
++             code: "", kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:379:43
+-             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
++             code: 'EBMR-API-ARCHIVE', kind: "", whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:379:72
+-             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
++             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: "", why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:379:112
+-             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: `Batch ${f.batchNumber} is ${f.status}: packs are issued at its issue or at a stage start.`,
++             code: 'EBMR-API-ARCHIVE', kind: 'NOT_ALLOWED', whatHappened: 'No contingency pack was issued.', why: ``,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:380:21
+-             controls: ['DI-43'], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
++             controls: [], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:380:22
+-             controls: ['DI-43'], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
++             controls: [""], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:380:46
+-             controls: ['DI-43'], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
++             controls: ['DI-43'], whatYouCanDo: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:380:47
+-             controls: ['DI-43'], whatYouCanDo: ['Issue packs for a batch that is issued or in progress.'],
++             controls: ['DI-43'], whatYouCanDo: [""],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:383:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:394:21
+-         if (!batchId) {
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
+-         }
++         if (!batchId) {}
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:395:28
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
++           throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:395:36
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
++           throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:395:62
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
++           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: "", whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:395:93
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
++           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: "", why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:395:138
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
++           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: ``, whatYouCanDo: ['Reload the batch.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:395:191
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
++           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:395:192
+-           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: ['Reload the batch.'] });
++           throw refusal(404, { code: 'EBMR-API-NO-FORM', kind: 'INVALID_INPUT', whatHappened: 'This contingency form was not found.', why: `${params.formId} is no issued form.`, whatYouCanDo: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:397:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:413:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:429:160
+-         const label = (await pool.query<{ l: string }>('select subject_label as l from records.evidence_export where id = $1', [params.exportId])).rows[0]?.l ?? 'export';
++         const label = (await pool.query<{ l: string }>('select subject_label as l from records.evidence_export where id = $1', [params.exportId])).rows[0]?.l ?? "";
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:437:17
+-           } catch {
+-             return null;
+-           }
++           } catch {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:449:105
+-         const report = await records.verifyEvidenceExportText(body.text, reg ? { exportSha256: claimed ?? '' } : undefined);
++         const report = await records.verifyEvidenceExportText(body.text, reg ? { exportSha256: claimed ?? "Stryker was here!" } : undefined);
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:58:7
+-     if (!f) throw noBatch(batchId);
++     if (false) throw noBatch(batchId);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 4 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:64:7
+-     if (!eu) return { eu: 'NOT_IN_SET', euDate: null };
++     if (true) return { eu: 'NOT_IN_SET', euDate: null };
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/index.ts:84:21
+-     const scheduled = (await db.query<{ s: boolean }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s ?? false;
++     const scheduled = (await db.query<{
++     s: boolean;
++   }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s && false;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:84:21
+-     const scheduled = (await db.query<{ s: boolean }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s ?? false;
++     const scheduled = (await db.query<{
++     s: boolean;
++   }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0].s ?? false;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:84:53
+-     const scheduled = (await db.query<{ s: boolean }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s ?? false;
++     const scheduled = (await db.query<{ s: boolean }>("", [key])).rows[0]?.s ?? false;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:90:27
+-     const drift: string[] = [];
++     const drift: string[] = ["Stryker was here"];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:91:7
+-     if (scheduled) {
++     if (false) {
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:105:17
+-       const own = (await db.query<{ o: OwnJson }>('select records.evaluate_retention($1::jsonb) as o', [JSON.stringify({ ...inputs, retentionKey: 'BATCH_RECORD' })])).rows[0]?.o;
++       const own = (await db.query<{
++     o: OwnJson;
++   }>('select records.evaluate_retention($1::jsonb) as o', [JSON.stringify({
++     ...inputs,
++     retentionKey: 'BATCH_RECORD'
++   })])).rows[0].o;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:106:9
+-       if (!own) throw new Error('retention was not evaluated');
++       if (false) throw new Error('retention was not evaluated');
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:107:14
+-       status = own.status === 'DATED' ? 'DATED' : 'OPEN';
++       status = false ? 'DATED' : 'OPEN';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:107:29
+-       status = own.status === 'DATED' ? 'DATED' : 'OPEN';
++       status = own.status === "" ? 'DATED' : 'OPEN';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:108:19
+-       retainUntil = own.status === 'DATED' ? own.retainUntil : null;
++       retainUntil = true ? own.retainUntil : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:108:19
+-       retainUntil = own.status === 'DATED' ? own.retainUntil : null;
++       retainUntil = false ? own.retainUntil : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/archive/index.ts:108:19
+-       retainUntil = own.status === 'DATED' ? own.retainUntil : null;
++       retainUntil = own.status !== 'DATED' ? own.retainUntil : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:108:34
+-       retainUntil = own.status === 'DATED' ? own.retainUntil : null;
++       retainUntil = own.status === "" ? own.retainUntil : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:110:18
+-       governedBy = own.status === 'DATED' ? [key] : [];
++       governedBy = true ? [key] : [];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:110:18
+-       governedBy = own.status === 'DATED' ? [key] : [];
++       governedBy = false ? [key] : [];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/archive/index.ts:110:18
+-       governedBy = own.status === 'DATED' ? [key] : [];
++       governedBy = own.status !== 'DATED' ? [key] : [];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:110:33
+-       governedBy = own.status === 'DATED' ? [key] : [];
++       governedBy = own.status === "" ? [key] : [];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:110:51
+-       governedBy = own.status === 'DATED' ? [key] : [];
++       governedBy = own.status === 'DATED' ? [key] : ["Stryker was here"];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:111:19
+-       openBecause = own.status === 'NONE' ? ['no retention rule applies yet'] : own.openReasons;
++       openBecause = false ? ['no retention rule applies yet'] : own.openReasons;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:111:34
+-       openBecause = own.status === 'NONE' ? ['no retention rule applies yet'] : own.openReasons;
++       openBecause = own.status === "" ? ['no retention rule applies yet'] : own.openReasons;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:119:46
+-     const people = await peopleOf(db, reqs.map((x) => x.person_id));
++     const people = await peopleOf(db, reqs.map(() => undefined));
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:138:115
+-       disposalRequests: reqs.map((x) => ({ outcome: x.outcome, reason: x.reason, by: personRef(people, x.person_id, 'QA_REVIEWER'), at: app.formatInstant(x.at_us) })),
++       disposalRequests: reqs.map((x) => ({ outcome: x.outcome, reason: x.reason, by: personRef(people, x.person_id, ""), at: app.formatInstant(x.at_us) })),
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+    archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read
+  and 1 more test!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:153:7
+-         `select e.form_id, e.event, e.reason, e.reference, e.person_id, ${usOf('e.recorded_at')} as at_us from records.contingency_form_event e where e.batch_id = $1 order by e.recorded_at, e.id`,
++         ``,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:165:37
+-     const people = await peopleOf(db, [...forms.map((f) => f.person_id), ...events.map((e) => e.person_id), head?.signer]);
++     const people = await peopleOf(db, []);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:165:51
+-     const people = await peopleOf(db, [...forms.map((f) => f.person_id), ...events.map((e) => e.person_id), head?.signer]);
++     const people = await peopleOf(db, [...forms.map(() => undefined), ...events.map((e) => e.person_id), head?.signer]);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:165:86
+-     const people = await peopleOf(db, [...forms.map((f) => f.person_id), ...events.map((e) => e.person_id), head?.signer]);
++     const people = await peopleOf(db, [...forms.map((f) => f.person_id), ...events.map(() => undefined), head?.signer]);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:165:107
+-     const people = await peopleOf(db, [...forms.map((f) => f.person_id), ...events.map((e) => e.person_id), head?.signer]);
++     const people = await peopleOf(db, [...forms.map((f) => f.person_id), ...events.map((e) => e.person_id), head.signer]);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:168:12
+-       state: head?.state ?? 'NONE',
++       state: head.state ?? 'NONE',
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:169:24
+-       completionProblem: head?.problem ?? null,
++       completionProblem: head.problem ?? null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:179:48
+-         issuedBy: personRef(people, f.person_id, 'SHIFT_SUPERVISOR'),
++         issuedBy: personRef(people, f.person_id, ""),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/archive/index.ts:181:15
+-         events: events.filter((e) => e.form_id === f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
++         events: events.map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:181:29
+-         events: events.filter((e) => e.form_id === f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
++         events: events.filter(() => undefined).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:181:36
+-         events: events.filter((e) => e.form_id === f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
++         events: events.filter((e) => true).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:181:36
+-         events: events.filter((e) => e.form_id === f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
++         events: events.filter((e) => false).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/archive/index.ts:181:36
+-         events: events.filter((e) => e.form_id === f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
++         events: events.filter((e) => e.form_id !== f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:181:163
+-         events: events.filter((e) => e.form_id === f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, 'OPERATOR'), at: app.formatInstant(e.at_us) })),
++         events: events.filter((e) => e.form_id === f.id).map((e) => ({ event: e.event, reason: e.reason, reference: e.reference, by: personRef(people, e.person_id, ""), at: app.formatInstant(e.at_us) })),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:183:15
+-       signedBy: head?.signer ? personRef(people, head.signer, 'QA_SHOP_FLOOR') : null,
++       signedBy: head.signer ? personRef(people, head.signer, 'QA_SHOP_FLOOR') : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:184:15
+-       signedAt: head?.signed_us ? app.formatInstant(head.signed_us) : null,
++       signedAt: head.signed_us ? app.formatInstant(head.signed_us) : null,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/archive/index.ts:213:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.assembled_by_person, r.certified_by]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43][DI-35] QA signs the reconciliation (FORMS_RECONCILED); the batch may then complete as far as its paper forms go
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+  and 3 more tests!
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:213:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.assembled_by_person, r.certified_by]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+    archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read
+    archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:223:59
+-       assembledBy: personRef(people, r.assembled_by_person, 'QA_REVIEWER'),
++       assembledBy: personRef(people, r.assembled_by_person, ""),
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+    archive over HTTP (slice 6b) > [DI-40] the inspection workspace serves certified exports to a reader with ARCHIVE.INSPECT only, and logs each read
+    archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:254:24
+-       await client.query('commit');
++       await client.query("");
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:260:13
+-     } finally {
+-       client.release();
+-     }
++     } finally {}
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/archive/index.ts:261:5
+-       client.release();
++       ;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:270:7
+-     if ((JSON.parse(bundle.manifest) as records.Manifest).head === null) throw noRecord(f);
++     if (false) throw noRecord(f);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:274:37
+-   const pdfTitle = (f: BatchFacts) => `Batch record ${f.batchNumber} (true copy)`;
++   const pdfTitle = (f: BatchFacts) => ``;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:282:75
+-     const bundles: BuiltExport['bundles'] = [{ name: 'batch-record', title: `Batch record ${f.batchNumber}`, bundle: await batchBundle(c, f) }];
++     const bundles: BuiltExport['bundles'] = [{ name: 'batch-record', title: ``, bundle: await batchBundle(c, f) }];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/archive/index.ts:286:15
+-     ] as const) {
+-       const b = await records.trueCopyBundleFromSnapshot(c, `${prefix}:${f.batchId}`);
+-       if ((JSON.parse(b.manifest) as records.Manifest).head !== null) bundles.push({ name, title, bundle: b });
+-     }
++     ] as const) {}
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:288:9
+-       if ((JSON.parse(b.manifest) as records.Manifest).head !== null) bundles.push({ name, title, bundle: b });
++       if (false) bundles.push({ name, title, bundle: b });
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:288:82
+-       if ((JSON.parse(b.manifest) as records.Manifest).head !== null) bundles.push({ name, title, bundle: b });
++       if ((JSON.parse(b.manifest) as records.Manifest).head !== null) bundles.push({});
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:290:131
+-     const pdf = await records.renderTrueCopyPdf((bundles[0] as BuiltExport['bundles'][number]).bundle, { title: pdfTitle(f), label: `Batch ${f.batchNumber}` });
++     const pdf = await records.renderTrueCopyPdf((bundles[0] as BuiltExport['bundles'][number]).bundle, { title: pdfTitle(f), label: `` });
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/index.ts:291:23
+-     const generatedAt = (await c.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]?.t ?? '';
++     const generatedAt = (await c.query<{
++     t: string;
++   }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]?.t && '';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:291:23
+-     const generatedAt = (await c.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]?.t ?? '';
++     const generatedAt = (await c.query<{
++     t: string;
++   }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0].t ?? '';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:291:53
+-     const generatedAt = (await c.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]?.t ?? '';
++     const generatedAt = (await c.query<{ t: string }>(``)).rows[0]?.t ?? '';
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/archive/index.ts:292:19
+-     const summary = {
+-       batchId: f.batchId,
+-       batchNumber: f.batchNumber,
+-       status: f.status,
+-       retention: await retentionView(app, c, f),
+-       forms: await formsView(app, c, f.batchId),
+-     };
++     const summary = {};
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:303:47
+-       pdfs: [{ name: 'batch-record-pdf', title: `Batch record ${f.batchNumber} (PDF/A-3)`, chainKey: `batch:${f.batchId}`, pdf: pdf.pdf, contentSha256: pdf.contentSha256 }],
++       pdfs: [{ name: 'batch-record-pdf', title: ``, chainKey: `batch:${f.batchId}`, pdf: pdf.pdf, contentSha256: pdf.contentSha256 }],
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:304:43
+-       documents: [{ name: 'summary', title: 'Batch summary: status, retention and paper forms', mediaType: 'application/json', text: JSON.stringify(summary, null, 2) }],
++       documents: [{ name: 'summary', title: "", mediaType: 'application/json', text: JSON.stringify(summary, null, 2) }],
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:304:106
+-       documents: [{ name: 'summary', title: 'Batch summary: status, retention and paper forms', mediaType: 'application/json', text: JSON.stringify(summary, null, 2) }],
++       documents: [{ name: 'summary', title: 'Batch summary: status, retention and paper forms', mediaType: "", text: JSON.stringify(summary, null, 2) }],
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:311:7
+-     if (!x) throw new Error(`${what} was not found after it was recorded`);
++     if (false) throw new Error(`${what} was not found after it was recorded`);
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:343:21
+-           const key = `batch:${f.batchId}`;
++           const key = ``;
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:344:24
+-           const exists = (await c.query<{ s: boolean }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s;
++           const exists = (await c.query<{
++     s: boolean;
++   }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0].s;
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:344:55
+-           const exists = (await c.query<{ s: boolean }>('select exists (select 1 from records.retention_schedule where record_key = $1) as s', [key])).rows[0]?.s;
++           const exists = (await c.query<{ s: boolean }>("", [key])).rows[0]?.s;
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:345:13
+-           if (exists) {
++           if (false) {
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:348:57
+-             const type = (await c.query<{ code: string }>("select code from records.record_register where retention_key = 'BATCH_RECORD' order by code limit 1")).rows[0]?.code;
++             const type = (await c.query<{ code: string }>("")).rows[0]?.code;
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:349:15
+-             if (!type) {
++             if (true) {
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:352:20
+-                 why: 'The record register has no approved record type with the batch-record retention key (DI-01).', controls: ['DI-47', 'DI-01'],
++                 why: "", controls: ['DI-47', 'DI-01'],
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:352:126
+-                 why: 'The record register has no approved record type with the batch-record retention key (DI-01).', controls: ['DI-47', 'DI-01'],
++                 why: 'The record register has no approved record type with the batch-record retention key (DI-01).', controls: [],
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:352:127
+-                 why: 'The record register has no approved record type with the batch-record retention key (DI-01).', controls: ['DI-47', 'DI-01'],
++                 why: 'The record register has no approved record type with the batch-record retention key (DI-01).', controls: ["", 'DI-01'],
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:352:136
+-                 why: 'The record register has no approved record type with the batch-record retention key (DI-01).', controls: ['DI-47', 'DI-01'],
++                 why: 'The record register has no approved record type with the batch-record retention key (DI-01).', controls: ['DI-47', ""],
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:353:29
+-                 whatYouCanDo: ['Ask QA to approve the batch record type in the record register first.'],
++                 whatYouCanDo: [],
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:353:30
+-                 whatYouCanDo: ['Ask QA to approve the batch record type in the record register first.'],
++                 whatYouCanDo: [""],
+Tests ran:
+    archive over HTTP (slice 6b) > [IN-08][PR-59] the retention of the batch is computed by the database from its record; a deletion request is refused and logged
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:377:11
+-         if (['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(f.status)) {
++         if (false) {
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/archive/index.ts:377:11
+-         if (['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(f.status)) {
++         if ([].includes(f.status)) {
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:377:12
+-         if (['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(f.status)) {
++         if (["", 'ABORTED', 'CANCELLED'].includes(f.status)) {
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:377:34
+-         if (['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(f.status)) {
++         if (['EXECUTION_COMPLETE', "", 'CANCELLED'].includes(f.status)) {
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:377:45
+-         if (['EXECUTION_COMPLETE', 'ABORTED', 'CANCELLED'].includes(f.status)) {
++         if (['EXECUTION_COMPLETE', 'ABORTED', ""].includes(f.status)) {
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/archive/index.ts:385:89
+-             batchId: f.batchId, batchLabel: f.batchNumber, moment: body.moment, stageRef: body.stageRef ?? null, templateRef: body.templateRef,
++             batchId: f.batchId, batchLabel: f.batchNumber, moment: body.moment, stageRef: body.stageRef && null, templateRef: body.templateRef,
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+    archive over HTTP (slice 6b) > [DI-43] the database refuses a contingency pack for a batch that has ended, whoever calls it
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:393:23
+-         const batchId = (await pool.query<{ b: string }>('select batch_id as b from records.contingency_form where id = $1', [params.formId])).rows[0]?.b;
++         const batchId = (await pool.query<{
++     b: string;
++   }>('select batch_id as b from records.contingency_form where id = $1', [params.formId])).rows[0].b;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:394:11
+-         if (!batchId) {
++         if (false) {
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-43][PR-16] a contingency pack issued for a running batch blocks completion until every sheet is used and verified or voided; the transcriber does not verify
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:406:88
+-         const out = await records.renderTrueCopyPdf(bundle, { title: pdfTitle(f), label: `Batch ${f.batchNumber}` });
++         const out = await records.renderTrueCopyPdf(bundle, { title: pdfTitle(f), label: `` });
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:407:26
+-         return { fileName: `${f.batchNumber}-true-copy.pdf`, pdfBase64: Buffer.from(out.pdf).toString('base64'), pdfSha256: out.pdfSha256, contentSha256: out.contentSha256, recordDate: out.recordDate };
++         return { fileName: ``, pdfBase64: Buffer.from(out.pdf).toString('base64'), pdfSha256: out.pdfSha256, contentSha256: out.contentSha256, recordDate: out.recordDate };
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:417:76
+-         return one(exportsWhere(app, pool, 'e.id = $1::uuid', [out.result]), 'the export');
++         return one(exportsWhere(app, pool, 'e.id = $1::uuid', [out.result]), "");
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/archive/index.ts:433:7
+-         requireSession();
++         ;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/archive/index.ts:441:23
+-         const claimed = typeof parsed?.exportSha256 === 'string' ? parsed.exportSha256 : null;
++         const claimed = true ? parsed.exportSha256 : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/archive/index.ts:441:30
+-         const claimed = typeof parsed?.exportSha256 === 'string' ? parsed.exportSha256 : null;
++         const claimed = typeof parsed.exportSha256 === 'string' ? parsed.exportSha256 : null;
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/archive/index.ts:450:69
+-         const problems = reg ? report.problems : [...report.problems, 'no registered export has this SHA-256: the file is not one this system issued'];
++         const problems = reg ? report.problems : [...report.problems, ""];
+Tests ran:
+    archive over HTTP (slice 6b) > [DI-41][IN-11] the PDF/A-3 true copy gives the same bytes twice; the export registers, verifies, and one altered byte fails the verification
+
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:39:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:47:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:58:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/index.ts:63:37
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (!hold) throw refusal(409, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:63:45
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (!hold) throw refusal(409, { code: "", kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:63:67
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: "", whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:63:90
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: "", why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:63:147
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: "", whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/records/index.ts:63:181
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/index.ts:63:182
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: [""] });
+
+[Survived] CallExpression
+apps/tablets-server/src/features/records/index.ts:27:7
+-         requireSession();
++         ;
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/records/index.ts:31:7
+-         requireSession();
++         ;
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21][R-04] QA opens an amendment through the ceremony (the server reads its number), production appends an entry, another QA person closes it over the entries: LOCKED again; a malformed act signs nothing
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/records/index.ts:35:7
+-         requireSession();
++         ;
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/records/index.ts:54:7
+-         requireSession();
++         ;
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/records/index.ts:62:62
+-         const hold = await holdOf(app, pool, body.productCode, body.strength.trim());
++         const hold = await holdOf(app, pool, body.productCode, body.strength);
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/records/index.ts:63:11
+-         if (!hold) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
++         if (false) throw refusal(409, { code: 'EBMR-LCK-020', kind: 'STALE', whatHappened: 'The maximum hold was not found after it was set.', why: 'Reload the list.', whatYouCanDo: ['Reload the list.'] });
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:96:63
+-         openedBy: personRef(people, r.person_id, r.role_code ?? 'QA'),
++         openedBy: personRef(people, r.person_id, r.role_code ?? ""),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:99:85
+-         closedBy: r.close ? personRef(people, r.close.person_id, r.close.role_code ?? 'QA') : null,
++         closedBy: r.close ? personRef(people, r.close.person_id, r.close.role_code ?? "") : null,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:111:59
+-           by: personRef(people, e.person_id, e.role_code ?? 'OPERATOR'),
++           by: personRef(people, e.person_id, e.role_code ?? ""),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/reads.ts:114:46
+-         suspendedLots: r.suspended.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code })),
++         suspendedLots: r.suspended.map((l) => ({})),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/reads.ts:115:56
+-         tasks: r.tasks.map((t): MarketImpactTaskView => ({
+-           taskId: t.id,
+-           lotId: t.lot_id,
+-           lotCode: t.lot_code,
+-           market: t.market,
+-           ownerRole: 'AUTHORISED_PERSON',
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
+-           dispositionNow: t.now,
+-           openedAt: app.formatInstant(t.us),
+-         })),
++         tasks: r.tasks.map((t): MarketImpactTaskView => ({})),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:120:20
+-           ownerRole: 'AUTHORISED_PERSON',
++           ownerRole: "",
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:121:16
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: true ? 'OPEN' : 'DONE',
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:121:16
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: false ? 'OPEN' : 'DONE',
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/records/reads.ts:121:16
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: open && t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:121:24
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: open || false ? 'OPEN' : 'DONE',
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/records/reads.ts:121:24
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: open || t.now !== 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:121:34
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: open || t.now === "" ? 'OPEN' : 'DONE',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:121:56
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: open || t.now === 'RELEASE_SUSPENDED' ? "" : 'DONE',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:121:65
+-           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : 'DONE',
++           state: open || t.now === 'RELEASE_SUSPENDED' ? 'OPEN' : "",
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/reads.ts:133:30
+-     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
++     if (!a) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:133:38
+-     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
++     if (!a) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:133:60
+-     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
++     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: "", whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:133:91
+-     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
++     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: "", why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:133:141
+-     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
++     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: ``, whatYouCanDo: ['Reload the record.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/records/reads.ts:133:214
+-     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
++     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:133:215
+-     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: ['Reload the record.'] });
++     if (!a) throw refusal(404, { code: 'EBMR-LCK-040', kind: 'INVALID_INPUT', whatHappened: 'There is no such amendment of the record.', why: `Amendment ${number} of batch ${batchId} does not exist.`, whatYouCanDo: [""] });
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/reads.ts:158:38
+-       releasedLots: r.lots.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code })),
++       releasedLots: r.lots.map((l) => ({})),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:199:58
+-       setBy: personRef(people, r.person_id, r.role_code ?? 'MASTER_DATA_STEWARD'),
++       setBy: personRef(people, r.person_id, r.role_code ?? ""),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:271:49
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => true;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:271:49
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => false;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/records/reads.ts:271:49
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => (s === 'EXECUTION_COMPLETE' || s === 'ABORTED') && s === 'CANCELLED';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:271:49
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => false || s === 'CANCELLED';
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/records/reads.ts:271:49
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' && s === 'ABORTED' || s === 'CANCELLED';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:271:49
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => false || s === 'ABORTED' || s === 'CANCELLED';
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/records/reads.ts:271:49
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s !== 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:271:55
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === "" || s === 'ABORTED' || s === 'CANCELLED';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:271:79
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || false || s === 'CANCELLED';
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/records/reads.ts:271:79
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s !== 'ABORTED' || s === 'CANCELLED';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:271:85
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === "" || s === 'CANCELLED';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:271:98
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || false;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/records/reads.ts:271:98
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s !== 'CANCELLED';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:271:104
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === "";
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/reads.ts:279:47
+-       orders: orders.map((o): BulkOrderView => ({ orderBatchId: o.id, batchNumber: o.batch_number, status: o.status ?? 'PLANNED', closed: closed(o.status), issued: o.issued, containers: o.n, holdProblem: o.hold })),
++       orders: orders.map((o): BulkOrderView => ({})),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/records/reads.ts:279:106
+-       orders: orders.map((o): BulkOrderView => ({ orderBatchId: o.id, batchNumber: o.batch_number, status: o.status ?? 'PLANNED', closed: closed(o.status), issued: o.issued, containers: o.n, holdProblem: o.hold })),
++       orders: orders.map((o): BulkOrderView => ({ orderBatchId: o.id, batchNumber: o.batch_number, status: o.status && 'PLANNED', closed: closed(o.status), issued: o.issued, containers: o.n, holdProblem: o.hold })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:279:118
+-       orders: orders.map((o): BulkOrderView => ({ orderBatchId: o.id, batchNumber: o.batch_number, status: o.status ?? 'PLANNED', closed: closed(o.status), issued: o.issued, containers: o.n, holdProblem: o.hold })),
++       orders: orders.map((o): BulkOrderView => ({ orderBatchId: o.id, batchNumber: o.batch_number, status: o.status ?? "", closed: closed(o.status), issued: o.issued, containers: o.n, holdProblem: o.hold })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:285:25
+-         state: c.state ?? 'OPEN',
++         state: c.state ?? "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:296:83
+-         ? { closedBy: personRef(people, f.closure.person_id, f.closure.role_code ?? 'HEAD_OF_PRODUCTION'), closedAt: app.formatInstant(f.closure.us), remainingHeldReason: f.closure.reason }
++         ? { closedBy: personRef(people, f.closure.person_id, f.closure.role_code ?? ""), closedAt: app.formatInstant(f.closure.us), remainingHeldReason: f.closure.reason }
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/records/reads.ts:158:30
+-       releasedLots: r.lots.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code })),
++       releasedLots: r.lots.map(() => undefined),
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21][R-04] QA opens an amendment through the ceremony (the server reads its number), production appends an entry, another QA person closes it over the entries: LOCKED again; a malformed act signs nothing
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/records/reads.ts:199:43
+-       setBy: personRef(people, r.person_id, r.role_code ?? 'MASTER_DATA_STEWARD'),
++       setBy: personRef(people, r.person_id, r.role_code && 'MASTER_DATA_STEWARD'),
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/records/reads.ts:241:5
+-       `select o as id, s.batch_number, recipe.order_status(o) as status,
+-               coalesce((select jsonb_agg(jsonb_build_object('quantity', t.q::text, 'unit', t.u) order by t.u)
+-                           from (select i.unit as u, sum(i.quantity) as q from recipe.packaging_bulk_issue i where i.order_batch_id = o group by i.unit) t), '[]'::jsonb) as issued,
+-               (select count(*)::int from recipe.packaging_bulk_issue i where i.order_batch_id = o) as n,
+-               recipe.bright_stock_hold_problem(o) as hold
+-          from unnest(recipe.packaging_children_of($1)) o join recipe.stub_batch s on s.id = o
+-         order by s.batch_number`,
++       ``,
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/records/reads.ts:271:18
+-     const closed = (s: string | null): boolean => s === 'EXECUTION_COMPLETE' || s === 'ABORTED' || s === 'CANCELLED';
++     const closed = () => undefined;
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/records/reads.ts:279:24
+-       orders: orders.map((o): BulkOrderView => ({ orderBatchId: o.id, batchNumber: o.batch_number, status: o.status ?? 'PLANNED', closed: closed(o.status), issued: o.issued, containers: o.n, holdProblem: o.hold })),
++       orders: orders.map(() => undefined),
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/records/reads.ts:293:14
+-       maxHold: f.product && f.strength ? await holdOf(app, db, f.product, f.strength) : null,
++       maxHold: true ? await holdOf(app, db, f.product, f.strength) : null,
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/records/reads.ts:293:14
+-       maxHold: f.product && f.strength ? await holdOf(app, db, f.product, f.strength) : null,
++       maxHold: f.product || f.strength ? await holdOf(app, db, f.product, f.strength) : null,
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/records/reads.ts:296:60
+-         ? { closedBy: personRef(people, f.closure.person_id, f.closure.role_code ?? 'HEAD_OF_PRODUCTION'), closedAt: app.formatInstant(f.closure.us), remainingHeldReason: f.closure.reason }
++         ? { closedBy: personRef(people, f.closure.person_id, f.closure.role_code && 'HEAD_OF_PRODUCTION'), closedAt: app.formatInstant(f.closure.us), remainingHeldReason: f.closure.reason }
+Tests ran:
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [INV-21] production closes the bulk reconciliation of a complete processing batch and the record locks; QA cannot close it; the lock and the list show it; an unknown batch is 404
+    records routes over HTTP (outline 5.2.10; INV-21, PR-38) > [PR-38] master data sets a product's maximum hold for bright stock (a new version each time, the latest shown); production cannot; a number travels as text
+
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/signables.ts:21:127
+-     a.input.deviationId !== undefined ? { kind: 'DEVIATION', id: a.input.deviationId } : a.input.changeRecordId !== undefined ? { kind: 'CHANGE_RECORD', id: a.input.changeRecordId } : null;
++     a.input.deviationId !== undefined ? { kind: 'DEVIATION', id: a.input.deviationId } : a.input.changeRecordId !== undefined ? {} : null;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/signables.ts:21:135
+-     a.input.deviationId !== undefined ? { kind: 'DEVIATION', id: a.input.deviationId } : a.input.changeRecordId !== undefined ? { kind: 'CHANGE_RECORD', id: a.input.changeRecordId } : null;
++     a.input.deviationId !== undefined ? { kind: 'DEVIATION', id: a.input.deviationId } : a.input.changeRecordId !== undefined ? { kind: "", id: a.input.changeRecordId } : null;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/signables.ts:30:145
+-     return { aggregateType: 'record_lock', aggregateId: rows[0]?.a ?? `${a.batchId}/0/CLOSE`, meaning: meaningOf(a), expectedState: rows[0]?.s ?? 'UNLOCKED' };
++     return { aggregateType: 'record_lock', aggregateId: rows[0]?.a ?? `${a.batchId}/0/CLOSE`, meaning: meaningOf(a), expectedState: rows[0]?.s ?? "" };
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/records/signables.ts:51:20
+-       target: (a) => {
+-         const b = basisOf(a);
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+-       },
++       target: (a) => {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/records/signables.ts:53:14
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/signables.ts:53:31
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: "", aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/signables.ts:53:59
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: true ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/signables.ts:53:59
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: false ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/records/signables.ts:53:59
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' || b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/records/signables.ts:53:59
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: true && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/records/signables.ts:53:59
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: a.act !== 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/signables.ts:53:69
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: a.act === "" && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/signables.ts:53:93
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/signables.ts:53:135
+-         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : `${a.batchId}/?/CLOSE`, meaning: meaningOf(a) };
++         return { aggregateType: 'record_lock', aggregateId: a.act === 'AMENDMENT_OPEN' && b ? `${a.batchId}/?/OPEN/${b.kind}/${b.id}` : ``, meaning: meaningOf(a) };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/records/signables.ts:67:64
+-         const n = Number.parseInt(t.aggregateId.split('/')[1] ?? '0', 10);
++         const n = Number.parseInt(t.aggregateId.split('/')[1] ?? "", 10);
+
+Ran 1.34 tests per mutant on average.
+---------------|------------------|----------|-----------|------------|----------|----------|
+               | % Mutation score |          |           |            |          |          |
+File           |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+---------------|--------|---------|----------|-----------|------------|----------|----------|
+All files      |  57.00 |   76.38 |      456 |         0 |        141 |      203 |        0 |
+ archive       |  46.33 |   64.12 |      227 |         0 |        127 |      136 |        0 |
+  facts.ts     |  31.63 |   44.29 |       31 |         0 |         39 |       28 |        0 |
+  index.ts     |  50.00 |   69.01 |      196 |         0 |         88 |      108 |        0 |
+ records       |  73.87 |   94.24 |      229 |         0 |         14 |       67 |        0 |
+  index.ts     |  60.98 |   80.65 |       25 |         0 |          6 |       10 |        0 |
+  reads.ts     |  65.99 |   92.38 |       97 |         0 |          8 |       42 |        0 |
+  signables.ts |  87.70 |  100.00 |      107 |         0 |          0 |       15 |        0 |
+---------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m05:54:11 (1273228) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-records.json
+[32m05:54:11 (1273228) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-records.html
+[32m05:54:11 (1273228) INFO MutationTestExecutor[39m Done in 30 minutes and 11 seconds.

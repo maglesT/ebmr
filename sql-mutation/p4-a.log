@@ -164,3 +164,25 @@ tablets-release-items: baseline server 12 s (limit 240 s)
 tablets-release-items: score 68.9 % (175/254 detected, 0 invalid) in 2188 s
 qp-certification: baseline db 77 s (limit 240 s), server 16 s (limit 240 s)
   SURVIVED recipe.eu_certification_gate_problems#1 NOT_REMOVED packages/recipe-core/sql/0824_qp_certification.sql:236 [not ] -> []
+  SURVIVED recipe.eu_certification_gate_problems#2 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:239 [=] -> [<>]
+  SURVIVED recipe.eu_certification_gate_problems#3 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:239 [and] -> [or]
+  SURVIVED recipe.eu_certification_gate_problems#4 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:239 [=] -> [<>]
+  SURVIVED recipe.eu_certification_gate_problems#6 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:241 [=] -> [<>]
+  SURVIVED recipe.eu_importer_canonical#6 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:373 [=] -> [<>]
+  SURVIVED recipe.eu_importer_content#2 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:264 [=] -> [<>]
+  SURVIVED recipe.eu_outcome_problem#5 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:208 [or] -> [and]
+  SURVIVED recipe.eu_outcome_problem#7 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:211 [=] -> [<>]
+  SURVIVED recipe.eu_outcome_problem#10 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:221 [>] -> [>=]
+  SURVIVED recipe.eu_outcome_problem#12 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:221 [<] -> [<=]
+  SURVIVED recipe.qp_certification_content#1 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:341 [=] -> [<>]
+  qp-certification: 25/182
+  SURVIVED recipe.qp_certification_content#2 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:345 [=] -> [<>]
+  SURVIVED recipe.qp_certification_content#3 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:345 [and] -> [or]
+  SURVIVED recipe.qp_certification_content#4 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:345 [=] -> [<>]
+  SURVIVED recipe.qp_certification_content#5 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:345 [and] -> [or]
+  SURVIVED recipe.qp_certification_content#6 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:345 [=] -> [<>]
+  SURVIVED recipe.qp_register_content#1 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:275 [or] -> [and]
+  SURVIVED recipe.qp_register_content#4 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:278 [=] -> [<>]
+  qp-certification: 50/182
+  SURVIVED recipe.qp_transcription_content#1 LOGICAL packages/recipe-core/sql/0824_qp_certification.sql:294 [or] -> [and]
+  SURVIVED recipe.qp_transcription_content#3 RELATIONAL packages/recipe-core/sql/0824_qp_certification.sql:294 [=] -> [<>]
