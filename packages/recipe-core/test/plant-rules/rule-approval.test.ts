@@ -1,10 +1,11 @@
 /**
- * The penicillin facility rule and the beta-lactam classification take effect only with QA's approval (recipe-core
- * 1210; Phase 7 slice 7a, 6jc-R10; PR-27). The master-data steward proposes (plant.set_facility_rule,
- * plant.classify_beta_lactam); a QA person other than the proposer signs QA_APPROVED and approves; until then the
- * rule in force is the earlier approved one, and the plant rules (the room start, plant.batch_beta_lactam,
- * plant.penicillin_problem) read the approved value only. As the application role through the real commands and real
- * e-signatures, with bypass attempts (direct writes as the application, an update as the owner).
+ * The penicillin facility rule and the beta-lactam classification need QA's approval (recipe-core 1210; Phase 7 slice
+ * 7a, 6jc-R10; PR-27). The master-data steward proposes (plant.set_facility_rule, plant.classify_beta_lactam); the
+ * stricter rule wins, as in 0912: a proposal that tightens (beta-lactam, not a penicillin facility) is in force at once
+ * and stays so until an approved loosening; one that loosens (declassified, a penicillin facility) is in force only once
+ * a QA person other than the proposer signs QA_APPROVED and approves it. The plant rules (the room start,
+ * plant.batch_beta_lactam, plant.penicillin_problem) read that value. As the application role through the real commands
+ * and real e-signatures, with bypass attempts (direct writes as the application, a delete as the owner).
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -67,106 +68,127 @@ const approveClass = (id: string, sig: string, by: SeededActor = qa) => w.run(by
 const problem = (site: string, code: string) => scalar<string | null>("select plant.penicillin_problem($1, 'MATERIAL', $2, true) as r", [site, code]);
 const classified = (kind: string, code: string) => scalar<boolean>('select plant.classified_beta_lactam($1, $2) as r', [kind, code]);
 
+const inForce = async (site: string) =>
+  (await db.app.query<{ penicillin_facility: boolean; approved_version: number | null; pending: boolean }>(
+    'select penicillin_facility, approved_version, pending from plant.facility_rule_in_force where site_code = $1', [site])).rows[0];
+const contentOf = async (type: string, id: string) => (await db.admin.query<{ c: Record<string, unknown> }>("select esig.provide($1, $2) -> 'content' as c", [type, id])).rows[0]?.c;
+
 describe('the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10)', () => {
   it('[PR-27] a facility rule or beta-lactam classification takes effect only with a QA signature by someone other than the proposer', async () => {
-    // A beta-lactam product (its classification approved) does not start in a room of SITE-1, which has no approved rule.
+    // A tightening is in force at once: the steward's beta-lactam classification of a product (still PROPOSED).
     const product = await w.product();
-    const cls = await proposeClass('PRODUCT', product, true);
     const batch = await w.batch('PEN-A', product);
     expect(await scalar<boolean>('select plant.batch_beta_lactam($1) as r', [batch.id])).toBe(false);
-    await approveClass(cls, await signClass(cls));
+    const cls = await proposeClass('PRODUCT', product, true);
     expect(await scalar<boolean>('select plant.batch_beta_lactam($1) as r', [batch.id])).toBe(true);
+    expect(await scalar<string>('select plant.beta_lactam_class_state($1) as r', [cls])).toBe('PROPOSED');
+    expect((await db.app.query('select beta_lactam, approved_version, pending from plant.beta_lactam_class_in_force where subject_kind = $1 and code = $2', ['PRODUCT', product])).rows)
+      .toEqual([{ beta_lactam: true, approved_version: null, pending: true }]);
     const room = await w.room();
     await expect(occupy(w, room.code, 'PEN-A', product)).rejects.toThrow(new RegExp(`EBMR-PLANT-170 product ${product} is beta-lactam`));
+    await approveClass(cls, await signClass(cls));
 
-    // The steward who is also a QA reviewer proposes SITE-1 as a penicillin facility: not in force, and not theirs to approve.
+    // A loosening (SITE-1 a penicillin facility) proposed by the steward who is also a QA reviewer: not in force, and not
+    // theirs to approve.
     const rule = await proposeFacility('SITE-1', true, dual);
+    expect(await inForce('SITE-1')).toEqual({ penicillin_facility: false, approved_version: null, pending: true });
     await expect(w.startIn(room.code, { batch: 'PEN-A', product })).rejects.toThrow(/EBMR-PLANT-170/);
     expect(await messageOf(signFacility(rule, asQa(dual)))).toMatch(/EBMR-ESIG-\d{3}/);
     expect(await messageOf(approveFacility(rule, randomUUID(), asQa(dual)))).toMatch(/EBMR-PLANT-175/);
-    // A signature is bound to the approval of its signer, the meaning and the record: another QA's, or a random id, is refused.
+    // A signature is bound to its signer, the meaning and the record: another QA's, or a random id, is refused.
     const sig = await signFacility(rule, qa);
     expect(await messageOf(approveFacility(rule, sig, qa2))).toMatch(/EBMR-PLANT-176/);
     expect(await messageOf(approveFacility(rule, randomUUID(), qa))).toMatch(/EBMR-ESIG-070/);
     expect(await scalar<string>('select plant.facility_rule_state($1) as r', [rule])).toBe('PROPOSED');
-    // What QA signs: the proposal, the value in force before, the proposer; it does not change once approved.
-    const content = async () => (await db.admin.query<{ c: Record<string, unknown> }>("select esig.provide('facility_rule', $1) -> 'content' as c", [rule])).rows[0]?.c;
-    const before = await content();
-    expect(before).toMatchObject({ site_code: 'SITE-1', penicillin_facility: true, penicillin_facility_in_force_before: false, proposed_by: dual.personId });
+    // What QA signs: the proposal, the value approved before, its effect, the proposer; it does not change once approved.
+    const before = await contentOf('facility_rule', rule);
+    expect(before).toMatchObject({ site_code: 'SITE-1', penicillin_facility: true, penicillin_facility_approved_before: false, effect: 'LOOSENS', proposed_by: dual.personId });
 
-    // QA's own signature brings it into force: the room start passes; the approval is the signer's, once.
+    // QA's own signature brings the loosening into force: the room start passes; the approval is the signer's, once.
     await approveFacility(rule, sig, qa);
-    expect(await content()).toEqual(before);
+    expect(await contentOf('facility_rule', rule)).toEqual(before);
     expect(await scalar<string>('select plant.facility_rule_state($1) as r', [rule])).toBe('APPROVED');
-    expect((await db.app.query('select site_code, penicillin_facility, approved_by_person from plant.facility_rule_in_force where site_code = $1', ['SITE-1'])).rows)
-      .toEqual([{ site_code: 'SITE-1', penicillin_facility: true, approved_by_person: qa.personId }]);
+    expect(await inForce('SITE-1')).toEqual({ penicillin_facility: true, approved_version: 1, pending: false });
+    expect((await db.app.query('select approved_by_person from plant.facility_rule_approval where rule_id = $1', [rule])).rows).toEqual([{ approved_by_person: qa.personId }]);
     await w.startIn(room.code, { batch: 'PEN-A', product });
     expect(await messageOf(approveFacility(rule, randomUUID(), qa2))).toMatch(/EBMR-PLANT-174 .* is APPROVED/);
 
-    // Back to non-penicillin: the proposal changes nothing until QA approves it, then the site is closed to beta-lactams again.
+    // Back to non-penicillin: a tightening, in force at once; QA's approval makes it APPROVED.
     const back = await proposeFacility('SITE-1', false);
-    expect(await problem('SITE-1', 'AMOX-X')).toBeNull();
-    await approveFacility(back, await signFacility(back, qa2), qa2);
     expect(await problem('SITE-1', 'AMOX-X')).toMatch(/EBMR-PLANT-170 material AMOX-X is beta-lactam/);
+    expect(await contentOf('facility_rule', back)).toMatchObject({ penicillin_facility_approved_before: true, effect: 'TIGHTENS' });
+    await approveFacility(back, await signFacility(back, qa2), qa2);
+    expect(await inForce('SITE-1')).toEqual({ penicillin_facility: false, approved_version: 2, pending: false });
   });
 
-  it('[PR-27] a steward alone changes nothing: a proposal is not in force until QA signs; the earlier approved value stays in force; a later proposal supersedes it', async () => {
+  it('[PR-27] a steward alone loosens nothing: a loosening waits for QA, a tightening counts at once and stays until an approved loosening', async () => {
     // A site never approved is not a penicillin facility, whatever the steward proposes.
-    const first = await proposeFacility('SITE-B', true);
+    await proposeFacility('SITE-B', true);
     await proposeFacility('SITE-B', true);
     expect(await problem('SITE-B', 'AMOX-B')).toMatch(/EBMR-PLANT-170/);
-    expect((await db.app.query("select 1 from plant.facility_rule_in_force where site_code = 'SITE-B'")).rowCount).toBe(0);
-    // A signature given while the proposal was the latest no longer approves it once a later proposal exists.
+    // Only the latest proposal is approved: a signature given while an older one was the latest no longer approves it.
     const site = 'SITE-C';
     const older = await proposeFacility(site, true);
     const olderSig = await signFacility(older);
     const latest = await proposeFacility(site, true);
     expect(await scalar<string>('select plant.facility_rule_state($1) as r', [older])).toBe('SUPERSEDED');
     expect(await messageOf(approveFacility(older, olderSig))).toMatch(/EBMR-PLANT-174 version 1 of the facility rule of SITE-C is SUPERSEDED/);
-    expect(await messageOf(approveFacility(first, randomUUID()))).toMatch(/EBMR-PLANT-174 .* is SUPERSEDED/);
     await approveFacility(latest, await signFacility(latest, qa2), qa2);
     expect(await problem(site, 'AMOX-C')).toBeNull();
-    expect(await messageOf(approveFacility(latest, randomUUID()))).toMatch(/EBMR-PLANT-174 .* is APPROVED/);
+    // The steward closes the site (a tightening, at once), then reopens it: the reopening waits for QA, and the closure,
+    // never approved and now superseded, holds until then.
+    await proposeFacility(site, false);
+    expect(await problem(site, 'AMOX-C')).toMatch(/EBMR-PLANT-170/);
+    const reopen = await proposeFacility(site, true);
+    expect(await problem(site, 'AMOX-C')).toMatch(/EBMR-PLANT-170/);
+    expect(await inForce(site)).toEqual({ penicillin_facility: false, approved_version: 2, pending: true });
+    await approveFacility(reopen, await signFacility(reopen));
+    expect(await problem(site, 'AMOX-C')).toBeNull();
 
-    // A material classified beta-lactam (approved); the steward's declassification is pending: it stays beta-lactam.
+    // A material: the steward's beta-lactam classification counts at once; a declassification waits for QA, and the
+    // earlier classification, never approved, holds until then.
     const material = `AMOX-${randomUUID().slice(0, 6)}`;
     expect(await classified('MATERIAL', material)).toBe(false);
-    const pendingUp = await proposeClass('MATERIAL', material, true);
-    expect(await classified('MATERIAL', material)).toBe(false);
-    await approveClass(pendingUp, await signClass(pendingUp));
+    await proposeClass('MATERIAL', material, true);
     expect(await classified('MATERIAL', material)).toBe(true);
     const down = await proposeClass('MATERIAL', material, false);
     expect(await classified('MATERIAL', material)).toBe(true);
-    expect((await db.admin.query<{ c: Record<string, unknown> }>("select esig.provide('beta_lactam_class', $1) -> 'content' as c", [down])).rows[0]?.c)
-      .toMatchObject({ subject_kind: 'MATERIAL', code: material, beta_lactam: false, beta_lactam_in_force_before: true, proposed_by: w.cast.steward.personId });
+    expect(await contentOf('beta_lactam_class', down))
+      .toMatchObject({ subject_kind: 'MATERIAL', code: material, beta_lactam: false, beta_lactam_approved_before: false, proposed_by: w.cast.steward.personId });
     expect(await messageOf(approveClass(down, randomUUID(), w.cast.steward))).toMatch(/EBMR-IAM-040/);
     await approveClass(down, await signClass(down, qa2), qa2);
     expect(await classified('MATERIAL', material)).toBe(false);
-    // The upgrade carried nothing over in a new database; every approval here is SIGNED.
-    expect(await scalar<string[]>("select array_agg(distinct basis) as r from plant.beta_lactam_class_approval")).toEqual(['SIGNED']);
+    // Approved beta-lactam, then a pending declassification: still beta-lactam until QA approves it.
+    const up = await proposeClass('MATERIAL', material, true);
+    await approveClass(up, await signClass(up));
+    const down2 = await proposeClass('MATERIAL', material, false);
+    expect(await contentOf('beta_lactam_class', down2)).toMatchObject({ beta_lactam_approved_before: true, effect: 'LOOSENS' });
+    expect(await classified('MATERIAL', material)).toBe(true);
+    await approveClass(down2, await signClass(down2, qa2), qa2);
+    expect(await classified('MATERIAL', material)).toBe(false);
   });
 
   it('[PR-27][DI-18] an administrator never approves, a role without PLANT_RULE.APPROVE is refused, and nobody writes a rule, a proposal or an approval directly', async () => {
     const rule = await proposeFacility('SITE-D', true);
-    const cls = await proposeClass('MATERIAL', 'AMOX-D', true);
+    const cls = await proposeClass('MATERIAL', 'AMOX-D', false);
     expect(await messageOf(approveFacility(rule, randomUUID(), adm.admin))).toMatch(/administrator|EBMR-IAM/i);
     expect(await messageOf(approveClass(cls, randomUUID(), adm.admin))).toMatch(/administrator|EBMR-IAM/i);
     expect(await messageOf(approveFacility(rule, randomUUID(), w.cast.steward))).toMatch(/EBMR-IAM-040/);
     expect(await messageOf(approveClass(cls, randomUUID(), w.cast.operator))).toMatch(/EBMR-IAM-040/);
     expect(await messageOf(signFacility(rule, w.cast.steward))).toMatch(/EBMR-ESIG-040/);
     expect(await messageOf(approveFacility(randomUUID(), randomUUID()))).toMatch(/EBMR-PLANT-173/);
-    // Bypass: the application role inserts no approval, no proposal and no in-force row.
-    for (const sql of [
-      'insert into plant.facility_rule_approval (rule_id, basis, signature_id, approved_by_person, approved_by_account) values ($1, \'SIGNED\', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())',
-      'insert into plant.beta_lactam_class_approval (class_id, basis, signature_id, approved_by_person, approved_by_account) values ($1, \'CARRIED_OVER\', null, gen_random_uuid(), gen_random_uuid())',
-    ]) {
-      expect(await messageOf(db.app.query(sql, [sql.includes('facility') ? rule : cls]))).toMatch(/permission denied/);
+    // Bypass: the application role inserts no approval, no proposal, and changes no version.
+    for (const [sql, id] of [
+      ['insert into plant.facility_rule_approval (rule_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', rule],
+      ['insert into plant.beta_lactam_class_approval (class_id, signature_id, approved_by_person, approved_by_account) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid())', cls],
+    ] as const) {
+      expect(await messageOf(db.app.query(sql, [id]))).toMatch(/permission denied/);
     }
     expect(await messageOf(db.app.query("insert into plant.facility_rule (site_code, version, penicillin_facility, justification, recorded_by_person, recorded_by_account, correlation_id) values ('SITE-D', 9, true, 'x', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())"))).toMatch(/permission denied/);
     expect(await messageOf(db.app.query('update plant.facility_rule set penicillin_facility = true'))).toMatch(/permission denied/);
+    expect(await messageOf(db.app.query('delete from plant.beta_lactam_class'))).toMatch(/permission denied/);
     expect(await messageOf(db.app.query('select plant.assert_plant_rule_approval($1, $2, $3, $4, $5)', [randomUUID(), 'facility_rule', rule, randomUUID(), '{}']))).toMatch(/permission denied/);
     expect(await problem('SITE-D', 'AMOX-D')).toMatch(/EBMR-PLANT-170/);
-    expect(await classified('MATERIAL', 'AMOX-D')).toBe(false);
     // An approval, once written, is never changed or removed (even by the owner).
     await approveFacility(rule, await signFacility(rule));
     const c = await db.admin.connect();

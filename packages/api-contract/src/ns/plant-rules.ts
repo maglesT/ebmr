@@ -112,7 +112,8 @@ const VersionResponse = z.strictObject({ version: WholeText });
 /**
  * A proposed penicillin facility rule or beta-lactam classification (recipe-core 1210, PR-27): PROPOSED until a QA
  * person other than the proposer approves it (signable action INDIA_ACT FACILITY_RULE_APPROVE or BETA_LACTAM_APPROVE,
- * meaning QA_APPROVED, subject the proposal id); until then the earlier approved version stays in force.
+ * meaning QA_APPROVED, subject the proposal id). The stricter rule wins: a proposal that tightens is in force at once,
+ * one that loosens only once approved.
  */
 const PlantRuleProposalResponse = z.strictObject({ version: WholeText, proposalId: Uuid, state: z.literal('PROPOSED') });
 

@@ -68,8 +68,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
       return { version };
     },
-    // PR-27 (recipe-core 1210): the steward's rule or classification is a proposal; it is in force once a QA person other
-    // than the proposer approves it (INDIA_ACT FACILITY_RULE_APPROVE or BETA_LACTAM_APPROVE on the proposal id).
+    // PR-27 (recipe-core 1210): the steward's rule or classification is a proposal, approved by a QA person other than the
+    // proposer (INDIA_ACT FACILITY_RULE_APPROVE or BETA_LACTAM_APPROVE on the proposal id); a loosening counts only then.
     setFacilityRule: async ({ params, body, actor, idempotencyKey, requestHash }) => {
       const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
         one(c, 'select plant.set_facility_rule($1, $2, $3) as r', [params.site, body.penicillinFacility, body.justification]));

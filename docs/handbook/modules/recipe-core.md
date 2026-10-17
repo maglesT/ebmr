@@ -808,21 +808,25 @@ stateDiagram-v2
 penicillin facility (`EBMR-PLANT-170`). Since 1210 (Phase 7 slice 7a, 6jc-R10) the master-data steward only proposes
 the rule: [plant.set_facility_rule](../../../packages/recipe-core/sql/0973_plant_room_rules.sql#sym=plant.set_facility_rule)
 and [plant.classify_beta_lactam](../../../packages/recipe-core/sql/0973_plant_room_rules.sql#sym=plant.classify_beta_lactam)
-write a new version (state PROPOSED, with its `id`). It takes effect when a QA person (QA MBR approver or QA reviewer,
+write a new version (state PROPOSED, with its `id`). It is APPROVED when a QA person (QA MBR approver or QA reviewer,
 permission `PLANT_RULE.APPROVE`) who is not the proposer signs it with meaning `QA_APPROVED` and calls
 [plant.approve_facility_rule](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.approve_facility_rule)
 or [plant.approve_beta_lactam_class](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.approve_beta_lactam_class)
 (server: signable action `INDIA_ACT` `FACILITY_RULE_APPROVE` or `BETA_LACTAM_APPROVE` on the proposal id). Only the latest
-proposal of a site, material or product is approved, and only once; an older one is SUPERSEDED. The readers,
+proposal of a site, material or product is approved, and only once; an older one is SUPERSEDED. The stricter rule wins,
+as in 0912. The rule refuses a beta-lactam at a site that is not a penicillin facility, so "beta-lactam" and "not a
+penicillin facility" tighten, and "not beta-lactam" and "a penicillin facility" loosen. A tightening is in force at once
+(still PROPOSED until QA approves it) and stays in force, approved or not, until an approved loosening replaces it; a
+loosening is in force only once QA approves it. The readers
 [plant.classified_beta_lactam](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.classified_beta_lactam)
-(and through it `plant.batch_beta_lactam` and the receipt guard) and
-[plant.penicillin_problem](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.penicillin_problem),
-read the views `plant.facility_rule_in_force` and `plant.beta_lactam_class_in_force`: the latest approved version. Until
-QA signs, the earlier approved version stays in force (none: the site is not a penicillin facility, the subject is not
-classified beta-lactam; the ERP flag and the MBR predicate still add to `plant.batch_beta_lactam`). What QA signs names
-the proposed value and the value in force before it. On an upgrade the latest classification of a subject that says
-beta-lactam stays in force (`CARRIED_OVER`, attributed to the release), because it only restricts; a penicillin facility
-rule from before 1210 is not carried over, because it lifts a restriction: QA approves it again.
+(and through it `plant.batch_beta_lactam` and the receipt guard),
+[plant.penicillin_facility](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.penicillin_facility)
+and [plant.penicillin_problem](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.penicillin_problem)
+apply this; the views `plant.facility_rule_in_force` and `plant.beta_lactam_class_in_force` show per subject the value
+in force, the approved version and whether a proposal waits for QA (the ERP flag and the MBR predicate still add to
+`plant.batch_beta_lactam`). What QA signs names the proposed value, the value approved before it and whether it tightens
+or loosens. On an upgrade every version recorded before 1210 counts as an unapproved proposal: each restriction stays in
+force, and a declassification or a penicillin facility declared waits for QA's approval of the latest version.
 
 > **Why this exists**
 > - **Pharma reason:** declaring a site a penicillin facility, or declassifying a penicillin material, lets a

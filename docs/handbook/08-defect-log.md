@@ -1385,8 +1385,9 @@ The DI-51 dependency proof is unchanged: nothing outside the schema reads it.
 
 **Symptom.** A master-data steward alone could declare a site a penicillin facility, or declassify a penicillin material,
 and the latest version counted at once. **Fix.** Recipe-core 1210 makes each version a proposal: it is in force once a
-QA person other than the proposer signs it `QA_APPROVED` (`plant.approve_facility_rule`, `plant.approve_beta_lactam_class`);
-the readers read the approved value only (tablets 1410 maps the ceremony). **Tests.** Recipe-core
+QA person other than the proposer signs it `QA_APPROVED` (`plant.approve_facility_rule`, `plant.approve_beta_lactam_class`).
+The stricter rule wins: a loosening (declassified, a penicillin facility) is in force only once approved; a tightening is
+in force at once and until an approved loosening (tablets 1410 maps the ceremony). **Tests.** Recipe-core
 `test/plant-rules/rule-approval.test.ts` ("[PR-27] a facility rule or beta-lactam classification takes effect only with a
 QA signature by someone other than the proposer"), site services `test/plant-rules/materials.test.ts`, server
 `test/alarms/plant-rule-approval.test.ts`.
