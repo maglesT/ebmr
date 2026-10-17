@@ -845,6 +845,64 @@ Survivors, one line each:
   history filter).
 - Residuals: none in the owner's scope.
 
+### Functions Phase 6 re-created in earlier groups (stream p6-6b; triage T10)
+
+- First run (stream p6-6b, only these functions in their groups): mbr-lifecycle 6/6 (100 %); execution-commands 91/129
+  (**70.5 %**, 1 equivalent); read-authorisation 10/11 (90.9 %); connection-roles 107/115 (93.0 %);
+  plant-equipment-and-areas 12/12 (100 %, 1 equivalent); lots-and-lims 3/3; release-gate 10/14 (**71.4 %**);
+  tablets-release-items 2/2; after-release-suspension 30/32 (93.8 %, 1 equivalent); pqr-extract 5/5. 53 survivors.
+- Scope (owner, 17 October): possible P1 defects in release gating, read authorisation, sandbox segregation, equipment
+  fitness and calibration, lot availability, and the command permission and product scope of 6jc-R16 (a requirement
+  for another product's batch applied or skipped wrongly; an evaluation made with another product accepted).
+- Defects (P1): none. The 6jc-R16 batch forms (`require_command_permission(type, meaning, batch)`,
+  `role_evaluation_problem(..., batch)`, `check_engine_roles(..., batch)`, `append_execution`) have every product-scope
+  mutant killed: an evaluation with another product is refused, the batch's own product accepted, and the product
+  reaches the signature scope through `with_batch_scope` (its one survivor only adds a scope to the answer for a record
+  that does not exist, which nothing signs). The QMS item survivors of `grel_evaluate` showed an untested inclusion
+  rule, not a laxer release: the release decision itself is guarded by `recipe.qms_release_guard` (killed).
+- Kill tests (P2): `connection-roles`: the reporting role's segregation check reports each elevated attribute alone, a
+  membership either way and a missing role, each change made in a rolled-back transaction since roles are cluster-wide
+  (`kernel/test/sandbox/reporting-and-training.test.ts`; DI-17, DI-30). `read-authorisation`: a controlled-substance
+  record is refused to a role holding neither the kind's permission nor a governance read permission, and read by each
+  holder and a governance reader (`tablets-server/test/esig/read-authorisation.test.ts`; IN-53, DI-17).
+  `execution-commands`: both forms of the engine-role evaluation check refuse another account of the same person, an
+  evaluation of an earlier instant and one made in no role (`tablets-server/test/execution/db-guards-roles.test.ts`;
+  INV-26, DI-17, D4). `release-gate`: G-REL carries the QMS item for a finished lot in MIRROR mode only (RED and not
+  ready for an open deviation), none for a lot that is not a finished lot or in STAND_IN, and a lot that is not a
+  finished lot gets no US market items (`recipe-core/test/integrations/cmms-qms-release.test.ts`; DI-31, PR-23).
+  `after-release-suspension`: the suspension cascade follows only the recovery of a lot on the path
+  (`site-services/test/genealogy/genealogy.test.ts`; IN-29).
+- Confirmation runs (`--only` on the survivors the tests aim at; one per group): release-gate 4 / 4, connection-roles
+  7 / 7, read-authorisation 1 / 1, execution-commands 10 / 10 (the `--only` ids name both overloads, so the five
+  targets and five already killed), after-release-suspension 2 / 2: every target killed. After triage: release-gate
+  14 / 14 (100 %), connection-roles 114 / 115 (99.1 %), read-authorisation 11 / 11, after-release-suspension 32 / 32,
+  execution-commands 98 / 129 (76.0 %; the 27 unreachable `check_engine_roles` survivors of a dead overload are most of
+  the rest).
+
+Survivors, one line each:
+- P2 killed (see above): `sandbox.segregation_problems#33, #36 to #40, #44`; `tab.record_read_problem#3`;
+  `recipe.role_evaluation_problem#7` (batch form), `#10, #12, #15, #16` (location form); `recipe.grel_evaluate#8, #9,
+  #10, #12`; `recipe.genealogy_downstream_lots#10, #11`.
+- P3 unreachable: `recipe.check_engine_roles#1 to #60` (27 survivors, the 2-argument form of recipe-core 0270): since
+  recipe-core 1100 no function calls it (`append_execution` calls the batch form; the issue paths never called it) and
+  only the owner may execute it. Owner item: the dead overload could be dropped by a later migration.
+- P3 unreachable: `recipe.require_command_permission#2` (2-argument form): every caller passes a catalogued type (a
+  constant, or `propose_act`'s checked list), and an unknown type would still be refused by `iam.require_permission`;
+  `#6` (`p_meaning <> 'WITNESSED'`): only a VERIFY reaches that branch, and VERIFY goes through the batch form since 1100.
+- P3 fail-closed: `recipe.require_command_permission#8` (2-argument form, `p <> any (held)`): the mutant can only pick
+  another permission of the same command's list, which the kernel then checks, so it can refuse a holder of a later
+  permission but never admit anyone (the same mutant of the batch form is killed).
+- P3 clock microsecond boundary: `recipe.role_evaluation_problem#11` (location form, `<= now()`), `#13` (batch form,
+  `>= clock_timestamp()`).
+- P3: `recipe.with_batch_scope#3` (`and` -> `or`): adds the batch's product to the answer for a record that does not
+  exist; no signature or read accepts a record that does not exist.
+- P3 race only: `sandbox.apply_connect_policy#24` (`coalesce(r.rolsuper, false)` -> `true`): `r` is NULL only for
+  PUBLIC, because a grantee the cluster does not know is refused first (EBMR-SBX-038); only a role dropped between those
+  two statements of the call tells them apart.
+- Equivalent (marked by the harness): `recipe.role_evaluation_problem` (one), `plant.record_calibration#6`,
+  `recipe.genealogy_downstream_lots#1`.
+- Residuals: none in the owner's scope.
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)
