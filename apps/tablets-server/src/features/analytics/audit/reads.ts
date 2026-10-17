@@ -29,8 +29,12 @@ export function flagKey(f: { method: string; rule: string; subject_kind: string;
   return `${f.method}|${f.rule}|${f.subject_kind}|${f.subject_ref}|${e?.kind ?? ''}:${e?.ref ?? ''}`;
 }
 
-/** The keys whose latest flag was raised in [from, to) (site-zone days; open-ended without them). */
-export async function auditKeys(db: Db, q: { from: string | null; to: string | null; zone: string }): Promise<KeyRow[]> {
+/**
+ * The keys whose latest flag was raised in [from, to) (site-zone days; open-ended without them); with `openOnly` the
+ * keys without a current disposition, and with `key` that key only: both chosen before the list's limit, so an open
+ * key is never pushed out by closed ones and a flag's own key is always found.
+ */
+export async function auditKeys(db: Db, q: { from: string | null; to: string | null; zone: string; openOnly?: boolean; key?: string }): Promise<KeyRow[]> {
   const { rows } = await db.query<KeyRow>(
     `select f.flag_id::text, f.run_id::text, f.method, f.version, f.subject_kind, f.subject_ref, f.rule, f.severity, f.reasons,
             ${usOf('f.raised_at')} as raised_us, ${usOf('r.data_as_of')} as asof_us, ${usOf('r.ended_at')} as finished_us, true as restricted,
@@ -38,9 +42,10 @@ export async function auditKeys(db: Db, q: { from: string | null; to: string | n
        from analytics.audit_flags(coalesce($1::date::timestamp at time zone $3, '-infinity'::timestamptz),
                                   coalesce(($2::date + 1)::timestamp at time zone $3, 'infinity'::timestamptz)) f
        join analytics.run_v1 r on r.run_id = f.run_id and r.status = 'DONE'
+      where (not $4::boolean or f.disposition_flag is null) and ($5::text is null or f.flag_key = $5)
       order by f.raised_at desc, f.flag_id
       limit 500`,
-    [q.from, q.to, q.zone],
+    [q.from, q.to, q.zone, q.openOnly === true, q.key ?? null],
   );
   return rows;
 }

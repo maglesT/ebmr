@@ -323,6 +323,62 @@ Defaults of 6A-1 (taken without asking, as the owner's rule says; each is the de
 - **Migrations:** kernel 1260 to 1269, site-services 1030 to 1039 (reserved), recipe-core 1150 to 1159, tablets 1350 to
   1354.
 
+#### 6A-4 as built (17 October)
+
+- **Migrations:** kernel 1260 (`report.auth_fact_v1`), 1261 (flag keys, `analytics.audit_flags`); recipe-core 1150
+  (`report.audit_fact_v1`, `report.manual_digit_v1`), 1151 (`analytics.audit_flag_entries`,
+  `analytics.audit_flagged_entries`). Tablets 1350-1354 and site-services 1030-1039 are not used.
+- **Package:** `packages/analytics/src/methods/audit/` (`ATA.RULES` v1, `ATA.BASELINE` v1); the registry gains three
+  parameters (D-6A-4-3, -4, -6) and the input `report.manual_digit_v1`.
+- **Runner:** `apps/tablets-server/src/analytics/audit.ts`, listed in `IMPLEMENTATIONS`.
+- **Server and screens:** `features/analytics/audit/` binds `analyticsAudit` (joined to `routes.ts` and
+  `NAMESPACE_OWNERS` as `P6A`), with the additive route `analyticsAudit.entries` and the optional `repeats`/`repeat`
+  fields; screens `tablets-web/src/features/analytics-audit/`; the review feature's `AuditTrailPanel` orders flagged
+  entries first for the DI lead.
+- **Tests:** package `test/audit.test.ts` (each seeded anomaly of `analyticsHistory` and the clean persons, the rules the
+  history does not seed, the baseline below and above 6 weeks); recipe-core `test/analytics/audit-inputs.test.ts`
+  (no values, the facts, the roles); server `test/analytics/audit.test.ts` (runner end to end, DI_REVIEW, no
+  notification, keys and dispositions, the entries route); web `test/analytics-audit/audit.test.tsx` (the panel, the
+  screens). The 6g catalogue test now requires every view the reporting or application role can read to be catalogued
+  (D-6A-4-2). Mutation group `analytics-audit` (90 %).
+
+Defaults of 6A-4 (taken without asking, as the owner's rule says; each is the decision until the owner changes it):
+
+- **D-6A-4-1** The audit facts are in recipe-core (a batch record's entries, their item, step, attempt, failure and
+  claimed time, live in the execution store; D-6A-0-1); the authentication facts are in the kernel. Both cover the last
+  26 weeks. Added columns: `chain_key`, `recorded_local` (site wall clock), `command_type`, `attempt`, `failed`,
+  `deviation_linked`, `config_area`; `event_ref` and `at_local` for logins. A correction is an UPDATE or DELETE, or the
+  commands CORRECT_ENTRY, VOID_ATTEMPT and INVALIDATE_RESULT. Events of the nil person (release, system) are left out;
+  for an update the field is the list of changed column names.
+- **D-6A-4-2** The three fact views describe persons: they are on the analytics role's allow-list only, not in the
+  report catalogue, and neither the application role, the reporting role nor the dashboards' export reads them.
+- **D-6A-4-3** BACK_DATED compares an entry's claimed time with the step's previous entry in recording order, with a
+  tolerance `backDatedMinutes` of 2 (device clocks and keying order differ by less). A late entry is reported once, by
+  LATE_ENTRY.
+- **D-6A-4-4** CORRECTIONS_HIGH counts completed site weeks only (the latest week of the input is in progress). The
+  percentile is the linear one (type 7) over the active person-weeks, and needs `correctionsMinPersonWeeks` (20) of them.
+- **D-6A-4-5** One flag per hit. A flag's key is its method, rule, subject and the first evidence of its first reason;
+  the lists show the latest flag per key, and a disposition on any flag of a key closes it, for later repeats too. The
+  flag table grows by one row per hit and run; to be measured at a real site.
+- **D-6A-4-6** The baseline assesses completed weeks from the person's first week in the input; a week without activity
+  counts zero. When the MAD is zero the scale is 1.2533 times the mean absolute deviation; when that is zero the week is
+  not assessable for that metric. Late entries use `lateEntryMinutes` (15), added to the baseline's parameters.
+- **D-6A-4-7** The restricted readers are definers that refuse administrators and need `ANALYTICS.DI_REVIEW`
+  (EBMR-ANA-007): `analytics.audit_flags` in the kernel, the entry readers in recipe-core (they read the audit facts).
+  Lists keep 500 keys, with the open-only and key filters applied before the limit.
+- **D-6A-4-8** The terminal-digit test reads only the last digit of each value keyed by hand (DECIMAL or COUNT, source
+  MANUAL) from `report.manual_digit_v1`; the value itself is not exported. Chi-square on 9 degrees of freedom at
+  `digitTestAlpha` (0.01), with the quantile from @stdlib.
+- **D-6A-4-9** In the review panel only a data-integrity reviewer sees the highlight (the flags are restricted). Every
+  entry is still listed, and the review's scope, mark, hash and signature are unchanged. A dispositioned key's entries
+  are still highlighted, with their verdict.
+- **D-6A-4-10** Severity is INFO for a single-entry hit (late, back-dated, off-hours configuration) and ATTENTION for a
+  pattern, never HIGH. Evidence is `AUDIT_EVENT <chain>#<id>`, `AUTH_EVENT`, `WEEK`, `DIGIT_TEST` or `BASELINE_WEEK`,
+  with at most 20 entries named per flag.
+- **D-6A-4-11** No migration writes the version 1 rows, because a version names the code identity (the build's
+  commit). QA makes them effective with the defaults under a change record (`analyticsConfig.setMethodVersion`), and the
+  tests write them as the release.
+
 ### Slice 6A-5: review priority (item 9)
 
 - **Score** (method `REVIEW.PRIORITY` v1): a transparent weighted sum per completed batch record (weights in D-6A-13).

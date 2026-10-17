@@ -5,12 +5,16 @@
  * the events with the critical ones marked (D-P4-16), and whether the last signed mark covers everything. The review is
  * signed on the report's own review id (REVIEW_ACT AUDIT_TRAIL_REVIEW for a full review, DELTA_REVIEW for the events
  * after the last mark); the kind and the id are the server's.
+ *
+ * Phase 6A slice 6A-4 (DI-25, DI-53): for a data-integrity reviewer, the entries that audit-trail flags name are listed
+ * first and highlighted (analytics-audit/FlaggedEntries.tsx). Every entry is still listed and the review is unchanged.
  */
 import { routes, type AuditTrailReportView } from '@ebmr/api-contract';
 import { Banner, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useSignedAct } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { flagNote, flaggedFirst, useFlaggedEntries } from '../analytics-audit/FlaggedEntries.tsx';
 import { GateProblems } from './parts.tsx';
 import { REVIEW_READS } from './reads.ts';
 
@@ -21,7 +25,7 @@ export function AuditTrailPanel({ batchId, gate, offered }: { batchId: string; g
   return (
     <Section title="Audit-trail review" testId="audit-trail-review">
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
-      {r ? <Report report={r} /> : null}
+      {r ? <Report report={r} batchId={batchId} /> : null}
       <GateProblems gate={gate} testId="audit-trail-problems" />
       {offered && r ? (
         <ActButton
@@ -40,7 +44,10 @@ export function AuditTrailPanel({ batchId, gate, offered }: { batchId: string; g
   );
 }
 
-function Report({ report: r }: { report: AuditTrailReportView }) {
+function Report({ report: r, batchId }: { report: AuditTrailReportView; batchId: string }) {
+  const flagged = useFlaggedEntries(batchId);
+  const events = flaggedFirst(r.events, flagged);
+  const shownFlagged = events.filter((e) => flagged.has(`${e.chainKey}#${e.eventId}`)).length;
   const label = (chainKey: string) => r.scope.find((s) => s.chainKey === chainKey)?.label ?? chainKey;
   const critical = r.events.filter((e) => e.critical).length;
   return (
@@ -71,6 +78,11 @@ function Report({ report: r }: { report: AuditTrailReportView }) {
           ))}
         </tbody>
       </table>
+      {shownFlagged > 0 ? (
+        <p data-testid="audit-trail-flagged-note">
+          {shownFlagged} entries named by audit-trail flags are listed first (advisory, for data-integrity review); every entry is listed and the review is unchanged.
+        </p>
+      ) : null}
       <table data-testid="audit-trail-events">
         <caption>Events</caption>
         <thead>
@@ -84,18 +96,22 @@ function Report({ report: r }: { report: AuditTrailReportView }) {
           </tr>
         </thead>
         <tbody>
-          {r.events.map((e) => (
-            <tr key={e.eventId} data-critical={e.critical ? 'true' : undefined}>
+          {events.map((e) => {
+            const f = flagged.get(`${e.chainKey}#${e.eventId}`);
+            return (
+            <tr key={e.eventId} data-critical={e.critical ? 'true' : undefined} data-flagged={f ? 'true' : undefined}>
               <td>{e.at.text}</td>
               <td>{label(e.chainKey)}</td>
               <td>{e.seq}</td>
               <td>{e.action}</td>
               <td>{e.table ? `${e.table} ${e.recordId ?? ''}` : '-'}</td>
               <td>
-                {e.critical ? <StatusChip tone="error" label="Critical: changed shortly before use" /> : null} {e.linked ? <StatusChip tone="neutral" label="Linked record" /> : null}
+                {e.critical ? <StatusChip tone="error" label="Critical: changed shortly before use" /> : null} {e.linked ? <StatusChip tone="neutral" label="Linked record" /> : null}{' '}
+                {f ? <StatusChip tone="warning" label={flagNote(f)} /> : null}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
       <p>

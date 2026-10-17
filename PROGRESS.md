@@ -203,6 +203,14 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   (ml-matrix, @stdlib quantiles), the runner's number lint ban, and the golden batches with the runner on. Defaults
   D-6A-1-1 to 23 in the plan. Quick review: one medium fixed (a version validated with an earlier build could not
   be retired after an upgrade; D-6A-1-23); golden GB-T-01 to GB-T-03 passed with the runner on.
+- **6A-1 merged (PR #44).** **6A-4 (17 October, branch `phase-6a/slice-4`, pushed, no PR yet):** audit-trail anomaly
+  detection. `ATA.RULES` v1 (late, back-dated, corrections above the site percentile, two terminals, terminal digits,
+  repeat until pass, off-hours configuration) and `ATA.BASELINE` v1 (robust z against the person's own 13 weeks, 6 weeks
+  of history) in `packages/analytics/src/methods/audit/`, wired in the runner. Inputs kernel 1260 (`auth_fact_v1`) and
+  recipe-core 1150 (`audit_fact_v1`, `manual_digit_v1`; no values), on the analytics role's allow-list only. Flag keys
+  and the restricted readers (DI_REVIEW) in kernel 1261 and recipe-core 1151. Routes `analyticsAudit` (bound), screens
+  `/analytics/audit-flags`, and the review panel lists flagged entries first for the DI lead (DI-25). Defaults
+  D-6A-4-1 to 11 in the plan. Own review: one medium fixed (open keys cut by the list limit).
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).

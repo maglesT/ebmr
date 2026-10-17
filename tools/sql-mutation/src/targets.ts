@@ -1382,4 +1382,15 @@ export const TARGETS: Target[] = [
     tests: [r('analytics/input-views.test.ts')],
     threshold: 90,
   },
+  // ---- 6A-4, audit-trail anomaly detection (kernel 1260, 1261; recipe-core 1150, 1151; decision 0016 item 8): the
+  //      audit and authentication facts that export no value (DI-51, DI-53), and the flag readers restricted to
+  //      ANALYTICS.DI_REVIEW, one row per key with the key's current disposition (DI-53, DI-25). ----
+  {
+    group: 'analytics-audit',
+    functions: ['report.auth_fact_rows_v1', 'report.execution_command_events', 'report.execution_points', 'report.audit_facts',
+                'report.audit_fact_rows_v1', 'report.manual_digit_rows_v1', 'analytics.flag_key', 'analytics.audit_flags',
+                'analytics.audit_flag_entries', 'analytics.audit_flagged_entries'],
+    tests: [r('analytics/audit-inputs.test.ts'), s('analytics/audit.test.ts')],
+    threshold: 90,
+  },
 ];

@@ -188,6 +188,18 @@ modules:
       - 'apps/tablets-web/test/analytics/**'
       - 'tools/boundaries/test/number-ban.test.ts'
 
+  - id: analytics-audit
+    title: Audit-trail anomaly detection (Phase 6A slice 6A-4) - rules, per-person baselines, audit and authentication facts, restricted flag reads, screens
+    page: modules/analytics.md
+    package: packages/analytics
+    migrations:
+      packages/kernel/sql: ['^126[0-9]_']
+      packages/recipe-core/sql: ['^115[0-9]_']
+    src: [packages/analytics/src/methods/audit]
+    screens: [apps/tablets-web/src/features/analytics-audit]
+    tests:
+      - 'apps/tablets-web/test/analytics-audit/**'
+
   - id: kernel-integration
     title: Integration wiring between kernel modules
     page: modules/kernel.md

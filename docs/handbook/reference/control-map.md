@@ -484,8 +484,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Audit-trail review within batch review (step level and before disposition).** [DI-25.yaml](../../../compliance/controls/DI-25.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-installation](../code-map.md#kernel-installation), [rc-review](../code-map.md#rc-review), [ts-review](../code-map.md#ts-review)
-- Tests: [apps/tablets-server/test/review/audit-events-once.test.ts](../../../apps/tablets-server/test/review/audit-events-once.test.ts), [apps/tablets-server/test/review/review-routes.test.ts](../../../apps/tablets-server/test/review/review-routes.test.ts), [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/review/f77.test.ts](../../../packages/kernel/test/review/f77.test.ts), [packages/recipe-core/test/review/review.test.ts](../../../packages/recipe-core/test/review/review.test.ts)
+- Modules: [kernel-audit](../code-map.md#kernel-audit), [analytics](../code-map.md#analytics), [analytics-audit](../code-map.md#analytics-audit), [kernel-installation](../code-map.md#kernel-installation), [rc-review](../code-map.md#rc-review), [ts-review](../code-map.md#ts-review)
+- Tests: [apps/tablets-server/test/analytics/audit.test.ts](../../../apps/tablets-server/test/analytics/audit.test.ts), [apps/tablets-server/test/review/audit-events-once.test.ts](../../../apps/tablets-server/test/review/audit-events-once.test.ts), [apps/tablets-server/test/review/review-routes.test.ts](../../../apps/tablets-server/test/review/review-routes.test.ts), [apps/tablets-web/test/analytics-audit/audit.test.tsx](../../../apps/tablets-web/test/analytics-audit/audit.test.tsx), [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/review/f77.test.ts](../../../packages/kernel/test/review/f77.test.ts), [packages/recipe-core/test/review/review.test.ts](../../../packages/recipe-core/test/review/review.test.ts)
 
 ## DI-26
 
@@ -923,7 +923,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 - Code: [packages/api-contract/src/ns/analytics.ts](../../../packages/api-contract/src/ns/analytics.ts)
 - Guard: sandbox.segregation_problems (analytics.role_problems, kernel 1242): reports any grant of ebmr_analytics beyond its allow-list
 - Guard: analytics.* insert-only triggers (kernel.reject_mutation, EBMR-AUDIT-004)
-- Tests: [apps/tablets-server/test/analytics/role-permissions.test.ts](../../../apps/tablets-server/test/analytics/role-permissions.test.ts), [apps/tablets-server/test/analytics/runner.test.ts](../../../apps/tablets-server/test/analytics/runner.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-web/test/analytics/analytics.test.tsx](../../../apps/tablets-web/test/analytics/analytics.test.tsx), [packages/api-contract/test/analytics.test.ts](../../../packages/api-contract/test/analytics.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../../packages/kernel/test/analytics/analytics.test.ts), [packages/recipe-core/test/analytics/input-views.test.ts](../../../packages/recipe-core/test/analytics/input-views.test.ts)
+- Tests: [apps/tablets-server/test/analytics/role-permissions.test.ts](../../../apps/tablets-server/test/analytics/role-permissions.test.ts), [apps/tablets-server/test/analytics/runner.test.ts](../../../apps/tablets-server/test/analytics/runner.test.ts), [apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts](../../../apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts), [apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts](../../../apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts), [apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts](../../../apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts), [apps/tablets-web/test/analytics/analytics.test.tsx](../../../apps/tablets-web/test/analytics/analytics.test.tsx), [packages/api-contract/test/analytics.test.ts](../../../packages/api-contract/test/analytics.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../../packages/kernel/test/analytics/analytics.test.ts), [packages/recipe-core/test/analytics/audit-inputs.test.ts](../../../packages/recipe-core/test/analytics/audit-inputs.test.ts), [packages/recipe-core/test/analytics/input-views.test.ts](../../../packages/recipe-core/test/analytics/input-views.test.ts)
 
 ## DI-52
 
@@ -943,13 +943,20 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Audit-trail anomaly flags: reasons shown, restricted, never an automatic finding.** [DI-53.yaml](../../../compliance/controls/DI-53.yaml). Target phase 7; editions tablets, injectables; SPECIFIED.
 
-- Modules: [analytics](../code-map.md#analytics)
+- Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [analytics-audit](../code-map.md#analytics-audit)
 - Code: [packages/kernel/sql/1242_analytics_record_functions.sql](../../../packages/kernel/sql/1242_analytics_record_functions.sql)
 - Code: [packages/kernel/sql/1243_analytics_read_views.sql](../../../packages/kernel/sql/1243_analytics_read_views.sql)
 - Code: [packages/kernel/sql/1244_analytics_permissions.sql](../../../packages/kernel/sql/1244_analytics_permissions.sql)
 - Code: [apps/tablets-server/sql/1330_analytics_role_permissions.sql](../../../apps/tablets-server/sql/1330_analytics_role_permissions.sql)
+- Code: [packages/kernel/sql/1260_analytics_auth_facts.sql](../../../packages/kernel/sql/1260_analytics_auth_facts.sql)
+- Code: [packages/kernel/sql/1261_analytics_audit_flag_groups.sql](../../../packages/kernel/sql/1261_analytics_audit_flag_groups.sql)
+- Code: [packages/recipe-core/sql/1150_analytics_audit_inputs.sql](../../../packages/recipe-core/sql/1150_analytics_audit_inputs.sql)
+- Code: [packages/recipe-core/sql/1151_analytics_audit_flag_entries.sql](../../../packages/recipe-core/sql/1151_analytics_audit_flag_entries.sql)
+- Code: [packages/analytics/src/methods/audit/rules.ts](../../../packages/analytics/src/methods/audit/rules.ts)
+- Code: [packages/analytics/src/methods/audit/baseline.ts](../../../packages/analytics/src/methods/audit/baseline.ts)
 - Guard: analytics.person_flags and analytics.record_disposition: ANALYTICS.DI_REVIEW for a restricted flag (EBMR-ANA-007)
-- Tests: [apps/tablets-server/test/analytics/role-permissions.test.ts](../../../apps/tablets-server/test/analytics/role-permissions.test.ts), [apps/tablets-server/test/analytics/routes.test.ts](../../../apps/tablets-server/test/analytics/routes.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../../packages/kernel/test/analytics/analytics.test.ts), [packages/kernel/test/analytics/method-change.test.ts](../../../packages/kernel/test/analytics/method-change.test.ts)
+- Guard: analytics.audit_flags, analytics.audit_flag_entries and analytics.audit_flagged_entries: ANALYTICS.DI_REVIEW (EBMR-ANA-007)
+- Tests: [apps/tablets-server/test/analytics/audit.test.ts](../../../apps/tablets-server/test/analytics/audit.test.ts), [apps/tablets-server/test/analytics/role-permissions.test.ts](../../../apps/tablets-server/test/analytics/role-permissions.test.ts), [apps/tablets-server/test/analytics/routes.test.ts](../../../apps/tablets-server/test/analytics/routes.test.ts), [apps/tablets-web/test/analytics-audit/audit.test.tsx](../../../apps/tablets-web/test/analytics-audit/audit.test.tsx), [packages/analytics/test/audit.test.ts](../../../packages/analytics/test/audit.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../../packages/kernel/test/analytics/analytics.test.ts), [packages/kernel/test/analytics/method-change.test.ts](../../../packages/kernel/test/analytics/method-change.test.ts), [packages/recipe-core/test/analytics/audit-inputs.test.ts](../../../packages/recipe-core/test/analytics/audit-inputs.test.ts)
 
 ## IN-01
 

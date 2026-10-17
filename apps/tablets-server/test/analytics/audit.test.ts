@@ -160,10 +160,10 @@ describe('the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE)', () => {
     expect(flags).toHaveLength(1);
     const flag = flags[0]!;
     expect(open.repeats?.find((r) => r.flagId === flag.flagId)?.raisedCount).toBeGreaterThanOrEqual(3);
-    // Only the audit trail's own triggers sit on the flag table: no notification, no outbox.
+    // Only the audit trail's and the database clock's own triggers sit on the flag table: no notification, no outbox.
     const { rows: triggers } = await gmp.db.admin.query<{ fn: string }>("select tgfoid::regproc::text as fn from pg_trigger where tgrelid = 'analytics.flag'::regclass and not tgisinternal");
     expect(triggers.length).toBeGreaterThan(0);
-    for (const t of triggers) expect(t.fn).toMatch(/^kernel\./);
+    for (const t of triggers) expect(t.fn).toMatch(/^(kernel\.|platform\.force_db_time$)/);
     expect(await counts()).toEqual(before);
     // Nothing but a disposition closes it: the application role cannot change the flag or write a disposition.
     await expect(gmp.db.app.query("update analytics.flag set severity = 'INFO' where id = $1", [flag.flagId])).rejects.toThrow(/permission denied/);

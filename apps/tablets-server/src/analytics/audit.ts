@@ -9,7 +9,7 @@
  * The objects are written in the shape of MethodImplementation (implementation.ts) without importing it, so that
  * implementation.ts can list them in IMPLEMENTATIONS without an import cycle.
  */
-import { ATA_BASELINE, ATA_RULES, type AuditBaselineParameters, type AuditInput, type AuditRulesParameters } from '@ebmr/analytics';
+import { ATA_BASELINE, ATA_RULES, type AuditInput } from '@ebmr/analytics';
 
 type Row = Readonly<Record<string, unknown>>;
 
@@ -70,7 +70,7 @@ export const ATA_RULES_IMPLEMENTATION = {
   id: 'ATA.RULES',
   versions: [1],
   inputs: [AUDIT_FACTS, AUTH_FACTS, MANUAL_DIGITS],
-  assemble: (rows: Readonly<Record<string, readonly Row[]>>, _params: AuditRulesParameters): AuditInput => auditInput(rows),
+  assemble: (rows: Readonly<Record<string, readonly Row[]>>): AuditInput => auditInput(rows),
   method: ATA_RULES,
 } as const;
 
@@ -79,6 +79,6 @@ export const ATA_BASELINE_IMPLEMENTATION = {
   id: 'ATA.BASELINE',
   versions: [1],
   inputs: [AUDIT_FACTS, AUTH_FACTS],
-  assemble: (rows: Readonly<Record<string, readonly Row[]>>, _params: AuditBaselineParameters): AuditInput => auditInput(rows),
+  assemble: (rows: Readonly<Record<string, readonly Row[]>>): AuditInput => auditInput(rows),
   method: ATA_BASELINE,
 } as const;

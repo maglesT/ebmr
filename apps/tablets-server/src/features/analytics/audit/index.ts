@@ -77,9 +77,8 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         if (q.from !== null && q.to !== null && q.from > q.to) {
           throw refusal(400, { code: 'EBMR-ANA-011', kind: 'INVALID_INPUT', whatHappened: 'The period starts after it ends.', whatYouCanDo: ['Choose a start date on or before the end date.'] });
         }
-        const all = await auditKeys(c, q);
         // Without a period the open keys (no current disposition), as the flags list does (D-6A-1-17).
-        const keys = q.from === null && q.to === null ? all.filter((k) => k.disposition_flag === null) : all;
+        const keys = await auditKeys(c, { ...q, openOnly: q.from === null && q.to === null });
         const v = await keyViews(app, c, keys);
         return { ...envelope(v.dataAgeSeconds), flags: v.flags, repeats: keys.map((k) => repeatOf(app, k)) };
       }),
@@ -88,7 +87,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const [row] = await restrictedFlags(c, { from: null, to: null, kind: null, zone: zone(), flagId: params.flagId });
         if (!row || !AUDIT_METHODS.has(row.method)) throw notFound();
         const key = flagKey(row);
-        const k = (await auditKeys(c, { from: null, to: null, zone: zone() })).find((x) => x.flag_key === key);
+        const [k] = await auditKeys(c, { from: null, to: null, zone: zone(), key });
         const shown: KeyRow = k ? { ...row, flag_key: key, raised_count: k.raised_count, first_us: k.first_us, disposition_flag: k.disposition_flag, verdict: k.verdict }
                                 : { ...row, flag_key: key, raised_count: 1, first_us: row.raised_us, disposition_flag: null, verdict: null };
         const v = await keyViews(app, c, [shown]);
