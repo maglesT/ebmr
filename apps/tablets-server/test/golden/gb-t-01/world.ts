@@ -26,7 +26,9 @@ import { setupInstallation } from '../../../src/cli/setup.ts';
 import { recordContentForSigning } from '../../../src/features/esig/content.ts';
 import { loadValidationContext } from '../../../src/features/designer/adapters/expressions.ts';
 import { GBT01_PRODUCT } from '../../../src/features/execution/seed-gb-t-01.ts';
+import type { RunReport } from '../../../src/analytics/runner.ts';
 import { startServer, type TestBrowser, type TestServer } from '../../support/harness.ts';
+import { probe, releaseMethodVersion } from '../../analytics/support.ts';
 import { actorOfBrowser, refusalOf } from '../../esig/support.ts';
 
 export const SITE = 'SITE-1';
@@ -59,6 +61,12 @@ export interface GoldenWorld {
   masterSignatures: number;
   /** Refused MBR_TRANSITION attempts (status and code), for the assertions. */
   masterChecks: Record<string, string>;
+  /**
+   * Phase 6A slice 6A-1 (DI-51): the analytics runner is on through the whole run (it polls every minute, at whatever
+   * point of the scenario that falls); this looks once more for completed batches and runs every method version in
+   * force on demand, as the probe method of the runner tests (it reads the batch facts and the critical values).
+   */
+  analytics(): Promise<RunReport[]>;
   close(): Promise<void>;
 }
 
@@ -130,8 +138,11 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
     server = await startServer('GMP', {
       prepared: { database, seed },
       paceDeviceNonces: true,
-      env: { EBMR_SEAL_KEY_FILE: join(keysDir, 'keys', 'gmp-seal-key.json'), EBMR_NUMBER_LEDGER_FILE: join(keysDir, 'numbers.ledger.jsonl') },
+      env: { EBMR_SEAL_KEY_FILE: join(keysDir, 'keys', 'gmp-seal-key.json'), EBMR_NUMBER_LEDGER_FILE: join(keysDir, 'numbers.ledger.jsonl'), EBMR_ANALYTICS: 'on' },
+      analytics: { implementations: [probe('SPC.IMR')], pollMs: 60_000 },
     });
+    // A method version in force for the runner, as a release writes it.
+    await releaseMethodVersion(server, 'SPC.IMR', 1);
   } catch (e) {
     await dropDatabase(database);
     throw e;
@@ -248,6 +259,12 @@ export async function startGoldenWorld(): Promise<GoldenWorld> {
     versionId,
     masterSignatures: signatures,
     masterChecks: checks,
+    async analytics() {
+      const runner = server.built.analytics;
+      if (!runner) throw new Error('the golden server runs without its analytics runner');
+      await runner.tick();
+      return runner.runAll('ON_DEMAND');
+    },
     async close() {
       await server.close();
       rmSync(keysDir, { recursive: true, force: true });

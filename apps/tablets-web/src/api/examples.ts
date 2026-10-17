@@ -8,7 +8,7 @@
  * Every answer is one the server can give for the examples (apps/tablets-web/test/api/contract-examples.test.tsx).
  */
 import type { SessionView } from '@ebmr/api-contract';
-import { EXAMPLES, STEP_EXAMPLES_BY_BLOCK } from '@ebmr/api-contract/examples';
+import { ANALYTICS_EXAMPLES, EXAMPLES, STEP_EXAMPLES_BY_BLOCK } from '@ebmr/api-contract/examples';
 import type { FixtureMap } from './fixture-fetch.ts';
 
 /** The refusal the server gives for a lot it does not know (execution runs.ts notFound; fixture mode knows the lot example only). */
@@ -69,6 +69,10 @@ export function fixturesFromExamples(installation: 'GMP' | 'SANDBOX'): FixtureMa
     'designer.simulate': EXAMPLES['simulation-report'].data,
     'audit.events': EXAMPLES['audit-events'].data,
     ...(installation === 'GMP' ? gmpSlice6(steps) : {}),
+    // Phase 6A slice 6A-1: the analytics routes answer with their examples on GMP.
+    ...(installation === 'GMP'
+      ? Object.fromEntries(Object.values(ANALYTICS_EXAMPLES).filter((e) => e.routeId.startsWith('analytics.')).map((e) => [e.routeId, e.data]))
+      : {}),
     // Phase 6 slice 6g: training mode answers on the sandbox only.
     ...(installation === 'SANDBOX'
       ? { 'training.overview': EXAMPLES['training-overview'].data, 'training.start': EXAMPLES['training-start'].data, 'training.completeStep': EXAMPLES['training-complete-step'].data }
