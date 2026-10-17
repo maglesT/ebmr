@@ -1,0 +1,24 @@
+[32m01:46:07 (599917) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-plant-rules.incremental.json, a full mutation testing run will be performed.
+[32m01:46:08 (599917) INFO ProjectReader[39m Found 3 of 74974 file(s) to be mutated.
+[32m01:46:09 (599917) INFO Instrumenter[39m Instrumented 3 source file(s) with 577 mutant(s)
+[32m01:50:55 (599917) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m01:51:30 (599917) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m01:51:32 (599917) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m01:53:02 (599917) INFO DryRunExecutor[39m Initial test run succeeded. Ran 6 tests in 1 minute and 30 seconds (net 11786.848508999996 ms, overhead 78306.151491 ms).
+Mutation testing 0% (elapsed: <1m, remaining: n/a) 161/372 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: n/a) 161/372 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~25m) 163/372 tested (1 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~24m) 164/372 tested (2 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~29m) 165/372 tested (2 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~27m) 167/372 tested (3 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~1m, remaining: ~26m) 168/372 tested (3 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~1m, remaining: ~25m) 169/372 tested (3 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~1m, remaining: ~24m) 170/372 tested (3 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~1m, remaining: ~20m) 172/372 tested (3 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~1m, remaining: ~16m) 176/372 tested (5 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~2m, remaining: ~16m) 178/372 tested (5 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~2m, remaining: ~16m) 180/372 tested (5 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~2m, remaining: ~14m) 184/372 tested (6 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~2m, remaining: ~14m) 186/372 tested (6 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~2m, remaining: ~14m) 188/372 tested (6 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~2m, remaining: ~14m) 190/372 tested (6 survived, 0 timed out)

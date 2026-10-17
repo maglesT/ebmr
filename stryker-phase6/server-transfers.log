@@ -1,0 +1,1275 @@
+[32m01:27:42 (532112) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-transfers.incremental.json, a full mutation testing run will be performed.
+[32m01:27:42 (532112) INFO ProjectReader[39m Found 6 of 12491 file(s) to be mutated.
+[32m01:27:42 (532112) INFO Instrumenter[39m Instrumented 6 source file(s) with 569 mutant(s)
+[32m01:28:11 (532112) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m01:28:16 (532112) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m01:28:17 (532112) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m01:28:46 (532112) INFO DryRunExecutor[39m Initial test run succeeded. Ran 6 tests in 28 seconds (net 1778.0575299999982 ms, overhead 27171.94247 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~19m) 116/457 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~13m) 118/457 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~13m) 120/457 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~16m) 122/457 tested (1 survived, 0 timed out)
+Mutation testing 5% (elapsed: <1m, remaining: ~15m) 126/457 tested (1 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~1m, remaining: ~17m) 130/457 tested (1 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~1m, remaining: ~17m) 134/457 tested (1 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~1m, remaining: ~19m) 136/457 tested (1 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~1m, remaining: ~19m) 140/457 tested (1 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~1m, remaining: ~21m) 143/457 tested (1 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~1m, remaining: ~21m) 147/457 tested (1 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~2m, remaining: ~21m) 150/457 tested (1 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~2m, remaining: ~21m) 155/457 tested (1 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~2m, remaining: ~21m) 157/457 tested (1 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~2m, remaining: ~21m) 161/457 tested (1 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~2m, remaining: ~21m) 165/457 tested (1 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~2m, remaining: ~21m) 169/457 tested (1 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~3m, remaining: ~21m) 172/457 tested (1 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~3m, remaining: ~20m) 177/457 tested (1 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~3m, remaining: ~20m) 182/457 tested (1 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~3m, remaining: ~20m) 186/457 tested (1 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~3m, remaining: ~20m) 189/457 tested (1 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~3m, remaining: ~20m) 193/457 tested (1 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~4m, remaining: ~20m) 196/457 tested (1 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~4m, remaining: ~19m) 200/457 tested (1 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~4m, remaining: ~19m) 205/457 tested (1 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~4m, remaining: ~19m) 209/457 tested (1 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~4m, remaining: ~19m) 212/457 tested (1 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~4m, remaining: ~18m) 216/457 tested (1 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~5m, remaining: ~18m) 219/457 tested (1 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~5m, remaining: ~18m) 223/457 tested (1 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~5m, remaining: ~18m) 227/457 tested (1 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~5m, remaining: ~18m) 231/457 tested (1 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~5m, remaining: ~18m) 235/457 tested (1 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~5m, remaining: ~17m) 239/457 tested (1 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~6m, remaining: ~17m) 243/457 tested (1 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~6m, remaining: ~15m) 248/457 tested (1 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~6m, remaining: ~12m) 254/457 tested (1 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~6m, remaining: ~11m) 258/457 tested (1 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~6m, remaining: ~10m) 262/457 tested (1 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~6m, remaining: ~10m) 264/457 tested (2 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~7m, remaining: ~9m) 269/457 tested (4 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~7m, remaining: ~9m) 274/457 tested (6 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~7m, remaining: ~9m) 278/457 tested (6 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~7m, remaining: ~8m) 283/457 tested (6 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~7m, remaining: ~9m) 286/457 tested (7 survived, 0 timed out)
+Mutation testing 46% (elapsed: ~7m, remaining: ~9m) 291/457 tested (7 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~8m, remaining: ~9m) 295/457 tested (7 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~8m, remaining: ~8m) 299/457 tested (7 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~8m, remaining: ~8m) 305/457 tested (7 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~8m, remaining: ~7m) 309/457 tested (7 survived, 0 timed out)
+Mutation testing 56% (elapsed: ~8m, remaining: ~6m) 313/457 tested (7 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~8m, remaining: ~6m) 316/457 tested (7 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~9m, remaining: ~5m) 320/457 tested (9 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~9m, remaining: ~5m) 324/457 tested (13 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~9m, remaining: ~5m) 329/457 tested (15 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~9m, remaining: ~4m) 331/457 tested (17 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~9m, remaining: ~4m) 335/457 tested (19 survived, 0 timed out)
+Mutation testing 68% (elapsed: ~9m, remaining: ~4m) 337/457 tested (19 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~10m, remaining: ~4m) 341/457 tested (21 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~10m, remaining: ~4m) 346/457 tested (22 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~10m, remaining: ~4m) 350/457 tested (22 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~10m, remaining: ~4m) 354/457 tested (24 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~10m, remaining: ~3m) 358/457 tested (24 survived, 0 timed out)
+Mutation testing 76% (elapsed: ~10m, remaining: ~3m) 362/457 tested (24 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~11m, remaining: ~2m) 366/457 tested (26 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~11m, remaining: ~2m) 370/457 tested (29 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~11m, remaining: ~2m) 374/457 tested (30 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~11m, remaining: ~1m) 378/457 tested (31 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~11m, remaining: ~1m) 382/457 tested (33 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~11m, remaining: ~1m) 386/457 tested (35 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~12m, remaining: ~1m) 390/457 tested (37 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~12m, remaining: ~1m) 396/457 tested (38 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~12m, remaining: ~1m) 402/457 tested (40 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~12m, remaining: ~1m) 408/457 tested (43 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~12m, remaining: ~1m) 413/457 tested (44 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~12m, remaining: ~1m) 419/457 tested (45 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~13m, remaining: <1m) 425/457 tested (48 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~13m, remaining: <1m) 431/457 tested (51 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~13m, remaining: <1m) 435/457 tested (51 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~13m, remaining: <1m) 440/457 tested (51 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~13m, remaining: <1m) 448/457 tested (51 survived, 0 timed out)
+
+All tests/transfer-routes.test.ts
+  ✓ lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE (killed 105)
+  ✓ lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot (killed 13)
+  ✓ federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked (killed 138)
+  ✓ federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again (killed 23)
+  ✓ federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3) (killed 4)
+  ~ federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation (covered 75)
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/federation.ts:75:44
+-   const reasonOf = (text: string): string => {
+-     try {
+-       const j = JSON.parse(text) as { why?: unknown; whatHappened?: unknown; code?: unknown };
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
+-     } catch {
+-       return text.slice(0, 500);
+-     }
+-   };
++   const reasonOf = (text: string): string => {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/federation.ts:76:7
+-     try {
+-       const j = JSON.parse(text) as { why?: unknown; whatHappened?: unknown; code?: unknown };
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
+-     } catch {
++     try {} catch {
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/transfers/federation.ts:78:12
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return true;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/transfers/federation.ts:78:12
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return false;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/federation.ts:78:12
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter(x => typeof x === 'string').join(' ') && text.slice(0, 500);
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/transfers/federation.ts:78:12
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].join(' ') || text.slice(0, 500);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/federation.ts:78:12
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/federation.ts:78:21
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why && j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/transfers/federation.ts:78:53
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter(() => undefined).join(' ') || text.slice(0, 500);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/transfers/federation.ts:78:60
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter((x) => true).join(' ') || text.slice(0, 500);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/transfers/federation.ts:78:60
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter((x) => false).join(' ') || text.slice(0, 500);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/transfers/federation.ts:78:60
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x !== 'string').join(' ') || text.slice(0, 500);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:78:73
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === "").join(' ') || text.slice(0, 500);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:78:88
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join("") || text.slice(0, 500);
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/transfers/federation.ts:78:96
+-       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text.slice(0, 500);
++       return [j.code, j.why ?? j.whatHappened].filter((x) => typeof x === 'string').join(' ') || text;
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/federation.ts:79:11
+-     } catch {
+-       return text.slice(0, 500);
+-     }
++     } catch {}
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/transfers/federation.ts:80:12
+-       return text.slice(0, 500);
++       return text;
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/federation.ts:96:19
+-     } catch (error) {
+-       await db.query('rollback to savepoint federation_issue');
+-       const last = await lastExcerpt(db, peer, transferId, direction);
+-       return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
+-     }
++     } catch (error) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:97:20
+-       await db.query('rollback to savepoint federation_issue');
++       await db.query("");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/federation.ts:99:12
+-       return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
++       return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:99:22
+-       return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
++       return { status: "", detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/federation.ts:99:163
+-       return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
++       return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id && null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/transfers/federation.ts:99:163
+-       return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last?.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
++       return { status: 'NOT_REGISTERED', detail: error instanceof Error ? error.message : String(error), excerpt: last ? excerptOf(last.payload) : null, excerptId: last.id ?? null, excerptAsOfUs: last ? excerptOf(last.payload).asOfUs : null };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:107:25
+-     if (!key) return fail('REFUSED', 'EBMR-FED-020 this server holds no installation key, so it cannot seal a request (EBMR_INSTALLATION_KEY_FILE)');
++     if (!key) return fail("", 'EBMR-FED-020 this server holds no installation key, so it cannot seal a request (EBMR_INSTALLATION_KEY_FILE)');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:107:36
+-     if (!key) return fail('REFUSED', 'EBMR-FED-020 this server holds no installation key, so it cannot seal a request (EBMR_INSTALLATION_KEY_FILE)');
++     if (!key) return fail('REFUSED', "");
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/transfers/federation.ts:108:42
+-     if (app.config.env === 'production' && !issued.baseUrl.startsWith('https://')) {
++     if (app.config.env === 'production' && issued.baseUrl.startsWith('https://')) {
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/transfers/federation.ts:108:43
+-     if (app.config.env === 'production' && !issued.baseUrl.startsWith('https://')) {
++     if (app.config.env === 'production' && !issued.baseUrl.endsWith('https://')) {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:108:69
+-     if (app.config.env === 'production' && !issued.baseUrl.startsWith('https://')) {
++     if (app.config.env === 'production' && !issued.baseUrl.startsWith("")) {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/federation.ts:108:82
+-     if (app.config.env === 'production' && !issued.baseUrl.startsWith('https://')) {
+-       return fail('REFUSED', `EBMR-FED-021 ${peer} is registered with an http address; production calls other installations over https only (DI-13)`);
+-     }
++     if (app.config.env === 'production' && !issued.baseUrl.startsWith('https://')) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:109:17
+-       return fail('REFUSED', `EBMR-FED-021 ${peer} is registered with an http address; production calls other installations over https only (DI-13)`);
++       return fail("", `EBMR-FED-021 ${peer} is registered with an http address; production calls other installations over https only (DI-13)`);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:109:28
+-       return fail('REFUSED', `EBMR-FED-021 ${peer} is registered with an http address; production calls other installations over https only (DI-13)`);
++       return fail('REFUSED', ``);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:122:45
+-     const text = await res.text().catch(() => '');
++     const text = await res.text().catch(() => "Stryker was here!");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:123:39
+-     if (res.status !== 200) return fail('REFUSED', `${peer} refused the request (HTTP ${res.status}): ${reasonOf(text)}`);
++     if (res.status !== 200) return fail("", `${peer} refused the request (HTTP ${res.status}): ${reasonOf(text)}`);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:123:50
+-     if (res.status !== 200) return fail('REFUSED', `${peer} refused the request (HTTP ${res.status}): ${reasonOf(text)}`);
++     if (res.status !== 200) return fail('REFUSED', ``);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/federation.ts:127:11
+-     } catch {
+-       body = {};
+-     }
++     } catch {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:130:86
+-     if (typeof body.payload !== 'string' || typeof body.seal !== 'string') return fail('WRONG_ANSWER', `${peer} answered something that is not a sealed excerpt`);
++     if (typeof body.payload !== 'string' || typeof body.seal !== 'string') return fail("", `${peer} answered something that is not a sealed excerpt`);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:130:102
+-     if (typeof body.payload !== 'string' || typeof body.seal !== 'string') return fail('WRONG_ANSWER', `${peer} answered something that is not a sealed excerpt`);
++     if (typeof body.payload !== 'string' || typeof body.seal !== 'string') return fail('WRONG_ANSWER', ``);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:132:46
+-     if (!rec.ok || !rec.excerptId) return fail('WRONG_ANSWER', rec.reason ?? 'the answer was not kept', false);
++     if (!rec.ok || !rec.excerptId) return fail("", rec.reason ?? 'the answer was not kept', false);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/federation.ts:132:62
+-     if (!rec.ok || !rec.excerptId) return fail('WRONG_ANSWER', rec.reason ?? 'the answer was not kept', false);
++     if (!rec.ok || !rec.excerptId) return fail('WRONG_ANSWER', rec.reason && 'the answer was not kept', false);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:132:76
+-     if (!rec.ok || !rec.excerptId) return fail('WRONG_ANSWER', rec.reason ?? 'the answer was not kept', false);
++     if (!rec.ok || !rec.excerptId) return fail('WRONG_ANSWER', rec.reason ?? "", false);
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/transfers/federation.ts:132:103
+-     if (!rec.ok || !rec.excerptId) return fail('WRONG_ANSWER', rec.reason ?? 'the answer was not kept', false);
++     if (!rec.ok || !rec.excerptId) return fail('WRONG_ANSWER', rec.reason ?? 'the answer was not kept', true);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/federation.ts:138:142
+-   export const otherEnd = (n: Pick<GenealogyNodeView, 'subKind' | 'code' | 'name'>): string => (n.subKind === 'OUTBOUND' ? n.name : n.code) ?? '';
++   export const otherEnd = (n: Pick<GenealogyNodeView, 'subKind' | 'code' | 'name'>): string => (n.subKind === 'OUTBOUND' ? n.name : n.code) ?? "Stryker was here!";
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/federation.ts:157:40
+-       const nodes = (a.excerpt?.nodes ?? []).map(nodeView);
++       const nodes = (a.excerpt?.nodes ?? ["Stryker was here"]).map(nodeView);
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/transfers/federation.ts:161:53
+-         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => x.id === n.id)) continue;
++         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.every(x => x.id === n.id)) continue;
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/transfers/federation.ts:161:68
+-         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => x.id === n.id)) continue;
++         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some(() => undefined)) continue;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/transfers/federation.ts:161:75
+-         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => x.id === n.id)) continue;
++         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => true)) continue;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/transfers/federation.ts:161:75
+-         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => x.id === n.id)) continue;
++         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => false)) continue;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/transfers/federation.ts:161:75
+-         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => x.id === n.id)) continue;
++         if (n.kind !== 'TRANSFER' || n.id === t.id || transfers.some((x) => x.id !== n.id)) continue;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/federation.ts:162:24
+-         beyond.set(n.id, { transferId: n.id, packageNo: n.label, peer: otherEnd(n) });
++         beyond.set(n.id, {});
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/federation.ts:173:34
+-         edges: (a.excerpt?.rows ?? []).map(edgeView),
++         edges: (a.excerpt?.rows ?? ["Stryker was here"]).map(edgeView),
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/federation.ts:27:7
+-     if (!keys.has(app)) keys.set(app, loadInstallationKey(app.config.installationKeyFile));
++     if (true) keys.set(app, loadInstallationKey(app.config.installationKeyFile));
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/index.ts:38:16
+-     refusal(503, {
+-       code: 'EBMR-FED-020',
+-       kind: 'NOT_ENABLED',
+-       whatHappened: 'This server holds no installation key, so it seals nothing.',
+-       why: 'EBMR_INSTALLATION_KEY_FILE is not configured, or names another installation or key than the database holds.',
+-       whatYouCanDo: ['Configure the installation key of this installation (DEMO-ONLY file; a KMS or HSM in production).'],
+-       whoCanHelp: ['The system administrator'],
+-       controls: ['DI-31'],
+-     });
++     refusal(503, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:39:11
+-       code: 'EBMR-FED-020',
++       code: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:40:11
+-       kind: 'NOT_ENABLED',
++       kind: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:41:19
+-       whatHappened: 'This server holds no installation key, so it seals nothing.',
++       whatHappened: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:42:10
+-       why: 'EBMR_INSTALLATION_KEY_FILE is not configured, or names another installation or key than the database holds.',
++       why: "",
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:43:19
+-       whatYouCanDo: ['Configure the installation key of this installation (DEMO-ONLY file; a KMS or HSM in production).'],
++       whatYouCanDo: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:43:20
+-       whatYouCanDo: ['Configure the installation key of this installation (DEMO-ONLY file; a KMS or HSM in production).'],
++       whatYouCanDo: [""],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:44:17
+-       whoCanHelp: ['The system administrator'],
++       whoCanHelp: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:44:18
+-       whoCanHelp: ['The system administrator'],
++       whoCanHelp: [""],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:45:15
+-       controls: ['DI-31'],
++       controls: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:45:16
+-       controls: ['DI-31'],
++       controls: [""],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:55:33
+-     const e = (parsed.services ?? []).find((x) => x.terminal === FEDERATION_TERMINAL);
++     const e = (parsed.services ?? ["Stryker was here"]).find((x) => x.terminal === FEDERATION_TERMINAL);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/index.ts:61:16
+-     refusal(503, {
+-       code: 'EBMR-FED-022',
+-       kind: 'NOT_ENABLED',
+-       whatHappened: 'This server has no federation identity, so it answers no other installation.',
+-       why: `EBMR_SERVICE_KEYS_FILE names no ${FEDERATION_TERMINAL} service (an INTEGRATION account in role FEDERATION_INTERFACE).`,
+-       whatYouCanDo: ['Configure the federation endpoint\'s service identity.'],
+-       whoCanHelp: ['The system administrator'],
+-       controls: ['DI-14', 'DI-31'],
+-     });
++     refusal(503, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:62:11
+-       code: 'EBMR-FED-022',
++       code: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:63:11
+-       kind: 'NOT_ENABLED',
++       kind: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:64:19
+-       whatHappened: 'This server has no federation identity, so it answers no other installation.',
++       whatHappened: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:65:10
+-       why: `EBMR_SERVICE_KEYS_FILE names no ${FEDERATION_TERMINAL} service (an INTEGRATION account in role FEDERATION_INTERFACE).`,
++       why: ``,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:66:19
+-       whatYouCanDo: ['Configure the federation endpoint\'s service identity.'],
++       whatYouCanDo: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:66:20
+-       whatYouCanDo: ['Configure the federation endpoint\'s service identity.'],
++       whatYouCanDo: [""],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:67:17
+-       whoCanHelp: ['The system administrator'],
++       whoCanHelp: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:67:18
+-       whoCanHelp: ['The system administrator'],
++       whoCanHelp: [""],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:68:15
+-       controls: ['DI-14', 'DI-31'],
++       controls: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:68:16
+-       controls: ['DI-14', 'DI-31'],
++       controls: ["", 'DI-31'],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:68:25
+-       controls: ['DI-14', 'DI-31'],
++       controls: ['DI-14', ""],
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/index.ts:85:74
+-       proposePeer: async ({ body, actor, idempotencyKey, requestHash }) => {
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
+-           (await c.query<{ id: string }>('select platform.propose_peer_installation($1::jsonb)::text as id', [JSON.stringify(body)])).rows[0]!.id);
+-         return (await peers(app, pool, id))[0]!;
+-       },
++       proposePeer: async ({ body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/index.ts:86:78
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, async (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:86:96
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/transfers/index.ts:86:113
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
+-           (await c.query<{ id: string }>('select platform.propose_peer_installation($1::jsonb)::text as id', [JSON.stringify(body)])).rows[0]!.id);
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:87:40
+-           (await c.query<{ id: string }>('select platform.propose_peer_installation($1::jsonb)::text as id', [JSON.stringify(body)])).rows[0]!.id);
++           (await c.query<{ id: string }>("", [JSON.stringify(body)])).rows[0]!.id);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:87:108
+-           (await c.query<{ id: string }>('select platform.propose_peer_installation($1::jsonb)::text as id', [JSON.stringify(body)])).rows[0]!.id);
++           (await c.query<{ id: string }>('select platform.propose_peer_installation($1::jsonb)::text as id', [])).rows[0]!.id);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:97:96
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/index.ts:108:45
+-       receipts: async ({ requireSession }) => {
+-         requireSession();
+-         return { receipts: await receipts(app, pool) };
+-       },
++       receipts: async ({ requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/transfers/index.ts:109:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/index.ts:110:14
+-         return { receipts: await receipts(app, pool) };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:117:92
+-         const { result } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
++         const { result } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) =>
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/index.ts:127:87
+-       acknowledgeAlarm: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           await c.query('select platform.acknowledge_installation_alarm($1, $2)', [params.alarmId, body.note]);
+-           return params.alarmId;
+-         });
+-         return (await alarms(app, pool, params.alarmId))[0]!;
+-       },
++       acknowledgeAlarm: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/index.ts:128:55
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:128:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/index.ts:128:103
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           await c.query('select platform.acknowledge_installation_alarm($1, $2)', [params.alarmId, body.note]);
+-           return params.alarmId;
+-         });
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:129:23
+-           await c.query('select platform.acknowledge_installation_alarm($1, $2)', [params.alarmId, body.note]);
++           await c.query("", [params.alarmId, body.note]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:129:81
+-           await c.query('select platform.acknowledge_installation_alarm($1, $2)', [params.alarmId, body.note]);
++           await c.query('select platform.acknowledge_installation_alarm($1, $2)', []);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:152:67
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? "";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:153:126
+-           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
++           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? "", whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/index.ts:77:9
+-       if (!key || !me?.serverHoldsKey) throw noKey();
++       if (false) throw noKey();
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/index.ts:77:9
+-       if (!key || !me?.serverHoldsKey) throw noKey();
++       if (!key && !me?.serverHoldsKey) throw noKey();
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/transfers/index.ts:77:18
+-       if (!key || !me?.serverHoldsKey) throw noKey();
++       if (!key || !me.serverHoldsKey) throw noKey();
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/transfers/index.ts:82:7
+-         requireSession();
++         ;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/transfers/index.ts:91:7
+-         requireSession();
++         ;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/transfers/index.ts:105:7
+-         requireSession();
++         ;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/index.ts:152:22
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] && 'EBMR-FED-002';
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/transfers/index.ts:152:22
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)[0] ?? 'EBMR-FED-002';
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/transfers/index.ts:152:22
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] Regex
+apps/tablets-server/src/features/transfers/index.ts:152:38
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason?.match(/EBMR-[A-Z]-\d{3}/)?.[0] ?? 'EBMR-FED-002';
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] Regex
+apps/tablets-server/src/features/transfers/index.ts:152:38
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason?.match(/EBMR-[^A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] Regex
+apps/tablets-server/src/features/transfers/index.ts:152:38
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason?.match(/EBMR-[A-Z]+-\d/)?.[0] ?? 'EBMR-FED-002';
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] Regex
+apps/tablets-server/src/features/transfers/index.ts:152:38
+-           const code = r.reason?.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? 'EBMR-FED-002';
++           const code = r.reason?.match(/EBMR-[A-Z]+-\D{3}/)?.[0] ?? 'EBMR-FED-002';
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/index.ts:153:114
+-           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
++           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason && 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:153:151
+-           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
++           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: [], controls: ['DI-31'] });
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:153:152
+-           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
++           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: [""], controls: ['DI-31'] });
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/transfers/index.ts:153:211
+-           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
++           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: [] });
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/index.ts:153:212
+-           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: ['DI-31'] });
++           throw refusal(403, { code, kind: 'NOT_ALLOWED', whatHappened: 'The genealogy request was refused.', why: r.reason ?? 'refused', whatYouCanDo: ['Check the request and the installation keys.'], controls: [""] });
+Tests ran:
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)
+    federated genealogy over HTTP (PR-57, IN-29) > [DI-31] the site-to-site endpoint refuses a request not sealed by a trusted installation
+
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:31:27
+-     if (!x) throw new Error('the installation key is not an Ed25519 key');
++     if (!x) throw new Error("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:36:67
+-     if (privateKey.asymmetricKeyType !== 'ed25519') throw new Error('the installation key is not an Ed25519 key');
++     if (privateKey.asymmetricKeyType !== 'ed25519') throw new Error("");
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:26:81
+-     return Buffer.from(`ebmr.${purpose}.v1|${createHash('sha256').update(payload, 'utf8').digest('hex')}`, 'utf8');
++     return Buffer.from(`ebmr.${purpose}.v1|${createHash('sha256').update(payload, "").digest('hex')}`, 'utf8');
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:26:106
+-     return Buffer.from(`ebmr.${purpose}.v1|${createHash('sha256').update(payload, 'utf8').digest('hex')}`, 'utf8');
++     return Buffer.from(`ebmr.${purpose}.v1|${createHash('sha256').update(payload, 'utf8').digest('hex')}`, "");
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/keys.ts:36:7
+-     if (privateKey.asymmetricKeyType !== 'ed25519') throw new Error('the installation key is not an Ed25519 key');
++     if (false) throw new Error('the installation key is not an Ed25519 key');
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/keys.ts:46:7
+-     if (!file) return null;
++     if (false) return null;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:47:57
+-     const k = KeyFile.parse(JSON.parse(readFileSync(file, 'utf8')));
++     const k = KeyFile.parse(JSON.parse(readFileSync(file, "")));
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/transfers/keys.ts:29:56
+-   export function rawPublicKeyOf(key: KeyObject): string {
+-     const x = createPublicKey(key).export({ format: 'jwk' }).x;
+-     if (!x) throw new Error('the installation key is not an Ed25519 key');
+-     return Buffer.from(x, 'base64url').toString('base64');
+-   }
++   export function rawPublicKeyOf(key: KeyObject): string {}
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/transfers/keys.ts:30:41
+-     const x = createPublicKey(key).export({ format: 'jwk' }).x;
++     const x = createPublicKey(key).export({}).x;
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:30:51
+-     const x = createPublicKey(key).export({ format: 'jwk' }).x;
++     const x = createPublicKey(key).export({ format: "" }).x;
+Ran all tests for this mutant.
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/transfers/keys.ts:31:7
+-     if (!x) throw new Error('the installation key is not an Ed25519 key');
++     if (x) throw new Error('the installation key is not an Ed25519 key');
+Ran all tests for this mutant.
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/keys.ts:31:7
+-     if (!x) throw new Error('the installation key is not an Ed25519 key');
++     if (true) throw new Error('the installation key is not an Ed25519 key');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:32:25
+-     return Buffer.from(x, 'base64url').toString('base64');
++     return Buffer.from(x, "").toString('base64');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/keys.ts:32:47
+-     return Buffer.from(x, 'base64url').toString('base64');
++     return Buffer.from(x, 'base64url').toString("");
+Ran all tests for this mutant.
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/keys.ts:31:7
+-     if (!x) throw new Error('the installation key is not an Ed25519 key');
++     if (false) throw new Error('the installation key is not an Ed25519 key');
+Ran all tests for this mutant.
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/reads.ts:25:16
+-     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
++     refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:25:30
+-     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
++     refusal(404, { code, kind: "", whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:25:61
+-     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
++     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: ``, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/reads.ts:25:104
+-     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
++     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [], controls: ['DI-31'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:25:105
+-     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
++     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [``], controls: ['DI-31'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/reads.ts:25:151
+-     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
++     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:25:152
+-     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: ['DI-31'] });
++     refusal(404, { code, kind: 'INVALID_INPUT', whatHappened: `There is no such ${what}.`, whatYouCanDo: [`Open the ${what} from its list.`], controls: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:126:26
+-     if (!r) throw notFound('EBMR-XFR-017', 'sealed transfer package');
++     if (!r) throw notFound("", 'sealed transfer package');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:126:42
+-     if (!r) throw notFound('EBMR-XFR-017', 'sealed transfer package');
++     if (!r) throw notFound('EBMR-XFR-017', "");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/transfers/reads.ts:187:96
+-   export async function receipts(app: AppContext, db: Db): Promise<TransferReceiptSummaryView[]> {
+-     const { rows } = await db.query<ReceiptRow>(`${RECEIPTS} order by r.received_at desc, r.id limit 200`);
+-     return receiptSummaries(app, db, rows);
+-   }
++   export async function receipts(app: AppContext, db: Db): Promise<TransferReceiptSummaryView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:188:47
+-     const { rows } = await db.query<ReceiptRow>(`${RECEIPTS} order by r.received_at desc, r.id limit 200`);
++     const { rows } = await db.query<ReceiptRow>(``);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:202:26
+-     if (!r) throw notFound('EBMR-XFR-030', 'transfer receipt');
++     if (!r) throw notFound("", 'transfer receipt');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:202:42
+-     if (!r) throw notFound('EBMR-XFR-030', 'transfer receipt');
++     if (!r) throw notFound('EBMR-XFR-030', "");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/reads.ts:213:32
+-       originDecision: d?.event ? { event: d.event, route: d.route ?? null, decidedAt: d.decidedAtUs ? app.formatInstant(d.decidedAtUs) : null } : null,
++       originDecision: d?.event ? {} : null,
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:213:57
+-       originDecision: d?.event ? { event: d.event, route: d.route ?? null, decidedAt: d.decidedAtUs ? app.formatInstant(d.decidedAtUs) : null } : null,
++       originDecision: d?.event ? { event: d.event, route: d.route && null, decidedAt: d.decidedAtUs ? app.formatInstant(d.decidedAtUs) : null } : null,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/transfers/reads.ts:214:26
+-       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
++       coa: (carried.coa ?? ["Stryker was here"]).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/reads.ts:214:42
+-       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
++       coa: (carried.coa ?? []).map((c) => ({})),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:214:146
+-       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
++       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit && null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:214:180
+-       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
++       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit && null, verdict: c.verdict })),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/transfers/reads.ts:250:30
+-       acknowledgement: r.ack ? { by: personRef(people, r.ack.person, r.ack.role), at: app.formatInstant(r.ack.us), note: r.ack.note } : null,
++       acknowledgement: r.ack ? {} : null,
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/reads.ts:32:7
+-     if (!r) return null;
++     if (false) return null;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/reads.ts:33:137
+-     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key?.publicKey === r.pk && key.installationCode === r.code };
++     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: true };
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:33:137
+-     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key?.publicKey === r.pk && key.installationCode === r.code };
++     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key?.publicKey === r.pk || key.installationCode === r.code };
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/reads.ts:33:137
+-     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key?.publicKey === r.pk && key.installationCode === r.code };
++     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: true && key.installationCode === r.code };
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/transfers/reads.ts:33:137
+-     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key?.publicKey === r.pk && key.installationCode === r.code };
++     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key.publicKey === r.pk && key.installationCode === r.code };
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/reads.ts:33:164
+-     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key?.publicKey === r.pk && key.installationCode === r.code };
++     return { installationCode: r.code, siteCode: r.site, edition: r.edition, keyFingerprint: r.fp, keyVersion: r.version, serverHoldsKey: key?.publicKey === r.pk && true };
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+    federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again
+  and 2 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:56:59
+-         order by p.installation_code, p.proposed_at desc`, [id ?? null]);
++         order by p.installation_code, p.proposed_at desc`, [id && null]);
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/transfers/reads.ts:57:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.proposed_by_person, r.approved_by_person]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/transfers/reads.ts:57:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.proposed_by_person, r.approved_by_person]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:66:57
+-       proposedBy: personRef(people, r.proposed_by_person, 'SYSTEM_ADMINISTRATOR'),
++       proposedBy: personRef(people, r.proposed_by_person, ""),
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:68:80
+-       approvedBy: r.approved_by_person ? personRef(people, r.approved_by_person, 'QA') : null,
++       approvedBy: r.approved_by_person ? personRef(people, r.approved_by_person, "") : null,
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:100:54
+-         order by p.prepared_at desc, p.id limit 200`, [id ?? null]);
++         order by p.prepared_at desc, p.id limit 200`, [id && null]);
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/transfers/reads.ts:101:46
+-     const people = await peopleOf(db, rows.map((r) => r.prepared_by_person));
++     const people = await peopleOf(db, rows.map(() => undefined));
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:117:57
+-       preparedBy: personRef(people, r.prepared_by_person, 'WAREHOUSE_LABELLING'),
++       preparedBy: personRef(people, r.prepared_by_person, ""),
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/reads.ts:126:7
+-     if (!r) throw notFound('EBMR-XFR-017', 'sealed transfer package');
++     if (false) throw notFound('EBMR-XFR-017', 'sealed transfer package');
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] Regex
+apps/tablets-server/src/features/transfers/reads.ts:127:92
+-     return { packageId: r.id, packageNo: r.package_no, fileName: `XFR-${r.package_no.replace(/[^A-Z0-9-]/g, '-')}.json`, payload: r.payload, seal: r.seal };
++     return { packageId: r.id, packageNo: r.package_no, fileName: `XFR-${r.package_no.replace(/[A-Z0-9-]/g, '-')}.json`, payload: r.payload, seal: r.seal };
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:127:107
+-     return { packageId: r.id, packageNo: r.package_no, fileName: `XFR-${r.package_no.replace(/[^A-Z0-9-]/g, '-')}.json`, payload: r.payload, seal: r.seal };
++     return { packageId: r.id, packageNo: r.package_no, fileName: `XFR-${r.package_no.replace(/[^A-Z0-9-]/g, "")}.json`, payload: r.payload, seal: r.seal };
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/transfers/reads.ts:161:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.received_by_person, r.decision?.person]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/transfers/reads.ts:161:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.received_by_person, r.decision?.person]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:179:57
+-       receivedBy: personRef(people, r.received_by_person, 'WAREHOUSE_LABELLING'),
++       receivedBy: personRef(people, r.received_by_person, ""),
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/transfers/reads.ts:202:7
+-     if (!r) throw notFound('EBMR-XFR-030', 'transfer receipt');
++     if (false) throw notFound('EBMR-XFR-030', 'transfer receipt');
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/transfers/reads.ts:206:5
+-       `select key, method, carried_value::text as carried, local_value::text as local, resolved_value::text as resolved, winner
+-          from site.transfer_rule_resolution where receipt_id = $1 order by key collate "C"`, [id])).rows;
++       ``, [id])).rows;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:208:13
+-     const d = carried.status?.decision ?? null;
++     const d = carried.status?.decision && null;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/transfers/reads.ts:208:13
+-     const d = carried.status?.decision ?? null;
++     const d = carried.status.decision ?? null;
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/transfers/reads.ts:214:11
+-       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
++       coa: (carried.coa && []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/transfers/reads.ts:214:34
+-       coa: (carried.coa ?? []).map((c) => ({ testCode: c.testCode, methodReference: c.methodReference, result: c.result, unit: c.unit, lowerLimit: c.lowerLimit ?? null, upperLimit: c.upperLimit ?? null, verdict: c.verdict })),
++       coa: (carried.coa ?? []).map(() => undefined),
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/transfers/reads.ts:217:20
+-       genealogyAsOf: carried.genealogy?.asOfUs ? app.formatInstant(carried.genealogy.asOfUs) : null,
++       genealogyAsOf: carried.genealogy.asOfUs ? app.formatInstant(carried.genealogy.asOfUs) : null,
+Tests ran:
+    lot-transfer packages over HTTP (L-41) > [DI-31] PUNE seals a package with its installation key; GOA refuses a tampered copy with an alarm and takes the genuine one into QUARANTINE
+    lot-transfer packages over HTTP (L-41) > [DI-39] GOA's QA accepts the received lot through the ceremony; the stores cannot
+    federated genealogy over HTTP (PR-57, IN-29) > [PR-57] the explorer's forward trace crosses the transfer: GOA answers, sealed, as of the instant asked
+
+
+Ran 0.73 tests per mutant on average.
+---------------|------------------|----------|-----------|------------|----------|----------|
+               | % Mutation score |          |           |            |          |          |
+File           |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+---------------|--------|---------|----------|-----------|------------|----------|----------|
+All files      |  61.93 |   82.75 |      283 |         0 |         59 |      115 |        0 |
+ federation.ts |  71.35 |   99.22 |      127 |         0 |          1 |       50 |        0 |
+ guidance.ts   |    n/a |     n/a |        0 |         0 |          0 |        0 |        0 |
+ index.ts      |  54.81 |   80.43 |       74 |         0 |         18 |       43 |        0 |
+ keys.ts       |  54.55 |   58.06 |       18 |         0 |         13 |        2 |        0 |
+ reads.ts      |  53.92 |   67.07 |       55 |         0 |         27 |       20 |        0 |
+ signables.ts  | 100.00 |  100.00 |        9 |         0 |          0 |        0 |        0 |
+---------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m01:42:35 (532112) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-transfers.json
+[32m01:42:35 (532112) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-transfers.html
+[32m01:42:35 (532112) INFO MutationTestExecutor[39m Done in 14 minutes and 58 seconds.

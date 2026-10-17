@@ -1,0 +1,3 @@
+[32m01:54:48 (627304) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-genealogy.incremental.json, a full mutation testing run will be performed.
+[32m01:54:49 (627304) INFO ProjectReader[39m Found 4 of 150027 file(s) to be mutated.
+[32m01:54:49 (627304) INFO Instrumenter[39m Instrumented 4 source file(s) with 479 mutant(s)

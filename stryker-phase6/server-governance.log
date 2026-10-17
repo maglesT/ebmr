@@ -1,0 +1,2074 @@
+[32m01:42:44 (587233) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-governance.incremental.json, a full mutation testing run will be performed.
+[32m01:42:44 (587233) INFO ProjectReader[39m Found 2 of 37485 file(s) to be mutated.
+[32m01:42:44 (587233) INFO Instrumenter[39m Instrumented 2 source file(s) with 445 mutant(s)
+[32m01:43:54 (587233) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m01:44:02 (587233) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m01:44:03 (587233) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m01:44:22 (587233) INFO DryRunExecutor[39m Initial test run succeeded. Ran 3 tests in 18 seconds (net 1698.3991700000006 ms, overhead 17132.60083 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~17m) 229/422 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~14m) 232/422 tested (2 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~14m) 234/422 tested (2 survived, 0 timed out)
+Mutation testing 5% (elapsed: <1m, remaining: ~12m) 238/422 tested (2 survived, 0 timed out)
+Mutation testing 6% (elapsed: <1m, remaining: ~11m) 242/422 tested (3 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~1m, remaining: ~9m) 247/422 tested (4 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~1m, remaining: ~8m) 252/422 tested (6 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~1m, remaining: ~8m) 255/422 tested (7 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~1m, remaining: ~8m) 259/422 tested (8 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~1m, remaining: ~8m) 262/422 tested (8 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~1m, remaining: ~8m) 266/422 tested (8 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~2m, remaining: ~8m) 269/422 tested (10 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~2m, remaining: ~8m) 272/422 tested (11 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~2m, remaining: ~7m) 276/422 tested (12 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~2m, remaining: ~7m) 279/422 tested (14 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~2m, remaining: ~7m) 283/422 tested (15 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~2m, remaining: ~7m) 287/422 tested (15 survived, 0 timed out)
+Mutation testing 31% (elapsed: ~3m, remaining: ~6m) 292/422 tested (15 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~3m, remaining: ~6m) 296/422 tested (17 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~3m, remaining: ~6m) 298/422 tested (18 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~3m, remaining: ~5m) 303/422 tested (21 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~3m, remaining: ~5m) 308/422 tested (24 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~3m, remaining: ~5m) 312/422 tested (27 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~4m, remaining: ~4m) 316/422 tested (28 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~4m, remaining: ~4m) 320/422 tested (29 survived, 0 timed out)
+Mutation testing 46% (elapsed: ~4m, remaining: ~5m) 323/422 tested (31 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~4m, remaining: ~4m) 326/422 tested (32 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~4m, remaining: ~4m) 329/422 tested (32 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~4m, remaining: ~4m) 332/422 tested (34 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~5m, remaining: ~4m) 336/422 tested (34 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~5m, remaining: ~3m) 340/422 tested (35 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~5m, remaining: ~3m) 343/422 tested (37 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~5m, remaining: ~3m) 346/422 tested (40 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~5m, remaining: ~3m) 349/422 tested (41 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~5m, remaining: ~3m) 353/422 tested (42 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~6m, remaining: ~2m) 355/422 tested (44 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~6m, remaining: ~2m) 358/422 tested (47 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~6m, remaining: ~2m) 362/422 tested (50 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~6m, remaining: ~2m) 364/422 tested (52 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~6m, remaining: ~2m) 367/422 tested (55 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~6m, remaining: ~2m) 370/422 tested (57 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~7m, remaining: ~1m) 372/422 tested (58 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~7m, remaining: ~1m) 376/422 tested (61 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~7m, remaining: ~1m) 378/422 tested (61 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~7m, remaining: ~1m) 381/422 tested (61 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~7m, remaining: ~1m) 384/422 tested (62 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~7m, remaining: ~1m) 386/422 tested (64 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~8m, remaining: <1m) 391/422 tested (66 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~8m, remaining: <1m) 395/422 tested (68 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~8m, remaining: <1m) 399/422 tested (68 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~8m, remaining: <1m) 403/422 tested (69 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~8m, remaining: <1m) 405/422 tested (69 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~8m, remaining: <1m) 409/422 tested (70 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~9m, remaining: <1m) 411/422 tested (70 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~9m, remaining: <1m) 415/422 tested (71 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~9m, remaining: <1m) 419/422 tested (74 survived, 0 timed out)
+
+All tests/governance-routes.test.ts
+  ✓ vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it (killed 68)
+  ✓ the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid (killed 44)
+  ✓ the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session (killed 7)
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/esig/dsc.ts:20:27
+-     const r = rows[0]?.r ?? { mode: 'OFF' as const, anchors: [], meanings: [] };
++     const r = rows[0]?.r ?? {};
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/esig/dsc.ts:20:60
+-     const r = rows[0]?.r ?? { mode: 'OFF' as const, anchors: [], meanings: [] };
++     const r = rows[0]?.r ?? { mode: 'OFF' as const, anchors: ["Stryker was here"], meanings: [] };
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/esig/dsc.ts:20:74
+-     const r = rows[0]?.r ?? { mode: 'OFF' as const, anchors: [], meanings: [] };
++     const r = rows[0]?.r ?? { mode: 'OFF' as const, anchors: [], meanings: ["Stryker was here"] };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:48:67
+-       if (!cert.ca || !cert.verify(cert.publicKey)) throw new Error('not a self-signed CA certificate');
++       if (!cert.ca || !cert.verify(cert.publicKey)) throw new Error("");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/esig/dsc.ts:50:19
+-     } catch (error) {
+-       throw refusal(422, {
+-         code: 'EBMR-ESIG-080',
+-         kind: 'INVALID_INPUT',
+-         whatHappened: 'The trust anchor was not registered.',
+-         why: `The root certificate is not a self-signed certification-authority certificate (${error instanceof Error ? error.message : String(error)}).`,
+-         controls: ['IN-10'],
+-         whatYouCanDo: ['Upload the root certificate of the certifying authority, base64 DER.'],
+-       });
+-     }
++     } catch (error) {}
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/esig/dsc.ts:51:24
+-       throw refusal(422, {
+-         code: 'EBMR-ESIG-080',
+-         kind: 'INVALID_INPUT',
+-         whatHappened: 'The trust anchor was not registered.',
+-         why: `The root certificate is not a self-signed certification-authority certificate (${error instanceof Error ? error.message : String(error)}).`,
+-         controls: ['IN-10'],
+-         whatYouCanDo: ['Upload the root certificate of the certifying authority, base64 DER.'],
+-       });
++       throw refusal(422, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:52:13
+-         code: 'EBMR-ESIG-080',
++         code: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:53:13
+-         kind: 'INVALID_INPUT',
++         kind: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:54:21
+-         whatHappened: 'The trust anchor was not registered.',
++         whatHappened: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:55:12
+-         why: `The root certificate is not a self-signed certification-authority certificate (${error instanceof Error ? error.message : String(error)}).`,
++         why: ``,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/esig/dsc.ts:56:17
+-         controls: ['IN-10'],
++         controls: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:56:18
+-         controls: ['IN-10'],
++         controls: [""],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/esig/dsc.ts:57:21
+-         whatYouCanDo: ['Upload the root certificate of the certifying authority, base64 DER.'],
++         whatYouCanDo: [],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:57:22
+-         whatYouCanDo: ['Upload the root certificate of the certifying authority, base64 DER.'],
++         whatYouCanDo: [""],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/esig/dsc.ts:96:31
+-       enrolments: rows[0]?.l ?? [],
++       enrolments: rows[0]?.l ?? ["Stryker was here"],
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/esig/dsc.ts:20:13
+-     const r = rows[0]?.r ?? { mode: 'OFF' as const, anchors: [], meanings: [] };
++     const r = rows[0].r ?? { mode: 'OFF' as const, anchors: [], meanings: [] };
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/esig/dsc.ts:21:34
+-     return { mode: r.mode, banner: r.mode === 'TEST_CA' ? esig.TEST_CA_BANNER : null, anchors: r.anchors, meanings: r.meanings };
++     return { mode: r.mode, banner: true ? esig.TEST_CA_BANNER : null, anchors: r.anchors, meanings: r.meanings };
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:37:67
+-     await withIdempotentActorCommand(pool, underChange(actor, body, 'DSC_CONFIGURATION'), key, hash, async (c) => {
++     await withIdempotentActorCommand(pool, underChange(actor, body, ""), key, hash, async (c) => {
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/esig/dsc.ts:48:9
+-       if (!cert.ca || !cert.verify(cert.publicKey)) throw new Error('not a self-signed CA certificate');
++       if (false) throw new Error('not a self-signed CA certificate');
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/esig/dsc.ts:48:9
+-       if (!cert.ca || !cert.verify(cert.publicKey)) throw new Error('not a self-signed CA certificate');
++       if (!cert.ca && !cert.verify(cert.publicKey)) throw new Error('not a self-signed CA certificate');
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:49:40
+-       return cert.subject.replace(/\n/g, ', ');
++       return cert.subject.replace(/\n/g, "");
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:71:67
+-     await withIdempotentActorCommand(pool, underChange(actor, body, 'DSC_CONFIGURATION'), key, hash, async (c) => {
++     await withIdempotentActorCommand(pool, underChange(actor, body, ""), key, hash, async (c) => {
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:79:67
+-     await withIdempotentActorCommand(pool, underChange(actor, body, 'DSC_CONFIGURATION'), key, hash, async (c) => {
++     await withIdempotentActorCommand(pool, underChange(actor, body, ""), key, hash, async (c) => {
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/esig/dsc.ts:94:16
+-       statement: mode === 'OFF' ? null : await esig.dscEnrolmentStatement(db, personId, accountId),
++       statement: false ? null : await esig.dscEnrolmentStatement(db, personId, accountId),
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:94:25
+-       statement: mode === 'OFF' ? null : await esig.dscEnrolmentStatement(db, personId, accountId),
++       statement: mode === "" ? null : await esig.dscEnrolmentStatement(db, personId, accountId),
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/esig/dsc.ts:95:13
+-       banner: mode === 'TEST_CA' ? esig.TEST_CA_BANNER : null,
++       banner: true ? esig.TEST_CA_BANNER : null,
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/esig/dsc.ts:96:17
+-       enrolments: rows[0]?.l ?? [],
++       enrolments: rows[0].l ?? [],
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:102:66
+-     await withIdempotentActorCommand(pool, { ...actor, reasonCode: 'DSC_ENROLMENT', reasonText: 'enrol the certificate of my own token' }, key, hash, async (c) => {
++     await withIdempotentActorCommand(pool, { ...actor, reasonCode: "", reasonText: 'enrol the certificate of my own token' }, key, hash, async (c) => {
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:102:95
+-     await withIdempotentActorCommand(pool, { ...actor, reasonCode: 'DSC_ENROLMENT', reasonText: 'enrol the certificate of my own token' }, key, hash, async (c) => {
++     await withIdempotentActorCommand(pool, { ...actor, reasonCode: 'DSC_ENROLMENT', reasonText: "" }, key, hash, async (c) => {
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/esig/dsc.ts:111:66
+-     await withIdempotentActorCommand(pool, { ...actor, reasonCode: 'DSC_ENROLMENT_END', reasonText: body.reason }, key, hash, async (c) => {
++     await withIdempotentActorCommand(pool, { ...actor, reasonCode: "", reasonText: body.reason }, key, hash, async (c) => {
+Tests ran:
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:31:16
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:31:24
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: "", kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:31:52
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: "", whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:31:75
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: ``, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:31:110
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: ``, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:31:144
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:31:145
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:115:60
+-           (ctx as Partial<EsigSignableContext>).tokenHash ?? '',
++           (ctx as Partial<EsigSignableContext>).tokenHash ?? "Stryker was here!",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:130:89
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : ``}`,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:137:52
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? "", contentHash: c.contentHash ?? '', changed: false };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:137:87
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? "Stryker was here!", changed: false };
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:141:61
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
+-         }
++         if (!c.exists || !c.contentHash || !c.contentVersion) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:142:36
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
++           return refusedOutcome(404, "", 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:142:58
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', "", `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:142:114
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', ``, ['DI-08'], ['Reload the list.']);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:142:160
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, [], ['Reload the list.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:142:161
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, [""], ['Reload the list.']);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:142:171
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], []);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:142:172
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], ['Reload the list.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The support grant was not found. Nothing was signed.', `support_grant ${a.grantId} does not exist.`, ['DI-08'], [""]);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:172:128
+-   async function accessViews(app: AppContext, pool: pg.Pool, who: ActorContext, id?: string): Promise<ContractGiverAccessView[]> {
+-     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
+-     const mine = id ? list.filter((a) => a.accessId === id) : list;
+-     const us = await pool.query<{ i: string; f: string; t: string }>(
+-       `select x ->> 'accessId' as i, ${usOf("(x ->> 'validFrom')::timestamptz")} as f, ${usOf("(x ->> 'validTo')::timestamptz")} as t from jsonb_array_elements($1::jsonb) x`,
+-       [JSON.stringify(mine)],
+-     );
+-     const byId = new Map(us.rows.map((r) => [r.i, r]));
+-     const people = await peopleOf(pool, mine.flatMap((a) => [a.personId, a.grantedBy]));
+-     return mine.map((a) => ({
+-       accessId: a.accessId,
+-       loanLicenceId: a.loanLicenceId,
+-       loanLicenceNumber: a.loanLicenceNumber,
+-       holderName: a.holderName,
+-       accountId: a.accountId,
+-       loginName: a.loginName,
+-       reviewer: personRef(people, a.personId, 'CONTRACT_GIVER_REVIEWER'),
+-       validFrom: app.formatInstant(byId.get(a.accessId)?.f ?? '0'),
+-       validTo: app.formatInstant(byId.get(a.accessId)?.t ?? '0'),
+-       reason: a.reason,
+-       grantedBy: personRef(people, a.grantedBy, 'QA_REVIEWER'),
+-       live: a.live,
+-       reads: Number(a.reads),
+-     }));
+-   }
++   async function accessViews(app: AppContext, pool: pg.Pool, who: ActorContext, id?: string): Promise<ContractGiverAccessView[]> {}
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:173:50
+-     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
++     const list = await withActorCommand(pool, who, () => undefined);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:173:63
+-     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
++     const list = await withActorCommand(pool, who, async (c) => (await c.query<{
++     r: AccessRow[];
++   }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r && []);
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:173:63
+-     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
++     const list = await withActorCommand(pool, who, async (c) => (await c.query<{
++     r: AccessRow[];
++   }>('select recipe.contract_giver_accesses() as r')).rows[0].r ?? []);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:173:98
+-     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
++     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>("")).rows[0]?.r ?? []);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:173:161
+-     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? []);
++     const list = await withActorCommand(pool, who, async (c) => (await c.query<{ r: AccessRow[] }>('select recipe.contract_giver_accesses() as r')).rows[0]?.r ?? ["Stryker was here"]);
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/governance/index.ts:174:21
+-     const mine = id ? list.filter((a) => a.accessId === id) : list;
++     const mine = id ? list : list;
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:174:33
+-     const mine = id ? list.filter((a) => a.accessId === id) : list;
++     const mine = id ? list.filter(() => undefined) : list;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:174:40
+-     const mine = id ? list.filter((a) => a.accessId === id) : list;
++     const mine = id ? list.filter((a) => true) : list;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:174:40
+-     const mine = id ? list.filter((a) => a.accessId === id) : list;
++     const mine = id ? list.filter((a) => false) : list;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:174:40
+-     const mine = id ? list.filter((a) => a.accessId === id) : list;
++     const mine = id ? list.filter((a) => a.accessId !== id) : list;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:176:5
+-       `select x ->> 'accessId' as i, ${usOf("(x ->> 'validFrom')::timestamptz")} as f, ${usOf("(x ->> 'validTo')::timestamptz")} as t from jsonb_array_elements($1::jsonb) x`,
++       ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:176:43
+-       `select x ->> 'accessId' as i, ${usOf("(x ->> 'validFrom')::timestamptz")} as f, ${usOf("(x ->> 'validTo')::timestamptz")} as t from jsonb_array_elements($1::jsonb) x`,
++       `select x ->> 'accessId' as i, ${usOf("")} as f, ${usOf("(x ->> 'validTo')::timestamptz")} as t from jsonb_array_elements($1::jsonb) x`,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:176:93
+-       `select x ->> 'accessId' as i, ${usOf("(x ->> 'validFrom')::timestamptz")} as f, ${usOf("(x ->> 'validTo')::timestamptz")} as t from jsonb_array_elements($1::jsonb) x`,
++       `select x ->> 'accessId' as i, ${usOf("(x ->> 'validFrom')::timestamptz")} as f, ${usOf("")} as t from jsonb_array_elements($1::jsonb) x`,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:177:5
+-       [JSON.stringify(mine)],
++       [],
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:179:36
+-     const byId = new Map(us.rows.map((r) => [r.i, r]));
++     const byId = new Map(us.rows.map(() => undefined));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:179:43
+-     const byId = new Map(us.rows.map((r) => [r.i, r]));
++     const byId = new Map(us.rows.map((r) => []));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:180:52
+-     const people = await peopleOf(pool, mine.flatMap((a) => [a.personId, a.grantedBy]));
++     const people = await peopleOf(pool, mine.flatMap(() => undefined));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:180:59
+-     const people = await peopleOf(pool, mine.flatMap((a) => [a.personId, a.grantedBy]));
++     const people = await peopleOf(pool, mine.flatMap((a) => []));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:181:19
+-     return mine.map((a) => ({
+-       accessId: a.accessId,
+-       loanLicenceId: a.loanLicenceId,
+-       loanLicenceNumber: a.loanLicenceNumber,
+-       holderName: a.holderName,
+-       accountId: a.accountId,
+-       loginName: a.loginName,
+-       reviewer: personRef(people, a.personId, 'CONTRACT_GIVER_REVIEWER'),
+-       validFrom: app.formatInstant(byId.get(a.accessId)?.f ?? '0'),
+-       validTo: app.formatInstant(byId.get(a.accessId)?.t ?? '0'),
+-       reason: a.reason,
+-       grantedBy: personRef(people, a.grantedBy, 'QA_REVIEWER'),
+-       live: a.live,
+-       reads: Number(a.reads),
+-     }));
++     return mine.map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:181:27
+-     return mine.map((a) => ({
+-       accessId: a.accessId,
+-       loanLicenceId: a.loanLicenceId,
+-       loanLicenceNumber: a.loanLicenceNumber,
+-       holderName: a.holderName,
+-       accountId: a.accountId,
+-       loginName: a.loginName,
+-       reviewer: personRef(people, a.personId, 'CONTRACT_GIVER_REVIEWER'),
+-       validFrom: app.formatInstant(byId.get(a.accessId)?.f ?? '0'),
+-       validTo: app.formatInstant(byId.get(a.accessId)?.t ?? '0'),
+-       reason: a.reason,
+-       grantedBy: personRef(people, a.grantedBy, 'QA_REVIEWER'),
+-       live: a.live,
+-       reads: Number(a.reads),
+-     }));
++     return mine.map((a) => ({}));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:188:45
+-       reviewer: personRef(people, a.personId, 'CONTRACT_GIVER_REVIEWER'),
++       reviewer: personRef(people, a.personId, ""),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:189:34
+-       validFrom: app.formatInstant(byId.get(a.accessId)?.f ?? '0'),
++       validFrom: app.formatInstant(byId.get(a.accessId)?.f && '0'),
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:189:34
+-       validFrom: app.formatInstant(byId.get(a.accessId)?.f ?? '0'),
++       validFrom: app.formatInstant(byId.get(a.accessId).f ?? '0'),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:189:61
+-       validFrom: app.formatInstant(byId.get(a.accessId)?.f ?? '0'),
++       validFrom: app.formatInstant(byId.get(a.accessId)?.f ?? ""),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:190:32
+-       validTo: app.formatInstant(byId.get(a.accessId)?.t ?? '0'),
++       validTo: app.formatInstant(byId.get(a.accessId)?.t && '0'),
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:190:32
+-       validTo: app.formatInstant(byId.get(a.accessId)?.t ?? '0'),
++       validTo: app.formatInstant(byId.get(a.accessId).t ?? '0'),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:190:59
+-       validTo: app.formatInstant(byId.get(a.accessId)?.t ?? '0'),
++       validTo: app.formatInstant(byId.get(a.accessId)?.t ?? ""),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:192:47
+-       grantedBy: personRef(people, a.grantedBy, 'QA_REVIEWER'),
++       grantedBy: personRef(people, a.grantedBy, ""),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:202:19
+-     } catch (error) {
+-       throw commands.asKernelError(error);
+-     }
++     } catch (error) {}
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:221:34
+-     return new Map(rows.map((r) => [r.v, r.u]));
++     return new Map(rows.map((r) => []));
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:224:45
+-   const decimalText = (v: unknown): string => {
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
+-     if (!v || typeof v !== 'object') return '';
+-     const o = v as Record<string, unknown>;
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+-     return JSON.stringify(o);
+-   };
++   const decimalText = (v: unknown): string => {};
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:225:7
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (true) return String(v);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:225:7
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (false) return String(v);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:225:7
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if ((typeof v === 'string' || typeof v === 'number') && typeof v === 'boolean') return String(v);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:225:7
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (false || typeof v === 'boolean') return String(v);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:225:7
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === 'string' && typeof v === 'number' || typeof v === 'boolean') return String(v);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:225:7
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (false || typeof v === 'number' || typeof v === 'boolean') return String(v);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:225:7
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v !== 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:225:20
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === "" || typeof v === 'number' || typeof v === 'boolean') return String(v);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:225:32
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === 'string' || false || typeof v === 'boolean') return String(v);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:225:32
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === 'string' || typeof v !== 'number' || typeof v === 'boolean') return String(v);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:225:45
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === 'string' || typeof v === "" || typeof v === 'boolean') return String(v);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:225:57
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === 'string' || typeof v === 'number' || false) return String(v);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:225:57
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === 'string' || typeof v === 'number' || typeof v !== 'boolean') return String(v);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:225:70
+-     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
++     if (typeof v === 'string' || typeof v === 'number' || typeof v === "") return String(v);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:226:7
+-     if (!v || typeof v !== 'object') return '';
++     if (true) return '';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:226:7
+-     if (!v || typeof v !== 'object') return '';
++     if (false) return '';
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:226:7
+-     if (!v || typeof v !== 'object') return '';
++     if (!v && typeof v !== 'object') return '';
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/governance/index.ts:226:7
+-     if (!v || typeof v !== 'object') return '';
++     if (v || typeof v !== 'object') return '';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:226:13
+-     if (!v || typeof v !== 'object') return '';
++     if (!v || false) return '';
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:226:13
+-     if (!v || typeof v !== 'object') return '';
++     if (!v || typeof v === 'object') return '';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:226:26
+-     if (!v || typeof v !== 'object') return '';
++     if (!v || typeof v !== "") return '';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:226:43
+-     if (!v || typeof v !== 'object') return '';
++     if (!v || typeof v !== 'object') return "Stryker was here!";
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:228:7
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (true) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:228:7
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (false) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:23
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o[""])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/governance/index.ts:228:42
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map(x => typeof x === 'string' ? x : JSON.stringify(x)).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:42
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return ``.trim();
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:228:76
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map(() => undefined).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:228:84
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (true ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:228:84
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (false ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:228:84
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x !== 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:97
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === "" ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:137
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join("")} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:228:146
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${true ? o['unit'] : ''}`.trim();
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:228:146
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${false ? o['unit'] : ''}`.trim();
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:228:146
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] !== 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:155
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o[""] === 'string' ? o['unit'] : ''}`.trim();
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:167
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === "" ? o['unit'] : ''}`.trim();
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:180
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o[""] : ''}`.trim();
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:228:190
+-     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : ''}`.trim();
++     if (Array.isArray(o['values'])) return `${(o['values'] as unknown[]).map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(', ')} ${typeof o['unit'] === 'string' ? o['unit'] : "Stryker was here!"}`.trim();
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:229:7
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if (true) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:229:7
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if (false) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:7
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ("" in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:28
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return ``;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:229:31
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${true ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:229:31
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${false ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:229:31
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] !== 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:40
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o[""] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:53
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === "" ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:66
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o[""] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:94
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o[""])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:229:106
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${true ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:229:106
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${false ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:229:106
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] !== 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:115
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o[""] === 'string' ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:127
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === "" ? ` ${o['unit']}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:138
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? `` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:144
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o[""]}` : ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:229:156
+-     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : ''}`;
++     if ('value' in o) return `${typeof o['value'] === 'string' ? o['value'] : JSON.stringify(o['value'])}${typeof o['unit'] === 'string' ? ` ${o['unit']}` : "Stryker was here!"}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:249:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:251:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:254:30
+-         if (!v) throw notFound('support grant');
++         if (!v) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:258:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:263:30
+-         if (!v) throw notFound('support grant');
++         if (!v) throw notFound("");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:268:37
+-       accesses: async ({ actor }) => ({ accesses: await accessViews(app, pool, actor()) }),
++       accesses: async ({ actor }) => ({}),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:269:74
+-       grantAccess: async ({ body, actor, idempotencyKey, requestHash }) => {
+-         const who = actor();
+-         const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
+-           const { rows } = await c.query<{ id: string }>('select recipe.grant_contract_giver_access($1, $2, $3::timestamptz, $4) as id', [body.loanLicenceId, body.accountId, body.validTo, body.reason]);
+-           return rows[0]?.id ?? '';
+-         });
+-         const [v] = await accessViews(app, pool, actor(), out.result);
+-         if (!v) throw notFound('contract-giver access');
+-         return v;
+-       },
++       grantAccess: async ({ body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:271:63
+-         const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, who, idempotencyKey && '', requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:271:81
+-         const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:271:111
+-         const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
+-           const { rows } = await c.query<{ id: string }>('select recipe.grant_contract_giver_access($1, $2, $3::timestamptz, $4) as id', [body.loanLicenceId, body.accountId, body.validTo, body.reason]);
+-           return rows[0]?.id ?? '';
+-         });
++         const out = await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:272:56
+-           const { rows } = await c.query<{ id: string }>('select recipe.grant_contract_giver_access($1, $2, $3::timestamptz, $4) as id', [body.loanLicenceId, body.accountId, body.validTo, body.reason]);
++           const { rows } = await c.query<{ id: string }>("", [body.loanLicenceId, body.accountId, body.validTo, body.reason]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:272:136
+-           const { rows } = await c.query<{ id: string }>('select recipe.grant_contract_giver_access($1, $2, $3::timestamptz, $4) as id', [body.loanLicenceId, body.accountId, body.validTo, body.reason]);
++           const { rows } = await c.query<{ id: string }>('select recipe.grant_contract_giver_access($1, $2, $3::timestamptz, $4) as id', []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:273:16
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id && '';
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:273:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:273:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/governance/index.ts:276:11
+-         if (!v) throw notFound('contract-giver access');
++         if (v) throw notFound('contract-giver access');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:276:11
+-         if (!v) throw notFound('contract-giver access');
++         if (true) throw notFound('contract-giver access');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:276:11
+-         if (!v) throw notFound('contract-giver access');
++         if (false) throw notFound('contract-giver access');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:276:30
+-         if (!v) throw notFound('contract-giver access');
++         if (!v) throw notFound("");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:279:83
+-       revokeAccess: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           await c.query('select recipe.revoke_contract_giver_access($1, $2)', [params.accessId, body.reason]);
+-           return null;
+-         });
+-         const [v] = await accessViews(app, pool, actor(), params.accessId);
+-         if (!v) throw notFound('contract-giver access');
+-         return v;
+-       },
++       revokeAccess: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:280:55
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:280:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:280:103
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           await c.query('select recipe.revoke_contract_giver_access($1, $2)', [params.accessId, body.reason]);
+-           return null;
+-         });
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:281:23
+-           await c.query('select recipe.revoke_contract_giver_access($1, $2)', [params.accessId, body.reason]);
++           await c.query("", [params.accessId, body.reason]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:281:77
+-           await c.query('select recipe.revoke_contract_giver_access($1, $2)', [params.accessId, body.reason]);
++           await c.query('select recipe.revoke_contract_giver_access($1, $2)', []);
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/governance/index.ts:285:11
+-         if (!v) throw notFound('contract-giver access');
++         if (v) throw notFound('contract-giver access');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:285:11
+-         if (!v) throw notFound('contract-giver access');
++         if (true) throw notFound('contract-giver access');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:285:11
+-         if (!v) throw notFound('contract-giver access');
++         if (false) throw notFound('contract-giver access');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:285:30
+-         if (!v) throw notFound('contract-giver access');
++         if (!v) throw notFound("");
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:289:162
+-         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{ r: BatchJson[] }>('select recipe.contract_giver_batches() as r')).rows[0]?.r ?? []);
++         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{ r: BatchJson[] }>('select recipe.contract_giver_batches() as r')).rows[0]?.r ?? ["Stryker was here"]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:290:59
+-         const at = await instants(pool, list.flatMap((b) => [b.issuedAt, b.accessValidTo ?? b.issuedAt]));
++         const at = await instants(pool, list.flatMap((b) => []));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:290:72
+-         const at = await instants(pool, list.flatMap((b) => [b.issuedAt, b.accessValidTo ?? b.issuedAt]));
++         const at = await instants(pool, list.flatMap((b) => [b.issuedAt, b.accessValidTo && b.issuedAt]));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:291:66
+-         const batches: ContractGiverBatchView[] = list.map((b) => ({
+-           batchId: b.batchId,
+-           batchNumber: b.batchNumber,
+-           productCode: b.product?.code ?? null,
+-           productName: b.product?.name ?? null,
+-           status: b.status,
+-           reviewState: b.reviewState,
+-           loanLicenceNumber: b.loanLicenceNumber,
+-           hostLicenceNumber: b.hostLicenceNumber,
+-           issuedAt: app.formatInstant(at.get(b.issuedAt) ?? '0'),
+-           accessValidTo: app.formatInstant(at.get(b.accessValidTo ?? b.issuedAt) ?? '0'),
+-         }));
++         const batches: ContractGiverBatchView[] = list.map((b) => ({}));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:294:22
+-           productCode: b.product?.code ?? null,
++           productCode: b.product?.code && null,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:294:22
+-           productCode: b.product?.code ?? null,
++           productCode: b.product.code ?? null,
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:295:22
+-           productName: b.product?.name ?? null,
++           productName: b.product?.name && null,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:295:22
+-           productName: b.product?.name ?? null,
++           productName: b.product.name ?? null,
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:300:37
+-           issuedAt: app.formatInstant(at.get(b.issuedAt) ?? '0'),
++           issuedAt: app.formatInstant(at.get(b.issuedAt) && '0'),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:300:59
+-           issuedAt: app.formatInstant(at.get(b.issuedAt) ?? '0'),
++           issuedAt: app.formatInstant(at.get(b.issuedAt) ?? ""),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:301:42
+-           accessValidTo: app.formatInstant(at.get(b.accessValidTo ?? b.issuedAt) ?? '0'),
++           accessValidTo: app.formatInstant(at.get(b.accessValidTo ?? b.issuedAt) && '0'),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:301:49
+-           accessValidTo: app.formatInstant(at.get(b.accessValidTo ?? b.issuedAt) ?? '0'),
++           accessValidTo: app.formatInstant(at.get(b.accessValidTo && b.issuedAt) ?? '0'),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:301:83
+-           accessValidTo: app.formatInstant(at.get(b.accessValidTo ?? b.issuedAt) ?? '0'),
++           accessValidTo: app.formatInstant(at.get(b.accessValidTo ?? b.issuedAt) ?? ""),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:305:41
+-       batch: async ({ params, actor }) => {
+-         const r = await asReviewer(pool, actor(), async (c) =>
+-           (await c.query<{ r: BatchJson & { batchSize: string; technicalAgreement: string | null; loanHolderName: string | null; stages: Record<string, Record<string, unknown>>; steps: Record<string, Record<string, unknown>>; points: Record<string, Record<string, unknown>>; stateHash: string | null } }>(
+-             'select recipe.read_contract_giver_batch($1) as r',
+-             [params.batchId],
+-           )).rows[0]?.r,
+-         );
+-         if (!r) throw notFound('batch');
+-         const at = await instants(pool, [r.issuedAt]);
+-         const view: ContractGiverRecordView = {
+-           batchId: r.batchId,
+-           batchNumber: r.batchNumber,
+-           productCode: r.product?.code ?? null,
+-           productName: r.product?.name ?? null,
+-           status: r.status,
+-           reviewState: r.reviewState,
+-           loanLicenceNumber: r.loanLicenceNumber,
+-           hostLicenceNumber: r.hostLicenceNumber,
+-           issuedAt: app.formatInstant(at.get(r.issuedAt) ?? '0'),
+-           batchSize: r.batchSize,
+-           technicalAgreement: r.technicalAgreement,
+-           loanHolderName: r.loanHolderName,
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+-           values: Object.values(r.points ?? {})
+-             .filter((p) => p['kind'] === 'VALUE')
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
+-           stateHash: r.stateHash,
+-         };
+-         return view;
+-       },
++       batch: async ({ params, actor }) => {},
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:306:49
+-         const r = await asReviewer(pool, actor(), async (c) =>
+-           (await c.query<{ r: BatchJson & { batchSize: string; technicalAgreement: string | null; loanHolderName: string | null; stages: Record<string, Record<string, unknown>>; steps: Record<string, Record<string, unknown>>; points: Record<string, Record<string, unknown>>; stateHash: string | null } }>(
+-             'select recipe.read_contract_giver_batch($1) as r',
+-             [params.batchId],
+-           )).rows[0]?.r,
++         const r = await asReviewer(pool, actor(), () => undefined,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:307:9
+-           (await c.query<{ r: BatchJson & { batchSize: string; technicalAgreement: string | null; loanHolderName: string | null; stages: Record<string, Record<string, unknown>>; steps: Record<string, Record<string, unknown>>; points: Record<string, Record<string, unknown>>; stateHash: string | null } }>(
+-             'select recipe.read_contract_giver_batch($1) as r',
+-             [params.batchId],
+-           )).rows[0]?.r,
++           (await c.query<{
++     r: BatchJson & {
++       batchSize: string;
++       technicalAgreement: string | null;
++       loanHolderName: string | null;
++       stages: Record<string, Record<string, unknown>>;
++       steps: Record<string, Record<string, unknown>>;
++       points: Record<string, Record<string, unknown>>;
++       stateHash: string | null;
++     };
++   }>('select recipe.read_contract_giver_batch($1) as r', [params.batchId])).rows[0].r,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:308:11
+-             'select recipe.read_contract_giver_batch($1) as r',
++             "",
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:309:11
+-             [params.batchId],
++             [],
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/governance/index.ts:312:11
+-         if (!r) throw notFound('batch');
++         if (r) throw notFound('batch');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:312:11
+-         if (!r) throw notFound('batch');
++         if (true) throw notFound('batch');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:312:11
+-         if (!r) throw notFound('batch');
++         if (false) throw notFound('batch');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:312:30
+-         if (!r) throw notFound('batch');
++         if (!r) throw notFound("");
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:313:39
+-         const at = await instants(pool, [r.issuedAt]);
++         const at = await instants(pool, []);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:314:45
+-         const view: ContractGiverRecordView = {
+-           batchId: r.batchId,
+-           batchNumber: r.batchNumber,
+-           productCode: r.product?.code ?? null,
+-           productName: r.product?.name ?? null,
+-           status: r.status,
+-           reviewState: r.reviewState,
+-           loanLicenceNumber: r.loanLicenceNumber,
+-           hostLicenceNumber: r.hostLicenceNumber,
+-           issuedAt: app.formatInstant(at.get(r.issuedAt) ?? '0'),
+-           batchSize: r.batchSize,
+-           technicalAgreement: r.technicalAgreement,
+-           loanHolderName: r.loanHolderName,
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+-           values: Object.values(r.points ?? {})
+-             .filter((p) => p['kind'] === 'VALUE')
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
+-           stateHash: r.stateHash,
+-         };
++         const view: ContractGiverRecordView = {};
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:317:22
+-           productCode: r.product?.code ?? null,
++           productCode: r.product?.code && null,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:317:22
+-           productCode: r.product?.code ?? null,
++           productCode: r.product.code ?? null,
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:318:22
+-           productName: r.product?.name ?? null,
++           productName: r.product?.name && null,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:318:22
+-           productName: r.product?.name ?? null,
++           productName: r.product.name ?? null,
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:323:37
+-           issuedAt: app.formatInstant(at.get(r.issuedAt) ?? '0'),
++           issuedAt: app.formatInstant(at.get(r.issuedAt) && '0'),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:323:59
+-           issuedAt: app.formatInstant(at.get(r.issuedAt) ?? '0'),
++           issuedAt: app.formatInstant(at.get(r.issuedAt) ?? ""),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:327:32
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages && {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:327:52
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:327:67
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({})),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:327:80
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: true ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:327:80
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: false ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:327:80
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] !== 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:89
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s[""] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:102
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === "" ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:115
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s[""] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:142
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s[""] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:155
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? "" : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:167
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s[""] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:188
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? "" : 'OPEN' })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:327:210
+-           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : 'OPEN' })),
++           stages: Object.entries(r.stages ?? {}).map(([key, s]) => ({ key, name: typeof s['stage'] === 'string' ? s['stage'] : null, status: s['endedAt'] ? 'ENDED' : s['awaitingSignOff'] ? 'AWAITING_SIGN_OFF' : "" })),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:328:31
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps && {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:328:50
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:328:65
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({})),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:328:78
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: true ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:328:78
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: false ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:328:78
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] !== 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:328:87
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s[""] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:328:99
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === "" ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:328:112
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s[""] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:328:136
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: true ? s['status'] : null })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:328:136
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: false ? s['status'] : null })),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:328:136
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] !== 'string' ? s['status'] : null })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:328:145
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s[""] === 'string' ? s['status'] : null })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:328:159
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === "" ? s['status'] : null })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:328:172
+-           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s['status'] : null })),
++           steps: Object.entries(r.steps ?? {}).map(([key, s]) => ({ key, name: typeof s['step'] === 'string' ? s['step'] : null, status: typeof s['status'] === 'string' ? s[""] : null })),
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/governance/index.ts:329:17
+-           values: Object.values(r.points ?? {})
+-             .filter((p) => p['kind'] === 'VALUE')
++           values: Object.values(r.points ?? {})
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:329:31
+-           values: Object.values(r.points ?? {})
++           values: Object.values(r.points && {})
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:330:19
+-             .filter((p) => p['kind'] === 'VALUE')
++             .filter(() => undefined)
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:330:26
+-             .filter((p) => p['kind'] === 'VALUE')
++             .filter((p) => true)
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:330:26
+-             .filter((p) => p['kind'] === 'VALUE')
++             .filter((p) => false)
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:330:26
+-             .filter((p) => p['kind'] === 'VALUE')
++             .filter((p) => p['kind'] !== 'VALUE')
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:330:28
+-             .filter((p) => p['kind'] === 'VALUE')
++             .filter((p) => p[""] === 'VALUE')
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:330:40
+-             .filter((p) => p['kind'] === 'VALUE')
++             .filter((p) => p['kind'] === "")
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:331:16
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
++             .map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:331:24
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
++             .map((p) => ({})),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:331:41
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
++             .map((p) => ({ item: String(p[""]), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:331:66
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
++             .map((p) => ({ item: String(p['item']), step: String(p[""]), value: decimalText(p['value']), status: String(p['status']) })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:331:100
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
++             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p[""]), status: String(p['status']) })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:331:128
+-             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p['status']) })),
++             .map((p) => ({ item: String(p['item']), step: String(p['stepKey']), value: decimalText(p['value']), status: String(p[""]) })),
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:70:6
+-       [id ?? null],
++       [id && null],
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:72:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.person_id, r.requested_by_person, r.revocation?.by, ...r.approvals.map((a) => a.person)]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/governance/index.ts:72:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.person_id, r.requested_by_person, r.revocation?.by, ...r.approvals.map((a) => a.person)]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:72:131
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.person_id, r.requested_by_person, r.revocation?.by, ...r.approvals.map((a) => a.person)]));
++     const people = await peopleOf(db, rows.flatMap((r) => [r.person_id, r.requested_by_person, r.revocation?.by, ...r.approvals.map(() => undefined)]));
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:77:46
+-       engineer: personRef(people, r.person_id, 'VENDOR_SUPPORT'),
++       engineer: personRef(people, r.person_id, ""),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:81:59
+-       requestedBy: personRef(people, r.requested_by_person, 'SYSTEM_ADMINISTRATOR'),
++       requestedBy: personRef(people, r.requested_by_person, ""),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:84:88
+-       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
++       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, true ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:84:88
+-       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
++       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, false ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:84:88
+-       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
++       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind !== 'QA' ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:84:99
+-       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
++       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === "" ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:84:106
+-       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
++       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? "" : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:84:113
+-       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? 'QA' : 'PROCESS_OWNER'), at: app.formatInstant(a.us), signatureId: a.signature })),
++       approvals: r.approvals.map((a) => ({ kind: a.kind, by: personRef(people, a.person, a.kind === 'QA' ? 'QA' : ""), at: app.formatInstant(a.us), signatureId: a.signature })),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:86:14
+-       validTo: r.to_us === null ? null : app.formatInstant(r.to_us),
++       validTo: true ? null : app.formatInstant(r.to_us),
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:87:102
+-       revocation: r.revocation ? { reason: r.revocation.reason, by: personRef(people, r.revocation.by, ''), at: app.formatInstant(r.revocation.us) } : null,
++       revocation: r.revocation ? { reason: r.revocation.reason, by: personRef(people, r.revocation.by, "Stryker was here!"), at: app.formatInstant(r.revocation.us) } : null,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:96:46
+-     const people = await peopleOf(db, rows.map((r) => r.person_id));
++     const people = await peopleOf(db, rows.map(() => undefined));
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:94:5
+-       `select a.id, a.login_name, a.person_id from iam.account a where a.status = 'ACTIVE' and iam.is_support_account(a.id) order by a.login_name`,
++       ``,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:97:112
+-     return rows.map((r) => ({ accountId: r.id, loginName: r.login_name, engineer: personRef(people, r.person_id, 'VENDOR_SUPPORT') }));
++     return rows.map((r) => ({ accountId: r.id, loginName: r.login_name, engineer: personRef(people, r.person_id, "") }));
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:106:22
+-       return contentOf('support_grant', a.grantId, rows[0]?.r ?? {});
++       return contentOf("", a.grantId, rows[0]?.r ?? {});
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:106:50
+-       return contentOf('support_grant', a.grantId, rows[0]?.r ?? {});
++       return contentOf('support_grant', a.grantId, rows[0].r ?? {});
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:119:67
+-         const c = contentOf(query.aggregateType, query.aggregateId, rows[0]?.r ?? {});
++         const c = contentOf(query.aggregateType, query.aggregateId, rows[0].r ?? {});
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:120:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (false) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:120:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if ((!c.exists || !c.canonical || !c.contentHash) && !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:120:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (false || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:120:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if ((!c.exists || !c.canonical) && !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:120:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (false || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:120:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (!c.exists && !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:121:20
+-         const body = (JSON.parse(c.canonical) as { content?: Record<string, unknown> }).content ?? {};
++         const body = (JSON.parse(c.canonical) as {
++     content?: Record<string, unknown>;
++   }).content && {};
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:130:16
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: ``,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:130:37
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${true ? body['title'] : `support grant ${query.aggregateId}`}`,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:130:37
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${false ? body['title'] : `support grant ${query.aggregateId}`}`,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/governance/index.ts:130:37
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] !== 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:130:49
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body[""] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:130:62
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] === "" ? body['title'] : `support grant ${query.aggregateId}`}`,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:130:78
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `support grant ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body[""] : `support grant ${query.aggregateId}`}`,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/governance/index.ts:131:18
+-           preview: false,
++           preview: true,
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:132:28
+-           rendering: { kind: 'fallback', state: c.state ?? null, content: body },
++           rendering: { kind: "", state: c.state ?? null, content: body },
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:132:47
+-           rendering: { kind: 'fallback', state: c.state ?? null, content: body },
++           rendering: { kind: 'fallback', state: c.state && null, content: body },
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:135:48
+-       async prepareForChallenge(client, _ctx, a) {
+-         const c = await content(client, a);
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
+-       },
++       async prepareForChallenge(client, _ctx, a) {},
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:137:14
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return {};
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:137:32
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion && '0', contentHash: c.contentHash ?? '', changed: false };
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:137:70
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash && '', changed: false };
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/governance/index.ts:137:100
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: true };
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:141:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if (false) {
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:141:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if ((!c.exists || !c.contentHash) && !c.contentVersion) {
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:141:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if (false || !c.contentVersion) {
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:141:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if (!c.exists && !c.contentHash || !c.contentVersion) {
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/governance/index.ts:148:14
+-         return { act: a.act, grantId: a.grantId, state: rows[0]?.s ?? null };
++         return {};
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:148:55
+-         return { act: a.act, grantId: a.grantId, state: rows[0]?.s ?? null };
++         return { act: a.act, grantId: a.grantId, state: rows[0]?.s && null };
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:148:55
+-         return { act: a.act, grantId: a.grantId, state: rows[0]?.s ?? null };
++         return { act: a.act, grantId: a.grantId, state: rows[0].s ?? null };
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/governance/index.ts:219:97
+-   async function instants(pool: pg.Pool, values: readonly string[]): Promise<Map<string, string>> {
+-     const { rows } = await pool.query<{ v: string; u: string }>(`select v, ${usOf('v::timestamptz')} as u from unnest($1::text[]) v`, [values]);
+-     return new Map(rows.map((r) => [r.v, r.u]));
+-   }
++   async function instants(pool: pg.Pool, values: readonly string[]): Promise<Map<string, string>> {}
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:220:63
+-     const { rows } = await pool.query<{ v: string; u: string }>(`select v, ${usOf('v::timestamptz')} as u from unnest($1::text[]) v`, [values]);
++     const { rows } = await pool.query<{ v: string; u: string }>(``, [values]);
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:221:27
+-     return new Map(rows.map((r) => [r.v, r.u]));
++     return new Map(rows.map(() => undefined));
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/governance/index.ts:245:7
+-         requireSession();
++         ;
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:251:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:254:11
+-         if (!v) throw notFound('support grant');
++         if (false) throw notFound('support grant');
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+    the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a signature whose meaning needs a DSC validates against the configured test-CA chain; a broken chain or no DSC is refused; the banner says not legally valid
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/governance/index.ts:263:11
+-         if (!v) throw notFound('support grant');
++         if (false) throw notFound('support grant');
+Tests ran:
+    vendor support grants over HTTP (DI-08) > [DI-08] a support login without a time-boxed grant is refused; QA and IT approve through the ceremony and the engineer logs in inside the window; a revocation ends it
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/governance/index.ts:289:65
+-         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{ r: BatchJson[] }>('select recipe.contract_giver_batches() as r')).rows[0]?.r ?? []);
++         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{
++     r: BatchJson[];
++   }>('select recipe.contract_giver_batches() as r')).rows[0]?.r && []);
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/governance/index.ts:289:65
+-         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{ r: BatchJson[] }>('select recipe.contract_giver_batches() as r')).rows[0]?.r ?? []);
++         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{
++     r: BatchJson[];
++   }>('select recipe.contract_giver_batches() as r')).rows[0].r ?? []);
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/governance/index.ts:289:100
+-         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{ r: BatchJson[] }>('select recipe.contract_giver_batches() as r')).rows[0]?.r ?? []);
++         const list = await asReviewer(pool, actor(), async (c) => (await c.query<{ r: BatchJson[] }>("")).rows[0]?.r ?? []);
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:290:52
+-         const at = await instants(pool, list.flatMap((b) => [b.issuedAt, b.accessValidTo ?? b.issuedAt]));
++         const at = await instants(pool, list.flatMap(() => undefined));
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/governance/index.ts:291:58
+-         const batches: ContractGiverBatchView[] = list.map((b) => ({
+-           batchId: b.batchId,
+-           batchNumber: b.batchNumber,
+-           productCode: b.product?.code ?? null,
+-           productName: b.product?.name ?? null,
+-           status: b.status,
+-           reviewState: b.reviewState,
+-           loanLicenceNumber: b.loanLicenceNumber,
+-           hostLicenceNumber: b.hostLicenceNumber,
+-           issuedAt: app.formatInstant(at.get(b.issuedAt) ?? '0'),
+-           accessValidTo: app.formatInstant(at.get(b.accessValidTo ?? b.issuedAt) ?? '0'),
+-         }));
++         const batches: ContractGiverBatchView[] = list.map(() => undefined);
+Tests ran:
+    the contract giver's reviewer over HTTP (IN-30) > [IN-30] a contract-giver reviewer cannot edit: every write route of the installation is refused to its session
+
+
+Ran 0.53 tests per mutant on average.
+------------|------------------|----------|-----------|------------|----------|----------|
+            | % Mutation score |          |           |            |          |          |
+File        |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+------------|--------|---------|----------|-----------|------------|----------|----------|
+All files   |  28.20 |   61.03 |      119 |         0 |         76 |      227 |        0 |
+ esig       |  59.46 |   74.58 |       44 |         0 |         15 |       15 |        0 |
+  dsc.ts    |  59.46 |   74.58 |       44 |         0 |         15 |       15 |        0 |
+ governance |  21.55 |   55.15 |       75 |         0 |         61 |      212 |        0 |
+  index.ts  |  21.55 |   55.15 |       75 |         0 |         61 |      212 |        0 |
+------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m01:53:48 (587233) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-governance.json
+[32m01:53:48 (587233) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-governance.html
+[32m01:53:48 (587233) INFO MutationTestExecutor[39m Done in 11 minutes and 7 seconds.

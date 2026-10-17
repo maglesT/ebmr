@@ -190,3 +190,26 @@ packaging-labels-and-line-completion: baseline db 7 s (limit 240 s), server 25 s
   SURVIVED tab.g21_specimen_problem#9 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:275 [and] -> [or]
   packaging-labels-and-line-completion: 225/352
   SURVIVED tab.record_post_use_inspection#2 GUARD_REMOVED apps/tablets-server/sql/1230_packaging_line_completion.sql:343 [raise exception using errcode = 'P0001', message = 'EBMR-LBL-040 this batch has ] -> [null]
+  SURVIVED tab.record_post_use_inspection#11 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:350 [or] -> [and]
+  SURVIVED tab.record_post_use_inspection#13 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:351 [or] -> [and]
+  SURVIVED tab.record_post_use_inspection#14 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:352 [or] -> [and]
+  SURVIVED tab.record_post_use_inspection#15 NOT_REMOVED apps/tablets-server/sql/1230_packaging_line_completion.sql:352 [not ] -> []
+  SURVIVED tab.record_post_use_inspection#16 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:352 [and] -> [or]
+  SURVIVED tab.record_post_use_inspection#17 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:352 [=] -> [<>]
+  SURVIVED tab.record_post_use_inspection#18 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:352 [or] -> [and]
+  SURVIVED tab.record_post_use_inspection#19 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:352 [>] -> [>=]
+  SURVIVED tab.verify_post_use_inspection#2 GUARD_REMOVED apps/tablets-server/sql/1230_packaging_line_completion.sql:373 [raise exception using errcode = 'P0001', message = format('EBMR-LBL-043 %s is no] -> [null]
+  packaging-labels-and-line-completion: 250/352
+  SURVIVED tab.verify_post_use_inspection#14 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:382 [=] -> [<>]
+  SURVIVED tab.verify_post_use_inspection#17 GUARD_REMOVED apps/tablets-server/sql/1230_packaging_line_completion.sql:383 [raise exception using errcode = 'P0001', message = 'EBMR-LBL-043 a later post-us] -> [null]
+  SURVIVED tab.vision_line_stop#7 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:444 [and] -> [or]
+  SURVIVED tab.vision_line_stop#9 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:444 [=] -> [<>]
+  SURVIVED tab.resolve_line_stop#2 GUARD_REMOVED apps/tablets-server/sql/1230_packaging_line_completion.sql:464 [raise exception using errcode = 'P0001', message = format('EBMR-LBL-045 %s is no] -> [null]
+  SURVIVED tab.resolve_line_stop#8 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:467 [>] -> [>=]
+  packaging-labels-and-line-completion: 275/352
+  SURVIVED tab.enable_reconciliation_waiver#16 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:530 [and] -> [or]
+  SURVIVED tab.enable_reconciliation_waiver#18 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:530 [and] -> [or]
+  packaging-labels-and-line-completion: 300/352
+  SURVIVED tab.enable_reconciliation_waiver#35 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:537 [and] -> [or]
+  SURVIVED tab.enable_reconciliation_waiver#41 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:538 [=] -> [<>]
+  packaging-labels-and-line-completion: 325/352
