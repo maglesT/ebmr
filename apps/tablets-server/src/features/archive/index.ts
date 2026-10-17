@@ -89,7 +89,18 @@ export async function retentionView(app: AppContext, db: Db, f: BatchFacts): Pro
   let openBecause: string[];
   const drift: string[] = [];
   if (scheduled) {
-    const r = (await db.query<{ r: { own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> } }>('select records.retention_of($1, $2) as r', ['batch', f.batchId])).rows[0]?.r;
+    // Not records.retention_of: tablets 0460 (F34; DI-17, DI-50) keeps it from the application role, since its refusals
+    // name a blocking data-integrity investigation. The same own, effective and stored inputs, from what the role may read.
+    const r = (
+      await db.query<{ own: OwnJson; effective: EffectiveJson; inputs: Record<string, unknown> }>(
+        `select records.evaluate_retention(i.inputs || jsonb_build_object('retentionKey', s.retention_key)) as own, records.compute_effective_retention(s.id) as effective,
+                i.inputs
+           from records.retention_schedule s
+           join lateral (select x.inputs from records.retention_input x where x.schedule_id = s.id order by x.input_version desc limit 1) i on true
+          where s.record_key = $1`,
+        [key],
+      )
+    ).rows[0];
     if (!r) throw new Error('retention was not read');
     status = r.effective.status;
     retainUntil = r.effective.retainUntil;
