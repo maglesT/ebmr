@@ -5,12 +5,15 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../src/db/command.ts';
+import { sign } from '../../src/esig/signing.ts';
+import { decideRoleGrant, requestRoleGrant } from '../../src/identity/admin.ts';
 import { authenticate } from '../../src/identity/authentication.ts';
 import { AuthenticationFailedError } from '../../src/identity/errors.ts';
 import { openSession } from '../../src/identity/sessions.ts';
+import { challengeFor, cmd, ensureSealKey, signatureAuth, testSealKey } from '../esig/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
 import { asTimeTraveller, expectPermissionDenied, expectRefused } from './helpers.ts';
-import { seedActor, seedAdministration, seedAuthn } from './seed.ts';
+import { seedActor, seedAdministration, seedAuthn, withReason, type SeededActor } from './seed.ts';
 import {
   approveSupportGrant,
   openSupportGrant,
@@ -139,5 +142,56 @@ describe('vendor support grants (kernel 1202; DI-08)', () => {
     await loginRefused(engineer, 'SUPPORT_NO_LIVE_GRANT');
     // Even the owner cannot change a recorded request (protected rows).
     await expect(db.admin.query(`update iam.support_grant set valid_hours = 72 where id = $1`, [grant])).rejects.toThrow();
+  });
+  // Slice 6j mutation triage (iam.request_support_grant, iam.approve_support_grant, iam.revoke_support_grant): checks that
+  // only these functions enforce, each proved by an input that reaches it.
+  it('[DI-08] the time box is 1 to the configured maximum of hours, both ends included; IT\'s administrator may end a grant early', async () => {
+    const { admin } = await seedAdministration(db);
+    const engineer = await seedSupportEngineer(db);
+    const asAdmin = (sql: string, params: unknown[]) => withCommand(db.app, { ...admin, correlationId: randomUUID() }, (c) => c.query(sql, params));
+    await expectRefused(asAdmin('select iam.request_support_grant($1, $2, $3, $4)', [engineer.accountId, 'Acme', 'x', 0]), 'EBMR-IAM-184');
+    await expectRefused(asAdmin('select iam.request_support_grant($1, $2, $3, $4)', [engineer.accountId, 'Acme', 'x', null]), 'EBMR-IAM-184');
+    const { rows: max } = await db.admin.query<{ h: number }>("select platform.setting_numeric('iam.support_grant_max_hours')::integer as h");
+    const grant = await requestSupportGrant(db, engineer, max[0]!.h);
+    // The administrator holds neither approval permission; it ends the grant through SUPPORT.GRANT_REQUEST.
+    await asAdmin('select iam.revoke_support_grant($1, $2)', [grant, 'request withdrawn']);
+    const { rows } = await db.app.query<{ g: string }>('select iam.support_grant_state($1) as g', [grant]);
+    expect(rows[0]).toEqual({ g: 'REVOKED' });
+    const one = await requestSupportGrant(db, engineer, 1);
+    const { it: itOwner } = await supportApprovers(db);
+    await withCommand(db.app, { ...itOwner, correlationId: randomUUID() }, (c) => c.query('select iam.revoke_support_grant($1, $2)', [one, 'not needed']));
+  });
+
+  it('[DI-08][INV-11] an approval is recorded by its own signer; the requester, an administrator, can never hold a role that approves', async () => {
+    const engineer = await seedSupportEngineer(db);
+    const grant = await requestSupportGrant(db, engineer);
+    const { qa } = await supportApprovers(db);
+    const qa2 = await seedActor(db, { roleCode: 'QA_MBR_APPROVER', legalName: 'Second Quality Head' });
+    await ensureSealKey(db);
+    const signOnly = async (signer: SeededActor, grantId: string, meaning: string): Promise<string> => {
+      const ch = await challengeFor(db, signer, grantId, { meaning, aggregateType: 'support_grant' });
+      const ev = await signatureAuth(db, signer, signer, ch.challengeId);
+      return withCommand(db.app, await cmd(db, signer), async (c) =>
+        (await sign(c, { challengeId: ch.challengeId, authEventId: ev, expectedState: 'PENDING' }, testSealKey)).signatureId);
+    };
+    // qa signs; qa2 (holding the same permission) cannot record qa's signature as an approval.
+    const qaSig = await signOnly(qa, grant, 'SUPPORT_ACCESS_QA_APPROVED');
+    await expectRefused(withCommand(db.app, { ...qa2, correlationId: randomUUID() }, (c) => c.query('select iam.approve_support_grant($1, $2)', [grant, qaSig])), 'EBMR-IAM-186');
+    expect(await count('select 1 from iam.support_grant_approval where grant_id = $1', [grant])).toBe(0);
+
+    // The requester (IT's administrator, SYSTEM_ADMINISTRATOR) can never also hold an approver role: every role holding
+    // SUPPORT.APPROVE_QA or SUPPORT.APPROVE_IT is a GMP role, which the static segregation refuses to an administrator's
+    // person (INV-11, kernel 0120). That rule, not EBMR-IAM-188, keeps the requester out of the approvals; the support
+    // engineer (VENDOR_SUPPORT, an administration role) likewise, and a support account never signs (SUPPORT_CANNOT_SIGN).
+    const { admin, owner } = await seedAdministration(db);
+    const requester = await seedActor(db, { roleCode: 'SYSTEM_ADMINISTRATOR', legalName: 'IT Administrator' });
+    const { rows: approverRoles } = await db.admin.query<{ role_code: string }>(
+      "select distinct role_code from iam.role_permission where permission_code in ('SUPPORT.APPROVE_QA', 'SUPPORT.APPROVE_IT') and removed_at is null order by 1");
+    expect(approverRoles.map((r) => r.role_code)).toEqual(['AUTHORISED_PERSON', 'PROCESS_OWNER', 'QA_MBR_APPROVER']);
+    for (const { role_code: roleCode } of approverRoles) {
+      await expectRefused(withCommand(db.app, withReason(admin), (c) =>
+        requestRoleGrant(c, { accountId: requester.accountId, roleCode, reason: 'also an approver' })).then(async (id) =>
+        withCommand(db.app, withReason(owner), (c) => decideRoleGrant(c, id, true, 'approved for test'))), 'EBMR-IAM-033');
+    }
   });
 });

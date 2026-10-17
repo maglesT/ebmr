@@ -1294,9 +1294,12 @@ export const TARGETS: Target[] = [
                 'iam.contract_giver_role_permission_guard', 'recipe.contract_giver_access_live',
                 'recipe.grant_contract_giver_access', 'recipe.revoke_contract_giver_access', 'recipe.contract_giver_batches',
                 'recipe.read_contract_giver_batch'],
+    // identity/access, identity/accounts and mutation/authentication-events test the refusals of iam.authn_resolve
+    // (re-created here from 0160): added by the slice 6j triage, which found its survivors were only out of this list.
     tests: [k('identity/support-grant.test.ts'), k('identity/credentials.test.ts'), k('identity/devices-sessions.test.ts'),
             k('identity/generic.test.ts'), k('esig/sessions.test.ts'), r('release/india.test.ts'),
-            s('governance/governance-routes.test.ts')],
+            s('governance/governance-routes.test.ts'), k('identity/access.test.ts'), k('identity/accounts.test.ts'),
+            k('mutation/authentication-events.test.ts')],
     threshold: 90,
   },
   // ---- 6f, governance: the India digital signature certificate (DSC): policy, trust anchors, meanings, enrolment and

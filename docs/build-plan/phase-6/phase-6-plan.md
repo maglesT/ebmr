@@ -1153,6 +1153,14 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
 - **D-P6j-T7-2** A mutant that an existing test of the same package kills, but in a folder outside the feature's test
   list (`stryker.phase6.config.mjs`), is recorded as killed by that test after a hand-applied check; the feature's
   test list is not widened during the campaign (decision 0019: no re-run).
+- **D-P6j-T9-1** (mutation triage T9: governance-change-control, governance-support-and-contract-giver and four Stryker
+  features) A SQL group that holds a function re-created from an earlier phase (here `iam.authn_resolve`, from kernel
+  0160) lists the test files that test that function's earlier behaviour too (`identity/access`, `identity/accounts`,
+  `mutation/authentication-events`); the group's list in `tools/sql-mutation/src/targets.ts` is widened, since the SQL
+  harness reads it per run and the group's one confirmation run then shows which survivors were only out of the list.
+- **D-P6j-T9-2** A refusal that only a role segregation makes unreachable (the support-grant requester or engineer as an
+  approver, EBMR-IAM-188) is recorded as defence in depth with a test that proves the segregation itself, not as an
+  equivalent mutant.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

@@ -233,9 +233,60 @@ Common to every server feature (one line each, no test):
 - The rest: `requireSession()`, `refreshFederation` (NoCoverage here, covered by the same [IN-29] test), the default
   as-of and authority reference parameters (`recipe.run_mock_recall` validates), views. P3.
 
+### Stryker triage, second pass (T9): kernel-config-and-dsc, server-alarms, server-capa, server-designer-hazard
+
+Same method as T7 (the TypeScript matters only where it alone enforces a Priority 1 rule; no Stryker re-run). **No P1
+defect.** One rule cluster was enforced only in the TypeScript and untested: the X.509 checks of the India DSC, which
+the database cannot make. Killing tests were proved against the original (pass) and against the hand-applied mutants
+(each fails), then reverted.
+
+#### kernel-config-and-dsc: 68.9 % / 75.8 %
+
+- **Killed (new tests): `esig/dsc.ts` `verifyDsc`, lines 88 (`at < validFrom` removed), 89 (`i > 0 && !c.ca` false) and
+  93 (`leaf.ca` false).** The database records what the server verified (`esig.record_dsc_signature`,
+  `esig.enrol_dsc_certificate`) and re-checks only the chain's ends (the last certificate is the live anchor, the first
+  is the enrolled signer, 2 to 6 entries); a certificate not yet valid, an issuer that is not a CA and a signer
+  certificate that is a CA are seen only here. Tests in `packages/kernel/test/esig/dsc.test.ts`, "India DSC chain
+  verification in the server (IN-10)": `[IN-10] a well-formed chain verifies; a signer certificate not yet valid at the
+  time of signing is refused`, `[IN-10] a signer certificate that is itself a certification authority is refused`,
+  `[IN-10] an issuer in the chain that is not a certification authority is refused, even when its key signed the next
+  certificate`. The last uses an end-entity issuer without a key-usage extension, so that only the CA check can refuse
+  it; the test CA's `issueTestCertificate` gained the option `keyUsage: false` (test material, `dsc-test-ca.ts`).
+- P3 (DB-enforced): line 81 (chain length; `chain_der` 2 to 6 and the `< 2` refusal), 85 (the chain's last certificate is
+  the anchor: `esig.record_dsc_signature` and `esig.enrol_dsc_certificate` compare its SHA-256, same EBMR-ESIG-085), 86
+  (the anchor self-signed: the anchor is QA's configured trust root under change control).
+- P3: line 88's `<=` / `>=` (millisecond boundaries), 82 and 95 (labels; `'utf8'` is Node's default, equivalent), 59-60,
+  104-109, 122-123, 142-143 (the requirement read's defaults and the verified fields' formatting, which the database
+  stores as given and compares by SHA-256 of the DER). `config/change-control.ts` NoCoverage (`listConfigAreas` and the
+  diff read's mapping): reads for a screen; the change control itself is the database's (governance-change-control
+  above). `dsc-test-ca.ts` (other zone): the test CA's DER encoding, test material.
+
+#### server-alarms: 68.8 % / 60.5 %
+
+- No TypeScript-only rule. `alarms/index.ts`: `requireSession()` (D-P6j-T7-1) and `body.deviationRef ?? null` (the SQL
+  function validates the argument). `alarms/reads.ts` (other zone): view mapping. P3.
+
+#### server-capa: 49.2 % / 62.7 %
+
+- No TypeScript-only rule. `capa/index.ts` NoCoverage: the link, schedule and cancel handlers only pass their arguments
+  to `site.link_capa_deviation`, `site.link_capa_master_version`, `site.schedule_capa_effectiveness_check` and
+  `site.cancel_capa`, which check permission, state and inputs. Line 64-65 (an effectiveness check of another CAPA,
+  EBMR-CAPA-009): `site.record_capa_effectiveness` takes only the check id and records on that check's own CAPA; the
+  refusal keeps the URL consistent (P3). `signables.ts:23` and `reads.ts`: response shape and view mapping. P3.
+
+#### server-designer-hazard: 72.8 %
+
+- No TypeScript-only Priority 1 rule. `designer/hazard.ts` is an authoring aid: the containment it proposes (only rooms
+  and lines dedicated and contained for the product's classes) is enforced at issue by the database (recipe-core 0891,
+  whatever the MBR says), and the protective-equipment and decontamination operations it inserts are reviewed in the
+  MBR's QA approval like any other content. Survivors (the class read's defaults, the node walk, the insertion point,
+  the reference-document lookup, messages) are P3. Owner note: no database rule requires those two operations in a
+  hazardous product's MBR; they rest on the designer and on the QA approval (IN-27 containment itself is enforced).
+
 ### Not triaged
 
-- `kernel-config-and-dsc` (rc=1, no report) and `server-integrations-highrisk` (no report): nothing to triage.
+- `server-integrations-highrisk` (no report): nothing to triage. `kernel-config-and-dsc` (rc=1 at T7's pass) was re-run
+  and is triaged above (T9).
 - `gateway-opcua`: stopped at 21 % (rc=124), only an incremental file; no final report.
 - Features outside this assignment (server-plant-rules, server-equipment-data, server-dashboards-and-training,
   server-serialisation, simulators) are not triaged here.
@@ -812,6 +863,110 @@ Survivors, one line each:
   between signing and recording; the kernel's signature checks are proven in the signing groups);
   `recipe.record_federation_failure#1` (the failure and its alarm recorded against another request: audit attribution
   of a failed query).
+
+### governance-change-control (triage T9)
+
+- First run (stream p6-5): 84 killed / 117, **71.8 %** (33 survivors).
+- Scope (owner, 17 October): an approval by the wrong person or without a valid bound signature, a change applied without
+  an approved record (P1), and untested high-risk guards; the rest is recorded below, grouped, not chased.
+- **No P1 defect.** The smoke run's "removed checks in `platform.approve_change_record`" are each covered by an earlier
+  or later layer that the group's tests already prove:
+  - `#18` (the raiser approves): the signature catalogue's performer exclusion refuses the raiser's
+    `CONFIG_CHANGE_APPROVED` signature at signing (tested: "the raiser cannot approve"), so no valid signature of the
+    raiser reaches the function.
+  - `#6` (a record not OPEN): the signed content carries the state and the signature is bound to `OPEN`; a signature
+    made while OPEN no longer matches once the record is APPROVED or CLOSED (EBMR-ESIG; tested for both).
+  - `#2` (no such record), `#9` (no signature id): `esig.assert_signature` refuses a NULL id or a signature not bound to
+    that record; `close_change_record#2` (no such record): the event row's NOT NULL change record id refuses it.
+- Killed by a new test (in `packages/kernel/test/config/change-control.test.ts`, "[DI-09] a role definition, a
+  permission added to a role and one removed from it each need a change record"): `platform.config_version_log#3, #4`
+  (the version's valid-from: from the row's validity column on INSERT, from the moment of the change on UPDATE; the
+  mutants dated a permission's removal back to when it was added, so a diff for a date in between lost the permission).
+- P3, one line each:
+  - `platform.is_release_actor#2, #3, #5, #6, #8, #9`: the software-release identity (nil person, SYSTEM, SOFTWARE_RELEASE)
+    is set only by owner-level migration code; a command cannot claim it or a nil person (tested: "bypass attempts"),
+    and every system actor (sweeper, devices) carries its own real person. Only owner-level code, which may write the
+    tables anyway, reaches these clauses.
+  - `platform.config_change_guard#1`: fail-closed (the release identity would be refused, no change let through).
+  - `platform.require_change_record#2`: with no context the next check raises the same EBMR-CFG-001 (message only).
+  - `platform.register_config_area#1, #2, #5-#13`: an install-time helper only migrations call as the owner; a wrong
+    registration is caught by the DI-09 scan tests ("every registered configuration table carries the guard").
+  - `recipe.rbe_rule_guard#9`: the only writer (`recipe.set_rbe_rule`) computes the next version; the application role
+    cannot insert. `recipe.set_rbe_rule#13`: lock only.
+  - `recipe.notify_departments_of_excursion#4, #5`: an excursion row always names an existing batch (foreign key) and
+    is written in a command (unreachable branch).
+  - `recipe.pqr_cpp_of#6, #24, #30`: the PQR's CPP extract (a reporting read; a state always carries `failed`, and a
+    non-critical calculation in the extract is a reporting difference, not a GMP write).
+- Residuals: none for the owner.
+- Confirmation run (`--only platform.config_version_log#3, #4`): 2 of 2 detected, **100 %**; the group stands at
+  86 / 117, **73.5 %**.
+
+### governance-support-and-contract-giver (triage T9)
+
+- First run (stream p6-5): 163 killed / 228, **71.5 %** (65 survivors).
+- Scope: a support grant usable with one signature, past its time box or beyond its scope, a contract-giver reviewer
+  able to write or to read outside its licence (P1), and untested high-risk guards.
+- **No P1 defect.** The two-signature rule holds without the function's own checks where they survived:
+  `iam.approve_support_grant#31` (the QA and IT approvers the same person): the meaning catalogue makes each meaning
+  `independent_of` the other, so `esig` refuses the second signature by the same person (EBMR-ESIG-043);
+  `#16` (the requester or the engineer approves): every role holding an approval permission (AUTHORISED_PERSON,
+  PROCESS_OWNER, QA_MBR_APPROVER) is a GMP role, which the static segregation (INV-11) refuses to the person of an
+  administrator (the requester is SYSTEM_ADMINISTRATOR) and of a support engineer (VENDOR_SUPPORT is an administration
+  role), and a support account never authenticates to sign (SUPPORT_CANNOT_SIGN). A new test proves that layer.
+  `#13` (a grant not PENDING): the per-kind duplicate check and the signature's binding to PENDING refuse it; a REVOKED
+  grant stays closed (revocation wins in `iam.support_grant_open_at`).
+- Killed by new tests (confirmation run below):
+  - `packages/kernel/test/identity/support-grant.test.ts`: "[DI-08] the time box is 1 to the configured maximum of
+    hours, both ends included; IT's administrator may end a grant early" (`iam.request_support_grant#24, #27`,
+    `iam.revoke_support_grant#1`) and "[DI-08][INV-11] an approval is recorded by its own signer; the requester, an
+    administrator, can never hold a role that approves" (`iam.approve_support_grant#10`, and the segregation behind #16).
+  - `packages/recipe-core/test/release/india.test.ts`, "[IN-30] a contract-giver reviewer cannot edit": the record read
+    is that batch's own execution state (`recipe.read_contract_giver_batch#17`); a reviewer account later given a role
+    that writes gets no new access and reads nothing under a live one (`recipe.grant_contract_giver_access#27`,
+    `recipe.contract_giver_batches#3`, `recipe.read_contract_giver_batch#3`); a generic (shared) account holding the
+    reviewer role is refused (`recipe.grant_contract_giver_access#15, #16, #17`, the only check that keeps a shared
+    account out: the role is read-only, so the DI-14 role segregation allows it).
+  - `iam.authn_resolve` (18 survivors, re-created here from 0160): its refusals are tested in `identity/access.test.ts`,
+    `identity/accounts.test.ts` and `mutation/authentication-events.test.ts`, which were not in the group's list; added
+    to the group in `tools/sql-mutation/src/targets.ts` (D-P6j-T9-1). The confirmation run killed 8 with them (`#46,
+    #57, #58, #60, #61, #62, #75, #77`).
+  - `packages/kernel/test/identity/devices-sessions.test.ts`, "authentication methods and purposes": `[DI-14][DI-38] a
+    badge tap only attributes an entry; a service key only logs in; a signature needs two components; an unknown method
+    or purpose is refused` (`iam.authn_resolve#3, #5, #11, #15, #25`) and `[DI-14][DI-38] an account without an active
+    credential of the method is refused before any secret is compared, whatever the secret` (`#73`). These two are the
+    high-risk finds of the group: `iam.open_session` checks a login event's purpose but not its method, so `#11` would
+    let a badge tap alone open a session, and with `#73` an account holding no credential of the method was answered
+    "nothing to verify" and the server accepted any secret. The original refuses both; only the tests were missing.
+    Written after the group's confirmation run had passed these mutants, so each was proved by hand instead (no second
+    run, decision 0019): the mutant applied to a copy of kernel 1202 in the worktree, the test fails; reverted, it passes.
+- P3, one line each:
+  - Exact-microsecond window boundaries: `iam.support_grant_open_at#3, #5, #10`, `iam.support_grant_state#2`,
+    `iam.session_state#2, #8`, `recipe.contract_giver_access_live#3, #5`, `recipe.grant_contract_giver_access#33, #35`.
+  - `iam.support_grant_open_at#9`: fail-closed (any revocation anywhere closes every grant).
+  - `iam.request_support_grant#2, #4, #6, #7, #8` (the account checks): a later layer: the VENDOR_SUPPORT role is held
+    only by HUMAN, non-generic accounts (role account kinds, DI-14 segregation), and an inactive or break-glass support
+    account is refused at authentication; `#17` (an administrator requesting for their own support account): the grant
+    still needs the two customer signatures, neither of which the requester can give (above).
+  - `iam.approve_support_grant#6`, `iam.revoke_support_grant#5, #12`, `recipe.revoke_contract_giver_access#3`: a later
+    layer (the signature binding, the foreign key, the revocation's primary key / `on conflict`).
+  - `recipe.grant_contract_giver_access#7`, `recipe.revoke_contract_giver_access#6` (blank reason): the table's CHECK.
+  - `recipe.grant_contract_giver_access#22` (QA granting itself): QA's account is not read-only, so EBMR-CGA-003 refuses.
+  - `recipe.grant_contract_giver_access#26` (an account without CONTRACT_GIVER.READ): every read requires that
+    permission, so the access reads nothing. `#32`: a past or NULL end is refused by the table's CHECK / NOT NULL.
+  - `iam.contract_giver_role_permission_guard#2, #3`: fail-closed (refuses more role permissions).
+  - `iam.authn_resolve#45, #55` (an unknown identifier, an inactive account answered as not refused): the login is
+    still refused later (no account to record an event for; `iam.open_session` and the command and signing checks
+    refuse an account that is not ACTIVE, EBMR-IAM-103, tested), only the refusal's own record and alert are lost
+    (logging); `#80, #83`: exact-microsecond expiry of a secret.
+  - `recipe.grant_contract_giver_access#11, #13` (the first two of the account clauses): an unknown or non-HUMAN account
+    cannot hold the reviewer role (EBMR-CGA-003 refuses), and an inactive account cannot log in to read.
+  - `tab.support_grant_preview#2, #6`: the preview only shows the content; the signing command checks the permission
+    again (`tab.support_grant_signing_content`, `iam.approve_support_grant`).
+- Residuals: none for the owner.
+- Confirmation run (`--only` on the 31 survivors the new tests and the widened list aim at): 19 of 31 detected; the 12
+  left are `iam.authn_resolve#3, #5, #11, #15, #25, #73` (killed by hand since, above), `#45, #55, #80, #83` and
+  `recipe.grant_contract_giver_access#11, #13` (P3, above). The group stands at 182 / 228 detected in the runs, **79.8 %**,
+  and 188 / 228, **82.5 %**, counting the six hand-proved kills.
 
 ## Equivalent mutants
 
