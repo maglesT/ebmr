@@ -109,7 +109,7 @@ describe('analytics screens (GMP)', () => {
     await userEvent.click(within(d2).getByRole('button', { name: 'Record the disposition' }));
     await waitFor(() => expect(second.requests.some((r) => r.method === 'POST')).toBe(true));
     expect(second.requests.find((r) => r.method === 'POST')!.body).toMatchObject({
-      verdict: 'NOT_ASSESSABLE', supersedes: withDisposition.disposition!.dispositionId, reason: 'New evidence from maintenance',
+      verdict: 'NOT_ASSESSABLE', supersedes: withDisposition.disposition.dispositionId, reason: 'New evidence from maintenance',
     });
   });
 

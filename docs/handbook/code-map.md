@@ -23,7 +23,8 @@ of each database function.
 | [kernel-authorization](#kernel-authorization) | Authorization (permission catalogue, scopes, signature requirements) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 1 | 9 |
 | [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 8 | 5 |
 | [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
-| [analytics](#analytics) | Advisory analytics (Phase 6A) - pure package, analytics role and schema, method registry, contract namespaces, synthetic history | [modules/analytics.md](modules/analytics.md) | 7 | 17 | 6 | 6 |
+| [analytics](#analytics) | Advisory analytics (Phase 6A) - pure package, analytics role and schema, method registry, contract namespaces, synthetic history | [modules/analytics.md](modules/analytics.md) | 7 | 17 | 10 | 6 |
+| [analytics-foundation](#analytics-foundation) | Advisory analytics foundation (Phase 6A slice 6A-1) - runner, input views, method change control, dispositions, monitoring, screens | [modules/analytics.md](modules/analytics.md) | 2 | 2 | 3 | 0 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
 | [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 0 | 0 |
@@ -402,11 +403,43 @@ of each database function.
 | GET | `/api/analytics/spc` | `analyticsSpc.chart` | [analytics-spc.ts](../../packages/api-contract/src/ns/analytics-spc.ts) |
 | GET | `/api/analytics/spc/capability` | `analyticsSpc.capability` | [analytics-spc.ts](../../packages/api-contract/src/ns/analytics-spc.ts) |
 
-**Source** (9): [analytics/src/errors.ts](../../packages/analytics/src/errors.ts), [analytics/src/index.ts](../../packages/analytics/src/index.ts), [analytics/src/method.ts](../../packages/analytics/src/method.ts), [analytics/src/numeric/canonical.ts](../../packages/analytics/src/numeric/canonical.ts), [analytics/src/numeric/from-decimal.ts](../../packages/analytics/src/numeric/from-decimal.ts), [analytics/src/numeric/sha256.ts](../../packages/analytics/src/numeric/sha256.ts), [analytics/src/registry.ts](../../packages/analytics/src/registry.ts), [analytics/src/types.ts](../../packages/analytics/src/types.ts), [test-kit/src/analytics-history.ts](../../packages/test-kit/src/analytics-history.ts)
+**Source** (12): [analytics/src/errors.ts](../../packages/analytics/src/errors.ts), [analytics/src/index.ts](../../packages/analytics/src/index.ts), [analytics/src/method.ts](../../packages/analytics/src/method.ts), [analytics/src/numeric/canonical.ts](../../packages/analytics/src/numeric/canonical.ts), [analytics/src/numeric/from-decimal.ts](../../packages/analytics/src/numeric/from-decimal.ts), [analytics/src/numeric/linalg.ts](../../packages/analytics/src/numeric/linalg.ts), [analytics/src/numeric/quantiles.ts](../../packages/analytics/src/numeric/quantiles.ts), [analytics/src/numeric/sha256.ts](../../packages/analytics/src/numeric/sha256.ts), [analytics/src/registry.ts](../../packages/analytics/src/registry.ts), [analytics/src/runtime.ts](../../packages/analytics/src/runtime.ts), [analytics/src/types.ts](../../packages/analytics/src/types.ts), [test-kit/src/analytics-history.ts](../../packages/test-kit/src/analytics-history.ts)
 
-**Tests** (6): [apps/tablets-server/test/analytics/role-permissions.test.ts](../../apps/tablets-server/test/analytics/role-permissions.test.ts), [packages/analytics/test/numeric.test.ts](../../packages/analytics/test/numeric.test.ts), [packages/analytics/test/registry.test.ts](../../packages/analytics/test/registry.test.ts), [packages/api-contract/test/analytics.test.ts](../../packages/api-contract/test/analytics.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../packages/kernel/test/analytics/analytics.test.ts), [packages/test-kit/test/analytics-history.test.ts](../../packages/test-kit/test/analytics-history.test.ts)
+**Tests** (10): [apps/tablets-server/test/analytics/role-permissions.test.ts](../../apps/tablets-server/test/analytics/role-permissions.test.ts), [apps/tablets-server/test/analytics/routes.test.ts](../../apps/tablets-server/test/analytics/routes.test.ts), [apps/tablets-server/test/analytics/runner.test.ts](../../apps/tablets-server/test/analytics/runner.test.ts), [packages/analytics/test/libraries.test.ts](../../packages/analytics/test/libraries.test.ts), [packages/analytics/test/numeric.test.ts](../../packages/analytics/test/numeric.test.ts), [packages/analytics/test/registry.test.ts](../../packages/analytics/test/registry.test.ts), [packages/api-contract/test/analytics.test.ts](../../packages/api-contract/test/analytics.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../packages/kernel/test/analytics/analytics.test.ts), [packages/kernel/test/analytics/method-change.test.ts](../../packages/kernel/test/analytics/method-change.test.ts), [packages/test-kit/test/analytics-history.test.ts](../../packages/test-kit/test/analytics-history.test.ts)
 
 **Controls** (6): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-51](../../compliance/controls/DI-51.yaml), [DI-52](../../compliance/controls/DI-52.yaml), [DI-53](../../compliance/controls/DI-53.yaml), [PR-61](../../compliance/controls/PR-61.yaml)
+
+## analytics-foundation
+
+**Advisory analytics foundation (Phase 6A slice 6A-1) - runner, input views, method change control, dispositions, monitoring, screens.** Package `apps/tablets-server`. Handbook: [modules/analytics.md](modules/analytics.md).
+
+**Migrations** (2):
+
+- `packages/kernel/sql`: [1245_analytics_method_change.sql](../../packages/kernel/sql/1245_analytics_method_change.sql)
+- `packages/recipe-core/sql`: [1115_analytics_input_views.sql](../../packages/recipe-core/sql/1115_analytics_input_views.sql)
+
+**Database objects** created in these migrations:
+
+- Views (8): `analytics.flag_disposition_v1`, `analytics.flag_v1`, `analytics.method_version_v1`, `analytics.reference_set_v1`, `analytics.run_v1`, `report.batch_fact_v1`, `report.cpp_value_v1`, `report.step_use_v1`
+- Functions (11): `analytics.method_version_rules`, `analytics.person_flag_dispositions`, `analytics.reference_set_rules`, `analytics.set_method_version`, `analytics.set_reference_set`, `report.batch_fact_rows_v1`, `report.cpp_value_rows_v1`, `report.cpp_values_of`, `report.engine_instant`, `report.outer_limits`, `report.step_use_rows_v1`
+- Triggers (2): `a20_method_version_rules on analytics.method_version`, `a20_reference_set_rules on analytics.reference_set`
+
+**Server files** (3): [guidance.ts](../../apps/tablets-server/src/features/analytics/guidance.ts), [index.ts](../../apps/tablets-server/src/features/analytics/index.ts), [reads.ts](../../apps/tablets-server/src/features/analytics/reads.ts)
+
+**Contract** (1): [analytics-config.ts](../../packages/api-contract/src/ns/analytics-config.ts)
+
+**Routes** (2):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| POST | `/api/analytics/method-versions` | `analyticsConfig.setMethodVersion` | [analytics-config.ts](../../packages/api-contract/src/ns/analytics-config.ts) |
+| POST | `/api/analytics/reference-sets` | `analyticsConfig.setReferenceSet` | [analytics-config.ts](../../packages/api-contract/src/ns/analytics-config.ts) |
+
+**Screens** (5): [AnalyticsPage.tsx](../../apps/tablets-web/src/features/analytics/AnalyticsPage.tsx), [FlagsPage.tsx](../../apps/tablets-web/src/features/analytics/FlagsPage.tsx), [MethodsPage.tsx](../../apps/tablets-web/src/features/analytics/MethodsPage.tsx), [index.tsx](../../apps/tablets-web/src/features/analytics/index.tsx), [shared.tsx](../../apps/tablets-web/src/features/analytics/shared.tsx)
+
+**Source** (5): [catalog.ts](../../apps/tablets-server/src/analytics/catalog.ts), [implementation.ts](../../apps/tablets-server/src/analytics/implementation.ts), [inputs.ts](../../apps/tablets-server/src/analytics/inputs.ts), [pool.ts](../../apps/tablets-server/src/analytics/pool.ts), [runner.ts](../../apps/tablets-server/src/analytics/runner.ts)
+
+**Tests** (3): [apps/tablets-web/test/analytics/analytics.test.tsx](../../apps/tablets-web/test/analytics/analytics.test.tsx), [packages/recipe-core/test/analytics/input-views.test.ts](../../packages/recipe-core/test/analytics/input-views.test.ts), [tools/boundaries/test/number-ban.test.ts](../../tools/boundaries/test/number-ban.test.ts)
 
 ## kernel-integration
 
