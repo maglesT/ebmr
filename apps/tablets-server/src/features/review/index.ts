@@ -8,11 +8,11 @@
 import { routes } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../../platform/context.ts';
-import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
+import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import { usOf } from '../common/people.ts';
-import { auditTrailReport, batchReview, itemDetail, reviewItems, reviewQueue } from './reads.ts';
+import { auditTrailReport, batchReview, itemDetail, prioritisedQueue, reviewItems, reviewQueue } from './reads.ts';
 import { reviewActHandler } from './signables.ts';
 
 export function registerSignableActions(registry: SignableActionRegistry, app: AppContext): void {
@@ -23,9 +23,23 @@ export function registerSignableActions(registry: SignableActionRegistry, app: A
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
   bindRoutes(scope, app, routes.review, {
-    queue: async ({ query, requireSession }) => {
-      requireSession();
-      return { batches: await reviewQueue(pool, query.state) };
+    queue: async ({ query, actor }) => {
+      const who = actor();
+      const batches = await reviewQueue(pool, query.state);
+      // Phase 6A slice 6A-5 (PR-61): for a holder of ANALYTICS.VIEW (checked by the database), the advisory review
+      // priority orders the same records. Without it, or when the priority cannot be read (the analytics runner down,
+      // the view unreadable), the queue is exactly as before: the priority never decides which records are listed.
+      try {
+        return await withActorCommand(pool, who, async (c) => {
+          await c.query("select iam.require_permission('ANALYTICS.VIEW', '{}'::jsonb)");
+          return prioritisedQueue(app, c, batches);
+        });
+      } catch (error) {
+        if (!/EBMR-IAM-040/.test(error instanceof Error ? error.message : String(error))) {
+          app.log.warn({ err: error }, 'review queue: the advisory review priority could not be read; the queue is listed without it');
+        }
+        return { batches, ordering: { by: 'BATCH_NUMBER' as const, advisory: false, notForGmpDecisions: false, dataAgeSeconds: null } };
+      }
     },
     batch: async ({ params, requireSession }) => {
       requireSession();

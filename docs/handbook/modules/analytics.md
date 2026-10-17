@@ -1,7 +1,7 @@
 # analytics: advisory analytics (Phase 6A)
 
 **Draft.** This page is still being written; facts on it were checked against the code on 17 October 2026 (slices
-6A-0, 6A-1, 6A-2, 6A-3 and 6A-6). Slices 6A-4 and 6A-5 add their methods here.
+6A-0, 6A-1, 6A-2, 6A-3, 6A-4, 6A-5 and 6A-6).
 
 This page explains the advisory analytics of the Tablets edition: the pure package `packages/analytics`, the runner in
 the tablets server, the analytics role and schema in the database, the input views it reads, the method versions under
@@ -27,10 +27,16 @@ the plan is [phase-6a-plan.md](../../build-plan/phase-6a/phase-6a-plan.md) and t
 | Schema, role, tables, record functions, read views (6A-0) | kernel [1240](../../../packages/kernel/sql/1240_analytics_schema_role.sql) to [1244](../../../packages/kernel/sql/1244_analytics_permissions.sql) |
 | Method change control, the screens' views (6A-1) | kernel [1245](../../../packages/kernel/sql/1245_analytics_method_change.sql) |
 | Input views v1 | recipe-core [1115](../../../packages/recipe-core/sql/1115_analytics_input_views.sql) |
+| Audit-trail methods ATA.RULES, ATA.BASELINE (6A-4) | [methods/audit/](../../../packages/analytics/src/methods/audit/), runner [audit.ts](../../../apps/tablets-server/src/analytics/audit.ts#sym=auditInput) |
+| Audit-trail inputs and flag readers (6A-4) | kernel [1260](../../../packages/kernel/sql/1260_analytics_auth_facts.sql), [1261](../../../packages/kernel/sql/1261_analytics_audit_flag_groups.sql); recipe-core [1150](../../../packages/recipe-core/sql/1150_analytics_audit_inputs.sql), [1151](../../../packages/recipe-core/sql/1151_analytics_audit_flag_entries.sql) |
+| Audit-trail flag routes and screens `/analytics/audit-flags` (6A-4) | [features/analytics/audit/](../../../apps/tablets-server/src/features/analytics/audit/), [ns/analytics-audit.ts](../../../packages/api-contract/src/ns/analytics-audit.ts), [tablets-web features/analytics-audit/](../../../apps/tablets-web/src/features/analytics-audit/) |
 | SPC, capability, drift and rate methods (6A-2) | [methods/spc](../../../packages/analytics/src/methods/spc/index.ts#sym=runImr), [capability](../../../packages/analytics/src/methods/capability/index.ts#sym=runCapability), [drift](../../../packages/analytics/src/methods/drift/index.ts#sym=runDrift), [rates](../../../packages/analytics/src/methods/rates/index.ts#sym=runRates) |
 | Their runner wiring and version 1 definitions | [spc.ts](../../../apps/tablets-server/src/analytics/spc.ts#sym=SPC_IMPLEMENTATIONS) |
 | Their routes and screens `/analytics/spc`, `/analytics/rates` | [features/analytics/spc/](../../../apps/tablets-server/src/features/analytics/spc/), [ns/analytics-spc.ts](../../../packages/api-contract/src/ns/analytics-spc.ts), [tablets-web features/analytics/spc/](../../../apps/tablets-web/src/features/analytics/spc/) |
 | Rate inputs and the site shifts | recipe-core [1130](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql) |
+| Review priority REVIEW.PRIORITY (6A-5) | [methods/review/](../../../packages/analytics/src/methods/review/priority.ts#sym=runReviewPriority), runner [review.ts](../../../apps/tablets-server/src/analytics/review.ts#sym=reviewInput) |
+| Review facts (6A-5) | recipe-core [1160](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql) |
+| Review priority route, the queue's order and screens (6A-5) | [features/analytics/review/](../../../apps/tablets-server/src/features/analytics/review/), the queue in [features/review/reads.ts](../../../apps/tablets-server/src/features/review/reads.ts#sym=prioritisedQueue), [ns/analytics-review.ts](../../../packages/api-contract/src/ns/analytics-review.ts), [tablets-web features/analytics-review/](../../../apps/tablets-web/src/features/analytics-review/) |
 | Golden batch profile: method GBP.DTW_BAND and its curve arithmetic (6A-6) | [methods/profile/](../../../packages/analytics/src/methods/profile/) |
 | Its runner implementation, routes and screens (6A-6) | [profile.ts](../../../apps/tablets-server/src/analytics/profile.ts#sym=GOLDEN_PROFILE), [features/analytics/profile/](../../../apps/tablets-server/src/features/analytics/profile/), [ns/analytics-profile.ts](../../../packages/api-contract/src/ns/analytics-profile.ts), [tablets-web features/analytics/profile/](../../../apps/tablets-web/src/features/analytics/profile/) |
 | Series inputs and the reference sets in force (6A-6) | recipe-core [1170](../../../packages/recipe-core/sql/1170_analytics_series_inputs.sql) |
@@ -149,11 +155,74 @@ with `raised_count` and `first_raised_at`, and the flags screen says how often i
 closes the signal, including the same hit raised later; a hit that differs in anything is listed on its own. The
 monitor counts each raise with its signal's disposition.
 
+## Audit-trail anomaly detection (slice 6A-4)
+
+Decision 0016 item 8, rules first, then per-person baselines; no machine learning (decision 0023). A flag is a pointer
+for data-integrity review, never an accusation or a finding (draft [DI-53](../../../compliance/controls/DI-53.yaml)).
+
+- **Inputs** (on the analytics role's allow-list only; not in the report catalogue, unreadable by the application and
+  reporting roles, because they describe persons; D-6A-4-2). All cover the last 26 weeks.
+  - `report.audit_fact_v1` (recipe-core 1150): one row per audit event of a person: who, role, terminal, action, table,
+    whether it is a correction and its reason code; for a batch record's entry its command type, item, step instance,
+    attempt, whether it failed and the time it claims; the batch, a linked deviation, the configuration area; the
+    site's wall-clock time. No old or new value, only the changed field names.
+  - `report.manual_digit_v1` (recipe-core 1150): the last digit of each value keyed by hand, nothing more.
+  - `report.auth_fact_v1` (kernel 1260): logins, failed logins and lockouts of human accounts with terminal and time.
+- **ATA.RULES v1** ([rules.ts](../../../packages/analytics/src/methods/audit/rules.ts#sym=runAuditRules)): LATE_ENTRY,
+  BACK_DATED, CORRECTIONS_HIGH, TWO_TERMINALS, TOO_REGULAR, REPEAT_UNTIL_PASS, OFF_HOURS_CONFIG, thresholds in the
+  version's parameters (D-6A-12). One flag per hit, each about a PERSON with its reason and evidence (the audit entries
+  as `<chain>#<id>`, logins, the week or the test).
+- **ATA.BASELINE v1** ([baseline.ts](../../../packages/analytics/src/methods/audit/baseline.ts#sym=runAuditBaseline)):
+  weekly entries, corrections, late entries and failed logins per person against the person's own trailing 13 weeks as
+  a robust z (median, MAD); a completed week is assessed only with 6 weeks of history; flags at |z| above 3.5.
+- **Keys** (kernel 1261): every run assesses the whole window again, so the same hit is raised again. A flag's key is
+  its method, rule, subject and the first evidence of its first reason. `analytics.audit_flags` gives one row per key
+  (the latest flag, how often and since when, and the key's current disposition); a disposition on any flag of the key
+  closes it, also for the hits raised again later (D-6A-4-5).
+- **Restricted reads**: `analytics.audit_flags`, `analytics.audit_flag_entries` (the entries behind a flag) and
+  `analytics.audit_flagged_entries` (the flagged entries of a batch's review scope) refuse administrators and need
+  `ANALYTICS.DI_REVIEW`. A flag sends no notification. QA closes it with `analytics.dispose`; a confirmed problem is raised
+  as a deviation.
+- **Review panel** (DI-25): for the CSV/DI lead the batch audit-trail review panel lists the flagged entries first and
+  highlights them; every entry is still listed and the review (scope, mark, hash, signature) is unchanged. Nothing in the
+  review reads a flag (D-6A-4-9).
+
+## Review priority (slice 6A-5)
+
+Decision 0016 item 9. A transparent weighted score per GMP batch record in the review queue that orders the QA review
+queue and shows its top three reasons. It never skips, narrows or completes a review (draft
+[PR-61](../../../compliance/controls/PR-61.yaml)): every record is still reviewed in full.
+
+- **Input** `report.review_fact_v1` (recipe-core 1160; in the report catalogue and on the analytics role's allow-list):
+  one row per record at EXECUTION_COMPLETE or ABORTED that awaits QA review or was QA reviewed in the last 30 days, with
+  its exceptions by severity (register CRITICAL, ACTION, ALERT as critical, major, minor), accepted post-entry
+  corrections, linked deviations (not cancelled), how many persons were new to the product, the units new to the GMP
+  records or maintained in the 7 days before their use, and the review outcome so far (findings, reopenings). It names
+  no person. The method also reads `report.cpp_value_v1`, `report.step_use_v1`, `report.batch_fact_v1` and
+  `report.audit_fact_v1` (D-6A-5-1 to -5).
+- **REVIEW.PRIORITY v1** ([priority.ts](../../../packages/analytics/src/methods/review/priority.ts#sym=runReviewPriority)):
+  the D-6A-13 weights (critical 5, major 3, minor 1, near a limit 1 up to 5, correction 1 up to 5, audit-trail rule hit 3,
+  new operator 2 once, new or maintained unit 2 once, unusual step duration 1 up to 3, linked deviation 4). Near a limit
+  is compared exactly on the decimal text; a step duration is a robust z against the same product, family and step of
+  at least 5 records; an audit-trail hit is an ATA.RULES v1 hit over the same snapshot whose evidence names an entry of
+  the record, counted, never named (D-6A-5-4). One REVIEW_PRIORITY output per record, with every term's count and
+  points and the outcome so far; no flag.
+- **The queue** (`review.queue`, feature review): for a holder of `ANALYTICS.VIEW` (checked by the database) the same
+  records, ordered: records awaiting QA review first, the unscored ones first, then by score (ties by completion time),
+  then the QA-reviewed records by batch number (D-6A-14, D-6A-5-7). Each record carries its optional `priority` and the
+  response its `ordering` with the advisory band. Without the permission, or when the priority cannot be read, the
+  queue is exactly as before. The review feature reads `analytics.review_priority_v1` by SQL only; no review, register,
+  audit-trail review or release function reads it (the test `[PR-61] no review, register or release function depends
+  on the review priority`).
+- **Screens**: the queue shows each record's score and reasons (or "not scored yet") under the advisory band;
+  `/analytics/review-priority/$batchId` shows one record's priority with every reason and the link into its review.
+- QA puts version 1 in force (`REVIEW_METHOD_DEFINITIONS`) under a change record; no migration writes it.
+
 ## Permissions (Tablets)
 
 | Permission | Roles | Used by |
 |---|---|---|
-| `ANALYTICS.VIEW` | QA reviewer, head of production, AP, EU QP, CSV/DI lead | every analytics read |
+| `ANALYTICS.VIEW` | QA reviewer, head of production, AP, EU QP, CSV/DI lead | every analytics read; the review queue's priority order |
 | `ANALYTICS.DISPOSITION` | QA reviewer, CSV/DI lead | dispositions |
 | `ANALYTICS.DI_REVIEW` | CSV/DI lead | flags about a person |
 | `ANALYTICS.METHOD` | QA reviewer, process owner | method versions, reference sets |

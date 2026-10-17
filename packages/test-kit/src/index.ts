@@ -14,6 +14,7 @@ export const PACKAGE = { name: '@ebmr/test-kit', version: '0.1.0' } as const;
 export const BUILT_AGAINST = [KernelPackage] as const;
 
 export * from './analytics-history.ts';
+export * from './analytics-review-history.ts';
 export * from './db.ts';
 export * from './keys.ts';
 export * from './personas.ts';

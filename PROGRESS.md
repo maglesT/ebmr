@@ -203,13 +203,29 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   (ml-matrix, @stdlib quantiles), the runner's number lint ban, and the golden batches with the runner on. Defaults
   D-6A-1-1 to 23 in the plan. Quick review: one medium fixed (a version validated with an earlier build could not
   be retired after an upgrade; D-6A-1-23); golden GB-T-01 to GB-T-03 passed with the runner on.
-- **6A-2 (17 October, branch `phase-6a/slice-2`, pushed, no PR yet):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
+- **6A-1 merged (PR #44).** **6A-4 (17 October, branch `phase-6a/slice-4`, pushed, no PR yet):** audit-trail anomaly
+  detection. `ATA.RULES` v1 (late, back-dated, corrections above the site percentile, two terminals, terminal digits,
+  repeat until pass, off-hours configuration) and `ATA.BASELINE` v1 (robust z against the person's own 13 weeks, 6 weeks
+  of history) in `packages/analytics/src/methods/audit/`, wired in the runner. Inputs kernel 1260 (`auth_fact_v1`) and
+  recipe-core 1150 (`audit_fact_v1`, `manual_digit_v1`; no values), on the analytics role's allow-list only. Flag keys
+  and the restricted readers (DI_REVIEW) in kernel 1261 and recipe-core 1151. Routes `analyticsAudit` (bound), screens
+  `/analytics/audit-flags`, and the review panel lists flagged entries first for the DI lead (DI-25). Defaults
+  D-6A-4-1 to 11 in the plan. Own review: one medium fixed (open keys cut by the list limit).
+- **6A-2 (17 October, branch `phase-6a/slice-2`; merged as PR #45):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
   3, 5), CAP.INDEX (Cpk, Ppk, Bissell intervals, Anderson-Darling, from 25 batches), DRIFT.TREND (slope projection,
   EWMA) and RATE.DEVIATION (Wilson, Garwood, one-sided Fisher, Benjamini-Hochberg, funnel) in `packages/analytics`,
   checked against SciPy reference values and published examples; runner wiring `analytics/spc.ts`; recipe-core 1130
   (`report.deviation_fact_v1`, `report.step_shift_v1`, setting `site.shift_boundaries`); routes `analyticsSpc` and the
   screens `/analytics/spc`, `/analytics/rates`; the PQR screen links to them as an advisory annex. Defaults D-6A-2-1 to
   15 in the plan; residuals for the lead there (reference sets not yet passed to runs; flags repeat on every run).
+- **6A-5 (17 October, branch `phase-6a/slice-5`, on 6A-4 with 6A-2 merged in, pushed, no PR yet):** review priority.
+  `REVIEW.PRIORITY` v1 in `packages/analytics/src/methods/review/` (the D-6A-13 weights and caps, exact near-limit
+  comparison, robust step durations, ATA.RULES hits on the record's entries counted), runner wiring `analytics/review.ts`;
+  recipe-core 1160 (`report.review_fact_v1`: exceptions by severity, corrections, deviations, new operators and units,
+  the review outcome); the review queue lists the same records ordered by priority (unscored first, then by score) with
+  the reasons for holders of ANALYTICS.VIEW, as before otherwise; route `analyticsReview.priority`, screens. Nothing in
+  review, the register or release reads the score (PR-61). Defaults D-6A-5-1 to 11 in the plan. Own review: one high
+  fixed (the audit-trail term shown outside data-integrity review; DI-53).
 - **6A-6 (17 October, branch `phase-6a/slice-6`, pushed, no PR yet):** the golden batch profile.
   - Method `GBP.DTW_BAND` on the native OPC UA series: 200 points, DTW with a 10 % Sakoe-Chiba band, a 5 % to 95 %
     band. It flags a curve with more than 10 % of its points out of band, or one beyond the distance limit.

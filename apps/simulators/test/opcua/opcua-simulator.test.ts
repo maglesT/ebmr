@@ -93,15 +93,24 @@ describe('the OPC UA equipment simulator', () => {
       await sim.setFault('RELOCATED', true);
       expect((await read('_endpoint/location')).value.value).toBe('RM-COMP-1-ELSEWHERE');
       await sim.setFault('RELOCATED', false);
-      // A tick may publish once more between a read and the fault, so the frozen value's source time is compared with
-      // the moment the fault began: it is that last value's old time, never a time after the freeze.
-      const faultAt = Date.now();
+      // The simulator's source times are strictly increasing (one ms per publication), so they may run a few ms ahead
+      // of the wall clock and are compared with each other, not with Date.now(). A frozen value keeps its old source
+      // time while the fault holds (two reads 300 ms apart agree), and the first good value after the fault is newer.
       await sim.setFault('STALE_VALUE', true);
       await new Promise((r) => setTimeout(r, 300));
       const stale = await read('PRESS-01/force.main_kN');
       expect(stale.statusCode.value.toString(16)).toBe('40900000');
-      expect(stale.sourceTimestamp?.getTime() ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(faultAt);
+      const frozenAt = stale.sourceTimestamp?.getTime();
+      expect(frozenAt).toBeDefined();
+      await new Promise((r) => setTimeout(r, 300));
+      const still = await read('PRESS-01/force.main_kN');
+      expect(still.statusCode.value.toString(16)).toBe('40900000');
+      expect(still.sourceTimestamp?.getTime()).toBe(frozenAt);
       await sim.setFault('STALE_VALUE', false);
+      await new Promise((r) => setTimeout(r, 400));
+      const fresh = await read('PRESS-01/force.main_kN');
+      expect(fresh.statusCode.isGood()).toBe(true);
+      expect(fresh.sourceTimestamp?.getTime() ?? 0).toBeGreaterThan(frozenAt ?? Number.POSITIVE_INFINITY);
       await sim.setFault('EXCURSION', true);
       await new Promise((r) => setTimeout(r, 300));
       expect(String((await read('PRESS-01/_alarms/active')).value.value)).toMatch(/\|force\.main_kN/);

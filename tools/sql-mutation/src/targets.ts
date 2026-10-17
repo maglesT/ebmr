@@ -1382,10 +1382,30 @@ export const TARGETS: Target[] = [
     tests: [r('analytics/input-views.test.ts')],
     threshold: 90,
   },
+  // ---- 6A-4, audit-trail anomaly detection (kernel 1260, 1261; recipe-core 1150, 1151; decision 0016 item 8): the
+  //      audit and authentication facts that export no value (DI-51, DI-53), and the flag readers restricted to
+  //      ANALYTICS.DI_REVIEW, one row per key with the key's current disposition (DI-53, DI-25). ----
+  {
+    group: 'analytics-audit',
+    functions: ['report.auth_fact_rows_v1', 'report.execution_command_events', 'report.execution_points', 'report.audit_facts',
+                'report.audit_fact_rows_v1', 'report.manual_digit_rows_v1', 'analytics.flag_key', 'analytics.audit_flags',
+                'analytics.audit_flag_entries', 'analytics.audit_flagged_entries'],
+    tests: [r('analytics/audit-inputs.test.ts'), s('analytics/audit.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6A-2, deviation-rate inputs (recipe-core 1130): the shift boundaries and the deviation and step-shift facts. ----
   {
     group: 'analytics-rate-inputs',
     functions: ['report.shift_boundaries_problem', 'report.check_shift_boundaries', 'report.shift_of', 'report.deviation_fact_rows_v1', 'report.step_shift_rows_v1'],
     tests: [r('analytics/rate-inputs.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6A-5, review priority (recipe-core 1160; decision 0016 item 9): the review facts the score is computed from,
+  //      over the records in the review queue (PR-61, DI-51). ----
+  {
+    group: 'analytics-review-inputs',
+    functions: ['report.review_ended_at', 'report.review_fact_batches', 'report.review_novelty', 'report.review_fact_rows_v1'],
+    tests: [r('analytics/review-inputs.test.ts')],
     threshold: 90,
   },
   // ---- 6A-6, golden batch profile inputs (recipe-core 1170): each GMP batch step's native series on its unit within

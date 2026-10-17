@@ -22,9 +22,16 @@ implemented_by:
     - "packages/kernel/sql/1243_analytics_read_views.sql"
     - "packages/kernel/sql/1244_analytics_permissions.sql"
     - "apps/tablets-server/sql/1330_analytics_role_permissions.sql"
+    - "packages/kernel/sql/1260_analytics_auth_facts.sql"
+    - "packages/kernel/sql/1261_analytics_audit_flag_groups.sql"
+    - "packages/recipe-core/sql/1150_analytics_audit_inputs.sql"
+    - "packages/recipe-core/sql/1151_analytics_audit_flag_entries.sql"
+    - "packages/analytics/src/methods/audit/rules.ts"
+    - "packages/analytics/src/methods/audit/baseline.ts"
   invariants: []
   guards:
     - "analytics.person_flags and analytics.record_disposition: ANALYTICS.DI_REVIEW for a restricted flag (EBMR-ANA-007)"
+    - "analytics.audit_flags, analytics.audit_flag_entries and analytics.audit_flagged_entries: ANALYTICS.DI_REVIEW (EBMR-ANA-007)"
   db_constraints: []
   rule_keys: []
 tests:
@@ -32,6 +39,22 @@ tests:
   - "apps/tablets-server/test/analytics/role-permissions.test.ts > the analytics permissions of the Tablets roles (tablets 1330) > [DI-52][DI-53] each analytics permission is held by exactly its Tablets roles, ANALYTICS.DI_REVIEW by the data-integrity reviewer alone, none by an administration role"
   - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-53] a person flag is unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
   - "packages/kernel/test/analytics/method-change.test.ts > the flags views (kernel 1245) > [DI-53] a person flag and its dispositions are unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
+  - "packages/analytics/test/audit.test.ts > the audit-trail rules (ATA.RULES v1) > [DI-53] each seeded anomaly of the synthetic history raises its rule's flag with its reasons, and the clean persons raise none"
+  - "packages/analytics/test/audit.test.ts > the audit-trail rules (ATA.RULES v1) > [DI-53] a re-run on the same input reproduces the flags and their keys exactly, whatever order the rows come in"
+  - "packages/analytics/test/audit.test.ts > the audit-trail rules (ATA.RULES v1) > [DI-53] corrections above the site's 95th percentile in a completed week raise CORRECTIONS_HIGH; the same count in the week in progress, or below the percentile, does not"
+  - "packages/analytics/test/audit.test.ts > the audit-trail rules (ATA.RULES v1) > [DI-53] a configuration change outside the site's working hours raises OFF_HOURS_CONFIG; one inside them, or a data entry at night, does not"
+  - "packages/analytics/test/audit.test.ts > the audit-trail rules (ATA.RULES v1) > [DI-53] each rule stays silent on its clean case: a timely entry, an in-order step, one terminal, varied digits, a pass at the first attempt or after a deviation"
+  - "packages/analytics/test/audit.test.ts > the per-person baseline (ATA.BASELINE v1) > [DI-53] the baseline flags a week far from the person's own trailing weeks, with the week, the metric, the median and the robust z"
+  - "packages/analytics/test/audit.test.ts > the per-person baseline (ATA.BASELINE v1) > [DI-53] the baseline gives no flag below 6 weeks of history"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs (kernel 1260, recipe-core 1150) > [DI-53] the audit facts give each entry of a person with who, where, when, its item, step, attempt, failure, claimed time and correction, and leave the release out"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs (kernel 1260, recipe-core 1150) > [DI-53] the authentication facts give logins, failed logins and lockouts of human accounts with terminal and time, and nothing secret"
+  - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs (kernel 1260, recipe-core 1150) > [DI-53][DI-51] only the analytics role reads the audit and authentication facts: the application and reporting roles are refused, and the segregation check stays clean"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE) > [DI-53] the runner raises the audit-trail flags from the audit and authentication facts: about the person, restricted, with their reasons and the entries behind them"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE) > [DI-53] a person flag is unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE) > [DI-53] a flag sends no notification and closes only with a disposition"
+  - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE) > [DI-25][DI-53] the entries route names the flagged entries of a batch's audit-trail review scope, and only those"
+  - "apps/tablets-web/test/analytics-audit/audit.test.tsx > audit-trail flags (GMP) > [DI-53] the audit-trail flags show the advisory band, that a flag is no finding, each flag's reasons and the entries behind it; only the data-integrity reviewer is offered the disposition"
+  - "apps/tablets-server/test/analytics/review.test.ts > the review priority orders the review queue and never skips a review (GMP; REVIEW.PRIORITY) > [DI-53][PR-61] the audit-trail term of a score is shown only to data-integrity review; anyone else sees and is ordered by the score without it"
 expert_decision:
   status: PENDING
   pack_version: draft

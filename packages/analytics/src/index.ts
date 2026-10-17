@@ -34,6 +34,9 @@ export {
   type Severity,
   type SubjectKind,
 } from './types.ts';
+// Slice 6A-4: the audit-trail methods (rules, then per-person baselines).
+export * as audit from './methods/audit/index.ts';
+export { ATA_BASELINE, ATA_RULES, type AuditBaselineParameters, type AuditInput, type AuditRulesParameters } from './methods/audit/index.ts';
 // Slice 6A-2: SPC, capability, drift and deviation-rate methods (methods/spc, capability, drift, rates).
 export { SPC_IMR, SPC_XBAR_S, referenceLimits, runImr, runXbarS, type SpcParameters, type XbarSParameters } from './methods/spc/index.ts';
 export {
@@ -67,6 +70,9 @@ export {
   type RateParameters,
   type RateProduct,
 } from './methods/rates/index.ts';
+// Slice 6A-5: the review priority (a transparent weighted score that orders the QA review queue).
+export * as review from './methods/review/index.ts';
+export { REVIEW_PRIORITY, type ReviewInput, type ReviewPriorityParameters, type ReviewRecord, type ReviewStep, type ReviewValue } from './methods/review/index.ts';
 // Slice 6A-6: the golden batch profile.
 export {
   GBP_DTW_BAND,

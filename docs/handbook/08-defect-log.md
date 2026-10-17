@@ -1142,6 +1142,24 @@ role cannot write: ...` (kernel sandbox tests).
 commands are FRESH_ON_SHARED with the attribution member, as other floor commands. **Tests.** the contract test of
 FRESH_ON_SHARED routes; `[DI-05] a training session's attempts are the person's own ...`.
 
+## Slice 6A-4: audit-trail anomaly detection (Phase 6A)
+
+### P6A4-1: an open audit-trail flag could drop out of the list (found in the slice's own review)
+
+**Symptom.** The audit-trail flags list without a period (the open flags) took the newest 500 keys and only then kept
+the open ones, so with many dispositioned keys an older open key was not listed; the flag detail looked its key up in
+the same capped list and could show a dispositioned key as open. **Cause.** The filter ran after the limit, in the
+server. **Fix.** `auditKeys` filters open keys, or the one key asked for, in the query before the limit. **Tests.** the
+server's `[DI-53] a flag sends no notification and closes only with a disposition` (open list, period list and detail
+of a re-raised key).
+
+### P6A4-2: a re-run raises every hit again (design note, found while building)
+
+**Symptom.** Each run of the audit-trail methods assesses the whole 26-week window, so QA would have to disposition the
+same hit after every nightly run. **Fix.** A flag's key (method, rule, subject, first evidence of the first reason;
+kernel 1261 `analytics.flag_key`) groups the repeats; a disposition on any flag of a key closes it (D-6A-4-5). The
+flag table still grows by one row per hit and run; measure at a real site.
+
 ## Phase 6 mutation campaign (decision 0019)
 
 ### M6-D1: a typed lot code stopped receiving for the rest of the day (medium, fails safe; site services 1002)
@@ -1174,6 +1192,28 @@ a refusal does not reserve it. Found while writing the Phase 6 mutation campaign
 under the same key lands, exactly once; ...` and `[DI-31] M6-D2: a page that repeats a refused item unchanged is handled
 once; ...` (apps/tablets-server/test/equipment-data/opcua-adapter.test.ts). **Lesson.** De-duplicate on what you
 received, never on what the sender claims about it; a claim that failed its check identifies nothing.
+
+## Slice 6A-5: review priority (Phase 6A)
+
+### P6A5-1: the review priority told every QA viewer that a record's entries had an audit-trail hit (high, DI-53; found in the slice's own review)
+
+**Symptom.** The score's OPEN_AUDIT_FLAG term and its reason ("1 audit-trail rule hit on this record's entries") were
+shown in the review queue to every holder of ANALYTICS.VIEW, the head of production included. **Why it matters.** The
+hits come from flags about persons, which only data-integrity review may read (D-6A-12, draft DI-53); on a record a few
+people worked on, the reason points at them and reaches their line. **Fix.** The queue and the one-record route give
+anyone without ANALYTICS.DI_REVIEW (asked of the database) the score without that term and without its reason, and
+order by it; the data-integrity lead sees the full score (`features/common/review-priority.ts`). **Tests.**
+`[DI-53][PR-61] the audit-trail term of a score is shown only to data-integrity review; ...`
+(apps/tablets-server/test/analytics/review.test.ts). **Lesson.** A count derived from restricted data is restricted
+data; check what an aggregate implies, not only what it names.
+
+### P6A5-2: open audit-trail flags cannot reach the score's inputs (design note, found while building)
+
+**Symptom.** The plan counts "open audit-trail flags on the batch", but no report view may read the analytics schema
+(the DI-51 dependency proof) and the analytics role reads only catalogued report views. **Fix.** REVIEW.PRIORITY runs
+the ATA.RULES version 1 rules over the same snapshot's audit facts and counts the hits on the record's entries
+(D-6A-5-4); a disposition does not lower the term in v1. A catalogued input of the open keys per batch is a kernel
+change, written up for the lead.
 
 ## Slice 6A-2: SPC, capability, drift and deviation rates (Phase 6A)
 
