@@ -94,7 +94,7 @@ jobs:
                 erp-wms-receipt-and-stock, qms-capa-lims-cmms, equipment-data-and-alarms, plant-rules,
                 packaging-labels-and-line-completion, serialisation-l3, genealogy-and-recall, controlled-substance-mode,
                 governance-change-control, governance-support-and-contract-giver, india-dsc, reporting-and-training,
-                transfer-and-federation]
+                transfer-and-federation, analytics-foundation]
     services:
       postgres:
         image: postgres:16
