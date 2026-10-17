@@ -29,6 +29,8 @@ export const SpcChartView = z.strictObject({
   centre: StatNumber,
   upperControl: StatNumber,
   lowerControl: StatNumber,
+  /** Slice 6A-2 (optional, additive): the spread chart's centre and limits (moving range for I-MR, S for Xbar-S). */
+  spreadChart: z.strictObject({ kind: z.enum(['MR', 'S']), centre: StatNumber, upper: StatNumber, lower: StatNumber }).optional(),
   points: z.array(z.strictObject({
     batchId: Uuid,
     batchNumber: z.string().min(1),
@@ -69,7 +71,13 @@ export const RatesView = z.strictObject({
   by: RateGrouping,
   period: z.strictObject({ from: SiteDate, to: SiteDate }),
   /** The overall rate the groups are compared with (the funnel's centre line). */
-  overall: z.strictObject({ batches: Count, withDeviation: Count, share: StatNumber }),
+  overall: z.strictObject({
+    batches: Count,
+    withDeviation: Count,
+    share: StatNumber,
+    /** Slice 6A-2 (optional, additive): deviations linked to a batch only, not attributed within the grouping (D-6A-10). */
+    unattributedDeviations: Count.optional(),
+  }),
   groups: z.array(z.strictObject({
     group: z.string().min(1),
     batches: Count,
@@ -83,6 +91,8 @@ export const RatesView = z.strictObject({
     /** Benjamini-Hochberg adjusted (D-6A-10). */
     qValue: StatNumber,
     above: z.boolean(),
+    /** Slice 6A-2 (optional, additive): the funnel's comparison limits at the group's size. */
+    funnel: z.strictObject({ lower: StatNumber, upper: StatNumber }).optional(),
   })),
   flags: z.array(FlagView),
   skipped: z.array(SkippedSubject),

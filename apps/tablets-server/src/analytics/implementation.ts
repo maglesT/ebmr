@@ -5,6 +5,7 @@
  * until a slice adds a method and QA makes a version of it EFFECTIVE under a change record (D-6A-1-10).
  */
 import type { Method, MethodId, Parameters } from '@ebmr/analytics';
+import { SPC_IMPLEMENTATIONS } from './spc.ts';
 
 /** One row of an input view: the view's columns, as text, booleans, integers, arrays or JSON (never a Date). */
 export type InputRow = Readonly<Record<string, unknown>>;
@@ -33,5 +34,7 @@ export function implementation<I, P extends Parameters>(impl: MethodImplementati
   return impl;
 }
 
-/** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10). */
-export const IMPLEMENTATIONS: readonly MethodImplementation[] = [];
+/** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10); each method slice adds its own line. */
+export const IMPLEMENTATIONS: readonly MethodImplementation[] = [
+  ...SPC_IMPLEMENTATIONS, // 6A-2 (spc.ts)
+];
