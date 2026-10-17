@@ -137,6 +137,10 @@ describe('genealogy traversal (recipe.genealogy; PR-57)', () => {
     const { rows: down } = await db.admin.query<{ lots: string[] }>("select recipe.genealogy_downstream_lots('LOT', $1)::text[] as lots", [s.A.id]);
     expect(down[0]!.lots).toEqual(expect.arrayContaining([s.F1.id, s.F2.id, s.F4.id]));
     expect(down[0]!.lots).not.toContain(s.A.id);
+    // The recovered-material edge starts at the returned lot only (mutation triage T11, genealogy_downstream_lots#10, #11):
+    // lot B, consumed only by batch X (no lot), has nothing downstream, F1's recovered lot least of all.
+    const { rows: none } = await db.admin.query<{ lots: string[] }>("select recipe.genealogy_downstream_lots('LOT', $1)::text[] as lots", [s.B.id]);
+    expect(none[0]!.lots).toEqual([]);
   });
 
   it('[PR-57] the as-of point: a trace as of an earlier instant leaves out what was recorded after it, and repeats exactly', async () => {
