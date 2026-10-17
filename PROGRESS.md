@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 17 October 2026 (Phase 6A exit, slice 6A-7, in progress).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 17 October 2026 (Phase 6A exit, slice 6A-7).
 
 ## What this is
 
@@ -73,27 +73,23 @@ D-6A-n-* in the plan. On main at ddf3dfe (PRs #43 to #49):
   batch profile (recipe-core 1170; one high fixed, D-6A-6-12). Per-slice details: the plan's "as built" sections and
   history ("PROGRESS.md condensed").
 
-**Phase 6A exit (slice 6A-7, in progress, 17 October; branch `phase-6a/slice-7`, the review on
-`phase-6a/slice-7-review`; the lead finalises this entry after the review merges).**
-- **Trace:** DI-51, DI-52, DI-53 and PR-61 map their catalog tests word for word to clauses (6, 8, 5, 4), each with
-  passing listed tests; target phase 7 kept (D-6A-3), `phase.yaml` at 6. Dry run at phase 7 for the four drafts
-  (D-6A-7-b-3): all 23 clauses tested, no error. Every tagged test listed (`register:sync-tests`); DI-25 and DI-26 gain
-  the browser flows; PR-60, DI-09, PR-52 and PR-58 already listed their 6A tests.
-- **Browser flows** `tools/e2e/specs/phase6a/` (4 of 4 passed): SPC chart and drill to the record, the DI reviewer's
-  disposition of an audit-trail flag, the review queue by priority with the lowest record still in full review, the
-  golden profile overlay; on a copy of the E2E database with recorded runs (D-6A-7-b-1, -2).
-- **Handbook:** `modules/analytics.md` complete; architecture, database, runbooks and defect log updated. Defaults
-  D-6A-7-b-1 to 7 in the plan's "6A-7 as built".
-- **Local checks:** Vitest 6,882 passed, 0 failed; golden GB-T-01 to GB-T-03 44/44 with the runner on; `pnpm trace` at
-  6 ok (151/246); typecheck, lint, deps, pins, register (246), `[meta]`, `handbook:check` ok.
-- **Open:** the review pass and its fixes (`phase-6a/slice-7-review`), the merge, then the final run (D-6A-15).
-- **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
-  go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI; its heavy final run is combined with
-  the Phase 7 exit run on the pod (D-6A-15).
+**Phase 6A exit (slice 6A-7, 17 October; branch `phase-6a/slice-7`, trace half and review half merged).** Phase 6A is
+built and merged (PRs #43 to #49): the six analytics features, all advisory.
+- **Exit review:** 0 critical. 3 high, fixed: P6A7-1 (flag grouping made one design, kernel 1280), P6A7-2 (the
+  audit-trail term of the review score restricted in the database, kernel 1281), P6A7-3 (bounded runs). P6A5-2 fixed
+  too (kernel 1282: a QA false alarm no longer counts in the review score). Residuals P6A7-4 to 9 are in
+  `docs/build-plan/phase-6a/review-backlog.md`; defaults D-6A-7-R1 to R5 and D-6A-7-b-1 to 7 are in the plan.
+- **Trace:** the 4 drafts DI-51, DI-52, DI-53 and PR-61 have all 23 clauses proven at a phase-7 dry run, still PENDING
+  the owner (target phase 7 kept, `phase.yaml` at 6). `pnpm trace` at 6 is ok (151/246).
+- **Local runs:** 6,882 tests, golden 44/44 with the runner on, E2E 4 new flows (`tools/e2e/specs/phase6a/`). The
+  handbook module `modules/analytics.md` is complete.
+- **Open:** the 6A exit closes on GitHub CI; its heavy final run is combined with the Phase 7 exit run on the pod
+  (D-6A-15).
 
-Next: Phase 6A, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
-after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
-scripts) on a cloud server the owner provides.
+Next: Phase 7 (validation pack and hardening), built here without waiting for another go (decision 0023), starting
+with the decision 0022 items (R9, R10, R2 and the rest of R16), then the heavy test run on the pod; then Tablets v1.0.
+Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo
+mode, install and reset scripts) on a cloud server the owner provides.
 
 ## How to work here
 

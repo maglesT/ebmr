@@ -38,6 +38,10 @@ const NELSON = ['NELSON_1', 'NELSON_2', 'NELSON_3', 'NELSON_5'] as const;
 const spcParameters = {
   rules: { kind: 'choices', choices: NELSON, default: NELSON, note: 'Nelson rules 1, 2, 3 and 5 only, to keep false alarms low (D-6A-7)' },
   phaseOneBatches: { kind: 'integer', min: 10, max: 100, default: 20, note: 'Phase I limits from the first 20 batches when no reference set is effective (D-6A-7)' },
+  chartBatches: {
+    kind: 'integer', min: 20, max: 1000, default: 100,
+    note: 'a chart shows, and its rules flag, the newest 100 batches; its Phase I limits stay those of the first batches, so a run\'s outputs do not grow with the site\'s history (D-6A-7-R3)',
+  },
 } as const satisfies Record<string, ParameterSpec>;
 
 export const METHODS: Readonly<Record<MethodId, MethodEntry>> = {
@@ -125,6 +129,10 @@ export const METHODS: Readonly<Record<MethodId, MethodEntry>> = {
         note: 'the groups compared (D-6A-10)',
       },
       minBatchesPerGroup: { kind: 'integer', min: 2, max: 100, default: 5, note: 'a group needs at least 5 batches (D-6A-10)' },
+      windowBatches: {
+        kind: 'integer', min: 20, max: 2000, default: 200,
+        note: 'a comparison covers the product\'s newest 200 completed batches, so a run\'s groups and outputs do not grow with the site\'s history (D-6A-7-R3)',
+      },
       falseDiscoveryRate: { kind: 'number', min: 0.01, max: 0.25, default: 0.1, note: 'Benjamini-Hochberg at 10 % (D-6A-10)' },
       confidence: { kind: 'number', min: 0.8, max: 0.999, default: 0.95, note: 'Wilson and Garwood 95 % intervals' },
     },
@@ -202,7 +210,7 @@ export const METHODS: Readonly<Record<MethodId, MethodEntry>> = {
     slice: '6A-5',
     family: 'review',
     inputKind: 'REVIEW_FACTS',
-    inputs: ['report.review_fact_v1', 'report.cpp_value_v1', 'report.step_use_v1', 'report.batch_fact_v1', 'report.audit_fact_v1'],
+    inputs: ['report.review_fact_v1', 'report.cpp_value_v1', 'report.step_use_v1', 'report.batch_fact_v1', 'report.audit_fact_v1', 'analytics.audit_key_verdict_v1'],
     reference: 'NONE',
     outputKinds: ['REVIEW_PRIORITY'],
     flagRules: [],

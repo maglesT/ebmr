@@ -2922,3 +2922,6 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).
+
+## 17 October 2026: Phase 6A exit (slice 6A-7) merged
+- The trace half (drafts DI-51, DI-52, DI-53 and PR-61 with all 23 clauses proven at a phase-7 dry run, four browser flows, handbook) and the review half (0 critical; P6A7-1 to 3 high and P6A5-2 fixed in kernel 1280 to 1282; residuals P6A7-4 to 9 in `docs/build-plan/phase-6a/review-backlog.md`) joined by a merge commit; local runs 6,882 tests, golden 44/44, `pnpm trace` at 6 ok (151/246); next Phase 7 (decision 0023).

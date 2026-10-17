@@ -18,10 +18,12 @@
  *   - the funnel limits at the group's size are p0 +- z sqrt(p0 (1 - p0) / n), p0 the product's share of batches with
  *     a deviation attributed within the grouping, clipped to [0, 1].
  * One output per group (subject GROUP, `<product>|<grouping>:<group>`), so a flag names its own output.
+ * A comparison covers the product's newest `windowBatches` completed batches (slice 6A-7, D-6A-7-R3).
  */
 import type { Method, MethodResult, Parameters } from '../../method.ts';
 import { chiSquareQuantile, normalQuantile } from '../../numeric/quantiles.ts';
 import type { FlagDraft, OutputDraft } from '../../types.ts';
+import { byText } from '../audit/input.ts';
 
 export const GROUPINGS = ['STEP', 'EQUIPMENT', 'ROOM', 'MATERIAL_LOT', 'SUPPLIER', 'SHIFT'] as const;
 export type Grouping = (typeof GROUPINGS)[number];
@@ -55,6 +57,8 @@ export interface RateInput {
 export interface RateParameters extends Parameters {
   readonly groupings: readonly string[];
   readonly minBatchesPerGroup: number;
+  /** The product's newest completed batches a comparison covers (slice 6A-7, D-6A-7-R3). */
+  readonly windowBatches: number;
   readonly falseDiscoveryRate: number;
   readonly confidence: number;
 }
@@ -118,7 +122,9 @@ export function runRates(input: RateInput, params: RateParameters): MethodResult
   const flags: FlagDraft[] = [];
   const z = normalQuantile((1 + params.confidence) / 2);
   for (const prod of input.products) {
-    const batches = prod.batches;
+    // The product's newest windowBatches completed batches (D-6A-7-R3): every completed batch runs the comparison again,
+    // and one output per group ever (every material lot) would grow the output table with the site's history.
+    const batches = [...prod.batches].sort((a, b) => byText(a.completedAt, b.completedAt) || byText(a.batchId, b.batchId)).slice(-params.windowBatches);
     if (batches.length === 0) continue;
     const ids = new Set(batches.map((b) => b.batchId));
     const deviations = prod.deviations.filter((d) => ids.has(d.batchId));

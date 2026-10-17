@@ -1362,7 +1362,8 @@ export const TARGETS: Target[] = [
                 'analytics.fail_run', 'analytics.record_output', 'analytics.record_flag', 'analytics.reasons_ok',
                 'analytics.record_disposition', 'analytics.person_flags', 'analytics.register_input', 'analytics.role_problems',
                 'analytics.effective_methods', 'analytics.effective_reference_sets', 'analytics.reference_model_check'],
-    tests: [k('analytics/analytics.test.ts')],
+    // 6A-7: kernel 1280 replaces analytics.record_disposition (the flag's group is the unit of the verdict).
+    tests: [k('analytics/analytics.test.ts'), k('analytics/exit-review.test.ts')],
     threshold: 90,
   },
   // ---- 6A-1, analytics foundation (kernel 1245; recipe-core 1115; ADR 0020): method versions and reference sets that
@@ -1372,7 +1373,8 @@ export const TARGETS: Target[] = [
     group: 'analytics-method-change',
     functions: ['analytics.method_version_rules', 'analytics.reference_set_rules', 'analytics.set_method_version', 'analytics.set_reference_set',
                 'analytics.person_flag_dispositions'],
-    tests: [k('analytics/method-change.test.ts')],
+    // 6A-7: kernel 1280 replaces analytics.person_flag_dispositions (the dispositions of the flag's group).
+    tests: [k('analytics/method-change.test.ts'), k('analytics/exit-review.test.ts')],
     threshold: 90,
   },
   {
@@ -1424,6 +1426,15 @@ export const TARGETS: Target[] = [
     group: 'analytics-mspc-reference',
     functions: ['analytics.reference_candidate_check'],
     tests: [k('analytics/repeats-and-candidates.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6A-7, the Phase 6A exit review (kernel 1280, 1281): a flag's group, the unit QA's verdict applies to (DI-52,
+  //      P6A7-1); whether the reader holds ANALYTICS.DI_REVIEW, and the review priority's audit-trail term left out of
+  //      the views for anyone else (DI-53, P6A7-2). Kernel 1282 adds a view only. ----
+  {
+    group: 'analytics-exit',
+    functions: ['analytics.flag_group', 'analytics.viewer_holds_di_review', 'analytics.audit_term_points', 'analytics.reasons_without_audit_term'],
+    tests: [k('analytics/exit-review.test.ts')],
     threshold: 90,
   },
 ];

@@ -781,7 +781,7 @@ Defaults of 6A-6 (taken without asking, as the owner's rule says; each is the de
 
 #### 6A-7 as built: trace, browser flows and handbook (17 October, branch `phase-6a/slice-7`)
 
-The review pass and its fixes are on `phase-6a/slice-7-review`; the final run follows D-6A-15.
+The review pass and its fixes are on `phase-6a/slice-7-review`, merged into this branch at the exit; the final run follows D-6A-15.
 
 - **Local checks (17 October).** The full Vitest suite on one spare cluster: 6,882 passed, 0 failed, 44 skipped. The
   golden batches GB-T-01 to GB-T-03 on a golden clock cluster with the runner on: 44 of 44 passed. The four browser
@@ -829,6 +829,118 @@ Defaults of 6A-7 (trace, browser and handbook half; taken without asking, as the
   verbatim to `docs/progress/history.md` ("PROGRESS.md condensed at the Phase 6A exit").
 - **D-6A-7-b-7** The defect log's 6A entries are grouped under one heading in slice order, and P6A2-1 takes the entry
   shape of the others; no entry's content changes.
+
+#### 6A-7 review (17 October; one pass over e0bc24e..ddf3dfe, serious defects only, decision 0008)
+
+Scope: the 6A migrations (kernel 1240-1271, recipe-core 1110-1170, tablets 1330), `packages/analytics`, the runner and
+the analytics features, checked against a fully migrated GMP database (catalogue queries over every privilege of
+`ebmr_analytics`, `ebmr_app` and `ebmr_report` in the `analytics` and `report` schemas) as well as by reading. Branch
+`phase-6a/slice-7-review`; the residuals are in [review-backlog.md](review-backlog.md).
+
+Checked and found sound:
+- **DI-51.** `ebmr_analytics` holds USAGE on `report` and `analytics`, SELECT on its 12 catalogued views and the
+  catalogue, EXECUTE on the six runner functions and the report row functions those views read, and no INSERT, UPDATE,
+  DELETE, TRUNCATE, REFERENCES or TRIGGER anywhere. Every volatile function it can run is a runner writer, and those
+  write only the analytics tables (and, through their triggers, the audit trail on analytics chains, which no batch's
+  review scope or evidence epoch reads). The runner reads in a REPEATABLE READ READ ONLY snapshot and calls only the
+  record functions. The segregation check is clean, and no GMP object depends on the analytics schema.
+- **DI-53.** The audit, authentication and digit facts are on the analytics role's allow-list only. Neither the report
+  catalogue, `ebmr_report` nor `ebmr_app` reads them. Every person flag and its dispositions and entries are read
+  through definers that need ANALYTICS.DI_REVIEW. The unrestricted views leave PERSON and ACCOUNT subjects out.
+- **PR-61.** The queue's record set is its own query, `priorityOrder` returns every record once, and nothing in review,
+  the register, the audit-trail review or release reads the score.
+- **Definers.** Every app-callable 6A definer refuses administrators before `iam.require_permission`. Method versions
+  and reference sets are written only through the change-controlled configuration areas, and never change (DI-09).
+- **Numbers.** `statOf` is the only conversion of a decimal to a number (one `Number()`, in `from-decimal.ts`). The
+  chart and profile responses give the recorded values as decimal text beside the statistics.
+
+Findings:
+- **P6A7-1 (high, fixed; DI-52, DI-53): two flag-grouping designs, and a group's verdict could be replaced without
+  superseding it.** 6A-4 grouped the audit-trail flags by key (kernel 1261) and 6A-3 grouped the other flags by
+  signal (kernel 1271). Both closed the group with a disposition on any raise, but `analytics.record_disposition` kept
+  its rules per flag.
+  - Reproduced: a later raise of a dispositioned hit took a fresh first disposition. That gave the group a second
+    current verdict, with no supersede and no reason.
+  - The period list (`analytics.flag_v1`), the generic flag detail and `analytics.person_flag_dispositions` showed a
+    later raise as undispositioned. `/analytics/flags?kind=PERSON` listed it as open.
+  - The monitor grouped the audit-trail flags by signal, so a key's verdict did not count for the key's drifting
+    raises.
+  - Fixed in **kernel 1280**, one design (D-6A-7-R1). `analytics.flag_group` is 6A-4's key for ATA.* and 6A-3's signal
+    otherwise. The group is the unit of the verdict in the writer and in every reader. 6A-4's behaviour stays: a key's
+    disposition closes its later raises, and the restricted flags stay restricted.
+  - The server reads a flag's dispositions by group: `analytics.flag_group_disposition_v1`, and the restricted
+    dispositions under the flag asked about.
+  - Tests: kernel `test/analytics/exit-review.test.ts`, the three `[DI-52]`/`[DI-53]` grouping tests. Server
+    `test/analytics/audit.test.ts`, "[DI-52][DI-53] a later raise of a dispositioned key ...". They failed before the
+    fix. One fix round.
+- **P6A7-2 (high, fixed; DI-53): the review priority's audit-trail term was restricted in the server only.** The slice's
+  own fix (P6A5-1) filtered the OPEN_AUDIT_FLAG term in `features/common/review-priority.ts`. The application role
+  still read the full score, the term's count and points and its reason from `analytics.review_priority_v1` and
+  `analytics.output_v1` (reproduced, with no person in context).
+  - Fixed in **kernel 1281** (D-6A-7-R2): both views leave the term out unless `analytics.viewer_holds_di_review()`
+    says the command's person holds ANALYTICS.DI_REVIEW. That function refuses administrators first and fails closed.
+  - Test: kernel "[DI-53] the audit-trail term of a review priority is unreadable without ANALYTICS.DI_REVIEW, also
+    through the app role directly". One fix round.
+- **P6A7-3 (high, fixed; DI-51, DI-52): runs grew with the site's history.** Every completed batch reran every method
+  in force.
+  - Each SPC.IMR and SPC.XBAR_S run recorded every chart with all its batches, and rule flags naming hits over the
+    whole history.
+  - RATE.DEVIATION recorded one output per group ever, every material lot included.
+  - The audit-trail methods re-raised every hit of 26 weeks on each completed batch.
+  - The output, flag and audit tables are insert-only, so the database would grow by runs times history. 6A-6's
+    review found the same for the profile (D-6A-6-12).
+  - Fixed in the package and the runner (D-6A-7-R3):
+    - `chartBatches` (100): a chart shows and flags its newest batches, with the Phase I limits of the first ones.
+    - `windowBatches` (200): a rate comparison covers the product's newest batches.
+    - The audit-trail methods run nightly and on demand, not on a completed batch (`onBatchComplete: false`).
+  - No migration: there is no GMP rule to guard in the database.
+  - Tests: package `spc-methods.test.ts` (the chart window, the rate window) and server `runner.test.ts` ("[DI-52] a
+    completed batch runs the methods it can change ..."). One fix round.
+  - Left: the reads themselves (P6A7-4).
+- **P6A5-2 (lead item, fixed; DI-52): a QA false alarm did not lower the review priority.** Fixed in **kernel 1282**
+  (D-6A-7-R4, D-6A-7-R5): `analytics.audit_key_verdict_v1` gives the current verdict per audit-trail key.
+  - It lives in the analytics schema, so the DI-51 dependency proof is unchanged. It is SELECT to the analytics role
+    only, catalogued in its input registry and not in the report catalogue.
+  - REVIEW.PRIORITY reads it and leaves out a hit whose key QA dispositioned FALSE_ALARM. TRUE_SIGNAL and
+    NOT_ASSESSABLE still count.
+  - Tests: package `review-priority.test.ts` and server `review-priority.test.ts` (the verdicts), kernel "[DI-51][DI-53]
+    the analytics role reads the current verdict of each audit-trail key ...", and the key spelling against
+    `analytics.flag_key` for every flag the runner raised (server `audit.test.ts`).
+
+Residuals (medium and low; [review-backlog.md](review-backlog.md)): P6A7-4 full input reads per run; P6A7-5 the flag
+table's growth and whole-table grouping; P6A7-6 the top reasons hint at a hidden term; P6A7-7 the monitor's counts of
+person flags; P6A7-8 the runner does not check its login; P6A7-9 the key leaves out the method version.
+
+Mutation: new group `analytics-exit` (kernel 1280, 1281) at 100 % locally, with one equivalent mutant recorded. The
+groups holding the replaced `record_disposition` and `person_flag_dispositions` (`analytics-foundation`,
+`analytics-method-change`) also run the new test file; their local re-run did not finish within the session's 30-minute
+limit and is left to the mutation workflow.
+
+Defaults of the 6A-7 review (taken without asking, as the owner's rule says; each is the decision until the owner
+changes it):
+
+- **D-6A-7-R1 One grouping design.** A flag's group is 6A-4's key for the audit-trail methods (method, rule, subject,
+  first evidence; no version) and 6A-3's signal for every other method (method, version, subject, rule, severity,
+  reasons). The audit-trail reasons drift as the window moves, while another method's differing reasons are another hit.
+  - The verdict is the group's. A first disposition is taken only when the group has none. A later one, on any raise,
+    supersedes the group's current one, with a reason.
+  - Concurrent verdicts on one group are serialised by a transaction lock.
+  - Where earlier data hold two current verdicts, the latest is the group's, as both designs read it.
+- **D-6A-7-R2 The audit-trail term in the database.** Without ANALYTICS.DI_REVIEW the views give the score less the
+  term's points (not below 0) and leave out the term's values and reason. No validated person, an administrator or a
+  read-only transaction reads as "not held". The server's filter stays and finds nothing to take out.
+- **D-6A-7-R3 Bounded runs.**
+  - SPC charts: `chartBatches` 100. The moving ranges and subgroups are those of the window, and an output names the
+    series length (`seriesBatches`) when the window leaves batches out.
+  - Rate comparisons: `windowBatches` 200, newest by completion time.
+  - Version 1 of these methods is not yet in force anywhere (QA puts it in force), so the version 1 parameters gain
+    these defaults rather than a version 2.
+  - The audit-trail methods are not run on a completed batch.
+- **D-6A-7-R4 Which verdicts lower the review priority.** Only FALSE_ALARM. A true signal is still worth the reviewer's
+  attention (its deviation counts on its own), and a hit that could not be assessed is not cleared.
+- **D-6A-7-R5 An analytics-schema input.** The input registry's name check admits `analytics.<name>_v<n>` beside the
+  report names, and the runner's view-name check likewise. The key is spelled with operators in the view, so the role
+  needs no function grant, and a test keeps it equal to `analytics.flag_key`.
 
 ## Draft controls (status U, `expert_decision` PENDING; for the owner and the expert)
 

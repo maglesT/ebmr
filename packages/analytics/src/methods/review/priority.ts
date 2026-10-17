@@ -10,7 +10,8 @@
  *                    without both limits has no range and is not counted (D-6A-5-5)
  *   CORRECTION       an accepted post-entry correction (CORRECT_ENTRY, VOID_ATTEMPT, INVALIDATE_RESULT)
  *   OPEN_AUDIT_FLAG  an ATA.RULES hit whose evidence names an entry of the record, found over the same snapshot's audit
- *                    facts with ATA.RULES version 1's thresholds (D-6A-5-4); counted, never named (DI-53)
+ *                    facts with ATA.RULES version 1's thresholds (D-6A-5-4), unless QA's current verdict on the hit's
+ *                    flag key is FALSE_ALARM (slice 6A-7, P6A5-2, D-6A-7-R4); counted, never named (DI-53)
  *   NEW_OPERATOR     a person new to the product worked on the record (once, however many)
  *   NEW_EQUIPMENT    a unit new to the site's GMP records or maintained in the 7 days before its use (once)
  *   STEP_DURATION    a step whose duration has |robust z| above durationZ against the same product, MBR family and step
@@ -157,6 +158,15 @@ function describe(t: TermScore, p: ReviewPriorityParameters): string {
   }
 }
 
+/**
+ * The key of the flag ATA.RULES raises for a hit: method, rule, subject and the first evidence of its reason, spelled as
+ * kernel 1261's analytics.flag_key spells it (a server test keeps the two equal).
+ */
+export function auditFlagKey(hit: { rule: string; personId: string; reason: Reason }): string {
+  const first = hit.reason.evidence?.[0];
+  return `ATA.RULES|${hit.rule}|PERSON|${hit.personId}|${first?.kind ?? ''}:${first?.ref ?? ''}`;
+}
+
 function termScore(term: PriorityTerm, count: number, p: ReviewPriorityParameters, evidence: readonly Evidence[] = []): TermScore {
   const w = p.weights[term];
   const counted = term === 'NEW_OPERATOR' || term === 'NEW_EQUIPMENT' ? Math.min(count, 1)
@@ -211,7 +221,9 @@ export function runReviewPriority(input: ReviewInput, p: ReviewPriorityParameter
   // Audit-trail rule hits on each record's entries (the rules' evidence names entries as `<chain>#<id>`).
   const batchOfEntry = new Map(input.audit.filter((e) => e.batchId !== null).map((e) => [eventRef(e), e.batchId as string]));
   const auditHits = new Map<string, number>();
+  const falseAlarms = new Set((input.auditVerdicts ?? []).filter((v) => v.verdict === 'FALSE_ALARM').map((v) => v.key));
   for (const hit of auditRuleHits({ events: input.audit, auth: [], digits: [] }, AUDIT_RULES_V1)) {
+    if (falseAlarms.has(auditFlagKey(hit))) continue;
     const batches = new Set((hit.reason.evidence ?? []).filter((x) => x.kind === 'AUDIT_EVENT').map((x) => batchOfEntry.get(x.ref)).filter((b): b is string => b !== undefined));
     for (const b of batches) auditHits.set(b, (auditHits.get(b) ?? 0) + 1);
   }

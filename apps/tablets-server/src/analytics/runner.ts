@@ -8,7 +8,9 @@
  *   - nightly, once a site-zone day at or after NIGHTLY_HOUR (02:00, D-6A-6), trigger SCHEDULED;
  *   - when it sees newly completed batches: every POLL_MS (5 minutes) it reads report.batch_outcome_v1 and compares
  *     the completed batches with those of its last poll (the first poll is the baseline; a batch completed while the
- *     server was down is taken by the next nightly run; D-6A-1-14), trigger BATCH_COMPLETE;
+ *     server was down is taken by the next nightly run; D-6A-1-14), trigger BATCH_COMPLETE; a method whose inputs a
+ *     completed batch does not change (onBatchComplete false: the audit-trail methods) is left to the nightly run
+ *     (D-6A-7-R3);
  *   - on demand (runAll, runVersion), trigger ON_DEMAND.
  * Its time is the database's: the site-zone day and hour come from statement_timestamp(), every recorded instant from
  * the analytics tables' defaults; the process timers only say when to look.
@@ -163,7 +165,12 @@ export class AnalyticsRunner {
       'select method, version, parameters, parameters_sha256, code_identity from analytics.effective_methods() order by method, version',
     );
     const reports: RunReport[] = [];
-    for (const v of rows) reports.push(...(await this.runVersionAll(v, trigger)));
+    for (const v of rows) {
+      // A method whose inputs a completed batch does not change runs nightly and on demand only (D-6A-7-R3).
+      const impl = this.impls.find((i) => i.id === v.method && i.versions.includes(v.version));
+      if (trigger === 'BATCH_COMPLETE' && impl?.onBatchComplete === false) continue;
+      reports.push(...(await this.runVersionAll(v, trigger)));
+    }
     return reports;
   }
 

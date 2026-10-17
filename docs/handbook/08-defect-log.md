@@ -1289,6 +1289,98 @@ analytics schema, so the DI-51 dependency proof is unchanged (D-6A-6-7).
 
 **Fix.** The implementation shapes moved to `method-types.ts`, and `implementation.ts` re-exports them.
 
+
+## Slice 6A-3: multivariate monitoring (Phase 6A)
+
+### P6A3-1: the open flags list repeated every run's raise of the same hit (6A-2's residual)
+
+**Symptom.** Each run assesses its whole input again, so a nightly run raised an open rule hit again, and
+`analytics.open_flag_v1` listed every raise until QA dispositioned each one.
+
+**Fix.** Kernel 1271 lists each open signal (method, version, subject, rule, severity and reasons) once, as its latest
+raise with its count; a disposition on any raise covers the signal. The runs still record every raise (D-6A-3-9).
+
+**Test.** `[DI-52] a flag raised again by later runs is listed once while open, ...` (kernel) and the end-to-end test in
+`apps/tablets-server/test/analytics/mspc.test.ts`.
+
+### P6A3-2: a reference set was checked against its candidate by hash only (found while building)
+
+**Symptom.** EBMR-ANA-010 compares the set's model SHA-256 with the candidate's recorded hash. A writer could pair that
+hash with another model or with other batches; only the runner's later hash check would notice.
+
+**Fix.** Kernel 1270 (EBMR-ANA-030) requires the candidate's own model and batches, for every writer (D-6A-3-8).
+
+**Test.** `[DI-52] a reference set must carry its model candidate's own model and batches, not only its hash
+(EBMR-ANA-030)`.
+
+## Slice 6A-7: the Phase 6A exit review
+
+### P6A7-1: a later raise of a dispositioned hit took a fresh verdict (high, DI-52, DI-53; kernel 1280)
+
+**Symptom.** QA dispositioned a flag. The next run raised the same hit again. That raise could then be given a fresh
+first disposition, with no supersede and no reason, and the hit had two current verdicts. The flags list of a period,
+the generic flag detail and the restricted dispositions showed the later raise as undispositioned, and the flags about
+persons listed it as open.
+
+**Why it matters.** A verdict on a hit is QA's record. Replacing it needs a reason (DI-52), and a person flag closes
+only with a disposition (DI-53).
+
+**Cause.** Two slices grouped the raises in two ways: 6A-4 by key (kernel 1261) and 6A-3 by signal (kernel 1271). Both
+let a disposition on any raise close the group, in the views only. `analytics.record_disposition` kept its rules per
+flag, and the monitor grouped the audit-trail flags by signal rather than by key.
+
+**Fix.** Kernel 1280 gives one design, `analytics.flag_group`: the key for the audit-trail methods, the signal for the
+others. The group is the unit of the verdict in the writer, the views, the restricted dispositions and the monitor.
+The server reads a flag's dispositions by group.
+
+**Tests.** Kernel `test/analytics/exit-review.test.ts` (one flag-grouping design) and server
+`test/analytics/audit.test.ts`, "[DI-52][DI-53] a later raise of a dispositioned key ...".
+
+**Lesson.** When a view groups rows into the unit people act on, the writer's rules must move to that unit as well.
+
+### P6A7-2: the review priority's audit-trail term reached the application role (high, DI-53; kernel 1281)
+
+**Symptom.** P6A5-1 hid the OPEN_AUDIT_FLAG term from everyone but data-integrity review, in the server only.
+`analytics.review_priority_v1` and `analytics.output_v1` still gave the application role the full score, the term's
+count and points and its reason, with no person in context.
+
+**Fix.** Kernel 1281: both views leave the term out unless `analytics.viewer_holds_di_review()` says the command's
+person holds ANALYTICS.DI_REVIEW. The function refuses administrators first, and any refusal or a read-only
+transaction reads as "not held".
+
+**Test.** "[DI-53] the audit-trail term of a review priority is unreadable without ANALYTICS.DI_REVIEW, also through the
+app role directly".
+
+**Lesson.** A restriction that holds on one path is not a database control; put it where every reader goes through.
+
+### P6A7-3: every run grew with the site's history (high, DI-51, DI-52; package and runner)
+
+**Symptom.** Every completed batch reran every method in force:
+- each SPC run recorded every chart with all its batches, and rule flags over the whole history;
+- the rate comparison recorded one output per material lot ever;
+- the audit-trail methods re-raised 26 weeks of hits.
+
+The output, flag and audit tables are insert-only, so storage grew by runs times history.
+
+**Fix.**
+- A chart shows and flags its newest `chartBatches` (100), with the Phase I limits of its first batches.
+- A rate comparison covers the product's newest `windowBatches` (200).
+- The audit-trail methods run nightly and on demand only (D-6A-7-R3).
+
+**Tests.** Package `spc-methods.test.ts` (both windows) and server `runner.test.ts`. The full input reads remain a
+residual (P6A7-4).
+
+**Lesson.** A run that is repeated on every event must have bounded outputs; 6A-6 found the same for the profile.
+
+### P6A5-2 closed: a QA false alarm now lowers the review priority (kernel 1282)
+
+**Fix.** `analytics.audit_key_verdict_v1`, in the analytics schema and on the analytics role's allow-list only, gives
+the current verdict of each audit-trail key. REVIEW.PRIORITY leaves out a hit whose key QA found to be a false alarm.
+The DI-51 dependency proof is unchanged: nothing outside the schema reads it.
+
+**Tests.** Package and server `review-priority.test.ts`; kernel `exit-review.test.ts`; the key spelling against
+`analytics.flag_key` in server `audit.test.ts`.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

@@ -72,7 +72,7 @@ export {
 } from './methods/rates/index.ts';
 // Slice 6A-5: the review priority (a transparent weighted score that orders the QA review queue).
 export * as review from './methods/review/index.ts';
-export { REVIEW_PRIORITY, type ReviewInput, type ReviewPriorityParameters, type ReviewRecord, type ReviewStep, type ReviewValue } from './methods/review/index.ts';
+export { REVIEW_PRIORITY, type AuditKeyVerdict, type ReviewInput, type ReviewPriorityParameters, type ReviewRecord, type ReviewStep, type ReviewValue } from './methods/review/index.ts';
 // Slice 6A-6: the golden batch profile.
 export {
   GBP_DTW_BAND,

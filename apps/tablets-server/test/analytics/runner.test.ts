@@ -13,6 +13,7 @@ import { RUNTIME_LIBRARIES, defaultParameters } from '@ebmr/analytics';
 import { codeIdentity, parametersSha256 } from '../../src/analytics/catalog.ts';
 import { readSnapshot } from '../../src/analytics/inputs.ts';
 import { createAnalyticsPool } from '../../src/analytics/pool.ts';
+import { IMPLEMENTATIONS } from '../../src/analytics/implementation.ts';
 import { AnalyticsRunner, type EffectiveVersion } from '../../src/analytics/runner.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { fixtureBatch, probe, releaseMethodVersion } from './support.ts';
@@ -203,5 +204,28 @@ describe('the analytics runner (apps/tablets-server/src/analytics)', () => {
     expect(await late.nightlyDue()).toBe(false);
     now = { day: '2026-10-21', hour: 2 };
     expect(await late.nightlyDue()).toBe(true);
+  });
+
+  it('[DI-52] a completed batch runs the methods it can change; the audit-trail methods wait for the nightly run (D-6A-7-R3)', async () => {
+    const versions = ['ATA.BASELINE', 'ATA.RULES', 'REVIEW.PRIORITY', 'SPC.IMR'].map((method) => ({ method, version: 1, parameters: {}, parameters_sha256: '', code_identity: '' }));
+    const fake = {
+      connect: () => Promise.resolve({ query: (text: string) => Promise.resolve(/effective_methods/.test(text) ? { rows: versions } : { rows: [] }), release: () => undefined }),
+      end: () => Promise.resolve(),
+    } as unknown as pg.Pool;
+    const r = new AnalyticsRunner({ pool: fake, log: SILENT, siteZone: () => 'UTC', commit: 'test' });
+    const ran: string[] = [];
+    r.runVersionAll = (v: EffectiveVersion) => {
+      ran.push(v.method);
+      return Promise.resolve([]);
+    };
+    expect(IMPLEMENTATIONS.filter((i) => i.onBatchComplete === false).map((i) => i.id).sort()).toEqual(['ATA.BASELINE', 'ATA.RULES']);
+    await r.runAll('BATCH_COMPLETE');
+    expect(ran).toEqual(['REVIEW.PRIORITY', 'SPC.IMR']);
+    ran.length = 0;
+    await r.runAll('SCHEDULED');
+    expect(ran).toEqual(['ATA.BASELINE', 'ATA.RULES', 'REVIEW.PRIORITY', 'SPC.IMR']);
+    ran.length = 0;
+    await r.runAll('ON_DEMAND');
+    expect(ran).toHaveLength(4);
   });
 });
