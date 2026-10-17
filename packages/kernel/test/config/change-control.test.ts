@@ -312,6 +312,16 @@ describe('roles, permission sets and retention rules are configuration (DI-09, D
       { area: 'ROLE_PERMISSION', item_key: `${code}|INCIDENT.RAISE`, removed: false, cr: num },
       { area: 'ROLE_PERMISSION', item_key: `${code}|INCIDENT.RAISE`, removed: true, cr: num },
     ]);
+    // Valid from: the addition from the row's own validity column, the removal (an UPDATE) from the moment it was made,
+    // so a diff for a date between the two still shows the permission (slice 6j mutation triage, platform.config_version_log).
+    const valid = await db.admin.query<{ added: boolean; removed_later: boolean }>(
+      `select bool_and(v.valid_from = p.added_at) filter (where v.value ->> 'removed_at' is null) as added,
+              bool_and(v.valid_from > p.added_at and v.valid_from >= p.removed_at) filter (where v.value ->> 'removed_at' is not null) as removed_later
+         from platform.config_version v join iam.role_permission p on p.role_code = $1 and p.permission_code = 'INCIDENT.RAISE'
+        where v.area = 'ROLE_PERMISSION' and v.item_key = $2`,
+      [code, `${code}|INCIDENT.RAISE`],
+    );
+    expect(valid.rows[0]).toEqual({ added: true, removed_later: true });
     // Bypass: the application role cannot write the tables directly.
     await expect(db.app.query("update iam.role_permission set removed_at = now() where role_code = 'QA_REVIEWER'")).rejects.toThrow(/permission denied/);
     await expect(db.app.query("insert into records.retention_rule_set (version, note) values ('X', 'x')")).rejects.toThrow(/permission denied/);

@@ -5,7 +5,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../src/db/command.ts';
-import { dscEnrolmentStatement, dscRequirement, enrolDsc, recordDsc, TEST_CA_BANNER, type DscSubmission } from '../../src/esig/dsc.ts';
+import { dscEnrolmentStatement, dscRequirement, enrolDsc, recordDsc, TEST_CA_BANNER, verifyDsc, type DscSubmission } from '../../src/esig/dsc.ts';
 import { createTestCa, issueTestCertificate, issueTestSigner, signDscStatement, type TestCa, type TestCertificate } from '../../src/esig/dsc-test-ca.ts';
 import { sign } from '../../src/esig/signing.ts';
 import { withChangeRecord } from '../support/change-record.ts';
@@ -208,5 +208,39 @@ describe('India DSC with a test CA (kernel 1203; IN-10)', () => {
     await expectPermissionDenied(db.app.query(`delete from esig.dsc_enrolment_end where enrolment_id = $1`, [e2]));
     // The first AP's own enrolled certificate still signs.
     expect(await signRelease(await createStub(db, author), (s) => goodDsc(s))).toMatch(/[0-9a-f-]{36}/);
+  });
+});
+
+// Slice 6j mutation triage (Stryker, kernel-config-and-dsc): the certificate checks only the server can make (the database
+// cannot parse X.509): validity at the time of signing on both sides, issuers that are CAs, a signer that is not one.
+describe('India DSC chain verification in the server (IN-10)', () => {
+  const at = new Date(Date.UTC(2026, 9, 17, 9, 0, 0));
+  const statement = 'eBMR DSC statement under test';
+  const day = 86_400_000;
+  const b64 = (b: Buffer): string => b.toString('base64');
+  const testCa = createTestCa(at);
+  const submit = (leaf: TestCertificate, issuers: TestCertificate[]): DscSubmission => ({
+    signature: b64(signDscStatement(leaf, statement)), chain: [leaf, ...issuers].map((c) => b64(c.der)),
+  });
+  const refusedWith = (dsc: DscSubmission, why: RegExp): void => {
+    expect(() => verifyDsc(statement, dsc, testCa.root.der, at)).toThrow(why);
+  };
+
+  it('[IN-10] a well-formed chain verifies; a signer certificate not yet valid at the time of signing is refused', () => {
+    const good = issueTestSigner(testCa, 'Signer', at);
+    expect(verifyDsc(statement, submit(good, [testCa.subCa, testCa.root]), testCa.root.der, at).algorithm).toBe('rsa-sha256');
+    const future = issueTestCertificate({ subject: { commonName: 'Future' }, issuer: testCa.subCa, ca: false, notBefore: new Date(at.getTime() + day), notAfter: new Date(at.getTime() + 400 * day) });
+    refusedWith(submit(future, [testCa.subCa, testCa.root]), /certificate 1 is not valid at the time of signing/);
+  });
+
+  it('[IN-10] a signer certificate that is itself a certification authority is refused', () => {
+    const caLeaf = issueTestCertificate({ subject: { commonName: 'CA as signer' }, issuer: testCa.subCa, ca: true, notBefore: new Date(at.getTime() - day), notAfter: new Date(at.getTime() + 400 * day) });
+    refusedWith(submit(caLeaf, [testCa.subCa, testCa.root]), /the signer certificate is a certification authority/);
+  });
+
+  it('[IN-10] an issuer in the chain that is not a certification authority is refused, even when its key signed the next certificate', () => {
+    const endEntity = issueTestCertificate({ subject: { commonName: 'End entity' }, issuer: testCa.subCa, ca: false, keyUsage: false, notBefore: new Date(at.getTime() - day), notAfter: new Date(at.getTime() + 400 * day) });
+    const below = issueTestCertificate({ subject: { commonName: 'Issued by an end entity' }, issuer: endEntity, ca: false, notBefore: new Date(at.getTime() - day), notAfter: new Date(at.getTime() + 400 * day) });
+    refusedWith(submit(below, [endEntity, testCa.subCa, testCa.root]), /certificate 2 is not a certification authority/);
   });
 });
