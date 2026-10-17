@@ -1408,4 +1408,13 @@ export const TARGETS: Target[] = [
     tests: [r('analytics/review-inputs.test.ts')],
     threshold: 90,
   },
+  // ---- 6A-6, golden batch profile inputs (recipe-core 1170): each GMP batch step's native series on its unit within
+  //      its binding window, the window's samples exactly as received with their quality (DI-32), and the reference
+  //      sets in force from the configuration store (DI-51, DI-52). ----
+  {
+    group: 'analytics-profile-inputs',
+    functions: ['report.step_windows_v1', 'report.series_ref_rows_v1', 'report.series_samples_v1', 'report.analytics_reference_rows_v1'],
+    tests: [r('analytics/series-inputs.test.ts')],
+    threshold: 90,
+  },
 ];

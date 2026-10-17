@@ -9,12 +9,15 @@ import type { HomeTile } from '../../app/feature.ts';
 import { AnalyticsPage } from './AnalyticsPage.tsx';
 import { FlagsPage } from './FlagsPage.tsx';
 import { MethodsPage } from './MethodsPage.tsx';
+import { ProfilesPage, parseProfileSearch } from './profile/ProfilesPage.tsx';
 
 export function routes(root: AnyRootRoute): AnyRoute[] {
   return [
     createRoute({ getParentRoute: () => root, path: '/analytics', component: AnalyticsPage }),
     createRoute({ getParentRoute: () => root, path: '/analytics/methods', component: MethodsPage }),
     createRoute({ getParentRoute: () => root, path: '/analytics/flags', component: FlagsPage }),
+    // Slice 6A-6: the golden batch profiles.
+    createRoute({ getParentRoute: () => root, path: '/analytics/profiles', validateSearch: parseProfileSearch, component: ProfilesPage }),
   ];
 }
 

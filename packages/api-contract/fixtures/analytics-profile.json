@@ -21,10 +21,14 @@
     "batchId": "b6000000-0000-4000-8000-000000000024",
     "batchNumber": "PCM500-2610-024",
     "step": "compression",
-    "tag": "press.force.main",
+    "tag": "force.main_kN",
     "equipmentType": "TABLET_PRESS",
+    "equipmentCode": "PRESS-01",
     "unit": "kN",
+    "status": "PROFILED",
+    "why": null,
     "referenceSet": "e6000000-0000-4000-8000-000000000006",
+    "referenceBatches": 20,
     "points": 4,
     "band": {
       "low": [
@@ -53,9 +57,46 @@
       12.3
     ],
     "outsideShare": 0,
+    "outsidePoints": 0,
     "distance": 1.2,
     "distanceLimit": 2.8,
+    "used": 3,
     "droppedBad": 1,
+    "uncertain": 0,
+    "samples": [
+      {
+        "sourceUs": "1791611400000000",
+        "raw": "10.80",
+        "value": "10.80",
+        "statusCode": "0x00000000",
+        "quality": "GOOD",
+        "at": 0
+      },
+      {
+        "sourceUs": "1791611401000000",
+        "raw": "NaN",
+        "value": null,
+        "statusCode": "0x80000000",
+        "quality": "BAD",
+        "at": null
+      },
+      {
+        "sourceUs": "1791611402000000",
+        "raw": "1.35E1",
+        "value": "13.5",
+        "statusCode": "0x00000000",
+        "quality": "GOOD",
+        "at": 0.6667
+      },
+      {
+        "sourceUs": "1791611403000000",
+        "raw": "12.30",
+        "value": "12.30",
+        "statusCode": "0x00000000",
+        "quality": "GOOD",
+        "at": 1
+      }
+    ],
     "flags": []
   },
   "candidates": {
@@ -78,17 +119,31 @@
             "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
           }
         },
+        "productCode": "EXZ-250",
+        "familyCode": "GB-T-01",
         "equipmentType": "TABLET_PRESS",
         "step": "compression",
-        "tag": "press.force.main",
-        "batches": 20,
+        "tag": "force.main_kN",
+        "unit": "kN",
+        "batches": 2,
+        "batchIds": [
+          "b6000000-0000-4000-8000-000000000001",
+          "b6000000-0000-4000-8000-000000000002"
+        ],
+        "medoidBatchId": "b6000000-0000-4000-8000-000000000002",
         "modelSha256": "1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+        "distanceLimit": 2.8,
         "fittedAt": {
           "us": "1791615600000000",
           "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
         },
         "referenceSet": null,
-        "skipped": []
+        "skipped": [
+          {
+            "subject": "b6000000-0000-4000-8000-000000000003",
+            "reason": "PCM500-2610-003 (PRESS-01): not released"
+          }
+        ]
       }
     ]
   }

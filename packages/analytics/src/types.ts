@@ -40,12 +40,19 @@ export interface Reason {
   readonly evidence?: readonly Evidence[];
 }
 
+/**
+ * The value of an output field: a statistic, a list of statistics, text (a GMP value echoed stays decimal text), a list
+ * of texts, or a plain object such as a model candidate's model (slice 6A-6 added the last two; canonicalText writes
+ * them all).
+ */
+export type OutputValue = number | readonly number[] | string | readonly string[] | Readonly<Record<string, unknown>>;
+
 /** An advisory output: statistics are numbers (StatNumber in the contract); a GMP value echoed stays decimal text. */
 export interface OutputDraft {
   readonly subjectKind: SubjectKind;
   readonly subjectRef: string;
   readonly kind: OutputKind;
-  readonly values: Readonly<Record<string, number | readonly number[] | string>>;
+  readonly values: Readonly<Record<string, OutputValue>>;
   readonly reasons: readonly Reason[];
 }
 

@@ -224,6 +224,9 @@ tests:
   - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > native series (DI-32, DI-31) > [DI-32] a chunk that ends where a recorded chunk begins, or begins where one ends, overlaps it"
   - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > original records of simple devices (DI-32) > [DI-32] an original record names a known device and batch and states its capture, step, value and unit, one clause at a time; it is kept on that device"
   - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > original records of simple devices (DI-32) > [DI-32] raw text states the shown decimal exactly or not at all: no null, no malformed raw or shown text, no rounding"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-32] report.series_samples_v1 gives the window's samples exactly as received, oldest first, with their quality"
+  - "apps/tablets-server/test/analytics/profile.test.ts > the golden batch profile (GBP.DTW_BAND) > [DI-32] the overlay shows the raw values as recorded"
+  - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-32] the overlay shows the raw values as recorded"
 clauses:
   - clause: "A weighing with direct capture stores a raw string that matches the display."
     tests:

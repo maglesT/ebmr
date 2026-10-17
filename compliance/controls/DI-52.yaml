@@ -59,6 +59,11 @@ tests:
   - "apps/tablets-web/test/analytics/spc.test.tsx > analytics SPC and rates screens (GMP) > [DI-52] the capability panel shows Cpk and Ppk with their intervals and the normality note"
   - "apps/tablets-web/test/analytics/spc.test.tsx > analytics SPC and rates screens (GMP) > [DI-52] the rates screen shows each group with its intervals, the funnel, the group above the rest and those not compared"
   - "apps/tablets-server/test/analytics/review-priority.test.ts > the review priority on the synthetic history (REVIEW.PRIORITY v1) > [DI-52] the score on the synthetic history ranks the seeded exception-rich batch first and shows its three reasons"
+  - "packages/analytics/test/profile.test.ts > method GBP.DTW_BAND (methods/profile/gbp.ts) > [DI-52] the seeded abnormal press curve is flagged and the 20 normal ones are not"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51][DI-52] report.series_ref_v1 names each GMP batch step's native series on its unit, with its chunks, release, deviations and step alarms"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-52] report.analytics_reference_v1 gives the reference sets in force from the configuration store, and none retired"
+  - "apps/tablets-server/test/analytics/profile.test.ts > the golden batch profile (GBP.DTW_BAND) > [DI-52] the seeded abnormal press curve is flagged and the 20 normal ones are not"
+  - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-52] the candidates list the batches they leave out; QA makes one the reference set under a change record"
 expert_decision:
   status: PENDING
   pack_version: draft
