@@ -23,7 +23,7 @@
  * chunks in the batch's context and whether every sample keeps its raw value, and what the adapter refused or alarmed.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import { generateKeyPairSync } from 'node:crypto';
+import { createHash, createPrivateKey, createPublicKey } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -52,6 +52,17 @@ const ROOM = UNITS.PRESS.room;
 /** The endpoint's code in the device registry and the gateway's process device of the press. */
 export const ENDPOINT = 'OPC-COMP-1';
 const GATEWAY = 'GW-GBT03-01';
+
+/**
+ * Slice 7a (6jc-R9): the gateway signs its OPC UA feed, so its key is enrolled and the OPCUA adapter bound to its feed.
+ * TEST-ONLY key, derived from a fixed seed so the run stays the same each time (Ed25519 signatures are deterministic).
+ */
+const GATEWAY_KEY = (() => {
+  const seed = createHash('sha256').update('GB-T-03 TEST-ONLY site gateway key', 'utf8').digest();
+  const privateKey = createPrivateKey({ key: Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), seed]), format: 'der', type: 'pkcs8' });
+  const spki = createPublicKey(privateKey).export({ type: 'spki', format: 'der' });
+  return { privateKeyPkcs8: privateKey.export({ type: 'pkcs8', format: 'der' }).toString('base64'), publicKeySpki: spki.toString('base64'), fingerprint: createHash('sha256').update(spki).digest('hex') };
+})();
 /**
  * How long the clock may run during the press part before it is frozen again (seconds of the database clock; whole
  * minutes, taken from the 20 minutes before the run's first weight check, which comes every 25 minutes).
@@ -179,6 +190,13 @@ export async function connectPress(w: GoldenWorld): Promise<PressRig> {
       await c.query("select plant.enrol_opcua_endpoint($1, $2, 'Basic256Sha256', $3, 'Commissioned with the press (GB-T-03)')", [ENDPOINT, url, [PRESS]]);
     });
     id = await adapterIdentity(server, 'OPCUA', 'OPCUA', 'SERVICE_ACCOUNT');
+    // Slice 7a: the gateway in the registry with its key enrolled, and the adapter bound to its signed feed.
+    const adapter = id;
+    await identity.withGuardedCommand(server.db.app, await adminActor(server, 'GB-T-03: the site gateway of the compression press'), async (c) => {
+      await c.query("select iam.register_device($1, 'SERVER', 'SITE-1', null, null, $2, 'Site gateway of the compression press (GB-T-03)')", [GATEWAY, GATEWAY_KEY.fingerprint]);
+      await c.query('select tab.enrol_gateway_key($1, $2, $3)', [GATEWAY, GATEWAY_KEY.publicKeySpki, adapter.loginName]);
+      await c.query("select tab.bind_gateway_feed($1, $2, 'TEST_SETUP', 'GB-T-03: the OPC UA adapter pulls the press gateway''s feed')", [adapter.code, GATEWAY]);
+    });
   } catch (e) {
     await sim.child.stop();
     throw e;
@@ -194,8 +212,7 @@ export async function connectPress(w: GoldenWorld): Promise<PressRig> {
       // The gateway: one endpoint with the press as its unit, its OPC UA feed on a loopback port; no scale or uplink in
       // use (its scale is unplugged and its uplink unreachable: the batch's readings are the driver's own entries).
       const dir = mkdtempSync(join(tmpdir(), 'gbt03-gateway-'));
-      const pair = generateKeyPairSync('ed25519');
-      writeFileSync(join(dir, 'key.json'), JSON.stringify({ privateKeyPkcs8: pair.privateKey.export({ type: 'pkcs8', format: 'der' }).toString('base64'), publicKeySpki: pair.publicKey.export({ type: 'spki', format: 'der' }).toString('base64') }));
+      writeFileSync(join(dir, 'key.json'), JSON.stringify({ privateKeyPkcs8: GATEWAY_KEY.privateKeyPkcs8, publicKeySpki: GATEWAY_KEY.publicKeySpki }));
       // A service identity for the gateway's own terminal, as its configuration requires; it is never used (no uplink).
       writeFileSync(join(dir, 'service-keys.json'), JSON.stringify({ services: [{ terminal: GATEWAY, loginName: 'gateway.gbt03.unused', serviceKey: 'never-used-no-uplink-in-gb-t-03' }] }));
       const feedPort = await freePort();

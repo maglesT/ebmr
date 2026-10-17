@@ -13,6 +13,7 @@ import { systemClock } from '../src/clock.ts';
 import { OpcuaDriver, type OpcuaDriverAlarm } from '../src/drivers/opcua.ts';
 import { NodeOpcuaTransport } from '../src/drivers/opcua-node.ts';
 import { OpcuaFeed } from '../src/opcua-feed.ts';
+import { TEST_FEED_KEY } from './support.ts';
 
 const REPO = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 
@@ -86,7 +87,7 @@ export function liveDriver(sim: OpcuaSimProcess, opts: { thumbprint?: string; ga
   const endpoint: OpcuaEndpoint = {
     endpointUrl: sim.url, securityMode: 'SignAndEncrypt', securityPolicy: 'Basic256Sha256', certificateThumbprint: opts.thumbprint ?? sim.thumbprint, equipmentCodes: Object.keys(SIM_UNITS), areaCode: 'RM-COMP-1',
   };
-  const feed = OpcuaFeed.open({ dir: join(dir, 'feed'), gatewayCode: 'GW-TEST', clock: systemClock });
+  const feed = OpcuaFeed.open({ dir: join(dir, 'feed'), gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock: systemClock });
   const driver = new OpcuaDriver({
     code: 'OPC-LINE-1', endpoint, equipment: SIM_UNITS, transport: new NodeOpcuaTransport({ pkiDir: join(dir, 'pki'), units: Object.keys(SIM_UNITS) }), clock: systemClock,
     sink: feed.sink(), nextChunkNo: (u, t) => feed.nextChunkNo(u, t), gapAfterMs: opts.gapAfterMs ?? 3000, backoffInitialMs: 200, backoffMaxMs: 1000, samplingIntervalMs: 100,

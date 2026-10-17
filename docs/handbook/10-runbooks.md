@@ -399,6 +399,50 @@ a GMP record; see the [analytics module guide](modules/analytics.md).
 **After any change**: `select * from sandbox.segregation_problems()` stays empty, and the methods page's monitor shows
 the new version's runs without failures.
 
+## Gateway feed key and adapter certificates (Phase 7 slice 7a)
+
+The OPC UA feed is signed by the site gateway and checked by the database; every adapter off loopback uses mutual TLS
+(6jc-R9, DI-31; [integrations](modules/integrations.md#the-signed-gateway-feed-and-mutual-tls-phase-7-slice-7a)).
+
+**Connect a gateway's OPC UA feed.**
+1. The gateway's Ed25519 key is its key file (DEMO-ONLY; a KMS or HSM at deployment). Its key id is the lowercase hex
+   SHA-256 of the public key's SPKI DER.
+2. The device administrator registers the gateway as a SERVER device whose fingerprint is that SHA-256, and enrols the
+   public key: `tab.enrol_gateway_key(<gateway code>, <SPKI base64>, <INTEGRATION login>)`.
+3. The device administrator binds the OPCUA adapter to the gateway:
+   `tab.bind_gateway_feed(<adapter code>, <gateway code>, <reason code>, <reason text>)` (IAM.DEVICE_MANAGE). Binding to
+   another gateway ends the live binding with that reason.
+4. Start the gateway with a fresh journal directory. A journal written before 7a holds unsigned envelopes, which the
+   server refuses (EBMR-INT-030).
+
+**Rotate or revoke a gateway key.** Revoke it (`tab.revoke_gateway_key`), enrol the new key under the same gateway code
+and restart the gateway with the new key file. From the revocation on, every envelope signed with the old key is
+refused (EBMR-INT-031) and alarmed on the integrations page. The binding names the gateway, not the key, so it stays.
+
+**What a refusal means** (integration alarm WRONG_IDENTITY on the adapter):
+- EBMR-INT-030: the envelope is unsigned, or something called a receiving command directly. Check the gateway version
+  and journal.
+- EBMR-INT-031: no binding, or no ACTIVE key with that id. Check the enrolment and the binding.
+- EBMR-INT-032: the signature or payload does not match. Treat it as tampering until shown otherwise.
+- EBMR-INT-033: the envelope names another gateway or another gateway's key. Check which gateway the adapter's base URL
+  reaches.
+
+**Adapter certificates (mutual TLS).**
+1. For each adapter whose base URL is not loopback, put three PEM files in `EBMR_ADAPTER_TLS_DIR`, named by the
+   registered adapter code: `<code>.ca.pem` (the CA the adapter system's server certificate must chain to; the only CA
+   trusted for it), `<code>.cert.pem` and `<code>.key.pem` (the eBMR server's client certificate and key, which the
+   system trusts). Give all three or none: an adapter with only some of them does not start.
+2. The base URL must be `https://`. The peer certificate must name the base URL's host. The server never uses the
+   system trust store.
+3. On a GMP installation an adapter off loopback without these files does not start (EBMR-INT-034). The integrations
+   health page then shows its worker BLOCKED with the refusal as the last error. Loopback without TLS is allowed.
+4. Each pulled message records the SHA-256 fingerprint of the peer certificate (`platform.inbound_message.transport_peer`).
+   When the system's certificate is renewed, the fingerprint changes from the first page after the renewal.
+
+Tests create their CA and certificates at run time
+([test-pki.ts](../../apps/tablets-server/test/support/test-pki.ts), OpenSSL command line); no key material is
+committed.
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

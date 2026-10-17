@@ -74,6 +74,8 @@ export const KERNEL_INBOUND_CODES: Readonly<Record<string, ErrorClass>> = {
   'EBMR-INT-005': 'DUPLICATE',
   'EBMR-INT-006': 'OUT_OF_ORDER',
   'EBMR-INT-010': 'STALE',
+  // Slice 7a (kernel 1305): an envelope of a signing source reached a receiving command without its verification.
+  'EBMR-INT-030': 'WRONG_IDENTITY',
 };
 
 /** SQLSTATE classes that mean "try again": connection exceptions, serialisation failures, deadlocks, shutdown. */
