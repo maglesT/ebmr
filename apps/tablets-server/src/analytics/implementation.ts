@@ -6,6 +6,7 @@
  */
 import type { AuditBaselineParameters, AuditInput, AuditRulesParameters, Method, MethodId, Parameters } from '@ebmr/analytics';
 import { ATA_BASELINE_IMPLEMENTATION, ATA_RULES_IMPLEMENTATION } from './audit.ts';
+import { SPC_IMPLEMENTATIONS } from './spc.ts';
 
 /** One row of an input view: the view's columns, as text, booleans, integers, arrays or JSON (never a Date). */
 export type InputRow = Readonly<Record<string, unknown>>;
@@ -34,9 +35,10 @@ export function implementation<I, P extends Parameters>(impl: MethodImplementati
   return impl;
 }
 
-/** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10). */
+/** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10); each method slice adds its own line. */
 export const IMPLEMENTATIONS: readonly MethodImplementation[] = [
   // Slice 6A-4: the audit-trail methods (audit.ts).
   implementation<AuditInput, AuditRulesParameters>(ATA_RULES_IMPLEMENTATION),
   implementation<AuditInput, AuditBaselineParameters>(ATA_BASELINE_IMPLEMENTATION),
+  ...SPC_IMPLEMENTATIONS, // 6A-2 (spc.ts)
 ];

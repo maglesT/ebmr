@@ -138,7 +138,13 @@
         "subject": "b6000000-0000-4000-8000-000000000019",
         "reason": "no recorded end-point (step not applicable)"
       }
-    ]
+    ],
+    "spreadChart": {
+      "kind": "MR",
+      "centre": 0.16,
+      "upper": 0.52,
+      "lower": 0
+    }
   },
   "capability": {
     "advisory": true,
@@ -217,7 +223,8 @@
     "overall": {
       "batches": 30,
       "withDeviation": 6,
-      "share": 0.2
+      "share": 0.2,
+      "unattributedDeviations": 1
     },
     "groups": [
       {
@@ -239,7 +246,11 @@
         },
         "pValue": 0.012,
         "qValue": 0.036,
-        "above": true
+        "above": true,
+        "funnel": {
+          "lower": 0.0,
+          "upper": 0.448
+        }
       },
       {
         "group": "R-1",
@@ -260,7 +271,11 @@
         },
         "pValue": 0.6,
         "qValue": 0.6,
-        "above": false
+        "above": false,
+        "funnel": {
+          "lower": 0.025,
+          "upper": 0.375
+        }
       }
     ],
     "flags": [],

@@ -10,6 +10,7 @@ export const ANALYTICS_PACKAGE_VERSION = '0.1.0';
 
 /** The libraries of package.json "dependencies", at their exact pinned versions (D-6A-23). */
 export const RUNTIME_LIBRARIES: Readonly<Record<string, string>> = {
+  '@stdlib/math-base-special-erfc': '0.2.5',
   '@stdlib/stats-base-dists-beta-quantile': '0.2.3',
   '@stdlib/stats-base-dists-chisquare-quantile': '0.2.3',
   '@stdlib/stats-base-dists-f-quantile': '0.2.3',

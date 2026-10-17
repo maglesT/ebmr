@@ -51,6 +51,14 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-51] the golden batches keep their exact outputs with the analytics runner on"
   - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs (kernel 1260, recipe-core 1150) > [DI-51] the audit fact view exports no old or new value"
   - "packages/recipe-core/test/analytics/audit-inputs.test.ts > the audit-trail inputs (kernel 1260, recipe-core 1150) > [DI-53][DI-51] only the analytics role reads the audit and authentication facts: the application and reporting roles are refused, and the segregation check stays clean"
+  - "packages/recipe-core/test/analytics/rate-inputs.test.ts > the deviation-rate inputs (recipe-core 1130) > [DI-51] report.deviation_fact_v1 attributes a deviation to the step of its exception with the unit, room, lots and shift; one linked to the batch only is unattributed; a cancelled one is left out"
+  - "packages/recipe-core/test/analytics/rate-inputs.test.ts > the deviation-rate inputs (recipe-core 1130) > [DI-51] report.step_shift_v1 gives the shift of each executed step; the shifts are a setting changed only under a change record, and a malformed one is refused"
+  - "packages/recipe-core/test/analytics/rate-inputs.test.ts > the deviation-rate inputs (recipe-core 1130) > [DI-51] the inputs are on the analytics role's allow-list; it reads them and nothing behind them, and the segregation check stays clean"
+  - "packages/recipe-core/test/analytics/rate-inputs.test.ts > the deviation-rate inputs (recipe-core 1130) > [DI-51] the PQR extract's content and hash are unchanged with analytics present"
+  - "apps/tablets-server/test/analytics/spc.test.ts > the SPC, capability, drift and rate methods (slice 6A-2) > [DI-51] the SPC response echoes the master's limits as the source's decimal text and types statistics as StatNumber"
+  - "apps/tablets-server/test/analytics/spc.test.ts > the SPC, capability, drift and rate methods (slice 6A-2) > [DI-51] every SPC read needs ANALYTICS.VIEW; an item without a chart answers 404"
+  - "apps/tablets-web/test/analytics/spc.test.tsx > analytics SPC and rates screens (GMP) > [DI-51] the chart screen shows the advisory band, the limits source, the master's limits and each recorded value as decimal text"
+  - "apps/tablets-web/test/analytics/spc.test.tsx > analytics SPC and rates screens (GMP) > [DI-51] the PQR extract links to the product's charts and rates as an advisory annex outside its signed content"
 expert_decision:
   status: PENDING
   pack_version: draft
