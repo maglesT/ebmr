@@ -2419,7 +2419,7 @@ of each database function.
 
 **Development pod set-up.** Package `tools/dev-env`. Handbook: [modules/tools.md](modules/tools.md).
 
-**Source** (1): [runpod-setup.sh](../../tools/dev-env/runpod-setup.sh)
+**Source** (3): [golden-clock/build.sh](../../tools/dev-env/golden-clock/build.sh), [golden-clock/golden-clock.c](../../tools/dev-env/golden-clock/golden-clock.c), [runpod-setup.sh](../../tools/dev-env/runpod-setup.sh)
 
 ## tools-e2e
 
