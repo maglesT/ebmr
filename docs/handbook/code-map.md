@@ -42,7 +42,7 @@ of each database function.
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 8 | 0 | 3 | 7 |
 | [ss-label-store](#ss-label-store) | The label store of printed-material lots and its permission (Phase 6 slice 6c) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 0 | 0 |
 | [ss-reagent-lots](#ss-reagent-lots) | Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 2 |
-| [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 6 | 2 |
+| [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 7 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 18 | 0 | 19 | 36 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
 | [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
@@ -687,7 +687,7 @@ of each database function.
 
 **Source** (1): [index.ts](../../packages/site-services/src/index.ts)
 
-**Tests** (6): [authorization.test.ts](../../packages/site-services/test/authorization.test.ts), [mutation/erp-wms-receipt-and-stock.test.ts](../../packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts), [mutation/packaging-labels-and-line-completion.test.ts](../../packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts), [mutation/plant-rules.test.ts](../../packages/site-services/test/mutation/plant-rules.test.ts), [mutation/qms-capa-lims-cmms.test.ts](../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts), [package.test.ts](../../packages/site-services/test/package.test.ts)
+**Tests** (7): [authorization.test.ts](../../packages/site-services/test/authorization.test.ts), [mutation/erp-wms-receipt-and-stock.test.ts](../../packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts), [mutation/genealogy-and-recall.test.ts](../../packages/site-services/test/mutation/genealogy-and-recall.test.ts), [mutation/packaging-labels-and-line-completion.test.ts](../../packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts), [mutation/plant-rules.test.ts](../../packages/site-services/test/mutation/plant-rules.test.ts), [mutation/qms-capa-lims-cmms.test.ts](../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts), [package.test.ts](../../packages/site-services/test/package.test.ts)
 
 **Controls** (2): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml)
 

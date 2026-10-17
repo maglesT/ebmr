@@ -995,6 +995,16 @@ Groups, harness options, the Stryker feature table and the run plan: `docs/build
   every instant from 2023 to 2036 converts exactly (200,000 random values on the real server), the loss of a
   microsecond starts decades ahead and the year-9999 limit lands on 10000-01-01. No GMP decision reads that
   microsecond; the lead may queue a numeric conversion.
+- **D-P6j-T4-1 (triage of genealogy-and-recall):** the as-of boundaries of the genealogy, the mock recall and the impact
+  query are proven in one world whose every event row is restamped to a single instant T as test set-up (superuser,
+  triggers off, as the genealogy world's fixtures are written); each query then runs as of exactly T. Shipments,
+  returned goods, the recovery, deviations and their links run for real before the restamp.
+- **D-P6j-T4-2:** the AP-only rule of the mock-recall sign-off (EBMR-RCL-013) is proven by granting
+  RECALL.MOCK_SIGN_OFF to a second role as test set-up, the way a site could re-map role permissions; the mutant's
+  effect is observed through the real sign-off. Per the owner's instruction of 17 October, survivors that cannot drop
+  a lot, consignee or depth level and do not touch the sign-off (input validation of chemical recovery and the ERP
+  shipment, display of node views, the recurrence's batch branch, lock-only and clock-microsecond differences) are
+  recorded, not chased.
 
 #### 6j-b golden batches
 

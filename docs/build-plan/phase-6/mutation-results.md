@@ -368,6 +368,62 @@ Survivors, one line each:
     in the same database; not reached in the time box (P2, numbering only).
 - **Confirmation score:** 386 / 395 valid non-equivalent = 97.7 % (98.0 % with #70).
 
+### genealogy-and-recall (triage T4)
+
+- First run (stream p6-2): 291 detected / 440 valid, **66.1 %** (149 survivors).
+- Scope (owner, 17 October): only survivors that could let the genealogy or a mock recall silently drop a lot,
+  consignee or depth level, or that touch the recall's sign-off (signature binding, the AP-only permission), were
+  chased; the rest is recorded below in one line per kind.
+- Kill tests: `packages/site-services/test/mutation/genealogy-and-recall.test.ts` (the instant world of D-P6j-T4-1:
+  every edge kind as of the exact instant it happened, both directions, with decoys; node existence per kind; the
+  recall's per-lot reconciliation and outbound transfer; the impact query; the sign-off; PR-57, IN-29, PR-50, DI-37).
+- Confirmation run (`--only` on the 80 survivors the tests aim at): **79 / 80 killed** (98.8 %);
+  `recipe.deviation_impact_batches#32` survived (below).
+- After triage: 370 killed, 11 equivalent, 59 left: **86.2 %** (370 / 429; below the 90 % target, the rest recorded or
+  residual within the owner's scope).
+- Defects (P1): none. Every survivor that could drop a lot, consignee or depth level was an untested input
+  (an as-of point exactly on an event, an edge kind no test built); the code was right.
+
+Survivors, one line each:
+- P2 killed (a recall could drop a node): `recipe.genealogy_step#5 to #130` (46: the inclusive as-of comparison of
+  every edge kind both ways; the CHARGED edge's container, batch and purpose joins; the backward SHIPPED, TRANSFERRED,
+  addition and MERGED joins; the forward TRANSFERRED edge's own seal); `recipe.genealogy_node_exists#3 to #24` (16: a
+  node of each kind exists from its own instant, a batch by its issue or by its register link alone, no other node's
+  row stands for it, an unsealed package is no node).
+- P2 killed (recall content): `recipe.mock_recall_result_v1#9, #11, #12` (each lot's own deliveries and returns, a
+  return at the as-of instant); `recipe.mock_recall_starts#6`, `recipe.run_mock_recall#13, #16` (a lot or deviation
+  and its links at the as-of instant); `recipe.deviation_impact_batches#4, #9, #14, #20, #24, #31, #34` (the as-of
+  instant for the deviation, links, lot posting and consumption; a future as-of refused).
+- P2 killed (sign-off, IN-29, DI-37): `recipe.sign_off_mock_recall#2` (unknown run), `#11` (a run that no longer
+  reproduces is refused even with a valid signature), `#16` (a signer holding the permission through another role is
+  refused, D-P6j-T4-2); `recipe.mock_recall_content#3` (another run's sign-off does not change this run's state).
+- Equivalent (11, `tools/sql-mutation/equivalent.json`): clock-microsecond boundaries `recipe.genealogy#11`,
+  `recipe.run_mock_recall#6`, `recipe.deviation_impact_batches#8`, `recipe.deviation_recurrence#11`,
+  `site.record_chemical_recovery#59`, `site.erp_apply_shipment#49`; `recipe.sign_off_mock_recall#20` (EBMR-RCL-014
+  repeats the content check the VALID signature already passed, under the run's row lock); unreachable branches
+  `recipe.genealogy_step#131`, `recipe.genealogy_node_exists#25`, `recipe.mock_recall_run_query#3`;
+  `site.record_chemical_recovery#19` (a non-object payload also fails the next disjunct).
+- Recorded (message only): `recipe.genealogy#1, #3, #6, #8` (an unknown kind or direction is still refused by the node
+  check, EBMR-GEN-002, or the step, EBMR-GEN-001; only which refusal comes first differs); `recipe.run_mock_recall#15`
+  (a deviation not raised by the as-of point is still refused, EBMR-RCL-004 instead of -003).
+- Recorded (lock only): `recipe.sign_off_mock_recall#5` (the row lock; a second sign-off is still refused by the unique
+  sign-off row).
+- Residual (P2, not chased per the owner): `recipe.genealogy#30, #31` (the 200,000-edge cap: at the cap or with the
+  guard removed the trace is answered in full, never cut short; a test needs 200,000 rows).
+- Residual (P2, not chased): `site.record_chemical_recovery#5, #12` (recovery at another site, or of returned goods no
+  longer in quarantine or rejected) and `#21 to #63` (16: each malformed field alone, the 200-character limits, a
+  retest on the expiry); `site.erp_apply_shipment#2 to #29` (13: each malformed shipment field alone, the 200 and 500
+  character limits, an explicit market).
+- Residual (P2, not chased): `site.erp_shipment_distribution_fields#2`, `recipe.lot_dosage_form#2` (the strength and
+  dosage form on a distribution record are another lot's when lots differ; every test lot is 500 mg tablets).
+- Residual (P2, not chased): `recipe.deviation_of_product#3, #4, #6` (the recurrence count of deviations linked by
+  batch rather than by lot, PR-49).
+- Residual (P2, survived the confirmation run; no second run per decision 0019): `recipe.deviation_impact_batches#32`
+  (`c.lot_id = any (v_lots)` to `<>`, 1012:351): the mutant adds every batch that consumed any other lot as SHARED_LOT,
+  an over-inclusion that never drops a batch; killing it needs a batch consuming a lot no linked batch consumed.
+- Recorded (display): `recipe.genealogy_node_views#12 to #28` (14: sub-kind, state and label of a node in the explorer
+  and the federated excerpt).
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)
