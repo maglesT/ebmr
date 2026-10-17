@@ -23,6 +23,7 @@ of each database function.
 | [kernel-authorization](#kernel-authorization) | Authorization (permission catalogue, scopes, signature requirements) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 1 | 9 |
 | [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 8 | 5 |
 | [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
+| [analytics](#analytics) | Advisory analytics (Phase 6A) - pure package, analytics role and schema, method registry, contract namespaces, synthetic history | [modules/analytics.md](modules/analytics.md) | 7 | 17 | 6 | 6 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
 | [kernel-transfer](#kernel-transfer) | Installation keys, peer installations, seals, installation alarms and the site-to-site request log (Phase 6 slice 6i) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 0 | 0 |
@@ -359,6 +360,53 @@ of each database function.
 - Views (1): `report.catalog_v1`
 - Functions (7): `report.catalog_rows_v1`, `report.data_as_of`, `sandbox.apply_connect_policy`, `sandbox.complete_training_step`, `sandbox.segregation_problems`, `sandbox.start_training`, `sandbox.training_sandbox_only`
 - Triggers (8): `a0_sandbox_only on sandbox.training_attempt`, `a0_sandbox_only on sandbox.training_step`, `aa_insert_only on report.view_registry`, `aa_insert_only on sandbox.training_attempt`, `aa_insert_only on sandbox.training_step`, `aa_no_truncate on report.view_registry`, `aa_no_truncate on sandbox.training_attempt`, `aa_no_truncate on sandbox.training_step`
+
+## analytics
+
+**Advisory analytics (Phase 6A) - pure package, analytics role and schema, method registry, contract namespaces, synthetic history.** Package `packages/analytics`. Handbook: [modules/analytics.md](modules/analytics.md).
+
+**Migrations** (7):
+
+- `packages/kernel/sql`: [1240_analytics_schema_role.sql](../../packages/kernel/sql/1240_analytics_schema_role.sql), [1241_analytics_tables.sql](../../packages/kernel/sql/1241_analytics_tables.sql), [1242_analytics_record_functions.sql](../../packages/kernel/sql/1242_analytics_record_functions.sql), [1243_analytics_read_views.sql](../../packages/kernel/sql/1243_analytics_read_views.sql), [1244_analytics_permissions.sql](../../packages/kernel/sql/1244_analytics_permissions.sql)
+- `packages/recipe-core/sql`: [1110_analytics_draft_controls.sql](../../packages/recipe-core/sql/1110_analytics_draft_controls.sql)
+- `apps/tablets-server/sql`: [1330_analytics_role_permissions.sql](../../apps/tablets-server/sql/1330_analytics_role_permissions.sql)
+
+**Database objects** created in these migrations:
+
+- Tables (8): `analytics.flag`, `analytics.flag_disposition`, `analytics.input_registry`, `analytics.method_version`, `analytics.output`, `analytics.reference_set`, `analytics.run`, `analytics.run_end`
+- Views (5): `analytics.input_catalog_v1`, `analytics.method_monitor_v1`, `analytics.open_flag_v1`, `analytics.output_v1`, `analytics.review_priority_v1`
+- Functions (19): `analytics.begin_run`, `analytics.effective_methods`, `analytics.effective_reference_sets`, `analytics.enter_runner`, `analytics.fail_run`, `analytics.finish_run`, `analytics.method_monitor_rows_v1`, `analytics.open_run`, `analytics.person_flags`, `analytics.reasons_ok`, `analytics.record_disposition`, `analytics.record_flag`, `analytics.record_output`, `analytics.reference_model_check`, `analytics.register_input`, `analytics.role_problems`, `analytics.runner_actor`, `sandbox.apply_connect_policy`, `sandbox.segregation_problems`
+- Triggers (1): `a10_reference_model on analytics.reference_set`
+
+**Contract** (6): [analytics-audit.ts](../../packages/api-contract/src/ns/analytics-audit.ts), [analytics-mspc.ts](../../packages/api-contract/src/ns/analytics-mspc.ts), [analytics-profile.ts](../../packages/api-contract/src/ns/analytics-profile.ts), [analytics-review.ts](../../packages/api-contract/src/ns/analytics-review.ts), [analytics-spc.ts](../../packages/api-contract/src/ns/analytics-spc.ts), [analytics.ts](../../packages/api-contract/src/ns/analytics.ts)
+
+**Routes** (17):
+
+| Method | Path | Route | Contract file |
+|---|---|---|---|
+| GET | `/api/analytics/audit-flags` | `analyticsAudit.flags` | [analytics-audit.ts](../../packages/api-contract/src/ns/analytics-audit.ts) |
+| GET | `/api/analytics/audit-flags/:flagId` | `analyticsAudit.flag` | [analytics-audit.ts](../../packages/api-contract/src/ns/analytics-audit.ts) |
+| GET | `/api/analytics/catalog` | `analytics.catalog` | [analytics.ts](../../packages/api-contract/src/ns/analytics.ts) |
+| GET | `/api/analytics/flags` | `analytics.flags` | [analytics.ts](../../packages/api-contract/src/ns/analytics.ts) |
+| GET | `/api/analytics/flags/:flagId` | `analytics.flag` | [analytics.ts](../../packages/api-contract/src/ns/analytics.ts) |
+| POST | `/api/analytics/flags/:flagId/dispositions` | `analytics.dispose` | [analytics.ts](../../packages/api-contract/src/ns/analytics.ts) |
+| GET | `/api/analytics/methods` | `analytics.methods` | [analytics.ts](../../packages/api-contract/src/ns/analytics.ts) |
+| GET | `/api/analytics/monitor` | `analytics.monitor` | [analytics.ts](../../packages/api-contract/src/ns/analytics.ts) |
+| GET | `/api/analytics/mspc` | `analyticsMspc.chart` | [analytics-mspc.ts](../../packages/api-contract/src/ns/analytics-mspc.ts) |
+| GET | `/api/analytics/mspc/batches/:batchId` | `analyticsMspc.batch` | [analytics-mspc.ts](../../packages/api-contract/src/ns/analytics-mspc.ts) |
+| GET | `/api/analytics/mspc/candidates` | `analyticsMspc.candidates` | [analytics-mspc.ts](../../packages/api-contract/src/ns/analytics-mspc.ts) |
+| GET | `/api/analytics/profiles` | `analyticsProfile.batch` | [analytics-profile.ts](../../packages/api-contract/src/ns/analytics-profile.ts) |
+| GET | `/api/analytics/profiles/candidates` | `analyticsProfile.candidates` | [analytics-profile.ts](../../packages/api-contract/src/ns/analytics-profile.ts) |
+| GET | `/api/analytics/rates` | `analyticsSpc.rates` | [analytics-spc.ts](../../packages/api-contract/src/ns/analytics-spc.ts) |
+| GET | `/api/analytics/review-priority/:batchId` | `analyticsReview.priority` | [analytics-review.ts](../../packages/api-contract/src/ns/analytics-review.ts) |
+| GET | `/api/analytics/spc` | `analyticsSpc.chart` | [analytics-spc.ts](../../packages/api-contract/src/ns/analytics-spc.ts) |
+| GET | `/api/analytics/spc/capability` | `analyticsSpc.capability` | [analytics-spc.ts](../../packages/api-contract/src/ns/analytics-spc.ts) |
+
+**Source** (9): [analytics/src/errors.ts](../../packages/analytics/src/errors.ts), [analytics/src/index.ts](../../packages/analytics/src/index.ts), [analytics/src/method.ts](../../packages/analytics/src/method.ts), [analytics/src/numeric/canonical.ts](../../packages/analytics/src/numeric/canonical.ts), [analytics/src/numeric/from-decimal.ts](../../packages/analytics/src/numeric/from-decimal.ts), [analytics/src/numeric/sha256.ts](../../packages/analytics/src/numeric/sha256.ts), [analytics/src/registry.ts](../../packages/analytics/src/registry.ts), [analytics/src/types.ts](../../packages/analytics/src/types.ts), [test-kit/src/analytics-history.ts](../../packages/test-kit/src/analytics-history.ts)
+
+**Tests** (6): [apps/tablets-server/test/analytics/role-permissions.test.ts](../../apps/tablets-server/test/analytics/role-permissions.test.ts), [packages/analytics/test/numeric.test.ts](../../packages/analytics/test/numeric.test.ts), [packages/analytics/test/registry.test.ts](../../packages/analytics/test/registry.test.ts), [packages/api-contract/test/analytics.test.ts](../../packages/api-contract/test/analytics.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../packages/kernel/test/analytics/analytics.test.ts), [packages/test-kit/test/analytics-history.test.ts](../../packages/test-kit/test/analytics-history.test.ts)
+
+**Controls** (6): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-51](../../compliance/controls/DI-51.yaml), [DI-52](../../compliance/controls/DI-52.yaml), [DI-53](../../compliance/controls/DI-53.yaml), [PR-61](../../compliance/controls/PR-61.yaml)
 
 ## kernel-integration
 
@@ -2313,7 +2361,7 @@ of each database function.
 
 **Route table and shared shapes.** Package `packages/api-contract`. Handbook: [modules/api-contract.md](modules/api-contract.md).
 
-**Source** (11): [client.ts](../../packages/api-contract/src/client.ts), [common.ts](../../packages/api-contract/src/common.ts), [examples.ts](../../packages/api-contract/src/examples.ts), [index.ts](../../packages/api-contract/src/index.ts), [intents.ts](../../packages/api-contract/src/intents.ts), [route.ts](../../packages/api-contract/src/route.ts), [routes.ts](../../packages/api-contract/src/routes.ts), [signable.ts](../../packages/api-contract/src/signable.ts), [strict-csp.ts](../../packages/api-contract/src/strict-csp.ts), [tablet-entries.ts](../../packages/api-contract/src/tablet-entries.ts), [vocab/roles.ts](../../packages/api-contract/src/vocab/roles.ts)
+**Source** (12): [analytics-namespaces.ts](../../packages/api-contract/src/analytics-namespaces.ts), [client.ts](../../packages/api-contract/src/client.ts), [common.ts](../../packages/api-contract/src/common.ts), [examples.ts](../../packages/api-contract/src/examples.ts), [index.ts](../../packages/api-contract/src/index.ts), [intents.ts](../../packages/api-contract/src/intents.ts), [route.ts](../../packages/api-contract/src/route.ts), [routes.ts](../../packages/api-contract/src/routes.ts), [signable.ts](../../packages/api-contract/src/signable.ts), [strict-csp.ts](../../packages/api-contract/src/strict-csp.ts), [tablet-entries.ts](../../packages/api-contract/src/tablet-entries.ts), [vocab/roles.ts](../../packages/api-contract/src/vocab/roles.ts)
 
 **Tests** (6): [client.test.ts](../../packages/api-contract/test/client.test.ts), [contract.test.ts](../../packages/api-contract/test/contract.test.ts), [controlled.test.ts](../../packages/api-contract/test/controlled.test.ts), [dashboards.test.ts](../../packages/api-contract/test/dashboards.test.ts), [governance.test.ts](../../packages/api-contract/test/governance.test.ts), [receipt.test.ts](../../packages/api-contract/test/receipt.test.ts)
 

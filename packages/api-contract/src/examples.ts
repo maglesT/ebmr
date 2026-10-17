@@ -74,6 +74,13 @@ import tr6g from '../fixtures/training.json' with { type: 'json' };
 import mr from '../fixtures/recall.json' with { type: 'json' };
 import xf from '../fixtures/transfers.json' with { type: 'json' };
 import fd from '../fixtures/federation.json' with { type: 'json' };
+import ana from '../fixtures/analytics.json' with { type: 'json' };
+import anaAudit from '../fixtures/analytics-audit.json' with { type: 'json' };
+import anaMspc from '../fixtures/analytics-mspc.json' with { type: 'json' };
+import anaProfile from '../fixtures/analytics-profile.json' with { type: 'json' };
+import anaReview from '../fixtures/analytics-review.json' with { type: 'json' };
+import anaSpc from '../fixtures/analytics-spc.json' with { type: 'json' };
+import { ANALYTICS_NAMESPACES } from './analytics-namespaces.ts';
 import { ReadingView } from './ns/devices.ts';
 import { ChallengeView, ManifestationView } from './ns/esig.ts';
 import { routes } from './routes.ts';
@@ -533,6 +540,33 @@ export const EXAMPLES = {
   'training-overview': { schema: r.training.overview.response, data: tr6g.overview, routeId: r.training.overview.id },
   'training-start': { schema: r.training.start.response, data: tr6g.attempt, routeId: r.training.start.id },
   'training-complete-step': { schema: r.training.completeStep.response, data: { ...tr6g.attempt, done: [1, 2], complete: true }, routeId: r.training.completeStep.id },
+} as const satisfies Record<string, Example>;
+
+const an = ANALYTICS_NAMESPACES;
+
+/**
+ * Phase 6A slice 6A-0: one example per analytics route (fixtures/analytics*.json). Kept apart from EXAMPLES until the
+ * namespaces join the route table (D-6A-0-4); the analytics contract test checks each route has one and it parses.
+ */
+export const ANALYTICS_EXAMPLES = {
+  'analytics-catalog': { schema: an.analytics.catalog.response, data: ana.catalog, routeId: an.analytics.catalog.id },
+  'analytics-methods': { schema: an.analytics.methods.response, data: ana.methods, routeId: an.analytics.methods.id },
+  'analytics-monitor': { schema: an.analytics.monitor.response, data: ana.monitor, routeId: an.analytics.monitor.id },
+  'analytics-flags': { schema: an.analytics.flags.response, data: ana.flags, routeId: an.analytics.flags.id },
+  'analytics-flag': { schema: an.analytics.flag.response, data: ana.flag, routeId: an.analytics.flag.id },
+  'analytics-dispose': { schema: an.analytics.dispose.response, data: ana.dispose, routeId: an.analytics.dispose.id },
+  'analytics-spc-chart': { schema: an.analyticsSpc.chart.response, data: anaSpc.chart, routeId: an.analyticsSpc.chart.id },
+  'analytics-spc-capability': { schema: an.analyticsSpc.capability.response, data: anaSpc.capability, routeId: an.analyticsSpc.capability.id },
+  'analytics-spc-rates': { schema: an.analyticsSpc.rates.response, data: anaSpc.rates, routeId: an.analyticsSpc.rates.id },
+  'analytics-mspc-chart': { schema: an.analyticsMspc.chart.response, data: anaMspc.chart, routeId: an.analyticsMspc.chart.id },
+  'analytics-mspc-batch': { schema: an.analyticsMspc.batch.response, data: anaMspc.batch, routeId: an.analyticsMspc.batch.id },
+  'analytics-mspc-candidates': { schema: an.analyticsMspc.candidates.response, data: anaMspc.candidates, routeId: an.analyticsMspc.candidates.id },
+  'analytics-audit-flags': { schema: an.analyticsAudit.flags.response, data: anaAudit.flags, routeId: an.analyticsAudit.flags.id },
+  'analytics-audit-flag': { schema: an.analyticsAudit.flag.response, data: anaAudit.flag, routeId: an.analyticsAudit.flag.id },
+  'analytics-review-priority': { schema: an.analyticsReview.priority.response, data: anaReview.priority, routeId: an.analyticsReview.priority.id },
+  'analytics-review-unscored': { schema: an.analyticsReview.priority.response, data: anaReview.unscored, routeId: an.analyticsReview.priority.id },
+  'analytics-profile-batch': { schema: an.analyticsProfile.batch.response, data: anaProfile.batch, routeId: an.analyticsProfile.batch.id },
+  'analytics-profile-candidates': { schema: an.analyticsProfile.candidates.response, data: anaProfile.candidates, routeId: an.analyticsProfile.candidates.id },
 } as const satisfies Record<string, Example>;
 
 /** Phase 6 slice 6f (builder B): the support, contract-giver and DSC routes, each with an example above (contract test). */

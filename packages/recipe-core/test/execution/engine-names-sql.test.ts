@@ -57,7 +57,7 @@ describe('the names a test run may hold beside TEST- identifiers (recipe-core 03
     expect(invariants).toEqual(Array.from({ length: 48 }, (_, i) => `INV-${String(i + 1).padStart(2, '0')}`));
     const controls = await names('CONTROL');
     expect(controls).toEqual(sorted([...register, ...invariants]));
-    expect(register).toHaveLength(242);
+    expect(register).toHaveLength(246);
     const cited = sorted([...src.matchAll(/\b(?:DI|IN|INV|PR|ST)-\d{2}\b/g)].map((m) => m[0]));
     expect(cited.filter((c) => !controls.includes(c))).toEqual([]);
     // The schema tags of the engine's values (the expression engine writes the evaluation's).

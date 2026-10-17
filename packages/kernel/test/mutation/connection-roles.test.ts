@@ -369,6 +369,8 @@ describe('the invariant query in a sandbox (kernel 0820, 0980)', () => {
         `the GMP role ebmr_listener can connect to the sandbox database ${sbx.name}`,
         // Kernel 1210: the reporting role is GMP-only too, so PUBLIC's CONNECT lets it in and it is reported.
         `the reporting role ebmr_report can connect to the sandbox database ${sbx.name}`,
+        // Kernel 1240: so is the analytics role.
+        `the analytics role ebmr_analytics can connect to the sandbox database ${sbx.name}`,
         `PUBLIC can connect to the sandbox database ${sbx.name}`,
       ]);
     });

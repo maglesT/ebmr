@@ -361,6 +361,7 @@ tests:
   - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > the approved-manufacturer register (PR-17; site services 0910) > [PR-17][DI-17] proposal fields, the 10-character basis, unknown and unapproved rows, and the signer who records the approval"
   - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [PR-51][DI-17] CAPA_CLOSED binds: a signature made stale by a later link, and another person's signature, do not close it"
   - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [DI-17][PR-51] the signed content of a CAPA counts its own rows only and shows its own QMS history only"
+  - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-17][DI-18] every analytics function the application may call refuses administrators, then checks a catalogued permission; the runner functions are the analytics role's alone"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

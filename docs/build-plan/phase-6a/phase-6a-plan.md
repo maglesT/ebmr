@@ -334,9 +334,8 @@ data age.
 
 ## Draft controls (status U, `expert_decision` PENDING; for the owner and the expert)
 
-Written as register entries in [draft-controls/](draft-controls/), in IN-53's style, with the requirement row draft
-`requirements-draft.jsonl` (n680, FDA's AI guidance, unverified). They enter `compliance/controls/` in the 6A-0 commit
-(D-6A-3). The regulations are paraphrased, and both AI texts are drafts (U).
+Written as register entries in IN-53's style, with the requirement row n680 (FDA's AI guidance, unverified). They
+entered `compliance/controls/` (and n680 `compliance/requirements/requirements.jsonl`) in the 6A-0 commit (D-6A-3). The regulations are paraphrased, and both AI texts are drafts (U).
 
 | Id | Title | Class | Why it is new |
 |---|---|---|---|

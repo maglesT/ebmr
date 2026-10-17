@@ -181,9 +181,15 @@ Decision 0020 (owner, 17 October): no demo at phase exits from Phase 7 on; one d
   - 6A-5: review priority (orders the queue, never skips a review).
   - 6A-6: golden batch profile.
   - 6A-7: exit.
-- **Draft controls:** DI-51, DI-52, DI-53 and PR-61 (status U, PENDING; in `draft-controls/`). They enter the register
-  in 6A-0 at target phase 7.
-- **Defaults:** D-6A-1 to 23.
+- **Draft controls:** DI-51, DI-52, DI-53 and PR-61 (status U, PENDING). They entered the register in
+  6A-0 at target phase 7 (246 controls, 680 requirement rows).
+- **Defaults:** D-6A-1 to 23; the interface defaults D-6A-0-1 to 9.
+- **6A-0 done (17 October, branch `phase-6a/plan`):** kernel 1240 to 1244 (schema `analytics`, role `ebmr_analytics`,
+  the insert-only audited tables, the runner and disposition functions, the read views, `ANALYTICS.*`, the areas
+  `ANALYTICS_METHOD` and `ANALYTICS_REFERENCE`), recipe-core 1110 (the draft names), tablets 1330 (role grants); the
+  package `@ebmr/analytics` (`statOf`, registry, canonical hashing), the five ADR 0020 boundary rules with fixtures, the
+  contract namespaces `ns/analytics*.ts` with examples (joining `routes.ts` when bound, D-6A-0-4), `analyticsHistory`
+  (test-kit), and DI-51 to DI-53 and PR-61 in the register (246 controls, 680 rows) with their first tests.
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).

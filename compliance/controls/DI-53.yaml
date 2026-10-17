@@ -17,12 +17,19 @@ sources: "FDA data-integrity Q&A on audit-trail review (row 65), EU GMP Annex 11
 behaviour: "Audit-trail anomaly detection (rules such as late or back-dated entries, high correction counts, one account on two terminals too quickly, values too regular and tests repeated until a pass, then statistical baselines per person) is an aid to the audit-trail review and to the risk-based review of system logs, not a finding. Each flag shows its rule, its reasons and links to the audit entries behind it. Flags about a person or an account are readable only by holders of the data-integrity review permission, also when the application role queries the database directly, and they send no notification to the person or their line. A flag closes only with a QA disposition; a confirmed problem is raised through the deviation process. In the batch audit-trail review a flag may order or highlight entries but never hides one, and the review task is unchanged. The audit facts the detection reads carry no old or new values."
 catalog_test: "seed a late entry, a back-dated entry, a login on two terminals within a minute and a test repeated until a pass; each raises its rule's flag with its reasons, and the clean persons raise none; read a person flag without the data-integrity review permission, through the server and as the application role; refused; the flag sent no notification; it closes only with a disposition; the batch audit-trail review lists the flagged entries first and still lists every entry; the audit facts carry no old or new value."
 implemented_by:
-  modules: []
+  modules:
+    - "packages/kernel/sql/1242_analytics_record_functions.sql"
+    - "packages/kernel/sql/1243_analytics_read_views.sql"
+    - "packages/kernel/sql/1244_analytics_permissions.sql"
+    - "apps/tablets-server/sql/1330_analytics_role_permissions.sql"
   invariants: []
-  guards: []
+  guards:
+    - "analytics.person_flags and analytics.record_disposition: ANALYTICS.DI_REVIEW for a restricted flag (EBMR-ANA-007)"
   db_constraints: []
   rule_keys: []
-tests: []
+tests:
+  - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-53] a person flag is unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
+  - "apps/tablets-server/test/analytics/role-permissions.test.ts > the analytics permissions of the Tablets roles (tablets 1330) > [DI-52][DI-53] each analytics permission is held by exactly its Tablets roles, ANALYTICS.DI_REVIEW by the data-integrity reviewer alone, none by an administration role"
 expert_decision:
   status: PENDING
   pack_version: draft

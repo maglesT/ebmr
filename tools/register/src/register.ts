@@ -1,8 +1,8 @@
 /**
  * The control register as data (build outline 3.1, ADR 0009).
  *
- * compliance/controls/<ID>.yaml   one file per control (242 today: the 241 of the review pack and the draft IN-53)
- * compliance/requirements/requirements.jsonl   679 clause-level rows (n-numbers)
+ * compliance/controls/<ID>.yaml   one file per control (246 today: the 241 of the review pack and the drafts IN-53, DI-51, DI-52, DI-53 and PR-61)
+ * compliance/requirements/requirements.jsonl   680 clause-level rows (n-numbers)
  * compliance/phase.yaml           the phase the repository is currently in
  */
 import { readdirSync, readFileSync } from 'node:fs';

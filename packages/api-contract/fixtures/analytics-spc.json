@@ -1,0 +1,274 @@
+{
+  "chart": {
+    "advisory": true,
+    "notForGmpDecisions": true,
+    "method": {
+      "id": "SPC.IMR",
+      "version": 1
+    },
+    "run": {
+      "id": "a6000000-0000-4000-8000-000000000001",
+      "dataAsOf": {
+        "us": "1791612000000000",
+        "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+      },
+      "finishedAt": {
+        "us": "1791615600000000",
+        "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "dataAgeSeconds": 3600,
+    "product": "PCM-500",
+    "family": "GRAN",
+    "item": "granulation.endpoint",
+    "chart": "IMR",
+    "limitsSource": "PHASE_I",
+    "specification": {
+      "lower": "6.8",
+      "upper": "8.2",
+      "target": "7.5",
+      "unit": "A"
+    },
+    "centre": 7.49,
+    "upperControl": 7.91,
+    "lowerControl": 7.07,
+    "points": [
+      {
+        "batchId": "b6000000-0000-4000-8000-000000000021",
+        "batchNumber": "PCM500-2610-021",
+        "completedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "value": "7.42",
+        "plotted": 7.42,
+        "spread": null,
+        "rules": [],
+        "drill": "/review/b6000000-0000-4000-8000-000000000021"
+      },
+      {
+        "batchId": "b6000000-0000-4000-8000-000000000022",
+        "batchNumber": "PCM500-2610-022",
+        "completedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "value": "7.55",
+        "plotted": 7.55,
+        "spread": 0.13,
+        "rules": [],
+        "drill": "/review/b6000000-0000-4000-8000-000000000022"
+      },
+      {
+        "batchId": "b6000000-0000-4000-8000-000000000023",
+        "batchNumber": "PCM500-2610-023",
+        "completedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "value": "7.48",
+        "plotted": 7.48,
+        "spread": 0.07,
+        "rules": [],
+        "drill": "/review/b6000000-0000-4000-8000-000000000023"
+      },
+      {
+        "batchId": "b6000000-0000-4000-8000-000000000024",
+        "batchNumber": "PCM500-2610-024",
+        "completedAt": {
+          "us": "1791612000000000",
+          "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "value": "8.01",
+        "plotted": 8.01,
+        "spread": 0.53,
+        "rules": [
+          "NELSON_2"
+        ],
+        "drill": "/review/b6000000-0000-4000-8000-000000000024"
+      }
+    ],
+    "flags": [
+      {
+        "flagId": "f6000000-0000-4000-8000-000000000001",
+        "method": {
+          "id": "SPC.IMR",
+          "version": 1
+        },
+        "run": {
+          "id": "a6000000-0000-4000-8000-000000000001",
+          "dataAsOf": {
+            "us": "1791612000000000",
+            "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+          },
+          "finishedAt": {
+            "us": "1791615600000000",
+            "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+          }
+        },
+        "subjectKind": "PRODUCT_ITEM",
+        "subjectRef": "PCM-500|GRAN|granulation.endpoint",
+        "subjectLabel": "PCM-500, granulation end-point (amperage)",
+        "rule": "NELSON_2",
+        "severity": "ATTENTION",
+        "reasons": [
+          {
+            "code": "NELSON_2",
+            "text": "Nine batches in a row above the centre line (batches 24 to 30)",
+            "evidence": [
+              {
+                "kind": "BATCH",
+                "ref": "b6000000-0000-4000-8000-000000000024",
+                "drill": "/review/b6000000-0000-4000-8000-000000000024"
+              }
+            ]
+          }
+        ],
+        "raisedAt": {
+          "us": "1791615600000000",
+          "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "restricted": false,
+        "disposition": null,
+        "drill": "/analytics/spc?product=PCM-500&family=GRAN&item=granulation.endpoint"
+      }
+    ],
+    "skipped": [
+      {
+        "subject": "b6000000-0000-4000-8000-000000000019",
+        "reason": "no recorded end-point (step not applicable)"
+      }
+    ]
+  },
+  "capability": {
+    "advisory": true,
+    "notForGmpDecisions": true,
+    "method": {
+      "id": "CAP.INDEX",
+      "version": 1
+    },
+    "run": {
+      "id": "a6000000-0000-4000-8000-000000000001",
+      "dataAsOf": {
+        "us": "1791612000000000",
+        "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+      },
+      "finishedAt": {
+        "us": "1791615600000000",
+        "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "dataAgeSeconds": 3600,
+    "product": "PCM-500",
+    "family": "GRAN",
+    "item": "granulation.endpoint",
+    "specification": {
+      "lower": "6.8",
+      "upper": "8.2",
+      "target": "7.5",
+      "unit": "A"
+    },
+    "batches": 30,
+    "shown": true,
+    "notShownReason": null,
+    "cpk": {
+      "value": 1.41,
+      "lower": 1.03,
+      "upper": 1.79,
+      "confidence": 0.95
+    },
+    "ppk": {
+      "value": 1.12,
+      "lower": 0.81,
+      "upper": 1.43,
+      "confidence": 0.95
+    },
+    "normality": {
+      "andersonDarling": 0.41,
+      "pValue": 0.33,
+      "note": "No evidence against normality (Anderson-Darling)"
+    }
+  },
+  "rates": {
+    "advisory": true,
+    "notForGmpDecisions": true,
+    "method": {
+      "id": "RATE.DEVIATION",
+      "version": 1
+    },
+    "run": {
+      "id": "a6000000-0000-4000-8000-000000000001",
+      "dataAsOf": {
+        "us": "1791612000000000",
+        "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+      },
+      "finishedAt": {
+        "us": "1791615600000000",
+        "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "dataAgeSeconds": 3600,
+    "product": "PCM-500",
+    "by": "ROOM",
+    "period": {
+      "from": "2026-07-14",
+      "to": "2026-10-12"
+    },
+    "overall": {
+      "batches": 30,
+      "withDeviation": 6,
+      "share": 0.2
+    },
+    "groups": [
+      {
+        "group": "R-2",
+        "batches": 10,
+        "withDeviation": 4,
+        "deviations": 5,
+        "share": {
+          "value": 0.4,
+          "lower": 0.168,
+          "upper": 0.687,
+          "confidence": 0.95
+        },
+        "per100": {
+          "value": 50,
+          "lower": 16.2,
+          "upper": 116.7,
+          "confidence": 0.95
+        },
+        "pValue": 0.012,
+        "qValue": 0.036,
+        "above": true
+      },
+      {
+        "group": "R-1",
+        "batches": 20,
+        "withDeviation": 2,
+        "deviations": 2,
+        "share": {
+          "value": 0.1,
+          "lower": 0.028,
+          "upper": 0.301,
+          "confidence": 0.95
+        },
+        "per100": {
+          "value": 10,
+          "lower": 1.2,
+          "upper": 36.1,
+          "confidence": 0.95
+        },
+        "pValue": 0.6,
+        "qValue": 0.6,
+        "above": false
+      }
+    ],
+    "flags": [],
+    "skipped": [
+      {
+        "subject": "R-9",
+        "reason": "fewer than 5 batches"
+      }
+    ]
+  }
+}

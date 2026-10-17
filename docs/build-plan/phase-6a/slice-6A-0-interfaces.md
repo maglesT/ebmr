@@ -167,3 +167,23 @@ namespace), with the analytics areas added. It is not a new route.
   other input is a parameterless view.
 - **D-6A-0-3:** a run's outputs count only after `finish_run`. A crash leaves an unended run that the views ignore and
   the monitor counts as failed after 1 hour.
+- **D-6A-0-4:** the analytics namespaces are declared in `ns/analytics*.ts` and exported as `ANALYTICS_NAMESPACES`, each
+  route with an example (`ANALYTICS_EXAMPLES`). A namespace joins the route table (`routes.ts`, `NAMESPACE_OWNERS`)
+  in the slice that binds it on the server, through the lead. Why: the server's contract coverage requires every route
+  of the table to be served, and a stub answer would only hide that.
+- **D-6A-0-5:** the Tablets grants (tablets 1330): `ANALYTICS.VIEW` to QA_REVIEWER, HEAD_OF_PRODUCTION,
+  AUTHORISED_PERSON, EU_QP and CSV_DI_LEAD; `ANALYTICS.DISPOSITION` to QA_REVIEWER and CSV_DI_LEAD; `ANALYTICS.DI_REVIEW`
+  to CSV_DI_LEAD only; `ANALYTICS.METHOD` to QA_REVIEWER and PROCESS_OWNER. The reads are READ_ONLY and the writes
+  GOVERNANCE, not GMP, because no analytics act changes GMP data; the functions still refuse administrators first.
+- **D-6A-0-6:** the envelope's `method` and `run` are null when a response spans several (catalogue, methods, monitor,
+  flag lists); each item then names its own.
+- **D-6A-0-7:** Nelson rule 2 needs nine points in a row, and a shift from batch 24 gives seven of 30. So the history
+  also puts batches 22 and 23 above the Phase I centre by their own noise; the shift itself still starts at 24.
+- **D-6A-0-8:** the history's SQL fixture writes view-shaped tables in a fixture schema (`analytics_fixture`), because
+  the input views come in later slices; the manual entries the terminal-digit rule reads are given separately.
+- **D-6A-0-9:** the runner's rows are audited under a system identity (role ANALYTICS_RUNNER, nil person and account,
+  the run id as correlation id), installed for each insert and then removed. `analytics.output_v1` does not show
+  outputs about a PERSON or an ACCOUNT. The input catalogue starts empty: 6A-1 registers its views through the
+  owner-only `analytics.register_input`. The proofs fixed for 6A-1 (segregation and bypass, dependency scan, floating
+  columns) are already tests in 6A-0 (`packages/kernel/test/analytics/`); the one routine outside the schema that
+  names it is the segregation check, which calls `analytics.role_problems()`.

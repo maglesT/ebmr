@@ -142,6 +142,49 @@ module.exports = {
       from: { path: '^packages/integration-sdk/src/(?!index\\.ts$)' },
       to: { path: `^packages/(kernel|site-services|recipe-core|test-kit)/|^packages/integration-sdk/src/index\\.ts$|${DB_DRIVERS}` },
     },
+    // ---- Phase 6A analytics (ADR 0020 point 2) ------------------------------------------------------
+    {
+      name: 'analytics-is-self-contained',
+      comment:
+        'The analytics package (pure computation) reaches no other package, app or tool, no database driver and, of the external packages, only ml-matrix and @stdlib.',
+      severity: 'error',
+      from: { path: '^packages/analytics/src/' },
+      to: {
+        path: `^(packages/(?!analytics/)|apps/|tools/)|${DB_DRIVERS}|(^|/)node_modules/(?!\\.pnpm/(ml-matrix@|@stdlib\\+)|ml-matrix/|@stdlib/)`,
+      },
+    },
+    {
+      name: 'analytics-no-node-core',
+      comment: 'The analytics package imports no node core module (it runs anywhere a method must reproduce).',
+      severity: 'error',
+      from: { path: '^packages/analytics/src/' },
+      to: { dependencyTypes: ['core'] },
+    },
+    {
+      name: 'analytics-only-from-runner',
+      comment: 'Only the analytics runner of the tablets server (and tests) imports the analytics package.',
+      severity: 'error',
+      from: { pathNot: '^packages/analytics/|^apps/tablets-server/src/analytics/|^(apps|packages|tools)/[^/]+/test/' },
+      to: { path: '^packages/analytics/' },
+    },
+    {
+      name: 'analytics-runner-no-gmp-path',
+      comment:
+        'The analytics runner never reaches a server feature, the command path, the kernel, site services, recipe-core or the integration SDK: it reads views and records advisory outputs only.',
+      severity: 'error',
+      from: { path: '^apps/tablets-server/src/analytics/' },
+      to: {
+        path: '^apps/tablets-server/src/features/|^apps/tablets-server/src/platform/db/commands\\.ts$|^packages/(kernel|site-services|recipe-core|integration-sdk)/',
+      },
+    },
+    {
+      name: 'no-gmp-feature-imports-analytics',
+      comment:
+        'No other server feature imports the analytics runner or the analytics feature (the review queue reads the priority through a database view, never through code).',
+      severity: 'error',
+      from: { path: '^apps/tablets-server/src/features/', pathNot: '^apps/tablets-server/src/features/(analytics/|index\\.ts$)' },
+      to: { path: '^apps/tablets-server/src/(analytics|features/analytics)/' },
+    },
     {
       name: 'e2e-imports',
       comment: 'End-to-end tests import only packages and the demo tooling, never app internals.',

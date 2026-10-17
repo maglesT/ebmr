@@ -16,12 +16,29 @@ sources: "EU GMP Annex 22 draft (July 2025), row 180, and FDA draft guidance on 
 behaviour: "Analytics (control charts, capability, drift alerts, multivariate monitoring, deviation-rate comparisons, audit-trail anomaly flags, review priority and golden batch profiles) is advisory. It reads GMP data only through a dedicated database role that holds no privilege on any GMP table and runs no command; the segregation check reports any extra grant. Its outputs are stored only in a separate non-GMP schema, insert-only and audited. No GMP table refers to them and no GMP function, view or trigger reads them, so no output can release, block, reject or change a batch, a record, a review or a release. GMP values are read as exact decimals and converted to floating point only inside the analytics module; floating-point columns exist only in the analytics schema; no statistic is written back as a GMP value or shown as one, and every analytics screen and response is marked advisory, not for GMP decisions."
 catalog_test: "as the analytics role, insert, update and delete in a GMP table and run a command; all are refused; grant the role one extra privilege; the segregation check reports it; search the database for a GMP table, function, view or trigger that depends on the analytics schema; none; search for a floating-point column outside the analytics schema; none; run the golden batches with the analytics runner on; their outputs are unchanged; an analytics response echoes the GMP limits as the source's decimal text and marks itself advisory."
 implemented_by:
-  modules: []
+  modules:
+    - "packages/kernel/sql/1240_analytics_schema_role.sql"
+    - "packages/kernel/sql/1241_analytics_tables.sql"
+    - "packages/kernel/sql/1242_analytics_record_functions.sql"
+    - "packages/kernel/sql/1243_analytics_read_views.sql"
+    - "packages/analytics/src/numeric/from-decimal.ts"
+    - ".dependency-cruiser.cjs"
+    - "packages/api-contract/src/ns/analytics.ts"
   invariants: []
-  guards: []
+  guards:
+    - "sandbox.segregation_problems (analytics.role_problems, kernel 1242): reports any grant of ebmr_analytics beyond its allow-list"
+    - "analytics.* insert-only triggers (kernel.reject_mutation, EBMR-AUDIT-004)"
   db_constraints: []
   rule_keys: []
-tests: []
+tests:
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] the analytics role cannot write: no insert, update or delete outside analytics, no command, and the segregation check reports any extra grant"
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] the segregation check reports the analytics role missing, each elevated attribute alone and a membership either way; the role never connects to a sandbox"
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] no GMP table, function, view or trigger depends on the analytics schema"
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics role (kernel 1240, 1242) > [DI-51] no floating-point column exists outside the analytics schema"
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics tables (kernel 1241) > [DI-51] analytics tables refuse update and delete, whoever writes"
+  - "packages/api-contract/test/analytics.test.ts > the analytics contract (Phase 6A slice 6A-0) > [DI-51] every analytics route is GMP only under /api/analytics/, read-only but for the disposition, and has an example that parses with the advisory envelope"
+  - "packages/api-contract/test/analytics.test.ts > the analytics contract (Phase 6A slice 6A-0) > [DI-51] statistics are finite numbers typed StatNumber, declared only in the analytics files; the GMP values a response repeats travel as decimal text"
+  - "apps/tablets-server/test/analytics/role-permissions.test.ts > the analytics permissions of the Tablets roles (tablets 1330) > [DI-51] on the Tablets GMP database the analytics role connects and holds nothing beyond its allow-list"
 expert_decision:
   status: PENDING
   pack_version: draft

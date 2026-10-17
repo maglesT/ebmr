@@ -1,0 +1,10 @@
+{
+  "name": "@ebmr/analytics",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Advisory analytics (ADR 0020): pure statistics, the method registry and canonical output hashing; imports nothing in the repository",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
