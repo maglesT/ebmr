@@ -9,6 +9,10 @@ Fixed: 6jc-R1 (high; DI-14, DI-20): the ERP/WMS adapter's identity could record 
 6jc-R16 (high; IN-04, DI-21): a product-limited training requirement refused the step work and step signatures of every
 other product at the site (recipe-core 1100, tablets 1320). All three are in the [defect log](../../handbook/08-defect-log.md).
 
+Owner decision 0022 (17 October): R9, R10, R2 and the rest of R16 are fixed in Phase 7 (R9 before any networked site),
+IN-53 stays a draft, the dead `recipe.check_engine_roles` overload is dropped, and the smaller items join the
+hardening list; see `docs/decisions/0022-phase-6-owner-items.md`.
+
 Backlog for the owner:
 - Medium (IN-53, draft) 6jc-R2: the controlled-substance list and register reads need only a session.
 - Medium (DI-31, owner) 6jc-R9: the adapter feed protocol and the gateway's OPC UA feed do not authenticate the source.

@@ -168,7 +168,9 @@ batches GB-T-01 to GB-T-03 41/41, browser suite 50/50, `pnpm trace` at phase 6 o
 Decision 0021 (owner, 17 October; first numbered 0020, which is the product name): no demo at phase exits from Phase 7
 on; one demo when the product is there (v1.0). Decision 0020 (owner, 17 October): the product is Batchwright by
 Medhanta (editions Batchwright Tablets and Injectables), logo concept A; files in `docs/brand/`, branding in Phase 7.
-Next: the Phase 6 PR, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
+Decision 0022 (owner, 17 October): the Phase 6 owner items. R9, R10, R2 and the rest of R16 are fixed early in Phase 7;
+IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 starts only when the owner says so.
+Next: Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
 
