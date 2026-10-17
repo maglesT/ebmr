@@ -403,6 +403,9 @@ Defaults of 6A-1 (taken without asking, as the owner's rule says; each is the de
 - **Mutation group.** `analytics-profile-inputs` (90 %), with its job in `mutation.yml`.
 - **Messages.** EBMR-ANA-060 and -061 (the range 060 to 069 is 6A-6's).
 
+Quick review (one pass, serious defects only): one high fixed with tests, the unbounded reads and outputs of D-6A-6-12.
+There was no critical finding.
+
 Defaults of 6A-6 (taken without asking, as the owner's rule says; each is the decision until the owner changes it):
 
 - **D-6A-6-1 Scope.** A profile is per product code, family, equipment type, step and tag.
@@ -467,6 +470,12 @@ Defaults of 6A-6 (taken without asking, as the owner's rule says; each is the de
   - the counts and the reference batches;
   - the candidate's scope, batches and medoid.
   The routes answer EBMR-ANA-060 for a step without a series and EBMR-ANA-061 when no profile exists yet.
+- **D-6A-6-12 Bounded reads.** Each run reads the latest 50 ended curves of each scope (`report.series_ref_v1`
+  column `recency`; the runner's new `InputSpec.atMost` bound, recorded in the run's input filter as `recency<=`).
+  - The candidate is fitted on the reference batches among them. A scoring run scores them, and an older batch keeps
+    the profile it was given.
+  - Why (found in the slice's own review): every completed batch triggers a run, and a run that reads and scores every
+    curve of the site's history would grow without bound, both in its reads of the GMP primary and in its outputs.
 
 ### Slice 6A-7: Phase 6A exit
 

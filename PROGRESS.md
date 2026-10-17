@@ -212,7 +212,8 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   - Candidates are fitted on the released batches without a deviation or a step alarm; QA makes one a reference set
     under a change record.
   - Screens: `/analytics/profiles` and the trend viewer's overlay. The routes are `analyticsProfile`.
-  - Defaults D-6A-6-1 to 11 are in the plan. Two of them correct literal readings of D-6A-16 that would flag normal
+  - Defaults D-6A-6-1 to 12 are in the plan. Quick review: one high fixed with tests (unbounded reads and outputs;
+    each run now takes the latest 50 curves of each scope, D-6A-6-12). Two of them correct literal readings of D-6A-16 that would flag normal
     curves (D-6A-6-3, D-6A-6-4).
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined

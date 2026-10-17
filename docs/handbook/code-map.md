@@ -23,8 +23,8 @@ of each database function.
 | [kernel-authorization](#kernel-authorization) | Authorization (permission catalogue, scopes, signature requirements) | [modules/kernel.md](modules/kernel.md) | 3 | 0 | 1 | 9 |
 | [kernel-sandbox](#kernel-sandbox) | Sandbox, training and simulation store (TEST- identifiers, segregation) | [modules/kernel.md](modules/kernel.md) | 17 | 0 | 8 | 5 |
 | [kernel-reporting](#kernel-reporting) | Reporting role, report schema and training attempts (Phase 6 slice 6g) | [modules/kernel.md](modules/kernel.md) | 2 | 0 | 0 | 0 |
-| [analytics](#analytics) | Advisory analytics (Phase 6A) - pure package, analytics role and schema, method registry, contract namespaces, synthetic history | [modules/analytics.md](modules/analytics.md) | 7 | 17 | 12 | 8 |
-| [analytics-foundation](#analytics-foundation) | Advisory analytics foundation (Phase 6A slice 6A-1) - runner, input views, method change control, dispositions, monitoring, screens | [modules/analytics.md](modules/analytics.md) | 2 | 2 | 5 | 3 |
+| [analytics](#analytics) | Advisory analytics (Phase 6A) - pure package, analytics role and schema, method registry, contract namespaces, synthetic history | [modules/analytics.md](modules/analytics.md) | 7 | 17 | 12 | 9 |
+| [analytics-foundation](#analytics-foundation) | Advisory analytics foundation (Phase 6A slice 6A-1) - runner, input views, method change control, dispositions, monitoring, screens | [modules/analytics.md](modules/analytics.md) | 2 | 2 | 5 | 4 |
 | [analytics-profile](#analytics-profile) | Golden batch profile (Phase 6A slice 6A-6) - method GBP.DTW_BAND on the native OPC UA series, series inputs, reference sets, band overlay | [modules/analytics.md](modules/analytics.md) | 1 | 0 | 0 | 0 |
 | [kernel-integration](#kernel-integration) | Integration wiring between kernel modules | [modules/kernel.md](modules/kernel.md) | 1 | 0 | 2 | 3 |
 | [kernel-inbound](#kernel-inbound) | Inbound adapter framework (integration adapters, accept_inbound, integration alarms, reconciliation, mirror freshness) | [modules/integrations.md](modules/integrations.md) | 4 | 0 | 2 | 4 |
@@ -408,7 +408,7 @@ of each database function.
 
 **Tests** (12): [apps/tablets-server/test/analytics/profile.test.ts](../../apps/tablets-server/test/analytics/profile.test.ts), [apps/tablets-server/test/analytics/role-permissions.test.ts](../../apps/tablets-server/test/analytics/role-permissions.test.ts), [apps/tablets-server/test/analytics/routes.test.ts](../../apps/tablets-server/test/analytics/routes.test.ts), [apps/tablets-server/test/analytics/runner.test.ts](../../apps/tablets-server/test/analytics/runner.test.ts), [packages/analytics/test/libraries.test.ts](../../packages/analytics/test/libraries.test.ts), [packages/analytics/test/numeric.test.ts](../../packages/analytics/test/numeric.test.ts), [packages/analytics/test/profile.test.ts](../../packages/analytics/test/profile.test.ts), [packages/analytics/test/registry.test.ts](../../packages/analytics/test/registry.test.ts), [packages/api-contract/test/analytics.test.ts](../../packages/api-contract/test/analytics.test.ts), [packages/kernel/test/analytics/analytics.test.ts](../../packages/kernel/test/analytics/analytics.test.ts), [packages/kernel/test/analytics/method-change.test.ts](../../packages/kernel/test/analytics/method-change.test.ts), [packages/test-kit/test/analytics-history.test.ts](../../packages/test-kit/test/analytics-history.test.ts)
 
-**Controls** (8): [DI-09](../../compliance/controls/DI-09.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-51](../../compliance/controls/DI-51.yaml), [DI-52](../../compliance/controls/DI-52.yaml), [DI-53](../../compliance/controls/DI-53.yaml), [PR-60](../../compliance/controls/PR-60.yaml), [PR-61](../../compliance/controls/PR-61.yaml)
+**Controls** (9): [DI-09](../../compliance/controls/DI-09.yaml), [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-51](../../compliance/controls/DI-51.yaml), [DI-52](../../compliance/controls/DI-52.yaml), [DI-53](../../compliance/controls/DI-53.yaml), [PR-60](../../compliance/controls/PR-60.yaml), [PR-61](../../compliance/controls/PR-61.yaml)
 
 ## analytics-foundation
 
@@ -442,7 +442,7 @@ of each database function.
 
 **Tests** (5): [apps/tablets-web/test/analytics/analytics.test.tsx](../../apps/tablets-web/test/analytics/analytics.test.tsx), [apps/tablets-web/test/analytics/profile.test.tsx](../../apps/tablets-web/test/analytics/profile.test.tsx), [packages/recipe-core/test/analytics/input-views.test.ts](../../packages/recipe-core/test/analytics/input-views.test.ts), [packages/recipe-core/test/analytics/series-inputs.test.ts](../../packages/recipe-core/test/analytics/series-inputs.test.ts), [tools/boundaries/test/number-ban.test.ts](../../tools/boundaries/test/number-ban.test.ts)
 
-**Controls** (3): [DI-51](../../compliance/controls/DI-51.yaml), [DI-52](../../compliance/controls/DI-52.yaml), [PR-60](../../compliance/controls/PR-60.yaml)
+**Controls** (4): [DI-32](../../compliance/controls/DI-32.yaml), [DI-51](../../compliance/controls/DI-51.yaml), [DI-52](../../compliance/controls/DI-52.yaml), [PR-60](../../compliance/controls/PR-60.yaml)
 
 ## analytics-profile
 

@@ -9,6 +9,8 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
+import { callQuery, inputQuery, InputSpecError } from '../../src/analytics/inputs.ts';
+import { assembleProfile } from '../../src/analytics/profile.ts';
 import type { AnalyticsRunner } from '../../src/analytics/runner.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
@@ -99,6 +101,8 @@ describe('the golden batch profile (GBP.DTW_BAND)', () => {
     expect(flags).toEqual([{ subject_ref: abnormal.id, rule: 'DTW_DISTANCE', severity: 'ATTENTION' }, { subject_ref: abnormal.id, rule: 'OUT_OF_BAND', severity: 'ATTENTION' }]);
     const { rows: run } = await gmp.db.admin.query<{ reference_set: string; inputs: { view: string; rows: number }[] }>('select reference_set::text, inputs from analytics.run where id = $1', [scored.runId]);
     expect(run[0]!.reference_set).toBe(set.referenceSetId);
+    // The latest curves of the scope only (D-6A-6-12), named in the run's input record.
+    expect((run[0]!.inputs[0] as unknown as { filter: unknown }).filter).toEqual({ ended: true, equipment_type: 'TABLET_PRESS', step: PROFILE_STEP, tag: PROFILE_TAG, 'recency<=': 50 });
     expect(run[0]!.inputs.map((i) => [i.view, i.rows])).toEqual([
       ['report.series_ref_v1', 21], ['report.analytics_reference_v1', 1], ['report.series_samples_v1(uuid,text,text)', 21 * 120],
     ]);
@@ -157,5 +161,36 @@ describe('the golden batch profile (GBP.DTW_BAND)', () => {
     // A re-run on the same data reproduces the scoring run (D-6A-22).
     const again = await runner().runAll('ON_DEMAND');
     expect(again.map((r) => r.outputSha256)).toEqual(reports.map((r) => r.outputSha256));
+  });
+});
+
+describe('the profile\'s reads in the runner (inputs.ts, profile.ts)', () => {
+  it('a bounded read and a row function call are built from fixed shapes; another shape is refused', () => {
+    expect(inputQuery({ view: 'report.series_ref_v1', version: 1, filter: { ended: true, tag: PROFILE_TAG }, atMost: { recency: 50 } })).toEqual({
+      text: 'select * from report.series_ref_v1 where "ended" = $1 and "tag" = $2 and "recency" <= $3', values: [true, PROFILE_TAG, 50],
+    });
+    const call = { view: 'report.series_samples_v1(uuid,text,text)', version: 1, filter: null, call: { from: 'report.series_ref_v1', args: ['batch_id', 'step', 'tag'] } };
+    expect(callQuery(call)).toBe('select * from report.series_samples_v1($1::uuid, $2::text, $3::text)');
+    expect(() => callQuery({ ...call, call: { ...call.call, args: ['batch_id'] } })).toThrow(InputSpecError);
+    expect(() => callQuery({ ...call, view: 'report.series_samples_v1(uuid,text,text); drop table x' })).toThrow(InputSpecError);
+    expect(() => callQuery({ ...call, filter: { a: 1 } })).toThrow(InputSpecError);
+    expect(() => inputQuery({ view: 'report.series_ref_v1', version: 1, filter: null, atMost: { 'recency" or true --': 1 } })).toThrow(InputSpecError);
+    expect(() => inputQuery({ view: 'report.series_ref_v1', version: 1, filter: null, atMost: { recency: 1.5 } })).toThrow(InputSpecError);
+  });
+
+  it('each curve gets the samples of its own unit\'s chunks; the reference rule names why a batch is left out', () => {
+    const ref = (equipment: string, chunks: string[], over: Record<string, unknown> = {}) => ({
+      batch_id: 'b1', batch_number: 'B-1', product_code: null, family_code: 'F', step: PROFILE_STEP, equipment_code: equipment, equipment_type: 'TABLET_PRESS',
+      tag: PROFILE_TAG, unit: 'kN', ended: true, released: true, deviations: 0, alarms: 0, chunk_ids: chunks, ...over,
+    });
+    const sample = (chunk: string, us: string, status = 'GOOD', value: string | null = '1.5') => ({ batch_id: 'b1', step: PROFILE_STEP, tag: PROFILE_TAG, chunk_id: chunk, source_us: us, value_text: value, status });
+    const input = assembleProfile({
+      'report.series_ref_v1': [ref('P-1', ['c1']), ref('P-2', ['c2'], { released: false, deviations: 2, alarms: 1 })],
+      'report.series_samples_v1(uuid,text,text)': [sample('c1', '1'), sample('c2', '2'), sample('c1', '3', 'BAD', null)],
+    });
+    expect(input.curves.map((c) => [c.equipmentCode, c.productCode, c.notReference, c.samples.map((s) => [s.sourceUs, s.status, s.value])])).toEqual([
+      ['P-1', '-', null, [['1', 'GOOD', '1.5'], ['3', 'BAD', null]]],
+      ['P-2', '-', 'not released; 2 deviation(s) linked to the batch; 1 alarm(s) on the step', [['2', 'GOOD', '1.5']]],
+    ]);
   });
 });

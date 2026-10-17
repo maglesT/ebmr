@@ -160,6 +160,7 @@ of slice 6b (`plant.series`). It is advisory, and no profile is ever a GMP recor
     role may not run the kernel's owner-only reader, and 6A-6 has no kernel range (D-6A-6-7).
 - **The runner** calls the samples function once per distinct batch, step and tag (an `InputSpec` with `call`). It gives
   each sample to the unit whose chunk holds it.
+  - Each run reads only the latest 50 ended curves of each scope (column `recency`, bound `atMost`; D-6A-6-12).
   - A method with `references` runs once without a reference set, to fit the model candidates, and then once per
     reference set in force. Each set is read again in the run's snapshot.
   - Before scoring, the runner checks that the set's model hashes to its SHA-256 and that its batches and scope are the

@@ -32,7 +32,7 @@ import type pg from 'pg';
 import { canonicalText, outputHash, sha256Hex, type FlagDraft, type MethodId, type OutputDraft, type Parameters, type ReferenceModel } from '@ebmr/analytics';
 import { codeRuns, methodDefinitionProblems, parametersSha256, runtimeOf } from './catalog.ts';
 import { IMPLEMENTATIONS, type InputRow, type InputSpec, type MethodImplementation, type ReferenceRow } from './implementation.ts';
-import { readSnapshot, type InputRecord } from './inputs.ts';
+import { readSnapshot, recordedFilter, type InputRecord } from './inputs.ts';
 import { connectRetrying, queryRetrying } from './pool.ts';
 
 export type RunTrigger = 'SCHEDULED' | 'BATCH_COMPLETE' | 'ON_DEMAND';
@@ -200,7 +200,7 @@ export class AnalyticsRunner {
     }
     if (referenceSet !== null && !impl.references) throw new Error(`${v.method} has no reference sets`);
     const refs = impl.references;
-    const refSpec: InputSpec | null = referenceSet !== null && refs ? { view: refs.view, version: refs.version, filter: { ...(refs.filter ?? {}), reference_set_id: referenceSet } } : null;
+    const refSpec: InputSpec | null = referenceSet !== null && refs ? { ...refs, filter: { ...(refs.filter ?? {}), reference_set_id: referenceSet } } : null;
     let specs: readonly InputSpec[] = impl.inputs;
     let inputs: InputRecord[] = impl.inputs.map(emptyInput);
     try {
@@ -308,7 +308,7 @@ export class AnalyticsRunner {
 
 /** An input record before its read (a run that fails before reading names its inputs this way). */
 function emptyInput(s: InputSpec): InputRecord {
-  return { view: s.view, version: s.version, filter: s.filter, data_as_of: '1970-01-01T00:00:00Z', rows: 0, sha256: '0'.repeat(64) };
+  return { view: s.view, version: s.version, filter: recordedFilter(s), data_as_of: '1970-01-01T00:00:00Z', rows: 0, sha256: '0'.repeat(64) };
 }
 
 /** PostgreSQL array text ({a,b}) or a parsed array, as strings. */

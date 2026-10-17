@@ -14,7 +14,8 @@
 --                                      plant.series_in_context, recipe-core 0960): batch number, product and family,
 --                                      completion and release, the step, the unit's code and class (equipment_type, as
 --                                      report.step_use_v1 names it), the tag and unit, the window (window_to null and
---                                      ended false while it is open), the chunk ids in the window, the deviations
+--                                      ended false while it is open), its recency among the ended windows of its scope
+--                                      (1 the latest; D-6A-6-12), the chunk ids in the window, the deviations
 --                                      linked to the batch and the alarms bound to the batch on that step or on no
 --                                      step (D-6A-6-2).
 --   report.series_samples_v1(batch, step, tag)
@@ -63,23 +64,32 @@ revoke all on function report.step_windows_v1() from public;
 create function report.series_ref_rows_v1()
 returns table (batch_id uuid, batch_number text, product_code text, family_code text, completed_at timestamptz, released boolean, step text,
                equipment_code text, equipment_type text, tag text, unit text, window_from timestamptz, window_to timestamptz, ended boolean,
-               chunk_ids uuid[], deviations integer, alarms integer, read_at timestamptz, data_as_of timestamptz)
+               recency integer, chunk_ids uuid[], deviations integer, alarms integer, read_at timestamptz, data_as_of timestamptz)
 language sql stable security definer set search_path = pg_catalog, recipe, site, plant, platform, report, pg_temp as $$
-  select w.batch_id, f.batch_number, f.product_code, f.family_code, f.completed_at, f.released, w.step, e.code, e.class_code, c.tag, c.unit,
-         w.w_from, case when w.w_to = 'infinity'::timestamptz then null else w.w_to end, w.w_to <> 'infinity'::timestamptz, c.chunk_ids,
-         (select count(distinct l.deviation_id)::integer from site.deviation_link l where l.batch_id = w.batch_id),
-         (select count(distinct ab.alarm_id)::integer from plant.alarm_batch ab where ab.batch_id = w.batch_id and (ab.step is null or ab.step = w.step)),
+  with r as (
+    select w.batch_id, f.batch_number, f.product_code, f.family_code, f.completed_at, f.released, w.step, e.code, e.class_code, c.tag, c.unit,
+           w.w_from, w.w_to, c.chunk_ids
+      from report.step_windows_v1() w
+      join report.batch_fact_rows_v1() f on f.batch_id = w.batch_id
+      join plant.equipment e on e.id = w.equipment_id
+      cross join lateral (
+        select x.tag, x.unit, array_agg(x.id order by x.from_us, x.chunk_no) as chunk_ids
+          from plant.series x
+         where x.equipment_id = w.equipment_id
+           and platform.epoch_us_to_timestamptz(x.to_us::text) >= w.w_from and platform.epoch_us_to_timestamptz(x.from_us::text) < w.w_to
+         group by x.tag, x.unit) c)
+  select r.batch_id, r.batch_number, r.product_code, r.family_code, r.completed_at, r.released, r.step, r.code, r.class_code, r.tag, r.unit,
+         r.w_from, case when r.w_to = 'infinity'::timestamptz then null else r.w_to end, r.w_to <> 'infinity'::timestamptz,
+         -- 1 for the latest ended window of the scope (product, family, unit class, step, tag), then 2, 3, ...; null while open.
+         case when r.w_to <> 'infinity'::timestamptz then
+           (pg_catalog.row_number() over (partition by r.product_code, r.family_code, r.class_code, r.step, r.tag, r.w_to = 'infinity'::timestamptz
+                                          order by r.w_to desc, r.batch_number desc, r.code desc, r.unit))::integer end,
+         r.chunk_ids,
+         (select count(distinct l.deviation_id)::integer from site.deviation_link l where l.batch_id = r.batch_id),
+         (select count(distinct ab.alarm_id)::integer from plant.alarm_batch ab where ab.batch_id = r.batch_id and (ab.step is null or ab.step = r.step)),
          pg_catalog.statement_timestamp(), report.data_as_of()
-    from report.step_windows_v1() w
-    join report.batch_fact_rows_v1() f on f.batch_id = w.batch_id
-    join plant.equipment e on e.id = w.equipment_id
-    cross join lateral (
-      select x.tag, x.unit, array_agg(x.id order by x.from_us, x.chunk_no) as chunk_ids
-        from plant.series x
-       where x.equipment_id = w.equipment_id
-         and platform.epoch_us_to_timestamptz(x.to_us::text) >= w.w_from and platform.epoch_us_to_timestamptz(x.from_us::text) < w.w_to
-       group by x.tag, x.unit) c
-   order by f.batch_number, w.step, e.code, c.tag, c.unit
+    from r
+   order by r.batch_number, r.step, r.code, r.tag, r.unit
 $$;
 
 -- The samples of one GMP batch's step and tag inside the step's binding windows, oldest first.

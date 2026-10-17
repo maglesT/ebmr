@@ -57,9 +57,20 @@ export function inputQuery(spec: InputSpec): { text: string; values: unknown[] }
   if (!VIEW.test(spec.view)) throw new InputSpecError(`${spec.view} is not a report view name`);
   if (!spec.view.endsWith(`_v${spec.version}`)) throw new InputSpecError(`${spec.view} is not version ${spec.version} of its name`);
   const entries = Object.entries(spec.filter ?? {});
-  for (const [column] of entries) if (!COLUMN.test(column)) throw new InputSpecError(`${column} is not a column name`);
-  const where = entries.map(([column], i) => `"${column}" = $${i + 1}`).join(' and ');
-  return { text: `select * from ${spec.view}${where ? ` where ${where}` : ''}`, values: entries.map(([, v]) => v) };
+  const bounds = Object.entries(spec.atMost ?? {});
+  for (const [column] of [...entries, ...bounds]) if (!COLUMN.test(column)) throw new InputSpecError(`${column} is not a column name`);
+  for (const [column, n] of bounds) if (!Number.isSafeInteger(n)) throw new InputSpecError(`${column}: a bound is a whole number`);
+  const where = [
+    ...entries.map(([column], i) => `"${column}" = $${i + 1}`),
+    ...bounds.map(([column], i) => `"${column}" <= $${entries.length + i + 1}`),
+  ].join(' and ');
+  return { text: `select * from ${spec.view}${where ? ` where ${where}` : ''}`, values: [...entries.map(([, v]) => v), ...bounds.map(([, v]) => v)] };
+}
+
+/** The filter an input record names: the equality conditions, and each bound as "<column><=" (slice 6A-6). */
+export function recordedFilter(spec: InputSpec): InputRecord['filter'] {
+  if (!spec.atMost) return spec.filter;
+  return { ...(spec.filter ?? {}), ...Object.fromEntries(Object.entries(spec.atMost).map(([c, n]) => [`${c}<=`, n])) };
 }
 
 /** The canonical rows of a read: without the read's own times, sorted by canonical text. */
@@ -94,7 +105,7 @@ export async function readSnapshot(pool: pg.Pool, specs: readonly InputSpec[]): 
       const { rows } = await client.query<Record<string, unknown>>(q.text, q.values);
       const c = canonicalRows(rows);
       out.rows[spec.view] = c.rows;
-      out.inputs.push({ view: spec.view, version: spec.version, filter: spec.filter, data_as_of: dataAsOf, rows: c.rows.length, sha256: c.sha256 });
+      out.inputs.push({ view: spec.view, version: spec.version, filter: recordedFilter(spec), data_as_of: dataAsOf, rows: c.rows.length, sha256: c.sha256 });
     }
     for (const { spec, text } of calls) {
       const call = spec.call!;

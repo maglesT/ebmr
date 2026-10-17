@@ -114,14 +114,15 @@ interface RefRow {
 describe('the golden batch profile inputs (recipe-core 1170)', () => {
   it('[DI-51][DI-52] report.series_ref_v1 names each GMP batch step\'s native series on its unit, with its chunks, release, deviations and step alarms', async () => {
     const [open] = await asAnalytics<RefRow>('select * from report.series_ref_v1 where batch_id = $1', [main.batchId]);
-    expect(open).toMatchObject({ step: STEP, equipment_code: main.press.code, tag: TAG, unit: 'kN', ended: false, window_to: null, released: false, deviations: 0, alarms: 0 });
+    expect(open).toMatchObject({ step: STEP, equipment_code: main.press.code, tag: TAG, unit: 'kN', ended: false, window_to: null, recency: null, released: false, deviations: 0, alarms: 0 });
     expect([...open!.chunk_ids].sort()).toEqual([...chunkIds].sort());
     expect(open!.equipment_type).toBe((await db.admin.query<{ c: string }>('select class_code as c from plant.equipment where id = $1', [main.press.id])).rows[0]!.c);
     expect(open!.read_at).toBeInstanceOf(Date);
     // The use ends: the window closes.
     await w.run(w.cast.operator, (c) => plant.endEquipmentUse(c, main.useId));
     const [closed] = await asAnalytics<RefRow>('select * from report.series_ref_v1 where batch_id = $1', [main.batchId]);
-    expect(closed).toMatchObject({ ended: true });
+    // The latest (and only) ended window of its scope (D-6A-6-12).
+    expect(closed).toMatchObject({ ended: true, recency: 1 });
     expect(closed!.window_to).toBeInstanceOf(Date);
     // The same rows for the reporting role (report catalogue) and the application role.
     expect((await db.app.query('select count(*)::int as n from report.series_ref_v1 where batch_id = $1', [main.batchId])).rows[0]).toEqual({ n: 1 });

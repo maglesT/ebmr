@@ -15,6 +15,8 @@ export interface InputSpec {
   readonly version: number;
   /** Column = value conditions (null: every row). */
   readonly filter: Readonly<Record<string, string | number | boolean>> | null;
+  /** Column <= whole number conditions, beside the filter (slice 6A-6: the latest curves of each scope). */
+  readonly atMost?: Readonly<Record<string, number>>;
   /**
    * A parameterised row function (a FUNCTION input, D-6A-0-2; slice 6A-6): called once per row of the view input
    * `from`, read in the same snapshot before it, with that row's `args` columns as its arguments; each row it returns

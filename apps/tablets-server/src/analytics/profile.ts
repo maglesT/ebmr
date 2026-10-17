@@ -1,6 +1,7 @@
 /**
  * The runner's implementation of GBP.DTW_BAND, the golden batch profile (slice 6A-6; D-6A-16, D-6A-6-1 to D-6A-6-8).
- * It reads the series references of steps whose window on the unit has ended (report.series_ref_v1), the native
+ * It reads the series references of the latest 50 curves of each scope whose window on the unit has ended
+ * (report.series_ref_v1, column recency), the native
  * samples of each (report.series_samples_v1, called once per batch, step and tag) and, for a run against a reference
  * set, that set in force (report.analytics_reference_v1, recipe-core 1170). It narrows a reference set's run to the
  * set's scope. A sample belongs to the unit whose chunk holds it (the reference row's chunk ids), so a step that ran on
@@ -21,7 +22,14 @@ const REF = 'report.series_ref_v1';
 const SAMPLES = 'report.series_samples_v1(uuid,text,text)';
 const REFERENCES: InputSpec = { view: 'report.analytics_reference_v1', version: 1, filter: { method: 'GBP.DTW_BAND' } };
 
-const refInput = (filter: Readonly<Record<string, string | number | boolean>>): InputSpec => ({ view: REF, version: 1, filter: { ended: true, ...filter } });
+/**
+ * The latest curves of each scope a run reads (D-6A-6-12): the candidate is fitted on the reference batches among
+ * them, and a scoring run scores them; an older batch keeps the profile it was given.
+ */
+export const RECENT_CURVES = 50;
+const refInput = (filter: Readonly<Record<string, string | number | boolean>>): InputSpec => ({
+  view: REF, version: 1, filter: { ended: true, ...filter }, atMost: { recency: RECENT_CURVES },
+});
 const samplesInput: InputSpec = { view: SAMPLES, version: 1, filter: null, call: { from: REF, args: ['batch_id', 'step', 'tag'] } };
 
 const text = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint' ? String(v) : '');
