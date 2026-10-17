@@ -141,4 +141,37 @@ describe('OPC UA readings checked in the database (tablets 1210)', () => {
       expect(await of(servedDevice)).toBe(servedEndpoint);
     });
   });
+
+  it('[DI-49][DI-31] plain readings pass through the OPC UA path untouched; ALARM_CLEARED clears the open bridged alarm of its own unit and tag only', async () => {
+    const actor = await openServiceSession(gmp.db, gmp.seed, 'gateway');
+    await inActor(gmp, actor, async (c) => {
+      const serial = `S-${tag()}`;
+      const unit = randomUUID();
+      await replica(c, async () => {
+        const g = await gatewayWithDevice(c, actor.sessionId, serial);
+        await c.query(`insert into plant.equipment (id, code, name, class_code, kind, recorded_by) values ($1, $2, $2, 'KILL-CLASS', 'PROCESS', gen_random_uuid())`, [unit, `EQ-KILL-${tag()}`]);
+        await c.query('insert into tab.process_device_unit (process_device_id, equipment_id, person_id, account_id) values ($1, $2, gen_random_uuid(), gen_random_uuid())', [g.device, unit]);
+      });
+      const us = BigInt((await c.query<{ us: string }>('select floor(extract(epoch from clock_timestamp()) * 1000000)::bigint::text as us')).rows[0]!.us);
+      let seq = 0;
+      const r = (tagName: string, value: string, unit_: string, kind: string, at: bigint): Json => {
+        seq += 1;
+        return { deviceSerial: serial, tag: tagName, value, unit: unit_, quality: 'GOOD', sourceTime: at.toString(), sequence: String(seq), kind };
+      };
+      const ingest = async (readings: Json[]) => {
+        const o = await attempt(c, 'select tab.ingest_opcua_readings($1) as r', [JSON.stringify({ sessionId: randomUUID(), readings })]);
+        return o.ok ? 'ok' : o.message;
+      };
+      // Two open alarms of the unit, the second raised later on another tag; then the first tag clears.
+      expect(await ingest([r('force.main_kN', '14.10', 'kN', 'ALARM', us - 3_000_000n), r('turret.speed_rpm', '75.0', 'rpm', 'ALARM', us - 2_000_000n)])).toBe('ok');
+      const alarms = async () =>
+        (await c.query<{ tag: string; cleared: boolean }>(
+          `select a.tag, exists (select 1 from plant.alarm_transition t where t.alarm_id = a.id and t.transition = 'CLEARED') as cleared
+             from plant.alarm a where a.equipment_id = $1 order by a.tag`, [unit],
+        )).rows;
+      expect(await alarms()).toEqual([{ tag: 'force.main_kN', cleared: false }, { tag: 'turret.speed_rpm', cleared: false }]);
+      expect(await ingest([r('force.main_kN', '12.48', 'kN', 'ALARM_CLEARED', us - 1_000_000n)])).toBe('ok');
+      expect(await alarms()).toEqual([{ tag: 'force.main_kN', cleared: true }, { tag: 'turret.speed_rpm', cleared: false }]);
+    });
+  });
 });

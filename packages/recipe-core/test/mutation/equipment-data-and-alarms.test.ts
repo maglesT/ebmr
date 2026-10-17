@@ -12,7 +12,8 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { expectRefused } from '../../../kernel/test/identity/helpers.ts';
-import { withCommand } from '../../../kernel/src/db/command.ts';
+import { toDbContext, withCommand } from '../../../kernel/src/db/command.ts';
+import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedAdministration, withReason } from '../../../kernel/test/identity/seed.ts';
 import { envelopeFor, nowUs, receive, registerAdapter, type TestAdapter } from '../../../kernel/test/integrations/support.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
@@ -401,4 +402,40 @@ it('[DI-49] an EMS alarm is received for a room (the adapter of the EMS is in us
   const room = await w.room();
   const r = await sendAlarm(alarmPayload(room.code, { subjectKind: 'AREA', alarmCode: code('RH'), tag: 'room.rh_pct', value: { value: '61.2', unit: '%RH' }, limit: { value: '60.0', unit: '%RH' } }), ems);
   expect(r).toMatchObject({ outcome: 'ACCEPTED', applied: 'RAISED' });
+});
+
+describe('the OPC UA data guard on owner-level writes (DI-20)', () => {
+  /** Inserts a series row of `unit` as the owner (triggers on) in the adapter's command; the refusal's message, or 'inserted'. Rolled back. */
+  async function ownerSeries(unit: string, inboundMessageId: string): Promise<string> {
+    const ctx = await cmd(db, opcua.actor);
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+      await c.query('set local role ebmr_owner');
+      await c.query(
+        `insert into plant.series (source, subject_kind, equipment_id, tag, unit, chunk_no, from_us, to_us, sample_count, samples, chunk_hash, inbound_message_id)
+         values ('OPCUA', 'EQUIPMENT', $1, 'force.main_kN', 'kN', 1, 1, 1, 1, '[{}]'::jsonb, repeat('a', 64), $2)`,
+        [unit, inboundMessageId],
+      );
+      return 'inserted';
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  }
+
+  it('[DI-20] OPC UA data name the inbound message they came in, and only a session received before that message counts', async () => {
+    const press = await servedPress();
+    const session = (await db.admin.query<{ m: string }>(
+      'select s.inbound_message_id::text as m from plant.opcua_endpoint_session s join plant.opcua_endpoint_unit eu on eu.endpoint_id = s.endpoint_id where eu.equipment_id = $1',
+      [press.id],
+    )).rows;
+    expect(session).toHaveLength(1);
+    expect(await ownerSeries(press.id, randomUUID())).toMatch(/EBMR-EQD-002 DI-20: OPC UA data name a unit and the inbound message they came in/);
+    // Data claiming the session's own message: no session precedes them.
+    expect(await ownerSeries(press.id, session[0]!.m)).toMatch(/EBMR-EQD-002 DI-20: no session of endpoint .* precedes the data of unit/);
+  });
 });
