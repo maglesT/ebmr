@@ -1190,7 +1190,7 @@ re-run (owner, 17 October). First-run scores are from `.reports/stryker-phase6/p
 | p4-server-release | 62.2 % | 24 high-risk zone (90 in all) | 240 high-risk zone (255 in all) | 90.3 % (after-release, index, signables) |
 | p4-server-records | 59.1 % | 94 high-risk zone (141 in all) | 133 high-risk zone (203 in all) | records 71.7 %; archive and PQR 47.9 % |
 | p4-server-india | 68.9 % | 27 | 66 | 64.6 % |
-| p4-server-pqr | 78.9 % | 3 | 1 | (with the archive above) |
+| p4-server-pqr | 78.9 % | 3 high-risk zone (39 in all) | 1 high-risk zone (9 in all) | (with the archive above) |
 
 The release figure is lower than Phase 4's because the feature now also mutates `reads.ts`, and because `signables.ts`
 holds acts that no server test runs (238 no-coverage mutants): the QP intake, its check and the in-system QP
