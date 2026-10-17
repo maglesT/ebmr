@@ -373,4 +373,24 @@ describe('the OPC UA driver and feed: what only the gateway can check (T12)', ()
     expect((await fetch(`http://127.0.0.1:${port.toString()}/opcua/v1/feed`, { method: 'POST' })).status).toBe(405);
     await feed.close();
   });
+
+  it('[DI-31] the transitions of an alarm and distinct events with the longest ids the contract allows are each published, never taken for one another', async () => {
+    const { t, d, feed } = await rig();
+    await until(() => d.state === 'ONLINE', 2000, 'online');
+    const occ = 'C'.repeat(128);
+    const alarm: EquipmentAlarmV1 = {
+      subjectKind: 'EQUIPMENT', subjectCode: 'PRESS-01', occurrenceId: occ, transition: 'RAISED', alarmCode: 'REJECT_BURST', severity: '700', tag: null, value: null, limit: null, limitKind: null,
+      message: 'Reject burst', occurredAt: '1790000000000000',
+    };
+    t.onAlarm?.(alarm);
+    t.onAlarm?.({ ...alarm, transition: 'CLEARED', occurredAt: '1790000000000001' });
+    const event = (last: string): EquipmentEventV1 => ({ equipmentCode: 'PRESS-01', eventId: `${'E'.repeat(127)}${last}`, kind: 'FAULT', state: null, recipeVersion: null, message: 'x', occurredAt: '1790000000000000' });
+    t.onEvent?.(event('1'));
+    t.onEvent?.(event('2'));
+    const of = (type: string) => feed.published().filter((m) => m.messageType === type);
+    expect(of('opcua.alarm').map((m) => (m.payload as { transition: string }).transition)).toEqual(['RAISED', 'CLEARED']);
+    expect(of('opcua.equipment_event')).toHaveLength(2);
+    expect(new Set([...of('opcua.alarm'), ...of('opcua.equipment_event')].map((m) => m.idempotencyKey)).size).toBe(4);
+    expect(of('opcua.alarm').every((m) => m.sourceRecordId.length <= 128)).toBe(true);
+  });
 });
