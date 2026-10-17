@@ -1172,6 +1172,19 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
   refusal must land). The worker remembers a refused item by the SHA-256 of the whole item as received, so only the same
   item repeated is a duplicate; no migration, since a refusal does not reserve the key in the database (kernel 1180
   checks the key among accepted messages only, EBMR-INT-005 unchanged). Supersedes D-P6j-T12-2 for this finding.
+- **D-P6j-T13-1** (mutation triage T13: the Phase 4 server features of part 2) The batch's retention facts
+  (`archive/facts.ts`) and the route's dependency links are triaged as Priority 1 TypeScript-only rules, although facts.ts
+  is in the feature's other zone: the database stores retention inputs and links as given, so a wrong mapping dates a
+  batch record too early (DI-47). Both now have killing tests.
+- **D-P6j-T13-2** Defect M6-D3 (the archive's retention view read `records.retention_of`, which tablets 0460 / F34 keeps
+  from the application role) is fixed in the triage commit series, since the fix is a short TypeScript change and its
+  test was already written, as D-P6j-T12-2 allows. Severity high: no data loss and no control bypassed, but a batch with a
+  stored retention could no longer be opened in the archive or exported. F34 is not reopened: the view reads the same
+  values from what the role may read.
+- **D-P6j-T13-3** The stored-retention test builds its preconditions (an approved batch-record type, a packaging
+  allocation under its parent) as fixtures written with the triggers off, labelled "Fixture, not proof", as
+  `archive-routes.test.ts` already does for the licence basis. The define-and-approve workflow and the allocation rules
+  are proved in their own tests.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

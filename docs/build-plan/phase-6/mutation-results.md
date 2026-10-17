@@ -419,7 +419,7 @@ keying, below); one high defect fixed on the lead's decision (M6-D2, DI-31, belo
 | us-disposition | first full run (146 mutants) | pending |
 | qp-certification | first full run | pending |
 | market-changes | first full run | pending |
-| Stryker survivor triage | server release, records, India, archive and PQR features | pending |
+| Stryker survivor triage | server release, records, India, archive and PQR features | triaged (T13, below): no Priority 1 rule left unenforced; 3 TypeScript-only clusters now tested; defect M6-D3 fixed |
 | Whole SQL re-run | every group of `targets.ts`, under the decision 0009 organisation | pending |
 
 Note on renumbering: a mutant id is `<function>#<n>`, numbered in the function's current definition. Phase 4's
@@ -1176,6 +1176,132 @@ Survivors, one line each:
 - Equivalent (marked by the harness): `recipe.role_evaluation_problem` (one), `plant.record_calibration#6`,
   `recipe.genealogy_downstream_lots#1`.
 - Residuals: none in the owner's scope.
+
+## Part 2, Stryker: triage (T13)
+
+The four Phase 4 server features that decision 0012 left to deployment. Their Phase 4 reports were lost with that
+container, so they ran again in this campaign (`stryker.phase6.config.mjs`, part 2). Same method as T7, T9 and T12
+(D-P6j-T7-1, T7-2, T12-1): the TypeScript matters only where it is the sole enforcement point of a Priority 1 rule. Each
+such survivor was checked by hand-applying the mutant, running the narrowest test file, then reverting. No Stryker
+re-run (owner, 17 October). First-run scores are from `.reports/stryker-phase6/p4-server-*.json`, all zones:
+
+| Feature | Score | Survived | No coverage | Phase 4 (one run, not triaged) |
+|---|---|---|---|---|
+| p4-server-release | 62.2 % | 24 high-risk zone (90 in all) | 240 high-risk zone (255 in all) | 90.3 % (after-release, index, signables) |
+| p4-server-records | 59.1 % | 94 high-risk zone (141 in all) | 133 high-risk zone (203 in all) | records 71.7 %; archive and PQR 47.9 % |
+| p4-server-india | 68.9 % | 27 | 66 | 64.6 % |
+| p4-server-pqr | 78.9 % | 3 | 1 | (with the archive above) |
+
+The release figure is lower than Phase 4's because the feature now also mutates `reads.ts`, and because `signables.ts`
+holds acts that no server test runs (238 no-coverage mutants): the QP intake, its check and the in-system QP
+certification, the PPQ outcome, the post-change evaluation, the open-investigation justification and the batch market
+act. Each of those acts is a definer that computes the record id itself and checks the signature against it (below).
+
+**Result: no Priority 1 rule was left unenforced, but one high defect was found and fixed (M6-D3).** Three rule clusters
+were enforced only in the TypeScript and had no test. All three are now killed by new tests (23 hand-applied mutants
+fail them; each test passes on the code). Writing the test for the stored retention found M6-D3.
+
+Common to the four features (one line each, no test; see T7's common list): `requireSession()` (D-P6j-T7-1); the
+`idempotencyKey ?? ''` default (`platform.claim_idempotency_key` refuses an empty key, EBMR-PLAT-040); refusal and not-found texts; `rows[0]?.x`
+chains and `?? null` defaults of arguments the definer validates again; view mapping; and in
+`india/index.ts` lines 376-410 the demo seed (DEMO-ONLY).
+
+### p4-server-release
+
+- **Killed (new test): the two-row release (D-P4-5) consumes both signatures, `signables.ts:240` (1 survivor), and
+  the lines after it (241, 242).** The ceremony signs MANUFACTURER_RELEASE and the companion US_DISPOSITION in one
+  command. `recipe.record_release_with_us_disposition` checks both signatures (EBMR-DSP-041/042). But nothing in the
+  database requires a US_DISPOSITION signature to be consumed. So with the condition `false`, the handler would run the
+  manufacturer release alone and leave a signed US disposition with no decision behind it. This is fail-safe for the
+  US gate but false as a record. No server test completed a two-row release (a green lot needs a golden batch). Test
+  `apps/tablets-server/test/release/release-act-apply.test.ts` (the handler's apply, with a stand-in client): `[IN-05][DI-37] a
+  release with the US epoch runs the two-row act with both signatures ...` and `[IN-05][DI-37] a two-row release without
+  its US signature runs no act ...`. Hand-applied: the condition `false` and `true`, the missing-companion check removed,
+  the two signatures swapped. All four fail.
+- DB-enforced, one line: every release act's record id, meaning and signer. `releaseActAggregateId`, `target`,
+  `afterReleaseTarget`, `marketChangeTarget`, `witnessTarget` and the BATCH_MARKET_ACT target (survivors 105-106, 142-143,
+  190, 302 and the no-coverage lines 79-162, 311-331) are re-derived by each act. `recipe.assert_release_signature` (or
+  `esig.signature_problem` in `recipe.record_manufacturer_release`) is called with the id the act computes, in
+  `record_qp_transcription`, `verify_qp_transcription`, `record_qp_certification` (outcome to meaning, recipe-core 0826),
+  `record_ppq_outcome`, `record_post_change_evaluation`, `justify_open_investigation`, `check_us_disposition`,
+  `record_market_change`, `record_disposal`, `witness_disposal` and `record_after_release_decision`. `inputRefusal` and
+  the BATCH_MARKET_ACT precheck (lines 194-203, 317-324): the same definers refuse a missing epoch, reason, change record
+  or deviation. Line 235 (the QMS fetch condition): `site.qms_release_problem` refuses a release without a fetch in the
+  same transaction (EBMR-QMS-013, T12). Line 278 (the market change's reference): `record_market_change` takes a change
+  record for ADD and a deviation for REMOVE. Line 248's `?.`: the reject's reason is required by the precheck
+  (equivalent).
+- `index.ts`: the reads and `requireSession()`; `qpMessage` (reported without coverage although the `[DI-39]` test in `market-routes.test.ts` calls
+  the route; the database verifies the message and acknowledges it, `tab.take_qp_certification_message`). `after-release.ts`
+  99, 113, 116 and `reads.ts` (other zone): view mapping. The G-REL "since review" acknowledgement shown in
+  `reads.ts:66-81` is checked again at the act (`grel_acknowledgement` in recipe-core 0823 and 0826). P3.
+
+### p4-server-records (records and archive)
+
+- **Killed (new test): the retention facts of a batch, `archive/facts.ts` (39 survivors, 28 no coverage; other zone,
+  but it feeds the high-risk `syncRetention`; D-P6j-T13-1).** The kernel's engine dates a record from the inputs it is
+  given and stores them as given. It does not read the batch. So the market set, the licence form, the outcome, the
+  abort or cancellation date and the EU state are derived only here. A dropped market loses that market's rules
+  (DI-47: the floor is the maximum over every market's rules) and dates the record too early. Test
+  `apps/tablets-server/test/records/archive-retention-facts.test.ts` (five cases, `[DI-47][IN-08]`, `batchFacts` with a
+  stand-in client). Hand-applied: the market filter with `m !== 'IN'`, `&&` for `??`, no filter, `(IN && US) || EU`, the EU
+  test negated, Form 25A dropped, ABORTED and EXECUTION_COMPLETE not mapped, the abort date `false` and `true`, the
+  self-filter of `supports` removed, the rejected-EU branch `false`. All twelve fail.
+- **Killed (new test): storing the retention and the dependency links, `archive/index.ts:339-366` (8 survivors, 14 no
+  coverage).** Which records depend on which is decided only in the route (a processing record supports the packaging
+  records packed from it, DI-47 dependency inheritance). The kernel links what it is told. The existing test reached
+  only the refusal without an approved batch-record type. Test `apps/tablets-server/test/records/archive-retention-routes.test.ts`:
+  `[DI-47][IN-08] QA stores each batch's retention from its record, a second sync updates it, and the processing record
+  follows the packaging record packed from it, whichever is stored first`. Fixtures: an approved record type, a
+  packaging allocation under its parent; D-P6j-T13-3. Hand-applied: the `exists` test `false`, `both === 2` `false`, the
+  loop emptied, the link's direction swapped, each half of the pair list removed, the scheduled branch of the view
+  `false`. All seven fail.
+- **Defect M6-D3 (high; DI-41, DI-47, DI-17; fixed in the route, no migration; D-P6j-T13-2).** The retention view's
+  scheduled branch (`archive/index.ts:91-102`, no coverage) read `records.retention_of` as the application role. Tablets
+  0460 (F34) revoked that reader from the role on purpose: its refusals name a blocking data-integrity investigation.
+  So once a batch's retention was stored, three things failed. `syncRetention` answered 500 "nothing was saved" after
+  its command had committed the schedule. The archive's batch page answered 500. The batch's evidence export could not
+  be assembled (`buildExport` puts the retention in the export's summary). Found while writing the test above, which
+  failed with the 500 before the fix. Fix: the view reads the same own retention, effective retention and latest
+  stored inputs from what the role may read: `records.evaluate_retention` over the latest `records.retention_input`
+  (as `records.own_retention` does), and `records.compute_effective_retention`. F34 stands, and the second test checks
+  that it does: `[DI-41][DI-47][DI-17] a batch whose retention is stored still opens in the archive and is exported with its stored
+  retention, read without the investigation-revealing kernel reader`. Reverting to `retention_of` fails both tests.
+- DB-enforced, one line: the archive's signed acts (ARCHIVE_ACT: `records.certify_evidence_export`,
+  `records.sign_form_reconciliation`), the disposal request (`records.request_disposal`, RECORD.RETENTION_MANAGE), the
+  contingency packs and form events (the `[DI-43]` test proves the database refuses a pack for an ended batch), the true
+  copy (`records.true_copy_snapshot`, RECORD.TRUE_COPY_REGISTER) and the export file (`records.read_evidence_export`,
+  EBMR-REC-127). The inspection workspace's TypeScript permission check (ARCHIVE.INSPECT, line 420) is the route's own
+  gate and is killed by the existing `[DI-40]` test. Records: the record lock acts (`recipe.open_record_amendment`,
+  `recipe.close_record_amendment`, both `assert_release_signature` with the id they compute, RECORD.QA_REVIEW), the
+  amendment entries, the bulk reconciliation and the bright-stock hold (`recipe.append_amendment_entry`,
+  `recipe.close_bulk_reconciliation`, `recipe.set_bright_stock_hold`). `records/signables.ts` had no survivors, and its
+  15 no-coverage mutants are the targets and prechecks those definers re-derive.
+- P3: `verify` (441, 450; the offline verifier is the kernel's, and a non-string hash finds no registration), the
+  drift lines (99-101, display), `records/reads.ts` and the archive views.
+
+### p4-server-india
+
+- No TypeScript-only rule. INDIA_ACT: `site.approve_manufacturing_licence` and `site.approve_export_permission`
+  (`esig.assert_signature` with the record's id, LICENCE.APPROVE), `plant.approve_product_hazard` and
+  `plant.approve_area_dedication` (`plant.assert_hazard_approval`, second person, HAZARD.APPROVE). Licences, export
+  permissions, stability bases, hazards, the H2 payload and its verification are definers. The `check` route is a
+  pre-check shown on the screen; the issue gate refuses in the database (recipe-core issue gate, SQL group
+  india-issue-gate). `label`'s particulars are the database's `recipe.india_label_particulars`, mapped for display.
+  Line 361 (a hazard record with neither part): nothing is recorded either way. The 27 survivors are of the common
+  kinds. P3.
+
+### p4-server-pqr
+
+- No TypeScript-only rule. `recipe.run_pqr_extract` and `recipe.sign_off_pqr` (`assert_release_signature`,
+  PQR_SIGNED_OFF on the extract's own id). Survivors: `requireSession()` (25, 29) and the sign-off's response object
+  (`signables.ts:23`). `reads.ts`: view mapping. P3.
+
+### Owner observation
+
+- O-T13-1: a route that commits its command and then builds its answer outside it says "Nothing was saved" when only
+  the answer failed (M6-D3 showed it: the schedule was stored). This is the general pattern of the server's routes
+  (`withIdempotentActorCommand`, then a read), and the idempotent replay returns the stored result. A wording or
+  structure change across the routes is the owner's call; it is not a mutation finding.
 
 ## Equivalent mutants
 
