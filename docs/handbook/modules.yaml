@@ -213,6 +213,21 @@ modules:
       - 'apps/tablets-server/test/analytics/spc.test.ts'
       - 'apps/tablets-web/test/analytics/spc.test.tsx'
 
+  - id: analytics-review
+    title: Review priority (Phase 6A slice 6A-5) - the review facts, REVIEW.PRIORITY v1, the review queue ordered by it with its reasons
+    page: modules/analytics.md
+    package: packages/analytics
+    migrations:
+      packages/recipe-core/sql: ['^116[0-9]_']
+    src: [packages/analytics/src/methods/review, apps/tablets-server/src/analytics/review.ts]
+    screens: [apps/tablets-web/src/features/analytics-review]
+    tests:
+      - 'packages/analytics/test/review-priority.test.ts'
+      - 'packages/recipe-core/test/analytics/review-inputs.test.ts'
+      - 'apps/tablets-server/test/analytics/review-priority.test.ts'
+      - 'apps/tablets-server/test/analytics/review.test.ts'
+      - 'apps/tablets-web/test/analytics-review/**'
+
   - id: kernel-integration
     title: Integration wiring between kernel modules
     page: modules/kernel.md

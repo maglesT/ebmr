@@ -171,7 +171,8 @@ describe('report views (recipe-core 1070)', () => {
       expect(r[0]!.ok ?? true, view_name).toBe(true);
       await expect(report.query(`delete from report.${view_name}`), view_name).rejects.toThrow(/permission denied|cannot delete/);
     }
-    // The eight 6g views, slice 6A-1's three analytics inputs (recipe-core 1115) and slice 6A-2's two (recipe-core 1130).
-    expect(views.length).toBe(13);
+    // The eight 6g views, slice 6A-1's three analytics inputs (recipe-core 1115), slice 6A-2's two rate inputs
+    // (recipe-core 1130) and slice 6A-5's review fact (recipe-core 1160).
+    expect(views.length).toBe(14);
   });
 });

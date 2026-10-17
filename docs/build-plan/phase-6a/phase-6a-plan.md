@@ -477,6 +477,73 @@ Defaults of 6A-4 (taken without asking, as the owner's rule says; each is the de
     reasons`.
 - **Migrations:** recipe-core 1160 to 1169, tablets 1355 to 1359.
 
+#### 6A-5 as built (17 October)
+
+- **Merge:** `phase-6a/slice-2` (6A-2) merged into the branch first (every registry conflict kept both sides; generated
+  pages regenerated).
+- **Migration:** recipe-core 1160 (`report.review_fact_v1` and its helpers `report.review_ended_at`,
+  `report.review_fact_batches`, `report.review_novelty`; in the report catalogue and on the analytics role's allow-list).
+  Tablets 1355-1359 are not used; no kernel migration (none needed, see D-6A-5-4).
+- **Package:** `packages/analytics/src/methods/review/` (`REVIEW.PRIORITY` v1); the registry entry reads the five
+  inputs it uses and gains the parameter `durationMinBatches` (D-6A-5-5).
+- **Runner:** `apps/tablets-server/src/analytics/review.ts` (the assembly and `REVIEW_METHOD_DEFINITIONS`), one line in
+  `IMPLEMENTATIONS`.
+- **Server and screens:** feature `analytics-review` (`features/analytics/review/`, binds `analyticsReview`, joined to
+  `routes.ts` and `NAMESPACE_OWNERS` as `P6A`); the review feature's `review.queue` gains the optional `priority` per
+  record and the optional `ordering` (D-6A-5-8), read from `analytics.review_priority_v1` by SQL; screens
+  `tablets-web/src/features/analytics-review/` (the queue's note and band, used by `ReviewQueuePage`, and
+  `/analytics/review-priority/$batchId`).
+- **Tests:** package `test/review-priority.test.ts` (known answers); recipe-core `test/analytics/review-inputs.test.ts`
+  (the facts over GMP records, the allow-list, `[PR-61] no review, register or release function depends on the review
+  priority`); server `test/analytics/review-priority.test.ts` (`[DI-52]` the synthetic history through the runner's
+  assembly and the queue's order) and `test/analytics/review.test.ts` (the queue with scores, without, with the runner
+  stopped and the view unreadable; an unscored record first; the lowest score still needs the full review; `[PR-52]`
+  each exception dispositioned on its own); web `test/analytics-review/review.test.tsx`. Test-kit
+  `analyticsReviewFacts` derives the history's review facts without drawing from its PRNG.
+- **Mutation group:** `analytics-review-inputs` (90 %), job in `mutation.yml`.
+
+Defaults of 6A-5 (taken without asking, as the owner's rule says; each is the decision until the owner changes it):
+
+- **D-6A-5-1** Severities: the register's CRITICAL, ACTION and ALERT are the plan's critical, major and minor exceptions.
+  Corrections are the accepted CORRECT_ENTRY, VOID_ATTEMPT and INVALIDATE_RESULT commands (as D-6A-4-1); deviations are
+  the linked ones not cancelled (as 1130); findings are the exceptions QA queried or escalated, reopenings the REOPENED
+  acts.
+- **D-6A-5-2** The facts cover the records in the review queue (EXECUTION_COMPLETE or ABORTED) that await QA review, and
+  those QA reviewed in the last 30 days, so the outcome is stored with a last score (D-6A-20). One output per scored
+  record per run; the output table grows with the runs (to be measured at a real site).
+- **D-6A-5-3** A person is new on the record of their first step on the product (performers, data enterers and
+  correctors of `report.step_use_v1`, any GMP record). A unit is new on the record of its first GMP use, or recently
+  maintained when it was QUALIFIED, had MAINTENANCE_ENDED or was REPAIRED, or a CMMS work order COMPLETED, in the 7 days
+  before its use. Both terms count once (2 points) however many; the view names units, never persons.
+- **D-6A-5-4** "Open audit-trail flags on the batch": no report view may read the analytics schema (the DI-51 dependency
+  proof) and the analytics role reads only catalogued report views (as D-6A-2-1), so REVIEW.PRIORITY runs the ATA.RULES
+  version 1 rules (their default thresholds) over the same snapshot's `report.audit_fact_v1` and counts the hits whose
+  evidence names an entry of the record. A disposition does not lower the term in v1. The reason gives the count only:
+  no person, rule or entry (DI-53). For the lead: a catalogued input of the open flag keys per batch would need a kernel
+  change. Only a holder of `ANALYTICS.DI_REVIEW` sees the term and its reason; anyone else sees, and is ordered by, the
+  score without it (the slice's own review, P6A5-1).
+- **D-6A-5-5** Near a limit: the last attempt of each item (every reading of a series), compared exactly on the decimal
+  text; a value without both limits is not assessed and is named in the run's skipped list. A step's duration runs from
+  its first start to its last end over its units, compared as a robust z (ATA.BASELINE's scaling) with the same product,
+  MBR family and step of every GMP record in the input, from `durationMinBatches` (5) records on; fewer, or no variation,
+  is named as not assessed.
+- **D-6A-5-6** "Each term is capped" is read as the D-6A-13 caps (near limit 5, corrections 5, durations 3) and the
+  yes-or-no terms counted once; exceptions, audit-trail hits and deviations are not capped in v1, because each is a
+  reason for attention a cap would hide. The top three reasons are the larger points first, then the term order.
+- **D-6A-5-7** The queue's order, for a holder of `ANALYTICS.VIEW` (checked by the database): the records awaiting QA
+  review first, the unscored ones first (by completion time, then batch number), then the scored ones by score, ties
+  by completion time (the longer waiting first) and batch number; then the QA-reviewed records by batch number. Without
+  the permission, or when the priority cannot be read (logged), the queue is exactly as before (batch-number order).
+  The set of records is the queue's own query either way.
+- **D-6A-5-8** The lead had not yet added `priority` to `review.queue` items; this slice adds it (optional and
+  nullable: null is "not scored yet", absent is "not shown") with the optional `ordering` of the response. Additive.
+- **D-6A-5-9** 6A-5's messages are EBMR-ANA-040 to -049 (040: the one-record route's batch is no GMP record). An
+  unscored record answers 200 with `priority: null`.
+- **D-6A-5-10** No migration writes the version 1 row (as D-6A-4-11): QA puts `REVIEW_METHOD_DEFINITIONS` in force
+  under a change record; the tests write it as the release.
+- **D-6A-5-11** Golden batches not run: the slice adds an input view and orders the queue; the golden runner uses its
+  probe method and the record outputs do not change (as 6A-2).
+
 ### Slice 6A-6: golden batch profile (item 10)
 
 - **Inputs:**

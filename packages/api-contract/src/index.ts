@@ -117,6 +117,7 @@ export {
   RecordKind,
   RegisterView,
   ReviewItemView,
+  ReviewQueueOrdering,
   ReviewState,
   ReviewSummaryView,
 } from './ns/review.ts';

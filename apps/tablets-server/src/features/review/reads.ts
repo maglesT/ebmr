@@ -5,10 +5,11 @@
  * into the contract's views.
  */
 import type pg from 'pg';
-import type { AuditTrailReportView, BatchReviewView, ItemDetailView, ReviewItemView, ReviewSummaryView } from '@ebmr/api-contract';
+import { ReviewPriority, type AuditTrailReportView, type BatchReviewView, type ItemDetailView, type ReviewItemView, type ReviewQueueOrdering, type ReviewSummaryView } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
+import { auditPointsOf, holdsDiReview, priorityForViewer } from '../common/review-priority.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
 type State = ReviewSummaryView['reviewState'];
@@ -49,6 +50,96 @@ const summaryOf = (r: SummaryRow): ReviewSummaryView => ({
 export async function reviewQueue(db: Db, state: State | undefined): Promise<ReviewSummaryView[]> {
   const { rows } = await db.query<SummaryRow>(`${SUMMARY_SQL} and s.status in ('EXECUTION_COMPLETE', 'ABORTED') order by b.batch_number`);
   return rows.map(summaryOf).filter((r) => state === undefined || r.reviewState === state);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Phase 6A slice 6A-5: the advisory review priority (PR-61; D-6A-14, D-6A-5-7)
+// ---------------------------------------------------------------------------------------------
+// The queue above is the set of records, decided as before. The priority only adds a field and an order to that set:
+// it is read from the database view analytics.review_priority_v1 (never through analytics code; dependency-cruiser
+// no-gmp-feature-imports-analytics), it removes no record, marks nothing reviewed and is read by no gate.
+
+/** A record of the queue with its priority (null: not scored yet) and when it reached EXECUTION_COMPLETE or ABORTED. */
+export interface PrioritisedRecord {
+  summary: ReviewSummaryView;
+  priority: ReviewPriority | null;
+  /** Microseconds since the epoch, as text, or null when the status change is not recorded. */
+  endedUs: string | null;
+}
+
+const byUs = (a: string | null, b: string | null): number => {
+  if (a === b) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  const [x, y] = [BigInt(a), BigInt(b)];
+  return x < y ? -1 : x > y ? 1 : 0;
+};
+const byNumber = (a: PrioritisedRecord, b: PrioritisedRecord): number => (a.summary.batchNumber < b.summary.batchNumber ? -1 : a.summary.batchNumber > b.summary.batchNumber ? 1 : 0);
+
+/**
+ * The queue in priority order (D-6A-14, D-6A-5-7): first the records awaiting QA review, the unscored ones first (no
+ * information means attention), then the scored ones by score, highest first, ties by completion time (the longer
+ * waiting first) and batch number; then the QA-reviewed records in batch-number order, as before. Every record given is
+ * returned, exactly once, with its priority.
+ */
+export function priorityOrder(records: readonly PrioritisedRecord[]): ReviewSummaryView[] {
+  const waiting = records.filter((r) => r.summary.reviewState !== 'QA_REVIEWED');
+  const reviewed = records.filter((r) => r.summary.reviewState === 'QA_REVIEWED');
+  const unscored = waiting.filter((r) => r.priority === null).sort((a, b) => byUs(a.endedUs, b.endedUs) || byNumber(a, b));
+  const scored = waiting.filter((r) => r.priority !== null)
+    .sort((a, b) => (b.priority?.score ?? 0) - (a.priority?.score ?? 0) || byUs(a.endedUs, b.endedUs) || byNumber(a, b));
+  return [...unscored, ...scored, ...[...reviewed].sort(byNumber)].map((r) => ({ ...r.summary, priority: r.priority }));
+}
+
+interface PriorityRow {
+  batch_ref: string;
+  method: string;
+  version: number;
+  score: number | null;
+  reasons: unknown;
+  values: unknown;
+  scored_us: string;
+  age: number | null;
+}
+
+/**
+ * The queue with the latest review priority of each record (analytics.review_priority_v1) in priority order, read on
+ * the person's command connection after the database checked ANALYTICS.VIEW. A score that is not a finite number is
+ * treated as no score. A person without ANALYTICS.DI_REVIEW sees, and is ordered by, the score without its audit-trail
+ * term (D-6A-5-4; DI-53).
+ */
+export async function prioritisedQueue(app: AppContext, db: Pick<pg.PoolClient, 'query'>, queue: readonly ReviewSummaryView[]): Promise<{ batches: ReviewSummaryView[]; ordering: ReviewQueueOrdering }> {
+  const ids = queue.map((b) => b.batchId);
+  const { rows } = await db.query<PriorityRow>(
+    `select p.batch_ref, p.method, p.version, p.score, p.reasons, o."values", ${usOf('p.scored_at')} as scored_us,
+            greatest(0, floor(extract(epoch from statement_timestamp() - o.data_as_of)))::integer as age
+       from analytics.review_priority_v1 p
+       left join analytics.output_v1 o on o.output_id = p.output_id
+      where p.batch_ref = any($1::text[]) and p.method = 'REVIEW.PRIORITY'`,
+    [ids],
+  );
+  const { rows: ended } = await db.query<{ batch_id: string; ended_us: string | null }>(
+    `select e.batch_id::text, min(c.now_us)::text as ended_us
+       from recipe.execution_event e
+       join recipe.execution_command c on c.batch_id = e.batch_id and c.seq = e.row_seq
+      where e.batch_id = any($1::uuid[]) and e.event_type = 'BATCH_STATUS_CHANGED' and e.event ->> 'to' in ('EXECUTION_COMPLETE', 'ABORTED')
+      group by e.batch_id`,
+    [ids],
+  );
+  const endedOf = new Map(ended.map((e) => [e.batch_id, e.ended_us]));
+  const diReview = await holdsDiReview(db);
+  const priorityOf = new Map<string, ReviewPriority>();
+  let age: number | null = null;
+  for (const r of rows) {
+    const parsed = ReviewPriority.safeParse({
+      score: r.score, reasons: r.reasons, methodVersion: { id: r.method, version: r.version }, scoredAt: app.formatInstant(r.scored_us),
+    });
+    if (!parsed.success) continue;
+    priorityOf.set(r.batch_ref, priorityForViewer(parsed.data, auditPointsOf(r.values), diReview));
+    if (r.age !== null) age = age === null ? r.age : Math.min(age, r.age);
+  }
+  const batches = priorityOrder(queue.map((summary) => ({ summary, priority: priorityOf.get(summary.batchId) ?? null, endedUs: endedOf.get(summary.batchId) ?? null })));
+  return { batches, ordering: { by: 'REVIEW_PRIORITY', advisory: true, notForGmpDecisions: true, dataAgeSeconds: age } };
 }
 
 async function summary(db: Db, batchId: string): Promise<SummaryRow> {

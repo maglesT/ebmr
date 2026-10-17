@@ -47,7 +47,7 @@ describe('the analytics contract (Phase 6A slice 6A-0)', () => {
     // the slices that serve them bind them: analytics in 6A-1, D-6A-0-4; each joins with the same route objects).
     const table = new Map(allRoutes(routes).map((r) => [r.id, r]));
     for (const r of analyticsRoutes) if (table.has(r.id)) expect(table.get(r.id), r.id).toBe(r);
-    expect(Object.keys(ANALYTICS_NAMESPACE_SLICES).filter((n) => n in routes)).toEqual(['analytics', 'analyticsSpc', 'analyticsAudit']);
+    expect(Object.keys(ANALYTICS_NAMESPACE_SLICES).filter((n) => n in routes)).toEqual(['analytics', 'analyticsSpc', 'analyticsAudit', 'analyticsReview']);
     const all = [...table.values(), ...analyticsRoutes.filter((r) => !table.has(r.id))];
     expect(new Set(all.map((r) => r.id)).size).toBe(all.length);
     expect(new Set(all.map((r) => `${r.method} ${r.path}`)).size).toBe(all.length);

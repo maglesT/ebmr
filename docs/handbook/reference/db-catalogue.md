@@ -7,7 +7,7 @@ migration that creates it; "Replaced in" lists every later migration that create
 a drop and create); the last one listed holds the version **in force**, and its link opens that definition. Tables
 and types are listed per module in the [code map](../code-map.md). Objects created by dynamic SQL are not listed.
 
-3201 objects.
+3206 objects.
 
 | Object | Kind | Defined in | Replaced in | Module |
 |---|---|---|---|---|
@@ -2199,6 +2199,11 @@ and types are listed per module in the [code map](../code-map.md). Objects creat
 | [`report.overdue_review_v1`](../../../packages/recipe-core/sql/1070_reporting_views.sql#sym=report.overdue_review_v1) | view | [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql) |  | [rc-reporting](../code-map.md#rc-reporting) |
 | [`report.press_counter_rows_v1`](../../../packages/recipe-core/sql/1070_reporting_views.sql#sym=report.press_counter_rows_v1) | function | [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql) |  | [rc-reporting](../code-map.md#rc-reporting) |
 | [`report.press_counter_v1`](../../../packages/recipe-core/sql/1070_reporting_views.sql#sym=report.press_counter_v1) | view | [1070_reporting_views.sql](../../../packages/recipe-core/sql/1070_reporting_views.sql) |  | [rc-reporting](../code-map.md#rc-reporting) |
+| [`report.review_ended_at`](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql#sym=report.review_ended_at) | function | [1160_analytics_review_facts.sql](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql) |  | [analytics-review](../code-map.md#analytics-review) |
+| [`report.review_fact_batches`](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql#sym=report.review_fact_batches) | function | [1160_analytics_review_facts.sql](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql) |  | [analytics-review](../code-map.md#analytics-review) |
+| [`report.review_fact_rows_v1`](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql#sym=report.review_fact_rows_v1) | function | [1160_analytics_review_facts.sql](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql) |  | [analytics-review](../code-map.md#analytics-review) |
+| [`report.review_fact_v1`](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql#sym=report.review_fact_v1) | view | [1160_analytics_review_facts.sql](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql) |  | [analytics-review](../code-map.md#analytics-review) |
+| [`report.review_novelty`](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql#sym=report.review_novelty) | function | [1160_analytics_review_facts.sql](../../../packages/recipe-core/sql/1160_analytics_review_facts.sql) |  | [analytics-review](../code-map.md#analytics-review) |
 | [`report.shift_boundaries_problem`](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql#sym=report.shift_boundaries_problem) | function | [1130_analytics_rate_inputs.sql](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql) |  | [analytics-spc](../code-map.md#analytics-spc) |
 | [`report.shift_of`](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql#sym=report.shift_of) | function | [1130_analytics_rate_inputs.sql](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql) |  | [analytics-spc](../code-map.md#analytics-spc) |
 | [`report.step_shift_rows_v1`](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql#sym=report.step_shift_rows_v1) | function | [1130_analytics_rate_inputs.sql](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql) |  | [analytics-spc](../code-map.md#analytics-spc) |
