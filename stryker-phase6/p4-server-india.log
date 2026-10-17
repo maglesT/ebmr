@@ -1,0 +1,748 @@
+[32m05:54:14 (1333699) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/p4-server-india.incremental.json, a full mutation testing run will be performed.
+[32m05:54:14 (1333699) INFO ProjectReader[39m Found 1 of 3170 file(s) to be mutated.
+[32m05:54:14 (1333699) INFO Instrumenter[39m Instrumented 1 source file(s) with 358 mutant(s)
+[32m05:54:17 (1333699) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m05:54:18 (1333699) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m05:54:19 (1333699) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m05:55:21 (1333699) INFO DryRunExecutor[39m Initial test run succeeded. Ran 13 tests in 1 minute and 2 seconds (net 14282.824568999997 ms, overhead 47765.175431 ms).
+Mutation testing 0% (elapsed: <1m, remaining: n/a) 66/299 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~43m) 68/299 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~32m) 70/299 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~34m) 71/299 tested (0 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~22m) 74/299 tested (0 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~1m, remaining: ~15m) 78/299 tested (0 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~1m, remaining: ~12m) 82/299 tested (0 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~1m, remaining: ~11m) 85/299 tested (0 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~1m, remaining: ~10m) 89/299 tested (1 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~1m, remaining: ~9m) 95/299 tested (1 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~1m, remaining: ~8m) 99/299 tested (1 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~2m, remaining: ~8m) 105/299 tested (2 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~2m, remaining: ~7m) 110/299 tested (2 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~2m, remaining: ~7m) 115/299 tested (3 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~2m, remaining: ~7m) 121/299 tested (3 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~2m, remaining: ~7m) 127/299 tested (3 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~2m, remaining: ~6m) 133/299 tested (3 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~3m, remaining: ~6m) 137/299 tested (3 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~3m, remaining: ~5m) 141/299 tested (4 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~3m, remaining: ~5m) 145/299 tested (4 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~3m, remaining: ~5m) 149/299 tested (4 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~3m, remaining: ~4m) 154/299 tested (4 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~3m, remaining: ~4m) 158/299 tested (4 survived, 0 timed out)
+Mutation testing 48% (elapsed: ~4m, remaining: ~4m) 164/299 tested (5 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~4m, remaining: ~3m) 169/299 tested (5 survived, 0 timed out)
+Mutation testing 56% (elapsed: ~4m, remaining: ~3m) 174/299 tested (7 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~4m, remaining: ~3m) 178/299 tested (7 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~4m, remaining: ~2m) 185/299 tested (9 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~4m, remaining: ~2m) 189/299 tested (11 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~5m, remaining: ~2m) 194/299 tested (11 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~5m, remaining: ~2m) 196/299 tested (12 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~5m, remaining: ~2m) 200/299 tested (13 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~5m, remaining: ~2m) 204/299 tested (14 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~5m, remaining: ~2m) 208/299 tested (14 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~5m, remaining: ~2m) 213/299 tested (14 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~6m, remaining: ~2m) 217/299 tested (14 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~6m, remaining: ~2m) 222/299 tested (14 survived, 0 timed out)
+Mutation testing 76% (elapsed: ~6m, remaining: ~1m) 226/299 tested (14 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~6m, remaining: ~1m) 229/299 tested (15 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~6m, remaining: ~1m) 232/299 tested (16 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~6m, remaining: ~1m) 236/299 tested (17 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~7m, remaining: ~1m) 240/299 tested (18 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~7m, remaining: ~1m) 243/299 tested (18 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~7m, remaining: ~1m) 246/299 tested (19 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~7m, remaining: ~1m) 249/299 tested (20 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~7m, remaining: <1m) 253/299 tested (20 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~7m, remaining: <1m) 257/299 tested (22 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~8m, remaining: <1m) 261/299 tested (22 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~8m, remaining: <1m) 266/299 tested (24 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~8m, remaining: <1m) 270/299 tested (24 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~8m, remaining: <1m) 272/299 tested (25 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~8m, remaining: <1m) 277/299 tested (27 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~8m, remaining: <1m) 282/299 tested (27 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~9m, remaining: <1m) 286/299 tested (27 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~9m, remaining: <1m) 292/299 tested (27 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~9m, remaining: n/a) 297/299 tested (27 survived, 0 timed out)
+
+All tests
+  india-route-edges.test.ts
+    ✘ the India routes at their edges (feature india) > [DI-20] [IN-30] no India read answers without a session (covered 0)
+    ✓ the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played (killed 52)
+    ✓ the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none (killed 23)
+    ✓ the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period (killed 57)
+    ✓ the India routes at their edges (feature india) > [IN-27] a hazard record that names neither a product classification nor an area dedication is refused with what to do (killed 8)
+    ✓ the India routes at their edges (feature india) > [IN-27] a product classification alone or an area dedication alone is recorded and listed with all it says (killed 23)
+    ✓ the India routes at their edges (feature india) > [IN-30] the signed approval (INDIA_ACT) answers with the act and the record it approved (killed 2)
+  india-routes.test.ts
+    ✓ licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one (killed 7)
+    ✓ licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder (killed 7)
+    ✓ licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] an export permission recorded over HTTP counts once approved, until it is suspended; IN is never a destination (killed 5)
+    ✓ the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused (killed 17)
+    ✓ the record side over HTTP (Phase 4 slice 6a) > [PR-43][IN-27] the head of QC records a stability basis; QA records a hazard class; an operator records neither (killed 5)
+    ~ the record side over HTTP (Phase 4 slice 6a) > [IN-27] a recorded hazard class waits for a second QA person: the recorder's own approval signs nothing; another QA person approves it through the ceremony (INDIA_ACT HAZARD_APPROVE) (covered 28)
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:271:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:273:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:278:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:289:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:291:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:296:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/india/index.ts:324:55
+-         return { siteCode: site, entries: rows[0]?.r ?? [] };
++         return { siteCode: site, entries: rows[0]?.r ?? ["Stryker was here"] };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:331:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/india/index.ts:333:30
+-           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: '' };
++           return rows[0]?.r ?? {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:333:41
+-           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: '' };
++           return rows[0]?.r ?? { issueId: "Stryker was here!", payload: '', payloadHash: '', layoutVersion: '' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:333:54
+-           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: '' };
++           return rows[0]?.r ?? { issueId: '', payload: "Stryker was here!", payloadHash: '', layoutVersion: '' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:333:71
+-           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: '' };
++           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: "Stryker was here!", layoutVersion: '' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:333:90
+-           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: '' };
++           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: "Stryker was here!" };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:347:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:349:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:361:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/india/index.ts:383:68
+-   export async function seed(ctx: FeatureSeedContext): Promise<void> {
+-     if (ctx.installation !== 'GMP') return;
+-     const pool = ctx.pools.app;
+-     const as = async <T>(persona: string, work: (c: pg.PoolClient) => Promise<T>): Promise<T> =>
+-       withCommand(pool, { ...(await ctx.actorFor(persona)), correlationId: globalThis.crypto.randomUUID() }, work);
+-     ctx.log('recording the demo manufacturing licence and export permissions (regulatory signer; QA approves, LICENCE_APPROVED, EXPORT_PERMISSION_APPROVED)');
+-     const licenceId = await as('regulatory', async (c) =>
+-       (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+-         holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00+05:30',
+-         products: DEMO_LICENSED_PRODUCTS.map((p) => ({ productCode: p.productCode, strength: p.strength })),
+-       })])).rows[0]!.id,
+-     );
+-     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
+-     await as('approver', (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [licenceId, sig]));
+-     for (const p of DEMO_LICENSED_PRODUCTS) {
+-       for (const destination of p.destinations) {
+-         const id = await as('regulatory', async (c) =>
+-           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({
+-             productCode: p.productCode, strength: p.strength, destination, permissionNumber: `DEMO/NOC/${p.productCode}/${destination}`,
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
+-           })])).rows[0]!.id,
+-         );
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
+-         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
+-       }
+-     }
+-   }
++   export async function seed(ctx: FeatureSeedContext): Promise<void> {}
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/india/index.ts:384:7
+-     if (ctx.installation !== 'GMP') return;
++     if (true) return;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/india/index.ts:384:7
+-     if (ctx.installation !== 'GMP') return;
++     if (false) return;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/india/index.ts:384:7
+-     if (ctx.installation !== 'GMP') return;
++     if (ctx.installation === 'GMP') return;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:384:28
+-     if (ctx.installation !== 'GMP') return;
++     if (ctx.installation !== "") return;
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/india/index.ts:386:14
+-     const as = async <T>(persona: string, work: (c: pg.PoolClient) => Promise<T>): Promise<T> =>
+-       withCommand(pool, { ...(await ctx.actorFor(persona)), correlationId: globalThis.crypto.randomUUID() }, work);
++     const as = () => undefined;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/india/index.ts:387:23
+-       withCommand(pool, { ...(await ctx.actorFor(persona)), correlationId: globalThis.crypto.randomUUID() }, work);
++       withCommand(pool, {}, work);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:388:11
+-     ctx.log('recording the demo manufacturing licence and export permissions (regulatory signer; QA approves, LICENCE_APPROVED, EXPORT_PERMISSION_APPROVED)');
++     ctx.log("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:389:30
+-     const licenceId = await as('regulatory', async (c) =>
++     const licenceId = await as("", async (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/india/index.ts:389:44
+-     const licenceId = await as('regulatory', async (c) =>
+-       (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+-         holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00+05:30',
+-         products: DEMO_LICENSED_PRODUCTS.map((p) => ({ productCode: p.productCode, strength: p.strength })),
+-       })])).rows[0]!.id,
++     const licenceId = await as('regulatory', () => undefined,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:390:36
+-       (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({
++       (await c.query<{ id: string }>("", [JSON.stringify({
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/india/index.ts:390:97
+-       (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+-         holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00+05:30',
+-         products: DEMO_LICENSED_PRODUCTS.map((p) => ({ productCode: p.productCode, strength: p.strength })),
+-       })])).rows[0]!.id,
++       (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [])).rows[0]!.id,
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/india/index.ts:390:113
+-       (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+-         holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00+05:30',
+-         products: DEMO_LICENSED_PRODUCTS.map((p) => ({ productCode: p.productCode, strength: p.strength })),
+-       })])).rows[0]!.id,
++       (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({})])).rows[0]!.id,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:391:20
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
++         licenceKind: "", form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:391:43
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
++         licenceKind: 'MANUFACTURING', form: "", licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:391:64
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
++         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: "", holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:391:95
+-         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
++         licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:392:22
+-         holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00+05:30',
++         holderAddress: "", validFrom: '2020-01-01T00:00:00+05:30',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:392:78
+-         holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00+05:30',
++         holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: "",
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/india/index.ts:393:44
+-         products: DEMO_LICENSED_PRODUCTS.map((p) => ({ productCode: p.productCode, strength: p.strength })),
++         products: DEMO_LICENSED_PRODUCTS.map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/india/index.ts:393:52
+-         products: DEMO_LICENSED_PRODUCTS.map((p) => ({ productCode: p.productCode, strength: p.strength })),
++         products: DEMO_LICENSED_PRODUCTS.map((p) => ({})),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:396:32
+-     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
++     const sig = await ctx.signAs("", { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/india/index.ts:396:44
+-     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
++     const sig = await ctx.signAs('approver', {}, 'LICENCE_APPROVED', 'DRAFT');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:396:52
+-     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
++     const sig = await ctx.signAs('approver', { type: "", id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:396:94
+-     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
++     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, "", 'DRAFT');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:396:114
+-     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
++     const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', "");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:397:12
+-     await as('approver', (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [licenceId, sig]));
++     await as("", (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [licenceId, sig]));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/india/index.ts:397:24
+-     await as('approver', (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [licenceId, sig]));
++     await as('approver', () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:397:39
+-     await as('approver', (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [licenceId, sig]));
++     await as('approver', (c) => c.query("", [licenceId, sig]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/india/index.ts:397:92
+-     await as('approver', (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [licenceId, sig]));
++     await as('approver', (c) => c.query('select site.approve_manufacturing_licence($1, $2)', []));
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/india/index.ts:398:43
+-     for (const p of DEMO_LICENSED_PRODUCTS) {
+-       for (const destination of p.destinations) {
+-         const id = await as('regulatory', async (c) =>
+-           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({
+-             productCode: p.productCode, strength: p.strength, destination, permissionNumber: `DEMO/NOC/${p.productCode}/${destination}`,
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
+-           })])).rows[0]!.id,
+-         );
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
+-         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
+-       }
+-     }
++     for (const p of DEMO_LICENSED_PRODUCTS) {}
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/india/index.ts:399:47
+-       for (const destination of p.destinations) {
+-         const id = await as('regulatory', async (c) =>
+-           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({
+-             productCode: p.productCode, strength: p.strength, destination, permissionNumber: `DEMO/NOC/${p.productCode}/${destination}`,
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
+-           })])).rows[0]!.id,
+-         );
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
+-         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
+-       }
++       for (const destination of p.destinations) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:400:27
+-         const id = await as('regulatory', async (c) =>
++         const id = await as("", async (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/india/index.ts:400:41
+-         const id = await as('regulatory', async (c) =>
+-           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({
+-             productCode: p.productCode, strength: p.strength, destination, permissionNumber: `DEMO/NOC/${p.productCode}/${destination}`,
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
+-           })])).rows[0]!.id,
++         const id = await as('regulatory', () => undefined,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:401:40
+-           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({
++           (await c.query<{ id: string }>("", [JSON.stringify({
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/india/index.ts:401:97
+-           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({
+-             productCode: p.productCode, strength: p.strength, destination, permissionNumber: `DEMO/NOC/${p.productCode}/${destination}`,
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
+-           })])).rows[0]!.id,
++           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [])).rows[0]!.id,
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/india/index.ts:401:113
+-           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({
+-             productCode: p.productCode, strength: p.strength, destination, permissionNumber: `DEMO/NOC/${p.productCode}/${destination}`,
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
+-           })])).rows[0]!.id,
++           (await c.query<{ id: string }>('select site.record_export_permission($1::jsonb) as id', [JSON.stringify({})])).rows[0]!.id,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:402:92
+-             productCode: p.productCode, strength: p.strength, destination, permissionNumber: `DEMO/NOC/${p.productCode}/${destination}`,
++             productCode: p.productCode, strength: p.strength, destination, permissionNumber: ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:403:29
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
++             issuingAuthority: "", validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:403:81
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
++             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: "", validUntil: '2036-01-01T00:00:00+05:30',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:403:122
+-             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: '2036-01-01T00:00:00+05:30',
++             issuingAuthority: 'State Licensing Authority (DEMO-ONLY)', validFrom: '2020-01-01T00:00:00+05:30', validUntil: "",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:406:34
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
++         const s = await ctx.signAs("", { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/india/index.ts:406:46
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
++         const s = await ctx.signAs('approver', {}, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:406:54
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
++         const s = await ctx.signAs('approver', { type: "", id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:406:81
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
++         const s = await ctx.signAs('approver', { type: 'export_permission', id }, "", 'DRAFT');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:406:111
+-         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
++         const s = await ctx.signAs('approver', { type: 'export_permission', id }, 'EXPORT_PERMISSION_APPROVED', "");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:407:16
+-         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
++         await as("", (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/india/index.ts:407:28
+-         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
++         await as('approver', () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/india/index.ts:407:43
+-         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
++         await as('approver', (c) => c.query("", [id, s]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/india/index.ts:407:92
+-         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', [id, s]));
++         await as('approver', (c) => c.query('select site.approve_export_permission($1, $2)', []));
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/india/index.ts:87:6
+-       [id ?? null],
++       [id && null],
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    the India routes at their edges (feature india) > [IN-30] the signed approval (INDIA_ACT) answers with the act and the record it approved
+  and 2 more tests!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/india/index.ts:145:6
+-       [id ?? null],
++       [id && null],
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] an export permission recorded over HTTP counts once approved, until it is suspended; IN is never a destination
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/india/index.ts:172:6
+-       [id ?? null],
++       [id && null],
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [PR-43][IN-27] the head of QC records a stability basis; QA records a hazard class; an operator records neither
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:211:15
+-       const p = rows[0]?.p ?? {};
++       const p = rows[0].p ?? {};
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:220:15
+-       payload = rows[0]?.h2 ?? null;
++       payload = rows[0].h2 ?? null;
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/india/index.ts:262:9
+-       if (!v) throw notFound(what);
++       if (false) throw notFound(what);
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+  and 5 more tests!
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/india/index.ts:267:7
+-         requireSession();
++         ;
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:273:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    the India routes at their edges (feature india) > [IN-30] the signed approval (INDIA_ACT) answers with the act and the record it approved
+  and 2 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/india/index.ts:275:51
+-         return one(licences(app, pool, out.result), 'licence');
++         return one(licences(app, pool, out.result), "");
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    the India routes at their edges (feature india) > [IN-30] the signed approval (INDIA_ACT) answers with the act and the record it approved
+  and 2 more tests!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/india/index.ts:282:57
+-         return one(licences(app, pool, params.licenceId), 'licence');
++         return one(licences(app, pool, params.licenceId), "");
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/india/index.ts:285:7
+-         requireSession();
++         ;
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] an export permission recorded over HTTP counts once approved, until it is suspended; IN is never a destination
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:291:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] an export permission recorded over HTTP counts once approved, until it is suspended; IN is never a destination
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/india/index.ts:293:54
+-         return one(permissions(app, pool, out.result), 'export permission');
++         return one(permissions(app, pool, out.result), "");
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] an export permission recorded over HTTP counts once approved, until it is suspended; IN is never a destination
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/india/index.ts:300:63
+-         return one(permissions(app, pool, params.permissionId), 'export permission');
++         return one(permissions(app, pool, params.permissionId), "");
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] a licence and an export permission name their recorder, their approver and who suspended them, each with the part played
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] an export permission recorded over HTTP counts once approved, until it is suspended; IN is never a destination
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:312:56
+-           exportProblems.push({ destination: d, problem: e.rows[0]?.p ?? null });
++           exportProblems.push({ destination: d, problem: e.rows[0].p ?? null });
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:315:99
+-           siteCode: site, productCode: query.productCode, strength: query.strength, licenceProblem: rows[0]?.problem ?? null,
++           siteCode: site, productCode: query.productCode, strength: query.strength, licenceProblem: rows[0].problem ?? null,
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:316:24
+-           licenceNumber: rows[0]?.basis?.licenceNumber ?? null, loanLicenceNumber: rows[0]?.basis?.loanLicenceNumber ?? null, exportProblems,
++           licenceNumber: rows[0].basis?.licenceNumber ?? null, loanLicenceNumber: rows[0]?.basis?.loanLicenceNumber ?? null, exportProblems,
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:316:82
+-           licenceNumber: rows[0]?.basis?.licenceNumber ?? null, loanLicenceNumber: rows[0]?.basis?.loanLicenceNumber ?? null, exportProblems,
++           licenceNumber: rows[0]?.basis?.licenceNumber ?? null, loanLicenceNumber: rows[0].basis?.loanLicenceNumber ?? null, exportProblems,
+Tests ran:
+    the India routes at their edges (feature india) > [IN-30] the issue check asks for each export destination named, leaving out IN; with none named it asks for none
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] the regulatory signer records a licence; it shows as DRAFT and the check refuses the product until QA approves it; the issuer may not record one
+    licences and export permissions over HTTP (Phase 4 slice 6a) > [IN-30] INDIA_ACT: QA approves a licence and an export permission through the signing ceremony, never the recorder
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:324:41
+-         return { siteCode: site, entries: rows[0]?.r ?? [] };
++         return { siteCode: site, entries: rows[0].r ?? [] };
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/india/index.ts:327:7
+-         requireSession();
++         ;
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:333:16
+-           return rows[0]?.r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: '' };
++           return rows[0].r ?? { issueId: '', payload: '', payloadHash: '', layoutVersion: '' };
+Tests ran:
+    the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/india/index.ts:338:7
+-         requireSession();
++         ;
+Tests ran:
+    the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:340:50
+-         return { batchId: params.batchId, problem: rows[0]?.p ?? null };
++         return { batchId: params.batchId, problem: rows[0].p ?? null };
+Tests ran:
+    the record side over HTTP (Phase 4 slice 6a) > [IN-18][IN-31][PR-43] an issued batch is in the allocation register with its licence; its label particulars and H2 payload come from the record; a payload is issued on the batch and verified, another refused
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/india/index.ts:343:7
+-         requireSession();
++         ;
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [PR-43][IN-27] the head of QC records a stability basis; QA records a hazard class; an operator records neither
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/india/index.ts:349:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [PR-43][IN-27] the head of QC records a stability basis; QA records a hazard class; an operator records neither
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/india/index.ts:351:48
+-         return one(bases(app, pool, out.result), 'stability basis');
++         return one(bases(app, pool, out.result), "");
+Tests ran:
+    the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period
+    the record side over HTTP (Phase 4 slice 6a) > [PR-43][IN-27] the head of QC records a stability basis; QA records a hazard class; an operator records neither
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/india/index.ts:354:7
+-         requireSession();
++         ;
+Tests ran:
+    the India routes at their edges (feature india) > [IN-27] a product classification alone or an area dedication alone is recorded and listed with all it says
+    the record side over HTTP (Phase 4 slice 6a) > [IN-27] a recorded hazard class waits for a second QA person: the recorder's own approval signs nothing; another QA person approves it through the ceremony (INDIA_ACT HAZARD_APPROVE)
+
+
+Ran 0.81 tests per mutant on average.
+----------|------------------|----------|-----------|------------|----------|----------|
+          | % Mutation score |          |           |            |          |          |
+File      |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+All files |  68.90 |   88.41 |      206 |         0 |         27 |       66 |        0 |
+ index.ts |  68.90 |   88.41 |      206 |         0 |         27 |       66 |        0 |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+[32m06:04:45 (1333699) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-india.json
+[32m06:04:45 (1333699) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-india.html
+[32m06:04:45 (1333699) INFO MutationTestExecutor[39m Done in 10 minutes and 31 seconds.

@@ -1,0 +1,458 @@
+[32m06:04:48 (1353953) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/p4-server-pqr.incremental.json, a full mutation testing run will be performed.
+[32m06:04:48 (1353953) INFO ProjectReader[39m Found 3 of 3174 file(s) to be mutated.
+[32m06:04:48 (1353953) INFO Instrumenter[39m Instrumented 3 source file(s) with 123 mutant(s)
+[32m06:04:52 (1353953) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m06:04:53 (1353953) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m06:04:54 (1353953) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m06:05:21 (1353953) INFO DryRunExecutor[39m Initial test run succeeded. Ran 2 tests in 26 seconds (net 437.5306079999973 ms, overhead 26236.469392000003 ms).
+Mutation testing 1% (elapsed: <1m, remaining: ~8m) 11/103 tested (1 survived, 0 timed out)
+Mutation testing 5% (elapsed: <1m, remaining: ~6m) 14/103 tested (2 survived, 0 timed out)
+Mutation testing 8% (elapsed: <1m, remaining: ~5m) 17/103 tested (2 survived, 0 timed out)
+Mutation testing 15% (elapsed: <1m, remaining: ~3m) 23/103 tested (3 survived, 0 timed out)
+Mutation testing 21% (elapsed: <1m, remaining: ~3m) 29/103 tested (9 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~1m, remaining: ~2m) 35/103 tested (15 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~1m, remaining: ~2m) 41/103 tested (18 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~1m, remaining: ~2m) 45/103 tested (18 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~1m, remaining: ~1m) 51/103 tested (19 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~1m, remaining: ~1m) 57/103 tested (24 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~1m, remaining: ~1m) 63/103 tested (25 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~2m, remaining: ~1m) 69/103 tested (25 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~2m, remaining: <1m) 74/103 tested (29 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~2m, remaining: <1m) 79/103 tested (32 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~2m, remaining: <1m) 83/103 tested (33 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~2m, remaining: <1m) 87/103 tested (33 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~2m, remaining: <1m) 89/103 tested (34 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~3m, remaining: <1m) 95/103 tested (38 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~3m, remaining: <1m) 99/103 tested (38 survived, 0 timed out)
+
+All tests/pqr-routes.test.ts
+  ✓ PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot (killed 55)
+  ~ PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change) (covered 70)
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/pqr/index.ts:33:96
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) =>
+
+[Survived] CallExpression
+apps/tablets-server/src/features/pqr/index.ts:25:7
+-         requireSession();
++         ;
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/pqr/index.ts:29:7
+-         requireSession();
++         ;
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/pqr/reads.ts:98:50
+-     missingFromExtract: l?.missing_from_extract ?? [],
++     missingFromExtract: l?.missing_from_extract ?? ["Stryker was here"],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/pqr/reads.ts:99:52
+-     missingFromRegister: l?.missing_from_register ?? [],
++     missingFromRegister: l?.missing_from_register ?? ["Stryker was here"],
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/pqr/reads.ts:132:32
+-         lots: b.lots.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code, markets: l.markets, exportOnly: l.export_only, manufacturerRelease: l.manufacturer_release, marketStates: l.markets_state ?? {} })),
++         lots: b.lots.map((l) => ({})),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:132:178
+-         lots: b.lots.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code, markets: l.markets, exportOnly: l.export_only, manufacturerRelease: l.manufacturer_release, marketStates: l.markets_state ?? {} })),
++         lots: b.lots.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code, markets: l.markets, exportOnly: l.export_only, manufacturerRelease: l.manufacturer_release, marketStates: l.markets_state && {} })),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/pqr/reads.ts:133:53
+-         marketRemovals: b.market_removals.map((m) => ({ market: m.market, subjectKind: m.subject_kind, subjectId: m.subject_id, sequence: m.sequence, deviationId: m.deviation_id, removedAfterFailure: m.removed_after_failure })),
++         marketRemovals: b.market_removals.map((m) => ({})),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/pqr/reads.ts:137:44
+-       deviations: res.deviations.map((d) => ({
+-         deviationId: d.deviation_id,
+-         ref: d.ref,
+-         kind: d.kind,
+-         title: d.title,
+-         classification: d.classification,
+-         state: d.state,
+-         capaRefs: d.capa_refs,
+-         noCapaReason: d.no_capa_reason,
+-         batches: d.batches,
+-       })),
++       deviations: res.deviations.map((d) => ({})),
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/pqr/reads.ts:149:22
+-       cpp: (res.cpp ?? []).map((c) => ({ batchNumber: c.batch_number, kind: c.kind, ref: c.ref, id: c.id, step: c.step, attempt: c.attempt, value: c.value, unit: c.unit, failed: c.failed })),
++       cpp: (res.cpp ?? ["Stryker was here"]).map((c) => ({ batchNumber: c.batch_number, kind: c.kind, ref: c.ref, id: c.id, step: c.step, attempt: c.attempt, value: c.value, unit: c.unit, failed: c.failed })),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/pqr/reads.ts:149:38
+-       cpp: (res.cpp ?? []).map((c) => ({ batchNumber: c.batch_number, kind: c.kind, ref: c.ref, id: c.id, step: c.step, attempt: c.attempt, value: c.value, unit: c.unit, failed: c.failed })),
++       cpp: (res.cpp ?? []).map((c) => ({})),
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:64:22
+-     exportOnlyBatches: c['export_only_batches'] ?? 0,
++     exportOnlyBatches: c['export_only_batches'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:64:24
+-     exportOnlyBatches: c['export_only_batches'] ?? 0,
++     exportOnlyBatches: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:65:18
+-     failedBatches: c['failed_batches'] ?? 0,
++     failedBatches: c['failed_batches'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:65:20
+-     failedBatches: c['failed_batches'] ?? 0,
++     failedBatches: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:66:9
+-     lots: c['lots'] ?? 0,
++     lots: c['lots'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:66:11
+-     lots: c['lots'] ?? 0,
++     lots: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:67:19
+-     exportOnlyLots: c['export_only_lots'] ?? 0,
++     exportOnlyLots: c['export_only_lots'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:67:21
+-     exportOnlyLots: c['export_only_lots'] ?? 0,
++     exportOnlyLots: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:68:19
+-     marketRemovals: c['market_removals'] ?? 0,
++     marketRemovals: c['market_removals'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:68:21
+-     marketRemovals: c['market_removals'] ?? 0,
++     marketRemovals: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:69:15
+-     deviations: c['deviations'] ?? 0,
++     deviations: c['deviations'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:69:17
+-     deviations: c['deviations'] ?? 0,
++     deviations: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:70:23
+-     deviationsWithCapa: c['deviations_with_capa'] ?? 0,
++     deviationsWithCapa: c['deviations_with_capa'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:70:25
+-     deviationsWithCapa: c['deviations_with_capa'] ?? 0,
++     deviationsWithCapa: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:71:12
+-     changes: c['changes'] ?? 0,
++     changes: c['changes'] && 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:71:14
+-     changes: c['changes'] ?? 0,
++     changes: c[""] ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:91:147
+-     const { rows } = await db.query<Row>(`${SUMMARY} where ($1::text is null or x.product_code = $1) order by x.recorded_at desc, x.id limit 200`, [productCode ?? null]);
++     const { rows } = await db.query<Row>(`${SUMMARY} where ($1::text is null or x.product_code = $1) order by x.recorded_at desc, x.id limit 200`, [productCode && null]);
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/pqr/reads.ts:96:12
+-     extract: l?.extract ?? 0,
++     extract: l.extract ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/pqr/reads.ts:97:13
+-     register: l?.register ?? 0,
++     register: l.register ?? 0,
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:98:23
+-     missingFromExtract: l?.missing_from_extract ?? [],
++     missingFromExtract: l?.missing_from_extract && [],
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/pqr/reads.ts:98:23
+-     missingFromExtract: l?.missing_from_extract ?? [],
++     missingFromExtract: l.missing_from_extract ?? [],
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:99:24
+-     missingFromRegister: l?.missing_from_register ?? [],
++     missingFromRegister: l?.missing_from_register && [],
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/pqr/reads.ts:99:24
+-     missingFromRegister: l?.missing_from_register ?? [],
++     missingFromRegister: l.missing_from_register ?? [],
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:110:131
+-       throw refusal(404, { code: 'EBMR-PQR-020', kind: 'INVALID_INPUT', whatHappened: 'There is no PQR extract with this id.', why: `Extract ${extractId} was never run.`, whatYouCanDo: ['Open the extract from the list.'] });
++       throw refusal(404, { code: 'EBMR-PQR-020', kind: 'INVALID_INPUT', whatHappened: 'There is no PQR extract with this id.', why: ``, whatYouCanDo: ['Open the extract from the list.'] });
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/pqr/reads.ts:110:184
+-       throw refusal(404, { code: 'EBMR-PQR-020', kind: 'INVALID_INPUT', whatHappened: 'There is no PQR extract with this id.', why: `Extract ${extractId} was never run.`, whatYouCanDo: ['Open the extract from the list.'] });
++       throw refusal(404, { code: 'EBMR-PQR-020', kind: 'INVALID_INPUT', whatHappened: 'There is no PQR extract with this id.', why: `Extract ${extractId} was never run.`, whatYouCanDo: [] });
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/pqr/reads.ts:110:185
+-       throw refusal(404, { code: 'EBMR-PQR-020', kind: 'INVALID_INPUT', whatHappened: 'There is no PQR extract with this id.', why: `Extract ${extractId} was never run.`, whatYouCanDo: ['Open the extract from the list.'] });
++       throw refusal(404, { code: 'EBMR-PQR-020', kind: 'INVALID_INPUT', whatHappened: 'There is no PQR extract with this id.', why: `Extract ${extractId} was never run.`, whatYouCanDo: [""] });
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/pqr/reads.ts:113:22
+-     const reproduces = r.query_problem === null && (await db.query<{ r: boolean }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0]?.r === true;
++     const reproduces = true;
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:113:22
+-     const reproduces = r.query_problem === null && (await db.query<{ r: boolean }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0]?.r === true;
++     const reproduces = r.query_problem === null || (await db.query<{
++     r: boolean;
++   }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0]?.r === true;
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/pqr/reads.ts:113:22
+-     const reproduces = r.query_problem === null && (await db.query<{ r: boolean }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0]?.r === true;
++     const reproduces = true && (await db.query<{ r: boolean }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0]?.r === true;
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/pqr/reads.ts:113:50
+-     const reproduces = r.query_problem === null && (await db.query<{ r: boolean }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0]?.r === true;
++     const reproduces = r.query_problem === null && true;
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/pqr/reads.ts:113:50
+-     const reproduces = r.query_problem === null && (await db.query<{ r: boolean }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0]?.r === true;
++     const reproduces = r.query_problem === null && (await db.query<{
++     r: boolean;
++   }>('select recipe.pqr_reproduces($1) as r', [extractId])).rows[0].r === true;
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/pqr/reads.ts:132:24
+-         lots: b.lots.map((l) => ({ lotId: l.lot_id, lotCode: l.lot_code, markets: l.markets, exportOnly: l.export_only, manufacturerRelease: l.manufacturer_release, marketStates: l.markets_state ?? {} })),
++         lots: b.lots.map(() => undefined),
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/pqr/reads.ts:133:45
+-         marketRemovals: b.market_removals.map((m) => ({ market: m.market, subjectKind: m.subject_kind, subjectId: m.subject_id, sequence: m.sequence, deviationId: m.deviation_id, removedAfterFailure: m.removed_after_failure })),
++         marketRemovals: b.market_removals.map(() => undefined),
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/pqr/reads.ts:137:36
+-       deviations: res.deviations.map((d) => ({
+-         deviationId: d.deviation_id,
+-         ref: d.ref,
+-         kind: d.kind,
+-         title: d.title,
+-         classification: d.classification,
+-         state: d.state,
+-         capaRefs: d.capa_refs,
+-         noCapaReason: d.no_capa_reason,
+-         batches: d.batches,
+-       })),
++       deviations: res.deviations.map(() => undefined),
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/pqr/reads.ts:149:11
+-       cpp: (res.cpp ?? []).map((c) => ({ batchNumber: c.batch_number, kind: c.kind, ref: c.ref, id: c.id, step: c.step, attempt: c.attempt, value: c.value, unit: c.unit, failed: c.failed })),
++       cpp: (res.cpp && []).map((c) => ({ batchNumber: c.batch_number, kind: c.kind, ref: c.ref, id: c.id, step: c.step, attempt: c.attempt, value: c.value, unit: c.unit, failed: c.failed })),
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/pqr/reads.ts:149:30
+-       cpp: (res.cpp ?? []).map((c) => ({ batchNumber: c.batch_number, kind: c.kind, ref: c.ref, id: c.id, step: c.step, attempt: c.attempt, value: c.value, unit: c.unit, failed: c.failed })),
++       cpp: (res.cpp ?? []).map(() => undefined),
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] a deviation register that diverges from the records fails the run (422, EBMR-PQR-006); the earlier extract still reproduces (the records did not change)
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/pqr/signables.ts:23:14
+-         return { extractId: a.extractId, signOffId: rows[0]!.id };
++         return {};
+Tests ran:
+    PQR routes over HTTP (IN-01, PR-58) > [IN-01][PR-58] QA runs the extract; it lists the issued batch, reconciles, reproduces and re-runs to the same hash; the AP signs it off through the ceremony, QA cannot
+
+
+Ran 1.03 tests per mutant on average.
+--------------|------------------|----------|-----------|------------|----------|----------|
+              | % Mutation score |          |           |            |          |          |
+File          |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+--------------|--------|---------|----------|-----------|------------|----------|----------|
+All files     |  53.40 |   58.51 |       55 |         0 |         39 |        9 |        0 |
+ index.ts     |  72.73 |   80.00 |        8 |         0 |          2 |        1 |        0 |
+ reads.ts     |  47.62 |   52.63 |       40 |         0 |         36 |        8 |        0 |
+ signables.ts |  87.50 |   87.50 |        7 |         0 |          1 |        0 |        0 |
+--------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m06:08:38 (1353953) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-pqr.json
+[32m06:08:38 (1353953) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-pqr.html
+[32m06:08:38 (1353953) INFO MutationTestExecutor[39m Done in 3 minutes and 51 seconds.
