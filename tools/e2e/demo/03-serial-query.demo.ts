@@ -44,10 +44,10 @@ test('[PR-42] a serial query: the server asks the L3 system live and answers the
     const answer = page.waitForResponse((r) => r.url().includes(`/api/serialisation/serials/${unknown}`));
     await page.getByRole('button', { name: 'Look up' }).click();
     const res = await answer;
-    const body = (await res.json().catch(() => ({}))) as { code?: string; why?: string; error?: { code?: string; why?: string } };
+    const body = (await res.json().catch(() => ({}))) as { refusal?: { code?: string; why?: string } };
     await expect(page.getByText('The L3 system does not know this.')).toBeVisible();
     await expect(page.getByTestId('serial-lot')).toHaveCount(0);
     expect(res.status()).toBeGreaterThanOrEqual(400);
-    return { serial: unknown, status: res.status(), code: body.error?.code ?? body.code ?? null, why: body.error?.why ?? body.why ?? null };
+    return { serial: unknown, status: res.status(), code: body.refusal?.code ?? null, why: body.refusal?.why ?? null };
   }, page);
 });
