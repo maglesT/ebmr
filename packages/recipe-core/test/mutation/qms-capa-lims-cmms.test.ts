@@ -85,7 +85,8 @@ describe('the CMMS receiving commands (DI-31, IN-25, PR-23; recipe-core 0950)', 
       await sync(cmms, 'CMMS_MAINTENANCE');
       const wo = (over: Record<string, unknown> = {}) => ({ equipmentCode: press.code, workOrder: unique('WO-'), kind: 'CORRECTIVE', status: 'OPEN', dueOn: null, ...over });
       await expectRefused(sendWo({ ...wo(), technician: 'X' }), 'EBMR-CMMS-002', /unknown field technician/);
-      const { dueOn: _omit, ...withoutDue } = wo();
+      const withoutDue: Record<string, unknown> = wo();
+      delete withoutDue['dueOn'];
       for (const bad of [wo({ equipmentCode: '' }), wo({ workOrder: '' }), wo({ kind: 'BREAKDOWN' }), wo({ status: 'DONE' }), withoutDue, wo({ dueOn: '2099/12/31' })]) {
         await expectRefused(sendWo(bad), 'EBMR-CMMS-002', /equipmentCode, workOrder, kind/);
       }

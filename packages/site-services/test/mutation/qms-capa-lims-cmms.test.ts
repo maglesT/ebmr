@@ -229,7 +229,9 @@ describe('the CAPA master-version resolver (PR-51; site services 0925, recipe-co
       expect(await facts(v)).toEqual({ exists: true, effective: true, label: `${code} v1`, problem: null });
       // No resolver: nothing exists and nothing is effective.
       await owner('delete from site.capa_master_resolver');
-      expect(await facts(v)).toMatchObject({ exists: false, effective: false, problem: expect.stringMatching(/no master-version resolver is registered/) });
+      const none = await facts(v);
+      expect(none).toMatchObject({ exists: false, effective: false });
+      expect(String(none['problem'])).toMatch(/no master-version resolver is registered/);
       // A resolver that answers nothing: the same.
       await db.admin.query("create or replace function public.mut_null_facts(uuid) returns jsonb language sql as 'select null::jsonb'");
       await register('public.mut_null_facts(uuid)');

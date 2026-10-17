@@ -146,7 +146,7 @@ describe('receipt (PR-17, PR-18, INV-13; site services 0910)', () => {
     const made = await w.receive('INTERMEDIATE', {}, true, false);
     await expectCode(recordFor(made.lotId, good), /EBMR-SITE-915 lot .* is INTERMEDIATE: it was made here and has no receipt record/);
     // Received with a supplier batch: the record names the same one.
-    const named = await w.receive('API', { supplierLot: 'SB-NAMED' } as never, true, false);
+    const named = await w.receive('API', { supplierLot: 'SB-NAMED' }, true, false);
     const lotRow = (await db.admin.query<{ s: string | null }>('select supplier_lot as s from site.material_lot where id = $1', [named.lotId])).rows[0]!.s;
     if (lotRow) await expectCode(recordFor(named.lotId, { ...good, supplierLot: `${lotRow}-X` }), /EBMR-SITE-915 lot .* was received as supplier batch/);
     // Examination: only of a lot with a receipt record, with a valid count and outcome, and remarks when defects were found.
