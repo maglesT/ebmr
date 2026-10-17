@@ -39,6 +39,7 @@ tests:
   - "packages/recipe-core/test/review/review.test.ts > no configuration defers the audit-trail review (DI-25) > [DI-25] no setting, policy, rule key or e-signature or access policy of the installation offers to defer or skip the audit-trail review, the review gates read no configuration, and the QA review and the disposition wait for the signed review"
   - "apps/tablets-server/test/analytics/audit.test.ts > the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE) > [DI-25][DI-53] the entries route names the flagged entries of a batch's audit-trail review scope, and only those"
   - "apps/tablets-web/test/analytics-audit/audit.test.tsx > audit-trail flags (GMP) > [DI-25] the audit-trail review panel orders flagged entries first and still lists every entry"
+  - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-53][DI-52][DI-25] the data-integrity reviewer opens an audit-trail flag about a person with its reasons and the entries behind it, never a value, and dispositions it as a false alarm with the cause; it then leaves the open flags, and the batch's audit-trail review lists the flagged entry first and still every entry @office"
 clauses:
   - clause: "Change a value after entry. It appears in the checker's step view and in the batch review list."
     tests:

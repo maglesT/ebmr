@@ -110,6 +110,7 @@ tests:
   - "apps/tablets-server/test/config/config-routes.test.ts > configuration change records and RBE rules over HTTP (DI-09, DI-26) > [DI-09][DI-26] an RBE rule is changed only under a change record QA approved with its signature; the change shows in the diff with the record"
   - "apps/tablets-web/test/config/config.test.tsx > configuration change control screens (DI-09, DI-26) > [DI-26] an RBE rule version is saved with its change record and rationale; mandatory categories are marked"
   - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > corrections of interface-captured receipt values (DI-31, DI-26; site services 0913) > [DI-31][DI-26] each correctable field takes only its own valid values; a correction of one lot or one field never shows on another"
+  - "tools/e2e/specs/phase6a/analytics.spec.ts > [PR-61][DI-26] the review queue is ordered by review priority with each record's reasons, and the lowest-priority record still asks for its full review: production approval, the audit-trail review and the QA review @office"
 clauses:
   - clause: "Seed a batch with one instance of every exception type. All are listed."
     tests:

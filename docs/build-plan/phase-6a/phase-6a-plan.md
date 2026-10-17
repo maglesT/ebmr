@@ -779,6 +779,57 @@ Defaults of 6A-6 (taken without asking, as the owner's rule says; each is the de
 - **Migrations:** kernel 1280 to 1289, site-services 1050 to 1059, recipe-core 1190 to 1199, tablets 1380 to 1389 (exit
   fixes only).
 
+#### 6A-7 as built: trace, browser flows and handbook (17 October, branch `phase-6a/slice-7`)
+
+The review pass and its fixes are on `phase-6a/slice-7-review`; the final run follows D-6A-15.
+
+- **Local checks (17 October).** The full Vitest suite on one spare cluster: 6,882 passed, 0 failed, 44 skipped. The
+  golden batches GB-T-01 to GB-T-03 on a golden clock cluster with the runner on: 44 of 44 passed. The four browser
+  flows through the E2E configuration: 4 of 4 passed. `pnpm trace` at phase 6: ok, 151 of 246 controls with passing
+  tests. The dry run at phase 7 (D-6A-7-b-3): every one of the drafts' 23 clauses has a passing listed test, no error.
+  Typecheck, lint, `deps:check`, `pins:check`, `register:validate`, the `[meta]` tests and `handbook:check` pass.
+
+- **Trace.** DI-51, DI-52, DI-53 and PR-61 map their catalog tests word for word to `clauses` (6, 8, 5 and 4 clauses),
+  each naming passing listed tests; `target_phase` stays 7 and `phase.yaml` stays at 6. `register:sync-tests` added the
+  four browser flows to the drafts, DI-25 and DI-26, and the retitled no-value test to DI-53. PR-60, DI-09, PR-52 and
+  PR-58 already listed every 6A test tagged with them (nothing to add; PR-58 has none in the 6A files).
+- **Browser flows** `tools/e2e/specs/phase6a/analytics.spec.ts` (support `support.ts`): the SPC chart with the advisory
+  band and its drill to the record; the data-integrity reviewer's disposition of an audit-trail flag, then the batch's
+  audit-trail review with the flagged entry first; the review queue by priority with its reasons, the lowest record
+  still asking for its full review; the golden profile overlay in the trend viewer.
+- **Handbook.** `modules/analytics.md` complete (pharma context, tables, state machines, testing, pitfalls);
+  `03-architecture.md` the analytics path beside the reporting path; `05-database.md` the role and the schema;
+  `10-runbooks.md` method versions and reference sets under change control; `08-defect-log.md` the 6A entries grouped.
+- **No migration.**
+
+Defaults of 6A-7 (trace, browser and handbook half; taken without asking, as the owner's rule says):
+
+- **D-6A-7-b-1** The analytics browser flows run on their own copy of the E2E GMP database, made with the kernel's backup
+  path (continuity dump and restore, as the DI-32 trend spec does), with their own GMP server. Their fixtures (records
+  copied from the review batch, the synthetic history's batch facts, a press series of the review batch) never reach the
+  database the other specs share. Why: the E2E stack has no completed GMP batch with critical values or an equipment
+  series, and fixture records in the shared database would change what other specs see.
+- **D-6A-7-b-2** The runs the flows show are recorded as the runner records one: as `ebmr_analytics`, through
+  `analytics.begin_run`, `record_output`, `record_flag` and `finish_run`. Their method versions are put in force by a
+  QA person under the approved E2E change record (`analytics.set_method_version`), and the golden profile's reference
+  set is approved by QA from its candidate (`analytics.set_reference_set`). Why: the runner runs on a batch completion
+  (a five-minute poll) or nightly, and has no on-demand route. The versions carry a code identity that is not the
+  running build's, so the copy's own runner would record a FAILED run rather than outputs. The fixture's numbers come
+  from textbook formulas in the support file (I-MR limits, Nelson rules 1 and 2; a resampled percentile band and a DTW
+  distance) over the synthetic history, so the screens show self-consistent values; the methods are proven by the
+  package and server tests.
+- **D-6A-7-b-3** The dry run of the trace at phase 7 for the four drafts is a scratch helper calling `buildTrace` at
+  phase 7 with the four controls only, over the full Vitest report, the golden report and the browser flows' report;
+  `phase.yaml` is not touched (as D-P6j-a-1).
+- **D-6A-7-b-4** A clause is one action with its expected result: the catalog test is cut after each result's semicolon.
+- **D-6A-7-b-5** DI-53's clause "the audit facts carry no old or new value" is proven by the recipe-core test that checks
+  it; its title gains the `[DI-53]` tag (`[DI-51][DI-53] the audit fact view exports no old or new value`; body
+  unchanged), and that file's results in the local report come from a re-run of the file.
+- **D-6A-7-b-6** PROGRESS.md is brought back under its 150 lines: the Phase 4, Phase 6 and Phase 6A slice notes move
+  verbatim to `docs/progress/history.md` ("PROGRESS.md condensed at the Phase 6A exit").
+- **D-6A-7-b-7** The defect log's 6A entries are grouped under one heading in slice order, and P6A2-1 takes the entry
+  shape of the others; no entry's content changes.
+
 ## Draft controls (status U, `expert_decision` PENDING; for the owner and the expert)
 
 Written as register entries in IN-53's style, with the requirement row n680 (FDA's AI guidance, unverified). They

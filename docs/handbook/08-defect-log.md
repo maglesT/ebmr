@@ -1,6 +1,6 @@
 # Defects and lessons
 
-**Draft.** This page lists the significant bugs found and fixed in Phases 1 to 4: what went wrong, why it matters in
+**Draft.** This page lists the significant bugs found and fixed in Phases 1 to 6A: what went wrong, why it matters in
 a pharma plant, the root cause, the fix, the test that now guards it and what a developer should learn from it. It is
 written for a developer who is new to the project and wants to avoid repeating these mistakes. Read the
 [Top lessons](#top-lessons) first. The rest is a reference you search when you touch the same area.
@@ -28,7 +28,7 @@ Finding names differ by phase, and the numbers overlap, so the phase is always g
 - **P3-n** and **P4-n** are findings of the quick reviews of a slice (the number is the review's own, for example
   "slice 3b review 2"). **HIGH-n** is a finding of the Phase 3 exit review. **D-n** is a defect found by the Phase 2
   SQL mutation run. **F-A1** is a defect found by the Phase 4 mutation run. **M6-Dn** is a defect found during the Phase 6
-  mutation campaign.
+  mutation campaign. **P6An-m** is entry m of analytics slice 6A-n (Phase 6A), and **P6g-n** an entry of slice 6g.
 - "Control" means a line in `compliance/controls/` (for example DI-37). Tests that prove a control carry its ID in
   their name. See the [control register](../../compliance/controls/).
 - "Migration 0319" means the numbered SQL file of that package (for example recipe-core 0319).
@@ -1142,24 +1142,6 @@ role cannot write: ...` (kernel sandbox tests).
 commands are FRESH_ON_SHARED with the attribution member, as other floor commands. **Tests.** the contract test of
 FRESH_ON_SHARED routes; `[DI-05] a training session's attempts are the person's own ...`.
 
-## Slice 6A-4: audit-trail anomaly detection (Phase 6A)
-
-### P6A4-1: an open audit-trail flag could drop out of the list (found in the slice's own review)
-
-**Symptom.** The audit-trail flags list without a period (the open flags) took the newest 500 keys and only then kept
-the open ones, so with many dispositioned keys an older open key was not listed; the flag detail looked its key up in
-the same capped list and could show a dispositioned key as open. **Cause.** The filter ran after the limit, in the
-server. **Fix.** `auditKeys` filters open keys, or the one key asked for, in the query before the limit. **Tests.** the
-server's `[DI-53] a flag sends no notification and closes only with a disposition` (open list, period list and detail
-of a re-raised key).
-
-### P6A4-2: a re-run raises every hit again (design note, found while building)
-
-**Symptom.** Each run of the audit-trail methods assesses the whole 26-week window, so QA would have to disposition the
-same hit after every nightly run. **Fix.** A flag's key (method, rule, subject, first evidence of the first reason;
-kernel 1261 `analytics.flag_key`) groups the repeats; a disposition on any flag of a key closes it (D-6A-4-5). The
-flag table still grows by one row per hit and run; measure at a real site.
-
 ## Phase 6 mutation campaign (decision 0019)
 
 ### M6-D1: a typed lot code stopped receiving for the rest of the day (medium, fails safe; site services 1002)
@@ -1193,9 +1175,69 @@ under the same key lands, exactly once; ...` and `[DI-31] M6-D2: a page that rep
 once; ...` (apps/tablets-server/test/equipment-data/opcua-adapter.test.ts). **Lesson.** De-duplicate on what you
 received, never on what the sender claims about it; a claim that failed its check identifies nothing.
 
-## Slice 6A-5: review priority (Phase 6A)
+## Phase 6A: advisory analytics
 
-### P6A5-1: the review priority told every QA viewer that a record's entries had an audit-trail hit (high, DI-53; found in the slice's own review)
+The defects and design notes of the analytics slices (ADR 0020), found while building or in each slice's own review,
+in slice order. The exit review's findings and residuals are in the Phase 6A review backlog.
+
+### Slice 6A-2: SPC, capability, drift and deviation rates
+
+#### P6A2-1: a distribution function from an inverted quantile lost its tails (found while building)
+
+**Symptom.** The first normal distribution function was the pinned normal quantile inverted by bisection. The quantile
+loses its precision below a probability of about 1e-16 (it returned an infinite value), so the Anderson-Darling
+statistic, which sums log-probabilities of the outermost points, failed on ordinary data. **Why it matters.** A normality
+note or a capability index computed from a wrong tail would mislead QA reading the PQR annex, even though the result is
+advisory. **Fix.** The normal distribution function is `@stdlib/math-base-special-erfc` 0.2.5, pinned and recorded in
+every run's runtime (D-6A-2-10); the t distribution function stays the inverted t quantile, which keeps its precision.
+**Test.** `packages/analytics/test/spc-methods.test.ts` "the normal and t distribution functions agree with SciPy, deep
+into the tails" (down to z = -30) and the Anderson-Darling reference values. **Lesson.** Check a numerical door at the
+extremes it will meet, against an independent reference, before building on it.
+
+### Slice 6A-3: multivariate monitoring
+
+#### P6A3-1: the open flags list repeated every run's raise of the same hit (6A-2's residual)
+
+**Symptom.** Each run assesses its whole input again, so a nightly run raised an open rule hit again, and
+`analytics.open_flag_v1` listed every raise until QA dispositioned each one.
+
+**Fix.** Kernel 1271 lists each open signal (method, version, subject, rule, severity and reasons) once, as its latest
+raise with its count; a disposition on any raise covers the signal. The runs still record every raise (D-6A-3-9).
+
+**Test.** `[DI-52] a flag raised again by later runs is listed once while open, ...` (kernel) and the end-to-end test in
+`apps/tablets-server/test/analytics/mspc.test.ts`.
+
+#### P6A3-2: a reference set was checked against its candidate by hash only (found while building)
+
+**Symptom.** EBMR-ANA-010 compares the set's model SHA-256 with the candidate's recorded hash. A writer could pair that
+hash with another model or with other batches; only the runner's later hash check would notice.
+
+**Fix.** Kernel 1270 (EBMR-ANA-030) requires the candidate's own model and batches, for every writer (D-6A-3-8).
+
+**Test.** `[DI-52] a reference set must carry its model candidate's own model and batches, not only its hash
+(EBMR-ANA-030)`.
+
+### Slice 6A-4: audit-trail anomaly detection
+
+#### P6A4-1: an open audit-trail flag could drop out of the list (found in the slice's own review)
+
+**Symptom.** The audit-trail flags list without a period (the open flags) took the newest 500 keys and only then kept
+the open ones, so with many dispositioned keys an older open key was not listed; the flag detail looked its key up in
+the same capped list and could show a dispositioned key as open. **Cause.** The filter ran after the limit, in the
+server. **Fix.** `auditKeys` filters open keys, or the one key asked for, in the query before the limit. **Tests.** the
+server's `[DI-53] a flag sends no notification and closes only with a disposition` (open list, period list and detail
+of a re-raised key).
+
+#### P6A4-2: a re-run raises every hit again (design note, found while building)
+
+**Symptom.** Each run of the audit-trail methods assesses the whole 26-week window, so QA would have to disposition the
+same hit after every nightly run. **Fix.** A flag's key (method, rule, subject, first evidence of the first reason;
+kernel 1261 `analytics.flag_key`) groups the repeats; a disposition on any flag of a key closes it (D-6A-4-5). The
+flag table still grows by one row per hit and run; measure at a real site.
+
+### Slice 6A-5: review priority
+
+#### P6A5-1: the review priority told every QA viewer that a record's entries had an audit-trail hit (high, DI-53; found in the slice's own review)
 
 **Symptom.** The score's OPEN_AUDIT_FLAG term and its reason ("1 audit-trail rule hit on this record's entries") were
 shown in the review queue to every holder of ANALYTICS.VIEW, the head of production included. **Why it matters.** The
@@ -1207,7 +1249,7 @@ order by it; the data-integrity lead sees the full score (`features/common/revie
 (apps/tablets-server/test/analytics/review.test.ts). **Lesson.** A count derived from restricted data is restricted
 data; check what an aggregate implies, not only what it names.
 
-### P6A5-2: open audit-trail flags cannot reach the score's inputs (design note, found while building)
+#### P6A5-2: open audit-trail flags cannot reach the score's inputs (design note, found while building)
 
 **Symptom.** The plan counts "open audit-trail flags on the batch", but no report view may read the analytics schema
 (the DI-51 dependency proof) and the analytics role reads only catalogued report views. **Fix.** REVIEW.PRIORITY runs
@@ -1215,25 +1257,9 @@ the ATA.RULES version 1 rules over the same snapshot's audit facts and counts th
 (D-6A-5-4); a disposition does not lower the term in v1. A catalogued input of the open keys per batch is a kernel
 change, written up for the lead.
 
-## Slice 6A-2: SPC, capability, drift and deviation rates (Phase 6A)
+### Slice 6A-6: golden batch profile
 
-### P6A2-1: a distribution function from an inverted quantile lost its tails (found while building)
-
-- **What went wrong:** the first normal distribution function was the pinned normal quantile inverted by bisection.
-  The quantile loses its precision below a probability of about 1e-16 (it returned an infinite value), so the
-  Anderson-Darling statistic, which sums log-probabilities of the outermost points, failed on ordinary data.
-- **Why it matters:** a normality note or a capability index computed from a wrong tail would mislead QA reading the
-  PQR annex, even though the result is advisory.
-- **Fix:** the normal distribution function is `@stdlib/math-base-special-erfc` 0.2.5, pinned and recorded in every
-  run's runtime (D-6A-2-10); the t distribution function stays the inverted t quantile, which keeps its precision.
-- **Test:** `packages/analytics/test/spc-methods.test.ts` "the normal and t distribution functions agree with SciPy,
-  deep into the tails" (down to z = -30) and the Anderson-Darling reference values.
-- **Lesson:** check a numerical door at the extremes it will meet, against an independent reference, before building
-  on it.
-
-## Slice 6A-6: golden batch profile (Phase 6A)
-
-### P6A6-1: the plan's band rule would flag about half of the normal curves (found while building)
+#### P6A6-1: the plan's band rule would flag about half of the normal curves (found while building)
 
 **Symptom.** With a pointwise 5th to 95th percentile band of n curves, two curves lie outside it at every point by
 construction. Each reference curve therefore has about 10 % of its points outside, which is exactly the flag threshold.
@@ -1244,14 +1270,14 @@ On the synthetic history, the 20 normal curves had 0.5 % to 15 % outside, so abo
 
 **Test.** `[DI-52] the seeded abnormal press curve is flagged and the 20 normal ones are not` (package and server).
 
-### P6A6-2: an empirical 99th percentile of the references flags a reference (found while building)
+#### P6A6-2: an empirical 99th percentile of the references flags a reference (found while building)
 
 **Symptom.** With 10 to 50 references, the empirical 99th percentile of their distances lies below the largest one. That
 reference would then be flagged against its own set.
 
 **Fix.** The limit is a log-normal 99 % prediction limit for one new batch (D-6A-6-4).
 
-### P6A6-3: the runner could not read the reference sets (found while building)
+#### P6A6-3: the runner could not read the reference sets (found while building)
 
 **Symptom.** `analytics.effective_reference_sets()` is owner only (kernel 1242), and the analytics role may read only its
 catalogued report inputs.
@@ -1259,32 +1285,9 @@ catalogued report inputs.
 **Fix.** Recipe-core 1170 adds `report.analytics_reference_v1` over the configuration store. It does not read the
 analytics schema, so the DI-51 dependency proof is unchanged (D-6A-6-7).
 
-### P6A6-4: an import cycle between the implementation list and a method file (found while building)
+#### P6A6-4: an import cycle between the implementation list and a method file (found while building)
 
 **Fix.** The implementation shapes moved to `method-types.ts`, and `implementation.ts` re-exports them.
-
-## Slice 6A-3: multivariate monitoring (Phase 6A)
-
-### P6A3-1: the open flags list repeated every run's raise of the same hit (6A-2's residual)
-
-**Symptom.** Each run assesses its whole input again, so a nightly run raised an open rule hit again, and
-`analytics.open_flag_v1` listed every raise until QA dispositioned each one.
-
-**Fix.** Kernel 1271 lists each open signal (method, version, subject, rule, severity and reasons) once, as its latest
-raise with its count; a disposition on any raise covers the signal. The runs still record every raise (D-6A-3-9).
-
-**Test.** `[DI-52] a flag raised again by later runs is listed once while open, ...` (kernel) and the end-to-end test in
-`apps/tablets-server/test/analytics/mspc.test.ts`.
-
-### P6A3-2: a reference set was checked against its candidate by hash only (found while building)
-
-**Symptom.** EBMR-ANA-010 compares the set's model SHA-256 with the candidate's recorded hash. A writer could pair that
-hash with another model or with other batches; only the runner's later hash check would notice.
-
-**Fix.** Kernel 1270 (EBMR-ANA-030) requires the candidate's own model and batches, for every writer (D-6A-3-8).
-
-**Test.** `[DI-52] a reference set must carry its model candidate's own model and batches, not only its hash
-(EBMR-ANA-030)`.
 
 ## Open residuals for the owner
 

@@ -77,6 +77,46 @@ tests:
   - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-52] the candidates list the batches they leave out; QA makes one the reference set under a change record"
   - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-52] an SPC chart with Phase I limits offers them as its reference set under a change record"
   - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-52] the open flags list says how often later runs raised the same hit"
+  - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-51][DI-52] the control chart of a critical item shows the advisory band, its Phase I limits, the master's specification and each recorded value as decimal text with the rule hit and its reasons; a point drills to the batch record @office"
+  - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-53][DI-52][DI-25] the data-integrity reviewer opens an audit-trail flag about a person with its reasons and the entries behind it, never a value, and dispositions it as a false alarm with the cause; it then leaves the open flags, and the batch's audit-trail review lists the flagged entry first and still every entry @office"
+  - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-51][DI-52] the trend viewer shows a batch step's press series as received and, on request, the golden profile overlay under it: the reference set's band, the batch's curve, its flags and every sample exactly as recorded @office"
+clauses:
+  - clause: "write a method version without an approved change record; refused;"
+    tests:
+      - "packages/kernel/test/analytics/analytics.test.ts > the analytics tables (kernel 1241) > [DI-52] a method version without an approved change record is refused"
+      - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-52][DI-09] a method version without an approved change record is refused; under one it is listed with its intended use, parameters hash, validation reference, validity and change record"
+      - "packages/kernel/test/analytics/method-change.test.ts > method versions under change control (kernel 1245) > [DI-52][DI-09] a method version without an approved change record is refused; a person holding ANALYTICS.METHOD writes it under one, and an administrator never does"
+  - clause: "write it with one; it becomes effective and the configuration as of that date shows it;"
+    tests:
+      - "packages/kernel/test/analytics/method-change.test.ts > method versions under change control (kernel 1245) > [DI-52][DI-09] a method version without an approved change record is refused; a person holding ANALYTICS.METHOD writes it under one, and an administrator never does"
+      - "packages/kernel/test/analytics/method-change.test.ts > method versions under change control (kernel 1245) > [DI-52] a method version never changes: retuning is a new version, a retired version stays retired, and the configuration of a past instant shows the methods then in force"
+      - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-52][DI-09] a method version without an approved change record is refused; under one it is listed with its intended use, parameters hash, validation reference, validity and change record"
+  - clause: "a run's outputs name the run, the method version and the input references;"
+    tests:
+      - "apps/tablets-server/test/analytics/runner.test.ts > the analytics runner (apps/tablets-server/src/analytics) > [DI-52] every output names its run, method version and input references; a re-run reproduces it"
+  - clause: "re-run on the same inputs; the same flags and the values within the tolerance;"
+    tests:
+      - "apps/tablets-server/test/analytics/runner.test.ts > the analytics runner (apps/tablets-server/src/analytics) > [DI-52] every output names its run, method version and input references; a re-run reproduces it"
+  - clause: "a reference set whose model hash differs from its candidate is refused;"
+    tests:
+      - "packages/kernel/test/analytics/analytics.test.ts > the analytics tables (kernel 1241) > [DI-52] a reference set whose model hash differs from its candidate is refused"
+      - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-52] a reference set whose model hash differs from its candidate is refused"
+      - "packages/kernel/test/analytics/repeats-and-candidates.test.ts > a reference set and its candidate (kernel 1270) > [DI-52] a reference set must carry its model candidate's own model and batches, not only its hash (EBMR-ANA-030)"
+  - clause: "QA disposes a flag as a false alarm; the disposition shows the person and is in the audit trail;"
+    tests:
+      - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-52] a disposition is recorded by the person who gave it, audited, and superseded only with a reason"
+      - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-52] a disposition is recorded by the person who gave it, audited, and superseded only with a reason"
+      - "apps/tablets-web/test/analytics/analytics.test.tsx > analytics screens (GMP) > [DI-52] QA records a disposition with a cause; superseding the current one asks for the reason"
+      - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-53][DI-52][DI-25] the data-integrity reviewer opens an audit-trail flag about a person with its reasons and the entries behind it, never a value, and dispositions it as a false alarm with the cause; it then leaves the open flags, and the batch's audit-trail review lists the flagged entry first and still every entry @office"
+  - clause: "a second disposition without a reason is refused;"
+    tests:
+      - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-52] a disposition is recorded by the person who gave it, audited, and superseded only with a reason"
+      - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-52] a disposition is recorded by the person who gave it, audited, and superseded only with a reason"
+      - "apps/tablets-web/test/analytics/analytics.test.tsx > analytics screens (GMP) > [DI-52] QA records a disposition with a cause; superseding the current one asks for the reason"
+  - clause: "the monitor shows the false-alarm rate of the method version."
+    tests:
+      - "packages/kernel/test/analytics/repeats-and-candidates.test.ts > repeated flags (kernel 1271) > [DI-52] a flag raised again by later runs is listed once while open, a hit that differs is listed on its own, and a disposition covers its repeats; every raise stays recorded"
+      - "apps/tablets-web/test/analytics/analytics.test.tsx > analytics screens (GMP) > [DI-52] the methods page shows each version with its parameters hash, validation reference, validity and change record, and the monitoring as advisory statistics"
 expert_decision:
   status: PENDING
   pack_version: draft

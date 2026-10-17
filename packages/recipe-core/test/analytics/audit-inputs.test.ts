@@ -153,7 +153,7 @@ const AUDIT_COLUMNS = ['event_id', 'chain_key', 'recorded_at', 'recorded_local',
   'is_correction', 'reason_code', 'batch_id', 'step', 'attempt', 'failed', 'deviation_linked', 'config_area', 'read_at', 'data_as_of'];
 
 describe('the audit-trail inputs (kernel 1260, recipe-core 1150)', () => {
-  it('[DI-51] the audit fact view exports no old or new value', async () => {
+  it('[DI-51][DI-53] the audit fact view exports no old or new value', async () => {
     const cols = await db.admin.query<{ c: string }>("select column_name as c from information_schema.columns where table_schema = 'report' and table_name = 'audit_fact_v1' order by ordinal_position");
     expect(cols.rows.map((r) => r.c)).toEqual(AUDIT_COLUMNS);
     const rows = await as<Record<string, unknown>>(ANALYTICS, 'select * from report.audit_fact_v1 where event_id = any($1::text[]) order by event_id::bigint', [Object.values(ids)]);

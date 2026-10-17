@@ -64,6 +64,7 @@ The repository is a pnpm monorepo. Each folder under `packages/` and `apps/` is 
 | [packages/ui-kit](../../packages/ui-kit/) | Shared React components and screen state machines (the signing ceremony, the kiosk lock). | api-contract, expr |
 | [packages/integration-sdk](../../packages/integration-sdk/) | Contracts for adapters (ERP, LIMS, scales, printers, OPC UA). | kernel |
 | [packages/test-kit](../../packages/test-kit/), [packages/validation-kit](../../packages/validation-kit/) | Test harness (databases, personas); validation-pack generators. | kernel |
+| [packages/analytics](../../packages/analytics/) | Advisory analytics (Phase 6A, [ADR 0020](../adr/0020-analytics-module-read-only-advisory.md)): pure statistics, the methods, the method registry and canonical output hashing. No database, no node core module. | nothing (only `ml-matrix` and `@stdlib`) |
 | [apps/tablets-server](../../apps/tablets-server/) | The Tablets server: platform, features, and the edition's own migrations (schema `tab`). | every shared package |
 | [apps/tablets-web](../../apps/tablets-web/) | The Tablets screens. | api-contract, expr, recipe-core (browser-safe part), ui-kit |
 | [apps/site-gateway](../../apps/site-gateway/), [apps/simulators](../../apps/simulators/) | Equipment gateway and device simulators. | integration-sdk only |
@@ -99,6 +100,8 @@ flowchart BT
   ts[tablets-server] --> kernel & site & rc & ac & expr & sdk
   ts -. set-up CLI only .-> tk
   tw[tablets-web] --> ac & ui & expr
+  an[analytics]
+  ts -. analytics runner only .-> an
   tw -. browser-safe folders only .-> rc
   gw[site-gateway] --> sdk
   sim[simulators] --> sdk
@@ -123,6 +126,7 @@ flowchart BT
 | `test-kit-never-imports-apps`, `product-never-imports-test-kit` | the harness depending on apps; product code using the harness (except the tablets set-up CLI) | Test helpers never ship. |
 | `gateway-and-simulators-no-db` | the gateway or simulators reaching a database or the kernel | Devices talk to the server through the integration contracts only. |
 | `e2e-imports` | browser tests importing app internals | E2E tests drive the product from outside. |
+| `analytics-is-self-contained`, `analytics-only-from-runner`, `analytics-runner-no-gmp-path`, `no-gmp-feature-imports-analytics` | the analytics package importing the repo, a driver or node core; anything but the runner (and tests) importing it; the runner reaching a server feature, the command path or a GMP package; a GMP feature importing the runner or the analytics feature | Analytics stays advisory: no code path from a statistic to a GMP write (ADR 0020, DI-51). |
 
 Two other CI rules shape the code (see [REPO-GUIDE.md](../../REPO-GUIDE.md)): the **clock ban** (section 10) and the
 **decimal rule** (section 11).
@@ -150,9 +154,13 @@ Created in [0001_bootstrap.sql](../../packages/kernel/sql/0001_bootstrap.sql) an
 | `ebmr_authn` | yes | The authentication service: the only role that records authentication events (logins and signing authentications). |
 | `ebmr_sandbox` | yes | The only role of a sandbox database; no way into a GMP database (DI-05). |
 | `ebmr_listener`, `ebmr_sandbox_listener` | yes | The device evidence listener (kernel 0980). |
+| `ebmr_report` | yes, `noinherit`, 4 connections | The reporting path (kernel 1210): SELECT on the `report` views only; it can write nothing. |
+| `ebmr_analytics` | yes, `noinherit`, 4 connections | The analytics runner (kernel 1240): SELECT on the inputs of its allow-list, EXECUTE on the analytics record functions; no GMP table, no command (ADR 0020). |
 
 The server opens two pools: the application pool and the authentication pool
-([pools.ts](../../apps/tablets-server/src/platform/db/pools.ts#sym=createPools)). The roles come from configuration
+([pools.ts](../../apps/tablets-server/src/platform/db/pools.ts#sym=createPools)). On a GMP installation the analytics
+runner opens a third, of one connection as `ebmr_analytics`
+([pool.ts](../../apps/tablets-server/src/analytics/pool.ts#sym=createAnalyticsPool)). The roles come from configuration
 ([config.ts](../../apps/tablets-server/src/config.ts)).
 
 ### 4.2 SECURITY DEFINER functions
@@ -223,6 +231,8 @@ function from the event rows (for example `site.deviation_state` reads `site.dev
 | `plant` | recipe-core 0400 | equipment, rooms, logbooks, output containers |
 | `formulary` | recipe-core 0640 | product formulas |
 | `tab` | tablets 0001 | the Tablets edition: sessions binding, devices and readings, edition blocks |
+| `report` | kernel 1210 | versioned read-only views (recipe-core 1070 on) for dashboards, exports and the analytics inputs |
+| `analytics` | kernel 1240 | the advisory analytics: method versions, reference sets, runs, outputs, flags and QA's dispositions (non-GMP, insert-only, audited) |
 
 All of them live in **one database per installation** (for example `ebmr_tablets_demo` and
 `ebmr_sandbox_tablets_demo` in [setup.ts](../../apps/tablets-server/src/cli/setup.ts)). Note: ADR 0001 describes a
@@ -597,6 +607,10 @@ binary floating point: `0.1 + 0.2` is not `0.3`, and a limit check on such a val
 - **In the browser**: the lint rule in [eslint.config.js](../../eslint.config.js) forbids react-aria's number fields
   (they produce numbers); GMP inputs use ui-kit's `DecimalField`.
 - Counts that are not GMP quantities (a page size, a run version) may be numbers.
+- **Analytics** is the one exception for statistics (ADR 0020 point 5): inside `packages/analytics` and the runner a
+  statistic is a `number`, converted from the source's decimal text only by `statOf`, stored as `double precision` in
+  the schema `analytics` only, and shown labelled "Advisory, not a GMP value". A response repeats a GMP value as its
+  decimal text.
 
 ## 12. State machines
 
@@ -669,9 +683,45 @@ real GMP records (DI-05, INV-18; [sandbox README](../../packages/kernel/src/sand
 - **Training mode** is the sandbox installation with a training seed (D-P6g-2): the same server and screens, the
   sandbox role, the watermark, the `TEST-` personas; the `training` feature runs on the sandbox only and keeps the
   person's attempts in `sandbox.training_attempt` (kernel 1211), which a GMP database refuses.
-- **The reporting path**: dashboards and the later analytics module read only the versioned views of the schema
-  `report` (recipe-core 1070), as the application role or as `ebmr_report` (SELECT only; kernel 1210); every row says
-  when its data was current. Nothing on this path writes to a GMP table (decision 0015 item 2).
+- **The reporting path**: dashboards and exports read only the versioned views of the schema `report` (recipe-core
+  1070), as the application role or as `ebmr_report` (SELECT only; kernel 1210); every row says when its data was
+  current. The analytics module reads the same kind of view as its own role (below). Nothing on this path writes to a
+  GMP table (decision 0015 item 2).
+
+### The analytics path (Phase 6A)
+
+The analytics module ([ADR 0020](../adr/0020-analytics-module-read-only-advisory.md); module guide
+[analytics](modules/analytics.md)) runs beside the reporting path and reads the same kind of input: catalogued `report`
+views. It differs in three ways.
+
+- **Its own role.** The runner in the tablets server connects as `ebmr_analytics`, never as `ebmr_report`, which must
+  stay unable to write anything. The analytics role reads only the views on its allow-list
+  (`analytics.input_catalog_v1`), in one REPEATABLE READ READ ONLY snapshot per run, and holds no privilege on a GMP
+  table and no command. `sandbox.segregation_problems()` reports any extra grant.
+- **Its own outputs.** It writes runs, outputs and flags into the schema `analytics`, through record functions only.
+  The schema is non-GMP, insert-only and audited; no GMP table, view, function or trigger depends on it, so no output
+  can reach a review, a release or a record. Floating-point columns exist only there.
+- **People in the loop.** The screens read the `analytics.*_v1` views as the application role, under the advisory band.
+  QA's dispositions of flags are the only writes a person makes, as a command with the person's validated context.
+  Method versions and reference sets are configuration under change control (DI-09).
+
+```mermaid
+flowchart LR
+  GMP[(GMP tables)] --> RV[report views]
+  RV -->|SELECT as the app role or ebmr_report| D[dashboards and exports]
+  RV -->|SELECT as ebmr_analytics, one snapshot| R[analytics runner]
+  P[packages/analytics, pure methods] --> R
+  R -->|record functions| A[(analytics schema, non-GMP)]
+  A -->|analytics views, app role| S[advisory screens]
+  S -->|disposition by the person| A
+  S -.->|drill to the record| REC[review and release screens]
+  REC --> GMP
+```
+
+The dotted arrow is a link a person follows, not a data flow: decisions are taken on the record, through the usual
+review, deviation and release paths. The review queue's priority order is the one place a GMP screen reads an analytics
+view: the review feature reads `analytics.review_priority_v1` in its own SQL to order the same records, and no review,
+register or release function reads it (PR-61).
 
 ## 15. Editions and the Injectables extension points
 
