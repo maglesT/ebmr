@@ -30,7 +30,7 @@ targets 90 %; decisions D-P6j-M-1 to 3 in the Phase 6 plan). Mutant counts from 
 | inbound-adapters-and-mirrors | adapters and mirrors | 21 | 310 | 17 / - | 90 % | pending | | | | |
 | erp-wms-receipt-and-stock | adapters and mirrors | 41 | 351 | 37 / 6 | 90 % | pending | | | | |
 | qms-capa-lims-cmms | adapters and mirrors | 38 | 401 | 12 / 5 | 90 % | pending | | | | |
-| equipment-data-and-alarms | equipment, alarms, plant rules | 28 | 469 | 41 / 5 | 90 % | pending | | | | |
+| equipment-data-and-alarms | equipment, alarms, plant rules | 28 | 469 | 41 / 5 | 90 % | 307 / 469 | 65.5 % | 162 | 2 | 447 / 467, 95.7 % (confirmation 140 / 140) |
 | plant-rules | equipment, alarms, plant rules | 26 | 221 | 16 / 5 | 90 % | pending | | | | |
 | packaging-labels-and-line-completion | packaging and serialisation | 34 | 352 | 3 / 14 | 90 % | pending | | | | |
 | serialisation-l3 | packaging and serialisation | 7 | 112 | - / 5 | 90 % | pending | | | | |
@@ -170,7 +170,8 @@ its current number with its place updated, or dropped, by the part 2 triage.
   - `tab.bridge_process_alarm_ack#2, #6`, `tab.bridge_device_alarm#1-#5`, `tab.bridge_step_device#3, #5-#12` (tablets
     1218): P2, the last mutants of the run, reached after the time box; they need the gateway alarm and G-06
     acknowledgment world of `alarms/alarm-bridge.test.ts`.
-- **Confirmation run** (`--only`, 140 mutants): pending.
+- **Confirmation run** (`--only` on the 140 aimed at, 2034 s): **140 / 140 detected**. The group stands at 447 / 467
+  valid (469 less 2 equivalent), **95.7 %**, with the 20 residuals below.
 - **Owner item O-T1-1:** `plant.acknowledge_alarm` (recipe-core 0976) checks ALARM.ACKNOWLEDGE unscoped before the
   per-batch loop, so a person whose OPERATOR grant is scoped to one product is refused (EBMR-IAM-040 "in scope {}") even
   for an alarm bound only to a batch of that product. The Q-6b-1 test in `plant-rules/room-rules.test.ts` passes on that
