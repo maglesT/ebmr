@@ -620,6 +620,9 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     const at = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
     const id = await transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', at);
     expect(await state(lot.lotId, 'EU')).toBe('AWAITING_QP_CERTIFICATION');
+    // One transcription waits for its second person at a time (mutation triage T11, record_qp_transcription#18 to #24).
+    const at2 = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+    expect(await codeOf(transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', at2))).toBe('EBMR-DSP-069');
     expect(await codeOf(verify(qaReviewer3, id))).toMatch(/EBMR-(DSP-072|ESIG-04\d)/);
     expect(await codeOf(verify(operator, id))).toMatch(/EBMR-(ESIG|IAM)-\d{3}/);
     await verify(qaReviewer2, id);
@@ -648,6 +651,25 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
       const reg = await signAs(qaReviewer3, 'qp_register', `${qp.personId}/REGISTER/${importerCode}/${mia}`, 'QP_REGISTERED', 'NONE');
       await w.run(qaReviewer3, (c) => c.query("select recipe.register_qp($1, 'REGISTER', $2, $3, $4)", [qp.personId, importerCode, mia, reg]));
       g = await grel(lot.lotId, 'EU');
+      // Mutation triage T11 (record_qp_certification#33 to #46): the QP's own acknowledgement of each since-review item
+      // for this lot, the EU and this epoch; near misses (another market, person, epoch, lot or item) do not count.
+      const since = g.items.filter((i) => i.since_review).map((i) => i.id);
+      expect(since.length).toBeGreaterThan(0);
+      const near: [string, string, string, string, string][] = [[lot.lotId, 'EU', 'E.NOT_AN_ITEM', g.epoch, qp.personId]];
+      for (const id of since) {
+        near.push([lot.lotId, 'IN', id, g.epoch, qp.personId], [lot.lotId, 'EU', id, g.epoch, ap.personId], [lot.lotId, 'EU', id, '0'.repeat(64), qp.personId], [randomUUID(), 'EU', id, g.epoch, qp.personId]);
+      }
+      const fx = await db.admin.connect();
+      try {
+        await fx.query('begin');
+        await fx.query("set local session_replication_role = 'replica'");
+        for (const r of near) await fx.query('insert into recipe.grel_acknowledgement (lot_id, market, item_id, epoch, person_id, account_id) values ($1, $2, $3, $4, $5, $5)', r);
+        await fx.query('commit');
+      } finally {
+        fx.release();
+      }
+      const unacknowledged = await certify(qp, g.epoch).then(() => 'ok', (e: unknown) => (e instanceof Error ? e.message : String(e)));
+      expect(unacknowledged).toMatch(/EBMR-DSP-076 the lot cannot be certified: .*changed after the QA review and is not acknowledged/);
       await acknowledgeAll(qp, lot.lotId, 'EU', g);
       expect(await codeOf(certify(qp, 'e'.repeat(64)))).toBe('EBMR-DSP-075');
       await certify(qp, g.epoch);
@@ -786,5 +808,237 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     } finally {
       await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select platform.set_setting('release.in_system_qp_certification', 'OFF')"));
     }
+  });
+});
+
+// Phase 6 exit, mutation triage T11 (decision 0019, part 2): the US disposition's survivors of its first whole run that
+// a changed check could let through. Each case names the mutants it aims at.
+describe('the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5)', () => {
+  /** TEST FIXTURE rows (triggers off), for the near misses a changed check might accept. */
+  async function fixture(text: string, params: unknown[]): Promise<void> {
+    const fx = await db.admin.connect();
+    try {
+      await fx.query('begin');
+      await fx.query("set local session_replication_role = 'replica'");
+      await fx.query(text, params);
+      await fx.query('commit');
+    } catch (error) {
+      await fx.query('rollback');
+      throw error;
+    } finally {
+      fx.release();
+    }
+  }
+
+  // recipe.check_us_disposition#42, #44, #45, #47, #50, #53: each since-review item is acknowledged by the signer, for
+  // this lot, for the US and at the current epoch; an acknowledgement that misses any one of these does not count.
+  it('[PR-54][INV-05] a US release needs the signer\'s own acknowledgement of each since-review item for this lot, the US and this epoch; near misses do not count (EBMR-DSP-038)', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    const g = await grel(lot.lotId, 'US');
+    const since = g.items.filter((i) => i.since_review).map((i) => i.id);
+    expect(since.length).toBeGreaterThan(0);
+    const ack = 'insert into recipe.grel_acknowledgement (lot_id, market, item_id, epoch, person_id, account_id) values ($1, $2, $3, $4, $5, $5)';
+    for (const id of since) {
+      await fixture(ack, [lot.lotId, 'IN', id, g.epoch, qcu.personId]); // another market
+      await fixture(ack, [lot.lotId, 'US', id, g.epoch, ap.personId]); // another person
+      await fixture(ack, [lot.lotId, 'US', id, '0'.repeat(64), qcu.personId]); // another epoch
+      await fixture(ack, [randomUUID(), 'US', id, g.epoch, qcu.personId]); // another lot
+    }
+    await fixture(ack, [lot.lotId, 'US', 'E.NOT_AN_ITEM', g.epoch, qcu.personId]); // another item (check_us_disposition#45)
+    expect(await codeOf(usAct(qcu, lot.lotId, 'RELEASE', g.epoch))).toBe('EBMR-DSP-038');
+    expect(await state(lot.lotId, 'US')).toBe('READY');
+    await acknowledgeAll(qcu, lot.lotId, 'US', g);
+    await usAct(qcu, lot.lotId, 'RELEASE', g.epoch);
+    expect(await state(lot.lotId, 'US')).toBe('RELEASED');
+  });
+
+  // recipe.market_act_problem#3 (the market set) and recipe.eu_importer_of#1, #2, #3 (the importer of the lot's own product).
+  it('[PR-54][INV-42] a US act on a lot not made for the US is refused (EBMR-DSP-031); the EU importer of a lot is the one registered for its own product, and no lot has none', async () => {
+    const lot = await readyLot(indiaOnly, ['IN']);
+    expect(await codeOf(w.run(qcu, (c) => c.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [lot.lotId, 'REJECT', randomUUID(), '0'.repeat(64), 'Not made for the US', null]))))
+      .toBe('EBMR-DSP-031');
+    const register = async (code: string, products: string[]): Promise<void> => {
+      const def = { code, name: `Importer ${code}`, technicalAgreementRef: 'TA-2026-011', miaNumber: 'DE-MIA-2024-211', publicKey: Buffer.alloc(32, 11).toString('base64'), products };
+      const sha = (await db.app.query<{ h: string }>("select encode(sha256(convert_to(recipe.eu_importer_canonical($1::jsonb), 'UTF8')), 'hex') as h", [JSON.stringify(def)])).rows[0]!.h;
+      const sig = await signAs(qaReviewer3, 'eu_importer', `${code}/${sha}`, 'EU_IMPORTER_APPROVED', 'NEW');
+      await w.run(qaReviewer3, (c) => c.query('select recipe.register_eu_importer($1::jsonb, $2)', [JSON.stringify(def), sig]));
+    };
+    const tag = randomUUID().slice(0, 6).toUpperCase();
+    await register(`EUA-${tag}`, [`T11A-${tag}`]);
+    await register(`EUB-${tag}`, [lot.productCode]);
+    const of = async (lotId: string): Promise<string | null> =>
+      (await db.app.query<{ c: string | null }>("select recipe.eu_importer_of($1) ->> 'code' as c", [lotId])).rows[0]!.c;
+    expect(await of(lot.lotId)).toBe(`EUB-${tag}`);
+    expect(await of(randomUUID())).toBeNull();
+  });
+
+  // recipe.market_add_evaluate#18 to #27, #29 to #32, #37 (MA.IDENTITY_ROUTE and the outcome): adding a market reads the
+  // identity basis of every lot the batch consumed for the widened set, and a test made after first use does not count.
+  it('[INV-43][IN-24] a market-add evaluation reads the identity route of each lot the batch consumed: no identity result, or one recorded after first use, is UNMET_FINAL for the US; one recorded before use is MET', async () => {
+    const tag = randomUUID().slice(0, 6).toUpperCase();
+    const firstUse = '2026-03-02T12:00:00Z';
+    const cases = [{ name: 'none', at: null }, { name: 'late', at: '2026-03-03T08:00:00Z' }, { name: 'early', at: '2026-03-01T08:00:00Z' }] as const;
+    const made = {} as Record<'none' | 'late' | 'early', { batchId: string; lotId: string; lotCode: string }>;
+    for (const c of cases) {
+      const batchId = await issuedBatch(all, ['IN']);
+      const lotId = randomUUID();
+      const lotCode = `L-T11${tag}-${c.name.toUpperCase()}`;
+      made[c.name] = { batchId, lotId, lotCode };
+      await fixture(`insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+                     values ($1, 'SITE-1', $2, 'API-T11', 'Fixture API', 'API', 10, 'kg', '2030-01-01T00:00:00Z', $3, $3, $3)`, [lotId, lotCode, randomUUID()]);
+      if (c.at) {
+        await fixture(`insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account, recorded_at)
+                       values ($1, 'PASS', 'IR-METHOD-1', 'IR-TEST-1', $2, $2, $3)`, [lotId, randomUUID(), c.at]);
+      }
+      const resId = randomUUID();
+      await fixture(`insert into site.lot_reservation (id, lot_id, batch_id, batch_number, edition, quantity, unit, expires_at, lot_state_version, reserved_by_person, reserved_by_account)
+                     select $1, $2, b.id, b.batch_number, 'TABLETS', 1, 'kg', now() + interval '1 day', 2, $3, $3 from recipe.batch_execution b where b.id = $4`, [resId, lotId, randomUUID(), batchId]);
+      await fixture(`insert into site.lot_consumption (lot_id, reservation_id, batch_id, batch_number, edition, material_code, quantity, unit, quantity_before, quantity_after, market_set,
+                                                        identity_basis, consumed_by_person, consumed_by_account, xact_id, consumed_at)
+                     select $1, $2, b.id, b.batch_number, 'TABLETS', 'API-T11', 1, 'kg', 10, 9, b.market_set, 'VENDOR_HISTORY_INDIA_ONLY', $3, $3, txid_current(), $5
+                       from recipe.batch_execution b where b.id = $4`, [lotId, resId, randomUUID(), batchId, firstUse]);
+    }
+    const evaluate = async (batchId: string): Promise<{ outcome: string; items: { id: string; outcome: string; detail: string | null; evidence: { label: string }[] }[] }> =>
+      (await db.admin.query<{ e: never }>("select recipe.market_add_evaluate('BATCH', $1, 'US') as e", [batchId])).rows[0]!.e;
+    const route = async (name: 'none' | 'late' | 'early') => (await evaluate(made[name].batchId)).items.find((i) => i.id === 'MA.IDENTITY_ROUTE')!;
+    const none = await route('none');
+    expect(none).toMatchObject({ outcome: 'UNMET_FINAL', evidence: [{ label: `${made.none.lotCode} (no valid basis)` }] });
+    expect(none.detail).toMatch(new RegExp(`^lot ${made.none.lotCode} has no identity result: a batch for markets \\{IN, US\\}`));
+    const late = await evaluate(made.late.batchId);
+    expect(late.outcome).toBe('UNMET_FINAL');
+    expect(late.items.find((i) => i.id === 'MA.IDENTITY_ROUTE')).toMatchObject({ outcome: 'UNMET_FINAL',
+      detail: `the identity result of lot ${made.late.lotCode} was recorded after the lot was first used in batch ${(await db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [made.late.batchId])).rows[0]!.n}; the test had to precede use (3.3.3; IN-24)`,
+      evidence: [{ label: `${made.late.lotCode} (IDENTITY_RESULT)` }] });
+    const early = await evaluate(made.early.batchId);
+    expect(early.items.find((i) => i.id === 'MA.IDENTITY_ROUTE')).toMatchObject({ outcome: 'MET', detail: null, evidence: [{ label: `${made.early.lotCode} (IDENTITY_RESULT)` }] });
+    expect(early.outcome).toBe('MET');
+  });
+
+  // recipe.record_market_change#19 (a market already held is not added again) and recipe.market_failed#2, #4, #9, #10,
+  // #12, #15, #16 (a removal after an addition whose evaluation was not MET is a removal after failure).
+  it('[INV-43] a market already in the set is not added again (EBMR-DSP-014); removing a market added with an unmet evaluation is flagged "removed after failure"', async () => {
+    const parent = await issuedBatch(indiaOnly, ['IN']);
+    await marketChange(qaReviewer3, 'BATCH', parent, 'ADD', 'US', await changeRecord());
+    expect((await db.app.query<{ o: string }>("select evaluation ->> 'outcome' as o from recipe.market_change where subject_id = $1", [parent])).rows[0]!.o).toBe('UNMET_FINAL');
+    expect(await codeOf(marketChange(qaReviewer3, 'BATCH', parent, 'ADD', 'US', await changeRecord()))).toBe('EBMR-DSP-014');
+    const d = await sqlAs<{ deviationId: string }>(operator, 'select site.raise_deviation($1::jsonb) as r', [
+      JSON.stringify({ kind: 'DEVIATION', title: 'US no longer intended for this batch', classification: 'MINOR', riskRationale: 'Market scope corrected after issue' }),
+    ]);
+    await w.run(operator, (c) => c.query("select site.link_deviation($1, 'BATCH', $2)", [d.deviationId, parent]));
+    const id = await marketChange(qaReviewer3, 'BATCH', parent, 'REMOVE', 'US', d.deviationId);
+    expect((await db.app.query<{ f: boolean }>('select removed_after_failure as f from recipe.market_change where id = $1', [id])).rows[0]!.f).toBe(true);
+  });
+
+  // recipe.record_market_change#47, #52, #54, #57 to #60: a removal names a deviation linked to the subject and not
+  // cancelled; a cancelled one linked to the lot, or an open one linked only to another lot, is refused.
+  it('[INV-43][PR-56] a market removal naming a cancelled deviation of the lot, or a deviation of another lot only, is refused (EBMR-DSP-018)', async () => {
+    const lot = await readyLot();
+    const other = await readyLot();
+    const message = async (ref: string): Promise<string> => {
+      try {
+        await marketChange(qaReviewer3, 'LOT', lot.lotId, 'REMOVE', 'EU', ref);
+        return 'ok';
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    };
+    const cancelled = await deviationOnLot(lot.lotId);
+    await w.run(qaReviewer, (c) => c.query("select site.cancel_deviation($1, 'raised against the wrong lot')", [cancelled]));
+    expect(await message(cancelled)).toMatch(/EBMR-DSP-018 the deviation record named for the removal is CANCELLED/);
+    const elsewhere = await deviationOnLot(other.lotId);
+    expect(await message(elsewhere)).toMatch(/EBMR-DSP-018 the deviation record is not linked to lot /);
+    // record_market_change#57 to #59 (added after the confirmation run): a deviation of another lot's batch does not
+    // name the removal; one of the lot's own batch does.
+    const raise = async (batchId: string): Promise<string> => {
+      const d = await sqlAs<{ deviationId: string }>(operator, 'select site.raise_deviation($1::jsonb) as r', [
+        JSON.stringify({ kind: 'DEVIATION', title: 'EU scope corrected', classification: 'MINOR', riskRationale: 'Market scope corrected after issue' }),
+      ]);
+      await w.run(operator, (c) => c.query("select site.link_deviation($1, 'BATCH', $2)", [d.deviationId, batchId]));
+      return d.deviationId;
+    };
+    expect(await message(await raise(other.batchId))).toMatch(/EBMR-DSP-018 the deviation record is not linked to lot /);
+    expect(await state(lot.lotId, 'EU')).not.toBe('REMOVED');
+    expect(await message(await raise(lot.batchId))).toBe('ok');
+    expect(await state(lot.lotId, 'EU')).toBe('REMOVED');
+  });
+
+  // recipe.eu_outcome_problem#7 (qp-certification): a certification is taken only while the lot awaits it, that is
+  // with G-REL for the EU ready, also after the manufacturer release (which market_act_problem checks first).
+  it('[PR-55][INV-39][DI-39] after the manufacturer release, a certification of a lot whose G-REL for the EU is not ready is refused (EBMR-DSP-053)', async () => {
+    const lot = await readyLot();
+    const dev = await deviationOnLot(lot.lotId);
+    await assessedOpen(dev, { IN: 'NONE', US: 'NONE', EU: 'POTENTIAL' });
+    await manufacturerRelease(lot);
+    expect(await state(lot.lotId, 'IN')).toBe('RELEASED');
+    expect(await state(lot.lotId, 'EU')).toBe('NOT_READY');
+    let mia = (await db.admin.query<{ m: string | null }>('select (recipe.lot_importer($1)).mia_number as m', [lot.lotId])).rows[0]!.m;
+    if (!mia) {
+      const code = `EUQ-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const def = { code, name: `Importer ${code}`, technicalAgreementRef: 'TA-2026-012', miaNumber: 'DE-MIA-2024-312', publicKey: Buffer.alloc(32, 12).toString('base64'), products: [lot.productCode] };
+      const sha = (await db.app.query<{ h: string }>("select encode(sha256(convert_to(recipe.eu_importer_canonical($1::jsonb), 'UTF8')), 'hex') as h", [JSON.stringify(def)])).rows[0]!.h;
+      const sig = await signAs(qaReviewer3, 'eu_importer', `${code}/${sha}`, 'EU_IMPORTER_APPROVED', 'NEW');
+      await w.run(qaReviewer3, (c) => c.query('select recipe.register_eu_importer($1::jsonb, $2)', [JSON.stringify(def), sig]));
+      mia = def.miaNumber;
+    }
+    const at = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+    const f = ['CERTIFIED', 'Dr. Lena Vogel', mia, at, 'QP-CERT-2026-0977', null] as const;
+    const sha = (await db.app.query<{ h: string }>('select recipe.qp_details_sha256($1, $2, $3, $4, $5, $6) as h', [...f])).rows[0]!.h;
+    expect(await codeOf(signed(qaReviewer3, 'qp_transcription', `${lot.lotId}/${sha}`, 'QP_CERTIFICATION_RECORDED', 'NOT_READY', (c, sig) =>
+      c.query('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [lot.lotId, ...f, sig])))).toBe('EBMR-DSP-053');
+    expect(await state(lot.lotId, 'EU')).toBe('NOT_READY');
+  });
+
+  // recipe.verify_qp_transcription#18 (qp-certification): a transcribed certification takes effect at its verification,
+  // so the checks of an EU outcome run again then: a lot whose release was suspended meanwhile is not certified.
+  // recipe.register_qp#13: nobody registers themselves as a qualified person (S14).
+  it('[DI-30][INV-39][DI-39] a transcription verified after the lot\'s release was suspended is refused, and the lot stays uncertified; QA never registers itself as QP', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    let imp = (await db.admin.query<{ m: string | null; c: string | null }>('select (recipe.lot_importer($1)).mia_number as m, (recipe.lot_importer($1)).code as c', [lot.lotId])).rows[0]!;
+    if (!imp.m) {
+      const code = `EUV-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const def = { code, name: `Importer ${code}`, technicalAgreementRef: 'TA-2026-013', miaNumber: 'DE-MIA-2024-413', publicKey: Buffer.alloc(32, 13).toString('base64'), products: [lot.productCode] };
+      const sha = (await db.app.query<{ h: string }>("select encode(sha256(convert_to(recipe.eu_importer_canonical($1::jsonb), 'UTF8')), 'hex') as h", [JSON.stringify(def)])).rows[0]!.h;
+      const sig = await signAs(qaReviewer3, 'eu_importer', `${code}/${sha}`, 'EU_IMPORTER_APPROVED', 'NEW');
+      await w.run(qaReviewer3, (c) => c.query('select recipe.register_eu_importer($1::jsonb, $2)', [JSON.stringify(def), sig]));
+      imp = { m: def.miaNumber, c: code };
+    }
+    expect(await state(lot.lotId, 'EU')).toBe('AWAITING_QP_CERTIFICATION');
+    const at = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+    const f = ['CERTIFIED', 'Dr. Lena Vogel', imp.m, at, 'QP-CERT-2026-1013', null] as const;
+    const sha = (await db.app.query<{ h: string }>('select recipe.qp_details_sha256($1, $2, $3, $4, $5, $6) as h', [...f])).rows[0]!.h;
+    const id = await signed(qaReviewer3, 'qp_transcription', `${lot.lotId}/${sha}`, 'QP_CERTIFICATION_RECORDED', 'AWAITING_QP_CERTIFICATION', async (c, sig) =>
+      (await c.query<{ id: string }>('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [lot.lotId, ...f, sig])).rows[0]!.id);
+    // A deviation linked after the release suspends it (slice 5a, L-19): the lot no longer awaits certification.
+    await deviationOnLot(lot.lotId);
+    expect(await state(lot.lotId, 'IN')).toBe('RELEASE_SUSPENDED');
+    expect(await codeOf(signed(qaReviewer2, 'qp_transcription_check', id, 'QP_CERTIFICATION_VERIFIED', 'TRANSCRIBED', (c, sig) =>
+      c.query('select recipe.verify_qp_transcription($1, $2)', [id, sig])))).toBe('EBMR-DSP-033');
+    expect(await state(lot.lotId, 'EU')).not.toBe('CERTIFIED');
+    // S14: QA registers a QP on the importer's authorisation, never itself.
+    const reg = await signAs(qaReviewer3, 'qp_register', `${qaReviewer3.personId}/REGISTER/${imp.c}/${imp.m}`, 'QP_REGISTERED', 'NONE');
+    expect(await codeOf(w.run(qaReviewer3, (c) => c.query("select recipe.register_qp($1, 'REGISTER', $2, $3, $4)", [qaReviewer3.personId, imp.c, imp.m, reg])))).toBe('EBMR-DSP-065');
+  });
+
+  // recipe.record_release_with_us_disposition#16, #19: both rows of a two-row release are made in this ceremony; a
+  // manufacturer release signature of an earlier command does not join a US signature made now.
+  it('[D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)', async () => {
+    // The AP holds the QCU permission at this site (as the two-row describe above grants it, when it has not run).
+    const held = (await db.admin.query("select 1 from iam.role_permission where role_code = 'AUTHORISED_PERSON' and permission_code = 'RELEASE.US_DISPOSITION'")).rowCount;
+    if (!held) {
+      const request = await withCommand(db.app, underChange(withReason(admin)), async (c) => (await c.query<{ id: string }>("select iam.add_role_permission('AUTHORISED_PERSON', 'RELEASE.US_DISPOSITION', 'the AP holds the QCU permission at this site') as id")).rows[0]!.id);
+      await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the two-row release')", [request]));
+    }
+    const lot = await readyLot();
+    const gin = await grel(lot.lotId, 'IN');
+    const gus = await grel(lot.lotId, 'US');
+    await acknowledgeAll(ap, lot.lotId, 'IN', gin);
+    await acknowledgeAll(ap, lot.lotId, 'US', gus);
+    const mr = await signAs(ap, 'manufacturer_release', `${lot.lotId}/RELEASE`, 'MANUFACTURER_RELEASE', 'READY');
+    const refused = await codeOf(signed(ap, 'us_disposition', `${lot.lotId}/RELEASE`, 'US_DISPOSITION', 'READY', (c, us) =>
+      c.query('select recipe.record_release_with_us_disposition($1, $2, $3, $4, $5)', [lot.lotId, mr, us, gin.epoch, gus.epoch])));
+    expect(refused).toBe('EBMR-DSP-042');
+    expect(await state(lot.lotId, 'IN')).toBe('READY');
   });
 });

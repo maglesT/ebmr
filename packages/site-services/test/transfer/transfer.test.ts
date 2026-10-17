@@ -378,3 +378,39 @@ describe('review 6i: one hop and clock skew (recipe-core 1092)', () => {
     expect((await request(30_000n)).reason).toMatch(/EBMR-FED-012/);
   });
 });
+
+describe('review 6j-c R8: installation keys of small order (kernel 1230)', () => {
+  // Canonical encodings of points of small order: the neutral point (0, 1), the point (0, -1) of order 2 and the point
+  // (sqrt(-1), 0) of order 4. Eight times each is the neutral point, so the Ed25519 check under them is vacuous.
+  const neutral = Buffer.from(`01${'00'.repeat(31)}`, 'hex').toString('base64');
+  const orderTwo = Buffer.from(`ec${'ff'.repeat(30)}7f`, 'hex').toString('base64');
+  const orderFour = Buffer.alloc(32).toString('base64');
+  // Under the neutral point, R = B (the base point's encoding) with S = 1 verifies whatever is sealed.
+  const universalSeal = Buffer.from(`58${'66'.repeat(31)}01${'00'.repeat(31)}`, 'hex').toString('base64');
+
+  it('[DI-31] a key of small order is refused as a peer\'s key and as this installation\'s key (EBMR-XFR-042)', async () => {
+    for (const key of [neutral, orderTwo, orderFour]) {
+      expect(await refusal(pune.propose(`WEAK-${TAG}`, key))).toMatch(/EBMR-XFR-042/);
+      expect(await refusal(pune.run(pune.admin, "select platform.set_installation_identity($1, 'SITE-1', 'TABLETS', $2) as r", [pune.code, key]))).toMatch(/EBMR-XFR-042/);
+    }
+    // A non-canonical encoding (y = q) was and stays refused as no key at all.
+    const nonCanonical = Buffer.from(`ed${'ff'.repeat(30)}7f`, 'hex').toString('base64');
+    expect(await refusal(pune.propose(`WEAK-${TAG}`, nonCanonical))).toMatch(/EBMR-XFR-002/);
+    // The installation keeps its real key.
+    expect(await pune.scalar<string>("select encode((platform.current_installation()).public_key, 'base64') as v")).toBe(pune.publicKey);
+  });
+
+  it('[DI-31] a peer key of small order stored before the guard verifies no seal: a package sealed by anyone under it is refused as tampered', async () => {
+    // A trusted entry with the neutral point as its key, written as it could have been before kernel 1230 (fixture).
+    const weak = `WEAK-${TAG}`;
+    await goa.fixture(
+      `with p as (insert into platform.peer_installation (installation_code, site_code, edition, base_url, public_key, key_fingerprint, proposed_by_person, proposed_by_account)
+                  values ($1, 'SITE-1', 'TABLETS', 'http://127.0.0.1:1', decode($2, 'base64'), encode(sha256(decode($2, 'base64')), 'hex'), $3, $4) returning id)
+       insert into platform.peer_installation_approval (peer_id, signature_id, approved_by_person, approved_by_account) select id, gen_random_uuid(), $3, $4 from p`,
+      [weak, neutral, goa.qa.personId, goa.qa.accountId]);
+    expect(await goa.scalar<boolean>("select platform.seal_valid(decode($1, 'base64'), 'transfer-package', 'anything', $2) as v", [neutral, universalSeal])).toBe(false);
+    const genuine = await pune.ship(lot.id, goa, '1');
+    const forged = JSON.stringify({ ...JSON.parse(genuine.payload), packageId: randomUUID(), origin: { installation: weak, site: 'SITE-1', edition: 'TABLETS' } });
+    expect(await goa.receive(forged, universalSeal)).toMatchObject({ outcome: 'REFUSED', kind: 'TAMPERED' });
+  });
+});

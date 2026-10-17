@@ -76,12 +76,15 @@ jobs:
   # batch of many hours runs in minutes; the test moves the offset file forward only, and nothing in the GMP code reads
   # a test clock. The other jobs never preload the clock library; their golden tests do not run (runIf EBMR_FAKETIME_FILE).
   golden:
-    name: Golden batches (libfaketime cluster)
+    name: Golden batches (golden clock cluster)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # GB-T-01 about 20 minutes on the runner, GB-T-02 about 5, GB-T-03 (slice 6j-b) about 8.
+    timeout-minutes: 60
     env:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5433/postgres
       EBMR_FAKETIME_FILE: /var/lib/postgresql/faketime-golden/offset
+      # GB-T-03 (slice 6j-b) starts its simulators and the site gateway under the same clock library (connected.ts).
+      EBMR_GOLDEN_CLOCK_LIB: /usr/local/lib/ebmr/golden-clock.so
     steps:
       - uses: actions/checkout@v4
       # The golden clock library (tools/dev-env/golden-clock, slice 6j-b) in place of libfaketime, which reads its file
@@ -107,7 +110,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # One file at a time: the clock file is shared, and GB-T-01 (slice 6d) freezes it while the clock test reads it as
-      # an offset. GB-T-01 runs about 20 minutes.
+      # an offset.
       - run: pnpm vitest run apps/tablets-server/test/golden --no-file-parallelism --reporter=default --reporter=json --outputFile.json=.reports/vitest-golden.json
       # The golden results are read by the trace beside the shards' report (tools/register cli --golden), so a clause
       # proven only by a golden batch counts (Phase 4 slice 7: GB-T-01 continued to release proves IN-16 and PR-22).

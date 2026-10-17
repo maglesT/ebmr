@@ -36,6 +36,8 @@ tests:
   - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [PR-32] the label store offers its transactions to the label store only and posts what was entered"
   - "packages/site-services/test/lots/label-store.test.ts > the label store (site services 0950) > [PR-32] an unauthorised user cannot open a label-store transaction: an operator, QA and an administrator are refused, the label store keeps its register, and nothing is written past the function"
   - "packages/site-services/test/lots/label-store.test.ts > the label store (site services 0950) > [PR-32] the store issues only released printed lots and never more than it holds; a return is at most what the order took; a destruction has its reason; another kind of lot is not a label-store lot"
+  - "packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts > label-store transactions, rule by rule (site services 0950) > [PR-32] each malformed transaction alone is refused, and nothing is written"
+  - "packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts > label-store transactions, rule by rule (site services 0950) > [PR-32] an issue of exactly the balance and a return of exactly what the order holds go through; one more unit does not"
 clauses:
   - clause: "Issuing a label lot with obsolete artwork is blocked."
     tests:

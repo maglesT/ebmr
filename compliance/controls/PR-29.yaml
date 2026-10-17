@@ -274,6 +274,10 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][PR-49] the TB-20@2 golden fixture: a lot of one accepted tablet leaves through its deviation with AQL_NO_PLAN"
   - "apps/tablets-server/test/blocks/coating/blocks.test.ts > golden fixtures of the coating blocks > [DI-34][PR-29][PR-49][INV-41] TB-20 Inspection, sorting and AQL: TB-20@2, the NO_PLAN path (D-P4-11): a manual belt sort of 3 tablets (0.003 kg) leaves 1 accepted tablet and 2 chipped ones for destruction; the sampling scheme has no plan for a lot of 1, so the AQL result is NO_PLAN with its deviation DEV-SITE-1-2026-00042 and raises AQL_NO_PLAN for QA"
   - "packages/site-services/test/plant-rules/materials.test.ts > reagent and buffer lots at an in-process control (PR-29) > [PR-29] an expired pH buffer is blocked"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a lot is an object of the known fields, refused for each malformed field on its own, and expires after it was prepared"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a lot is withdrawn only when it exists and with a reason"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a lot may be used from the microsecond it was recorded, and not at the microsecond it expires or is withdrawn"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a use at a step is recorded against the lot used, not another lot in store"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:
@@ -283,9 +287,8 @@ clauses:
       - "packages/recipe-core/test/blocks/process.test.ts > G-05 observation capture and G-13 IPC > [PR-29][IN-20][DI-29] a failing categorical IPC stops the step until a deviation is linked, and a passing re-test never replaces it"
       - "apps/tablets-server/test/blocks/ipc/blocks.test.ts > TB-15 disintegration > [IN-35][PR-29][DI-29] the bath temperature is verified before the start; the time is measured between the entries, never typed; 1 or 2 units failing ask for 12 more and at least 16 of 18 pass; a first run never replaces a due retest"
   - clause: "An expired pH buffer is blocked."
-    deferred:
-      phase: 6
-      reason: "There is no reagent or buffer lot with an expiry at an IPC step yet; it is built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/plant-rules/materials.test.ts > reagent and buffer lots at an in-process control (PR-29) > [PR-29] an expired pH buffer is blocked"
   - clause: "[T] A skipped hardness check puts output since the last passing check on hold."
     tests:
       - "apps/tablets-server/test/blocks/ipc/db-guards.test.ts > the IPC blocks in the database (tablets 0890 to 0893) > [IN-35][PR-29][PR-07] TB-11: the run starts only on a plant press in use for the batch; a passing check is recorded for its stream and vouches for the containers closed before it; a failing check holds every container of the press since the last passing check (the slice 1 hold), and a passing check cannot be recorded past the scheduler"

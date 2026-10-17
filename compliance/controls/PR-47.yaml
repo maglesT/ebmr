@@ -124,6 +124,7 @@ tests:
   - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][IN-19][INV-33] a G-24@2 step starts only on an unused signed STEP authorisation of this batch, step and case by another person; a validated re-treatment, a G-24@1 step, a step already started and a batch without G-24@2 take none"
   - "apps/tablets-server/test/mutation/reprocessing-g24v2.test.ts > G-24@2 starts and additions (recipe-core 0622, 0625) > [PR-47][PR-14][INV-33] at a G-24@2 step: no start data; an ADDITION stores exactly what its block writes from the command and needs the step's second-person check, then the database's addition rules; entries already in the row and other steps' entries are left alone"
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-47][IN-05] an extra test QC decided for the batch and missing from the lot specification names the batch on the G-REL item"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > mutation triage T11: container exclusions of the Tablets items read the container itself (tablets 1162; L-30, INV-27, PR-47, TB-11) > [PR-47][INV-33] E.WHOLE_BATCH_PARENTS: other containers' charges and merges, and the container's own charge into an unrelated batch, do not excuse an unrejected container of the parent"
 clauses:
   - clause: "Starting reprocessing without QCU approval or a risk evaluation is blocked."
     tests:

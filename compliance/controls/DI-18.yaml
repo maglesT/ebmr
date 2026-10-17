@@ -106,6 +106,7 @@ tests:
   - "apps/tablets-server/test/blocks/bottle/db-guards.test.ts > the packaging-line blocks in the database (tablets 0985 to 0987) > [DI-17][DI-18] the new functions pin their search path with pg_temp last and belong to the owner; the application role executes only the SSCC issue"
   - "packages/kernel/test/mutation/platform-scope.test.ts > platform hooks (kernel 1150) > [DI-17][DI-18] a hook of an unknown name is refused as unknown, whatever function it names"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [DI-40][DI-18] an administrator does not read the inspection workspace (refused before the permission check)"
+  - "packages/site-services/test/mutation/transfer-and-federation.test.ts > acts with no other test in the group (kernel 1220, 1221, site services 0980, recipe-core 1091) > [DI-18] [DI-31] an installation alarm is acknowledged once, with a note, by a person who holds ALARM.ACKNOWLEDGE and never by an administrator"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

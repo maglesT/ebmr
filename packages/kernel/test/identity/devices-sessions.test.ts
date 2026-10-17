@@ -196,3 +196,39 @@ describe('sessions on shared terminals (DI-14)', () => {
     await expectRefused(openSession(db.app, tap.authEventId, op.seed.deviceFingerprint), 'EBMR-IAM-096');
   });
 });
+
+// Slice 6j mutation triage (iam.authn_resolve): the method and purpose rules are refused before anything else is looked
+// up; nothing later checks the method of a login event (iam.open_session checks only its purpose), so these are the
+// only place a badge tap is kept from opening a session.
+describe('authentication methods and purposes (DI-14, DI-38)', () => {
+  const tryAuth = (method: string, purpose: string, challengeId?: string) =>
+    authenticate(seedAuthn(db), {
+      method: method as 'PASSWORD', identifier: `nobody-${randomBytes(4).toString('hex')}`, secret: 'x', deviceFingerprint: randomBytes(32).toString('hex'),
+      purpose: purpose as 'LOGIN', ...(challengeId ? { challengeId } : {}),
+    });
+
+  it('[DI-14][DI-38] a badge tap only attributes an entry; a service key only logs in; a signature needs two components; an unknown method or purpose is refused', async () => {
+    for (const purpose of ['LOGIN', 'CREDENTIAL_CHANGE', 'SESSION_UNLOCK']) await expectRefused(tryAuth('BADGE_TAP', purpose), 'EBMR-IAM-096', /badge tap/);
+    await expectRefused(tryAuth('BADGE_TAP', 'SIGNATURE', randomUUID()), 'EBMR-IAM-096', /badge tap/);
+    for (const purpose of ['COMMAND', 'SESSION_UNLOCK']) await expectRefused(tryAuth('SERVICE_KEY', purpose), 'EBMR-IAM-096', /cannot be used/);
+    await expectRefused(tryAuth('FINGERPRINT', 'LOGIN'), 'EBMR-IAM-096', /unknown authentication method or purpose/);
+    await expectRefused(tryAuth('PASSWORD', 'ADMIN'), 'EBMR-IAM-096', /unknown authentication method or purpose/);
+    await expectRefused(tryAuth('PASSWORD', 'SIGNATURE'), 'EBMR-IAM-094');
+    await expectRefused(tryAuth('PASSWORD', 'LOGIN', randomUUID()), 'EBMR-IAM-094');
+  });
+
+  it('[DI-14][DI-38] an account without an active credential of the method is refused before any secret is compared, whatever the secret', async () => {
+    // A shop-floor person with a badge and no PIN issued: no PIN credential to verify against.
+    const op = await seedActor(db, { deviceClass: 'SHARED', withPin: false, acknowledgeEsig: false });
+    let caught: unknown;
+    try {
+      await authenticate(seedAuthn(db), { method: 'BADGE_PIN', identifier: op.seed.badgeUid ?? '', secret: '000000', deviceFingerprint: op.seed.deviceFingerprint, purpose: 'COMMAND' });
+    } catch (error) {
+      caught = error;
+    }
+    expect(String((caught as Error | undefined)?.message)).toContain('NO_ACTIVE_PIN');
+    const { rows } = await db.admin.query('select 1 from iam.auth_event where account_id = $1 and method = $2', [op.accountId, 'BADGE_PIN']);
+    expect(rows).toEqual([]);
+  });
+});
+

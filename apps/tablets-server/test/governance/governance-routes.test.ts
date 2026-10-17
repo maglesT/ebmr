@@ -151,6 +151,23 @@ describe('the India DSC step with a test CA over HTTP (IN-10)', () => {
     expect(ended.enrolments[0]?.live).toBe(false);
     valueOf(await qa.call(routes.esig.setDscMode, { body: { mode: 'OFF', ...change } }));
   }, 300_000);
+
+  // Phase 6 mutation triage (T7): the server is the only place that reads the X.509 of a trust anchor (the database
+  // stores the DER and its subject but does not parse it), so this refusal has no database twin.
+  it('[IN-10] a trust anchor is only a self-signed certification-authority root: a sub-CA, a signer\'s certificate or bytes that are no certificate are refused and nothing is stored', async () => {
+    await ensureFixtureChangeRecord({ admin: server.db.admin });
+    const now = new Date((await server.db.app.query<{ t: Date }>('select clock_timestamp() as t')).rows[0]!.t);
+    const ca = esig.createTestCa(now, 'Refused Anchor CA');
+    const signer = esig.issueTestSigner(ca, 'Refused Anchor Signer (TEST Class 3)', now);
+    const change = { changeRecord: FIXTURE_CHANGE_RECORD, reason: 'Anchors that are not self-signed CA roots' };
+    const label = `refused anchor ${randomUUID().slice(0, 8)}`;
+    // A sub-CA is a CA but not self-signed; the signer's certificate is neither; 300 bytes of 'A' are no DER at all.
+    for (const der of [ca.subCa.der, signer.der, Buffer.alloc(300, 0x41)]) {
+      expect(codeOf(await qa.call(routes.esig.registerDscAnchor, { body: { kind: 'TEST_CA', label, rootCertificate: der.toString('base64'), ...change } }))).toBe('EBMR-ESIG-080');
+    }
+    const { rows } = await server.db.admin.query<{ n: number }>('select count(*)::integer as n from esig.dsc_trust_anchor where label = $1', [label]);
+    expect(rows[0]!.n).toBe(0);
+  }, 120_000);
 });
 
 describe('the contract giver\'s reviewer over HTTP (IN-30)', () => {

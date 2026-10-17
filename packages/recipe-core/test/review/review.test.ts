@@ -774,4 +774,24 @@ describe('slice 1 quick review regressions (recipe-core 0719 to 0721)', () => {
     await w.run(qaReviewer2, (c) => c.query('select site.cancel_deviation($1, $2)', [dev.deviationId, 'raised twice']));
     expect((await problems(b, 'QA_REVIEW')).join(' ')).toMatch(/escalated to a deviation that is not linked to the batch/);
   });
+
+  it('[PR-49][PR-52] each escalated exception stands on its own deviation: one escalated later to a linked deviation does not cover another whose deviation is cancelled (mutation kill)', async () => {
+    const b = await issuedBatch();
+    const first = await raise(b, 'Seal checked late');
+    const second = await raise(b, 'Label roll changed without a line clearance');
+    await disposition(b, first);
+    await disposition(b, second);
+    await complete(b);
+    await approve(b);
+    const dev1 = await deviation(b.batchId);
+    const dev2 = await deviation(b.batchId);
+    await dispose(b, qaReviewer, 'ESCALATE', [first], 'Repeat event: impact assessment', dev1.ref);
+    await dispose(b, qaReviewer, 'ESCALATE', [second], 'Line clearance missed: impact assessment', dev2.ref);
+    await auditReview(b, qaReviewer2);
+    expect(await problems(b, 'QA_REVIEW')).toEqual([]);
+    // The first exception's deviation is cancelled; the later escalation of the second to a linked deviation does not cover it.
+    await w.run(qaReviewer2, (c) => c.query('select site.cancel_deviation($1, $2)', [dev1.deviationId, 'raised in error']));
+    // (The cancellation is itself an audit event, so a delta audit-trail review is due as well.)
+    expect((await problems(b, 'QA_REVIEW')).filter((p) => p.startsWith('exception '))).toEqual([`exception ${first} is escalated to a deviation that is not linked to the batch (PR-49, PR-52)`]);
+  });
 });

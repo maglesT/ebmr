@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withCommand } from '../../../kernel/src/db/command.ts';
 import { createTestDatabase, type TestDatabase } from '../helpers.ts';
+import { changeLotStatus } from '../../src/index.ts';
 import { refusal, unique } from '../lots/support.ts';
 import { ErpWorld, goodsReceipt, integrationActor, registerAdapter, sha } from './support.ts';
 
@@ -180,6 +181,26 @@ describe('integration identities (DI-20, DI-14)', () => {
     const at = await w.isoIn(3600);
     expect(await refusal(withCommand(db.app, { ...w.adapter, correlationId: randomUUID() }, (c) =>
       c.query("select site.reserve_lot($1, $2, $3, 'TABLETS', 1, 'kg', $4)", [lot.lotId, batch.id, batch.number, at])))).toMatch(/EBMR-SITE-924 material is reserved and issued by a person; a INTEGRATION account never issues stock/);
+  });
+
+  it('[DI-14][DI-20] the adapter\'s MATERIAL.HANDLE never reaches a person\'s material act: it cannot cancel a reservation, record a destruction, recover, return, post or move a lot between sites (review 6j-c R1)', async () => {
+    const as = (sql: string, params: unknown[]) => refusal(withCommand(db.app, { ...w.adapter, correlationId: randomUUID() }, (c) => c.query(sql, params)));
+    // A person's reservation is not cancelled by the adapter.
+    const lot = await w.releasedLot('API');
+    const batch = await w.batch(['IN']);
+    const reservation = await w.reserve(lot.lotId, batch, '1');
+    expect(await as("select site.cancel_reservation($1, 'the WMS says so')", [reservation])).toMatch(/EBMR-SITE-925 .*INTEGRATION account/);
+    // A rejected lot's destruction is recorded by the person who destroys it, never by the adapter.
+    const rejected = await w.receive('API');
+    const rej = await w.sign(w.cast.qcHead, rejected.lotId, 'MATERIAL_LOT_REJECTED', 'QUARANTINE');
+    await w.run(w.cast.qcHead, async (c) => changeLotStatus(c, rejected.lotId, 'REJECT', await w.version(rejected.lotId), rej), 'assay out of specification');
+    expect(await as("select site.record_lot_destruction($1, 'incineration', 'rejected lot')", [rejected.lotId])).toMatch(/EBMR-SITE-925 .*INTEGRATION account/);
+    expect(await w.count('select count(*) as n from site.lot_destruction where lot_id = $1', [rejected.lotId])).toBe(0);
+    // Every other table of a person's material act carries the same guard, whatever function writes it.
+    const { rows } = await db.admin.query<{ t: string }>(
+      "select tgrelid::regclass::text as t from pg_trigger where tgname = 'zz_material_act_by_person' and tgenabled in ('O', 'A') order by 1");
+    expect(rows.map((r) => r.t)).toEqual(['site.chemical_recovery', 'site.finished_lot', 'site.lot_destruction', 'site.lot_reservation_revocation',
+      'site.returned_goods', 'site.transfer_package', 'site.transfer_package_seal', 'site.transfer_receipt']);
   });
 });
 

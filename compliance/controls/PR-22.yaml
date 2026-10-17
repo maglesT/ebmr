@@ -44,9 +44,9 @@ clauses:
     tests:
       - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > continued to the release: two blister orders from one bulk > [PR-22] the batch report of each order (its PDF/A-3 true copy) names the line and the units it ran on"
   - clause: "The status display matches the system state after each transition."
-    deferred:
-      phase: 6
-      reason: "There is no equipment status display screen or route yet; built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/plant-rules/room-rules.test.ts > the status board (PR-22) > [PR-22] the status display matches the system state after each transition"
+      - "apps/tablets-server/test/alarms/plant-displays.test.ts > the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

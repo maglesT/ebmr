@@ -11,7 +11,8 @@ import { withProtectedNumbers } from '../../../kernel/src/continuity/numbers.ts'
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
 import { withCommand } from '../../../kernel/src/db/command.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
-import { seedActor, seedAdministration, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { activateAccount, createAccount, createPerson, decideRoleGrant, recordIdentityVerification, requestRoleGrant } from '../../../kernel/src/identity/admin.ts';
+import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { withChangeRecord } from '../../../kernel/test/support/change-record.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
@@ -474,6 +475,11 @@ describe('the contract giver reviewer (recipe-core 1060, kernel 1204; IN-30)', (
     // Another batch (not made under the loan licence) stays closed.
     const other = await issue(await plan(await effective(['IN'], true), ['IN']));
     expect(await messageOf(sqlAs(reviewer, 'select recipe.read_contract_giver_batch($1) as r', [other]))).toMatch(/EBMR-CGA-004/);
+    // The record read is that batch's own execution state, with other batches' states in the database.
+    const again = await sqlAs<Record<string, unknown>>(reviewer, 'select recipe.read_contract_giver_batch($1) as r', [own]);
+    const ownState = (await db.admin.query<{ status: string; stages: unknown; steps: unknown }>(
+      "select status, coalesce(state -> 'stages', '{}'::jsonb) as stages, coalesce(state -> 'steps', '{}'::jsonb) as steps from recipe.execution_state where batch_id = $1", [own])).rows[0]!;
+    expect({ status: again['status'], stages: again['stages'], steps: again['steps'] }).toEqual(ownState);
     // A role permission that writes can never be added to the reviewer role (kernel 1204), even by the owner.
     const { owner } = await seedAdministration(db);
     const request = await withCommand(db.app, { ...(await cmd(db, admin)), reasonCode: 'TEST', reasonText: 'bypass attempt' }, (c) =>
@@ -517,5 +523,27 @@ describe('the contract giver reviewer (recipe-core 1060, kernel 1204; IN-30)', (
     // Revoked, the access reads nothing more.
     await sqlAs(qaReviewer, "select recipe.revoke_contract_giver_access($1, 'Agreement ended') as r", [access]);
     expect(await sqlAs<unknown[]>(reviewer, 'select recipe.contract_giver_batches() as r')).toEqual([]);
+    // The reviewer's account later given a role that writes: no new access is granted to it, and it reads nothing, even
+    // under a live access, while it holds that role (the read-only check at grant time and at every read).
+    const live = await grant(loanId, reviewer.accountId);
+    const { owner: approver } = await seedAdministration(db);
+    const writes = await withCommand(db.app, withReason(admin), (c) =>
+      requestRoleGrant(c, { accountId: reviewer.accountId, roleCode: 'OPERATOR', reason: 'moved to production' }));
+    await withCommand(db.app, withReason(approver), (c) => decideRoleGrant(c, writes, true, 'production role'));
+    expect(await messageOf(grant(loanId, reviewer.accountId))).toMatch(/EBMR-CGA-003/);
+    expect(await messageOf(sqlAs(reviewer, 'select recipe.contract_giver_batches() as r'))).toMatch(/EBMR-CGA-003/);
+    expect(await messageOf(sqlAs(reviewer, 'select recipe.read_contract_giver_batch($1) as r', [own]))).toMatch(/EBMR-CGA-003/);
+    expect((await db.app.query('select 1 from recipe.contract_giver_read where access_id = $1', [live])).rowCount).toBe(0);
+    // A shared (generic) account is never a contract giver's reviewer, even holding the reviewer role (DI-14).
+    const shared = await withCommand(db.app, withReason(admin), async (c) => {
+      const personId = await createPerson(c, 'NATURAL', `Contract Giver Desk ${randomUUID().slice(0, 4)}`);
+      await recordIdentityVerification(c, { personId, purpose: 'INITIAL', method: 'IN_PERSON_DOCUMENT', documentType: 'ID card', evidenceRef: 'HR-CG', occurredAt: '2026-01-05T09:00:00Z' });
+      const accountId = await createAccount(c, { personId, loginName: `cg-desk-${randomUUID().slice(0, 8)}`, kind: 'HUMAN', generic: true });
+      await activateAccount(c, accountId);
+      const grantId = await requestRoleGrant(c, { accountId, roleCode: 'CONTRACT_GIVER_REVIEWER', reason: 'shared contract giver desk' });
+      return { accountId, grantId };
+    });
+    await withCommand(db.app, withReason(approver), (c) => decideRoleGrant(c, shared.grantId, true, 'read-only role'));
+    expect(await messageOf(grant(loanId, shared.accountId))).toMatch(/EBMR-CGA-002/);
   });
 });

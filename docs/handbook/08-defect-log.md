@@ -11,7 +11,8 @@ Terms such as batch record, e-signature, hold point, deviation, G-REL and AP are
 ## Where the code is
 
 - Review backlogs: [Phase 2 exit](../build-plan/phase-2-exit/review-backlog.md),
-  [Phase 3](../build-plan/phase-3/review-backlog.md), [Phase 4](../build-plan/phase-4/review-backlog.md).
+  [Phase 3](../build-plan/phase-3/review-backlog.md), [Phase 4](../build-plan/phase-4/review-backlog.md),
+  [Phase 6](../build-plan/phase-6/review-backlog.md).
 - Phase 1 exit review results: [review-results-2026-09-28.json](../build-plan/phase-1-exit/review-results-2026-09-28.json)
   (88 findings; the reproducer of each is in [packages/kernel/test/review/](../../packages/kernel/test/review/)).
 - Phase 4 mutation results: [mutation-results.md](../build-plan/phase-4/mutation-results.md).
@@ -26,7 +27,8 @@ Finding names differ by phase, and the numbers overlap, so the phase is always g
 - **P2-F12** means finding F12 of the Phase 2 exit review (two digits, F01 to F67), with its follow-up rounds.
 - **P3-n** and **P4-n** are findings of the quick reviews of a slice (the number is the review's own, for example
   "slice 3b review 2"). **HIGH-n** is a finding of the Phase 3 exit review. **D-n** is a defect found by the Phase 2
-  SQL mutation run. **F-A1** is a defect found by the Phase 4 mutation run.
+  SQL mutation run. **F-A1** is a defect found by the Phase 4 mutation run. **M6-Dn** is a defect found during the Phase 6
+  mutation campaign.
 - "Control" means a line in `compliance/controls/` (for example DI-37). Tests that prove a control carry its ID in
   their name. See the [control register](../../compliance/controls/).
 - "Migration 0319" means the numbered SQL file of that package (for example recipe-core 0319).
@@ -961,6 +963,57 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
   asking the database (review 6i-R3)` in [transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts).
 - **Lesson:** a route outside the session gate needs its own gate for cost, not only for identity.
 
+### 6jc-R1: the ERP/WMS adapter's identity could record a person's material act (Phase 6 exit review)
+- **What went wrong.** Site services 0914 gave the ERP_WMS adapter's INTEGRATION role MATERIAL.HANDLE so that it
+  could receive goods, and guarded only reservation and consumption against it. With that right the adapter's account
+  could still cancel a person's reservation, record a lot destruction, recover returned goods, receive returns, post a
+  finished lot, and prepare, seal or import a transfer package.
+- **Why it matters.** These are acts a named person is accountable for (DI-14, DI-20). An interface account doing one
+  of them would make the record say "done by the interface" for something no interface may decide.
+- **Fix.** A before-insert trigger on the eight tables of these acts refuses a row unless its account is HUMAN
+  (EBMR-SITE-925; site services [0990](../../packages/site-services/sql/0990_material_acts_by_person.sql)). The WMS
+  path writes none of them.
+- **Test.** `[DI-14][DI-20] the adapter's MATERIAL.HANDLE never reaches a person's material act ...` in
+  [inbound.test.ts](../../packages/site-services/test/erp-wms/inbound.test.ts).
+- **Lesson:** when you give an integration role a broad permission for one path, guard every other path that permission
+  opens, at the table rather than in each function.
+
+### 6jc-R8: a seal under an installation key of small order proved nothing (Phase 6 exit review)
+- **What went wrong.** Kernel 1220 accepted any 32-byte encoding of a curve point as this installation's key or as a
+  peer's key. A point of small order (eight times it is the neutral point) passed. Under the neutral point as the key,
+  the seal R = B, S = 1 verifies for every payload. A package forged in such a peer's name, by anyone, was taken in.
+- **Why it matters.** A transfer package carries a lot's status and release into another site's stock, and a federation
+  answer feeds a recall (DI-31). Once a weak key is trusted, its seal check means nothing; QA's approval of the key only
+  limits who can bring one in.
+- **Fix.** Kernel [1230](../../packages/kernel/sql/1230_installation_key_large_order.sql), as tablets 0702 did for
+  gateway keys: `platform.ed25519_small_order`; `platform.raw_public_key` refuses a small-order key (EBMR-XFR-042), and
+  `platform.seal_valid` is false under one, so a key stored earlier verifies nothing either.
+- **Test.** `[DI-31] a key of small order is refused as a peer's key and as this installation's key (EBMR-XFR-042)` and
+  `[DI-31] a peer key of small order stored before the guard verifies no seal ...` in
+  [transfer.test.ts](../../packages/site-services/test/transfer/transfer.test.ts).
+- **Lesson:** a signature check is only as good as the key it is checked under. When a second copy of a crypto
+  routine is written (the kernel twin of tablets 0270), carry over the key checks that the first copy gained later
+  (tablets 0702).
+
+### 6jc-R16: a training requirement for one product refused step work on every product (Phase 6 exit review)
+- **What went wrong.** A step command was authorised at the actor's location only ({site, area}), and a step
+  signature in the scope {site} given by the batch_step provider (and the stage, exception, point, record and act
+  providers). Neither named the batch's product. The kernel applies a product-limited requirement whenever a request
+  names no product (it fails closed), so a requirement for product A was applied to every batch at the site.
+- **Why it matters.** It fails closed, so no data was at risk. But one training requirement limited to a product, a
+  normal set-up under IN-04, stopped the operators of every other product at the site from starting or signing a step.
+  A grant limited to a product never covered step work either. Found by the browser-flow agent (F-6jb-1).
+- **Fix.** Recipe-core [1100](../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql) adds the batch's
+  product to the providers' scope and checks the command's permission and engine-role evaluations in the batch's scope.
+  Another product's evaluation is refused (EBMR-EXE-036). Tablets [1320](../../apps/tablets-server/sql/1320_engine_roles_on_batch.sql)
+  evaluates the engine roles on the batch. A requirement with no product limit, and the stale-source refusal, are as before.
+- **Test.** The four tests of "a product-limited qualification requirement applies to batches of that product only
+  (6jc-R16)" in [gmp-batch.test.ts](../../apps/tablets-server/test/execution/gmp-batch.test.ts), and "[INV-26][DI-17][IN-04]
+  past the server, an engine-role evaluation ... with another product is refused" in
+  [db-guards-roles.test.ts](../../apps/tablets-server/test/execution/db-guards-roles.test.ts).
+- **Lesson:** a fail-closed rule for a missing scope member is right only if every caller passes the members it knows.
+  When a scope dimension is added to grants or requirements, check that each authority call on a record names it.
+
 ## Controlled substances (Phase 6 slice 6e, draft IN-53)
 
 ### P6e-R1: a batch could complete after its last controlled checkpoint (slice 6e, review)
@@ -1088,6 +1141,39 @@ role cannot write: ...` (kernel sandbox tests).
 **Symptom.** Starting an exercise from a shared terminal was refused (EBMR-IAM-120, INV-40). **Fix.** The training
 commands are FRESH_ON_SHARED with the attribution member, as other floor commands. **Tests.** the contract test of
 FRESH_ON_SHARED routes; `[DI-05] a training session's attempts are the person's own ...`.
+
+## Phase 6 mutation campaign (decision 0019)
+
+### M6-D1: a typed lot code stopped receiving for the rest of the day (medium, fails safe; site services 1002)
+
+**Symptom.** After stores received a delivery with a lot code typed on a batch that was not the last, every later
+receipt that day failed with a duplicate-key error on the lot code. **Why it matters.** Receiving stops until midnight;
+no wrong record is written (PR-17: each lot of each shipment has its own code). **Cause.** Site services 0910 numbered
+the generated codes (GR<yymmdd>-<nnnn>) from the count of the day's generated codes but advanced the counter for every
+batch, also for one with a typed code, so the count fell behind the highest number in use. **Fix.** Site services 1002:
+the next number follows the highest generated code of the day, advances only for a batch without a typed code, and
+skips a code the site already holds; codes are never reused and gaps are allowed. Found while writing the campaign's
+kill tests for erp-wms-receipt-and-stock (triage T2; D-P6j-T2-1). **Tests.** `[PR-17] a lot code typed by stores on
+any batch never makes a later receipt of the day reuse a generated code` (packages/site-services/test/erp-wms/receipt.test.ts).
+**Lesson.** A sequence derived from `count(*)` breaks as soon as anything else writes rows of the same shape, or the
+counter moves without writing one; derive the next value from the highest one in use, under the lock that is already
+held, and let the unique constraint stay the last guard.
+
+### M6-D2: an intact message after a tampered copy was lost at the interface (high, DI-31; adapter worker)
+
+**Symptom.** An inbound message whose payload did not match its stated hash was refused with a MALFORMED alarm, as it
+should be. When the source then sent the intact message under the same idempotency key and hash, the worker answered it
+DUPLICATE and it never reached the database. **Why it matters.** A record from the ERP, QMS, LIMS, OPC UA or another
+feed was silently lost after the first alarm: the cursor moved on and the reconciliation (key and hash) matched the
+recorded refusal. **Cause.** The worker's memory of refused messages (`refusedKeys` in
+`apps/tablets-server/src/features/integrations/adapters/framework.ts`) held the hash the message *stated*, which for a
+hash mismatch is not the hash of what arrived. **Fix.** The memory holds the SHA-256 of the whole item as received; only
+the very same item repeated is a duplicate. No migration: the database looks for a key among accepted messages only, so
+a refusal does not reserve it. Found while writing the Phase 6 mutation campaign's tests (triage T12; D-P6j-T12-3).
+**Tests.** `[DI-31] M6-D2: after a message refused because its payload is not the one its hash states, the intact message
+under the same key lands, exactly once; ...` and `[DI-31] M6-D2: a page that repeats a refused item unchanged is handled
+once; ...` (apps/tablets-server/test/equipment-data/opcua-adapter.test.ts). **Lesson.** De-duplicate on what you
+received, never on what the sender claims about it; a claim that failed its check identifies nothing.
 
 ## Open residuals for the owner
 

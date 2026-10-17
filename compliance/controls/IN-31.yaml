@@ -39,6 +39,9 @@ tests:
   - "packages/recipe-core/test/labels/label-templates.test.ts > label templates (recipe-core 0990) > [IN-31] an India-domestic template without a manufacturing-date field fails approval; with every India particular a second person approves it, never its designer"
   - "packages/recipe-core/test/labels/label-templates.test.ts > label templates (recipe-core 0990) > [IN-31] a template for India cannot call itself an export label, and an export label has no India particulars to bind; an author never approves a template"
   - "packages/recipe-core/test/labels/label-templates.test.ts > label templates (recipe-core 0990) > [IN-31] a template holds layout and record-field bindings only: a value, an unknown field, or a designer without LABEL.DESIGN is refused (D-P6c-2)"
+  - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > label templates, rule by rule (recipe-core 0990) > [IN-31] each malformed template alone is refused with EBMR-LBL-001"
+  - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > label templates, rule by rule (recipe-core 0990) > [IN-31] each malformed layout or element alone is refused; a text or a default on an element is a value (D-P6c-2)"
+  - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > label templates, rule by rule (recipe-core 0990) > [IN-31] a template's status is its own events': another template's retirement does not retire it"
 clauses:
   - clause: "load an India-domestic template without a manufacturing-date field; approval fails."
     tests:

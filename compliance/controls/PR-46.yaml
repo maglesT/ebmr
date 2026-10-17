@@ -55,14 +55,16 @@ tests:
   - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46] moving rejected stock to a released-stock location is blocked"
   - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46][DI-31] an inbound move that already happened against the rule raises an alarm and an exception linked to the lot; the lot stays blocked until QA closes it with a deviation"
   - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46] an open location exception blocks the issue of a released lot (reservation and consumption)"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > the WMS mirrors at the lot (DI-31, PR-46, INV-26; site services 0911, 0912, 0916, 0970) > [PR-46] the WMS asks about a move: an unknown lot and an unknown location kind are answered, not raised; a known lot gets the rule"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > the WMS mirrors at the lot (DI-31, PR-46, INV-26; site services 0911, 0912, 0916, 0970) > [PR-46] a location exception closes only with a deviation linked to its own lot; an unknown exception is refused"
 clauses:
   - clause: "Dispensing a rejected lot is blocked."
     tests:
       - "apps/tablets-server/test/devices/refused-weighing-readings.test.ts > F59: the readings of a refused weighing (DI-32, PR-19) > [PR-46][PR-18] dispensing a rejected lot is blocked: the weighing naming it is refused (G07-LOT-STATUS), nothing is dispensed from it, and a released lot of the material is then accepted"
   - clause: "Moving rejected stock to a released-stock location is blocked."
-    deferred:
-      phase: 6
-      reason: "There are no stock locations in the eBMR (they are the ERP's), so a move to a released-stock location cannot be refused until the Phase 6 ERP/WMS adapter (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46] moving rejected stock to a released-stock location is blocked"
+      - "apps/tablets-server/test/integrations/erp-wms/contract.test.ts > the ERP/WMS adapter against its simulators (DI-31) > [PR-46] the WMS asks before a move: a quarantined lot is refused a released-stock location; a move made without asking raises the alarm and the exception"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

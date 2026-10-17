@@ -7,7 +7,7 @@ import { checkPins } from '../src/pins.ts';
 import { idsInText } from '../src/phases.ts';
 import { gateEditions, loadControls, loadRequirements, type ControlRecord } from '../src/register.ts';
 import { reportedPath } from '../src/test-index.ts';
-import { buildTrace, readPlaywrightResults, type TestResult } from '../src/trace.ts';
+import { buildTrace, deferralStarted, readPlaywrightResults, type TestResult } from '../src/trace.ts';
 import { validateRegister } from '../src/validate.ts';
 
 describe('catalog parser', () => {
@@ -175,7 +175,28 @@ describe('editions in the trace gate (decision 0010)', () => {
     const deferral = { phase: 5, reason: 'x' };
     const clauses = [{ clause: injectablesOnly.catalog_test, deferred: deferral }];
     expect(buildTrace([{ ...due, clauses }], [], 6, { editions: ['tablets'] }).errors).toEqual([]);
-    expect(buildTrace([{ ...both, target_phase: 4, clauses: [{ clause: shared.catalog_test, deferred: deferral }] }], [], 6, { editions: ['tablets'] }).errors.join()).toContain('deferred to phase 5, which has started');
+    // A shared control's deferral to a started phase other than the Injectables phase still fails.
+    const toSix = { phase: 6, reason: 'x' };
+    expect(buildTrace([{ ...both, target_phase: 4, clauses: [{ clause: shared.catalog_test, deferred: toSix }] }], [], 6, { editions: ['tablets'] }).errors.join()).toContain('deferred to phase 6, which has started');
+  });
+
+  it('[meta] Phase 6 plan question 7: a deferral to phase 5 (Injectables) has not started while the gate leaves injectables out, at any current phase; it has once the edition is in the gate', () => {
+    const deferral = { phase: 5, reason: 'Injectables only' };
+    const withClause = { ...shared, target_phase: 4, tests: [], clauses: [{ clause: shared.catalog_test, deferred: deferral }] };
+    const withScope = { ...shared, target_phase: 4, deferred_scope: [{ scope: 'the filling suite', phase: 5, reason: 'Injectables only' }] };
+    for (const phase of [5, 6, 7]) {
+      expect(buildTrace([withClause], [], phase, { editions: ['tablets'] }).errors).toEqual([]);
+      expect(buildTrace([withScope], [], phase, { editions: ['tablets'] }).errors.join()).not.toContain('which has started');
+      expect(buildTrace([withClause], [], phase, { editions: ['tablets', 'injectables'] }).errors.join()).toContain('deferred to phase 5, which has started');
+      expect(buildTrace([withScope], [], phase, { editions: ['tablets', 'injectables'] }).errors.join()).toContain('deferred to phase 5, which has started');
+    }
+    // Before phase 5 it has not started either way; another phase is unaffected by the edition.
+    expect(buildTrace([withClause], [], 4, { editions: ['tablets', 'injectables'] }).errors).toEqual([]);
+    expect(deferralStarted(5, 6, ['tablets'])).toBe(false);
+    expect(deferralStarted(5, 6, ['tablets', 'injectables'])).toBe(true);
+    expect(deferralStarted(5, 4, ['tablets', 'injectables'])).toBe(false);
+    expect(deferralStarted(6, 6, ['tablets'])).toBe(true);
+    expect(deferralStarted(7, 6, ['tablets'])).toBe(false);
   });
 
   it('[meta] the filter leaves out only the gate: a failing test tagged with an injectables-only control still fails the trace', () => {

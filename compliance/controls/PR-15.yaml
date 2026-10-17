@@ -32,14 +32,19 @@ tests:
   - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [PR-15][INV-26] an area authorisation counts from its recording, while valid and until withdrawn; a person never records their own"
   - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [PR-15][INV-26] an authorisation mirrored from the LMS counts only while the mirror is fresh"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > area authorisation at the step signature (PR-15, kernel 1190) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
+  - "packages/kernel/test/mutation/plant-rules.test.ts > an area authorisation at the edges of its window (kernel 1190) > [PR-15][INV-26] it counts from the microsecond it was recorded and the first microsecond of its validity, and not at the microsecond it ends or is withdrawn"
 clauses:
   - clause: "A user whose training has lapsed is refused on the step."
     tests:
       - "packages/kernel/test/identity/authority.test.ts > qualification at the moment of action (DI-21, INV-26) > [DI-21][INV-26][PR-15] expiring a user's SOP training blocks both execution and verification and names the missing item"
   - clause: "A user without area authorisation cannot sign a step in the filling suite."
-    deferred:
-      phase: 6
-      reason: "Persons have no area authorisation yet (the filling suite itself is Injectables); built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/recipe-core/test/plant-rules/room-rules.test.ts > area authorisation at the step signature (PR-15, kernel 1190) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
+      - "apps/tablets-server/test/alarms/area-authorisation-signature.test.ts > area authorisation at the step (PR-15) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
+deferred_scope:
+  - scope: "The clause's own area: the refusal shown in the Injectables filling suite. Area authorisation is generic and is proven now on a Tablets controlled area (a potent-product suite)."
+    phase: 5
+    reason: "The filling suite is an Injectables area, built with that edition after Phase 7 (decision 0010); Phase 6 plan D-P6b-5 and owner question 6 (default: the filling-suite test comes with Injectables)."
 expert_decision:
   status: PENDING
   pack_version: "0.9"

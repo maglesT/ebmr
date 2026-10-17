@@ -86,6 +86,8 @@ export interface IssueOptions {
   notAfter: Date;
   /** Sign with this key instead of the issuer's (a forged or broken chain, for tests). */
   signingKey?: KeyObject;
+  /** False leaves the key-usage extension out (an end-entity certificate that does not limit its key, for tests). */
+  keyUsage?: boolean;
 }
 
 /** Issues one certificate: a CA (key usage keyCertSign, cRLSign) or an end-entity signer (digitalSignature, nonRepudiation). */
@@ -102,7 +104,7 @@ export function issueTestCertificate(o: IssueOptions): TestCertificate {
     seq(time(o.notBefore), time(o.notAfter)),
     name(o.subject),
     publicKey.export({ type: 'spki', format: 'der' }),
-    explicit(3, seq(basic, usage)),
+    explicit(3, o.keyUsage === false ? seq(basic) : seq(basic, usage)),
   );
   const signer = createSign('sha256');
   signer.update(tbs);

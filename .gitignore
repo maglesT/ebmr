@@ -14,6 +14,7 @@ var/
 test-results/
 playwright-report/
 .stryker-tmp/
+.stryker-tmp-*/
 
 # graphify code map (built per session by the SessionStart hook in .claude/settings.json)
 graphify-out/

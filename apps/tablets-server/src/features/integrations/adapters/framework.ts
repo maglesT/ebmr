@@ -272,6 +272,9 @@ const sqlStateOf = (error: unknown): string | undefined =>
 /** Converts a received item into the JSON the database records for a refusal (a non-object as a JSON string of it). */
 const asRecordable = (m: unknown): unknown => (typeof m === 'object' && m !== null && !Array.isArray(m) ? m : JSON.stringify(m ?? null));
 
+/** The SHA-256 of a received item exactly as it arrived (envelope and payload). */
+const receivedHash = (m: unknown): string => rawPayloadHash(JSON.stringify(m ?? null));
+
 export class AdapterWorker {
   readonly def: AdapterDefinition;
   readonly feed: FeedClient;
@@ -284,7 +287,9 @@ export class AdapterWorker {
   private timer: NodeJS.Timeout | null = null;
   private running: Promise<CycleReport> | null = null;
   private notBefore = 0;
-  /** Keys this worker recorded as refused, with their hash (a resend of one is not recorded twice). */
+  /** Keys this worker recorded as refused, each with the SHA-256 of the whole item as received (an unchanged repeat of
+   *  it is not recorded twice). Not the hash the item states: a refused item may not match it, and the intact message
+   *  under the same key must still reach the database (defect M6-D2, DI-31). */
   private readonly refusedKeys = new Map<string, string>();
   readonly healthState: AdapterHealth;
 
@@ -398,15 +403,16 @@ export class AdapterWorker {
     const loose = (typeof m === 'object' && m !== null ? m : {}) as Record<string, unknown>;
     const seqText = typeof loose['sequenceNo'] === 'string' && /^[1-9][0-9]{0,17}$/.test(loose['sequenceNo']) ? loose['sequenceNo'] : null;
     const keyText = typeof loose['idempotencyKey'] === 'string' ? loose['idempotencyKey'] : null;
+    // An item this worker already refused, sent again unchanged (the source never saw the cursor move): handled. Only the
+    // very same item is: any difference (the intact payload, another sequence number) is checked and received anew.
+    if (keyText !== null && this.refusedKeys.get(keyText) === receivedHash(m)) {
+      return { sequenceNo: seqText, idempotencyKey: keyText, result: 'DUPLICATE' };
+    }
     const env = InboundEnvelope.safeParse(m);
     if (!env.success) {
       return this.refuse(m, seqText, keyText, 'MALFORMED', undefined, `the envelope does not match the contract: ${env.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`);
     }
     const e = env.data;
-    // A message this worker already refused, sent again unchanged (the source never saw the cursor move): handled.
-    if (this.refusedKeys.get(e.idempotencyKey) === e.payloadHash) {
-      return { sequenceNo: e.sequenceNo, idempotencyKey: e.idempotencyKey, result: 'DUPLICATE' };
-    }
     if (rawPayloadHash(JSON.stringify(e.payload)) !== e.payloadHash) {
       return this.refuse(m, e.sequenceNo, e.idempotencyKey, 'MALFORMED', undefined, 'the payload hash is not the SHA-256 of the payload as received');
     }
@@ -442,8 +448,7 @@ export class AdapterWorker {
       throw new TransportError(`the refusal could not be recorded: ${error instanceof Error ? error.message : String(error)}`);
     }
     this.healthState.refused += 1;
-    const hash = typeof (m as { payloadHash?: unknown } | null)?.payloadHash === 'string' ? (m as { payloadHash: string }).payloadHash : null;
-    if (key && hash) this.refusedKeys.set(key, hash);
+    if (key) this.refusedKeys.set(key, receivedHash(m));
     return { sequenceNo: seq, idempotencyKey: key, result: 'REFUSED', errorClass: cls, ...(code ? { code } : {}), detail };
   }
 

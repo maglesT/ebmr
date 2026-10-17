@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 16 October 2026 (Phase 6 slices 6f, 6b, 6c, 6d, 6e, 6g and 6i).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 17 October 2026 (Phase 6 exit, slice 6j).
 
 ## What this is
 
@@ -146,7 +146,27 @@ dashboards (never for GMP decisions; PR-05 overdue reviews, DI-49 alarm trend), 
 and training mode on the sandbox (watermark, TEST- personas, scripted exercises, attempts kept in the sandbox only;
 DI-05). PR-05's dashboard clause names its tests. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
 Defaults D-P6g-0-1 to 10.
-Then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
+Slice 6j (Phase 6 exit, 16 and 17 October; branch `phase-6/slice-6j`): the trace runs at 6 (`phase.yaml`); DI-31, DI-32
+and DI-49 map their clauses, no clause stays deferred to Phase 6 and IN-53 stays PENDING (draft). Golden batches GB-T-01
+and GB-T-02 unchanged and GB-T-03 "connected" new, all under the golden clock library (replaces libfaketime); browser flows
+for the stale mirror, alarms, trends, genealogy and recall, controlled dispensing and the English step screen. The one
+review pass found three highs, all fixed with tests: 6jc-R1 (the ERP/WMS adapter reaching a person's material acts; site
+services 0990), 6jc-R8 (a small-order installation or peer key made every seal verify; kernel 1230) and 6jc-R16 (a
+product-limited training requirement stopped other products' step work; recipe-core 1100, tablets 1320); residuals R2 to
+R7 and R9 to R15 (medium: R2, R9, R10) in the plan. Mutation campaign (decision 0019; `docs/build-plan/phase-6/mutation-results.md`):
+no Priority 1 defect; first-run SQL 64.9 % over 3,967 mutants in 14 groups, 87.7 % in the 13 that state an after-triage
+score (five at 90 % or more); the Phase 4 leftovers triaged (scope A 83.8 %, scope B 98.4 % in four of six groups);
+Stryker first runs 48.2 % in the high-risk zone, triaged for Priority 1 rules only; defects fixed: M6-D1 (lot-code
+numbering stopped receiving, site services 1002), M6-D2 (an intact resend after a tampered copy was dropped; DI-31) and
+M6-D3 (the archive retention view called a function the app role may not execute; DI-41, DI-47), plus the gateway's
+128-character id truncation. Not run (time box, owner's instruction): bulk-and-bright-stock, execution-complete-forms and
+the whole SQL re-run (about 128 worker hours); residuals and owner items are listed in that file. Demo: `pnpm
+demo:phase6-exit` runs the seven items (record `docs/build-plan/phase-6/exit-demo.md`; all PASS in its run of 17 October).
+Final run 2 (17 October, after the campaign): green in one run after its one re-run (the first attempt failed only the
+register listing of the campaign's 220 new tagged tests, synced): static checks, 6,695 tests passed (0 failed), golden
+batches GB-T-01 to GB-T-03 41/41, browser suite 50/50, `pnpm trace` at phase 6 ok (146/242 controls), `handbook:check` ok.
+Decision 0020 (owner, 17 October): no demo at phase exits from Phase 7 on; one demo when the product is there (v1.0).
+Next: the Phase 6 PR, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
 
@@ -156,7 +176,7 @@ scripts) on a cloud server the owner provides.
   postgres-oracle, graphify).
 - Machine: a RunPod container whose disk is erased when the pod stops. Run `bash tools/dev-env/runpod-setup.sh` after
   each pod start; commit and push to the working branch (never main) after every step and at least every 30 minutes.
-- Local PostgreSQL 16 clusters: main 5432, ci 5433, ci2 5434, golden 5435 (libfaketime; the CI golden job uses 5433 on
+- Local PostgreSQL 16 clusters: main 5432, ci 5433, ci2 5434, golden 5435 (golden clock library; the CI golden job uses 5433 on
   its own runner). On Ubuntu 22.04 the kernel site-zone-policy "[DI-27] over every zone name" test needs about 65 s
   (posix/ zone copies) and times out locally; it passes on CI. Test databases are created per run and dropped after.
 - Run `pnpm run ci` (or the changed packages' tests) before pushing.

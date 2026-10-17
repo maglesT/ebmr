@@ -27,6 +27,8 @@ tests:
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-53][INV-05] a justification reads only the links of the lot and its batches: another lot's unassessed link does not refuse it; the lot's own unassessed link does"
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-08][PR-53] the registration item lists the registration-relevant exceptions of the lot's records only, each with the deviation linked to it; a deviation linked to another exception of the batch stays justifiable"
   - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [PR-53] a justification names an open deviation linked to the lot and states its reason; the justification content exists for a finished lot only"
+  - "packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: review signatures, the QMS item and container links (mutation triage T11; INV-05, DI-37, DI-31, PR-53) > [PR-53][INV-05] a deviation linked to a container of the lot's batch is the lot's; its unassessed container link refuses a justification"
+  - "packages/recipe-core/test/release/release.test.ts > the PR-53 justification after the slice 3 quick review (recipe-core 0783) > [PR-53][INV-05] a justification counts for its own deviation only: a second open record of the lot stays RED on G-REL"
 clauses:
   - clause: "A batch with an open deviation cannot be released."
     tests:

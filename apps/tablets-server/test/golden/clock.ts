@@ -1,10 +1,10 @@
 /**
- * The golden batches' clock (D-S6-6): the test PostgreSQL runs under libfaketime with a timestamp file
- * (FAKETIME_TIMESTAMP_FILE, FAKETIME_NO_CACHE=1), named to the tests by EBMR_FAKETIME_FILE. The driver "waits" only by
- * moving that clock forward, never back; nothing in the GMP code reads a test clock, and the simulators in the test read
- * time from the database. Without EBMR_FAKETIME_FILE the golden tests do not run (the `golden` CI job sets it).
+ * The golden batches' clock (D-S6-6): the test PostgreSQL runs under the golden clock library (tools/dev-env/golden-clock,
+ * in place of libfaketime since Phase 6 slice 6j-b) with a timestamp file (FAKETIME_TIMESTAMP_FILE), named to the
+ * tests by EBMR_FAKETIME_FILE. The driver "waits" only by moving that clock forward, never back; nothing in the GMP
+ * code reads a test clock, and the simulators in the test read time from the database. Without EBMR_FAKETIME_FILE the golden tests do not run (the `golden` CI job sets it).
  *
- * Two forms of the file (libfaketime's own):
+ * Two forms of the file (libfaketime's, kept by the golden clock library):
  *   +<seconds>s          an offset: the database's clock runs at real speed, that far ahead of the host's;
  *   YYYY-MM-DD HH:MM:SS  a frozen instant (UTC): the database's clock stands still until the driver moves it.
  * GB-T-01 freezes the clock (Phase 3 slice 6d): each act then happens at an instant fixed by the driver's own sequence
@@ -47,6 +47,20 @@ export function freezeAt(epochSeconds: bigint): void {
   const now = frozen ?? BigInt(Math.floor(Date.now() / 1000)) + offsetSeconds();
   if (epochSeconds < now) throw new Error(`the golden clock only moves forward (asked to freeze at ${String(epochSeconds)}, now ${String(now)})`);
   writeFrozen(epochSeconds);
+}
+
+/**
+ * Lets the frozen database clock run on at real speed from the instant it stands at (the offset form), for a part of a
+ * scenario whose data come from processes stamping their own times (GB-T-03's OPC UA press, which needs increasing
+ * source times); returns that instant. The scenario freezes it again with freezeAt, at a fixed instant after it.
+ */
+export function runFromFrozen(): bigint {
+  const frozen = frozenSeconds();
+  if (frozen === null) throw new Error('the golden clock is not frozen');
+  const host = BigInt(Math.floor(Date.now() / 1000));
+  if (frozen < host) throw new Error(`the golden clock stands before the host's clock (${String(frozen)} < ${String(host)}); an offset only runs ahead`);
+  writeFileSync(FAKETIME_FILE, `+${String(frozen - host)}s\n`);
+  return frozen;
 }
 
 /** Moves the database clock forward by `seconds` (whole seconds, > 0). Moving it back is refused. */

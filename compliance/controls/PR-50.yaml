@@ -48,6 +48,7 @@ tests:
   - "apps/tablets-server/test/genealogy/genealogy-routes.test.ts > genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there"
   - "apps/tablets-web/test/genealogy/genealogy.test.tsx > complaint lookup, supply chain and impact (PR-57, PR-50) > [PR-50] the impact page lists the server batch set with each relation"
   - "packages/site-services/test/genealogy/recall.test.ts > deviation impact query (recipe-core 1012; PR-50; D-P6d-3, D-P6d-4) > [PR-50] the impact query returns the expected batch set, checked against an independent query"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [PR-50] the impact query as of T: two linked batches and a linked finished lot, what is downstream of them, and the other consumers of their input lots"
 clauses:
   - clause: "An investigation cannot close without conclusions and follow-up."
     tests:

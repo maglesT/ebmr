@@ -91,6 +91,9 @@ tests:
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > a retest decision (site services 0752) > [PR-18] a lot without a retest date, a rejected lot, no results, or results that are not the lot's are refused"
   - "apps/tablets-server/test/mutation/due-times-and-holds.test.ts > the held-granulation check (tablets 0851) > [PR-18][PR-19][INV-12] true only for an exception the new row raised at this step, of this type, ACTION, a deviation required, holding downstream until a deviation is linked"
   - "apps/tablets-server/test/devices/refused-weighing-readings.test.ts > F59: the readings of a refused weighing (DI-32, PR-19) > [PR-46][PR-18] dispensing a rejected lot is blocked: the weighing naming it is refused (G07-LOT-STATUS), nothing is dispensed from it, and a released lot of the material is then accepted"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][PR-18][INV-13] a delivery received by stores: each malformed part, an unknown or made-here material, a repeated delivery, a zero quantity and a retest after expiry are refused"
+  - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the inbound package (site services 0981) > [PR-18] the received lot keeps its retest instant; the hold limit is the earliest of the carried hold, retest and expiry"
+  - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the outbound package (site services 0980) > [DI-39] [INV-13] [PR-18] the origin packages an unexpired lot, up to what is left, on a well-formed request with a future stated hold"
 clauses:
   - clause: "Scanning a quarantined lot is blocked."
     tests:

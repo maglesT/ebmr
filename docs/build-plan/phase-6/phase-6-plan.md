@@ -767,6 +767,36 @@ follow if a language is added after v1.
   IN-53's clauses; every clause deferred to 6 now with passing tests (the deferral removed only when a test proves it;
   a clause still unbuildable is deferred to 7 only with its reason and listed for the owner). The phase-5 deferrals of
   shared controls (PR-26, PR-28) are handled per question 7 before the raise. `phase.yaml` to 6 last.
+  - **State 6j-a (branch `phase-6/slice-6j-a`, 16 October):** DI-31, DI-32 and DI-49 map their clauses; every clause
+    deferred to 6 (IN-01, PR-15, PR-17 x3, PR-22, PR-25, PR-27 x2, PR-29, PR-35 x2, PR-46, PR-51) names passing tests;
+    none moved to 7. IN-53 keeps 6e's mapping, `expert_decision` PENDING. Question 7 taken: the trace treats phase 5 as
+    not started while injectables is outside the gate (`deferralStarted`, a `[meta]` test); PR-26 and PR-28 unchanged.
+    PR-15's filling suite is a `deferred_scope` to 5 (D-P6b-5). `phase.yaml` stays at 4 for the integrator. Handbook
+    mermaid labels escaped (`;` as `#59;`, a second `:` as `#58;`). Owner list: IN-53 pending (question 3); PR-15
+    filling suite (question 6); PR-26 and PR-28 waiting with Injectables (question 7); DI-32's restored-archive
+    browser step on a restored database is 6j-b's (D-P6b-L-2).
+  - **Check 6j-a (pod, 16 October):** typecheck, the full lint, `deps:check`, `pins:check`, `register:validate` (242
+    controls) and `handbook:check` pass. A dry run of the trace at 6 (a scratch helper calling `buildTrace` at phase 6
+    on a partial report; `phase.yaml` untouched) over 140 test files: every listed test of DI-31, DI-32, DI-49 and
+    IN-53, and every clause test of IN-01, PR-15, PR-17, PR-22, PR-25, PR-27, PR-29, PR-35, PR-46, PR-51, DI-20, PR-57
+    and IN-29 (1224 passed, none failed; 23 skipped, the GB-T-01 golden file outside the golden cluster). Every clause
+    of these 17 controls has a passing listed test except PR-22 clause 2 (the batch report's unit IDs), which only
+    GB-T-01 proves (mapped since Phase 4; confirmed by the golden job of the final run). No passing tagged test is
+    missing from a `tests` list. Not run here: the end-to-end tests DI-32 lists (devices, journey) and the golden
+    batches (final run).
+  - D-P6j-a-1: the trace at 6 is dry-run on a partial report with `buildTrace`; `pnpm trace` itself needs the whole
+    report and runs in the final run after the raise.
+  - D-P6j-a-2: a clause that 6j-b's browser flows or GB-T-03 will also prove (stale mirror refusal on the health page,
+    alarm acknowledgment, trend viewer, genealogy explorer and mock recall, controlled dispensing, English step screen)
+    is not deferred: it keeps its passing unit and integration tests, and 6j-b's tagged tests are added to the lists
+    with `register:sync-tests` at the merge.
+  - **Clauses moved to Phase 7 (owner list):** none; every clause deferred to 6 is proven by passing tests. The owner
+    items of the trace:
+    - IN-53: NDPS not verified, owner decision needed (draft control; `expert_decision` stays PENDING; question 3).
+    - PR-15: the filling-suite refusal is a `deferred_scope` to phase 5 with Injectables (question 6, D-P6b-5).
+    - PR-26 and PR-28: their clauses deferred to phase 5 wait with Injectables (question 7).
+    - DI-32 clause 3: the restored-archive re-render is proven on archived native series and the trend viewer; the
+      browser step on a restored database is 6j-b's (D-P6b-L-2).
 - **6j-b golden batches and browser suite:** GB-T-01 and GB-T-02 unchanged with exact outputs (adapters in stand-in
   mode); a new GB-T-03 "connected" (ERP/WMS and LMS/CMMS mirrors, OPC UA press, L3/L4 serialisation, mock recall from
   its API lot) with exact outputs; browser flows for the integration health page with a stale mirror refusal, alarm
@@ -775,6 +805,438 @@ follow if a language is added after v1.
   their tests, at most 2 fix rounds, residuals to the backlog for the owner.
 - **Final run:** the full suite, golden batches, browser suite, `pnpm trace` at 6, `pnpm handbook:check`, all green in
   one run.
+
+#### 6j-c review (16 October; one pass over 1fec042..8331e94, serious defects only, decision 0008)
+
+Scope: the 78 Phase 6 migrations and the server's federation, transfer and controlled routes, checked against a fully
+migrated database (catalogue queries over every Phase 6 function and table) rather than by reading alone. Checked and
+found sound: every app-callable Phase 6 writer in `plant`, `tab`, `iam`, `esig`, `sandbox` (schemas the meta tests do
+not scan) refuses administrators or is not a GMP write; every Phase 6 function taking a signature binds it to its
+meaning and aggregate (`esig.assert_signature` or `recipe.assert_release_signature`); every Phase 6 table is audited or
+insert-only on database time, except the operational queues the migrations name; mirrors fail closed (a missing sync
+or bound reads as stale; the LMS check is `coalesce(..., false)`); `ebmr_report` holds SELECT on `report` only and no
+write anywhere; training refuses a GMP installation; the federation answer checks its permission, the seal and that
+the transfer was exchanged with the asker; the three shared functions (`tab.kernel_signing_meanings`,
+`tab.aggregate_read_class`, `tab.record_read_problem`) and the cross-slice re-creations (`recipe.genealogy*`,
+`recipe.*mock_recall*`, `site.erp_wms_receive`) keep every earlier addition; no `Date.now()` or `number` for a GMP value
+in product code (the OPC UA driver writes a Double because the protocol requires it; simulators are exempt).
+
+Findings:
+- **6jc-R1 (high, fixed; DI-14, DI-20):** site services 0914 gave the ERP_WMS adapter's INTEGRATION role
+  MATERIAL.HANDLE and guarded only reservation and consumption. The adapter's identity could still cancel a person's
+  reservation (reproduced: it succeeded), record a lot destruction, recover returned goods, receive returns, post a
+  finished lot, and prepare, seal or import a transfer package (each reached its state check). Fixed in **site
+  services 0990**: trigger `zz_material_act_by_person` on the eight tables of these acts refuses a row unless its
+  account is HUMAN (EBMR-SITE-925); the WMS path writes none of them. Test
+  `packages/site-services/test/erp-wms/inbound.test.ts` "[DI-14][DI-20] the adapter's MATERIAL.HANDLE never reaches a
+  person's material act ..." (failed before, passes after). One fix round.
+
+Residuals for the owner (medium and low; not fixed here):
+- **6jc-R2 (medium; IN-53, draft):** the controlled-substance reads (custody records, batch balance, register extracts)
+  need only a session in any role, in the server and in the database; the signing-content path is gated by
+  CONTROLLED.* (tablets 1290) but the list and register reads are not. Suggested: gate the reads on CONTROLLED.* or
+  the governance readers when IN-53 leaves draft.
+- **6jc-R3 (low; IN-30):** the contract giver reviewer's scope to its loan licence holds in its own routes
+  (recipe-core 1060) and in the server's route allow-list (bind.ts); the role also holds RECORD.READ (kernel 0120), so
+  the database alone would not stop a read through another read function. Suggested: refuse CONTRACT_GIVER_REVIEWER
+  in `tab.record_read_problem` outside its access.
+- **6jc-R4 (low):** migrations merged out of numeric order (tablets 1210, 1218, 1230, 1231 after 1270 to 1280 and 1250 after
+  1301; recipe-core 0960 to 0976 after 1010 and 1050; site services 0940 after 0960) ran out of order on databases upgraded at each merge. None re-creates a shared
+  function, so no effect was found; the runner does not detect it. Suggested: a CI check that a new migration sorts
+  after every migration on main.
+- **6jc-R5 (low):** `site.erp_outbound_message` is called insert-only in 0912's header but has no insert-only
+  trigger (only owner functions write it; operational, not audited).
+- **6jc-R6 (low; DI-18):** `esig.enrol_dsc_certificate` and `esig.record_dsc_signature` do not call
+  `iam.assert_not_administrator()`; the enrolment is for the actor's own HUMAN account and the DSC rides on a password
+  signature the kernel already gates, so no GMP data is reachable.
+- **6jc-R7 (low):** the kernel and recipe-core authorization meta tests scan `market`, `records`, `continuity`,
+  `site`, `platform` and `recipe` only; Phase 6 writers in `plant`, `tab`, `iam`, `esig`, `sandbox` are covered by
+  their own tests but not by a meta scan. Suggested: widen the scan in Phase 7.
+
+Second part of the pass (16 October): the rest of the Phase 6 TypeScript and the SQL logic of the regulated core.
+- Read: the tablets server's Phase 6 features (integrations and adapter workers, equipment data, alarms, plant rules,
+  labels, serialisation, genealogy and mock recall, governance, DSC, config change, dashboards, training, CAPA,
+  `bind.ts`), `packages/integration-sdk`, `apps/site-gateway`, and the Phase 6 web screens against the routes they call.
+- Probed on a fully migrated database: the mirror guards (`platform.mirror_freshness` and `mirror_fresh_or_raise`,
+  `record_mirror_sync`'s caught-up and gap checks, the LMS, CMMS, ERP lot status, QMS and L3 gates), the release gates
+  (`recipe.qms_release_guard` on the four decision tables, `tab.l3_release_problem` in `E.RECONCILIATION_SERIAL`),
+  dual custody (`recipe.sign_controlled_custody`, the consumption guard, the WMS move), packaging completion, alarm
+  acknowledgment, step rules, the signature checks of every Phase 6 function that takes a signature (meaning, aggregate,
+  signer is the actor, record state), change control, support grants, and the federation seals. Every Phase 6
+  `create or replace` of an earlier function was compared line by line with its last earlier definition: none drops a
+  check.
+- Found sound: every Phase 6 route is behind the session gate and its writes go through guarded database functions
+  with the actor from the session; no route trusts an actor, signer or time sent by the client; no web screen is the
+  only check of a right; no SQL is built from input; no direct INSERT or UPDATE from TypeScript.
+- No new critical finding. One high, after the lead's re-rating: 6jc-R8, fixed in kernel 1230.
+
+Findings and residuals of the second part (only R8 is fixed; the rest are medium and low):
+- **6jc-R8 (high, fixed; DI-31; raised from medium by the lead, D-P6j-c-3):** kernel 1220 accepted a small-order
+  Ed25519 point as this installation's or a peer's key (`platform.raw_public_key` only checked that the point decodes).
+  Under such a key every seal verifies. Reproduced: with the identity point as the key, the seal R = B, S = 1 verifies
+  any payload, and a package forged in a weak peer's name was taken in. Fixed in **kernel 1230**, one fix round:
+  - `platform.ed25519_small_order`, the kernel twin of `tab.ed25519_small_order` (tablets 0702).
+  - `platform.raw_public_key` refuses a small-order key with EBMR-XFR-042, so `set_installation_identity` and
+    `propose_peer_installation` refuse it.
+  - `platform.seal_valid` is false under a small-order key, so a key stored before the guard verifies nothing.
+  - Non-canonical encodings were already refused (`platform.ed25519_decode` refuses y >= q and a negative zero x).
+  - Tests in `packages/site-services/test/transfer/transfer.test.ts`, "review 6j-c R8": "[DI-31] a key of small order is
+    refused as a peer's key and as this installation's key (EBMR-XFR-042)" and "[DI-31] a peer key of small order stored
+    before the guard verifies no seal ...". Both failed before the fix and pass after.
+  - Mutation group: the new "transfer and federation" group (6j-a campaign), with `transfer.test.ts`.
+- **6jc-R9 (medium; DI-31, owner):** the 6a feed protocol does not authenticate the source.
+  - The server pulls `<base>/feed` with a plain HTTP GET, and `payloadHash` has no key.
+  - The site gateway's OPC UA feed (series, alarms, events, endpoint sessions) reaches `plant.receive_*` without the
+    gateway's Ed25519 signature, which the process readings and scale uplinks carry. The feed listens on loopback by
+    default.
+  - Anyone who can answer at the feed address can inject or hold back alarms and series, or report a lower head.
+  - Owner, before a networked deployment: sign the gateway feed with the gateway key, or require mutual TLS for every
+    adapter base URL.
+- **6jc-R10 (medium; PR-27):** the penicillin facility rule (`plant.set_facility_rule`) and the beta-lactam
+  classification (`plant.classify_beta_lactam`) are acts of one person with MASTERDATA.CHANGE and a reason. A
+  hazard-class dedication, by contrast, carries QA's approval. One master-data steward can therefore admit a
+  beta-lactam material at a non-penicillin site. Suggested: QA approval, or change control (kernel 1195), for both.
+- **6jc-R11 (low; DI-31):** an OPERATOR or SHIFT_SUPERVISOR (ALARM.ACKNOWLEDGE) who acknowledges a SEQUENCE_GAP
+  integration alarm lets `platform.record_mirror_sync` mark a blocking mirror fresh over the missing messages (kernel
+  1182). The note is the only account of what was lost. Suggested: for a gap on a blocking mirror's adapter, the system
+  owner or QA acknowledges.
+- **6jc-R12 (low):** in the mock recall (`features/genealogy/index.ts`), `askDestinations` treats a failure of the
+  forward genealogy read as "no outbound transfer" (no peer asked, and the run goes on). `run` and
+  `refreshFederation` also call peers before RECALL.MOCK_RUN is checked (the database refuses afterwards and rolls the
+  command back).
+- **6jc-R13 (low; DI-32):** the gateway's `sampleOf` (`drivers/opcua-node.ts`) sets the source time to epoch 0 when a
+  sample has neither a source nor a server timestamp. `plant.source_time_or_raise` refuses future times only, not
+  implausibly old ones.
+- **6jc-R14 (low; IN-10):** the companion signature (`sig2`, `features/esig/index.ts`) never records a DSC. If its
+  meaning requires one, the signing is refused (EBMR-ESIG-084): it fails closed.
+- **6jc-R15 (low):** the training attempt read (`features/training/index.ts`, `attempt`) does not check whose attempt
+  it is. Training runs on the sandbox installation only, so no GMP data is reachable.
+
+
+Finding of the browser-flow agent (F-6jb-1), verified and fixed in 6j-c:
+- **6jc-R16 (high, fixed; IN-04, DI-21, DI-17, INV-26; D-P6j-c-4):** a qualification (training) requirement limited to
+  one product was applied to every step and step signature at the site, so the performers of every other product were
+  refused (fail closed, but it stops legitimate work, and GB-T-03's performers when its training requirement names a
+  product). Cause: a step command was authorised at the actor's location only ({site, area}), and the batch_step,
+  batch_stage, batch_exception, batch_point, batch_record and batch_act providers gave the signature the scope {site};
+  `iam.requirement_applies` (kernel 0100) applies a product-limited requirement whenever the request names no product.
+  Reproduced on a migrated database: a requirement for another product refused START_STEP (MISSING_QUALIFICATION) and
+  the PERFORMED signature's evaluation. Fixed in **recipe-core 1100** and **tablets 1320**, one fix round:
+  - `recipe.batch_scope_members(batch)` ({product}, or {} when none; never raises). The six providers add it to their
+    scope, so `esig.sign` evaluates the signer in {site, product}.
+  - `recipe.require_command_permission(type, meaning, batch)`, `recipe.role_evaluation_problem(..., batch)` and
+    `recipe.check_engine_roles(..., batch)`; `recipe.append_execution` (from 0295) calls them. An engine-role evaluation
+    at the location, as before or with the batch's own product, is accepted; another product is refused (EBMR-EXE-036).
+  - `tab.engine_roles(batch)` evaluates in the batch's scope; the server passes the run id for commands and signatures
+    (`features/execution/roles.ts`, `index.ts`, `signable.ts`). The batch issue keeps the location-only check.
+  - Unchanged: a requirement without a product limit applies to every batch; one for this product applies, and its
+    qualification must come from a fresh source (STALE_QUALIFICATION_SOURCE). A batch without a product keeps {site}.
+  - Tests: four in `apps/tablets-server/test/execution/gmp-batch.test.ts` ("a product-limited qualification requirement
+    applies to batches of that product only (6jc-R16)": another product allowed, this product required, no product
+    limit still required, stale LMS source still refused) and one past the server in `db-guards-roles.test.ts` (an
+    evaluation with another product refused). The first failed before the fix; all pass after.
+  - Mutation group: `execution-commands` (tools/sql-mutation, on `phase-6/slice-6j`), which already names the replaced
+    functions, `tab.engine_roles`, `db-guards-roles.test.ts` and `gmp-batch.test.ts`; add `recipe.batch_scope_members`
+    and `recipe.with_batch_scope` to it.
+  - Left (medium, fails closed): other batch acts are still authorised at the location only, so a product-limited
+    requirement still applies to them on every batch: the disposition proposals (`recipe.propose_disposition`, 0331),
+    the exception-register acts (0721), the review freeze (0713), the deviation references (0601), the dispensing
+    consumption (0430, 0700) and the batch issue. Same fix pattern when the owner wants it.
+
+Decisions:
+- **D-P6j-c-1:** the "one pass" (decision 0008) covers the regulated core at the database by probing, and the rest
+  of the TypeScript by reading. A finding counts as critical or high only when it is reproduced on a migrated database
+  and lets a person or a system change, sign or release GMP data against a control.
+- **D-P6j-c-2:** 6jc-R8 is rated medium, not high. The weak key has to pass QA's signed approval, and it gives nothing
+  that an approved key held by an attacker would not. The fix is small and Priority 1 under decision 0019, so the
+  mutation campaign may take it.
+- **D-P6j-c-3 (lead):** 6jc-R8 is raised to high and fixed in 6j-c. A small-order key makes the seal check vacuous:
+  every seal verifies under it. QA's approval of the key only limits who can bring such a key in. Federation and
+  transfer seals are Priority 1 in decision 0019.
+- **D-P6j-c-4:** 6jc-R16 is rated high although it fails closed (D-P6j-c-1 rates by harm to GMP data): with one
+  product-limited training requirement, which IN-04 (e) makes a normal configuration, every other product's step work
+  at the site stops. Its migrations are recipe-core 1100 and tablets 1320 (after 6g's reserved 1310 to 1319).
+
+#### 6j mutation campaign preparation (branch `phase-6/slice-6j-mutation`, 16 October; decision 0019)
+
+Groups, harness options, the Stryker feature table and the run plan: `docs/build-plan/phase-6/mutation-results.md`.
+
+- **D-P6j-M-1:** every Phase 6 SQL group targets 90 %. The inclusion rule of `targets.ts` admits only guards, limits,
+  signature and state checks, GMP writers and the helpers they decide on (the 90 % zone of outline 9.1); the 80 % zone
+  of decision 0019 is TypeScript and is scored per file zone by `stryker.phase6.config.mjs --summary`. The harness meta
+  test keeps requiring 90 % of every SQL group.
+- **D-P6j-M-2:** an area of decision 0019 is split into several groups where one group would pass about 500 mutants
+  (adapters 3, plant 2, packaging 2, governance 3): a group then fits in one sitting and the groups spread over clusters.
+- **D-P6j-M-3:** the report views and `recipe.change_impact` are mutated (two views carry PR-05 and DI-49; each answer
+  is exported with its hash); reads that only list, look up or format for a screen are left out, named in `LEFT_OUT`,
+  and a meta test fails on any function since the Phase 6 start that is in no group and not left out.
+- **D-P6j-M-4:** an `equivalent.json` entry applies only when the place it cites is its mutant's migration and line
+  (a re-created function renumbers its mutants). `plant.record_calibration#5` was stale after recipe-core 0950 and
+  moved to #6; 56 older entries (Phase 2 to 4 re-creations) do not fit and run as ordinary mutants until part 2
+  re-checks them (`--audit-equivalents`).
+- **D-P6j-M-5:** a unit feature (no database) runs Stryker with static mutants (`ignoreStatic: false`): the SDK's
+  contracts are module-level zod schemas, which the base setting skips, and its tests take about a second.
+- **D-P6j-M-6:** `EBMR_MUTATION_VITEST_WORKERS` caps the test files a mutant runs at once (unset in CI). On the pod
+  Vitest's file per core exceeds the listener roles' 40 connections per cluster (device-readings' baseline failed even
+  alone on a cluster); the campaign keeps about 4 test files per cluster.
+- **D-P6j-M-7:** the scope A and B kill confirmations are whole-group runs, not `--only`: the Phase 4 survivor lists
+  were lost with the container and several of their functions were re-created since.
+- **D-P6j-T3-1 (triage of inbound-adapters-and-mirrors and packaging-labels-and-line-completion):** a survivor whose
+  test needs a state no command reaches yet is killed by arranging that state as test set-up (a RETIRED label template
+  event; another order's later post-use inspection), as the scenario tests arrange labelling declarations; the
+  mutant's effect is still observed through the real function.
+- **D-P6j-T3-2:** `platform.record_mirror_sync` keeps a range the same adapter proved caught up: a late message below
+  the adapter's first held number does not reopen it (kernel 1182's header rule); the kill test for #31 states this.
+- **D-P6j-T3-3:** `platform.mirror_freshness#10` (`>` to `>=` on the age against the bound) is a residual, not an
+  equivalent: the two differ only in the one microsecond of the database clock where the age equals the bound, which
+  no test can hold (the bound itself is proven both ways through `iam.qualification_source_fresh`, which takes the
+  instant as an argument).
+- **D-P6j-T3-4:** `platform.epoch_us_to_timestamptz` converting through double precision is recorded, not fixed here:
+  every instant from 2023 to 2036 converts exactly (200,000 random values on the real server), the loss of a
+  microsecond starts decades ahead and the year-9999 limit lands on 10000-01-01. No GMP decision reads that
+  microsecond; the lead may queue a numeric conversion.
+- **D-P6j-T4-1 (triage of genealogy-and-recall):** the as-of boundaries of the genealogy, the mock recall and the impact
+  query are proven in one world whose every event row is restamped to a single instant T as test set-up (superuser,
+  triggers off, as the genealogy world's fixtures are written); each query then runs as of exactly T. Shipments,
+  returned goods, the recovery, deviations and their links run for real before the restamp.
+- **D-P6j-T4-2:** the AP-only rule of the mock-recall sign-off (EBMR-RCL-013) is proven by granting
+  RECALL.MOCK_SIGN_OFF to a second role as test set-up, the way a site could re-map role permissions; the mutant's
+  effect is observed through the real sign-off. Per the owner's instruction of 17 October, survivors that cannot drop
+  a lot, consignee or depth level and do not touch the sign-off (input validation of chemical recovery and the ERP
+  shipment, display of node views, the recurrence's batch branch, lock-only and clock-microsecond differences) are
+  recorded, not chased.
+- **D-P6j-T5-1 (triage of plant-rules and india-dsc):** a database guard behind a server check (the DSC chain, the
+  claimed signer certificate, the enrolling account) is proven by calling the database function straight with what a
+  server that skipped its own check would send, as the existing bypass tests do; a state no command can produce (a
+  break-glass account with an open window, an alarm bound to a step) is arranged as test set-up (superuser, triggers
+  off).
+- **D-P6j-T5-2:** `esig.set_policy` (re-created by kernel 1203, so held by india-dsc) is killed by tests in
+  `packages/kernel/test/mutation/india-dsc.test.ts`; the group's test list is not widened to `esig/sessions.test.ts`.
+- **D-P6j-T5-3:** the plant-rules confirmation run covers only the survivors the owner's instruction of 17 October
+  counts as important (clean hold, beta-lactam, step alarm, reagent lot binding, the QA review gate); triage T1's 17
+  kill tests (field validation and microsecond boundaries) are not re-run.
+
+- **D-P6j-T6-1 (triage of controlled-substance-mode and serialisation-l3):** the command's own check that the second
+  custodian is another person (EBMR-CSM-022) and that a flag's approver is not its recorder (EBMR-CSM-006) stay as
+  defence in depth and are recorded as a later layer, not as equivalent: the kernel refuses the signature itself
+  (CONTROLLED_CUSTODY_COUNTERSIGNED is independent of CONTROLLED_CUSTODY_RECORDED and excludes the proposer;
+  CONTROLLED_PRODUCT_APPROVED excludes the recorder), so no valid signature reaches the command while those minimum
+  meanings hold. The kill test asserts the kernel's refusal (EBMR-ESIG) so that the source of the P1 rule is explicit.
+  A guard that only ever records an OPEN decommissioning task (tab.record_pool_rejection) is fail-closed: a malformed
+  L3 answer can only add a release block, so its validation survivors are recorded, not chased.
+
+#### 6j-b golden batches
+
+The golden cluster runs under the golden clock library (`tools/dev-env/golden-clock`, 3cec207) in place of libfaketime:
+the INTERNAL stops of earlier GB-T-01 runs were backends aborting because libfaketime read its file with `fopen` inside
+the time calls PostgreSQL makes from its timeout signal handler. CI's golden job builds it with `cc` and preloads it
+(replayed on a throwaway cluster: build, preload, offset and frozen forms, eight parallel 5 ms statement timeouts on a
+frozen clock without an abort). GB-T-01 and GB-T-02 ran three times in a row green with their exact outputs unchanged
+(15 min 56 s, 19 min 56 s, 19 min 13 s; no INTERNAL stop, no backend abort in the cluster's log and no device-nonce
+refusal; the 120-a-minute limit untouched, the test harness's wall-clock nonce pacer of PR #37 unchanged). GB-T-03 "connected" is new
+(`apps/tablets-server/test/golden/gb-t-03`, README there): GB-T-02's product serialised for the US, released for India
+and the US and recalled, at a site whose ERP/WMS, LMS, CMMS and L3/L4 systems are their simulators feeding the server's
+adapter workers, with PRESS-01 served by the OPC UA simulator through the site gateway; ten tests, exact outputs (three
+runs gave the same hashes), tagged DI-20, DI-31, DI-32, DI-49, PR-39, PR-42, PR-45, IN-05, IN-17, IN-29, PR-57, INV-05.
+The whole golden folder then ran three times in a row green on the golden cluster, 41 tests each (24 min 43 s,
+24 min 9 s, 24 min 18 s; GB-T-03 about 5.5 minutes of it). GB-T-03's performers hold the product training the LMS
+feeds, so the scenario does not depend on the fix of F-6jb-1 (6jc-R16, a product-limited requirement applies only to
+that product's batches); the final run after the merge checks it.
+
+- **D-P6j-b-1** The simulators and the site gateway preload the golden clock library on the cluster's file
+  (`EBMR_GOLDEN_CLOCK_LIB`; GB-T-03 is skipped without it), so the times they stamp are the database's. Why: a feed
+  message or an alarm is bound to the batch by its source time.
+- **D-P6j-b-2** The OPC UA series need increasing source times, so during the compression run the frozen clock runs on
+  at real speed (`runFromFrozen`) while the gateway connects, the reject burst is raised and cleared and a chunk of every
+  press tag lands; it is then frozen exactly ten minutes after the instant it stood at, taken from the twenty minutes
+  before the run's first weight check (every 25 minutes). Only what does not depend on the machine's speed is compared
+  (the accepted sessions, the alarm log, the tags with native chunks in the batch's context, raw values kept, refusals).
+  Why: the true copies keep one hash, and a slow runner fails loudly (the clock never moves back) instead of drifting.
+  The driver also waits until every press tag that moves while the turret turns (all but the mechanical fill depth) has
+  a chunk in the batch's context: reject.count first moves after 400 strokes (about 22 s), so whether it was in context
+  depended on how long the window lasted (seen on a loaded pod).
+- **D-P6j-b-3** The gateway runs as its own process (`apps/site-gateway/src/main.ts`) with one endpoint, its scale
+  unplugged and its uplink unreachable; only its OPC UA feed is used. The press alarm is the press's Alarms-and-Conditions
+  occurrence (REJECT_BURST) on that feed; a tag-limit excursion travels the gateway's process path (its uplink session to
+  a listening server), which GB-T-03 does not start. Why: the server under test answers in-process (inject), and the
+  alarm log and its acknowledgment are the same for both paths.
+- **D-P6j-b-4** The driver runs each adapter worker's cycle at fixed points (`Connected.sync`, the OPCUA worker until a
+  condition holds) instead of the server's 5 s timer. Why: the number and order of synchronisations would otherwise
+  depend on the machine's speed.
+- **D-P6j-b-5** The mirror modes go live under an approved configuration change record (steward raises it over HTTP, QA
+  signs CONFIG_CHANGE_APPROVED, a person granted PROCESS_OWNER through the access workflow sets each mode in a database
+  command under it). Why: no seeded persona holds PROCESS_OWNER; the change control is the real one, not the test
+  fixture record.
+- **D-P6j-b-6** GB-T-03 weighs the cellulose from the identity-tested lot GBT2-MCC-001 (a US batch needs an identity
+  result, IN-24), its bottle master is authorised for India, the US and the EU as GB-T-02's (so cartoning carries the
+  anti-tampering check the shared bottle order records), its calibrations come from the CMMS only (the logbook refuses
+  them in MIRROR, EBMR-PLANT-025). GB-T-02 takes these as optional parameters and runs act for act as before.
+- **D-P6j-b-7** The stale L3 mirror is shown on the US G-REL item E.RECONCILIATION_SERIAL before QA's review (RED with
+  the mirror named, GREEN after the next synchronisation); after the India release the US signer acknowledges the items
+  marked "since review" (finding F-6jb-g1). The recall's `resultSha256` (a digest over run-specific identifiers) is left
+  out of its normalised hash ("reproduces" checks it), and a lot code's batch number is replaced by its ordinal. The
+  calendar date in each instant's site-time text is replaced by its day from the run's start day (time, offset and zone
+  kept): the start is the next UTC midnight, so the date moved with the day of the run and a final run after midnight UTC
+  hashed differently (the same content with only that date changed gives the old hash).
+- **D-P6j-b-8** CI's golden job timeout is 60 minutes (GB-T-03 adds about 6 minutes locally, more on the runner).
+
+Finding for the 6j-c review and the owner:
+
+- **F-6jb-g1 (medium, usability; fail-safe)** The manufacturer release locks the records (recipe-core 0870,
+  FIRST_DISPOSITION), and the lock bumps the BATCH evidence epoch, so `tab.grel_changed_since` (tablets 1163) marks every
+  Tablets G-REL item resting on those records "since review" for the next market's signer although no evidence changed:
+  the US quality-control unit must acknowledge 8 items before its disposition (EBMR-DSP-038). Not changed here: whether
+  a lock counts as a change since review is a release-design decision.
+
+#### 6j-b browser flows
+
+Specs in `tools/e2e/specs/phase6` (arrangements in `support.ts`): `stale-mirror` (DI-31: the integration health page,
+fresh then stale and blocking; a stale LMS mirror refusing "Sign as performed" on the kiosk, accepted after the adapter
+synchronises), `alarms` (DI-49, INV-40: an EMS room alarm acknowledged at the kiosk with its comment, read in the batch's
+alarm log), `trends` (DI-32: the batch's native series, zoom and pan, then the same trend re-rendered on a server started on
+a database restored from its backup), `genealogy-recall` (PR-57, IN-07, IN-29: explorer both ways, mock recall to every
+consignee signed off by the AP), `controlled` (IN-53 draft: flag and its approval, dispensing proposed and signed by two
+different custodians, the second at the kiosk), `english-step` (decision 0018; no control).
+
+- **D-P6j-b-e2e-1** What no screen makes is arranged in the E2E database with the kernel's own commands under real
+  identities (adapter identities registered like devices, the mirror mode under a change record, a training coordinator
+  through the access workflow); rows only the receipt or ERP paths write are superuser inserts as the server tests make
+  them, inside a command of the demo set's stores person, keeping every foreign key and giving each lot its state, so
+  every read still answers within its contract and the database still restores (the trends flow restores it; the first
+  full run found both gaps). A flow that binds something to the shared review batch undoes its gate in its clean-up (the
+  alarm flow acknowledges its alarm if it failed first). `tools/e2e` depends on `@ebmr/kernel` for this. Why: no route
+  makes these rows, and the flows prove the screens, not the set-up.
+- **D-P6j-b-e2e-2** No adapter worker or simulator runs on the E2E stack: each adapter's messages go through its receiving
+  command under its own INTEGRATION identity, the worker's path below HTTP. The simulator-driven exchange under faults is
+  GB-T-03's and the demo's. Why: the E2E stack would otherwise need five more processes for checks the adapter tests make.
+- **D-P6j-b-e2e-3** The stale-mirror signature is refused on the sandbox kiosk (a TEST- batch of a dc-mini package); the
+  health page is the GMP one. Why: the E2E set-up leaves no GMP batch at a step, and its GMP floor needs cleaning,
+  clearance and occupancy first. Because a step signature names only the site (finding F-6jb-1), the flow records every
+  other possible performer as trained (INTERNAL) in the requirement's own command, so no other spec depends on its mirror.
+- **D-P6j-b-e2e-4** The alarm and the series come from the EMS for room DISP-1 with source times inside the review batch's
+  (ended) occupancy, a late report of the source; the eBMR binds them by source time. Why: a press (OPC UA) alarm binds
+  only to an open equipment use and the set-up leaves none; the OPC UA press excursion is GB-T-03's and the demo's.
+- **D-P6j-b-e2e-5** The DI-32 restored archive uses the kernel's backup path (dumpDatabase, verifyFixity,
+  restoreDatabase) into a database named like an E2E one, which the E2E set-up marks as a demo installation (a copy is not
+  one until marked, decision D6), and a second GMP server (`tools/demo` now exports `serverEnv`). Copy and server exist
+  only for the test.
+- **D-P6j-b-e2e-6** Controlled dispensing plans a GB-T-01 batch from an ERP order sent for the run; the planning binds the
+  batch to the oldest open matching order (in a fresh run PO-GBT01-0002), which the open-order list keeps showing. The flag
+  names only the run's own controlled material, so no other batch is affected (recipe-core 1033).
+- **D-P6j-b-e2e-7** Product changes the flows needed: the record review's navigation links are 24 px high (WCAG 2.2
+  target size; the flow's axe check found 22 px), with a computed-style test; the ceremony helpers wait for the exact
+  "Signed." banner (a refusal reads "Nothing was signed.", which the substring match accepted).
+- **D-P6j-b-e2e-8** The flows stay inside the stack's shared allowances without raising them: one page load per terminal
+  (a load identifies the terminal again, 60 a minute for the stack's one address), then the home tiles and in-app links;
+  the reading flows sign in as the head of QC, whom no other spec signs in (sign-ins count per user ID, 10 a minute,
+  and the QA reviewer personas sign in often in the release specs). Found by two full runs that failed other specs.
+- **Findings and residuals (for the lead and the owner):**
+  - **F-6jb-1** A step signature's authority scope names only the site (the batch-step signing content of recipe-core,
+    `'scope', {site}` since 0210), not the batch's product (`plant.batch_scope`). A qualification requirement limited to
+    a product therefore binds every step signature of the site (fails closed: over-restrictive, never permissive). Seen on
+    the sandbox kiosk: a requirement left for another product refused "Sign as performed" with MISSING_QUALIFICATION.
+    GB-T-03's product training would refuse performers of other products. Fix in recipe-core (not in this slice's range).
+  - **F-6jb-2** The floor's refusal of a stale-mirror signature names `STALE_QUALIFICATION_SOURCE:<qualification>` but not
+    the mirror, its age or who to call (6a screens item); `iam.lms_mirror_problem()` has no caller.
+  - The health page writes source systems as words ("Lms", "call the Lms system owner"): cosmetic.
+- **D-P6j-T1-1** (mutation triage T1: equipment-data-and-alarms, plant-rules) A kill test matches the refusal's message,
+  not only its code, where a later layer refuses with the same code (the OPC UA data guard's EBMR-EQD-002, the chunk
+  hash's EBMR-EQD-001): otherwise the mutant's later refusal passes the test.
+- **D-P6j-T1-2** A defence-in-depth clause that only an owner-level write reaches (plant.opcua_data_guard, the relocation
+  clauses of plant.opcua_unit_problem and of the session verdict) is killed by an owner-level write test, not recorded
+  as equivalent: an owner-level writer is an input.
+- **D-P6j-T1-3** The plant-rules confirmation run waits until the group's first run on stream p6-3 has finished (65 of
+  221 mutants at triage); one --only run then covers the tests written here and the later survivors.
+- **D-P6j-T7-1** (mutation triage T7: the Stryker survivors) A handler's `requireSession()` whose removal survives is
+  defence in depth, not a gap: `bindRoutes` refuses a SESSION route without a live session (`admitSession`) before the
+  handler runs. Recorded in one line, no test.
+- **D-P6j-T7-2** A mutant that an existing test of the same package kills, but in a folder outside the feature's test
+  list (`stryker.phase6.config.mjs`), is recorded as killed by that test after a hand-applied check; the feature's
+  test list is not widened during the campaign (decision 0019: no re-run).
+- **D-P6j-T9-1** (mutation triage T9: governance-change-control, governance-support-and-contract-giver and four Stryker
+  features) A SQL group that holds a function re-created from an earlier phase (here `iam.authn_resolve`, from kernel
+  0160) lists the test files that test that function's earlier behaviour too (`identity/access`, `identity/accounts`,
+  `mutation/authentication-events`); the group's list in `tools/sql-mutation/src/targets.ts` is widened, since the SQL
+  harness reads it per run and the group's one confirmation run then shows which survivors were only out of the list.
+- **D-P6j-T9-2** A refusal that only a role segregation makes unreachable (the support-grant requester or engineer as an
+  approver, EBMR-IAM-188) is recorded as defence in depth with a test that proves the segregation itself, not as an
+  equivalent mutant.
+- **D-P6j-T12-1** (mutation triage T12: server-integrations and gateway-opcua, which did not finish in the box) A feature
+  without a usable Stryker report is triaged by its high-risk files' Priority 1 decisions: each is (a) also enforced by the
+  database (named, one line) or (b) TypeScript only, then hand-mutated, run against the narrowest test file and reverted; a
+  survivor gets a test in the package's own test files. The features stay residuals under decision 0019 (no re-run).
+- **D-P6j-T12-2** A P2 finding outside the P1 question (the worker's refused-key memory keyed on the stated hash, R-T12-1) is
+  recorded for the owner rather than fixed in a triage commit; a P2 defect whose fix is a TypeScript change of a few tokens
+  and whose test is already written (the OPC UA ids cut before keying) is fixed.
+- **D-P6j-T12-3** (lead) R-T12-1 is fixed now as defect M6-D2 (high, DI-31: an intact resend after a hash-mismatch
+  refusal must land). The worker remembers a refused item by the SHA-256 of the whole item as received, so only the same
+  item repeated is a duplicate; no migration, since a refusal does not reserve the key in the database (kernel 1180
+  checks the key among accepted messages only, EBMR-INT-005 unchanged). Supersedes D-P6j-T12-2 for this finding.
+- **D-P6j-T13-1** (mutation triage T13: the Phase 4 server features of part 2) The batch's retention facts
+  (`archive/facts.ts`) and the route's dependency links are triaged as Priority 1 TypeScript-only rules, although facts.ts
+  is in the feature's other zone: the database stores retention inputs and links as given, so a wrong mapping dates a
+  batch record too early (DI-47). Both now have killing tests.
+- **D-P6j-T13-2** Defect M6-D3 (the archive's retention view read `records.retention_of`, which tablets 0460 / F34 keeps
+  from the application role) is fixed in the triage commit series, since the fix is a short TypeScript change and its
+  test was already written, as D-P6j-T12-2 allows. Severity high: no data loss and no control bypassed, but a batch with a
+  stored retention could no longer be opened in the archive or exported. F34 is not reopened: the view reads the same
+  values from what the role may read.
+- **D-P6j-T13-3** The stored-retention test builds its preconditions (an approved batch-record type, a packaging
+  allocation under its parent) as fixtures written with the triggers off, labelled "Fixture, not proof", as
+  `archive-routes.test.ts` already does for the licence basis. The define-and-approve workflow and the allocation rules
+  are proved in their own tests.
+
+#### 6j exit demo (branch `phase-6/slice-6j-demo`, 17 October)
+
+- `pnpm demo:phase6-exit` (tools/e2e/demo/run.ts) runs the demo list above as one command and writes the dated record
+  `docs/build-plan/phase-6/exit-demo.md` with its screenshots in `exit-demo/` (per item: what was done, what each step
+  measured, times, PASS or FAIL). Re-runnable: every name is unique per run, so ids and hashes change, outcomes do not.
+- **D-P6j-D-1** The demo is a Playwright project outside the browser suite (`tools/e2e/playwright.demo.config.ts`; the
+  suite's config reads `specs/` only, so its counts do not change): the demo's own flows (`tools/e2e/demo/*.demo.ts`,
+  tagged `@demo`) and the 6j-b mock recall, controlled dispensing and English step flows as they are. Item 7 runs as a
+  vitest file outside the suite's projects (`vitest.demo.config.ts`, `apps/tablets-server/test/demo/transfer.demo.ts`):
+  two GMP servers on HTTP as the 6i route tests run them (the E2E stack has one GMP and one sandbox installation).
+- **D-P6j-D-2** The connected stack (`tools/e2e/demo/global-setup.ts`) is the E2E stack plus every simulator as its own
+  process and the adapters started by the GMP server itself (service-keys entries with the feed endpoint, MIRROR modes
+  under the E2E change record, before the server starts). The integrations feature, and so every adapter worker and the
+  integration health page, is GMP's (features/index.ts), so the fault exchange runs on GMP. The stale-mirror step
+  signature is on a TEST- batch at the sandbox kiosk (as in 6j-b): there the LMS data arrives through the adapter's
+  receiving command called as the registered adapter identity, since no adapter worker runs on the sandbox.
+- **D-P6j-D-3** The stale LMS mirror is shown in real time: the LMS mirror bound is set to its minimum (60 s, the
+  change-controlled `integration.mirror_max_age_s.lms_qualification`) and no synchronisation follows until the bound
+  has passed; the 6j-b flow moves the last synchronisation into the past instead. The bound goes back to 3600 s before
+  the next synchronisation, so the accepted signature does not race the 60 s.
+- **D-P6j-D-4** Item 2 uses the press's REJECT_BURST on the OPC UA feed (OPC UA simulator, a GMP site gateway holding the
+  enrolled endpoint, the GMP server's OPCUA adapter), as GB-T-03 does (D-P6j-b-3). A tag-limit excursion over the
+  gateway's process uplink is not shown: the GMP server of the demo stack runs no gateway listener (only the sandbox
+  server does), and building that path was outside the demo's time box. The press's use by the review batch is
+  arranged (an open equipment use after its verified cleaning), so the alarm binds to that batch.
+- **D-P6j-D-5** Screenshots of the record are JPEG at quality 50 (`EBMR_E2E_EVIDENCE_JPEG=1` in the evidence fixture);
+  the evidence reporter also keeps a failed test's first error and JPEG screenshots.
+
+- **D-P6j-T11-1** (mutation triage T11: part 2, scope A and B, us-disposition, qp-certification, market-changes) A
+  near miss a confirmation run showed missing, and a group's survivors that arrived after its one confirmation run, get
+  their kill test without a second run; the results name them "added after the confirmation run, not re-run".
+  Confirmation runs are not run while another heavy test file uses the same cluster (a 30 s case timed out at baseline
+  once; that attempt ran no mutant and was repeated).
+- **D-P6j-T11-2** A refusal that the same function repeats a few lines later with the same code (EBMR-DSP-018 of a
+  market removal, the market checks of the US disposition repeated by its caller and its insert) is P3, not equivalent:
+  the message differs.
+
+- **D-P6j-L-1** (lead; the mutation campaign, decision 0019) The campaign started while the recall-hash test fix of GB-T-03
+  (575bdc78) was being made. That fix touched only the golden test; the second final run covers it.
+- **D-P6j-L-2** (lead) Part 2's SQL first runs started on clusters part 1 had freed, to use the pod; each part's time box is
+  counted from its own start.
+- **D-P6j-L-3** (lead, owner's instruction of 17 October) The whole SQL re-run of the 80 earlier groups (about 128 worker
+  hours) was not run: it is beyond part 2's box. Residual.
+- **D-P6j-L-4** (lead) Stream p4-d was stopped at 07:47 under part 2's box. bulk-and-bright-stock and
+  execution-complete-forms keep their Phase 4 scores. Residual.
+- **D-P6j-L-5** (lead) Each parallel Stryker stream runs in its own worktree at the campaign commit: parallel runs in one
+  worktree copied each other's sandboxes and failed (rc=1 and timeouts).
+- **D-P6j-L-8** (lead) The lot-code numbering defect M6-D1 (found by T2; site services 1002) is fixed under decision 0008,
+  although it is not Priority 1: it stops all receiving for the rest of the day.
+- **D-P6j-L-6, -7, -9** are already recorded: 6jc-R8 raised to high (D-P6j-c-3), 6jc-R16 (F-6jb-1) fixed in 6j-c
+  (D-P6j-c-4) and R-T12-1 fixed as M6-D2 (D-P6j-T12-3); not repeated.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

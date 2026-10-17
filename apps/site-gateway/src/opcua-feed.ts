@@ -165,8 +165,9 @@ export class OpcuaFeed {
         const last = c.samples[c.samples.length - 1];
         void this.publish('opcua.series_chunk', `${c.subjectCode}/${c.tag}/${c.chunkNo}`, last?.sourceTime ?? '0', c);
       },
-      alarm: (a: EquipmentAlarmV1) => void this.publish('opcua.alarm', `alarm/${a.occurrenceId}/${a.transition}`.slice(0, 128), a.occurredAt, a),
-      event: (e: EquipmentEventV1) => void this.publish('opcua.equipment_event', `event/${e.eventId}`.slice(0, 128), e.occurredAt, e),
+      // The whole id names the message (its idempotency key); only the envelope's sourceRecordId is cut to 128 (publish).
+      alarm: (a: EquipmentAlarmV1) => void this.publish('opcua.alarm', `alarm/${a.occurrenceId}/${a.transition}`, a.occurredAt, a),
+      event: (e: EquipmentEventV1) => void this.publish('opcua.equipment_event', `event/${e.eventId}`, e.occurredAt, e),
     };
   }
 

@@ -11,12 +11,13 @@
  * designer API (this worker's `dcMiniPackage`, or a variant the test makes itself when the standard record cannot
  * reach the rule it proves), so none of them depends on another spec.
  */
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { routes } from '@ebmr/api-contract';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
 import type { SeededPersona } from '@ebmr/test-kit';
-import { axe, cspViolations, expect, pin, readerTap, signIn, test } from '../../fixtures/index.ts';
+import { axe, cspViolations, expect, signIn, test } from '../../fixtures/index.ts';
 import { packageTag, pageApi, valueOf } from '../../fixtures/test-package.ts';
+import { choose, issueTestBatch, open, recordClearanceEntries, signWithCeremony, startWithTap, tapBadge } from '../../fixtures/floor.ts';
 
 const RUN = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 
@@ -68,11 +69,6 @@ async function smallTargets(page: Page): Promise<string[]> {
     }
     return out;
   });
-}
-
-async function open(page: Page, base: string, path: string): Promise<void> {
-  await page.goto(`${base}${path}`);
-  await expect(page.getByRole('note', { name: 'TEST, NOT GMP' })).toBeVisible();
 }
 
 test.describe('floor screens on a kiosk (execution API answered from the contract examples)', () => {
@@ -134,51 +130,6 @@ test.describe('floor screens on a kiosk (execution API answered from the contrac
 // ---------------------------------------------------------------------------------------------
 // Live (checkpoint D5 onward)
 
-/**
- * A badge tap into C1's badge prompt (keyboard-wedge burst and Enter). The prompt's field is a password input,
- * so it is found by its label rather than as a textbox.
- */
-async function tapBadge(page: Page, who: SeededPersona): Promise<void> {
-  if (!who.badgeUid) throw new Error(`${who.key} has no badge`);
-  const field = page.getByLabel('Badge', { exact: true }).last();
-  await expect(field).toBeVisible();
-  await field.focus();
-  await readerTap(page, who.badgeUid);
-}
-
-/** Chooses a react-aria radio the way a person does: its label covers the input, so the label is what is tapped. */
-async function choose(radio: Locator): Promise<void> {
-  await radio.locator('xpath=ancestor::label[1]').click();
-  await expect(radio).toBeChecked();
-}
-
-/**
- * Imports the package (when it is not imported yet) and issues a TEST- batch of it through the floor screens, as
- * the batch issuer on the sandbox PC; returns the run id.
- */
-async function issueTestBatch(page: Page, base: string, packageHash: string): Promise<string> {
-  await open(page, base, `/packages?package=${packageHash}`);
-  await expect(page.getByRole('heading', { name: 'Test-run packages' })).toBeVisible();
-  const item = page.getByTestId(`package-${packageHash}`);
-  const importButton = item.getByRole('button', { name: 'Import' });
-  const issueLink = item.getByRole('link', { name: 'Issue a test batch' });
-  await expect(importButton.or(issueLink)).toBeVisible();
-  if (await importButton.isVisible()) await importButton.click();
-  await issueLink.click();
-  await expect(page.getByRole('heading', { name: 'Issue a test batch' })).toBeVisible();
-  await choose(page.getByRole('radiogroup', { name: 'Batch size (approved sizes only)' }).getByRole('radio').first());
-  for (const group of await page.getByRole('radiogroup').all()) {
-    if ((await group.getByRole('radio', { checked: true }).count()) === 0) await choose(group.getByRole('radio').first());
-  }
-  // Every header input the form asks for (dc-mini: the batch size in tablets, a COUNT sent as text).
-  for (const input of await page.getByRole('textbox').all()) {
-    if ((await input.inputValue()) === '') await input.fill('100000');
-  }
-  await page.getByRole('button', { name: 'Issue the test batch' }).click();
-  await expect(page).toHaveURL(/\/runs\/[0-9a-f-]{36}$/);
-  return new URL(page.url()).pathname.split('/').pop() ?? '';
-}
-
 type Json = Record<string, unknown>;
 
 /** The phase with this id anywhere in the procedure of MBR content (JSON as the designer holds it). */
@@ -232,17 +183,6 @@ async function exportDcMiniVariant(page: Page, gmpOrigin: string, workerSet: num
   return pkg.packageHash;
 }
 
-/** A signature through C1's ceremony: the content review, Sign, the signer's badge tap, the PIN on the keypad. */
-async function signWithCeremony(page: Page, who: SeededPersona): Promise<void> {
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('button', { name: 'Sign', exact: true })).toBeVisible();
-  await dialog.getByRole('button', { name: 'Sign', exact: true }).click();
-  await tapBadge(page, who);
-  await pin.enter(page, who.pin ?? '');
-  await expect(dialog.getByText('Signed.')).toBeVisible();
-  await dialog.getByRole('button', { name: 'Close' }).click();
-}
-
 /**
  * Switch user on the kiosk (decision D2): the "Switch user" button, the next person's badge tap and PIN; C1's identity
  * banner names them.
@@ -255,14 +195,6 @@ async function switchUser(page: Page, who: SeededPersona): Promise<void> {
   for (const digit of who.pin ?? '') await pad.getByRole('button', { name: digit, exact: true }).click();
   await pad.getByRole('button', { name: 'OK', exact: true }).click();
   await expect(page.getByTestId('identity')).toContainText(`${who.legalName} (${who.loginName})`);
-}
-
-/** Starts the step on show with the operator's badge tap. */
-async function startWithTap(page: Page, who: SeededPersona): Promise<void> {
-  await expect(page.getByTestId('primary-action')).toHaveText('Start step');
-  await page.getByTestId('primary-action').click();
-  await tapBadge(page, who);
-  await expect(page.getByTestId('step-card').getByText(/^Saved: Start step/)).toBeVisible();
 }
 
 /** The parameter of the PR-08 variant: dc-mini's blend time, under its own id, recorded by hand at the first step. */
@@ -285,19 +217,6 @@ function withParameterAtClearance(content: Json): void {
   clearance['records'] = [...(clearance['records'] as string[]), HOLD_TIME];
   const signatures = clearance['signatures'] as { check: { meaning: string; role: string } };
   signatures.check = { ...signatures.check, meaning: 'WITNESSED' };
-}
-
-/** Records every entry form of the step on show (clearance: the checklist and the previous batch), a tap each. */
-async function recordClearanceEntries(page: Page, who: SeededPersona): Promise<void> {
-  await expect(page.getByTestId('form-CLEARANCE_CHECK').getByRole('radiogroup').first()).toBeVisible();
-  await expect(page.getByTestId('form-PREVIOUS_BATCH')).toBeVisible();
-  for (const form of await page.locator('[data-testid^="form-"]').all()) {
-    for (const group of await form.getByRole('radiogroup').all()) await choose(group.getByRole('radio').first());
-    for (const box of await form.getByRole('textbox').all()) await box.fill('TEST-E2E');
-    await form.getByRole('button', { name: /^Save/ }).click();
-    await tapBadge(page, who);
-    await expect(form.getByText(/Saved:/)).toBeVisible();
-  }
 }
 
 test.describe('floor screens against the live sandbox (after checkpoint D5)', () => {

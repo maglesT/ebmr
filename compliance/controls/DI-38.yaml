@@ -233,6 +233,9 @@ tests:
   - "packages/kernel/test/mutation/signing-failure-and-reasons.test.ts > esig.signing_misuse: what a logged refusal accuses (DI-19, kernel 0950) > [DI-19][DI-38] an authentication recorded at the very instant of the challenge is not pre-signing: the attempt is logged without misuse, and such an event signs"
   - "packages/kernel/test/mutation/signing-failure-and-reasons.test.ts > esig.signing_misuse: what a logged refusal accuses (DI-19, kernel 0950) > [DI-19][DI-38] the components a signing needs come from the challenge's own signature type and version: the private component alone is misuse for a version that needs all components, not for one the relaxation covers"
   - "apps/tablets-web/test/access/two-row-ceremony.test.tsx > the two-row ceremony (D-P4-5) > [D-P4-5][DI-38] office: both texts loaded and both meanings shown, a challenge for each, the credentials sent once with the companion challenge"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > authentication methods and purposes (DI-14, DI-38) > [DI-14][DI-38] a badge tap only attributes an entry; a service key only logs in; a signature needs two components; an unknown method or purpose is refused"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > authentication methods and purposes (DI-14, DI-38) > [DI-14][DI-38] an account without an active credential of the method is refused before any secret is compared, whatever the secret"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10][DI-38] a signing DSC that claims the signer's enrolled certificate while its chain carries another certificate is refused"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:

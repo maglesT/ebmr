@@ -5,6 +5,7 @@
  * prepared templates only when EBMR_SERVER_TEMPLATES names them, and the check run the weekly workflow publishes for a
  * group.
  */
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -24,19 +25,21 @@ import {
   checkDefinition,
   copyTemplate,
   definitionsFor,
+  earlierResult,
   failures,
   highestDatabaseOid,
   loadDefinitions,
   privilegeDifferences,
   projectOf,
   sqlSources,
+  staleEquivalent,
   sweepLeftovers,
   testsByProject,
   testsFor,
   writeServerTemplates,
   type Result,
 } from '../src/run.ts';
-import { TARGETS } from '../src/targets.ts';
+import { LEFT_OUT, TARGETS } from '../src/targets.ts';
 
 const ROOT = new URL('../../../', import.meta.url).pathname;
 type SiteSeed = ServerTemplates['gmp']['seed'];
@@ -140,6 +143,78 @@ describe('the definitions the harness mutates', () => {
     // The Phase 1 groups' kill tests are picked up by group name.
     const signing = TARGETS.find((x) => x.group === 'signing');
     expect(testsFor(signing!)).toContain('packages/kernel/test/mutation/signing.test.ts');
+    // Site services' kill tests too, named once even when the group lists them.
+    const licences = TARGETS.find((x) => x.group === 'india-licences');
+    expect(testsFor(licences!).filter((f) => f === 'packages/site-services/test/mutation/india-licences.test.ts')).toHaveLength(1);
+  });
+
+  it('[meta] every function a migration since the Phase 6 start defines is in a group or left out with its reason (decision 0019)', () => {
+    // The first migration of Phase 6 in each SQL directory (phase-6-plan.md, migration ranges).
+    const from: Record<string, string> = {
+      'packages/kernel/sql': '1180', 'packages/site-services/sql': '0910', 'packages/recipe-core/sql': '0940', 'apps/tablets-server/sql': '1210',
+    };
+    const since = new Set<string>();
+    for (const d of loadDefinitions().values()) {
+      const dir = d.file.slice(0, d.file.lastIndexOf('/'));
+      const start = from[dir];
+      if (start !== undefined && (d.file.split('/').pop() ?? '') >= start) since.add(d.name);
+    }
+    // Phase 6 also re-created functions whose last definition is later still; every Phase 6 file is covered by the cut.
+    expect(since.size).toBeGreaterThan(350);
+    const grouped = new Set(TARGETS.flatMap((t) => t.functions));
+    expect([...since].filter((f) => !grouped.has(f) && LEFT_OUT[f] === undefined).sort()).toEqual([]);
+    // A left-out function is in no group and is still defined.
+    expect(Object.keys(LEFT_OUT).filter((f) => grouped.has(f))).toEqual([]);
+    expect(Object.keys(LEFT_OUT).filter((f) => !since.has(f))).toEqual([]);
+  });
+});
+
+describe('equivalents, resumed runs and the function filter', () => {
+  it('[meta] an equivalent entry fits only the mutant it was written for: the place it cites is the mutant\'s migration and line', () => {
+    const at = { file: 'packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql', line: 290 };
+    expect(staleEquivalent('recipe-core 0950:290, `<=` becomes `<`.', at)).toBeUndefined();
+    expect(staleEquivalent('0403:339 (0950:290 since 0950 re-created it), `<=` becomes `<`.', at)).toBeUndefined();
+    expect(staleEquivalent('recipe-core 0403:339, `<=` becomes `<`.', at)).toBe('cites 0403:339; the mutant is at 0950:290');
+    expect(staleEquivalent('0950:291, the next line.', at)).toBe('cites 0950:291; the mutant is at 0950:290');
+    // An entry that cites no place cannot be checked and stays applied; one whose mutant is gone never applies.
+    expect(staleEquivalent('the coalesce default is never taken', at)).toBeUndefined();
+    expect(staleEquivalent('0950:290', undefined)).toBe('no such mutant in the current definition');
+  });
+
+  it('[meta] the checked-in equivalents name only mutants of the current definitions where they are in a Phase 6 group', () => {
+    const equivalents = JSON.parse(readFileSync(join(ROOT, 'tools/sql-mutation/equivalent.json'), 'utf8')) as Record<string, string>;
+    const defs = loadDefinitions();
+    const mutants = new Map([...defs.values()].flatMap((d) => mutantsOf(d).map((m) => [m.id, m] as const)));
+    // The functions Phase 6 re-created in earlier groups: their entries were renumbered at the Phase 6 exit.
+    for (const id of ['plant.record_calibration#6', 'recipe.genealogy_downstream_lots#1']) {
+      expect(equivalents[id], id).toBeDefined();
+      expect(staleEquivalent(equivalents[id] ?? '', mutants.get(id)), id).toBeUndefined();
+    }
+    expect(equivalents['plant.record_calibration#5']).toBeUndefined();
+  });
+
+  it('[meta] a resumed run keeps an earlier result only for the same mutation of the same group', () => {
+    const m = { id: 'demo.f#3', function: 'demo.f', file: 'x/0100_a.sql', line: 7, operator: 'RELATIONAL' as const, original: '<', replacement: '<=' };
+    const r: Result = { ...m, group: 'g', status: 'KILLED', ms: 1 };
+    expect(earlierResult([r], 'g', m)).toBe(r);
+    expect(earlierResult([r], 'other', m)).toBeUndefined();
+    expect(earlierResult([r], 'g', { ...m, line: 8 })).toBeUndefined();
+    expect(earlierResult([r], 'g', { ...m, replacement: '>' })).toBeUndefined();
+    expect(earlierResult([r], 'g', { ...m, id: 'demo.f#4' })).toBeUndefined();
+  });
+
+  it('[meta] --functions runs only the named functions\' mutants, in the groups that hold them, and refuses a name no planned group holds', () => {
+    const run = (...args: string[]) => spawnSync(join(ROOT, 'node_modules/.bin/tsx'), [join(ROOT, 'tools/sql-mutation/src/run.ts'), '--count', ...args], { cwd: ROOT, encoding: 'utf8' });
+    const defs = loadDefinitions();
+    const n = [...defs.values()].filter((d) => d.name === 'recipe.pqr_run_query').reduce((a, d) => a + mutantsOf(d).length, 0);
+    const one = run('--group', 'pqr-extract,release-gate', '--functions', 'recipe.pqr_run_query');
+    expect(one.status, one.stderr).toBe(0);
+    expect(one.stdout).toContain(`pqr-extract: ${n} mutants`);
+    expect(one.stdout).not.toContain('release-gate:');
+    expect(one.stdout).toContain(`total: ${n} mutants in 1 groups`);
+    const stray = run('--group', 'release-gate', '--functions', 'recipe.pqr_run_query');
+    expect(stray.status).not.toBe(0);
+    expect(stray.stderr).toContain('--functions names functions no planned group holds: recipe.pqr_run_query');
   });
 });
 

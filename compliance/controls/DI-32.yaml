@@ -216,6 +216,28 @@ tests:
   - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] a unit's window is read page by page by chunk number and drawn once every page is in"
   - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] samples are ordered by source time across chunks and times keep every microsecond"
   - "packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts > OPC UA endpoint identity (DI-20) > [DI-32] a chunk is held as received and as the checked series row; the audit trail holds the row hash only (D-P6b-A-1)"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-20][DI-32][DI-49] the OPC UA press reports its enrolled endpoint's session and native series of the compression through the site gateway, and its reject-burst alarm is acknowledged with a comment in the batch's alarm log"
+  - "tools/e2e/specs/phase6/trends.spec.ts > [DI-32] the trend viewer draws a batch's room series from the native samples as received, zooms and pans; after a backup and restore of the database the same trend re-renders interactively from the restored chunks @office"
+  - "apps/site-gateway/test/opcua-driver.test.ts > the OPC UA driver and feed: what only the gateway can check (T12) > [DI-31][DI-32] the process view: refused while the session is lost (never the last values); a BAD sample shows no value; a doubtful setpoint is not shown; the active alarms of the unit's tags are passed on"
+  - "apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts > OPC UA readings checked in the database (tablets 1210) > [DI-31][DI-32] the request and each native original record are refused for each malformed field on its own; a raw value of 40 characters is taken"
+  - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > native series (DI-32, DI-31) > [DI-31][DI-32] a chunk is refused for each malformed chunk field and each malformed sample field on its own; a raw text of 64 characters is taken"
+  - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > native series (DI-32, DI-31) > [DI-32] a chunk that ends where a recorded chunk begins, or begins where one ends, overlaps it"
+  - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > original records of simple devices (DI-32) > [DI-32] an original record names a known device and batch and states its capture, step, value and unit, one clause at a time; it is kept on that device"
+  - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > original records of simple devices (DI-32) > [DI-32] raw text states the shown decimal exactly or not at all: no null, no malformed raw or shown text, no rounding"
+clauses:
+  - clause: "A weighing with direct capture stores a raw string that matches the display."
+    tests:
+      - "apps/tablets-server/test/devices/reading-proof.test.ts > P48: the database proves the signature and the raw line of every reading it stores > [DI-32] a genuinely signed reading whose raw line states another weight than its value is refused and not stored"
+      - "apps/tablets-server/test/devices/ingest.test.ts > ingestion > [DI-32] a raw line that does not state exactly the reading value is refused"
+      - "apps/tablets-server/test/devices/routes.test.ts > capture > [DI-32] a capture returns the reading as the server stored it: device, raw line, value, source time and trust"
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] an OPC UA reading stores raw output equal to the displayed value; a raw output that rounds to it is refused"
+  - clause: "A weighing with a printed ticket shows the ticket linked."
+    tests:
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] a printed ticket is linked to its weighing"
+  - clause: "Trend data from a restored archive can be re-rendered interactively."
+    tests:
+      - "apps/tablets-web/test/plant-status/trends.test.tsx > trend viewer (DI-32) > [DI-32] trend data from a restored archive re-renders interactively"
+      - "packages/recipe-core/test/integrations/plant-alarms-series.test.ts > native series and original records (DI-32) > [DI-32] trend data are kept in native form: raw values, source timestamps and status codes as received, the chunk hash recomputed, linked to the batch and step"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -45,15 +45,17 @@ tests:
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [IN-01][PR-51] a CAPA from a deviation has a generated reference, its source, owner, due date and an effectiveness check, and links both ways"
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [IN-01] a 90-day effectiveness check is overdue on day 91"
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [PR-51][IN-01] a CAPA closes only once implemented and proven effective, by QA other than its initiator"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [IN-01][PR-51] raise_capa refuses each missing or malformed part with its own message, and takes the limits inclusively"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [IN-01][PR-51] links, implementation, checks and results: each command refuses the wrong state and the missing part"
 clauses:
   - clause: "run the PQR extract for a product with domestic and export-only batches; all appear."
     tests:
       - "packages/recipe-core/test/release/pqr-extract.test.ts > the PQR extract (IN-01, PR-58) > [IN-01][PR-58] the extract of a product and period includes domestic and export-only batches, their lots, market removals, deviations with CAPA as recorded and the change records, and reconciles to the registers"
       - "apps/tablets-web/test/pqr/pqr.test.tsx > PQR extract screens (IN-01, PR-58) > [IN-01][PR-58] an extract shows its hash, that it reproduces, the reconciliation, the export-only batch and the market removal, and the deviations with CAPA"
   - clause: "Create a CAPA with a 90-day effectiveness check; it appears as overdue on day 91."
-    deferred:
-      phase: 6
-      reason: "There is no CAPA register with effectiveness checks yet (CAPA references only, slice 6c residual d); it is built in Phase 6 (owner decision 0011)."
+    tests:
+      - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [IN-01] a 90-day effectiveness check is overdue on day 91"
+      - "apps/tablets-web/test/capa/capa.test.tsx > CAPA screens (IN-01 (d), PR-51) > [IN-01] the register flags an overdue CAPA and an overdue effectiveness check; QA raises a CAPA with its check"
 expert_decision:
   status: PENDING
   pack_version: "0.9"

@@ -43,6 +43,15 @@ tests:
   - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [IN-29] a mock recall with one site down is marked incomplete, and complete once the site answers again"
   - "apps/tablets-web/test/transfers/transfers.test.tsx > federated genealogy (PR-57, IN-29) > [IN-29] a mock recall with one site down is shown incomplete with the last excerpt; QA asks the sites again"
   - "packages/site-services/test/transfer/transfer.test.ts > review 6i: one hop and clock skew (recipe-core 1092) > [IN-29] a destination's part that reaches a further transfer leaves the mock recall incomplete (one hop, D-P6i-0-7)"
+  - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [IN-29][PR-57] the mock recall from the API lot reaches the batch, the order, the finished lot and both consignees of the ERP's shipments, reproduces, and is signed off by the AP"
+  - "tools/e2e/specs/phase6/genealogy-recall.spec.ts > [IN-29][PR-57] the head of QC runs a mock recall from the API lot to every consignee; it reproduces, reconciles delivered against returned, and the authorised person signs it off through the ceremony @office"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [PR-57][IN-29] every edge kind, from each node in both directions as of the instant it happened, and nothing else (no unsealed package, no charge into the own batch)"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [IN-29][PR-57] a mock recall as of T holds every lot with its deliveries in the lot's unit and its own returns only, and the outbound transfer"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29] an unknown run is refused for itself"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] signing one run off leaves another in state RUN, so the other is still signed in the state it is in"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] a run that no longer reproduces as of its own instant (a transaction straddled it) is not signed off, even with a valid signature"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29] a signer holding the sign-off permission through another role than the AP's is refused"
+  - "packages/site-services/test/mutation/transfer-and-federation.test.ts > acts with no other test in the group (kernel 1220, 1221, site services 0980, recipe-core 1091) > [IN-29] a mock recall records for a transfer only the destination's forward excerpt of that transfer, with a known status"
 clauses:
   - clause: "from a defective API lot, list every finished batch"
     tests:

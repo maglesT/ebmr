@@ -71,6 +71,7 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25] the signed content of a cleaning: version 1 while started, 2 once completed; a manual cleaning names who entered it, a CIP cleaning nobody"
   - "packages/recipe-core/test/plant/area.test.ts > out of service, bypass attempts and the logbook > [DI-28][IN-25] a back-dated logbook entry is impossible: the application role writes no logbook row, and a row written below it with a past time is stored at the database time, which never changes after"
   - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the CMMS mirror at equipment use (DI-31, IN-25, PR-23) > [DI-31][IN-25] CMMS work orders reach the use guard: a unit under maintenance or past its preventive due date is refused"
+  - "packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts > the CMMS receiving commands (DI-31, IN-25, PR-23; recipe-core 0950) > [DI-31][IN-25] maintenance: each malformed field is refused; staleness is per unit and work order, an equal timestamp is stale; preventive work due today does not stop the unit"
 clauses:
   - clause: "use a balance with calibration past due; the weighing step is blocked."
     tests:

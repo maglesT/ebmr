@@ -61,9 +61,16 @@ describe('authority on every writer (DI-17, DI-18)', () => {
     });
     expect(missing.map((r) => r.fn)).toEqual([]);
     // The helper gates hold the kernel checks themselves.
-    const helper = async (name: string) => (await db.admin.query<{ src: string }>("select prosrc as src from pg_proc where oid = $1::regproc", [name])).rows[0]?.src ?? '';
-    expect(await helper('recipe.execution_actor')).toContain('iam.assert_not_administrator()');
-    expect(await helper('recipe.require_command_permission')).toContain('iam.require_permission(');
+    // Every overload of each (recipe-core 1100 adds the batch forms of 6jc-R16), so a new one cannot drop the check.
+    const helper = async (name: string) => (await db.admin.query<{ src: string }>(
+      "select p.prosrc as src from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname || '.' || p.proname = $1",
+      [name])).rows.map((r) => r.src);
+    const executionActor = await helper('recipe.execution_actor');
+    const commandPermission = await helper('recipe.require_command_permission');
+    expect(executionActor.length).toBeGreaterThan(0);
+    expect(commandPermission.length).toBe(2);
+    for (const src of executionActor) expect(src).toContain('iam.assert_not_administrator()');
+    for (const src of commandPermission) expect(src).toContain('iam.require_permission(');
     const known = new Set((await db.admin.query<{ code: string }>('select code from iam.permission')).rows.map((r) => r.code));
     const cited = writers.flatMap((r) => [...r.src.matchAll(/'([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*)'/g)].map((m) => m[1] ?? ''));
     const commandPermissions = (await db.admin.query<{ p: string }>('select distinct unnest(permissions) as p from recipe.execution_command_permission')).rows.map((r) => r.p);

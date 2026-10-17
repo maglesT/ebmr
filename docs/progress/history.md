@@ -2638,3 +2638,65 @@ suite had one timing flake (keyed-badge) that passes alone. Demo stack started a
 Slice 6c, merge of main with slice 6g (PR #39, 16 October): conflicts in routes and examples (dashboards, changeImpact,
 training beside labels and serialisation), trace deferrals (both sections), PROGRESS and history (both entries);
 handbook regenerated. No migration number or database function shared by 6g and 6c.
+
+## 16 and 17 October 2026: Phase 6 exit (slice 6j)
+
+Branch `phase-6/slice-6j` from main (8331e947), into which came `phase-6/slice-6j-a` (trace), `-c` (review), `-mutation`
+(campaign preparation), `-b` (golden batches), `-b-e2e` (browser flows), `-mut-t1` to `-mut-t13` (the mutation triage,
+one branch per triage agent) and `-demo`. `phase.yaml` is at 6. Raw mutation reports are on
+`phase-6/slice-6j-mutation-reports`. The result of the second final run is in PROGRESS.md.
+
+- **6j-a, the trace:** DI-31, DI-32 and DI-49 map their clauses; no clause is deferred to Phase 6 and none moved to 7;
+  IN-53 stays PENDING; PR-26 and PR-28 stay with phase 5 (question 7). Dry-run trace at 6 over 140 files, 1224 passed.
+- **6j-b, golden batches and browser flows:** the golden cluster runs under the golden clock library
+  (`tools/dev-env/golden-clock`) instead of libfaketime, whose file read inside PostgreSQL's timeout handler had caused the
+  INTERNAL stops. GB-T-01 and GB-T-02 ran three times green with unchanged outputs; GB-T-03 "connected" (ten tests: ERP/WMS,
+  LMS, CMMS and L3/L4 simulators feeding the adapter workers, PRESS-01 over OPC UA through the site gateway, the mock
+  recall) is new. Browser flows in `tools/e2e/specs/phase6`: stale-mirror, alarms, trends, genealogy-recall, controlled,
+  english-step. Findings F-6jb-1 (fixed as 6jc-R16) and F-6jb-2 (cosmetic).
+- **6j-c, the review (one pass, serious defects only):** three highs fixed with tests. 6jc-R1: the ERP_WMS adapter's
+  MATERIAL.HANDLE reached a person's material acts (site services 0990; DI-14, DI-20). 6jc-R8 (raised by the lead): kernel
+  1220 accepted a small-order installation or peer key, so every seal verified (kernel 1230, EBMR-XFR-042; DI-31). 6jc-R16
+  (from F-6jb-1): a training requirement limited to one product stopped step work and step signatures on every product at
+  the site (recipe-core 1100, tablets 1320; IN-04, DI-21, DI-17). Residuals R2 to R7 and R9 to R15 in the plan; for the
+  owner, medium: R2 (controlled-substance reads open to any role), R9 (the adapter and OPC UA feeds are unauthenticated),
+  R10 (one person sets the penicillin facility and beta-lactam rules).
+- **Mutation campaign (decision 0019; `docs/build-plan/phase-6/mutation-results.md`):** ran 17 October from commit
+  b5aa5db6. Part 1 00:25 to about 07:00 UTC; part 2's SQL from 01:50, stopped at 07:47. No Priority 1 defect.
+  SQL, 14 Phase 6 groups: 2,575 / 3,967 valid detected at first run (64.9 %, 1,392 survivors); 13 groups state an
+  after-triage score, 3,311 / 3,775 (87.7 %; first run of the same 13: 64.6 %); five at 90 % or more (equipment-data-and-alarms
+  95.7 %, erp-wms-receipt-and-stock 94.8 %, qms-capa-lims-cmms 97.7 %, inbound-adapters-and-mirrors 99.7 %,
+  packaging-labels-and-line-completion 98.9 %). Re-created functions in 10 earlier groups: 276 / 329 at first run (83.9 %),
+  297 / 329 after (90.3 %). Stryker, 18 features with a report: high-risk zone 1,555 / 3,223 (48.2 %), other zone 49.1 %;
+  server-integrations and gateway-opcua did not finish in 1 hour and T12 checked them by hand; triage looked for rules the
+  TypeScript alone enforces and found five clusters (DI-13 https-only peers, IN-10 DSC trust anchor and X.509 chain
+  checks, the retention facts, the gateway's feed rules, the adapter payload hash), all now tested. Part 2: scope A groups
+  593 / 708 (83.8 %; Phase 4: 47.2 to 74.5 % in three of them, 59.3 % in tablets-release-items), scope B four of six groups
+  555 / 564 (98.4 %), us-disposition 56.8 %, qp-certification 58.2 %, market-changes 40.5 % at first run; the four Phase 4
+  server features 59.1 to 78.9 %. Parallel Stryker runs in one worktree failed (copied sandboxes) and were re-run from
+  separate worktrees. Triage ran under the owner's instruction of 17 October to chase only important issues.
+- **Defects found and fixed (all while writing kill tests):** M6-D1 (medium, fails safe; PR-17): lot-code numbering stopped
+  receiving for the rest of the day after a typed code on a batch that was not the last; site services 1002. M6-D2 (high;
+  DI-31): the adapter worker remembered a refused message by the hash it stated, so an intact resend after a tampered copy
+  was dropped; fixed in the worker, TypeScript only. M6-D3 (high; DI-41, DI-47, DI-17): the archive retention view called
+  `records.retention_of`, which the app role may not execute, so storing a retention led to 500s and a false "nothing was
+  saved"; fixed in the route, TypeScript only. And the gateway cut OPC UA alarm and event ids to 128 characters before
+  keying them (P2; DI-31).
+- **Not run (time box, owner's instruction):** bulk-and-bright-stock (Phase 4: 116 / 149) and execution-complete-forms
+  (Phase 4: 5 / 6), and the whole SQL re-run of the 80 earlier groups (about 128 worker hours). Stryker not triaged:
+  server-plant-rules, server-equipment-data, server-dashboards-and-training, server-serialisation, the simulators.
+- **Owner items:** O-T1-1 (product-scoped people acknowledging their own product's alarms), O-T12-1 (nothing calls
+  `AdapterWorker.reconcile`), unjournalled samples of a gateway chunk open at a crash, O-T13-1 ("Nothing was saved" when only
+  the answer after a commit failed), no database rule requiring PPE and decontamination operations in a hazardous product's
+  MBR, the dead 2-argument `recipe.check_engine_roles`, `platform.epoch_us_to_timestamptz` through double precision; the
+  full list is in "Residuals for the owner" of the results file.
+- **Demo:** `pnpm demo:phase6-exit` (tools/e2e/demo/run.ts) runs the seven items as one command and writes
+  `docs/build-plan/phase-6/exit-demo.md` with screenshots; its run of 17 October (06:19 to 06:36 UTC, commit 5800f7dc):
+  all seven PASS (fault exchange with a stale LMS mirror refusing a step signature, press excursion over OPC UA, serial
+  query, mock recall, controlled dispensing under dual custody, English step screens, a lot transferred between two sites).
+- **Final run 2 (17 October, after the campaign):** green in one run after its one re-run. The first attempt failed only
+  the meta test and the trace on the register listing of the campaign's 220 new tagged tests (`pnpm register:sync-tests`
+  from that run's reports). Re-run: static checks, 6,695 tests passed (0 failed), golden batches 41/41, browser suite
+  50/50, `pnpm trace` at phase 6 ok (146/242 controls with passing tests), `handbook:check` ok.
+- **Demo, final run:** after final run 2, 7 of 7 items PASS again (record updated). Owner decision 0020 (17 October):
+  from Phase 7 on, a phase exit is proven by its tests alone; one demo is held when the product is there (Tablets v1.0).

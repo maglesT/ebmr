@@ -16,6 +16,7 @@ import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand, useSignedAct } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
+import { cls } from '../../app/classes.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { useOffered } from '../../app/roles.ts';
 import { useRouteParams } from '../floor/params.ts';
@@ -47,7 +48,7 @@ function BatchReview({ view: v }: { view: BatchReviewView }) {
         {v.markets.join(', ')} · {v.mode === 'FULL' ? 'every item reviewed one by one' : 'review by exception'}
       </p>
       <nav aria-label="Review of the record">
-        <ul>
+        <ul className={cls('linkList')}>
           <li>
             <Link to="/review/$batchId/register" params={{ batchId: v.batchId }}>
               Exception register ({v.items.total} items: {v.items.open} open, {v.items.concluded} concluded, {v.items.critical} critical)

@@ -53,6 +53,7 @@ tests:
   - "apps/tablets-web/test/config/config.test.tsx > configuration change control screens (DI-09, DI-26) > [DI-09] the configuration diff between two dates lists each change with its change record; a setting change carries its change record"
   - "packages/kernel/test/config/change-control.test.ts > roles, permission sets and retention rules are configuration (DI-09, D-P6f-A-9) > [DI-09] a role definition, a permission added to a role and one removed from it each need a change record; each is a version naming it"
   - "packages/kernel/test/config/change-control.test.ts > roles, permission sets and retention rules are configuration (DI-09, D-P6f-A-9) > [DI-09] the retention rules and the permission sets shipped before change control are versions too, valid from when they were published"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > e-signature policy values stay within their limits (esig.set_policy as kernel 1203 re-creates it) > [DI-09] a value outside its limits, not a whole number, not true or false, not an allowed value, of an unknown key or without a reason is refused; the limits themselves are accepted"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:

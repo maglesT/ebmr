@@ -32,6 +32,15 @@ tests:
   - "packages/ui-kit/test/identity/identity.test.tsx > what is signed > [IN-10] a challenge that needs the India DSC shows the token step with the test-CA banner; without one there is none"
   - "apps/tablets-web/test/governance/governance.test.tsx > the India DSC option > [IN-10] a signer enrols the certificate of their own token: the token signs the enrolment statement through the bridge"
   - "packages/kernel/test/esig/dsc.test.ts > India DSC with a test CA (kernel 1203; IN-10) > [IN-10] a DSC is accepted only from the certificate enrolled for the signer: another person's certificate, a stolen enrolment or an ended one is refused"
+  - "apps/tablets-server/test/governance/governance-routes.test.ts > the India DSC step with a test CA over HTTP (IN-10) > [IN-10] a trust anchor is only a self-signed certification-authority root: a sub-CA, a signer's certificate or bytes that are no certificate are refused and nothing is stored"
+  - "packages/kernel/test/esig/dsc.test.ts > India DSC chain verification in the server (IN-10) > [IN-10] a well-formed chain verifies; a signer certificate not yet valid at the time of signing is refused"
+  - "packages/kernel/test/esig/dsc.test.ts > India DSC chain verification in the server (IN-10) > [IN-10] a signer certificate that is itself a certification authority is refused"
+  - "packages/kernel/test/esig/dsc.test.ts > India DSC chain verification in the server (IN-10) > [IN-10] an issuer in the chain that is not a certification authority is refused, even when its key signed the next certificate"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10] a certificate is enrolled only from an active, personal account: a service and a break-glass account are refused"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10] an enrolment chain must end at the live anchor, be more than the anchor alone, and start with the claimed signer certificate"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10][DI-38] a signing DSC that claims the signer's enrolled certificate while its chain carries another certificate is refused"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10] a certificate live for one person is not enrolled for another while other enrolments have ended; a new enrolment ends the person's previous one"
+  - "packages/kernel/test/mutation/india-dsc.test.ts > a replaced anchor is no longer trusted (kernel 1203) > [IN-10] after a new anchor is registered, a chain to the retired anchor is refused and a chain to the new one enrolled"
 clauses:
   - clause: "sign a step, then alter the value directly in the test database; signature verification reports the record as altered."
     tests:

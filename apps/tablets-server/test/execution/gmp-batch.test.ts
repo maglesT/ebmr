@@ -14,6 +14,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type pg from 'pg';
 import { sha256Hex } from '@ebmr/expr';
 import { engine, execution, flow } from '@ebmr/recipe-core';
 import { routes, type SignatureCredentials } from '@ebmr/api-contract';
@@ -379,5 +380,158 @@ describe('GMP batches on the GMP installation (slice 2b)', () => {
     // And the GMP batch plan does not exist in the sandbox.
     const planInSandbox = await issuer.inject({ method: 'POST', url: '/api/batches', payload: JSON.stringify({ familyId, markets: ['IN'], site: SITE, line: LINE, batchSize: BATCH_SIZE }), headers: { 'content-type': 'application/json' } });
     expect(planInSandbox.statusCode).toBe(404);
+  }, 300_000);
+});
+
+/**
+ * A qualification (training) requirement limited to one product applies to the step work and step signatures of
+ * batches of that product only (Phase 6 exit review 6jc-R16; recipe-core 1100, tablets 1100). The batch's product is
+ * part of the scope the command's engine roles, its permission and its signatures are evaluated in. A requirement
+ * without a product limit still applies to every batch, and a stale or missing qualification source still fails closed.
+ * The requirements and qualifications are arranged by the superuser with triggers off, as test arrangement.
+ */
+describe('a product-limited qualification requirement applies to batches of that product only (6jc-R16)', () => {
+  const STEP = 'p-disp-sop@';
+  const tag = () => randomUUID().slice(0, 8).toUpperCase();
+
+  async function asOwner<T>(fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+    const c = await gmp.db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('set local session_replication_role = replica');
+      const r = await fn(c);
+      await c.query('commit');
+      return r;
+    } catch (e) {
+      await c.query('rollback');
+      throw e;
+    } finally {
+      c.release();
+    }
+  }
+
+  /** A new qualification type required of the OPERATOR role, limited to `scope`; returns its code and requirement id. */
+  async function requirement(scope: { product?: string }): Promise<{ code: string; id: string }> {
+    const code = `SOP-R16-${tag()}`;
+    const recorder = personaIn(gmp, 'approver').personId;
+    const id = await asOwner(async (c) => {
+      await c.query('insert into iam.qualification_type (code, name, description) values ($1, $2, $3)', [code, `Training ${code}`, 'Test training (6jc-R16)']);
+      const { rows } = await c.query<{ id: string }>(
+        `insert into iam.qualification_requirement (qualification_code, role_code, scope_product, reason, created_by_person)
+         values ($1, 'OPERATOR', $2, 'Training required for the test (6jc-R16)', $3) returning id::text as id`,
+        [code, scope.product ?? null, recorder],
+      );
+      return rows[0]!.id;
+    });
+    return { code, id };
+  }
+
+  async function endRequirement(id: string): Promise<void> {
+    await asOwner((c) => c.query('update iam.qualification_requirement set effective_to = clock_timestamp() where id = $1', [id]));
+  }
+
+  async function qualify(code: string, source: 'INTERNAL' | 'LMS'): Promise<void> {
+    const op = personaIn(gmp, 'operator1').personId;
+    const by = (await gmp.db.admin.query<{ person_id: string; id: string }>('select a.person_id::text, a.id::text from iam.account a where a.login_name = $1', [personaIn(gmp, 'approver').loginName])).rows[0]!;
+    await asOwner((c) =>
+      c.query(
+        `insert into iam.person_qualification (person_id, qualification_code, source_code, valid_from, recorded_by_person, recorded_by_account)
+         values ($1, $2, $3, now() - interval '1 day', $4, $5)`,
+        [op, code, source, by.person_id, by.id],
+      ),
+    );
+  }
+
+  async function issued(): Promise<{ batchId: string; driver: RunDriver }> {
+    const issuer = await gmp.asPersona('issuer');
+    const plan = await planned(issuer);
+    const { result } = await signIssue(issuer, plan.batchId);
+    if (!result.ok) throw new Error(`SETUP: the issue was refused: ${JSON.stringify(refusalOf(result))}`);
+    return { batchId: plan.batchId, driver: new RunDriver(gmp, plan.batchId, { issuer, operator1: await gmp.asPersona('operator1') }) };
+  }
+
+  /** The step signature's own authority check, past the server: STEP.SIGN_PERFORMED in the scope the batch_step provider gives. */
+  async function signatureCheck(batchId: string): Promise<{ allowed: boolean; reasons: string[]; scope: Json }> {
+    const op = personaIn(gmp, 'operator1');
+    const { rows } = await gmp.db.admin.query<{ r: { allowed: boolean; reasons: string[]; scope: Json } }>(
+      `select iam.evaluate_authority($1, (select id from iam.account where login_name = $3),
+                                     'STEP.SIGN_PERFORMED', esig.provide('batch_step', $2) -> 'scope', null, 'OPERATOR') as r`,
+      [op.personId, `${batchId}:${STEP}`, op.loginName],
+    );
+    return rows[0]!.r;
+  }
+
+  /** The batch issued and its first step started and recorded by operator1 (before the requirement under test, when `early` is false). */
+  async function recorded(): Promise<{ batchId: string; driver: RunDriver }> {
+    const r = await issued();
+    await r.driver.ok('operator1', { type: 'START_STEP', stepKey: STEP });
+    await r.driver.ok('operator1', { type: 'RECORD_ENTRY', stepKey: STEP, entry: { kind: 'ACKNOWLEDGE', mode: 'READ' } });
+    return r;
+  }
+
+  const scopeOfBatch = () => ({ site: SITE, product: gmpMbr.header.product.code });
+
+  it('[IN-04][DI-21][INV-26][DI-17] a requirement limited to another product does not apply: the operator starts, records and signs PERFORMED on this product\'s batch, and the signature\'s evaluation names the batch\'s product', async () => {
+    const req = await requirement({ product: `OTHER-${tag()}` });
+    try {
+      const { batchId, driver } = await recorded();
+      expect(await signatureCheck(batchId)).toMatchObject({ allowed: true, reasons: [], scope: scopeOfBatch() });
+      const signed = await driver.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: STEP });
+      expect(signed.manifestation).toBeDefined();
+      const { rows } = await gmp.db.admin.query<{ scope: Json; allowed: boolean }>(
+        `select e.scope, e.allowed from esig.signature s join iam.authority_evaluation e on e.id = s.authority_evaluation_id
+          where s.aggregate_ref = 'batch_step:' || $1::text`,
+        [`${batchId}:${STEP}`],
+      );
+      expect(rows).toEqual([{ scope: scopeOfBatch(), allowed: true }]);
+    } finally {
+      await endRequirement(req.id);
+    }
+  }, 300_000);
+
+  it('[IN-04][DI-21][INV-26] a requirement limited to this batch\'s product applies: the unqualified operator is refused the step signature, and once qualified signs', async () => {
+    const { batchId, driver } = await recorded();
+    const req = await requirement({ product: gmpMbr.header.product.code });
+    try {
+      expect(await signatureCheck(batchId)).toMatchObject({ allowed: false, reasons: [`MISSING_QUALIFICATION:${req.code}`], scope: scopeOfBatch() });
+      const refused = await driver.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: STEP });
+      expect(refused.result.ok).toBe(false);
+      expect(JSON.stringify(refusalOf(refused.result))).toContain(`MISSING_QUALIFICATION:${req.code}`);
+      await qualify(req.code, 'INTERNAL');
+      expect(await signatureCheck(batchId)).toMatchObject({ allowed: true, reasons: [] });
+      expect((await driver.signed('operator1', { type: 'SIGN_PERFORMED', stepKey: STEP })).manifestation).toBeDefined();
+    } finally {
+      await endRequirement(req.id);
+    }
+  }, 300_000);
+
+  it('[IN-04][DI-21][INV-26] a requirement without a product limit still applies to every batch of the site', async () => {
+    const { batchId, driver } = await recorded();
+    const req = await requirement({});
+    try {
+      expect(await signatureCheck(batchId)).toMatchObject({ allowed: false, reasons: [`MISSING_QUALIFICATION:${req.code}`], scope: scopeOfBatch() });
+      const refused = await driver.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: STEP });
+      expect(refused.result.ok).toBe(false);
+      expect(JSON.stringify(refusalOf(refused.result))).toContain(`MISSING_QUALIFICATION:${req.code}`);
+    } finally {
+      await endRequirement(req.id);
+    }
+  }, 300_000);
+
+  it('[DI-31][IN-04][INV-26] a requirement limited to this batch\'s product, held only from a stale LMS mirror, is still refused (STALE_QUALIFICATION_SOURCE)', async () => {
+    const { batchId, driver } = await recorded();
+    const req = await requirement({ product: gmpMbr.header.product.code });
+    const before = (await gmp.db.admin.query<{ last_synced_at: Date }>("select last_synced_at from iam.mirror_heartbeat where source_code = 'LMS'")).rows[0]?.last_synced_at;
+    try {
+      await asOwner((c) => c.query("update iam.mirror_heartbeat set last_synced_at = now() - interval '30 days' where source_code = 'LMS'"));
+      await qualify(req.code, 'LMS');
+      expect(await signatureCheck(batchId)).toMatchObject({ allowed: false, reasons: [`STALE_QUALIFICATION_SOURCE:${req.code}`], scope: scopeOfBatch() });
+      const refused = await driver.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: STEP });
+      expect(refused.result.ok).toBe(false);
+      expect(JSON.stringify(refusalOf(refused.result))).toContain(`STALE_QUALIFICATION_SOURCE:${req.code}`);
+    } finally {
+      await endRequirement(req.id);
+      if (before) await asOwner((c) => c.query("update iam.mirror_heartbeat set last_synced_at = $1 where source_code = 'LMS'", [before]));
+    }
   }, 300_000);
 });

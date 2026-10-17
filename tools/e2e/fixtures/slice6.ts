@@ -32,7 +32,7 @@ export async function officeSign(page: Page, title: string | RegExp, who: Seeded
   await form.getByLabel('Password').fill(who.password);
   await form.getByRole('button', { name: 'Sign', exact: true }).click();
   // The dialog shows the manifestation it signed; closing it hands the outcome back to the screen.
-  await expect(dialog.getByText('Signed.')).toBeVisible();
+  await expect(dialog.getByText('Signed.', { exact: true })).toBeVisible();
   await dialog.getByRole('button', { name: 'Close' }).click();
   await expect(dialog).toHaveCount(0);
 }

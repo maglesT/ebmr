@@ -33,14 +33,15 @@ export const DISPENSE = [
   ['dispMgs', 'BOM-MGS', 'GBT2-MGS-001', '0.400'],
 ] as const;
 
-export async function dispensing(g: GoldenBatch): Promise<void> {
+/** Dispensing on DISP-1 from the lots `plan` names (GB-T-03 weighs the cellulose from the identity-tested lot). */
+export async function dispensing(g: GoldenBatch, plan: readonly (readonly [string, string, string, string])[] = DISPENSE): Promise<void> {
   await g.floor('DISP-1');
   const bal = BALANCE['DISP-1'];
   const occ = await g.clearAndOccupy('DISP-1', 'S-DISP', 'operator2');
   const use = await g.balanceUse('DISP-1', 'operator2');
   await g.step('p-disp-clear@', { performer: 'operator2', entries: [entry('p-disp-clear@', 'AREA_OCCUPANCY', { areaCode: 'DISP-1', occupancyId: occ })] });
   await g.step('p-disp-status@', { performer: 'operator2', entries: [entry('p-disp-status@', 'EQUIPMENT_USE', { equipmentRef: 'BAL', equipmentCode: bal, useId: use })], checker: null });
-  await g.step('p-disp-exc@', { entries: DISPENSE.map(([item, bom, lot, net]) => weigh('p-disp-exc@', item, bom, lot, net, bal)) });
+  await g.step('p-disp-exc@', { entries: plan.map(([item, bom, lot, net]) => weigh('p-disp-exc@', item, bom, lot, net, bal)) });
   await g.step('p-disp-recon@', { performer: 'operator2' });
   await g.closeStage('S-DISP@');
   await g.release(['DISP-1'], 'operator2');
@@ -91,8 +92,20 @@ export interface CompressionPlan {
   rejects: string;
 }
 
+/**
+ * What a connected site adds to the compression run (GB-T-03, Phase 6 slice 6j-b: the OPC UA press), at a fixed point of
+ * the run. GB-T-02 passes none, so its run is the same act for act.
+ */
+export interface CompressionHooks {
+  /**
+   * After the run's start and the first station sweeps, while the batch holds the press; returns the whole minutes of
+   * the database clock it used, which the wait before the first weight check leaves out (the checks keep their times).
+   */
+  duringRun?(g: GoldenBatch): Promise<number>;
+}
+
 /** Compression into the bulk containers of each side (the bulk the bottle order packs), the yield, the release for packing. */
-export async function compression(g: GoldenBatch, plan: CompressionPlan): Promise<{ id: string; label: string }[]> {
+export async function compression(g: GoldenBatch, plan: CompressionPlan, hooks: CompressionHooks = {}): Promise<{ id: string; label: string }[]> {
   await g.floor('COMP-1');
   const bal = BALANCE['COMP-1'];
   const press = UNITS.PRESS.code;
@@ -136,10 +149,11 @@ export async function compression(g: GoldenBatch, plan: CompressionPlan): Promis
   await g.d.ok('operator1', entry(run, 'RUN_START', { press }));
   await g.d.ok('operator1', sweep('L'));
   await g.d.ok('operator1', sweep('R'));
+  const spent = (await hooks.duringRun?.(g)) ?? 0;
   const n = plan.checks.L.length;
   for (let i = 0; i < n; i += 1) {
     const last = i === n - 1;
-    if (!last) await g.wait(20);
+    if (!last) await g.wait(i === 0 ? 20 - spent : 20);
     else await g.d.ok('operator1', entry(run, 'RUN_END', {}));
     for (const s of ['L', 'R'] as const) {
       const c = open[s];
