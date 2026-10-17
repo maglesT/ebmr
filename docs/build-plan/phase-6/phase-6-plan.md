@@ -1223,6 +1223,21 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
   market removal, the market checks of the US disposition repeated by its caller and its insert) is P3, not equivalent:
   the message differs.
 
+- **D-P6j-L-1** (lead; the mutation campaign, decision 0019) The campaign started while the recall-hash test fix of GB-T-03
+  (575bdc78) was being made. That fix touched only the golden test; the second final run covers it.
+- **D-P6j-L-2** (lead) Part 2's SQL first runs started on clusters part 1 had freed, to use the pod; each part's time box is
+  counted from its own start.
+- **D-P6j-L-3** (lead, owner's instruction of 17 October) The whole SQL re-run of the 80 earlier groups (about 128 worker
+  hours) was not run: it is beyond part 2's box. Residual.
+- **D-P6j-L-4** (lead) Stream p4-d was stopped at 07:47 under part 2's box. bulk-and-bright-stock and
+  execution-complete-forms keep their Phase 4 scores. Residual.
+- **D-P6j-L-5** (lead) Each parallel Stryker stream runs in its own worktree at the campaign commit: parallel runs in one
+  worktree copied each other's sandboxes and failed (rc=1 and timeouts).
+- **D-P6j-L-8** (lead) The lot-code numbering defect M6-D1 (found by T2; site services 1002) is fixed under decision 0008,
+  although it is not Priority 1: it stops all receiving for the rest of the day.
+- **D-P6j-L-6, -7, -9** are already recorded: 6jc-R8 raised to high (D-P6j-c-3), 6jc-R16 (F-6jb-1) fixed in 6j-c
+  (D-P6j-c-4) and R-T12-1 fixed as M6-D2 (D-P6j-T12-3); not repeated.
+
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
 - 6a-0: the inbound envelope and error classes (`@ebmr/integration-sdk/adapter`), `platform.accept_inbound`,
