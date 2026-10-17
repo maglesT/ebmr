@@ -297,9 +297,9 @@ the database cannot make. Killing tests were proved against the original (pass) 
 |---|---|---|
 | Scope A kill confirmation (232) | the four scope A groups run whole (D-P6j-M-7): the whole run is the kill confirmation and the new first run | release-gate 211 / 240 (**87.9 %**, Phase 4 47.2 %); release-gate-market-items 49 / 51 (**96.1 %**, 74.5 %); manufacturer-release 158 / 163 (**96.9 %**, 63.6 %); tablets-release-items 175 / 254 (**68.9 %**, 59.3 %). Phase 4's survivor list was lost, so the whole run stands for the confirmation: 115 survivors left in the four groups (Phase 4: 298), triaged in "Part 2 triage (T11)" |
 | Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); the others: see "Part 2 triage (T11)" |
-| us-disposition | first full run (146 mutants) | 83 / 146 (**56.8 %**, first score); 12 survivors aimed at by new tests, 2 equivalent, 49 P3 |
+| us-disposition | first full run (146 mutants) | 83 / 146 (**56.8 %**, first score); 12 survivors aimed at by new tests (confirmation 11 / 12, the twelfth's near miss added after it), 2 equivalent, 49 P3: about 94 / 146 after triage |
 | qp-certification | first full run | pending |
-| market-changes | first full run | pending |
+| market-changes | first full run | 62 / 153 (**40.5 %**, first score); 30 survivors aimed at by new tests (confirmation 26 / 30, 3 more tests added after it), 1 equivalent, 60 P3 |
 | Stryker survivor triage | server release, records, India, archive and PQR features | pending |
 | Whole SQL re-run | every group of `targets.ts`, under the decision 0009 organisation | pending |
 
@@ -354,7 +354,8 @@ exercised, or a refusal that a later layer repeats (named below).
 #### manufacturer-release: 158 / 163 (96.9 %), Phase 4 63.6 %
 
 - Kill test (`recipe-core/test/release/release.test.ts`, PR-53): a justification counts for its own deviation only; a
-  second open record of the lot stays RED (`recipe.investigation_justification_of#2, #4, #6`). Confirmation: see below.
+  second open record of the lot stays RED (`recipe.investigation_justification_of#2, #4, #6`). Confirmation run: **3 / 3** (a first attempt stopped at its baseline: an
+  existing release-gate case timed out at 30 s while another test file ran on the cluster; no mutant had run).
 - Equivalent: `recipe.record_manufacturer_release#53` (EBMR-REL-018 "signed checklist not current" is unreachable:
   `esig.signature_problem` on the line before already refused a signature whose content hash differs).
 - P3: `#40` (the act's own copy of INV-35): the kernel refuses an involved person at signing (EBMR-ESIG-044/045,
@@ -393,7 +394,9 @@ exercised, or a refusal that a later layer repeats (named below).
   EBMR-DSP-031 (`recipe.market_act_problem#3`); the EU importer of a lot is the one of its own product and no lot has
   none (`recipe.eu_importer_of#1 to #3`: the shipping interlock's consignee check reads it; INV-42); a two-row release
   with the manufacturer release signed in an earlier command is refused EBMR-DSP-042
-  (`recipe.record_release_with_us_disposition#16, #19`; D-P4-5, DI-14). Confirmation: see below.
+  (`recipe.record_release_with_us_disposition#16, #19`; D-P4-5, DI-14). Confirmation run: **11 / 12**; `#45`
+  (`a.item_id = ...` to `<>`) survived, as no near miss acknowledged another item; that near miss was added afterwards
+  (not re-run).
 - Equivalent: `recipe.check_us_disposition#26` (EBMR-DSP-036 "signed US checklist not current" is unreachable after
   `assert_release_signature`), `recipe.insert_us_disposition#7` (both callers pass a constant).
 - P3 (49): `recipe.check_us_disposition#2, #4` (a decision other than RELEASE takes the rejection branch: reason and
@@ -416,7 +419,11 @@ exercised, or a refusal that a later layer repeats (named below).
   IN-24); a market already held is not added again, and removing a market added with an unmet evaluation is flagged
   "removed after failure" (`recipe.record_market_change#19`, `recipe.market_failed#2, #4, #9, #10, #12, #15, #16`); a
   removal naming a cancelled deviation of the lot, or one linked only to another lot, is refused EBMR-DSP-018
-  (`recipe.record_market_change#47, #52, #54, #57 to #60`; PR-56). Confirmation: see below.
+  (`recipe.record_market_change#47, #52, #54, #57 to #60`; PR-56). Confirmation run: **26 / 30**. Survived:
+  `record_market_change#57 to #59` (the case had no deviation linked to a batch; one of another lot's batch, refused,
+  and one of the lot's own batch, accepted, were added afterwards, not re-run) and `market_failed#12` (P3: with other
+  batches' ADD rows in the database the widened read still finds one, and the evaluation it then needs is the
+  subject's own, unmet either way).
 - Equivalent: `recipe.record_market_change#76` (EBMR-DSP-021 unreachable after `assert_release_signature`).
 - P3 (60), none a release path: `recipe.market_add_evaluate#1, #3, #4, #6, #10` (input guards behind the callers'
   own: record_market_change checks the change, market and subject first), `#11, #12` (another batch's stub or issue

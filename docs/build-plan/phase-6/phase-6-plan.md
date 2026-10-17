@@ -1161,6 +1161,14 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
 - **D-P6j-T9-2** A refusal that only a role segregation makes unreachable (the support-grant requester or engineer as an
   approver, EBMR-IAM-188) is recorded as defence in depth with a test that proves the segregation itself, not as an
   equivalent mutant.
+- **D-P6j-T11-1** (mutation triage T11: part 2, scope A and B, us-disposition, qp-certification, market-changes) A
+  near miss a confirmation run showed missing, and a group's survivors that arrived after its one confirmation run, get
+  their kill test without a second run; the results name them "added after the confirmation run, not re-run".
+  Confirmation runs are not run while another heavy test file uses the same cluster (a 30 s case timed out at baseline
+  once; that attempt ran no mutant and was repeated).
+- **D-P6j-T11-2** A refusal that the same function repeats a few lines later with the same code (EBMR-DSP-018 of a
+  market removal, the market checks of the US disposition repeated by its caller and its insert) is P3, not equivalent:
+  the message differs.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
