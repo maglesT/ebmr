@@ -1,4 +1,4 @@
-# Decision record 0020: demos at product completion, not at each phase exit
+# Decision record 0021: demos at product completion, not at each phase exit
 
 - **Date:** 17 October 2026
 - **Decided by:** project owner (maglesT), in the Phase 6 exit session ("i think demo can be done after product is there

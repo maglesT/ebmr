@@ -165,7 +165,11 @@ demo:phase6-exit` runs the seven items (record `docs/build-plan/phase-6/exit-dem
 Final run 2 (17 October, after the campaign): green in one run after its one re-run (the first attempt failed only the
 register listing of the campaign's 220 new tagged tests, synced): static checks, 6,695 tests passed (0 failed), golden
 batches GB-T-01 to GB-T-03 41/41, browser suite 50/50, `pnpm trace` at phase 6 ok (146/242 controls), `handbook:check` ok.
-Decision 0020 (owner, 17 October): no demo at phase exits from Phase 7 on; one demo when the product is there (v1.0).
+Decision 0021 (owner, 17 October; first numbered 0020, which is the product name): no demo at phase exits from Phase 7
+on; one demo when the product is there (v1.0). Decision 0020 (owner, 17 October): the product is Batchwright by
+Medhanta (editions Batchwright Tablets and Injectables), logo concept A; files in `docs/brand/`, branding in Phase 7.
+Decision 0022 (owner, 17 October): the Phase 6 owner items. R9, R10, R2 and the rest of R16 are fixed early in Phase 7;
+IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 starts only when the owner says so.
 **Phase 6A (analytics; decision 0023, owner, 17 October).**
 - **What it builds:** decision 0016's items 1, 2, 3, 8, 9 and 10, between Phase 6 and Phase 7, so that v1.0 ships with
   them. Item 16, the scheduler, is dropped altogether.
@@ -194,7 +198,8 @@ Decision 0020 (owner, 17 October): no demo at phase exits from Phase 7 on; one d
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).
 
-Next: Phase 6A, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
+Next: Phase 6A, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
+after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
 
 ## How to work here
