@@ -10,7 +10,7 @@
  * process uplink (the GMP installation has no gateway uplink listener; the demo records this).
  *
  * Arranged as the server tests arrange it (support.ts fixture: superuser, triggers off): the press is in use for the
- * DEMO-ONLY review batch of the set-up (an open equipment use on PRESS-01 after its verified cleaning), so the alarm binds
+ * DEMO-ONLY review batch of the set-up (an open equipment use on PRESS-01, next in the press's chain of uses, after its verified cleaning), so the alarm binds
  * to that batch. The acknowledgment is the real kiosk screen (operator's badge tap), and the head of QC reads it in the
  * batch's alarm log on the review screen.
  */
@@ -30,8 +30,8 @@ test('[DI-49][DI-31][INV-40] a press excursion over OPC UA (the press\'s REJECT_
   const raised = await withDb(e2e, 'GMP', async (db, seed) => {
     await fixture(db, seed, 'the press in use for the review batch (demo)', async (c) => {
       await c.query(
-        `insert into plant.equipment_use (equipment_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
-         select e.id, $1, $2, (select o.product_code from plant.area_occupancy o where o.batch_id = $1 limit 1), clock_timestamp() + interval '8 hours',
+        `insert into plant.equipment_use (equipment_id, previous_use_id, batch_id, batch_ref, product_code, planned_end, cleaning_id, started_by)
+         select e.id, (select u.id from plant.equipment_use u where u.equipment_id = e.id and not exists (select 1 from plant.equipment_use n where n.previous_use_id = u.id) limit 1), $1, $2, (select o.product_code from plant.area_occupancy o where o.batch_id = $1 limit 1), clock_timestamp() + interval '8 hours',
                 (select v.cleaning_id from plant.cleaning_verification v join plant.cleaning cl on cl.id = v.cleaning_id where cl.equipment_id = e.id limit 1),
                 (select person_id from iam.account where login_name is not null limit 1)
            from plant.equipment e where e.code = $3`,

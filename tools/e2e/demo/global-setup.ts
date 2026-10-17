@@ -2,12 +2,11 @@
  * Global set-up of the Phase 6 exit demo (`pnpm demo:phase6-exit`; playwright.demo.config.ts): the E2E stack of the
  * browser suite (global-setup.ts: unique databases, the SPA built once, both servers, the gateway and the scale) plus the
  * connected site the demo list needs, all real processes:
- *  - SANDBOX: the ERP, QMS, LMS and CMMS simulators and their adapters, started by the sandbox server itself (its
- *    service-keys file names each adapter's terminal and feed; ERP_ITEM_MASTER, QMS_STATUS, LMS_QUALIFICATION and
- *    CMMS_MAINTENANCE run as MIRROR under the E2E change record);
- *  - GMP: the OPC UA press simulator, a second site gateway (GMP) holding the press's OPC UA endpoint and serving its
- *    OPC UA feed, the endpoint registered and enrolled for PRESS-01, and the OPCUA adapter started by the GMP server (WMS_STOCK, a
- *    never-blocking class, runs as MIRROR so the server starts its adapters, start.ts); the L3 simulator as the GMP
+ *  - GMP (the integrations feature, and so the adapters, run on GMP only): the ERP, QMS, LMS and CMMS simulators and
+ *    their adapters, started by the GMP server itself (its service-keys file names each adapter's terminal and feed;
+ *    ERP_ITEM_MASTER, QMS_STATUS, LMS_QUALIFICATION, CMMS_MAINTENANCE and WMS_STOCK run as MIRROR under the E2E change
+ *    record); the OPC UA press simulator, a second site gateway (GMP) holding the press's OPC UA endpoint and serving its
+ *    OPC UA feed, the endpoint registered and enrolled for PRESS-01, and the OPCUA adapter started by the GMP server; the L3 simulator as the GMP
  *    server's L3 system (EBMR_L3_URL) for the serial query.
  * The returned teardown stops every process and drops the databases. State: EBMR_E2E_STATE, with a `demo` section.
  */
@@ -39,7 +38,7 @@ function freePort(): Promise<number> {
 /** What the demo specs read besides the E2E state. */
 export interface DemoState {
   sims: Record<'ERP' | 'QMS' | 'LMS' | 'CMMS' | 'L3', string>;
-  /** The sandbox adapters' codes by system. */
+  /** The GMP adapters' codes by system. */
   adapters: Record<'ERP' | 'QMS' | 'LMS' | 'CMMS', string>;
   opcua: { simConsole: string; endpointCode: string; adapterCode: string; press: string; room: string; feed: string };
 }
@@ -77,37 +76,12 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
     procs.push(opcSim);
     const [, opcUrl = '', thumbprint = '', opcHttp = ''] = opcSim.match;
 
-    // SANDBOX: the four systems' adapters in its service-keys file, their data classes in MIRROR.
-    const sbxKeys = join(keysDir, 'sandbox-service-keys.json');
-    const adapters = {} as DemoState['adapters'];
-    {
-      const seed = JSON.parse(readFileSync(join(keysDir, 'sandbox-seed.json'), 'utf8')) as SiteSeed;
-      const db = openDatabase(databases.SANDBOX, 'SANDBOX');
-      try {
-        const adm = await administration(db, seed);
-        const slots = [
-          { name: 'ERP', system: 'ERP_WMS', role: 'ERP_WMS_INTERFACE', terminal: 'SRV-ERP-ADAPTER-01', endpoint: `${sims.ERP}/erp/v1` },
-          { name: 'QMS', system: 'QMS', role: 'SERVICE_ACCOUNT', terminal: 'SRV-QMS-ADAPTER-01', endpoint: `${sims.QMS}/qms/v1` },
-          { name: 'LMS', system: 'LMS', role: 'SERVICE_ACCOUNT', terminal: 'SRV-LMS-ADAPTER-01', endpoint: `${sims.LMS}/lms/v1` },
-          { name: 'CMMS', system: 'CMMS', role: 'SERVICE_ACCOUNT', terminal: 'SRV-CMMS-ADAPTER-01', endpoint: `${sims.CMMS}/cmms/v1` },
-        ] as const;
-        for (const s of slots) {
-          const a = await adapterIdentity(db, seed, adm, s.name, s.system, s.role);
-          addServiceEntry(sbxKeys, s.terminal, a, s.endpoint);
-          adapters[s.name] = a.code;
-        }
-        for (const cls of ['ERP_ITEM_MASTER', 'QMS_STATUS', 'LMS_QUALIFICATION', 'CMMS_MAINTENANCE']) await setMirrorMode(db, adm, cls, 'MIRROR');
-        await endSessions(db, adm.admin, adm.owner);
-      } finally {
-        await db.close();
-      }
-    }
-
     // GMP: the OPC UA endpoint registered and enrolled for the press, the OPCUA adapter in its service-keys file, the
     // gateway's OPC UA feed as its endpoint.
     const gmpKeys = join(keysDir, 'gmp-service-keys.json');
     const feedPort = await freePort();
     let opcuaAdapter = '';
+    const adapters = {} as DemoState['adapters'];
     {
       const seed = JSON.parse(readFileSync(join(keysDir, 'gmp-seed.json'), 'utf8')) as SiteSeed;
       const db = openDatabase(databases.GMP, 'GMP');
@@ -120,7 +94,18 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
         const a = await adapterIdentity(db, seed, adm, 'OPCUA', 'OPCUA', 'SERVICE_ACCOUNT');
         addServiceEntry(gmpKeys, 'SRV-OPCUA-ADAPTER-01', a, `http://127.0.0.1:${String(feedPort)}/opcua/v1`);
         opcuaAdapter = a.code;
-        await setMirrorMode(db, adm, 'WMS_STOCK', 'MIRROR');
+        const slots = [
+          { name: 'ERP', system: 'ERP_WMS', role: 'ERP_WMS_INTERFACE', terminal: 'SRV-ERP-ADAPTER-01', endpoint: `${sims.ERP}/erp/v1` },
+          { name: 'QMS', system: 'QMS', role: 'SERVICE_ACCOUNT', terminal: 'SRV-QMS-ADAPTER-01', endpoint: `${sims.QMS}/qms/v1` },
+          { name: 'LMS', system: 'LMS', role: 'SERVICE_ACCOUNT', terminal: 'SRV-LMS-ADAPTER-01', endpoint: `${sims.LMS}/lms/v1` },
+          { name: 'CMMS', system: 'CMMS', role: 'SERVICE_ACCOUNT', terminal: 'SRV-CMMS-ADAPTER-01', endpoint: `${sims.CMMS}/cmms/v1` },
+        ] as const;
+        for (const sl of slots) {
+          const x = await adapterIdentity(db, seed, adm, sl.name, sl.system, sl.role);
+          addServiceEntry(gmpKeys, sl.terminal, x, sl.endpoint);
+          adapters[sl.name] = x.code;
+        }
+        for (const cls of ['WMS_STOCK', 'ERP_ITEM_MASTER', 'QMS_STATUS', 'LMS_QUALIFICATION', 'CMMS_MAINTENANCE']) await setMirrorMode(db, adm, cls, 'MIRROR');
         await endSessions(db, adm.admin, adm.owner);
       } finally {
         await db.close();

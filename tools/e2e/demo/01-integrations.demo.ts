@@ -2,25 +2,26 @@
  * Phase 6 exit demo, item 1 (DI-31, DI-20): the ERP, QMS, LMS and CMMS exchange data with the sandbox installation under
  * injected faults, then a stale LMS mirror refuses a step signature at the kiosk.
  *
- * Every system is its simulator process and every adapter is the one the sandbox server started itself (its service-keys
+ * Every system is its simulator process and every adapter is the one the GMP server started itself (its service-keys
  * file, MIRROR mode; demo/global-setup.ts); the demo only publishes on the simulators, switches their faults
  * (POST /api/fault) and reads what landed. Per system: a clean message, then MALFORMED, DUPLICATE, OUT_OF_ORDER and
  * LINK_CUT in turn, each switched off again; at the end the source's count of distinct messages equals what the eBMR
  * accepted plus what it refused, every refusal has an alarm, and no message of a cut page landed until the link was back.
  *
- * The stale mirror: the product's performers need the product training the LMS sends (a requirement on
- * STEP.SIGN_PERFORMED); the LMS sends the operator's training through its adapter; the LMS mirror's bound is set to its
- * minimum, 60 s (a change-controlled setting); the LMS then stops confirming that its feed is complete (STALE_MIRROR), so
- * the adapter records no synchronisation, and once the bound has passed the operator's "Sign as performed" is refused
- * through the ceremony with the stale source named. When the LMS confirms again the adapter synchronises and the same
- * signature is accepted.
+ * The stale mirror, at the sandbox kiosk (a step signature on a TEST- batch): the product's performers need the product
+ * training the LMS sends (a requirement on STEP.SIGN_PERFORMED). The adapter workers run on GMP only (the integrations
+ * feature is GMP's), so the sandbox's LMS data arrives through the adapter's receiving command as the registered adapter
+ * identity, as the 6j-b flow arranges it. The LMS mirror's bound is set to its minimum, 60 s (a change-controlled
+ * setting), and no synchronisation follows: once the bound has passed in real time the operator's "Sign as performed" is
+ * refused through the ceremony with the stale source named. After the adapter synchronises again the same signature is
+ * accepted.
  */
 import { withCommand } from '@ebmr/kernel';
 import type { DatabaseHandle } from '@ebmr/test-kit';
 import { expect, pin, signIn, test } from '../fixtures/index.ts';
 import { issueTestBatch, open, recordClearanceEntries, startWithTap, tapBadge } from '../fixtures/floor.ts';
 import { exportDcMiniPackage, packageTag } from '../fixtures/test-package.ts';
-import { administration, because, endSessions, ensureChangeRecord, grantedPerson, letters, nowUs, sessionOf, withDb } from '../specs/phase6/support.ts';
+import { administration, because, endSessions, ensureChangeRecord, envelope, grantedPerson, letters, nowUs, openTile, receive, registerAdapter, sessionOf, setMirrorMode, syncMirror, withDb } from '../specs/phase6/support.ts';
 import { demoState, fault, one, sim, until } from './demo-support.ts';
 
 type System = 'ERP' | 'QMS' | 'LMS' | 'CMMS';
@@ -43,19 +44,19 @@ async function counts(db: DatabaseHandle, code: string): Promise<Counts> {
 
 const alarmsOf = (c: Counts, kind: string): number => c.alarms[kind] ?? 0;
 
-test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected faults (malformed, duplicate, out of order, link cut): each refused or de-duplicated with an alarm, no partial value, the count reconciles @demo', async ({ e2e, persona, evidence }) => {
+test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected faults (malformed, duplicate, out of order, link cut): each refused or de-duplicated with an alarm, no partial value, the count reconciles @demo', async ({ e2e, officePage, persona, evidence }) => {
   test.setTimeout(900_000);
   const d = demoState();
   const tag = letters(5).toUpperCase();
   // What each system publishes: the n-th message of the run, every one a distinct record.
-  const arranged = await withDb(e2e, 'SANDBOX', async (db, seed) => {
+  const arranged = await withDb(e2e, 'GMP', async (db, seed) => {
     const adm = await administration(db, seed);
     const coordinator = await sessionOf(db, seed, await grantedPerson(db, seed, adm, 'TRAINING_COORDINATOR', 'Tara Coordinator'));
-    const person = persona('SANDBOX', 'operator2');
-    const personNumber = `TEST-EMP-${tag}`;
+    const person = persona('GMP', 'operator2');
+    const personNumber = `EMP-${tag}`;
     await withCommand(db.admin, because(adm.admin, 'Employee number from the HR record (LMS key)', 'HR_RECORD'), (c) => c.query('update iam.person set employee_ref = $1 where id = $2', [personNumber, person.personId]));
     await withCommand(db.app, because(coordinator, 'Demo: SOPs the LMS trains on'), async (c) => {
-      for (let i = 0; i < 12; i++) await c.query("select iam.create_qualification_type($1, 'Demo SOP', 'A site SOP held in the LMS (demo)')", [`TEST-SOP-${tag}-${String(i)}`]);
+      for (let i = 0; i < 12; i++) await c.query("select iam.create_qualification_type($1, 'Demo SOP', 'A site SOP held in the LMS (demo)')", [`SOP-DEMO-${tag}-${String(i)}`]);
     });
     const equipment = await one<string>(db, "select code as r from plant.equipment order by code limit 1");
     await endSessions(db, adm.admin, adm.owner, coordinator);
@@ -63,13 +64,15 @@ test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected fau
   });
   let n = 0;
   const publish: Record<System, () => Promise<number>> = {
-    ERP: async () => (await sim(d.sims.ERP, 'POST', '/erp/v1/materials', { materialCode: `TEST-MAT-${tag}-${String(++n)}`, name: 'TEST demo excipient', baseUnit: 'kg', materialKind: 'EXCIPIENT' })).status,
-    QMS: async () => (await sim(d.sims.QMS, 'POST', '/qms/v1/capas', { capaRef: `TEST-CAPA-${tag}-${String(++n)}`, title: 'TEST demo CAPA', status: 'OPEN', needsMasterChange: false, effectivenessDueDate: null })).status,
-    LMS: async () => (await sim(d.sims.LMS, 'POST', '/lms/v1/qualifications', { personNumber: arranged.personNumber, qualificationCode: `TEST-SOP-${tag}-${String(++n % 12)}`, status: 'QUALIFIED', validFrom: (BigInt(nowUs()) - 86_400_000_000n).toString(), validTo: null })).status,
-    CMMS: async () => (await sim(d.sims.CMMS, 'POST', '/cmms/v1/work-orders', { equipmentCode: arranged.equipment, workOrder: `TEST-WO-${tag}-${String(++n)}`, kind: 'PREVENTIVE', status: 'OPEN', dueOn: '2099-12-31' })).status,
+    ERP: async () => (await sim(d.sims.ERP, 'POST', '/erp/v1/materials', { materialCode: `MAT-DEMO-${tag}-${String(++n)}`, name: 'Demo excipient', baseUnit: 'kg', materialKind: 'EXCIPIENT' })).status,
+    QMS: async () => (await sim(d.sims.QMS, 'POST', '/qms/v1/capas', { capaRef: `CAPA-DEMO-${tag}-${String(++n)}`, title: 'Demo CAPA', status: 'OPEN', needsMasterChange: false, effectivenessDueDate: null })).status,
+    LMS: async () => (await sim(d.sims.LMS, 'POST', '/lms/v1/qualifications', { personNumber: arranged.personNumber, qualificationCode: `SOP-DEMO-${tag}-${String(++n % 12)}`, status: 'QUALIFIED', validFrom: (BigInt(nowUs()) - 86_400_000_000n).toString(), validTo: null })).status,
+    CMMS: async () => (await sim(d.sims.CMMS, 'POST', '/cmms/v1/work-orders', { equipmentCode: arranged.equipment, workOrder: `WO-DEMO-${tag}-${String(++n)}`, kind: 'PREVENTIVE', status: 'OPEN', dueOn: '2099-12-31' })).status,
   };
   const origin: Record<System, string> = { ERP: d.sims.ERP, QMS: d.sims.QMS, LMS: d.sims.LMS, CMMS: d.sims.CMMS };
-  const db = (await import('@ebmr/test-kit')).openDatabase(e2e.state.databases.SANDBOX, 'SANDBOX');
+  const db = (await import('@ebmr/test-kit')).openDatabase(e2e.state.databases.GMP, 'GMP');
+  const page = await officePage('GMP', 'PC-QA-01');
+  await signIn.office(page, persona('GMP', 'qcApprover'));
   try {
     for (const s of ['ERP', 'QMS', 'LMS', 'CMMS'] as const) {
       const code = d.adapters[s];
@@ -147,15 +150,18 @@ test('[DI-31][DI-20] the ERP, QMS, LMS and CMMS exchange data under injected fau
       });
     }
 
-    await evidence.step('The four adapters after the faults (the integration health page is a GMP screen; the sandbox runs these adapters here, see the record)', 'Every adapter received and alarmed as above; the alarms are open for the system owners', async () => {
+    await evidence.step('The integration health page lists the four adapters and the integration alarms the faults raised', 'Every adapter is listed with its worker; the alarms of the faults are shown', async () => {
+      await openTile(page, 'Integration health');
       const out: Record<string, string> = {};
       for (const s of ['ERP', 'QMS', 'LMS', 'CMMS'] as const) {
+        await expect(page.getByTestId(`adapter-${d.adapters[s]}`)).toBeVisible();
         const c = await counts(db, d.adapters[s]);
         out[s] = `adapter ${d.adapters[s]}: accepted ${String(c.accepted)}, refused ${String(c.refused)}, de-duplicated ${String(c.dedup)}, alarms ${JSON.stringify(c.alarms)}`;
-        expect(c.accepted).toBeGreaterThan(0);
       }
-      return out;
-    });
+      const shown = await page.locator('[data-testid^="alarm-"]').count();
+      expect(shown).toBeGreaterThan(0);
+      return { ...out, alarmsShown: shown };
+    }, page);
   } finally {
     for (const s of ['ERP', 'QMS', 'LMS', 'CMMS'] as const) for (const f of ['MALFORMED', 'DUPLICATE', 'OUT_OF_ORDER', 'LINK_CUT']) await fault(origin[s], f, false).catch(() => undefined);
     await db.close();
@@ -172,9 +178,8 @@ async function lmsBound(db: DatabaseHandle, seed: Parameters<typeof administrati
   await endSessions(db, adm.admin, adm.owner);
 }
 
-test('[DI-31] a stale LMS mirror (the LMS stops confirming its feed; bound 60 s) refuses the operator\'s step signature at the kiosk, naming the stale qualification source; once the adapter synchronises again the same signature is accepted @demo', async ({ officePage, kioskPage, persona, e2e, evidence }, testInfo) => {
+test('[DI-31] a stale LMS mirror (no synchronisation for longer than its 60 s bound) refuses the operator\'s step signature at the kiosk, naming the stale qualification source; once the adapter synchronises again the same signature is accepted @demo', async ({ officePage, kioskPage, persona, e2e, evidence }, testInfo) => {
   test.setTimeout(600_000);
-  const d = demoState();
   const author = await officePage('GMP', 'PC-DESIGN-01');
   await signIn.office(author, persona('GMP', 'author'));
   const pkg = await exportDcMiniPackage(author, e2e.state, packageTag(testInfo.parallelIndex + 1));
@@ -195,7 +200,6 @@ test('[DI-31] a stale LMS mirror (the LMS stops confirming its feed; bound 60 s)
     const adm = await administration(db, seed);
     const coordinator = await sessionOf(db, seed, await grantedPerson(db, seed, adm, 'TRAINING_COORDINATOR', 'Tara Coordinator'));
     await withCommand(db.admin, because(adm.admin, 'Employee number from the HR record (LMS key)', 'HR_RECORD'), (c) => c.query('update iam.person set employee_ref = $1 where id = $2', [personNumber, operator.personId]));
-    await endSessions(db, adm.admin, adm.owner);
     const others = (await db.admin.query<{ person_id: string }>(
       "select distinct person_id from iam.role_grant where role_code in ('OPERATOR', 'DISPENSER') and status = 'APPROVED' and revoked_at is null and person_id <> $1", [operator.personId])).rows.map((r) => r.person_id);
     const requirementId = await withCommand(db.app, because(coordinator, 'product training of the demo product'), async (c) => {
@@ -203,24 +207,31 @@ test('[DI-31] a stale LMS mirror (the LMS stops confirming its feed; bound 60 s)
       for (const p of others) await c.query("select iam.record_qualification($1, $2, now() - interval '1 day', null)", [p, qual]);
       return (await c.query<{ id: string }>("select iam.add_qualification_requirement($1, null, 'STEP.SIGN_PERFORMED', $2::jsonb, 'Performers of the product are trained on its SOP (LMS)') as id", [qual, JSON.stringify({ product: pkg.productCode })])).rows[0]?.id ?? '';
     });
-    return { coordinator, requirementId };
+    // The LMS adapter of the sandbox: the integrations feature (adapter workers) runs on GMP only, so the sandbox's LMS
+    // data arrives through the adapter's receiving command, called as the registered adapter identity (as in 6j-b).
+    const lms = await registerAdapter(db, seed, adm, 'LMS');
+    await setMirrorMode(db, adm, LMS, 'MIRROR');
+    await endSessions(db, adm.admin, adm.owner);
+    return { coordinator, requirementId, lms };
   });
 
   try {
     const sent = await withDb(e2e, 'SANDBOX', async (db, seed) => {
-      expect((await sim(d.sims.LMS, 'POST', '/lms/v1/qualifications', { personNumber, qualificationCode: qual, status: 'QUALIFIED', validFrom: (BigInt(nowUs()) - 86_400_000_000n).toString(), validTo: null })).status).toBe(201);
-      const landed = await until('the operator\'s LMS training', () => one<number>(db, "select count(*)::int as r from iam.person_qualification where person_id = $1 and qualification_code = $2 and source_code = 'LMS' and withdrawn_at is null", [operator.personId, qual]), (v) => v === 1, 60_000);
+      const validFrom = (BigInt(nowUs()) - 86_400_000_000n).toString();
+      const r = await receive(db, setup.lms, 'iam.receive_lms_qualification', envelope(setup.lms, 'lms.qualification', { personNumber, qualificationCode: qual, status: 'QUALIFIED', validFrom, validTo: null }));
+      expect(r).toMatchObject({ outcome: 'ACCEPTED', applied: 'RECORDED' });
       await lmsBound(db, seed, '60');
-      await fault(d.sims.LMS, 'STALE_MIRROR', true);
+      await syncMirror(db, setup.lms, LMS);
+      // No synchronisation follows: the mirror ages in real time past its 60 s bound.
       const f = await until('the LMS mirror stale', () => one<{ stale: boolean; age: unknown }>(db, "select jsonb_build_object('stale', (platform.mirror_freshness('LMS_QUALIFICATION') ->> 'stale')::boolean, 'age', platform.mirror_freshness('LMS_QUALIFICATION') -> 'ageSeconds') as r"), (v) => v.stale, 150_000);
-      return { landed, freshness: JSON.stringify(f) };
+      return { message: typeof r['messageId'] === 'string' ? r['messageId'] : JSON.stringify(r['messageId'] ?? null), freshness: JSON.stringify(f) };
     });
 
     const page = await kioskPage('TEST-KIOSK-DISP-1');
     await signIn.kiosk(page, operator);
     await open(page, base, `/runs/${runId}/steps/${encodeURIComponent('p-disp-clear@')}`);
     const dialog = page.getByRole('dialog');
-    await evidence.step('The LMS stops confirming its feed; after the 60 s bound the operator signs the booth clearance as performed', 'The ceremony refuses the signature and names the stale qualification source; nothing is signed', async () => {
+    await evidence.step('The LMS mirror has not synchronised for longer than its 60 s bound; the operator signs the booth clearance as performed', 'The ceremony refuses the signature and names the stale qualification source; nothing is signed', async () => {
       await startWithTap(page, operator);
       await recordClearanceEntries(page, operator);
       await page.getByTestId('primary-action').click();
@@ -230,16 +241,17 @@ test('[DI-31] a stale LMS mirror (the LMS stops confirming its feed; bound 60 s)
       await expect(dialog.getByRole('alert')).toContainText(`STALE_QUALIFICATION_SOURCE:${qual}`);
       await expect(dialog.getByText('Signed.', { exact: true })).toHaveCount(0);
       const text = (await dialog.getByRole('alert').innerText()).replace(/\s+/g, ' ');
-      return { trainingLandedFromLms: sent.landed, mirror: sent.freshness, refusal: text.slice(0, 300) };
+      return { lmsMessage: sent.message, mirror: sent.freshness, refusal: text.slice(0, 300) };
     }, page);
     await dialog.getByRole('button', { name: /^(Close|Cancel)$/ }).first().click();
     await expect(page.locator('[data-testid^="signature-"]')).toHaveCount(0);
 
-    await withDb(e2e, 'SANDBOX', async (db) => {
-      await fault(d.sims.LMS, 'STALE_MIRROR', false);
-      await until('the LMS mirror fresh', () => one<boolean>(db, "select (platform.mirror_freshness('LMS_QUALIFICATION') ->> 'stale')::boolean as r"), (v) => !v, 60_000);
+    // The bound back to its default before the next synchronisation, so the second signature does not race 60 s.
+    await withDb(e2e, 'SANDBOX', async (db, seed) => {
+      await lmsBound(db, seed, '3600');
+      await syncMirror(db, setup.lms, LMS);
     });
-    await evidence.step('The LMS confirms its feed again; the adapter synchronises within a cycle; the operator signs the same step', 'The signature is accepted and recorded', async () => {
+    await evidence.step('The LMS adapter synchronises again; the operator signs the same step', 'The signature is accepted and recorded', async () => {
       await open(page, base, `/runs/${runId}/steps/${encodeURIComponent('p-disp-clear@')}`);
       await page.getByTestId('primary-action').click();
       await dialog.getByRole('button', { name: 'Sign', exact: true }).click();
@@ -251,11 +263,12 @@ test('[DI-31] a stale LMS mirror (the LMS stops confirming its feed; bound 60 s)
       return { signatures: await page.locator('[data-testid^="signature-"]').count() };
     }, page);
   } finally {
-    await fault(d.sims.LMS, 'STALE_MIRROR', false).catch(() => undefined);
     await withDb(e2e, 'SANDBOX', async (db, seed) => {
       await withCommand(db.app, because(setup.coordinator, 'end of the demo product training requirement'), (c) => c.query('select iam.end_qualification_requirement($1)', [setup.requirementId]));
       await lmsBound(db, seed, '3600');
-      await endSessions(db, setup.coordinator);
+      const adm = await administration(db, seed);
+      await setMirrorMode(db, adm, LMS, 'STAND_IN');
+      await endSessions(db, adm.admin, adm.owner, setup.coordinator);
     });
   }
 });

@@ -39,12 +39,15 @@ test('[PR-42] a serial query: the server asks the L3 system live and answers the
   }, page);
 
   const unknown = `DEMO${randomBytes(4).toString('hex').toUpperCase()}`;
-  await evidence.step(`Serial lookup: ask for a serial no pool of the record holds (${unknown})`, 'Refused with its code; nothing is shown as the answer', async () => {
+  await evidence.step(`Serial lookup: ask for a serial no pool of the record holds (${unknown})`, 'Refused with its code (the L3 does not know it); nothing is shown as the answer', async () => {
     await page.getByRole('textbox', { name: /Serial number/ }).fill(unknown);
+    const answer = page.waitForResponse((r) => r.url().includes(`/api/serialisation/serials/${unknown}`));
     await page.getByRole('button', { name: 'Look up' }).click();
-    const alert = page.getByRole('alert').first();
-    await expect(alert).toContainText(/EBMR-L3-\d{3}|not/i);
+    const res = await answer;
+    const body = (await res.json().catch(() => ({}))) as { code?: string; why?: string; error?: { code?: string; why?: string } };
+    await expect(page.getByText('The L3 system does not know this.')).toBeVisible();
     await expect(page.getByTestId('serial-lot')).toHaveCount(0);
-    return { serial: unknown, refusal: (await alert.innerText()).replace(/\s+/g, ' ').slice(0, 240) };
+    expect(res.status()).toBeGreaterThanOrEqual(400);
+    return { serial: unknown, status: res.status(), code: body.error?.code ?? body.code ?? null, why: body.error?.why ?? body.why ?? null };
   }, page);
 });
