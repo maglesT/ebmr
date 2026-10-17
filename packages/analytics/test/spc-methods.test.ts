@@ -13,6 +13,7 @@ import {
   benjaminiHochberg,
   bissellInterval,
   c4,
+  canonicalText,
   D2_TWO,
   D4_TWO,
   decimalText,
@@ -28,6 +29,7 @@ import {
   parameterProblems,
   runImr,
   runXbarS,
+  sha256Hex,
   tTwoSidedP,
   wilsonInterval,
   type BatchValueInput,
@@ -169,6 +171,37 @@ describe('SPC.IMR', () => {
   });
 });
 
+describe('SPC reference sets in runs (slice 6A-3, D-6A-3-7)', () => {
+  it('a run without a reference set gives the Phase I limits as a model candidate, and leaves a series a set covers to that set\'s run', () => {
+    const r = runImr(series(ref.imr.values), spc, null);
+    expect(r.outputs.map((o) => o.kind)).toEqual(['CONTROL_CHART', 'MODEL_CANDIDATE']);
+    const cand = r.outputs[1]!;
+    const model = cand.values['model'] as Record<string, unknown>;
+    expect(model).toMatchObject({ subjectRef: 'P|F|x', chart: 'IMR', phaseOneBatches: 20 });
+    close(model['centre'] as number, ref.imr.centre);
+    close(model['sigma'] as number, ref.imr.sigma);
+    expect(model['batchIds']).toHaveLength(20);
+    expect(cand.values['modelSha256']).toBe(sha256Hex(canonicalText(model)));
+    // Fewer batches than Phase I needs: no chart, no candidate.
+    expect(runImr(series(ref.imr.values.slice(0, 19)), spc, null).outputs).toEqual([]);
+    // A series a reference set in force covers is not charted by the run without one.
+    const covered = runImr({ ...series(ref.imr.values), covered: ['P|F|x'] }, spc, null);
+    expect(covered.outputs).toEqual([]);
+    expect(covered.flags).toEqual([]);
+    expect(covered.skipped[0]!.reason).toMatch(/a reference set in force covers this chart/);
+    // With the candidate as its reference set, the chart says REFERENCE_SET, keeps the same limits and gives no candidate.
+    const withSet = runImr(series(ref.imr.values), spc, { id: 'RS-IMR', method: 'SPC.IMR', model, modelSha256: cand.values['modelSha256'] as string });
+    expect(withSet.outputs.map((o) => [o.kind, o.values['limitsSource']])).toEqual([['CONTROL_CHART', 'REFERENCE_SET']]);
+    close(withSet.outputs[0]!.values['upperControl'] as number, ref.imr.upper);
+    expect(withSet.flags.map((f) => f.rule)).toEqual(r.flags.map((f) => f.rule));
+    // A set of another chart kind or a malformed model charts nothing, with the reason.
+    expect(runImr(series(ref.imr.values), spc, { id: 'RS-X', method: 'SPC.IMR', model: { ...model, chart: 'XBAR_S' }, modelSha256: 'a'.repeat(64) }).skipped[0]!.reason)
+      .toMatch(/outside reference set RS-X's scope/);
+    expect(runImr(series(ref.imr.values), spc, { id: 'RS-Y', method: 'SPC.IMR', model: { ...model, sigma: 0 }, modelSha256: 'a'.repeat(64) }).skipped[0]!.reason)
+      .toMatch(/does not hold a centre and a positive sigma/);
+  });
+});
+
 describe('SPC.XBAR_S', () => {
   const params = defaultParameters('SPC.XBAR_S') as XbarSParameters;
   const input = (groups: readonly (readonly string[])[]): SubgroupInput => ({
@@ -195,6 +228,17 @@ describe('SPC.XBAR_S', () => {
     expect(r.skipped).toEqual([{ subject: 'P|F|w|B-004', reason: expect.stringMatching(/fewer than 2 readings/) as unknown }]);
     expect((r.outputs[0]!.values['batchIds'] as string).split(',')).toHaveLength(24);
     expect(runXbarS(input(ref.xbarS.groups.slice(0, 5)), params, null).outputs).toEqual([]);
+  });
+
+  it('gives its Phase I limits as a model candidate; with that candidate as its reference set the chart says REFERENCE_SET (D-6A-3-7)', () => {
+    const r = runXbarS(input(ref.xbarS.groups), params, null);
+    const cand = r.outputs.find((o) => o.kind === 'MODEL_CANDIDATE')!;
+    const model = cand.values['model'] as Record<string, unknown>;
+    expect(model).toMatchObject({ subjectRef: 'P|F|w', chart: 'XBAR_S' });
+    close(model['sigma'] as number, ref.xbarS.sigma);
+    const withSet = runXbarS(input(ref.xbarS.groups), params, { id: 'RS-XS', method: 'SPC.XBAR_S', model, modelSha256: cand.values['modelSha256'] as string });
+    expect(withSet.outputs.map((o) => [o.kind, o.values['limitsSource']])).toEqual([['CONTROL_CHART', 'REFERENCE_SET']]);
+    expect(runXbarS({ ...input(ref.xbarS.groups), covered: ['P|F|w'] }, params, null).outputs).toEqual([]);
   });
 });
 

@@ -25,10 +25,13 @@ implemented_by:
     - "packages/kernel/sql/1243_analytics_read_views.sql"
     - "packages/analytics/src/registry.ts"
     - "packages/analytics/src/numeric/canonical.ts"
+    - "packages/kernel/sql/1270_analytics_reference_candidate.sql"
+    - "packages/kernel/sql/1271_analytics_flag_repeats.sql"
   invariants: []
   guards:
     - "platform.config_change_guard on analytics.method_version and analytics.reference_set (areas ANALYTICS_METHOD, ANALYTICS_REFERENCE)"
     - "analytics.reference_model_check (a10_reference_model on analytics.reference_set, EBMR-ANA-010)"
+    - "analytics.reference_candidate_check (a11_reference_candidate on analytics.reference_set, EBMR-ANA-030)"
   db_constraints: []
   rule_keys: []
 tests:
@@ -64,6 +67,16 @@ tests:
   - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-52] report.analytics_reference_v1 gives the reference sets in force from the configuration store, and none retired"
   - "apps/tablets-server/test/analytics/profile.test.ts > the golden batch profile (GBP.DTW_BAND) > [DI-52] the seeded abnormal press curve is flagged and the 20 normal ones are not"
   - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-52] the candidates list the batches they leave out; QA makes one the reference set under a change record"
+  - "packages/analytics/test/mspc.test.ts > the synthetic history (test-kit analyticsHistory) > [DI-52] the multivariate run flags the seeded batch 27 within every limit and names the top contributing variables"
+  - "packages/kernel/test/analytics/repeats-and-candidates.test.ts > repeated flags (kernel 1271) > [DI-52] a flag raised again by later runs is listed once while open, a hit that differs is listed on its own, and a disposition covers its repeats; every raise stays recorded"
+  - "packages/kernel/test/analytics/repeats-and-candidates.test.ts > a reference set and its candidate (kernel 1270) > [DI-52] a reference set must carry its model candidate's own model and batches, not only its hash (EBMR-ANA-030)"
+  - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-52] the multivariate run flags the seeded batch 27 within every limit and names the top contributing variables"
+  - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-52] a reference set whose model hash differs from its candidate is refused"
+  - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-52] an SPC chart uses the limits of a reference set made from its Phase I candidate; the run without a set leaves that chart to it"
+  - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-52] later runs raise an open flag again; the open flags list shows it once with how often it was raised, and every raise stays recorded"
+  - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-52] the candidates list the batches they leave out; QA makes one the reference set under a change record"
+  - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-52] an SPC chart with Phase I limits offers them as its reference set under a change record"
+  - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-52] the open flags list says how often later runs raised the same hit"
 expert_decision:
   status: PENDING
   pack_version: draft

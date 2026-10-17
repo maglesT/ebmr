@@ -96,6 +96,12 @@ export const FlagView = z.strictObject({
   restricted: z.boolean(),
   disposition: DispositionView.nullable(),
   drill: AnalyticsDrill,
+  /**
+   * Slice 6A-3 (D-6A-3-9), in the open-flags list: how often later runs raised the same hit (same method version,
+   * subject, rule, severity and reasons) and when it was first raised; the flag shown is the latest raise.
+   */
+  raisedCount: z.number().int().positive().optional(),
+  firstRaisedAt: Instant.optional(),
 });
 export type FlagView = z.infer<typeof FlagView>;
 

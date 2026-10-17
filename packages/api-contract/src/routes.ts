@@ -36,6 +36,7 @@ import { analyticsConfig } from './ns/analytics-config.ts';
 import { analyticsAudit } from './ns/analytics-audit.ts';
 import { analyticsReview } from './ns/analytics-review.ts';
 import { analyticsSpc } from './ns/analytics-spc.ts';
+import { analyticsMspc } from './ns/analytics-mspc.ts';
 import { analyticsProfile } from './ns/analytics-profile.ts';
 import { recall } from './ns/recall.ts';
 import { federation, transfers } from './ns/transfers.ts';
@@ -48,7 +49,7 @@ import { session } from './ns/session.ts';
 import { specifications } from './ns/specifications.ts';
 import { contractGiver, support } from './ns/support.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsReview, analyticsProfile } as const;export type Routes = typeof routes;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsMspc, analyticsReview, analyticsProfile } as const;export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
 /** Which module owns each namespace's handlers (the stub feature files pass to these owners). */
@@ -104,6 +105,7 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   analyticsConfig: 'P6A',
   analyticsAudit: 'P6A',
   analyticsSpc: 'P6A',
+  analyticsMspc: 'P6A',
   analyticsReview: 'P6A',
   analyticsProfile: 'P6A',
 };

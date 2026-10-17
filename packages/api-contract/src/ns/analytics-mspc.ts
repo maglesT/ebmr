@@ -10,7 +10,13 @@ import { AdvisoryEnvelope, AnalyticsDrill, FlagView, RunRef, SkippedSubject, Sta
 const Count = z.number().int().nonnegative();
 const Code = z.string().trim().min(1).max(64);
 
-export const MspcLimits = z.strictObject({ t2: StatNumber, q: StatNumber, confidence: StatNumber });
+/**
+ * The limits of a scope's model. `t2` is the limit of a new batch (F); `t2Reference` that of a reference batch (beta) and
+ * `qMethod` how the Q limit was found (slice 6A-3 additions, D-6A-3-10).
+ */
+export const MspcLimits = z.strictObject({
+  t2: StatNumber, q: StatNumber, confidence: StatNumber, t2Reference: StatNumber.optional(), qMethod: z.enum(['JACKSON_MUDHOLKAR', 'BOX']).optional(),
+});
 
 export const MspcChartView = z.strictObject({
   ...AdvisoryEnvelope,
@@ -23,6 +29,8 @@ export const MspcChartView = z.strictObject({
   limits: MspcLimits,
   batches: z.array(z.strictObject({
     batchId: Uuid, batchNumber: z.string().min(1), reference: z.boolean(), t2: StatNumber, q: StatNumber, scores: z.array(StatNumber), flagged: z.boolean(), drill: AnalyticsDrill,
+    /** Slice 6A-3 additions: when it completed, and its own T-squared limit (beta for a reference batch, F otherwise). */
+    completedAt: Instant.optional(), t2Limit: StatNumber.optional(),
   })),
   flags: z.array(FlagView),
   skipped: z.array(SkippedSubject),
@@ -36,10 +44,20 @@ export const MspcBatchView = z.strictObject({
   t2: StatNumber,
   q: StatNumber,
   limits: MspcLimits,
-  /** Each variable's recorded value (decimal text) and its contributions, largest first. */
-  contributions: z.array(z.strictObject({ variable: z.string().min(1), value: DecimalString, t2: StatNumber, q: StatNumber })),
+  /**
+   * Each variable's recorded value (decimal text) and its contributions, largest Q contribution first. A subgroup item
+   * is charted as the mean of its readings: its value is null and its readings are given (D-6A-3-10, before any consumer).
+   */
+  contributions: z.array(z.strictObject({
+    variable: z.string().min(1), value: DecimalString.nullable(), readings: z.array(DecimalString).optional(), t2: StatNumber, q: StatNumber,
+  })),
   flags: z.array(FlagView),
   drill: AnalyticsDrill,
+  /** Slice 6A-3 additions: the scope, the reference set scored against and whether the batch is one of its batches. */
+  product: Code.optional(),
+  family: Code.optional(),
+  referenceSet: Uuid.optional(),
+  reference: z.boolean().optional(),
 });
 export type MspcBatchView = z.infer<typeof MspcBatchView>;
 
@@ -55,6 +73,17 @@ export const ModelCandidateView = z.strictObject({
   /** The reference set made effective from it, if any. */
   referenceSet: Uuid.nullable(),
   skipped: z.array(SkippedSubject),
+  /**
+   * Slice 6A-3 additions: the reference batches (ids and numbers), the variables, each kept component's share of the
+   * variance, the limits, and the reference batches' own T-squared and Q, for QA to review before approving it.
+   */
+  batchIds: z.array(Uuid).optional(),
+  batchNumbers: z.array(z.string().min(1)).optional(),
+  variables: z.array(z.string().min(1)).optional(),
+  explainedVariance: z.array(StatNumber).optional(),
+  limits: MspcLimits.optional(),
+  referenceT2: z.array(StatNumber).optional(),
+  referenceQ: z.array(StatNumber).optional(),
 });
 export type ModelCandidateView = z.infer<typeof ModelCandidateView>;
 

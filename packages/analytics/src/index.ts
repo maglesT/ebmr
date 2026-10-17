@@ -100,3 +100,28 @@ export {
   type ProfileScope,
   type SampleStatus,
 } from './methods/profile/index.ts';
+// Slice 6A-3: multivariate monitoring (methods/mspc).
+export {
+  MSPC_PCA,
+  columnMoments,
+  fitPca,
+  mspcModelOf,
+  mspcModelSha256,
+  mspcScopeRef,
+  qLimit,
+  runMspc,
+  scorePca,
+  t2NewLimit,
+  t2ReferenceLimit,
+  topContributors,
+  type MspcBatch,
+  type MspcFitParameters,
+  type MspcInput,
+  type MspcModel,
+  type MspcParameters,
+  type MspcScopeInput,
+  type PcaFit,
+  type PcaScore,
+  type QLimit,
+  type QLimitMethod,
+} from './methods/mspc/index.ts';

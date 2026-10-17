@@ -45,6 +45,13 @@ export const SpcChartView = z.strictObject({
   })),
   flags: z.array(FlagView),
   skipped: z.array(SkippedSubject),
+  /** Slice 6A-3 (D-6A-3-7): the reference set the limits come from (REFERENCE_SET), else null. */
+  referenceSet: Uuid.nullable().optional(),
+  /**
+   * Slice 6A-3 (D-6A-3-7): with Phase I limits, the run's model candidate of them, which QA can make the chart's
+   * reference set under a change record (analyticsConfig.setReferenceSet); else null.
+   */
+  candidate: z.strictObject({ outputId: Uuid, modelSha256: z.string().regex(/^[0-9a-f]{64}$/), batches: z.number().int().positive(), batchIds: z.array(Uuid).min(1) }).nullable().optional(),
 });
 export type SpcChartView = z.infer<typeof SpcChartView>;
 

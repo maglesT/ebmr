@@ -11,8 +11,8 @@ describe('method registry (registry.ts)', () => {
     expect(Object.keys(METHODS).sort()).toEqual([...METHOD_IDS].sort());
     const table = Object.fromEntries(Object.values(METHODS).map((m) => [m.id, { slice: m.slice, outputs: m.outputKinds, rules: m.flagRules }]));
     expect(table).toEqual({
-      'SPC.IMR': { slice: '6A-2', outputs: ['CONTROL_CHART'], rules: ['NELSON_1', 'NELSON_2', 'NELSON_3', 'NELSON_5'] },
-      'SPC.XBAR_S': { slice: '6A-2', outputs: ['CONTROL_CHART'], rules: ['NELSON_1', 'NELSON_2', 'NELSON_3', 'NELSON_5'] },
+      'SPC.IMR': { slice: '6A-2', outputs: ['CONTROL_CHART', 'MODEL_CANDIDATE'], rules: ['NELSON_1', 'NELSON_2', 'NELSON_3', 'NELSON_5'] },
+      'SPC.XBAR_S': { slice: '6A-2', outputs: ['CONTROL_CHART', 'MODEL_CANDIDATE'], rules: ['NELSON_1', 'NELSON_2', 'NELSON_3', 'NELSON_5'] },
       'CAP.INDEX': { slice: '6A-2', outputs: ['CAPABILITY'], rules: [] },
       'DRIFT.TREND': { slice: '6A-2', outputs: ['DRIFT'], rules: ['DRIFT_SLOPE', 'DRIFT_EWMA'] },
       'RATE.DEVIATION': { slice: '6A-2', outputs: ['RATE_COMPARISON'], rules: ['RATE_ABOVE'] },
@@ -37,7 +37,7 @@ describe('method registry (registry.ts)', () => {
   it('the default parameters fit their schema, carry the plan defaults and hash reproducibly; a wrong or missing parameter is named', () => {
     for (const id of METHOD_IDS) expect(parameterProblems(id, defaultParameters(id)), id).toEqual([]);
     expect(defaultParameters('DRIFT.TREND')).toEqual({ slopeWindow: 10, slopeAlpha: 0.05, projectBatches: 5, ewmaLambda: 0.2, ewmaL: 2.7 });
-    expect(defaultParameters('MSPC.PCA')).toEqual({ maxComponents: 5, varianceTarget: 0.9, limitConfidence: 0.99, minReferenceBatches: 15 });
+    expect(defaultParameters('MSPC.PCA')).toEqual({ maxComponents: 5, varianceTarget: 0.9, limitConfidence: 0.99, minReferenceBatches: 15, maxReferenceBatches: 100, scoredBatches: 50 });
     expect((defaultParameters('REVIEW.PRIORITY')['weights'] as Record<string, number>)['DEVIATION']).toBe(4);
     expect(sha256Hex(canonicalText(defaultParameters('SPC.IMR')))).toBe(sha256Hex(canonicalText({ phaseOneBatches: 20, rules: ['NELSON_1', 'NELSON_2', 'NELSON_3', 'NELSON_5'] })));
     expect(parameterProblems('SPC.IMR', { rules: ['NELSON_4'], phaseOneBatches: 20.5, extra: 1 })).toEqual([

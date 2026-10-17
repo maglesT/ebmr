@@ -49,10 +49,17 @@ export interface SubgroupSeries extends SeriesKey {
 
 export interface BatchValueInput {
   readonly series: readonly ValueSeries[];
+  /**
+   * The series (subject refs) a reference set in force covers (slice 6A-3, D-6A-3-7): a run without a reference set
+   * leaves them to that set's own run. Absent: none.
+   */
+  readonly covered?: readonly string[];
 }
 
 export interface SubgroupInput {
   readonly series: readonly SubgroupSeries[];
+  /** As BatchValueInput.covered. */
+  readonly covered?: readonly string[];
 }
 
 /** The subject of a series: product, family and item (subject kind PRODUCT_ITEM). */

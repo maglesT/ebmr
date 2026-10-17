@@ -8,6 +8,7 @@
 import type { AuditBaselineParameters, AuditInput, AuditRulesParameters, ReviewInput, ReviewPriorityParameters } from '@ebmr/analytics';
 import { ATA_BASELINE_IMPLEMENTATION, ATA_RULES_IMPLEMENTATION } from './audit.ts';
 import { implementation, type MethodImplementation } from './method-types.ts';
+import { MSPC_IMPLEMENTATION } from './mspc.ts';
 import { GOLDEN_PROFILE } from './profile.ts';
 import { REVIEW_PRIORITY_IMPLEMENTATION } from './review.ts';
 import { SPC_IMPLEMENTATIONS } from './spc.ts';
@@ -22,5 +23,6 @@ export const IMPLEMENTATIONS: readonly MethodImplementation[] = [
   ...SPC_IMPLEMENTATIONS, // 6A-2 (spc.ts)
   // Slice 6A-5: the review priority (review.ts).
   implementation<ReviewInput, ReviewPriorityParameters>(REVIEW_PRIORITY_IMPLEMENTATION),
+  MSPC_IMPLEMENTATION, // 6A-3 (mspc.ts)
   GOLDEN_PROFILE, // 6A-6
 ];

@@ -352,6 +352,90 @@ run's flags, so a nightly run repeats an open rule hit until it is dispositioned
   - `fewer than 15 reference batches gives no model and says why`.
 - **Migrations:** recipe-core 1140 to 1149, tablets 1345 to 1349.
 
+#### 6A-3 as built (17 October)
+
+- **Method** (`packages/analytics/src/methods/mspc`): MSPC.PCA version 1. Known answers in
+  `packages/analytics/test/mspc.test.ts` against `test/reference/mspc-reference.json`, written by `mspc_reference.py`
+  (Python 3.13, NumPy 2.2.6, SciPy 1.14.1): autoscaling, eigenvalues, components, signed loadings, scores, T-squared and
+  Q with both contributions, the beta and F T-squared limits, the Jackson-Mudholkar and Box Q limits, the candidate's
+  trimming and refit. The synthetic history's batch 27 is caught by Q with hardness and thickness named, while each of
+  its values is within the master's limits and inside its own I-MR limits.
+- **Runner:** `apps/tablets-server/src/analytics/mspc.ts` (the assembly, `MSPC_METHOD_DEFINITION`), one line in
+  `IMPLEMENTATIONS`. The SPC implementations (`spc.ts`) read reference sets the same way.
+- **Migrations:** kernel 1270 (a reference set carries its candidate's model and batches, EBMR-ANA-030) and 1271 (an
+  open flag raised again is listed once). Recipe-core 1140-1149 and tablets 1345-1349 are not used.
+- **Server and screens:** feature `analytics-mspc` (`features/analytics/mspc/`, joined to `routes.ts` and
+  `NAMESPACE_OWNERS` as `P6A`); screens `tablets-web/src/features/analytics/mspc/` (`/analytics/mspc` with the T-squared
+  and Q charts, the scores plot, the batches and the candidates; `/analytics/mspc/batches/:batchId` with the
+  contribution bars, drilling to the batch record). The SPC screen offers a chart's Phase I limits as its reference set;
+  the flags list says how often a hit was raised.
+- **Tests:** the plan titles (`[DI-52]` batch 27, in the package and end to end in
+  `apps/tablets-server/test/analytics/mspc.test.ts`; `[DI-52]` the hash refusal; `[DI-09]` the change record; the 15
+  batches), the lead items (kernel `test/analytics/repeats-and-candidates.test.ts`; the SPC reference set and the
+  repeated flag end to end), and the screens.
+- **Mutation group:** `analytics-mspc-reference` (90 %; 100 % locally), job in `mutation.yml`.
+- **Golden batches:** not run; the change does not touch the batch outputs.
+- **Base:** the branch merges `phase-6a/slice-6` (head 6822120) to reuse its reference-set mechanism, as the lead asked.
+
+Defaults of 6A-3 (taken without asking, as the owner's rule says; each is the decision until the owner changes it):
+
+- **D-6A-3-1** The batch vector. Its variables are the critical items of the scope's newest completed batch. A
+  variable is one value per batch (the last attempt, D-6A-2-2), or the mean of a subgroup item's readings; a one-value
+  item wins over a subgroup item of the same name. A batch missing a variable is left out of the candidate, or not
+  scored, with the reason. A variable without variation among the reference batches is left out of the model, named.
+  A model needs two variables and more batches than variables plus one.
+- **D-6A-3-2** "The batches QA proposes": released, no CRITICAL deviation linked (`report.deviation_fact_v1`), every
+  variable recorded, the newest 100 (`maxReferenceBatches`). QA proposes by making a candidate the reference set, or
+  not. There is no batch-picking screen in v1; another choice is a new method version's parameters. The minimum of 15
+  applies before and after trimming.
+- **D-6A-3-3** Trimming: the first fit's Phase I limits (T-squared by beta, Q by Jackson-Mudholkar, 99 %) leave out the
+  batches beyond them, each named with its values, and the model is fitted once more on the rest. Why: an unusual batch
+  inside the reference widens the limits it is judged by (batch 27 raises the history's Q limit from 0.28 to 1.14), and
+  as a reference batch it would not be flagged at all (D-6A-3-4).
+- **D-6A-3-4** Scoring. For each reference set in force, a run scores the reference batches (against the beta limit) and
+  the newest 50 other batches (`scoredBatches`, against the F limit), so a run's outputs stay bounded. It flags
+  T2_ABOVE and Q_ABOVE, severity ATTENTION, only on batches outside the set (QA approved the set). A score's subject is
+  BATCH; a candidate's is PRODUCT_ITEM `<product>|<family>`.
+- **D-6A-3-5** The arithmetic. Components: the fewest reaching 90 %, at most 5 and at most p - 1, so a residual and Q
+  remain. A loading vector is signed so its largest element is positive. Q's limit falls back to Box's g chi-square when
+  Jackson-Mudholkar's h0 is not positive. Contributions: to T-squared, z_j times the sum of t_a p_ja / lambda_a (they sum
+  to T-squared and can be negative); to Q, the squared residual. A flag names the largest positive contributors until
+  they cover 80 %, at most three.
+- **D-6A-3-6** A model records its fit parameters. A set is scored only by a version with the same ones (as D-6A-6-6),
+  else skipped with the reason; a malformed model fails the run.
+- **D-6A-3-7 Reference sets in runs (lead item a, from D-6A-2-1).** The lead's direction: 6A-6's mechanism, not an
+  EXECUTE grant on `analytics.effective_reference_sets`. The view `report.analytics_reference_v1` fits as it is (a
+  method filter, the scope and the model), so it is not extended.
+  - SPC.IMR and SPC.XBAR_S give each chart with complete Phase I limits a MODEL_CANDIDATE: the model `{subjectRef,
+    chart, centre, sigma, batchIds, phaseOneBatches}` and its SHA-256. QA makes it the chart's reference set (scope
+    `{product, family, item, chart}`) under a change record. The registry adds MODEL_CANDIDATE and the view to both.
+  - The run without a set leaves a chart a set covers to that set's run (skipped with the reason). A run with a set
+    reads only its product, family and item, and charts REFERENCE_SET limits. A set whose scope or batches are not its
+    model's fails its run with the reason. MSPC.PCA runs the same way, narrowed to the set's product and family.
+  - The SPC chart route adds `referenceSet` and `candidate`; the SPC screen offers the candidate to QA.
+- **D-6A-3-8** Kernel 1270, EBMR-ANA-030: a reference set carries its candidate's own model and batches, not only its
+  hash, for every writer. It adds to the core control; 6A-6's candidates record both, so they pass it.
+- **D-6A-3-9 Repeated flags (lead item b, from 6A-2's residual).** The views group the raises; the runner keeps
+  recording every flag. A flag's signal is its method, version, subject, rule, severity and reasons, evidence included.
+  - `analytics.open_flag_v1` (replaced in kernel 1271) lists each open signal once: its latest raise, with
+    `raised_count` and `first_raised_at` added at the end.
+  - A disposition on any raise closes the signal, including the same hit raised again later. A hit that differs in
+    anything is its own signal and is listed on its own.
+  - `analytics.flag_v1` and the audit trail keep every raise. The monitor counts each raise with its signal's latest
+    current disposition.
+  - Why the view, not the runner: a run's record and output hash stay a pure function of its inputs (D-6A-22), the
+    analytics role cannot read flags, and nothing is dropped. The restricted flags of 6A-4 are grouped by its own
+    `analytics.audit_flags`; `analytics.person_flags` is unchanged.
+  - Kernel 1270-1279, a free gap, is assigned to 6A-3 for the lead items.
+- **D-6A-3-10** Contract additions, all optional, made before any consumer. In `ns/analytics-mspc.ts`: the reference
+  T-squared limit and the Q method; each batch's limit and completion; the candidate's batches, variables, variance
+  and limits; a batch's scope and set. A subgroup variable's value is null, with its readings. In the shared files:
+  `FlagView.raisedCount` and `firstRaisedAt`, and `SpcChartView.referenceSet` and `candidate`.
+- **D-6A-3-11** 6A-3's messages are EBMR-ANA-030 to -039: 030 the kernel 1270 refusal, 031 no chart, 032 no batch score.
+
+Residuals for the lead: the restricted flags read through `analytics.person_flags` still list each run's raise, outside
+6A-4's methods; two SPC reference sets in force for one chart both chart it, and the newest is shown.
+
 ### Slice 6A-4: audit-trail anomaly detection (item 8)
 
 - **Inputs** (kernel 1260 to 1269): `report.audit_fact_v1`, one row per audit event. Each row holds:

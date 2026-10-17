@@ -227,6 +227,20 @@ modules:
       - 'apps/tablets-web/test/analytics/profile.test.tsx'
       - 'packages/analytics/test/profile.test.ts'
 
+  - id: analytics-mspc
+    title: Multivariate monitoring (Phase 6A slice 6A-3) - method MSPC.PCA (T-squared, Q, contributions), reference sets in runs for SPC and PCA, repeated flags shown once
+    page: modules/analytics.md
+    package: packages/analytics
+    migrations:
+      packages/kernel/sql: ['^127[0-9]_']
+    # The server feature (features/analytics/mspc) and screens (features/analytics/mspc) sit inside the analytics
+    # feature folders that analytics-foundation claims.
+    src: [packages/analytics/src/methods/mspc, apps/tablets-server/src/analytics/mspc.ts]
+    tests:
+      - 'packages/analytics/test/mspc.test.ts'
+      - 'packages/kernel/test/analytics/repeats-and-candidates.test.ts'
+      - 'apps/tablets-server/test/analytics/mspc.test.ts'
+      - 'apps/tablets-web/test/analytics/mspc.test.tsx'
   - id: analytics-review
     title: Review priority (Phase 6A slice 6A-5) - the review facts, REVIEW.PRIORITY v1, the review queue ordered by it with its reasons
     page: modules/analytics.md
