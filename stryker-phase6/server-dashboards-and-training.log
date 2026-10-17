@@ -1,33 +1,1080 @@
-[32m02:38:50 (795253) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-dashboards-and-training.incremental.json, a full mutation testing run will be performed.
-[32m02:38:50 (795253) INFO ProjectReader[39m Found 5 of 3106 file(s) to be mutated.
-[32m02:38:50 (795253) INFO Instrumenter[39m Instrumented 5 source file(s) with 479 mutant(s)
-[32m02:38:54 (795253) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
-[91m02:38:55 (795253) ERROR Stryker[39m Unexpected error occurred while running Stryker Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s1/.reports/stryker-phase6' -> '/root/wt/campaign-s1/.stryker-tmp-server-dashboards-and-training/sandbox-m518MD/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s1/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s1/.stryker-tmp-server-dashboards-and-training/sandbox-m518MD/.reports/stryker-phase6'
-}
-[32m02:38:55 (795253) INFO Stryker[39m This might be a known problem with a solution documented in our troubleshooting guide.
-[32m02:38:55 (795253) INFO Stryker[39m You can find it at https://stryker-mutator.io/docs/stryker-js/troubleshooting/
-[32m02:38:55 (795253) INFO Stryker[39m Still having trouble figuring out what went wrong? Try `npx stryker run --fileLogLevel trace --logLevel debug` to get some more info.
-node:internal/process/promises:394
-    triggerUncaughtException(err, true /* fromPromise */);
-    ^
+[32m03:05:04 (902816) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-dashboards-and-training.incremental.json, a full mutation testing run will be performed.
+[32m03:05:04 (902816) INFO ProjectReader[39m Found 5 of 3134 file(s) to be mutated.
+[32m03:05:04 (902816) INFO Instrumenter[39m Instrumented 5 source file(s) with 479 mutant(s)
+[32m03:05:06 (902816) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m03:05:07 (902816) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m03:05:07 (902816) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m03:05:33 (902816) INFO DryRunExecutor[39m Initial test run succeeded. Ran 8 tests in 25 seconds (net 1156.161677 ms, overhead 24793.838323 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~28m) 81/356 tested (1 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~27m) 85/356 tested (2 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~29m) 89/356 tested (4 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~26m) 95/356 tested (6 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~25m) 103/356 tested (10 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~24m) 110/356 tested (12 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~1m, remaining: ~19m) 118/356 tested (12 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~1m, remaining: ~18m) 125/356 tested (13 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~1m, remaining: ~19m) 131/356 tested (15 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~1m, remaining: ~19m) 138/356 tested (16 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~1m, remaining: ~19m) 144/356 tested (18 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~2m, remaining: ~18m) 151/356 tested (23 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~2m, remaining: ~18m) 157/356 tested (25 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~2m, remaining: ~18m) 164/356 tested (26 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~2m, remaining: ~18m) 171/356 tested (29 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~2m, remaining: ~18m) 177/356 tested (31 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~2m, remaining: ~17m) 184/356 tested (34 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~3m, remaining: ~18m) 188/356 tested (38 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~3m, remaining: ~18m) 194/356 tested (38 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~3m, remaining: ~18m) 200/356 tested (40 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~3m, remaining: ~18m) 206/356 tested (40 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~3m, remaining: ~19m) 211/356 tested (41 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~3m, remaining: ~19m) 216/356 tested (41 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~4m, remaining: ~20m) 220/356 tested (42 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~4m, remaining: ~20m) 226/356 tested (42 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~4m, remaining: ~20m) 232/356 tested (45 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~4m, remaining: ~21m) 236/356 tested (47 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~4m, remaining: ~21m) 242/356 tested (47 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~4m, remaining: ~21m) 248/356 tested (47 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~5m, remaining: ~22m) 254/356 tested (47 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~5m, remaining: ~22m) 260/356 tested (47 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~5m, remaining: ~23m) 266/356 tested (47 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~5m, remaining: ~24m) 272/356 tested (47 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~5m, remaining: ~24m) 278/356 tested (47 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~5m, remaining: ~24m) 284/356 tested (50 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~6m, remaining: ~24m) 290/356 tested (55 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~6m, remaining: ~21m) 296/356 tested (56 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~6m, remaining: ~15m) 301/356 tested (56 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~6m, remaining: ~11m) 306/356 tested (56 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~6m, remaining: ~8m) 312/356 tested (56 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~6m, remaining: ~6m) 318/356 tested (58 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~7m, remaining: ~4m) 324/356 tested (60 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~7m, remaining: ~3m) 330/356 tested (62 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~7m, remaining: ~2m) 336/356 tested (63 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~7m, remaining: ~1m) 342/356 tested (63 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~7m, remaining: ~1m) 347/356 tested (65 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~7m, remaining: <1m) 354/356 tested (65 survived, 0 timed out)
 
-Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s1/.reports/stryker-phase6' -> '/root/wt/campaign-s1/.stryker-tmp-server-dashboards-and-training/sandbox-m518MD/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s1/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s1/.stryker-tmp-server-dashboards-and-training/sandbox-m518MD/.reports/stryker-phase6'
-}
+All tests/dashboards-routes.test.ts
+  ✓ dashboards over HTTP (GMP) > [PR-05] an overdue review appears on the dashboard (killed 16)
+  ✓ dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period (killed 44)
+  ✓ dashboards over HTTP (GMP) > dashboards show their data age and refresh it (killed 52)
+  ✓ dashboards over HTTP (GMP) > the export gives a view's rows as text with their hash; only catalogued views are exported (killed 37)
+  ✓ dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404 (killed 12)
+  ✘ dashboards over HTTP (GMP) > [DI-05] training routes answer 404 on the GMP installation and the dashboards 404 on the sandbox (covered 0)
+  ✓ training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises (killed 17)
+  ✓ training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox (killed 36)
 
-Node.js v22.23.3
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/dashboards/index.ts:29:7
+-     ...(q.from !== undefined ? { from: q.from } : {}),
++     ...(true ? { from: q.from } : {}),
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/dashboards/index.ts:30:7
+-     ...(q.to !== undefined ? { to: q.to } : {}),
++     ...(true ? { to: q.to } : {}),
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:37:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:41:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:45:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:49:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:53:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:57:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > [PR-05] an overdue review appears on the dashboard
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:61:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:65:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:69:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/dashboards/index.ts:79:7
+-         requireSession();
++         ;
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:75:44
+-   const batchDrill = (id: string): string => `/review/${id}`;
++   const batchDrill = (id: string): string => ``;
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/dashboards/reads.ts:93:25
+-     for (const r of rows) {
+-       const d = days.get(r.day) ?? { day: r.day, batches: 0, rightFirstTime: 0 };
+-       d.batches += 1;
+-       if (r.rft) d.rightFirstTime += 1;
+-       days.set(r.day, d);
+-     }
++     for (const r of rows) {}
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/dashboards/reads.ts:94:15
+-       const d = days.get(r.day) ?? { day: r.day, batches: 0, rightFirstTime: 0 };
++       const d = days.get(r.day) && {
++     day: r.day,
++     batches: 0,
++     rightFirstTime: 0
++   };
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:94:34
+-       const d = days.get(r.day) ?? { day: r.day, batches: 0, rightFirstTime: 0 };
++       const d = days.get(r.day) ?? {};
+
+[NoCoverage] AssignmentOperator
+apps/tablets-server/src/features/dashboards/reads.ts:95:5
+-       d.batches += 1;
++       d.batches -= 1;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:96:9
+-       if (r.rft) d.rightFirstTime += 1;
++       if (true) d.rightFirstTime += 1;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:96:9
+-       if (r.rft) d.rightFirstTime += 1;
++       if (false) d.rightFirstTime += 1;
+
+[NoCoverage] AssignmentOperator
+apps/tablets-server/src/features/dashboards/reads.ts:96:16
+-       if (r.rft) d.rightFirstTime += 1;
++       if (r.rft) d.rightFirstTime -= 1;
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/dashboards/reads.ts:97:5
+-       days.set(r.day, d);
++       ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:104:31
+-       batches: rows.map((r) => ({
+-         batchId: r.batch_id, batchNumber: r.batch_number, productCode: r.product_code, qaReviewedAt: app.formatInstant(r.qa_us), rightFirstTime: r.rft,
+-         exceptionCount: r.exceptions, deviationCount: r.deviations, reviewCycles: r.cycles, drill: batchDrill(r.batch_id),
+-       })),
++       batches: rows.map((r) => ({})),
+
+[NoCoverage] ArithmeticOperator
+apps/tablets-server/src/features/dashboards/reads.ts:125:34
+-       total: rows.reduce((t, r) => t + r.n, 0),
++       total: rows.reduce((t, r) => t - r.n, 0),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:126:34
+-       categories: rows.map((r) => ({
+-         category: r.category, count: r.n, cumulativePercent: r.cum,
+-         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
+-       })),
++       categories: rows.map((r) => ({})),
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:128:16
+-         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
++         batches: r.batches.map(b => ({
++     batchId: b.id,
++     batchNumber: b.number,
++     drill: `/review/${b.id}/register`
++   })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:128:30
+-         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
++         batches: r.batches.map(() => undefined).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:128:38
+-         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
++         batches: r.batches.map((b) => ({})).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:128:85
+-         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
++         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:128:121
+-         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
++         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:152:31
+-       batches: rows.map((r) => ({
+-         batchId: r.batch_id, batchNumber: r.batch_number, completedAt: app.formatInstant(r.done_us), qaReviewedAt: app.formatInstant(r.qa_us),
+-         cycleDays: r.days, reviewCycles: r.cycles, drill: batchDrill(r.batch_id),
+-       })),
++       batches: rows.map((r) => ({})),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:160:63
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (true ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:160:63
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (false ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:160:63
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days < 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:160:63
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days > 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:160:76
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? "" : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:160:85
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : true ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:160:85
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : false ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:160:85
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days < 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:160:85
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days > 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:160:98
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? "" : days <= 90 ? '61-90' : '>90');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:160:108
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : true ? '61-90' : '>90');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:160:108
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : false ? '61-90' : '>90');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:160:108
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days < 90 ? '61-90' : '>90');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:160:108
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days > 90 ? '61-90' : '>90');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:160:121
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? "" : '>90');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:160:131
+-   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '>90');
++   const bucketOf = (days: number): (typeof BUCKETS)[number] => (days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : "");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:168:33
+-     const open = rows.map((r) => ({
+-       deviationId: r.deviation_id, ref: r.ref, kind: r.kind, classification: r.classification, state: r.state, raisedAt: app.formatInstant(r.raised_us),
+-       ageDays: Math.max(r.age_days, 0), bucket: bucketOf(r.age_days), drill: `/quality/deviations/${r.deviation_id}`,
+-     }));
++     const open = rows.map((r) => ({}));
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:170:14
+-       ageDays: Math.max(r.age_days, 0), bucket: bucketOf(r.age_days), drill: `/quality/deviations/${r.deviation_id}`,
++       ageDays: Math.min(r.age_days, 0), bucket: bucketOf(r.age_days), drill: `/quality/deviations/${r.deviation_id}`,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:170:76
+-       ageDays: Math.max(r.age_days, 0), bucket: bucketOf(r.age_days), drill: `/quality/deviations/${r.deviation_id}`,
++       ageDays: Math.max(r.age_days, 0), bucket: bucketOf(r.age_days), drill: ``,
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:172:88
+-     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => o.bucket === bucket).length })), open };
++     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => true).length })), open };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:172:88
+-     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => o.bucket === bucket).length })), open };
++     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => false).length })), open };
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:172:88
+-     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => o.bucket === bucket).length })), open };
++     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => o.bucket !== bucket).length })), open };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:188:62
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => true).length, over: rows.filter((r) => r.risk === 'OVER').length },
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:188:62
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => false).length, over: rows.filter((r) => r.risk === 'OVER').length },
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:188:62
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk !== 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:188:73
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === "").length, over: rows.filter((r) => r.risk === 'OVER').length },
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:188:117
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => true).length },
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:188:117
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => false).length },
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:188:117
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk !== 'OVER').length },
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:188:128
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === "").length },
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:189:34
+-       containers: rows.map((r) => ({
+-         containerId: r.container_id, labelCode: r.label_code, batchId: r.batch_id, batchNumber: r.batch_number, productCode: r.product_code, strength: r.strength,
+-         closedAt: app.formatInstant(r.closed_us), maxHoldHours: r.max_hold_hours, heldHours: r.held_hours, usedPercent: r.used, risk: r.risk,
+-         drill: `/review/${r.batch_id}/containers`,
+-       })),
++       containers: rows.map((r) => ({})),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:192:14
+-         drill: `/review/${r.batch_id}/containers`,
++         drill: ``,
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:232:31
+-       presses: rows.map((r) => ({
+-         equipmentId: r.equipment_id, equipmentCode: r.equipment_code, batchId: r.batch_id, batchNumber: r.batch_number, from: app.formatInstant(r.from_us), to: app.formatInstant(r.to_us),
+-         runningSeconds: r.running, observedSeconds: r.observed, tablets: r.tablets, rejects: r.rejects, availability: r.availability, quality: r.quality, oee: r.oee,
+-         drill: batchDrill(r.batch_id),
+-       })),
++       presses: rows.map((r) => ({})),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/dashboards/reads.ts:317:54
+-   const impactDrill = (r: ImpactRow): string | null => {
+-     if (r.id === null) return null;
+-     if (r.impact === 'MBR_VERSION') return `/mbr/versions/${r.id}`;
+-     if (r.impact === 'OPEN_BATCH') return `/review/${r.id}`;
+-     if (r.impact === 'RELEASED_LOT') return `/genealogy/lots/${r.id}/supply-chain`;
+-     return null;
+-   };
++   const impactDrill = (r: ImpactRow): string | null => {};
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:318:7
+-     if (r.id === null) return null;
++     if (true) return null;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:318:7
+-     if (r.id === null) return null;
++     if (false) return null;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:318:7
+-     if (r.id === null) return null;
++     if (r.id !== null) return null;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:319:7
+-     if (r.impact === 'MBR_VERSION') return `/mbr/versions/${r.id}`;
++     if (true) return `/mbr/versions/${r.id}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:319:7
+-     if (r.impact === 'MBR_VERSION') return `/mbr/versions/${r.id}`;
++     if (false) return `/mbr/versions/${r.id}`;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:319:7
+-     if (r.impact === 'MBR_VERSION') return `/mbr/versions/${r.id}`;
++     if (r.impact !== 'MBR_VERSION') return `/mbr/versions/${r.id}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:319:20
+-     if (r.impact === 'MBR_VERSION') return `/mbr/versions/${r.id}`;
++     if (r.impact === "") return `/mbr/versions/${r.id}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:319:42
+-     if (r.impact === 'MBR_VERSION') return `/mbr/versions/${r.id}`;
++     if (r.impact === 'MBR_VERSION') return ``;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:320:7
+-     if (r.impact === 'OPEN_BATCH') return `/review/${r.id}`;
++     if (true) return `/review/${r.id}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:320:7
+-     if (r.impact === 'OPEN_BATCH') return `/review/${r.id}`;
++     if (false) return `/review/${r.id}`;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:320:7
+-     if (r.impact === 'OPEN_BATCH') return `/review/${r.id}`;
++     if (r.impact !== 'OPEN_BATCH') return `/review/${r.id}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:320:20
+-     if (r.impact === 'OPEN_BATCH') return `/review/${r.id}`;
++     if (r.impact === "") return `/review/${r.id}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:320:41
+-     if (r.impact === 'OPEN_BATCH') return `/review/${r.id}`;
++     if (r.impact === 'OPEN_BATCH') return ``;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:321:7
+-     if (r.impact === 'RELEASED_LOT') return `/genealogy/lots/${r.id}/supply-chain`;
++     if (true) return `/genealogy/lots/${r.id}/supply-chain`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:321:7
+-     if (r.impact === 'RELEASED_LOT') return `/genealogy/lots/${r.id}/supply-chain`;
++     if (false) return `/genealogy/lots/${r.id}/supply-chain`;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:321:7
+-     if (r.impact === 'RELEASED_LOT') return `/genealogy/lots/${r.id}/supply-chain`;
++     if (r.impact !== 'RELEASED_LOT') return `/genealogy/lots/${r.id}/supply-chain`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:321:20
+-     if (r.impact === 'RELEASED_LOT') return `/genealogy/lots/${r.id}/supply-chain`;
++     if (r.impact === "") return `/genealogy/lots/${r.id}/supply-chain`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:321:43
+-     if (r.impact === 'RELEASED_LOT') return `/genealogy/lots/${r.id}/supply-chain`;
++     if (r.impact === 'RELEASED_LOT') return ``;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:329:24
+-       rows.filter((r) => r.impact === k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
++       rows.filter((r) => true).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:329:24
+-       rows.filter((r) => r.impact === k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
++       rows.filter((r) => false).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:329:24
+-       rows.filter((r) => r.impact === k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
++       rows.filter((r) => r.impact !== k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:329:52
+-       rows.filter((r) => r.impact === k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
++       rows.filter((r) => r.impact === k).map((r) => ({}));
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:65:7
+-     if (p.from > p.to) {
++     if (p.from >= p.to) {
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/dashboards/reads.ts:66:135
+-       throw refusal(400, { code: 'EBMR-RPT-001', kind: 'INVALID_INPUT', whatHappened: 'The period starts after it ends.', whatYouCanDo: ['Choose a start date on or before the end date.'] });
++       throw refusal(400, { code: 'EBMR-RPT-001', kind: 'INVALID_INPUT', whatHappened: 'The period starts after it ends.', whatYouCanDo: [] });
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:66:136
+-       throw refusal(400, { code: 'EBMR-RPT-001', kind: 'INVALID_INPUT', whatHappened: 'The period starts after it ends.', whatYouCanDo: ['Choose a start date on or before the end date.'] });
++       throw refusal(400, { code: 'EBMR-RPT-001', kind: 'INVALID_INPUT', whatHappened: 'The period starts after it ends.', whatYouCanDo: [""] });
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:81:5
+-       `select o.batch_id, o.batch_number, o.product_code, ${usOf('o.qa_reviewed_at')} as qa_us, (o.qa_reviewed_at at time zone $3)::date::text as day,
+-               o.right_first_time as rft, o.exception_count as exceptions, o.deviation_count as deviations, o.review_cycles as cycles
+-          from report.batch_outcome_v1 o
+-         where o.status = 'QA_REVIEWED' and ${inPeriod('o.qa_reviewed_at', 1, 2, 3)}
+-         order by o.qa_reviewed_at, o.batch_number`,
++       ``,
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:90:19
+-       [rows.length, rows.filter((r) => r.rft).length],
++       [rows.length, rows.length],
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:90:31
+-       [rows.length, rows.filter((r) => r.rft).length],
++       [rows.length, rows.filter(() => undefined).length],
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:102:66
+-       summary: { batches: rows.length, rightFirstTime: rows.filter((r) => r.rft).length, rate: rate[0]!.rate },
++       summary: { batches: rows.length, rightFirstTime: rows.filter(() => undefined).length, rate: rate[0]!.rate },
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:102:54
+-       summary: { batches: rows.length, rightFirstTime: rows.filter((r) => r.rft).length, rate: rate[0]!.rate },
++       summary: { batches: rows.length, rightFirstTime: rows.length, rate: rate[0]!.rate },
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:104:23
+-       batches: rows.map((r) => ({
+-         batchId: r.batch_id, batchNumber: r.batch_number, productCode: r.product_code, qaReviewedAt: app.formatInstant(r.qa_us), rightFirstTime: r.rft,
+-         exceptionCount: r.exceptions, deviationCount: r.deviations, reviewCycles: r.cycles, drill: batchDrill(r.batch_id),
+-       })),
++       batches: rows.map(() => undefined),
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/dashboards/reads.ts:103:15
+-       runChart: [...days.values()],
++       runChart: [],
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:115:5
+-       `with c as (select e.category, count(*)::int as n,
+-                          jsonb_agg(distinct jsonb_build_object('id', e.batch_id, 'number', e.batch_number)) as batches
+-                     from report.exception_v1 e where ${inPeriod('e.raised_at', 1, 2, 3)} group by e.category)
+-        select c.category, c.n, round(100 * sum(c.n) over (order by c.n desc, c.category) / nullif(sum(c.n) over (), 0), 2)::text as cum, c.batches
+-          from c order by c.n desc, c.category`,
++       ``,
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:125:24
+-       total: rows.reduce((t, r) => t + r.n, 0),
++       total: rows.reduce(() => undefined, 0),
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:126:26
+-       categories: rows.map((r) => ({
+-         category: r.category, count: r.n, cumulativePercent: r.cum,
+-         batches: r.batches.map((b) => ({ batchId: b.id, batchNumber: b.number, drill: `/review/${b.id}/register` })).sort((a, b) => a.batchNumber.localeCompare(b.batchNumber)),
+-       })),
++       categories: rows.map(() => undefined),
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:137:5
+-       `select o.batch_id, o.batch_number, ${usOf('o.completed_at')} as done_us, ${usOf('o.qa_reviewed_at')} as qa_us,
+-               round((extract(epoch from o.qa_reviewed_at - o.completed_at) / 86400)::numeric, 1)::text as days, o.review_cycles as cycles
+-          from report.batch_outcome_v1 o
+-         where o.status = 'QA_REVIEWED' and o.completed_at is not null and ${inPeriod('o.qa_reviewed_at', 1, 2, 3)}
+-         order by o.qa_reviewed_at, o.batch_number`,
++       ``,
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:146:15
+-       [rows.map((r) => r.days)],
++       [rows.map(() => undefined)],
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:152:23
+-       batches: rows.map((r) => ({
+-         batchId: r.batch_id, batchNumber: r.batch_number, completedAt: app.formatInstant(r.done_us), qaReviewedAt: app.formatInstant(r.qa_us),
+-         cycleDays: r.days, reviewCycles: r.cycles, drill: batchDrill(r.batch_id),
+-       })),
++       batches: rows.map(() => undefined),
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:165:5
+-       `select d.deviation_id, d.ref, d.kind, d.classification, d.state, ${usOf('d.raised_at')} as raised_us, d.age_days
+-          from report.deviation_ageing_v1 d where d.state not in ('CLOSED', 'CANCELLED') order by d.age_days desc, d.ref`,
++       ``,
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:168:25
+-     const open = rows.map((r) => ({
+-       deviationId: r.deviation_id, ref: r.ref, kind: r.kind, classification: r.classification, state: r.state, raisedAt: app.formatInstant(r.raised_us),
+-       ageDays: Math.max(r.age_days, 0), bucket: bucketOf(r.age_days), drill: `/quality/deviations/${r.deviation_id}`,
+-     }));
++     const open = rows.map(() => undefined);
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:172:69
+-     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => o.bucket === bucket).length })), open };
++     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.length })), open };
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:172:81
+-     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter((o) => o.bucket === bucket).length })), open };
++     return { ...s, buckets: BUCKETS.map((bucket) => ({ bucket, count: open.filter(() => undefined).length })), open };
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:179:5
+-       `select h.container_id, h.label_code, h.batch_id, h.batch_number, h.product_code, h.strength, ${usOf('h.closed_at')} as closed_us, h.max_hold_hours, h.held_hours,
+-               round(100 * h.held_hours::numeric / h.max_hold_hours, 2)::text as used,
+-               case when h.held_hours::numeric > h.max_hold_hours then 'OVER' when h.held_hours::numeric >= 0.8 * h.max_hold_hours then 'AT_RISK' else 'OK' end as risk
+-          from report.hold_time_risk_v1 h
+-         where h.disposition = 'LEFT' and h.max_hold_hours is not null
+-         order by h.held_hours::numeric / h.max_hold_hours desc, h.label_code`,
++       ``,
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:188:43
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.length, over: rows.filter((r) => r.risk === 'OVER').length },
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:188:55
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter(() => undefined).length, over: rows.filter((r) => r.risk === 'OVER').length },
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:188:98
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.length },
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:188:110
+-       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter((r) => r.risk === 'OVER').length },
++       summary: { held: rows.length, atRisk: rows.filter((r) => r.risk === 'AT_RISK').length, over: rows.filter(() => undefined).length },
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:189:26
+-       containers: rows.map((r) => ({
+-         containerId: r.container_id, labelCode: r.label_code, batchId: r.batch_id, batchNumber: r.batch_number, productCode: r.product_code, strength: r.strength,
+-         closedAt: app.formatInstant(r.closed_us), maxHoldHours: r.max_hold_hours, heldHours: r.held_hours, usedPercent: r.used, risk: r.risk,
+-         drill: `/review/${r.batch_id}/containers`,
+-       })),
++       containers: rows.map(() => undefined),
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:209:50
+-         daysOverdue: r.days_overdue, lastReviewAt: r.last_us === null ? null : app.formatInstant(r.last_us), inUse: r.in_use, drill: `/mbr/versions/${r.version_id}`,
++         daysOverdue: r.days_overdue, lastReviewAt: true ? null : app.formatInstant(r.last_us), inUse: r.in_use, drill: `/mbr/versions/${r.version_id}`,
+Tests ran:
+    dashboards over HTTP (GMP) > [PR-05] an overdue review appears on the dashboard
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:219:5
+-       `with x as (
+-          select c.*, case when c.observed_seconds::numeric > 0 then c.running_seconds::numeric / c.observed_seconds::numeric end as a,
+-                 case when c.tablets is not null and c.tablets::numeric > 0 then (c.tablets::numeric - coalesce(c.rejects::numeric, 0)) / c.tablets::numeric end as q
+-            from report.press_counter_v1 c where ${inPeriod('c.first_event_at', 1, 2, 3)})
+-        select x.equipment_id, x.equipment_code, x.batch_id, x.batch_number, ${usOf('x.first_event_at')} as from_us, ${usOf('x.last_event_at')} as to_us,
+-               x.running_seconds as running, x.observed_seconds as observed, x.tablets, x.rejects,
+-               round(x.a, 4)::text as availability, round(x.q, 4)::text as quality, round(x.a * x.q, 4)::text as oee
+-          from x order by x.first_event_at, x.equipment_code`,
++       ``,
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:232:23
+-       presses: rows.map((r) => ({
+-         equipmentId: r.equipment_id, equipmentCode: r.equipment_code, batchId: r.batch_id, batchNumber: r.batch_number, from: app.formatInstant(r.from_us), to: app.formatInstant(r.to_us),
+-         runningSeconds: r.running, observedSeconds: r.observed, tablets: r.tablets, rejects: r.rejects, availability: r.availability, quality: r.quality, oee: r.oee,
+-         drill: batchDrill(r.batch_id),
+-       })),
++       presses: rows.map(() => undefined),
+Tests ran:
+    dashboards over HTTP (GMP) > dashboards show their data age and refresh it
+
+
+[Survived] ArithmeticOperator
+apps/tablets-server/src/features/dashboards/reads.ts:262:92
+-          from report.alarm_v1 a where ${where} order by a.raised_at desc, a.alarm_id limit ${ALARM_LIST_MAX + 1}`,
++          from report.alarm_v1 a where ${where} order by a.raised_at desc, a.alarm_id limit ${ALARM_LIST_MAX - 1}`,
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:272:13
+-       alarms: list.slice(0, ALARM_LIST_MAX).map((a) => ({
++       alarms: list.map((a) => ({
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:276:20
+-       listTruncated: list.length > ALARM_LIST_MAX,
++       listTruncated: true,
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/dashboards/reads.ts:276:20
+-       listTruncated: list.length > ALARM_LIST_MAX,
++       listTruncated: false,
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:276:20
+-       listTruncated: list.length > ALARM_LIST_MAX,
++       listTruncated: list.length >= ALARM_LIST_MAX,
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/dashboards/reads.ts:276:20
+-       listTruncated: list.length > ALARM_LIST_MAX,
++       listTruncated: list.length <= ALARM_LIST_MAX,
+Tests ran:
+    dashboards over HTTP (GMP) > [DI-49] the alarm trend counts every alarm of the period
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/dashboards/reads.ts:329:5
+-       rows.filter((r) => r.impact === k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
++       rows.map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:329:17
+-       rows.filter((r) => r.impact === k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
++       rows.filter(() => undefined).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/dashboards/reads.ts:329:44
+-       rows.filter((r) => r.impact === k).map((r) => ({ id: r.id, label: r.label, detail: r.detail, via: r.via, drill: impactDrill(r) }));
++       rows.filter((r) => r.impact === k).map(() => undefined);
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:331:21
+-       versions: items('MBR_VERSION'),
++       versions: items(""),
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:332:24
+-       openBatches: items('OPEN_BATCH'),
++       openBatches: items(""),
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:333:25
+-       releasedLots: items('RELEASED_LOT'),
++       releasedLots: items(""),
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:334:20
+-       markets: items('MARKET'),
++       markets: items(""),
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:335:26
+-       configHistory: items('CONFIG_HISTORY'),
++       configHistory: items(""),
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/dashboards/reads.ts:337:66
+-     const contentHash = createHash('sha256').update(JSON.stringify({ kind, ref, ...lists })).digest('hex');
++     const contentHash = createHash('sha256').update(JSON.stringify({})).digest('hex');
+Tests ran:
+    dashboards over HTTP (GMP) > change impact over HTTP: the same answer gives the same hash; an unknown subject is a 404
+
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/training/index.ts:87:43
+-     if (watermark === null) throw new Error('training needs the TEST, NOT GMP watermark (DI-05)');
++     if (watermark === null) throw new Error("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/training/index.ts:115:96
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/training/index.ts:121:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) =>
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/training/index.ts:87:7
+-     if (watermark === null) throw new Error('training needs the TEST, NOT GMP watermark (DI-05)');
++     if (false) throw new Error('training needs the TEST, NOT GMP watermark (DI-05)');
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/training/index.ts:90:15
+-       personas: personas.filter((p) => p.roles.length > 0).map((p) => ({ personId: p.person_id, legalName: p.legal_name, loginName: p.login_name, roles: p.roles })),
++       personas: personas.map((p) => ({ personId: p.person_id, legalName: p.legal_name, loginName: p.login_name, roles: p.roles })),
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/training/index.ts:90:38
+-       personas: personas.filter((p) => p.roles.length > 0).map((p) => ({ personId: p.person_id, legalName: p.legal_name, loginName: p.login_name, roles: p.roles })),
++       personas: personas.filter((p) => true).map((p) => ({ personId: p.person_id, legalName: p.legal_name, loginName: p.login_name, roles: p.roles })),
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/training/index.ts:90:38
+-       personas: personas.filter((p) => p.roles.length > 0).map((p) => ({ personId: p.person_id, legalName: p.legal_name, loginName: p.login_name, roles: p.roles })),
++       personas: personas.filter((p) => p.roles.length >= 0).map((p) => ({ personId: p.person_id, legalName: p.legal_name, loginName: p.login_name, roles: p.roles })),
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/training/index.ts:96:14
+-         roles: [...e.roles],
++         roles: [],
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/training/index.ts:98:17
+-         attempts: attempts.filter((a) => a.exercise_code === e.code).map((a) => attemptView(app, a)),
++         attempts: attempts.map((a) => attemptView(app, a)),
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training screen data carries the TEST, NOT GMP watermark, the TEST- personas and the exercises
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/training/index.ts:98:40
+-         attempts: attempts.filter((a) => a.exercise_code === e.code).map((a) => attemptView(app, a)),
++         attempts: attempts.filter((a) => true).map((a) => attemptView(app, a)),
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/training/index.ts:113:158
+-           throw refusal(404, { code: 'EBMR-TRN-001', kind: 'INVALID_INPUT', whatHappened: `There is no training exercise ${body.exerciseCode}.`, whatYouCanDo: ['Choose an exercise from the training page.'] });
++           throw refusal(404, { code: 'EBMR-TRN-001', kind: 'INVALID_INPUT', whatHappened: `There is no training exercise ${body.exerciseCode}.`, whatYouCanDo: [] });
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/training/index.ts:113:159
+-           throw refusal(404, { code: 'EBMR-TRN-001', kind: 'INVALID_INPUT', whatHappened: `There is no training exercise ${body.exerciseCode}.`, whatYouCanDo: ['Choose an exercise from the training page.'] });
++           throw refusal(404, { code: 'EBMR-TRN-001', kind: 'INVALID_INPUT', whatHappened: `There is no training exercise ${body.exerciseCode}.`, whatYouCanDo: [""] });
+Tests ran:
+    training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox
+
+
+Ran 0.61 tests per mutant on average.
+---------------|------------------|----------|-----------|------------|----------|----------|
+               | % Mutation score |          |           |            |          |          |
+File           |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+---------------|--------|---------|----------|-----------|------------|----------|----------|
+All files      |  60.11 |   76.70 |      214 |         0 |         65 |       77 |        0 |
+ dashboards    |  55.33 |   74.19 |      161 |         0 |         56 |       74 |        0 |
+  guidance.ts  |    n/a |     n/a |        0 |         0 |          0 |        0 |        0 |
+  index.ts     |  61.29 |   61.29 |       19 |         0 |         12 |        0 |        0 |
+  reads.ts     |  54.62 |   76.34 |      142 |         0 |         44 |       74 |        0 |
+ training      |  81.54 |   85.48 |       53 |         0 |          9 |        3 |        0 |
+  exercises.ts | 100.00 |  100.00 |        5 |         0 |          0 |        0 |        0 |
+  index.ts     |  80.00 |   84.21 |       48 |         0 |          9 |        3 |        0 |
+---------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m03:13:26 (902816) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-dashboards-and-training.json
+[32m03:13:26 (902816) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-dashboards-and-training.html
+[32m03:13:26 (902816) INFO MutationTestExecutor[39m Done in 8 minutes and 22 seconds.

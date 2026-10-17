@@ -251,3 +251,306 @@ india-dsc: baseline db 4 s (limit 240 s), server 8 s (limit 240 s)
   SURVIVED esig.dsc_live_anchor#2 LOGICAL packages/kernel/sql/1203_india_dsc.sql:191 [and] -> [or]
   SURVIVED esig.dsc_live_anchor#4 RELATIONAL packages/kernel/sql/1203_india_dsc.sql:191 [=] -> [<>]
   SURVIVED esig.dsc_requirement#1 BOOLEAN packages/kernel/sql/1203_india_dsc.sql:220 [false] -> [true]
+  SURVIVED esig.register_dsc_anchor#5 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:272 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC trust an] -> [null]
+  SURVIVED esig.register_dsc_anchor#8 LOGICAL packages/kernel/sql/1203_india_dsc.sql:274 [or] -> [and]
+  SURVIVED esig.register_dsc_anchor#9 LOGICAL packages/kernel/sql/1203_india_dsc.sql:274 [or] -> [and]
+  SURVIVED esig.register_dsc_anchor#10 LOGICAL packages/kernel/sql/1203_india_dsc.sql:274 [or] -> [and]
+  india-dsc: 50/127
+  SURVIVED esig.register_dsc_anchor#11 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:275 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC trust an] -> [null]
+  SURVIVED esig.set_dsc_meaning#2 RELATIONAL packages/kernel/sql/1203_india_dsc.sql:298 [=] -> [<>]
+  SURVIVED esig.set_dsc_meaning#3 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:299 [raise exception using errcode = 'P0001', message = format('EBMR-ESIG-080 unknown] -> [null]
+  SURVIVED esig.set_dsc_meaning#6 LOGICAL packages/kernel/sql/1203_india_dsc.sql:301 [or] -> [and]
+  SURVIVED esig.set_dsc_meaning#7 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:302 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC setting ] -> [null]
+  SURVIVED esig.record_dsc_signature#8 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:215 [raise exception using errcode = 'P0001', message = format('EBMR-ESIG-083 no DSC ] -> [null]
+  SURVIVED esig.record_dsc_signature#11 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:219 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 no live trust ] -> [null]
+  SURVIVED esig.record_dsc_signature#17 RELATIONAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:226 [<] -> [<=]
+  SURVIVED esig.record_dsc_signature#14 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:224 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain ] -> [null]
+  SURVIVED esig.record_dsc_signature#24 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:230 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the signer cer] -> [null]
+  india-dsc: 75/127
+  SURVIVED esig.dsc_enrolment_input#2 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:87 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-086 the India DSC ] -> [null]
+  SURVIVED esig.dsc_enrolment_input#5 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:91 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 no live trust ] -> [null]
+  SURVIVED esig.enrol_dsc_certificate#4 LOGICAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:114 [or] -> [and]
+  SURVIVED esig.enrol_dsc_certificate#6 LOGICAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:114 [or] -> [and]
+  SURVIVED esig.enrol_dsc_certificate#8 LOGICAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:114 [or] -> [and]
+  SURVIVED esig.enrol_dsc_certificate#9 LOGICAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:114 [or] -> [and]
+  SURVIVED esig.enrol_dsc_certificate#10 LOGICAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:114 [or] -> [and]
+  SURVIVED esig.enrol_dsc_certificate#11 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:115 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-086 a DSC certific] -> [null]
+  india-dsc: 100/127
+  SURVIVED esig.enrol_dsc_certificate#15 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:118 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-086 the India DSC ] -> [null]
+  SURVIVED esig.enrol_dsc_certificate#18 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:122 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 no live trust ] -> [null]
+  SURVIVED esig.enrol_dsc_certificate#21 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:127 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain ] -> [null]
+  SURVIVED esig.enrol_dsc_certificate#24 RELATIONAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:129 [<] -> [<=]
+  SURVIVED esig.enrol_dsc_certificate#25 LOGICAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:129 [or] -> [and]
+  SURVIVED esig.enrol_dsc_certificate#27 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:130 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain ] -> [null]
+  SURVIVED esig.enrol_dsc_certificate#31 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:134 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the signer cer] -> [null]
+  SURVIVED esig.enrol_dsc_certificate#39 RELATIONAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:141 [=] -> [<>]
+  SURVIVED esig.enrol_dsc_certificate#45 RELATIONAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:146 [=] -> [<>]
+  SURVIVED esig.enrol_dsc_certificate#47 NOT_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:147 [not ] -> []
+  SURVIVED esig.enrol_dsc_certificate#48 RELATIONAL packages/kernel/sql/1206_dsc_signer_enrolment.sql:147 [=] -> [<>]
+  india-dsc: 125/127
+  SURVIVED esig.end_dsc_enrolment#7 GUARD_REMOVED packages/kernel/sql/1206_dsc_signer_enrolment.sql:173 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-088 ending a DSC e] -> [null]
+  dropped 1 databases the tests left behind: ebmr_t_8de5e6c84ac1
+india-dsc: score 59.1 % (75/127 detected, 0 invalid) in 780 s
+# SQL mutation report
+
+| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| erp-wms-receipt-and-stock | db 15, server 8 | db 240, server 240 | 351 | 1 | 0 | 207 | 143 | 59.1 % | 90 % |
+| plant-rules | db 29, server 10 | db 240, server 240 | 221 | 0 | 0 | 163 | 58 | 73.8 % | 90 % |
+| india-dsc | db 4, server 8 | db 240, server 240 | 127 | 0 | 0 | 75 | 52 | 59.1 % | 90 % |
+
+## Surviving mutants
+
+- erp-wms-receipt-and-stock site.lot_receipt_effective (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:201) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.lot_receipt_effective (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:205) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.lot_receipt_effective (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:207) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.lot_receipt_effective (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:208) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.lot_receipt_effective (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:217) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.receipt_problem (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:186) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.receipt_problem (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:187) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.propose_approved_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:240) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.propose_approved_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:241) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.propose_approved_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:241) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.propose_approved_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:242) RELATIONAL: `<` -> `<=`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:296) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-911 unknown` -> `null`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:301) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:301) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:301) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:301) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:301) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:309) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-912 ' || v_prob` -> `null`
+- erp-wms-receipt-and-stock site.approve_manufacturer (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:312) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-912 the manufactur` -> `null`
+- erp-wms-receipt-and-stock site.withdraw_manufacturer_approval (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:332) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-911 unknown` -> `null`
+- erp-wms-receipt-and-stock site.withdraw_manufacturer_approval (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:336) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-913 manufac` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:373) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:373) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:374) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:375) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:375) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:376) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-914 a delivery nam` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:381) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-171 materia` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:385) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-172 materia` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:388) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:388) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:389) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:390) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:390) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:390) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:391) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-105 materia` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:397) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:398) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-914 deliver` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:403) NOT_REMOVED: `not ` -> ``
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:403) BOOLEAN: `false` -> `true`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:409) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:411) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:411) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:412) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:412) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:413) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:414) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:414) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:415) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-914 a supplier bat` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:424) RELATIONAL: `<=` -> `<`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:425) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-915 supplie` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:429) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:429) NOT_REMOVED: `not ` -> ``
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:429) RELATIONAL: `>` -> `>=`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:430) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-914 supplie` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:434) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-104 supplie` -> `null`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:433) RELATIONAL: `<=` -> `<`
+- erp-wms-receipt-and-stock site.receive_delivery (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:471) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_supplier_batches (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:455) NOT_REMOVED: `not ` -> ``
+- erp-wms-receipt-and-stock site.receive_delivery (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:471) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.receive_delivery (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:472) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-914 a delivery nam` -> `null`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:499) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-915 lot %s ` -> `null`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:504) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:504) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:505) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:505) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:506) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:506) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:507) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-914 a receipt reco` -> `null`
+- erp-wms-receipt-and-stock site.record_lot_receipt (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:511) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-915 lot %s ` -> `null`
+- erp-wms-receipt-and-stock site.record_receipt_examination (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:539) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-916 lot %s ` -> `null`
+- erp-wms-receipt-and-stock site.record_receipt_examination (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:544) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_receipt_examination (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:544) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.record_receipt_examination (packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql:545) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.location_move_problem (packages/site-services/sql/0916_erp_wms_entry_authority.sql:212) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.apply_wms_stock_move (packages/site-services/sql/0970_controlled_wms_moves.sql:37) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ERP-003 the WMS ` -> `null`
+- erp-wms-receipt-and-stock site.resolve_lot_location_exception (packages/site-services/sql/0911_stock_locations.sql:185) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-921 unknown` -> `null`
+- erp-wms-receipt-and-stock site.resolve_lot_location_exception (packages/site-services/sql/0911_stock_locations.sql:192) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.resolve_lot_location_exception (packages/site-services/sql/0911_stock_locations.sql:192) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.apply_wms_lot_status (packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql:73) RELATIONAL: `>=` -> `>`
+- erp-wms-receipt-and-stock site.erp_lot_status_problem (packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql:97) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.erp_outbound_from_fact (packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql:166) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.erp_outbound_from_fact (packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql:174) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.erp_outbound_from_fact (packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql:178) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.erp_outbound_pending (packages/site-services/sql/0916_erp_wms_entry_authority.sql:23) RELATIONAL: `<` -> `<=`
+- erp-wms-receipt-and-stock site.erp_outbound_delivered (packages/site-services/sql/0916_erp_wms_entry_authority.sql:47) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ERP-011 there is` -> `null`
+- erp-wms-receipt-and-stock site.erp_outbound_delivered (packages/site-services/sql/0916_erp_wms_entry_authority.sql:50) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ERP-011 a delivery name` -> `null`
+- erp-wms-receipt-and-stock site.erp_outbound_delivered (packages/site-services/sql/0916_erp_wms_entry_authority.sql:56) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.erp_outbound_delivered (packages/site-services/sql/0916_erp_wms_entry_authority.sql:57) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.erp_outbound_failed (packages/site-services/sql/0916_erp_wms_entry_authority.sql:78) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ERP-011 there is` -> `null`
+- erp-wms-receipt-and-stock site.erp_outbound_failed (packages/site-services/sql/0916_erp_wms_entry_authority.sql:81) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ERP-011 a failed delive` -> `null`
+- erp-wms-receipt-and-stock site.erp_source_value_ok (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:40) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.erp_source_value_ok (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:41) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.erp_source_value_ok (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:41) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.calendar_date_ok (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:53) BOOLEAN: `false` -> `true`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:70) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:71) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:72) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:72) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:76) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:76) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:81) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:81) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:82) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:82) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:86) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:86) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:86) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:86) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:87) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:91) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:91) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:92) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:92) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:93) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:97) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:97) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:98) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:98) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:99) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:99) RELATIONAL: `<>` -> `=`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:104) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:99) NOT_REMOVED: `not ` -> ``
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:104) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:105) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:106) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:106) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:110) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:114) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.erp_payload_problem (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:114) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:241) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:242) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:242) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:243) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:243) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:243) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:243) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:243) LOGICAL: `or` -> `and`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:243) RELATIONAL: `>` -> `>=`
+- erp-wms-receipt-and-stock site.correct_lot_receipt_value (packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql:244) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-923 %s is n` -> `null`
+- erp-wms-receipt-and-stock site.wms_location_question (packages/site-services/sql/0916_erp_wms_entry_authority.sql:166) LOGICAL: `and` -> `or`
+- erp-wms-receipt-and-stock site.wms_location_question (packages/site-services/sql/0916_erp_wms_entry_authority.sql:166) RELATIONAL: `=` -> `<>`
+- erp-wms-receipt-and-stock site.wms_location_question (packages/site-services/sql/0916_erp_wms_entry_authority.sql:170) LOGICAL: `or` -> `and`
+- plant-rules iam.person_area_authorised (packages/kernel/sql/1190_area_authorisation.sql:53) RELATIONAL: `<=` -> `<`
+- plant-rules iam.person_area_authorised (packages/kernel/sql/1190_area_authorisation.sql:53) RELATIONAL: `<=` -> `<`
+- plant-rules iam.person_area_authorised (packages/kernel/sql/1190_area_authorisation.sql:53) RELATIONAL: `>` -> `>=`
+- plant-rules iam.person_area_authorised (packages/kernel/sql/1190_area_authorisation.sql:54) RELATIONAL: `>` -> `>=`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:63) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-950 a reagent lot ` -> `null`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:67) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-950 a reage` -> `null`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:71) LOGICAL: `or` -> `and`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:72) LOGICAL: `or` -> `and`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:73) LOGICAL: `or` -> `and`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:73) LOGICAL: `or` -> `and`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:77) RELATIONAL: `<=` -> `<`
+- plant-rules site.record_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:77) RELATIONAL: `>` -> `>=`
+- plant-rules site.withdraw_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:102) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-953 there i` -> `null`
+- plant-rules site.withdraw_reagent_lot (packages/site-services/sql/0940_reagent_lots.sql:105) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-SITE-950 a reagent lot ` -> `null`
+- plant-rules site.reagent_lot_problem (packages/site-services/sql/0940_reagent_lots.sql:119) RELATIONAL: `>` -> `>=`
+- plant-rules site.reagent_lot_problem (packages/site-services/sql/0940_reagent_lots.sql:120) RELATIONAL: `<=` -> `<`
+- plant-rules site.reagent_lot_problem (packages/site-services/sql/0940_reagent_lots.sql:122) LOGICAL: `and` -> `or`
+- plant-rules site.reagent_lot_problem (packages/site-services/sql/0940_reagent_lots.sql:122) RELATIONAL: `<=` -> `<`
+- plant-rules plant.set_area_rule (packages/recipe-core/sql/0973_plant_room_rules.sql:72) LOGICAL: `or` -> `and`
+- plant-rules plant.set_area_rule (packages/recipe-core/sql/0973_plant_room_rules.sql:71) BOOLEAN: `true` -> `false`
+- plant-rules plant.set_area_rule (packages/recipe-core/sql/0973_plant_room_rules.sql:72) NOT_REMOVED: `not ` -> ``
+- plant-rules plant.set_area_rule (packages/recipe-core/sql/0973_plant_room_rules.sql:72) RELATIONAL: `<=` -> `<`
+- plant-rules plant.set_area_rule (packages/recipe-core/sql/0973_plant_room_rules.sql:72) LOGICAL: `or` -> `and`
+- plant-rules plant.set_area_rule (packages/recipe-core/sql/0973_plant_room_rules.sql:73) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-PLANT-153 the rules of ` -> `null`
+- plant-rules plant.record_spill (packages/recipe-core/sql/0973_plant_room_rules.sql:134) RELATIONAL: `=` -> `<>`
+- plant-rules plant.record_spill (packages/recipe-core/sql/0973_plant_room_rules.sql:141) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-PLANT-152 a spill is re` -> `null`
+- plant-rules plant.record_spill (packages/recipe-core/sql/0973_plant_room_rules.sql:143) BOOLEAN: `true` -> `false`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:169) RELATIONAL: `>` -> `>=`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:182) LOGICAL: `and` -> `or`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:182) LOGICAL: `and` -> `or`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:182) LOGICAL: `and` -> `or`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:182) RELATIONAL: `<=` -> `<`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:184) LOGICAL: `or` -> `and`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:184) RELATIONAL: `>` -> `>=`
+- plant-rules plant.room_start_problem (packages/recipe-core/sql/0973_plant_room_rules.sql:184) RELATIONAL: `>` -> `>=`
+- plant-rules plant.define_area_adjacency (packages/recipe-core/sql/0973_plant_room_rules.sql:232) BOOLEAN: `false` -> `true`
+- plant-rules plant.define_area_adjacency (packages/recipe-core/sql/0973_plant_room_rules.sql:233) BOOLEAN: `false` -> `true`
+- plant-rules plant.define_area_adjacency (packages/recipe-core/sql/0973_plant_room_rules.sql:234) LOGICAL: `or` -> `and`
+- plant-rules plant.set_facility_rule (packages/recipe-core/sql/0973_plant_room_rules.sql:307) LOGICAL: `or` -> `and`
+- plant-rules plant.classify_beta_lactam (packages/recipe-core/sql/0973_plant_room_rules.sql:326) LOGICAL: `or` -> `and`
+- plant-rules plant.classify_beta_lactam (packages/recipe-core/sql/0973_plant_room_rules.sql:327) LOGICAL: `or` -> `and`
+- plant-rules plant.classify_beta_lactam (packages/recipe-core/sql/0973_plant_room_rules.sql:331) RELATIONAL: `=` -> `<>`
+- plant-rules plant.classify_beta_lactam (packages/recipe-core/sql/0973_plant_room_rules.sql:331) LOGICAL: `and` -> `or`
+- plant-rules plant.classify_beta_lactam (packages/recipe-core/sql/0973_plant_room_rules.sql:331) RELATIONAL: `=` -> `<>`
+- plant-rules plant.batch_beta_lactam (packages/recipe-core/sql/0973_plant_room_rules.sql:350) LOGICAL: `or` -> `and`
+- plant-rules plant.batch_beta_lactam (packages/recipe-core/sql/0973_plant_room_rules.sql:350) RELATIONAL: `=` -> `<>`
+- plant-rules plant.step_rules_problem (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:58) LOGICAL: `and` -> `or`
+- plant-rules plant.step_rules_problem (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:67) RELATIONAL: `>` -> `>=`
+- plant-rules plant.step_rules_check (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:80) LOGICAL: `or` -> `and`
+- plant-rules plant.step_rules_check (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:80) LOGICAL: `or` -> `and`
+- plant-rules plant.record_reagent_use (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:121) LOGICAL: `or` -> `and`
+- plant-rules plant.record_reagent_use (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:131) RELATIONAL: `=` -> `<>`
+- plant-rules recipe.review_gate_problems (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:176) RELATIONAL: `=` -> `<>`
+- plant-rules recipe.review_gate_problems (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:199) LOGICAL: `and` -> `or`
+- plant-rules recipe.review_gate_problems (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:200) LOGICAL: `and` -> `or`
+- plant-rules recipe.review_gate_problems (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:200) LOGICAL: `and` -> `or`
+- plant-rules recipe.review_gate_problems (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:200) RELATIONAL: `>` -> `>=`
+- plant-rules recipe.review_gate_problems (packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:216) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-REV-001 %s is no` -> `null`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:138) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ESIG-002 unknown` -> `null`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:140) LOGICAL: `or` -> `and`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:141) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-005 a policy chang` -> `null`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:146) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s take` -> `null`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:149) NOT_REMOVED: `not ` -> ``
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:149) RELATIONAL: `<` -> `<=`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:149) LOGICAL: `or` -> `and`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:149) NOT_REMOVED: `not ` -> ``
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:149) RELATIONAL: `>` -> `>=`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:150) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s must` -> `null`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:154) NOT_REMOVED: `not ` -> ``
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:155) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s take` -> `null`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:157) NOT_REMOVED: `not ` -> ``
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:157) RELATIONAL: `=` -> `<>`
+- india-dsc esig.set_policy (packages/kernel/sql/1203_india_dsc.sql:158) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s take` -> `null`
+- india-dsc esig.dsc_live_anchor (packages/kernel/sql/1203_india_dsc.sql:191) LOGICAL: `and` -> `or`
+- india-dsc esig.dsc_live_anchor (packages/kernel/sql/1203_india_dsc.sql:191) RELATIONAL: `=` -> `<>`
+- india-dsc esig.dsc_requirement (packages/kernel/sql/1203_india_dsc.sql:220) BOOLEAN: `false` -> `true`
+- india-dsc esig.register_dsc_anchor (packages/kernel/sql/1203_india_dsc.sql:272) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC trust an` -> `null`
+- india-dsc esig.register_dsc_anchor (packages/kernel/sql/1203_india_dsc.sql:274) LOGICAL: `or` -> `and`
+- india-dsc esig.register_dsc_anchor (packages/kernel/sql/1203_india_dsc.sql:274) LOGICAL: `or` -> `and`
+- india-dsc esig.register_dsc_anchor (packages/kernel/sql/1203_india_dsc.sql:274) LOGICAL: `or` -> `and`
+- india-dsc esig.register_dsc_anchor (packages/kernel/sql/1203_india_dsc.sql:275) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC trust an` -> `null`
+- india-dsc esig.set_dsc_meaning (packages/kernel/sql/1203_india_dsc.sql:298) RELATIONAL: `=` -> `<>`
+- india-dsc esig.set_dsc_meaning (packages/kernel/sql/1203_india_dsc.sql:299) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ESIG-080 unknown` -> `null`
+- india-dsc esig.set_dsc_meaning (packages/kernel/sql/1203_india_dsc.sql:301) LOGICAL: `or` -> `and`
+- india-dsc esig.set_dsc_meaning (packages/kernel/sql/1203_india_dsc.sql:302) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-080 a DSC setting ` -> `null`
+- india-dsc esig.record_dsc_signature (packages/kernel/sql/1206_dsc_signer_enrolment.sql:215) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ESIG-083 no DSC ` -> `null`
+- india-dsc esig.record_dsc_signature (packages/kernel/sql/1206_dsc_signer_enrolment.sql:219) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 no live trust ` -> `null`
+- india-dsc esig.record_dsc_signature (packages/kernel/sql/1206_dsc_signer_enrolment.sql:226) RELATIONAL: `<` -> `<=`
+- india-dsc esig.record_dsc_signature (packages/kernel/sql/1206_dsc_signer_enrolment.sql:224) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain ` -> `null`
+- india-dsc esig.record_dsc_signature (packages/kernel/sql/1206_dsc_signer_enrolment.sql:230) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the signer cer` -> `null`
+- india-dsc esig.dsc_enrolment_input (packages/kernel/sql/1206_dsc_signer_enrolment.sql:87) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-086 the India DSC ` -> `null`
+- india-dsc esig.dsc_enrolment_input (packages/kernel/sql/1206_dsc_signer_enrolment.sql:91) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 no live trust ` -> `null`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:114) LOGICAL: `or` -> `and`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:114) LOGICAL: `or` -> `and`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:114) LOGICAL: `or` -> `and`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:114) LOGICAL: `or` -> `and`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:114) LOGICAL: `or` -> `and`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:115) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-086 a DSC certific` -> `null`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:118) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-086 the India DSC ` -> `null`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:122) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-082 no live trust ` -> `null`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:127) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain ` -> `null`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:129) RELATIONAL: `<` -> `<=`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:129) LOGICAL: `or` -> `and`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:130) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the DSC chain ` -> `null`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:134) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-085 the signer cer` -> `null`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:141) RELATIONAL: `=` -> `<>`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:146) RELATIONAL: `=` -> `<>`
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:147) NOT_REMOVED: `not ` -> ``
+- india-dsc esig.enrol_dsc_certificate (packages/kernel/sql/1206_dsc_signer_enrolment.sql:147) RELATIONAL: `=` -> `<>`
+- india-dsc esig.end_dsc_enrolment (packages/kernel/sql/1206_dsc_signer_enrolment.sql:173) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ESIG-088 ending a DSC e` -> `null`

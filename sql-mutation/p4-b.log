@@ -1,0 +1,29 @@
+us-disposition: 146 mutants in 18 functions (db + server)
+market-changes: 153 mutants in 13 functions (db + server)
+after-release-suspension: 137 mutants in 15 functions (db + server)
+after-release-decisions: 198 mutants in 18 functions (db)
+shipping-interlock: 89 mutants in 5 functions (db + server)
+record-lock-and-amendment: 166 mutants in 14 functions (db + server)
+bulk-and-bright-stock: 99 mutants in 12 functions (db + server)
+execution-complete-forms: 6 mutants in 1 functions (db)
+total: 994 mutants in 8 groups
+templates built in 31 s: ebmr_mut_base_42c4aeb4, ebmr_stpl_c813e39e16d2, ebmr_sandbox_tplf21f08d0a76a
+checked 96 functions: each re-applied unmutated leaves its pg_proc row unchanged; owners ebmr_owner (250); a copy of each template has the template's database privileges
+us-disposition: baseline db 72 s (limit 240 s), server 9 s (limit 240 s)
+  SURVIVED recipe.disposition_state#2 LOGICAL packages/recipe-core/sql/0840_after_release.sql:289 [or] -> [and]
+  SURVIVED recipe.disposition_state#8 LOGICAL packages/recipe-core/sql/0840_after_release.sql:294 [or] -> [and]
+  SURVIVED recipe.disposition_state#9 RELATIONAL packages/recipe-core/sql/0840_after_release.sql:294 [=] -> [<>]
+  SURVIVED recipe.disposition_state#10 LOGICAL packages/recipe-core/sql/0840_after_release.sql:294 [and] -> [or]
+  SURVIVED recipe.disposition_state#11 RELATIONAL packages/recipe-core/sql/0840_after_release.sql:294 [=] -> [<>]
+  SURVIVED recipe.disposition_state#12 LOGICAL packages/recipe-core/sql/0840_after_release.sql:294 [and] -> [or]
+  SURVIVED recipe.disposition_state#13 RELATIONAL packages/recipe-core/sql/0840_after_release.sql:294 [=] -> [<>]
+  us-disposition: 25/146
+  SURVIVED recipe.check_us_disposition#2 LOGICAL packages/recipe-core/sql/0822_market_dispositions.sql:509 [or] -> [and]
+  SURVIVED recipe.check_us_disposition#4 GUARD_REMOVED packages/recipe-core/sql/0822_market_dispositions.sql:510 [raise exception using errcode = 'P0001', message = format('EBMR-DSP-030 %s is no] -> [null]
+  SURVIVED recipe.check_us_disposition#12 NOT_REMOVED packages/recipe-core/sql/0822_market_dispositions.sql:517 [not ] -> []
+  SURVIVED recipe.check_us_disposition#15 GUARD_REMOVED packages/recipe-core/sql/0822_market_dispositions.sql:518 [raise exception using errcode = 'P0001', message = v_p] -> [null]
+  SURVIVED recipe.check_us_disposition#26 GUARD_REMOVED packages/recipe-core/sql/0822_market_dispositions.sql:529 [raise exception using errcode = 'P0001', message = 'EBMR-DSP-036 the signed US c] -> [null]
+  SURVIVED recipe.check_us_disposition#42 LOGICAL packages/recipe-core/sql/0822_market_dispositions.sql:542 [and] -> [or]
+  SURVIVED recipe.check_us_disposition#44 LOGICAL packages/recipe-core/sql/0822_market_dispositions.sql:542 [and] -> [or]
+  SURVIVED recipe.check_us_disposition#45 RELATIONAL packages/recipe-core/sql/0822_market_dispositions.sql:542 [=] -> [<>]
+  SURVIVED recipe.check_us_disposition#47 LOGICAL packages/recipe-core/sql/0822_market_dispositions.sql:543 [and] -> [or]

@@ -25,3 +25,29 @@ release-gate: baseline db 145 s (limit 434 s), server 31 s (limit 240 s)
   SURVIVED recipe.grel_core_items#85 LOGICAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:147 [and] -> [or]
   SURVIVED recipe.grel_core_items#97 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:157 [>] -> [>=]
   release-gate: 100/240
+  SURVIVED recipe.grel_core_items#107 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:169 [>] -> [>=]
+  SURVIVED recipe.grel_core_items#114 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:172 [>] -> [>=]
+  SURVIVED recipe.grel_core_items#118 BOOLEAN packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:188 [true] -> [false]
+  SURVIVED recipe.grel_core_items#121 BOOLEAN packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:189 [true] -> [false]
+  release-gate: 125/240
+  recipe.grel_core_items#125: its equivalent.json entry does not fit (cites 0783:245; the mutant is at 0932:194); run as an ordinary mutant
+  recipe.grel_core_items#134: its equivalent.json entry does not fit (cites 0783:263; the mutant is at 0932:211); run as an ordinary mutant
+  SURVIVED recipe.grel_core_items#132 BOOLEAN packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:208 [false] -> [true]
+  recipe.grel_core_items#145: its equivalent.json entry does not fit (cites 0783:280; the mutant is at 0932:233); run as an ordinary mutant
+  SURVIVED recipe.grel_core_items#141 BOOLEAN packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:226 [false] -> [true]
+  release-gate: 150/240
+  SURVIVED recipe.grel_core_items#152 BOOLEAN packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:243 [false] -> [true]
+  SURVIVED recipe.grel_core_items#158 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:258 [>] -> [>=]
+  release-gate: 175/240
+  SURVIVED recipe.release_gate_problems#5 RELATIONAL packages/recipe-core/sql/0781_manufacturer_release.sql:770 [=] -> [<>]
+  SURVIVED recipe.release_gate_problems#6 LOGICAL packages/recipe-core/sql/0781_manufacturer_release.sql:770 [and] -> [or]
+  SURVIVED recipe.release_gate_problems#7 RELATIONAL packages/recipe-core/sql/0781_manufacturer_release.sql:770 [=] -> [<>]
+  SURVIVED recipe.release_gate_problems#8 RELATIONAL packages/recipe-core/sql/0781_manufacturer_release.sql:770 [<] -> [<=]
+  release-gate: 200/240
+  SURVIVED recipe.release_deviations#6 LOGICAL packages/recipe-core/sql/0781_manufacturer_release.sql:269 [or] -> [and]
+  SURVIVED recipe.release_deviations#7 RELATIONAL packages/recipe-core/sql/0781_manufacturer_release.sql:269 [=] -> [<>]
+  release-gate: 225/240
+  SURVIVED recipe.investigation_unjustifiable_for#9 LOGICAL packages/recipe-core/sql/0783_justification_links.sql:43 [or] -> [and]
+  SURVIVED recipe.investigation_unjustifiable_for#10 RELATIONAL packages/recipe-core/sql/0783_justification_links.sql:43 [=] -> [<>]
+  dropped 2 databases the tests left behind: ebmr_t_b845588c3bfc, ebmr_t_fc1874f616bb
+release-gate: score 87.9 % (211/240 detected, 0 invalid) in 4103 s

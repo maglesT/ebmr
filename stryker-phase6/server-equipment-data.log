@@ -1,33 +1,548 @@
-[32m02:38:44 (794736) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-equipment-data.incremental.json, a full mutation testing run will be performed.
-[32m02:38:44 (794736) INFO ProjectReader[39m Found 2 of 3106 file(s) to be mutated.
-[32m02:38:44 (794736) INFO Instrumenter[39m Instrumented 2 source file(s) with 81 mutant(s)
-[32m02:38:46 (794736) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
-[91m02:38:47 (794736) ERROR Stryker[39m Unexpected error occurred while running Stryker Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s1/.reports/stryker-phase6' -> '/root/wt/campaign-s1/.stryker-tmp-server-equipment-data/sandbox-ftopMt/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s1/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s1/.stryker-tmp-server-equipment-data/sandbox-ftopMt/.reports/stryker-phase6'
-}
-[32m02:38:47 (794736) INFO Stryker[39m This might be a known problem with a solution documented in our troubleshooting guide.
-[32m02:38:47 (794736) INFO Stryker[39m You can find it at https://stryker-mutator.io/docs/stryker-js/troubleshooting/
-[32m02:38:47 (794736) INFO Stryker[39m Still having trouble figuring out what went wrong? Try `npx stryker run --fileLogLevel trace --logLevel debug` to get some more info.
-node:internal/process/promises:394
-    triggerUncaughtException(err, true /* fromPromise */);
-    ^
+[32m03:03:26 (897043) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-equipment-data.incremental.json, a full mutation testing run will be performed.
+[32m03:03:26 (897043) INFO ProjectReader[39m Found 2 of 3130 file(s) to be mutated.
+[32m03:03:27 (897043) INFO Instrumenter[39m Instrumented 2 source file(s) with 81 mutant(s)
+[32m03:03:29 (897043) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m03:03:30 (897043) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m03:03:31 (897043) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m03:04:07 (897043) INFO DryRunExecutor[39m Initial test run succeeded. Ran 9 tests in 36 seconds (net 3318.219829999991 ms, overhead 33006.78017000001 ms).
+Mutation testing 10% (elapsed: <1m, remaining: ~1m) 53/78 tested (1 survived, 0 timed out)
+Mutation testing 21% (elapsed: <1m, remaining: ~1m) 56/78 tested (3 survived, 0 timed out)
+Mutation testing 39% (elapsed: <1m, remaining: <1m) 61/78 tested (3 survived, 0 timed out)
+Mutation testing 60% (elapsed: <1m, remaining: <1m) 67/78 tested (4 survived, 0 timed out)
+Mutation testing 89% (elapsed: <1m, remaining: <1m) 75/78 tested (9 survived, 0 timed out)
 
-Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s1/.reports/stryker-phase6' -> '/root/wt/campaign-s1/.stryker-tmp-server-equipment-data/sandbox-ftopMt/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s1/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s1/.stryker-tmp-server-equipment-data/sandbox-ftopMt/.reports/stryker-phase6'
-}
+All tests
+  alarms/alarm-routes.test.ts
+    ✘ alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment (covered 0)
+    ✘ alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot (covered 0)
+    ✓ alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags (killed 16)
+  equipment-data
+    opcua-adapter.test.ts
+      ✘ the OPC UA adapter worker (D-P6b-0-1) > [DI-31] the OPC UA adapter is a slot of the server, started by the rule of the EMS (covered 0)
+      ✘ the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-49] a session, native chunks, a reject-burst alarm and an equipment event from the feed land as sent (covered 0)
+      ✘ the OPC UA adapter worker (D-P6b-0-1) > [DI-20][DI-31] after a relocated endpoint session the data are refused with an alarm and none lands; a valid session restores the feed (covered 0)
+    opcua-readings.test.ts
+      ✘ OPC UA readings on the gateway path (DI-32, DI-20) > [DI-32] an OPC UA reading stores raw output equal to the displayed value (covered 0)
+      ✘ OPC UA readings on the gateway path (DI-32, DI-20) > [DI-32] a rounded display, a quality that contradicts the status, a reading of an OPC UA unit without its original record are refused; nothing lands (covered 0)
+      ✘ OPC UA readings on the gateway path (DI-32, DI-20) > [DI-20] readings of a unit whose endpoint session was refused (certificate changed) are refused until a valid session (covered 0)
 
-Node.js v22.23.3
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/index.ts:25:63
+-       batchSeries: async ({ params, query, requireSession }) => {
+-         requireSession();
+-         return { chunks: await batchSeries(app, pool, params.batchId, query.tag, query.step) };
+-       },
++       batchSeries: async ({ params, query, requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/equipment-data/index.ts:26:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/index.ts:27:14
+-         return { chunks: await batchSeries(app, pool, params.batchId, query.tag, query.step) };
++         return {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/index.ts:29:50
+-       events: async ({ query, requireSession }) => {
+-         requireSession();
+-         return { events: await equipmentEvents(app, pool, query.equipmentCode, query.batchId) };
+-       },
++       events: async ({ query, requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/equipment-data/index.ts:30:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/index.ts:31:14
+-         return { events: await equipmentEvents(app, pool, query.equipmentCode, query.batchId) };
++         return {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/index.ts:33:54
+-       originals: async ({ params, requireSession }) => {
+-         requireSession();
+-         return { records: await deviceOriginals(app, pool, params.batchId) };
+-       },
++       originals: async ({ params, requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/equipment-data/index.ts:34:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/index.ts:35:14
+-         return { records: await deviceOriginals(app, pool, params.batchId) };
++         return {};
+
+[Survived] CallExpression
+apps/tablets-server/src/features/equipment-data/index.ts:18:7
+-         requireSession();
++         ;
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/equipment-data/index.ts:22:7
+-         requireSession();
++         ;
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/equipment-data/index.ts:23:55
+-         return seriesPage(app, pool, { ...query, limit: query.limit === undefined ? SERIES_PAGE_MAX : Number.parseInt(query.limit, 10) });
++         return seriesPage(app, pool, { ...query, limit: true ? SERIES_PAGE_MAX : Number.parseInt(query.limit, 10) });
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/reads.ts:34:63
+-   function quality(status: string): NativeSampleView['quality'] {
+-     const top = status.charAt(2);
+-     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
+-   }
++   function quality(status: string): NativeSampleView['quality'] {}
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/equipment-data/reads.ts:35:15
+-     const top = status.charAt(2);
++     const top = status;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:36:10
+-     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
++     return "".includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:36:33
+-     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
++     return '0123'.includes(top) ? "" : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:36:42
+-     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
++     return '0123'.includes(top) ? 'GOOD' : "".includes(top) ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:36:65
+-     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
++     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? "" : 'BAD';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:36:79
+-     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';
++     return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : "";
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/reads.ts:39:67
+-   function chunkView(app: AppContext, r: ChunkRow): SeriesChunkView {
+-     return {
+-       seriesId: r.id,
+-       source: r.source,
+-       subject: { kind: r.subject_kind, code: r.subject_code },
+-       tag: r.tag,
+-       unit: r.unit,
+-       chunkNo: r.chunk_no,
+-       fromUs: r.from_us,
+-       toUs: r.to_us,
+-       chunkHash: r.chunk_hash,
+-       samples: r.samples.map((s) => ({ sourceTime: s.sourceTime, serverTime: s.serverTime, raw: s.raw, value: s.value, status: s.status, quality: quality(s.status) })),
+-       receivedAt: app.formatInstant(r.received_us),
+-     };
+-   }
++   function chunkView(app: AppContext, r: ChunkRow): SeriesChunkView {}
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:40:10
+-     return {
+-       seriesId: r.id,
+-       source: r.source,
+-       subject: { kind: r.subject_kind, code: r.subject_code },
+-       tag: r.tag,
+-       unit: r.unit,
+-       chunkNo: r.chunk_no,
+-       fromUs: r.from_us,
+-       toUs: r.to_us,
+-       chunkHash: r.chunk_hash,
+-       samples: r.samples.map((s) => ({ sourceTime: s.sourceTime, serverTime: s.serverTime, raw: s.raw, value: s.value, status: s.status, quality: quality(s.status) })),
+-       receivedAt: app.formatInstant(r.received_us),
+-     };
++     return {};
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:43:14
+-       subject: { kind: r.subject_kind, code: r.subject_code },
++       subject: {},
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/equipment-data/reads.ts:50:28
+-       samples: r.samples.map((s) => ({ sourceTime: s.sourceTime, serverTime: s.serverTime, raw: s.raw, value: s.value, status: s.status, quality: quality(s.status) })),
++       samples: r.samples.map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:50:36
+-       samples: r.samples.map((s) => ({ sourceTime: s.sourceTime, serverTime: s.serverTime, raw: s.raw, value: s.value, status: s.status, quality: quality(s.status) })),
++       samples: r.samples.map((s) => ({})),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:75:92
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no && null) : null };
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/equipment-data/reads.ts:75:92
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1).chunk_no ?? null) : null };
+
+[NoCoverage] UnaryOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:75:100
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(+1)?.chunk_no ?? null) : null };
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/reads.ts:78:133
+-   export async function batchSeries(app: AppContext, db: Db, batchId: string, tag: string, step?: string): Promise<SeriesChunkView[]> {
+-     const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, [batchId, step ?? null, tag]);
+-     return rows.map((r) => chunkView(app, r));
+-   }
++   export async function batchSeries(app: AppContext, db: Db, batchId: string, tag: string, step?: string): Promise<SeriesChunkView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:79:45
+-     const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, [batchId, step ?? null, tag]);
++     const { rows } = await db.query<ChunkRow>(``, [batchId, step ?? null, tag]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:79:60
+-     const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, [batchId, step ?? null, tag]);
++     const { rows } = await db.query<ChunkRow>(`${chunkSelect("")} order by x.from_us`, [batchId, step ?? null, tag]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/equipment-data/reads.ts:79:121
+-     const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, [batchId, step ?? null, tag]);
++     const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:79:131
+-     const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, [batchId, step ?? null, tag]);
++     const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, [batchId, step && null, tag]);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/equipment-data/reads.ts:80:19
+-     return rows.map((r) => chunkView(app, r));
++     return rows.map(() => undefined);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/reads.ts:83:137
+-   export async function equipmentEvents(app: AppContext, db: Db, equipmentCode?: string, batchId?: string): Promise<EquipmentEventView[]> {
+-     const { rows } = await db.query<{
+-       id: string; source: EquipmentEventView['source']; event_id: string; code: string; kind: EquipmentEventView['kind']; state: EquipmentEventView['state'];
+-       recipe_version: string | null; message: string; occurred_us: string; batch_id: string | null; step: string | null; received_us: string;
+-     }>(
+-       `select v.id, v.source, v.event_id, e.code, v.kind, v.state, v.recipe_version, v.message, v.occurred_source_us::text as occurred_us, v.batch_id, v.step,
+-               ${usOf('v.received_at')} as received_us
+-        from plant.equipment_state_event v join plant.equipment e on e.id = v.equipment_id
+-        where ($1::text is null or e.code = $1) and ($2::uuid is null or v.batch_id = $2)
+-        order by v.occurred_source_us desc limit 500`,
+-       [equipmentCode ?? null, batchId ?? null],
+-     );
+-     return rows.map((r) => ({
+-       eventId: r.id,
+-       source: r.source,
+-       sourceEventId: r.event_id,
+-       equipmentCode: r.code,
+-       kind: r.kind,
+-       state: r.state,
+-       recipeVersion: r.recipe_version,
+-       message: r.message,
+-       occurredAtSource: app.formatInstant(r.occurred_us),
+-       batchId: r.batch_id,
+-       step: r.step,
+-       receivedAt: app.formatInstant(r.received_us),
+-     }));
+-   }
++   export async function equipmentEvents(app: AppContext, db: Db, equipmentCode?: string, batchId?: string): Promise<EquipmentEventView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:88:5
+-       `select v.id, v.source, v.event_id, e.code, v.kind, v.state, v.recipe_version, v.message, v.occurred_source_us::text as occurred_us, v.batch_id, v.step,
+-               ${usOf('v.received_at')} as received_us
+-        from plant.equipment_state_event v join plant.equipment e on e.id = v.equipment_id
+-        where ($1::text is null or e.code = $1) and ($2::uuid is null or v.batch_id = $2)
+-        order by v.occurred_source_us desc limit 500`,
++       ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:89:20
+-               ${usOf('v.received_at')} as received_us
++               ${usOf("")} as received_us
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/equipment-data/reads.ts:93:5
+-       [equipmentCode ?? null, batchId ?? null],
++       [],
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:93:6
+-       [equipmentCode ?? null, batchId ?? null],
++       [equipmentCode && null, batchId ?? null],
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:93:29
+-       [equipmentCode ?? null, batchId ?? null],
++       [equipmentCode ?? null, batchId && null],
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/equipment-data/reads.ts:95:19
+-     return rows.map((r) => ({
+-       eventId: r.id,
+-       source: r.source,
+-       sourceEventId: r.event_id,
+-       equipmentCode: r.code,
+-       kind: r.kind,
+-       state: r.state,
+-       recipeVersion: r.recipe_version,
+-       message: r.message,
+-       occurredAtSource: app.formatInstant(r.occurred_us),
+-       batchId: r.batch_id,
+-       step: r.step,
+-       receivedAt: app.formatInstant(r.received_us),
+-     }));
++     return rows.map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:95:27
+-     return rows.map((r) => ({
+-       eventId: r.id,
+-       source: r.source,
+-       sourceEventId: r.event_id,
+-       equipmentCode: r.code,
+-       kind: r.kind,
+-       state: r.state,
+-       recipeVersion: r.recipe_version,
+-       message: r.message,
+-       occurredAtSource: app.formatInstant(r.occurred_us),
+-       batchId: r.batch_id,
+-       step: r.step,
+-       receivedAt: app.formatInstant(r.received_us),
+-     }));
++     return rows.map((r) => ({}));
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/equipment-data/reads.ts:111:112
+-   export async function deviceOriginals(app: AppContext, db: Db, batchId: string): Promise<DeviceOriginalView[]> {
+-     const { rows } = await db.query<{
+-       id: string; code: string; capture: DeviceOriginalView['capture']; device_ref: string | null; raw_output: string | null; value: string; unit: string;
+-       device_us: string | null; ticket_sha256: string | null; ticket_ref: string | null; step: string; entry_ref: string | null; person_id: string; role_code: string | null;
+-       recorded_us: string;
+-     }>(
+-       `select d.id, e.code, d.capture, d.device_ref, d.raw_output, d.value, d.unit, d.device_time_us::text as device_us, d.ticket_sha256, d.ticket_ref, d.step,
+-               d.entry_ref, d.person_id, d.role_code, ${usOf('d.recorded_at')} as recorded_us
+-        from plant.device_original d join plant.equipment e on e.id = d.equipment_id
+-        where d.batch_id = $1 order by d.recorded_at, d.id`,
+-       [batchId],
+-     );
+-     const people = await peopleOf(db, rows.map((r) => r.person_id));
+-     return rows.map((r) => ({
+-       recordId: r.id,
+-       equipmentCode: r.code,
+-       capture: r.capture,
+-       deviceRef: r.device_ref,
+-       rawOutput: r.raw_output,
+-       value: r.value,
+-       unit: r.unit,
+-       deviceTime: r.device_us === null ? null : app.formatInstant(r.device_us),
+-       ticketSha256: r.ticket_sha256,
+-       ticketRef: r.ticket_ref,
+-       step: r.step,
+-       entryRef: r.entry_ref,
+-       recordedBy: personRef(people, r.person_id, r.role_code ?? ''),
+-       recordedAt: app.formatInstant(r.recorded_us),
+-     }));
+-   }
++   export async function deviceOriginals(app: AppContext, db: Db, batchId: string): Promise<DeviceOriginalView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:117:5
+-       `select d.id, e.code, d.capture, d.device_ref, d.raw_output, d.value, d.unit, d.device_time_us::text as device_us, d.ticket_sha256, d.ticket_ref, d.step,
+-               d.entry_ref, d.person_id, d.role_code, ${usOf('d.recorded_at')} as recorded_us
+-        from plant.device_original d join plant.equipment e on e.id = d.equipment_id
+-        where d.batch_id = $1 order by d.recorded_at, d.id`,
++       ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:118:59
+-               d.entry_ref, d.person_id, d.role_code, ${usOf('d.recorded_at')} as recorded_us
++               d.entry_ref, d.person_id, d.role_code, ${usOf("")} as recorded_us
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/equipment-data/reads.ts:121:5
+-       [batchId],
++       [],
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/equipment-data/reads.ts:123:46
+-     const people = await peopleOf(db, rows.map((r) => r.person_id));
++     const people = await peopleOf(db, rows.map(() => undefined));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/equipment-data/reads.ts:124:19
+-     return rows.map((r) => ({
+-       recordId: r.id,
+-       equipmentCode: r.code,
+-       capture: r.capture,
+-       deviceRef: r.device_ref,
+-       rawOutput: r.raw_output,
+-       value: r.value,
+-       unit: r.unit,
+-       deviceTime: r.device_us === null ? null : app.formatInstant(r.device_us),
+-       ticketSha256: r.ticket_sha256,
+-       ticketRef: r.ticket_ref,
+-       step: r.step,
+-       entryRef: r.entry_ref,
+-       recordedBy: personRef(people, r.person_id, r.role_code ?? ''),
+-       recordedAt: app.formatInstant(r.recorded_us),
+-     }));
++     return rows.map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:124:27
+-     return rows.map((r) => ({
+-       recordId: r.id,
+-       equipmentCode: r.code,
+-       capture: r.capture,
+-       deviceRef: r.device_ref,
+-       rawOutput: r.raw_output,
+-       value: r.value,
+-       unit: r.unit,
+-       deviceTime: r.device_us === null ? null : app.formatInstant(r.device_us),
+-       ticketSha256: r.ticket_sha256,
+-       ticketRef: r.ticket_ref,
+-       step: r.step,
+-       entryRef: r.entry_ref,
+-       recordedBy: personRef(people, r.person_id, r.role_code ?? ''),
+-       recordedAt: app.formatInstant(r.recorded_us),
+-     }));
++     return rows.map((r) => ({}));
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/equipment-data/reads.ts:132:17
+-       deviceTime: r.device_us === null ? null : app.formatInstant(r.device_us),
++       deviceTime: true ? null : app.formatInstant(r.device_us),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/equipment-data/reads.ts:132:17
+-       deviceTime: r.device_us === null ? null : app.formatInstant(r.device_us),
++       deviceTime: false ? null : app.formatInstant(r.device_us),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:132:17
+-       deviceTime: r.device_us === null ? null : app.formatInstant(r.device_us),
++       deviceTime: r.device_us !== null ? null : app.formatInstant(r.device_us),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:137:48
+-       recordedBy: personRef(people, r.person_id, r.role_code ?? ''),
++       recordedBy: personRef(people, r.person_id, r.role_code && ''),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:137:63
+-       recordedBy: personRef(people, r.person_id, r.role_code ?? ''),
++       recordedBy: personRef(people, r.person_id, r.role_code ?? "Stryker was here!"),
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/equipment-data/reads.ts:68:5
+-       `${chunkSelect('plant.series')}
+-        where x.subject_kind = $1 and coalesce(e.code, a.code) = $2 and x.tag = $3 and x.to_us >= $4::bigint and x.from_us < $5::bigint
+-          and ($6::bigint is null or x.chunk_no > $6::bigint)
+-        order by x.chunk_no limit $7`,
++       ``,
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:72:61
+-       [q.subjectKind, q.subjectCode, q.tag, q.fromUs, q.toUs, q.after ?? null, q.limit + 1],
++       [q.subjectKind, q.subjectCode, q.tag, q.fromUs, q.toUs, q.after && null, q.limit + 1],
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] ArithmeticOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:72:78
+-       [q.subjectKind, q.subjectCode, q.tag, q.fromUs, q.toUs, q.after ?? null, q.limit + 1],
++       [q.subjectKind, q.subjectCode, q.tag, q.fromUs, q.toUs, q.after ?? null, q.limit - 1],
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/equipment-data/reads.ts:74:16
+-     const page = rows.slice(0, q.limit);
++     const page = rows;
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/equipment-data/reads.ts:75:29
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map(() => undefined), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/equipment-data/reads.ts:75:67
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: true ? (page.at(-1)?.chunk_no ?? null) : null };
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:75:67
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length >= q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/equipment-data/reads.ts:75:67
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: false ? (page.at(-1)?.chunk_no ?? null) : null };
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/equipment-data/reads.ts:75:67
+-     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
++     return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length <= q.limit ? (page.at(-1)?.chunk_no ?? null) : null };
+Tests ran:
+    alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags
+
+
+Ran 0.35 tests per mutant on average.
+----------|------------------|----------|-----------|------------|----------|----------|
+          | % Mutation score |          |           |            |          |          |
+File      |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+All files |  20.51 |   57.14 |       16 |         0 |         12 |       50 |        0 |
+ index.ts |  33.33 |   66.67 |        6 |         0 |          3 |        9 |        0 |
+ reads.ts |  16.67 |   52.63 |       10 |         0 |          9 |       41 |        0 |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+[32m03:05:00 (897043) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-equipment-data.json
+[32m03:05:00 (897043) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-equipment-data.html
+[32m03:05:00 (897043) INFO MutationTestExecutor[39m Done in 1 minute and 34 seconds.

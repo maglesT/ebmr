@@ -1,33 +1,1085 @@
-[32m02:38:41 (794418) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-quality-receipt.incremental.json, a full mutation testing run will be performed.
-[32m02:38:41 (794418) INFO ProjectReader[39m Found 2 of 3106 file(s) to be mutated.
-[32m02:38:41 (794418) INFO Instrumenter[39m Instrumented 2 source file(s) with 365 mutant(s)
-[32m02:38:42 (794418) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
-[91m02:38:43 (794418) ERROR Stryker[39m Unexpected error occurred while running Stryker Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s1/.reports/stryker-phase6' -> '/root/wt/campaign-s1/.stryker-tmp-server-quality-receipt/sandbox-rbD6C3/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s1/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s1/.stryker-tmp-server-quality-receipt/sandbox-rbD6C3/.reports/stryker-phase6'
-}
-[32m02:38:43 (794418) INFO Stryker[39m This might be a known problem with a solution documented in our troubleshooting guide.
-[32m02:38:43 (794418) INFO Stryker[39m You can find it at https://stryker-mutator.io/docs/stryker-js/troubleshooting/
-[32m02:38:43 (794418) INFO Stryker[39m Still having trouble figuring out what went wrong? Try `npx stryker run --fileLogLevel trace --logLevel debug` to get some more info.
-node:internal/process/promises:394
-    triggerUncaughtException(err, true /* fromPromise */);
-    ^
+[32m02:53:04 (852137) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-quality-receipt.incremental.json, a full mutation testing run will be performed.
+[32m02:53:04 (852137) INFO ProjectReader[39m Found 2 of 3126 file(s) to be mutated.
+[32m02:53:04 (852137) INFO Instrumenter[39m Instrumented 2 source file(s) with 365 mutant(s)
+[32m02:53:06 (852137) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m02:53:07 (852137) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m02:53:08 (852137) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m02:53:45 (852137) INFO DryRunExecutor[39m Initial test run succeeded. Ran 20 tests in 37 seconds (net 10971.463657000015 ms, overhead 26117.536342999985 ms).
+Mutation testing 3% (elapsed: <1m, remaining: ~4m) 81/327 tested (0 survived, 0 timed out)
+Mutation testing 6% (elapsed: <1m, remaining: ~4m) 83/327 tested (0 survived, 0 timed out)
+Mutation testing 10% (elapsed: <1m, remaining: ~4m) 85/327 tested (0 survived, 0 timed out)
+Mutation testing 11% (elapsed: <1m, remaining: ~4m) 86/327 tested (1 survived, 0 timed out)
+Mutation testing 18% (elapsed: <1m, remaining: ~3m) 90/327 tested (3 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~1m, remaining: ~3m) 93/327 tested (5 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~1m, remaining: ~3m) 98/327 tested (5 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~1m, remaining: ~4m) 102/327 tested (9 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~1m, remaining: ~4m) 104/327 tested (9 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~1m, remaining: ~4m) 108/327 tested (10 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~1m, remaining: ~4m) 112/327 tested (12 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~2m, remaining: ~5m) 116/327 tested (13 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~2m, remaining: ~4m) 120/327 tested (15 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~2m, remaining: ~4m) 123/327 tested (15 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~2m, remaining: ~4m) 126/327 tested (17 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~2m, remaining: ~3m) 131/327 tested (18 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~2m, remaining: ~2m) 135/327 tested (18 survived, 0 timed out)
+Mutation testing 55% (elapsed: ~3m, remaining: ~2m) 138/327 tested (19 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~3m, remaining: ~2m) 140/327 tested (19 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~3m, remaining: ~2m) 144/327 tested (20 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~3m, remaining: ~2m) 148/327 tested (21 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~3m, remaining: ~2m) 152/327 tested (23 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~3m, remaining: ~2m) 156/327 tested (25 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~4m, remaining: ~2m) 162/327 tested (27 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~4m, remaining: ~2m) 165/327 tested (28 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~4m, remaining: ~2m) 169/327 tested (28 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~4m, remaining: ~1m) 173/327 tested (29 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~4m, remaining: ~1m) 177/327 tested (30 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~4m, remaining: ~1m) 180/327 tested (30 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~5m, remaining: ~1m) 183/327 tested (30 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~5m, remaining: ~1m) 187/327 tested (32 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~5m, remaining: ~1m) 191/327 tested (32 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~5m, remaining: ~1m) 195/327 tested (33 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~5m, remaining: ~1m) 199/327 tested (35 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~5m, remaining: ~1m) 203/327 tested (35 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~6m, remaining: ~1m) 206/327 tested (35 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~6m, remaining: ~1m) 211/327 tested (36 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~6m, remaining: ~1m) 216/327 tested (37 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~6m, remaining: ~1m) 220/327 tested (38 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~6m, remaining: ~1m) 225/327 tested (38 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~6m, remaining: <1m) 230/327 tested (39 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~7m, remaining: <1m) 236/327 tested (41 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~7m, remaining: <1m) 240/327 tested (42 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~7m, remaining: <1m) 246/327 tested (46 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~7m, remaining: <1m) 252/327 tested (48 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~7m, remaining: <1m) 258/327 tested (49 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~7m, remaining: <1m) 263/327 tested (50 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~8m, remaining: <1m) 269/327 tested (52 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~8m, remaining: <1m) 276/327 tested (54 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~8m, remaining: <1m) 282/327 tested (55 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~8m, remaining: <1m) 288/327 tested (58 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~8m, remaining: <1m) 294/327 tested (60 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~8m, remaining: <1m) 300/327 tested (63 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~9m, remaining: <1m) 306/327 tested (63 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~9m, remaining: <1m) 310/327 tested (63 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~9m, remaining: <1m) 316/327 tested (64 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~9m, remaining: <1m) 322/327 tested (64 survived, 0 timed out)
 
-Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s1/.reports/stryker-phase6' -> '/root/wt/campaign-s1/.stryker-tmp-server-quality-receipt/sandbox-rbD6C3/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s1/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s1/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s1/.stryker-tmp-server-quality-receipt/sandbox-rbD6C3/.reports/stryker-phase6'
-}
+All tests
+  lims-routes.test.ts
+    ✓ specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test (killed 34)
+    ✓ lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused (killed 12)
+    ✓ finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [IN-05][PR-45] a finished lot is posted only from a packaging order whose execution is complete (killed 5)
+    ✓ finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year (killed 53)
+  receipt-routes.test.ts
+    ✓ receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked (killed 66)
+    ✓ receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then (killed 8)
+  routes.test.ts
+    ✘ quality routes (GMP) > [PR-49][PR-17] a QA person raises and investigates a deviation-lite record with a generated reference; the ERP interface imports its catalogue and nobody else can (covered 0)
+    ✘ quality routes (GMP) > [PR-47][IN-24] a new or changed ERP master waits for QA: listed as pending beside the values in effect, confirmed by the QA MBR approver's signature over HTTP (MASTER_DATA_APPROVE), never by the QA investigator; the masters in effect list it afterwards (exit review HIGH-1) (covered 0)
+    ✘ quality routes (GMP) > the reprocessing registers are listed read-only (requests, authorisations, reservable residue), and the server describes what a signable action signs (covered 0)
+    ✘ signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [IN-02] a deviation classified MINOR without a rationale is refused by the route and by the database (covered 0)
+    ✘ signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [PR-50] the impact sign-off, the conclusion and the closure succeed through the ceremony and are refused for the initiator, the owner or changed content; the closure basis and the detail over HTTP (slice 2a) (covered 0)
+    ✓ signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content (killed 5)
+    ✘ signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > [INV-40] a lot receipt from a shared kiosk without a fresh badge tap is refused with 428 and records nothing; with the tap it reaches the database (covered 0)
+    ✘ signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > the QC decision on extra testing of a batch succeeds through the ceremony and is refused for the wrong person or changed content (covered 0)
+    ✘ signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > the reprocessing acts sign nothing for a person without the quality unit's authority, for changed content, or when the database refuses the record (covered 0)
+    ✘ signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > plant verifications (cleaning, clearance, repair) succeed through the ceremony and are refused for the performer or changed content (covered 0)
+  signables-ids.test.ts
+    ✘ signed aggregate ids of the quality acts > [DI-37][DI-35] the extra-testing decision binds the batch, the decision and the tests distinct and sorted by code point, joined by + (covered 0)
+    ✘ signed aggregate ids of the quality acts > [DI-37][DI-35] the retest binds the lot, the new instant in UTC with microseconds, and the result ids lower-cased, distinct and sorted (covered 0)
+    ✘ what a quality act signs and the input it carries (mutation follow-up) > [DI-37] each act names its aggregate and meaning; the extra-testing decision and the retest bind their input (covered 0)
+    ✘ what a quality act signs and the input it carries (mutation follow-up) > [DI-37] an act carrying input it does not use, or missing what it needs, is refused before anything is signed; a malformed retest likewise (covered 0)
 
-Node.js v22.23.3
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:32:16
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:32:24
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: "", kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:32:52
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: "", whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:32:75
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: ``, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:32:110
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: ``, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:32:144
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:32:145
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:110:66
+-       disposedBy: r.disposed_by ? personRef(people, r.disposed_by, 'DISPOSER') : null,
++       disposedBy: r.disposed_by ? personRef(people, r.disposed_by, "") : null,
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/quality/lims.ts:171:94
+-   async function finishedLot(app: AppContext, db: Db, lotId: string): Promise<FinishedLotView> {
+-     const { rows } = await db.query<{ lot_code: string; batch_id: string; product_code: string; status: string; quantity: string; unit: string; markets: string[]; exp_us: string }>(
+-       `select l.lot_code, f.batch_id, f.product_code, (select s.state from platform.aggregate_state s where s.aggregate_type = 'material_lot' and s.aggregate_id = l.id) as status, l.received_quantity::text as quantity, l.unit, f.markets,
+-               ${usOf('l.expires_at')} as exp_us
+-          from site.finished_lot f join site.material_lot l on l.id = f.lot_id where f.lot_id = $1`,
+-       [lotId],
+-     );
+-     const r = rows[0];
+-     if (!r) throw notFound('finished lot');
+-     return { lotId, lotCode: r.lot_code, batchId: r.batch_id, productCode: r.product_code, status: r.status, quantity: r.quantity, unit: r.unit, markets: r.markets, expiry: app.formatInstant(r.exp_us) };
+-   }
++   async function finishedLot(app: AppContext, db: Db, lotId: string): Promise<FinishedLotView> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:173:5
+-       `select l.lot_code, f.batch_id, f.product_code, (select s.state from platform.aggregate_state s where s.aggregate_type = 'material_lot' and s.aggregate_id = l.id) as status, l.received_quantity::text as quantity, l.unit, f.markets,
+-               ${usOf('l.expires_at')} as exp_us
+-          from site.finished_lot f join site.material_lot l on l.id = f.lot_id where f.lot_id = $1`,
++       ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:174:20
+-               ${usOf('l.expires_at')} as exp_us
++               ${usOf("")} as exp_us
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:176:5
+-       [lotId],
++       [],
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/quality/lims.ts:179:7
+-     if (!r) throw notFound('finished lot');
++     if (r) throw notFound('finished lot');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:179:7
+-     if (!r) throw notFound('finished lot');
++     if (true) throw notFound('finished lot');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:179:7
+-     if (!r) throw notFound('finished lot');
++     if (false) throw notFound('finished lot');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:179:26
+-     if (!r) throw notFound('finished lot');
++     if (!r) throw notFound("");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:180:10
+-     return { lotId, lotCode: r.lot_code, batchId: r.batch_id, productCode: r.product_code, status: r.status, quantity: r.quantity, unit: r.unit, markets: r.markets, expiry: app.formatInstant(r.exp_us) };
++     return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:219:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:223:46
+-           return rows[0]?.r.specificationId ?? '';
++           return rows[0]?.r.specificationId ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:226:33
+-         if (!view) throw notFound('specification');
++         if (!view) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:230:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:232:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:243:37
+-         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r ?? [] };
++         return { items: rows[0]?.r ?? ["Stryker was here"], mbrs: mbrs.rows[0]?.r ?? [] };
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:243:66
+-         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r ?? [] };
++         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r ?? ["Stryker was here"] };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:253:30
+-         if (!r) throw notFound('lot');
++         if (!r) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:257:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:259:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:266:30
+-         if (!r) throw notFound('proposal');
++         if (!r) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:270:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:272:16
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id && '';
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:272:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:272:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:283:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:288:31
+-           return rows[0]?.id ?? '';
++           return rows[0]?.id ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:291:33
+-         if (!view) throw notFound('sample');
++         if (!view) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:295:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:299:49
+-         const [view] = await samplesOf(app, pool, { id: params.sampleId });
++         const [view] = await samplesOf(app, pool, {});
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/quality/lims.ts:300:11
+-         if (!view) throw notFound('sample');
++         if (view) throw notFound('sample');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:300:11
+-         if (!view) throw notFound('sample');
++         if (true) throw notFound('sample');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:300:11
+-         if (!view) throw notFound('sample');
++         if (false) throw notFound('sample');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:300:33
+-         if (!view) throw notFound('sample');
++         if (!view) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:308:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:312:36
+-           return rows[0]?.r.lotId ?? '';
++           return rows[0]?.r.lotId ?? "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:315:33
+-         if (!view) throw notFound('return');
++         if (!view) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:323:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:328:33
+-         if (!view) throw notFound('return');
++         if (!view) throw notFound("");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/quality/lims.ts:333:84
+-       recoverReturn: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         const recovery = compact({
+-           materialCode: body.materialCode, materialName: body.materialName, quantity: body.quantity, unit: body.unit, processReference: body.processReference,
+-           expiresAt: body.expiresAt, retestAt: body.retestAt, returnedQuantity: body.returnedQuantity,
+-         });
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           const { rows } = await c.query<{ r: { lotId: string; lotCode: string } }>('select site.record_chemical_recovery($1, $2::jsonb) as r', [params.lotId, JSON.stringify(recovery)]);
+-           return rows[0]?.r ?? null;
+-         });
+-         if (!out.result) throw notFound('return');
+-         return { returnedLotId: params.lotId, recoveredLotId: out.result.lotId, recoveredLotCode: out.result.lotCode };
+-       },
++       recoverReturn: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:334:32
+-         const recovery = compact({
+-           materialCode: body.materialCode, materialName: body.materialName, quantity: body.quantity, unit: body.unit, processReference: body.processReference,
+-           expiresAt: body.expiresAt, retestAt: body.retestAt, returnedQuantity: body.returnedQuantity,
+-         });
++         const recovery = compact({});
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:338:67
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:338:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/quality/lims.ts:338:115
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           const { rows } = await c.query<{ r: { lotId: string; lotCode: string } }>('select site.record_chemical_recovery($1, $2::jsonb) as r', [params.lotId, JSON.stringify(recovery)]);
+-           return rows[0]?.r ?? null;
+-         });
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:339:83
+-           const { rows } = await c.query<{ r: { lotId: string; lotCode: string } }>('select site.record_chemical_recovery($1, $2::jsonb) as r', [params.lotId, JSON.stringify(recovery)]);
++           const { rows } = await c.query<{ r: { lotId: string; lotCode: string } }>("", [params.lotId, JSON.stringify(recovery)]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:339:143
+-           const { rows } = await c.query<{ r: { lotId: string; lotCode: string } }>('select site.record_chemical_recovery($1, $2::jsonb) as r', [params.lotId, JSON.stringify(recovery)]);
++           const { rows } = await c.query<{ r: { lotId: string; lotCode: string } }>('select site.record_chemical_recovery($1, $2::jsonb) as r', []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:340:16
+-           return rows[0]?.r ?? null;
++           return rows[0]?.r && null;
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:340:16
+-           return rows[0]?.r ?? null;
++           return rows[0].r ?? null;
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/quality/lims.ts:342:11
+-         if (!out.result) throw notFound('return');
++         if (out.result) throw notFound('return');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:342:11
+-         if (!out.result) throw notFound('return');
++         if (true) throw notFound('return');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:342:11
+-         if (!out.result) throw notFound('return');
++         if (false) throw notFound('return');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:342:39
+-         if (!out.result) throw notFound('return');
++         if (!out.result) throw notFound("");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:343:14
+-         return { returnedLotId: params.lotId, recoveredLotId: out.result.lotId, recoveredLotCode: out.result.lotCode };
++         return {};
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:65:25
+-       [filter.id ?? null, filter.materialCode ?? null],
++       [filter.id ?? null, filter.materialCode && null],
+Tests ran:
+    signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+  and 1 more test!
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/quality/lims.ts:67:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.drafted_by, r.approved_by]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+  and 1 more test!
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:67:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.drafted_by, r.approved_by]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+  and 1 more test!
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:79:66
+-       approvedBy: r.approved_by ? personRef(people, r.approved_by, 'APPROVER') : null,
++       approvedBy: r.approved_by ? personRef(people, r.approved_by, "") : null,
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:77:48
+-       draftedBy: personRef(people, r.drafted_by, 'DRAFTER'),
++       draftedBy: personRef(people, r.drafted_by, ""),
+Tests ran:
+    signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+  and 1 more test!
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:95:6
+-       [filter.lotId ?? null, filter.id ?? null],
++       [filter.lotId && null, filter.id ?? null],
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:95:28
+-       [filter.lotId ?? null, filter.id ?? null],
++       [filter.lotId ?? null, filter.id && null],
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/quality/lims.ts:97:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.pulled_by, r.disposed_by]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:97:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.pulled_by, r.disposed_by]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:108:46
+-       pulledBy: personRef(people, r.pulled_by, 'SAMPLER'),
++       pulledBy: personRef(people, r.pulled_by, ""),
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/quality/lims.ts:138:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.received_by, r.a?.by]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:136:6
+-       [lotId ?? null],
++       [lotId && null],
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/quality/lims.ts:138:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.received_by, r.a?.by]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:150:50
+-       receivedBy: personRef(people, r.received_by, 'RECEIVER'),
++       receivedBy: personRef(people, r.received_by, ""),
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:163:49
+-             recordedBy: personRef(people, r.a.by, 'QC_ASSESSOR'),
++             recordedBy: personRef(people, r.a.by, ""),
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/quality/lims.ts:215:7
+-         requireSession();
++         ;
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:198:14
+-         return { act: a.act, subjectId: a.subjectId };
++         return {};
+Tests ran:
+    signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+  and 1 more test!
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:216:64
+-         return { specifications: await specifications(app, pool, { materialCode: query.materialCode }) };
++         return { specifications: await specifications(app, pool, {}) };
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:223:16
+-           return rows[0]?.r.specificationId ?? '';
++           return rows[0].r.specificationId ?? '';
+Tests ran:
+    signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+  and 1 more test!
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:226:11
+-         if (!view) throw notFound('specification');
++         if (false) throw notFound('specification');
+Tests ran:
+    signed quality, lot, reprocessing and plant acts over HTTP (slice 6a) > a lot test result approval, the retest, and the lot release and rejection succeed through the ceremony and are refused for the wrong person or changed content
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+  and 1 more test!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:232:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/quality/lims.ts:237:7
+-         requireSession();
++         ;
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/lims.ts:242:68
+-         const mbrs = await pool.query<{ r: MbrEditionReviewItem[] }>('select recipe.mbr_edition_review() as r');
++         const mbrs = await pool.query<{ r: MbrEditionReviewItem[] }>("");
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:243:23
+-         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r ?? [] };
++         return { items: rows[0].r ?? [], mbrs: mbrs.rows[0]?.r ?? [] };
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/lims.ts:243:47
+-         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r ?? [] };
++         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r && [] };
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:243:47
+-         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0]?.r ?? [] };
++         return { items: rows[0]?.r ?? [], mbrs: mbrs.rows[0].r ?? [] };
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/quality/lims.ts:246:7
+-         requireSession();
++         ;
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:253:11
+-         if (!r) throw notFound('lot');
++         if (false) throw notFound('lot');
+Tests ran:
+    specifications and results over HTTP (IN-33, PR-45) > [IN-33][PR-45] QC drafts a specification citing the pharmacopoeia and edition of every limit; only another person approves it (LIMS_ACT); a result takes its limits from it and the release check names the required test
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:259:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+Tests ran:
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:266:11
+-         if (!r) throw notFound('proposal');
++         if (false) throw notFound('proposal');
+Tests ran:
+    lot status events over HTTP (D-P4-3) > [DI-37][IN-24] HOLD, UNHOLD, RETURN and RECALL are proposed by QA, then signed as LOT_DECISION over the content that names the proposal; a decision not proposed, another than the one proposed, or a proposal by the QC analyst is refused
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/quality/lims.ts:279:7
+-         requireSession();
++         ;
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:280:52
+-         return { samples: await samplesOf(app, pool, { lotId: params.lotId }) };
++         return { samples: await samplesOf(app, pool, {}) };
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:288:16
+-           return rows[0]?.id ?? '';
++           return rows[0].id ?? '';
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/quality/lims.ts:290:49
+-         const [view] = await samplesOf(app, pool, { id: out.result });
++         const [view] = await samplesOf(app, pool, {});
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:291:11
+-         if (!view) throw notFound('sample');
++         if (false) throw notFound('sample');
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/quality/lims.ts:304:7
+-         requireSession();
++         ;
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/lims.ts:312:16
+-           return rows[0]?.r.lotId ?? '';
++           return rows[0].r.lotId ?? '';
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:315:11
+-         if (!view) throw notFound('return');
++         if (false) throw notFound('return');
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/lims.ts:328:11
+-         if (!view) throw notFound('return');
++         if (false) throw notFound('return');
+Tests ran:
+    finished lots, returned goods and samples over HTTP (IN-05 (a), PR-45, PR-48, PR-44, IN-32) > [PR-48] returned goods are booked in quarantine, assessed and signed by QC (LIMS_ACT), and with doubt leave only by rejection; [PR-44][IN-32] a retention sample is pulled with its computed quantity and kept until expiry + 1 year
+
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/receipt.ts:23:16
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:23:24
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: "", kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:23:52
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: "", whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:23:75
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: ``, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:23:110
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: ``, whatYouCanDo: ['Reload the list.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/quality/receipt.ts:23:144
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:23:145
+-     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: ['Reload the list.'] });
++     refusal(404, { code: 'EBMR-API-NOT-FOUND', kind: 'STALE', whatHappened: `The ${what} was not found.`, why: `No such ${what}.`, whatYouCanDo: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:53:26
+-     if (!v) throw notFound('approved-manufacturer row');
++     if (!v) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:76:28
+-     if (!row) throw notFound('lot');
++     if (!row) throw notFound("");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/quality/receipt.ts:83:15
+-     } catch (e) {
+-       if (!(e instanceof Error) || !/EBMR-INT-010/.test(e.message)) throw e;
+-       problem = e.message;
+-     }
++     } catch (e) {}
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/receipt.ts:84:9
+-       if (!(e instanceof Error) || !/EBMR-INT-010/.test(e.message)) throw e;
++       if (true) throw e;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/quality/receipt.ts:84:9
+-       if (!(e instanceof Error) || !/EBMR-INT-010/.test(e.message)) throw e;
++       if (false) throw e;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/quality/receipt.ts:84:9
+-       if (!(e instanceof Error) || !/EBMR-INT-010/.test(e.message)) throw e;
++       if (!(e instanceof Error) && !/EBMR-INT-010/.test(e.message)) throw e;
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/quality/receipt.ts:84:9
+-       if (!(e instanceof Error) || !/EBMR-INT-010/.test(e.message)) throw e;
++       if (e instanceof Error || !/EBMR-INT-010/.test(e.message)) throw e;
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/quality/receipt.ts:84:34
+-       if (!(e instanceof Error) || !/EBMR-INT-010/.test(e.message)) throw e;
++       if (!(e instanceof Error) || /EBMR-INT-010/.test(e.message)) throw e;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/receipt.ts:95:44
+-       corrections: r.corrections.map((c) => ({ field: c.field, originalValue: c.originalValue, correctedValue: c.correctedValue, reason: c.reason, by: personRef(people, c.correctedBy, 'WAREHOUSE'), at: app.formatInstant(c.correctedAtUs) })),
++       corrections: r.corrections.map((c) => ({})),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:95:183
+-       corrections: r.corrections.map((c) => ({ field: c.field, originalValue: c.originalValue, correctedValue: c.correctedValue, reason: c.reason, by: personRef(people, c.correctedBy, 'WAREHOUSE'), at: app.formatInstant(c.correctedAtUs) })),
++       corrections: r.corrections.map((c) => ({ field: c.field, originalValue: c.originalValue, correctedValue: c.correctedValue, reason: c.reason, by: personRef(people, c.correctedBy, ""), at: app.formatInstant(c.correctedAtUs) })),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/quality/receipt.ts:96:30
+-       location: row.location ? { location: row.location.location, kind: row.location.kind } : null,
++       location: row.location ? {} : null,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:113:59
+-       (await withIdempotentActorCommand(pool, actor, key ?? '', hash, async (c) => ((await c.query<{ r: commands.JsonValue }>(sql, params)).rows[0]?.r ?? null))).result;
++       (await withIdempotentActorCommand(pool, actor, key ?? "Stryker was here!", hash, async (c) => ((await c.query<{ r: commands.JsonValue }>(sql, params)).rows[0]?.r ?? null))).result;
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/receipt.ts:39:6
+-       [where.id ?? null, where.materialCode ?? null],
++       [where.id && null, where.materialCode ?? null],
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/receipt.ts:39:24
+-       [where.id ?? null, where.materialCode ?? null],
++       [where.id ?? null, where.materialCode && null],
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:45:50
+-       proposedBy: personRef(people, r.proposed_by, 'QA'), proposedAt: app.formatInstant(r.proposed_us),
++       proposedBy: personRef(people, r.proposed_by, ""), proposedAt: app.formatInstant(r.proposed_us),
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:46:66
+-       approvedBy: r.approved_by ? personRef(people, r.approved_by, 'QA') : null, approvedAt: r.approved_us ? app.formatInstant(r.approved_us) : null,
++       approvedBy: r.approved_by ? personRef(people, r.approved_by, "") : null, approvedAt: r.approved_us ? app.formatInstant(r.approved_us) : null,
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/receipt.ts:47:17
+-       withdrawal: r.withdrawn_by && r.withdrawn_us && r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, 'QA'), at: app.formatInstant(r.withdrawn_us) } : null,
++       withdrawal: r.withdrawn_by && r.withdrawn_us || r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, 'QA'), at: app.formatInstant(r.withdrawn_us) } : null,
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/receipt.ts:47:17
+-       withdrawal: r.withdrawn_by && r.withdrawn_us && r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, 'QA'), at: app.formatInstant(r.withdrawn_us) } : null,
++       withdrawal: true && r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, 'QA'), at: app.formatInstant(r.withdrawn_us) } : null,
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/receipt.ts:47:17
+-       withdrawal: r.withdrawn_by && r.withdrawn_us && r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, 'QA'), at: app.formatInstant(r.withdrawn_us) } : null,
++       withdrawal: r.withdrawn_by || r.withdrawn_us && r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, 'QA'), at: app.formatInstant(r.withdrawn_us) } : null,
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:47:122
+-       withdrawal: r.withdrawn_by && r.withdrawn_us && r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, 'QA'), at: app.formatInstant(r.withdrawn_us) } : null,
++       withdrawal: r.withdrawn_by && r.withdrawn_us && r.reason ? { reason: r.reason, by: personRef(people, r.withdrawn_by, ""), at: app.formatInstant(r.withdrawn_us) } : null,
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/quality/receipt.ts:52:51
+-     const v = (await approvedManufacturers(app, db, { id }))[0];
++     const v = (await approvedManufacturers(app, db, {}))[0];
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/receipt.ts:53:7
+-     if (!v) throw notFound('approved-manufacturer row');
++     if (false) throw notFound('approved-manufacturer row');
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/receipt.ts:76:7
+-     if (!row) throw notFound('lot');
++     if (false) throw notFound('lot');
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/quality/receipt.ts:78:160
+-     if (!r) throw refusal(404, { code: 'NO_RECEIPT_RECORD', kind: 'INVALID_INPUT', whatHappened: `Lot ${row.lot_code} has no receipt record yet.`, whatYouCanDo: ['Record the receipt (delivery, supplier, supplier batch, manufacturer, containers).'] });
++     if (!r) throw refusal(404, { code: 'NO_RECEIPT_RECORD', kind: 'INVALID_INPUT', whatHappened: `Lot ${row.lot_code} has no receipt record yet.`, whatYouCanDo: [] });
+Tests ran:
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:78:161
+-     if (!r) throw refusal(404, { code: 'NO_RECEIPT_RECORD', kind: 'INVALID_INPUT', whatHappened: `Lot ${row.lot_code} has no receipt record yet.`, whatYouCanDo: ['Record the receipt (delivery, supplier, supplier batch, manufacturer, containers).'] });
++     if (!r) throw refusal(404, { code: 'NO_RECEIPT_RECORD', kind: 'INVALID_INPUT', whatHappened: `Lot ${row.lot_code} has no receipt record yet.`, whatYouCanDo: [""] });
+Tests ran:
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/receipt.ts:82:15
+-       problem = (await db.query<{ p: string | null }>('select site.issue_gate_problem($1) as p', [lotId])).rows[0]?.p ?? null;
++       problem = (await db.query<{
++     p: string | null;
++   }>('select site.issue_gate_problem($1) as p', [lotId])).rows[0].p ?? null;
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/quality/receipt.ts:87:76
+-     const people = await peopleOf(db, [row.examined_by, ...r.corrections.map((c) => c.correctedBy)]);
++     const people = await peopleOf(db, [row.examined_by, ...r.corrections.map(() => undefined)]);
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/receipt.ts:91:150
+-       source: r.source, inboundMessageId: r.inboundMessageId, manufacturerApprovedAtReceipt: r.manufacturerApprovedAtReceipt, manufacturerApprovedNow: row.approved === true,
++       source: r.source, inboundMessageId: r.inboundMessageId, manufacturerApprovedAtReceipt: r.manufacturerApprovedAtReceipt, manufacturerApprovedNow: true,
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/receipt.ts:92:18
+-       examination: row.outcome && row.examined_by && row.examined_us
++       examination: row.outcome && row.examined_by || row.examined_us
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/quality/receipt.ts:92:18
+-       examination: row.outcome && row.examined_by && row.examined_us
++       examination: true && row.examined_us
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/quality/receipt.ts:92:18
+-       examination: row.outcome && row.examined_by && row.examined_us
++       examination: row.outcome || row.examined_by && row.examined_us
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/quality/receipt.ts:93:147
+-         ? { containersExamined: String(row.containers_examined), outcome: row.outcome, remarks: row.remarks, by: personRef(people, row.examined_by, 'WAREHOUSE'), at: app.formatInstant(row.examined_us) }
++         ? { containersExamined: String(row.containers_examined), outcome: row.outcome, remarks: row.remarks, by: personRef(people, row.examined_by, ""), at: app.formatInstant(row.examined_us) }
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/quality/receipt.ts:95:36
+-       corrections: r.corrections.map((c) => ({ field: c.field, originalValue: c.originalValue, correctedValue: c.correctedValue, reason: c.reason, by: personRef(people, c.correctedBy, 'WAREHOUSE'), at: app.formatInstant(c.correctedAtUs) })),
++       corrections: r.corrections.map(() => undefined),
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/quality/receipt.ts:113:83
+-       (await withIdempotentActorCommand(pool, actor, key ?? '', hash, async (c) => ((await c.query<{ r: commands.JsonValue }>(sql, params)).rows[0]?.r ?? null))).result;
++       (await withIdempotentActorCommand(pool, actor, key ?? '', hash, async (c) => ((await c.query<{
++     r: commands.JsonValue;
++   }>(sql, params)).rows[0].r ?? null))).result;
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/quality/receipt.ts:116:7
+-         requireSession();
++         ;
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/quality/receipt.ts:117:91
+-         return { manufacturers: await approvedManufacturers(app, pool, query.materialCode ? { materialCode: query.materialCode } : {}) };
++         return { manufacturers: await approvedManufacturers(app, pool, query.materialCode ? {} : {}) };
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/quality/receipt.ts:134:7
+-         requireSession();
++         ;
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+    receipt routes (PR-17) > [PR-17] a lot received without a receipt record gets one by route; its view refuses issue until then
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/quality/receipt.ts:160:14
+-         return { act: a.act, approvedManufacturerId: a.approvedManufacturerId };
++         return {};
+Tests ran:
+    receipt routes (PR-17) > [PR-17] stores receive a delivery of three supplier batches as three lots; QA approves the manufacturer with its signature; the examined lot is free to issue and the unapproved one is blocked
+
+
+Ran 0.78 tests per mutant on average.
+------------|------------------|----------|-----------|------------|----------|----------|
+            | % Mutation score |          |           |            |          |          |
+File        |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+------------|--------|---------|----------|-----------|------------|----------|----------|
+All files   |  55.96 |   73.79 |      183 |         0 |         65 |       79 |        0 |
+ lims.ts    |  52.40 |   73.65 |      109 |         0 |         39 |       60 |        0 |
+ receipt.ts |  62.18 |   74.00 |       74 |         0 |         26 |       19 |        0 |
+------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m03:03:22 (852137) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-quality-receipt.json
+[32m03:03:22 (852137) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-quality-receipt.html
+[32m03:03:22 (852137) INFO MutationTestExecutor[39m Done in 10 minutes and 18 seconds.

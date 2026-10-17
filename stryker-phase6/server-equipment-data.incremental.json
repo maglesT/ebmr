@@ -1,0 +1,1783 @@
+{
+  "files": {
+    "apps/tablets-server/src/features/equipment-data/index.ts": {
+      "language": "typescript",
+      "mutants": [
+        {
+          "id": "12",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 6,
+              "line": 28
+            },
+            "start": {
+              "column": 63,
+              "line": 25
+            }
+          }
+        },
+        {
+          "id": "13",
+          "mutatorName": "CallExpression",
+          "replacement": ";",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 24,
+              "line": 26
+            },
+            "start": {
+              "column": 7,
+              "line": 26
+            }
+          }
+        },
+        {
+          "id": "14",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 93,
+              "line": 27
+            },
+            "start": {
+              "column": 14,
+              "line": 27
+            }
+          }
+        },
+        {
+          "id": "15",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 6,
+              "line": 32
+            },
+            "start": {
+              "column": 50,
+              "line": 29
+            }
+          }
+        },
+        {
+          "id": "16",
+          "mutatorName": "CallExpression",
+          "replacement": ";",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 24,
+              "line": 30
+            },
+            "start": {
+              "column": 7,
+              "line": 30
+            }
+          }
+        },
+        {
+          "id": "17",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 94,
+              "line": 31
+            },
+            "start": {
+              "column": 14,
+              "line": 31
+            }
+          }
+        },
+        {
+          "id": "18",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 6,
+              "line": 36
+            },
+            "start": {
+              "column": 54,
+              "line": 33
+            }
+          }
+        },
+        {
+          "id": "19",
+          "mutatorName": "CallExpression",
+          "replacement": ";",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 24,
+              "line": 34
+            },
+            "start": {
+              "column": 7,
+              "line": 34
+            }
+          }
+        },
+        {
+          "id": "20",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 75,
+              "line": 35
+            },
+            "start": {
+              "column": 14,
+              "line": 35
+            }
+          }
+        },
+        {
+          "id": "0",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "statusReason": "Static mutant (and \"ignoreStatic\" was enabled)",
+          "status": "Ignored",
+          "static": true,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 39
+            },
+            "start": {
+              "column": 80,
+              "line": 14
+            }
+          }
+        },
+        {
+          "id": "2",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "statusReason": "Static mutant (and \"ignoreStatic\" was enabled)",
+          "status": "Ignored",
+          "static": true,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 4,
+              "line": 37
+            },
+            "start": {
+              "column": 48,
+              "line": 16
+            }
+          }
+        },
+        {
+          "id": "4",
+          "mutatorName": "CallExpression",
+          "replacement": ";",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 24,
+              "line": 18
+            },
+            "start": {
+              "column": 7,
+              "line": 18
+            }
+          }
+        },
+        {
+          "id": "5",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"The server built an answer that does not match the contract.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"9ab5cf17-2a41-4376-b377-a17d0dc2f8c1\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 46,
+              "line": 19
+            },
+            "start": {
+              "column": 14,
+              "line": 19
+            }
+          }
+        },
+        {
+          "id": "6",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"PROTOCOL\",\"status\":200,\"message\":\"the response does not match equipmentData.series: ✖ Invalid input: expected object, received undefined\"}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 6,
+              "line": 24
+            },
+            "start": {
+              "column": 50,
+              "line": 21
+            }
+          }
+        },
+        {
+          "id": "7",
+          "mutatorName": "CallExpression",
+          "replacement": ";",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 24,
+              "line": 22
+            },
+            "start": {
+              "column": 7,
+              "line": 22
+            }
+          }
+        },
+        {
+          "id": "8",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"An unexpected error occurred; it has been logged.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"b0ceb32f-dce6-4179-8285-f2daa207fade\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 135,
+              "line": 23
+            },
+            "start": {
+              "column": 36,
+              "line": 23
+            }
+          }
+        },
+        {
+          "id": "9",
+          "mutatorName": "ConditionalExpression",
+          "replacement": "true",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 80,
+              "line": 23
+            },
+            "start": {
+              "column": 55,
+              "line": 23
+            }
+          }
+        },
+        {
+          "id": "10",
+          "mutatorName": "ConditionalExpression",
+          "replacement": "false",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"An unexpected error occurred; it has been logged.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"c175d9ef-be0b-4797-b171-c304f900aa86\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 80,
+              "line": 23
+            },
+            "start": {
+              "column": 55,
+              "line": 23
+            }
+          }
+        },
+        {
+          "id": "11",
+          "mutatorName": "EqualityOperator",
+          "replacement": "query.limit !== undefined",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"An unexpected error occurred; it has been logged.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"702e3455-4e5d-44a0-a1c1-e94f32db7894\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 80,
+              "line": 23
+            },
+            "start": {
+              "column": 55,
+              "line": 23
+            }
+          }
+        },
+        {
+          "id": "3",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"PROTOCOL\",\"status\":200,\"message\":\"the response does not match equipmentData.tags: ✖ Invalid input: expected object, received undefined\"}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 6,
+              "line": 20
+            },
+            "start": {
+              "column": 41,
+              "line": 17
+            }
+          }
+        }
+      ],
+      "source": "/**\n * Feature `equipment-data` (Phase 6 slice 6b-0, GMP): native series for the trend viewer, equipment events in the batch\n * context and the original records of simple devices (contract ns/equipment-data.ts; recipe-core 0960; DI-32, DI-49).\n * Read-only: the data arrive through the OPC UA and EMS adapters (plant.receive_series_chunk,\n * plant.receive_equipment_event) and plant.record_device_original. Every value is the database's, as received.\n * Builder A adds the series ingestion worker; builder B the equipment status board (PR-22) and line station (PR-35).\n */\nimport { routes, SERIES_PAGE_MAX } from '@ebmr/api-contract';\nimport type { FastifyInstance } from 'fastify';\nimport type { AppContext } from '../../platform/context.ts';\nimport { bindRoutes } from '../../platform/http/bind.ts';\nimport { batchSeries, deviceOriginals, equipmentEvents, seriesPage, seriesTags } from './reads.ts';\n\nexport function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {\n  const pool = app.pools.app;\n  bindRoutes(scope, app, routes.equipmentData, {\n    tags: async ({ requireSession }) => {\n      requireSession();\n      return { tags: await seriesTags(pool) };\n    },\n    series: async ({ query, requireSession }) => {\n      requireSession();\n      return seriesPage(app, pool, { ...query, limit: query.limit === undefined ? SERIES_PAGE_MAX : Number.parseInt(query.limit, 10) });\n    },\n    batchSeries: async ({ params, query, requireSession }) => {\n      requireSession();\n      return { chunks: await batchSeries(app, pool, params.batchId, query.tag, query.step) };\n    },\n    events: async ({ query, requireSession }) => {\n      requireSession();\n      return { events: await equipmentEvents(app, pool, query.equipmentCode, query.batchId) };\n    },\n    originals: async ({ params, requireSession }) => {\n      requireSession();\n      return { records: await deviceOriginals(app, pool, params.batchId) };\n    },\n  });\n  return Promise.resolve();\n}\n"
+    },
+    "apps/tablets-server/src/features/equipment-data/reads.ts": {
+      "language": "typescript",
+      "mutants": [
+        {
+          "id": "24",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 37
+            },
+            "start": {
+              "column": 63,
+              "line": 34
+            }
+          }
+        },
+        {
+          "id": "25",
+          "mutatorName": "MethodExpression",
+          "replacement": "status",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 31,
+              "line": 35
+            },
+            "start": {
+              "column": 15,
+              "line": 35
+            }
+          }
+        },
+        {
+          "id": "26",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 16,
+              "line": 36
+            },
+            "start": {
+              "column": 10,
+              "line": 36
+            }
+          }
+        },
+        {
+          "id": "27",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 39,
+              "line": 36
+            },
+            "start": {
+              "column": 33,
+              "line": 36
+            }
+          }
+        },
+        {
+          "id": "28",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 48,
+              "line": 36
+            },
+            "start": {
+              "column": 42,
+              "line": 36
+            }
+          }
+        },
+        {
+          "id": "29",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 76,
+              "line": 36
+            },
+            "start": {
+              "column": 65,
+              "line": 36
+            }
+          }
+        },
+        {
+          "id": "30",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 84,
+              "line": 36
+            },
+            "start": {
+              "column": 79,
+              "line": 36
+            }
+          }
+        },
+        {
+          "id": "31",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 53
+            },
+            "start": {
+              "column": 67,
+              "line": 39
+            }
+          }
+        },
+        {
+          "id": "32",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 4,
+              "line": 52
+            },
+            "start": {
+              "column": 10,
+              "line": 40
+            }
+          }
+        },
+        {
+          "id": "33",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 60,
+              "line": 43
+            },
+            "start": {
+              "column": 14,
+              "line": 43
+            }
+          }
+        },
+        {
+          "id": "34",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 165,
+              "line": 50
+            },
+            "start": {
+              "column": 28,
+              "line": 50
+            }
+          }
+        },
+        {
+          "id": "35",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 164,
+              "line": 50
+            },
+            "start": {
+              "column": 36,
+              "line": 50
+            }
+          }
+        },
+        {
+          "id": "53",
+          "mutatorName": "LogicalOperator",
+          "replacement": "page.at(-1)?.chunk_no && null",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 121,
+              "line": 75
+            },
+            "start": {
+              "column": 92,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "54",
+          "mutatorName": "OptionalChaining",
+          "replacement": "page.at(-1).chunk_no",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 113,
+              "line": 75
+            },
+            "start": {
+              "column": 92,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "55",
+          "mutatorName": "UnaryOperator",
+          "replacement": "+1",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 102,
+              "line": 75
+            },
+            "start": {
+              "column": 100,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "56",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 81
+            },
+            "start": {
+              "column": 133,
+              "line": 78
+            }
+          }
+        },
+        {
+          "id": "57",
+          "mutatorName": "StringLiteral",
+          "replacement": "``",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 119,
+              "line": 79
+            },
+            "start": {
+              "column": 45,
+              "line": 79
+            }
+          }
+        },
+        {
+          "id": "58",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 97,
+              "line": 79
+            },
+            "start": {
+              "column": 60,
+              "line": 79
+            }
+          }
+        },
+        {
+          "id": "59",
+          "mutatorName": "ArrayDeclaration",
+          "replacement": "[]",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 149,
+              "line": 79
+            },
+            "start": {
+              "column": 121,
+              "line": 79
+            }
+          }
+        },
+        {
+          "id": "60",
+          "mutatorName": "LogicalOperator",
+          "replacement": "step && null",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 143,
+              "line": 79
+            },
+            "start": {
+              "column": 131,
+              "line": 79
+            }
+          }
+        },
+        {
+          "id": "61",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 43,
+              "line": 80
+            },
+            "start": {
+              "column": 19,
+              "line": 80
+            }
+          }
+        },
+        {
+          "id": "62",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 109
+            },
+            "start": {
+              "column": 137,
+              "line": 83
+            }
+          }
+        },
+        {
+          "id": "63",
+          "mutatorName": "StringLiteral",
+          "replacement": "``",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 51,
+              "line": 92
+            },
+            "start": {
+              "column": 5,
+              "line": 88
+            }
+          }
+        },
+        {
+          "id": "64",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 35,
+              "line": 89
+            },
+            "start": {
+              "column": 20,
+              "line": 89
+            }
+          }
+        },
+        {
+          "id": "65",
+          "mutatorName": "ArrayDeclaration",
+          "replacement": "[]",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 45,
+              "line": 93
+            },
+            "start": {
+              "column": 5,
+              "line": 93
+            }
+          }
+        },
+        {
+          "id": "66",
+          "mutatorName": "LogicalOperator",
+          "replacement": "equipmentCode && null",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 27,
+              "line": 93
+            },
+            "start": {
+              "column": 6,
+              "line": 93
+            }
+          }
+        },
+        {
+          "id": "67",
+          "mutatorName": "LogicalOperator",
+          "replacement": "batchId && null",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 44,
+              "line": 93
+            },
+            "start": {
+              "column": 29,
+              "line": 93
+            }
+          }
+        },
+        {
+          "id": "68",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 5,
+              "line": 108
+            },
+            "start": {
+              "column": 19,
+              "line": 95
+            }
+          }
+        },
+        {
+          "id": "69",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 4,
+              "line": 108
+            },
+            "start": {
+              "column": 27,
+              "line": 95
+            }
+          }
+        },
+        {
+          "id": "70",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 140
+            },
+            "start": {
+              "column": 112,
+              "line": 111
+            }
+          }
+        },
+        {
+          "id": "71",
+          "mutatorName": "StringLiteral",
+          "replacement": "``",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 57,
+              "line": 120
+            },
+            "start": {
+              "column": 5,
+              "line": 117
+            }
+          }
+        },
+        {
+          "id": "72",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 74,
+              "line": 118
+            },
+            "start": {
+              "column": 59,
+              "line": 118
+            }
+          }
+        },
+        {
+          "id": "73",
+          "mutatorName": "ArrayDeclaration",
+          "replacement": "[]",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 14,
+              "line": 121
+            },
+            "start": {
+              "column": 5,
+              "line": 121
+            }
+          }
+        },
+        {
+          "id": "74",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 64,
+              "line": 123
+            },
+            "start": {
+              "column": 46,
+              "line": 123
+            }
+          }
+        },
+        {
+          "id": "75",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 5,
+              "line": 139
+            },
+            "start": {
+              "column": 19,
+              "line": 124
+            }
+          }
+        },
+        {
+          "id": "76",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 4,
+              "line": 139
+            },
+            "start": {
+              "column": 27,
+              "line": 124
+            }
+          }
+        },
+        {
+          "id": "77",
+          "mutatorName": "ConditionalExpression",
+          "replacement": "true",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 37,
+              "line": 132
+            },
+            "start": {
+              "column": 17,
+              "line": 132
+            }
+          }
+        },
+        {
+          "id": "78",
+          "mutatorName": "ConditionalExpression",
+          "replacement": "false",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 37,
+              "line": 132
+            },
+            "start": {
+              "column": 17,
+              "line": 132
+            }
+          }
+        },
+        {
+          "id": "79",
+          "mutatorName": "EqualityOperator",
+          "replacement": "r.device_us !== null",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 37,
+              "line": 132
+            },
+            "start": {
+              "column": 17,
+              "line": 132
+            }
+          }
+        },
+        {
+          "id": "80",
+          "mutatorName": "LogicalOperator",
+          "replacement": "r.role_code && ''",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 65,
+              "line": 137
+            },
+            "start": {
+              "column": 48,
+              "line": 137
+            }
+          }
+        },
+        {
+          "id": "81",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"Stryker was here!\"",
+          "status": "NoCoverage",
+          "static": false,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 65,
+              "line": 137
+            },
+            "start": {
+              "column": 63,
+              "line": 137
+            }
+          }
+        },
+        {
+          "id": "21",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "statusReason": "Static mutant (and \"ignoreStatic\" was enabled)",
+          "status": "Ignored",
+          "static": true,
+          "coveredBy": [],
+          "location": {
+            "end": {
+              "column": 114,
+              "line": 31
+            },
+            "start": {
+              "column": 21,
+              "line": 28
+            }
+          }
+        },
+        {
+          "id": "22",
+          "mutatorName": "StringLiteral",
+          "replacement": "``",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"An unexpected error occurred; it has been logged.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"56ba2ff3-accc-456d-8f39-8854150b3b6f\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 114,
+              "line": 31
+            },
+            "start": {
+              "column": 47,
+              "line": 28
+            }
+          }
+        },
+        {
+          "id": "23",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"An unexpected error occurred; it has been logged.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"99495225-2545-4ba9-a7b1-6ed441868d08\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 81,
+              "line": 30
+            },
+            "start": {
+              "column": 66,
+              "line": 30
+            }
+          }
+        },
+        {
+          "id": "36",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"The server built an answer that does not match the contract.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"8c2885ce-554c-4296-bc3d-06bef77bc3cb\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 60
+            },
+            "start": {
+              "column": 164,
+              "line": 55
+            }
+          }
+        },
+        {
+          "id": "37",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "statusReason": "expected undefined to deeply equal { tag: 'force.main_kN', …(4) }",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 125,
+              "line": 57
+            },
+            "start": {
+              "column": 5,
+              "line": 57
+            }
+          }
+        },
+        {
+          "id": "39",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"The server built an answer that does not match the contract.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"bc8e8899-d326-4f80-ac1b-fbe4de9c2853\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 144,
+              "line": 59
+            },
+            "start": {
+              "column": 27,
+              "line": 59
+            }
+          }
+        },
+        {
+          "id": "38",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"The server built an answer that does not match the contract.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"4935daa9-23bf-4f8d-bc1e-1ed5c3e845ed\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 145,
+              "line": 59
+            },
+            "start": {
+              "column": 19,
+              "line": 59
+            }
+          }
+        },
+        {
+          "id": "40",
+          "mutatorName": "BlockStatement",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"PROTOCOL\",\"status\":200,\"message\":\"the response does not match equipmentData.series: ✖ Invalid input: expected object, received undefined\"}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 2,
+              "line": 76
+            },
+            "start": {
+              "column": 69,
+              "line": 66
+            }
+          }
+        },
+        {
+          "id": "41",
+          "mutatorName": "StringLiteral",
+          "replacement": "``",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 35,
+              "line": 71
+            },
+            "start": {
+              "column": 5,
+              "line": 68
+            }
+          }
+        },
+        {
+          "id": "42",
+          "mutatorName": "StringLiteral",
+          "replacement": "\"\"",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"An unexpected error occurred; it has been logged.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"3b802d1e-46ae-452c-b36a-a0dac07c250f\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 34,
+              "line": 68
+            },
+            "start": {
+              "column": 20,
+              "line": 68
+            }
+          }
+        },
+        {
+          "id": "43",
+          "mutatorName": "ArrayDeclaration",
+          "replacement": "[]",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"An unexpected error occurred; it has been logged.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"5728ab71-8dc3-4ab5-8895-36dc7aebe216\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 90,
+              "line": 72
+            },
+            "start": {
+              "column": 5,
+              "line": 72
+            }
+          }
+        },
+        {
+          "id": "44",
+          "mutatorName": "LogicalOperator",
+          "replacement": "q.after && null",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 76,
+              "line": 72
+            },
+            "start": {
+              "column": 61,
+              "line": 72
+            }
+          }
+        },
+        {
+          "id": "45",
+          "mutatorName": "ArithmeticOperator",
+          "replacement": "q.limit - 1",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 89,
+              "line": 72
+            },
+            "start": {
+              "column": 78,
+              "line": 72
+            }
+          }
+        },
+        {
+          "id": "46",
+          "mutatorName": "MethodExpression",
+          "replacement": "rows",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 38,
+              "line": 74
+            },
+            "start": {
+              "column": 16,
+              "line": 74
+            }
+          }
+        },
+        {
+          "id": "47",
+          "mutatorName": "ObjectLiteral",
+          "replacement": "{}",
+          "statusReason": "expected success, got {\"kind\":\"REFUSAL\",\"status\":500,\"envelope\":{\"refusal\":{\"code\":\"INTERNAL\",\"kind\":\"NOT_SAVED\",\"whatHappened\":\"The server could not complete the request. Nothing was saved by it.\",\"why\":\"The server built an answer that does not match the contract.\",\"controls\":[],\"whatYouCanDo\":[\"Reload the record to see its current state, then try again.\"],\"whoCanHelp\":[\"The system administrator (quote the correlation id)\"]},\"correlationId\":\"15619197-12c6-4fbf-83a1-24433807d6d8\",\"retryable\":true}}",
+          "status": "Killed",
+          "static": false,
+          "testsCompleted": 1,
+          "killedBy": [
+            "5"
+          ],
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 131,
+              "line": 75
+            },
+            "start": {
+              "column": 10,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "48",
+          "mutatorName": "ArrowFunction",
+          "replacement": "() => undefined",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 53,
+              "line": 75
+            },
+            "start": {
+              "column": 29,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "49",
+          "mutatorName": "ConditionalExpression",
+          "replacement": "true",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 88,
+              "line": 75
+            },
+            "start": {
+              "column": 67,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "51",
+          "mutatorName": "EqualityOperator",
+          "replacement": "rows.length >= q.limit",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 88,
+              "line": 75
+            },
+            "start": {
+              "column": 67,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "50",
+          "mutatorName": "ConditionalExpression",
+          "replacement": "false",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 88,
+              "line": 75
+            },
+            "start": {
+              "column": 67,
+              "line": 75
+            }
+          }
+        },
+        {
+          "id": "52",
+          "mutatorName": "EqualityOperator",
+          "replacement": "rows.length <= q.limit",
+          "status": "Survived",
+          "static": false,
+          "testsCompleted": 1,
+          "coveredBy": [
+            "5"
+          ],
+          "location": {
+            "end": {
+              "column": 88,
+              "line": 75
+            },
+            "start": {
+              "column": 67,
+              "line": 75
+            }
+          }
+        }
+      ],
+      "source": "/**\n * The reads of the equipmentData namespace (Phase 6 slice 6b-0; contract ns/equipment-data.ts; recipe-core 0960; DI-32,\n * DI-49): plant.series (native chunks, as received), plant.series_in_context (the chunks of a batch and step by the\n * binding windows), plant.equipment_state_event and plant.device_original.\n */\nimport type pg from 'pg';\nimport type { DeviceOriginalView, EquipmentEventView, NativeSampleView, SeriesChunkView } from '@ebmr/api-contract';\nimport type { AppContext } from '../../platform/context.ts';\nimport { peopleOf, personRef, usOf } from '../common/people.ts';\n\ntype Db = Pick<pg.Pool, 'query'>;\n\ninterface ChunkRow {\n  id: string;\n  source: SeriesChunkView['source'];\n  subject_kind: 'EQUIPMENT' | 'AREA';\n  subject_code: string;\n  tag: string;\n  unit: string;\n  chunk_no: string;\n  from_us: string;\n  to_us: string;\n  chunk_hash: string;\n  samples: Omit<NativeSampleView, 'quality'>[];\n  received_us: string;\n}\n\nconst chunkSelect = (from: string): string => `\n  select x.id, x.source, x.subject_kind, coalesce(e.code, a.code) as subject_code, x.tag, x.unit, x.chunk_no::text as chunk_no, x.from_us::text as from_us,\n         x.to_us::text as to_us, x.chunk_hash, x.samples, ${usOf('x.received_at')} as received_us\n  from ${from} x left join plant.equipment e on e.id = x.equipment_id left join plant.area a on a.id = x.area_id`;\n\n/** GOOD, UNCERTAIN or BAD from the two severity bits of the status code (as the integration SDK's qualityOfStatus). */\nfunction quality(status: string): NativeSampleView['quality'] {\n  const top = status.charAt(2);\n  return '0123'.includes(top) ? 'GOOD' : '4567'.includes(top) ? 'UNCERTAIN' : 'BAD';\n}\n\nfunction chunkView(app: AppContext, r: ChunkRow): SeriesChunkView {\n  return {\n    seriesId: r.id,\n    source: r.source,\n    subject: { kind: r.subject_kind, code: r.subject_code },\n    tag: r.tag,\n    unit: r.unit,\n    chunkNo: r.chunk_no,\n    fromUs: r.from_us,\n    toUs: r.to_us,\n    chunkHash: r.chunk_hash,\n    samples: r.samples.map((s) => ({ sourceTime: s.sourceTime, serverTime: s.serverTime, raw: s.raw, value: s.value, status: s.status, quality: quality(s.status) })),\n    receivedAt: app.formatInstant(r.received_us),\n  };\n}\n\nexport async function seriesTags(db: Db): Promise<{ tag: string; subjectKind: 'EQUIPMENT' | 'AREA'; equipmentType: string | null; unit: string; scale: string }[]> {\n  const { rows } = await db.query<{ tag: string; subject_kind: 'EQUIPMENT' | 'AREA'; equipment_type: string | null; unit: string; scale: number }>(\n    'select tag, subject_kind, equipment_type, unit, scale from plant.series_tag order by subject_kind, equipment_type, tag',\n  );\n  return rows.map((r) => ({ tag: r.tag, subjectKind: r.subject_kind, equipmentType: r.equipment_type, unit: r.unit, scale: r.scale.toString() }));\n}\n\nexport async function seriesPage(\n  app: AppContext,\n  db: Db,\n  q: { subjectKind: 'EQUIPMENT' | 'AREA'; subjectCode: string; tag: string; fromUs: string; toUs: string; after?: string | undefined; limit: number },\n): Promise<{ chunks: SeriesChunkView[]; nextAfter: string | null }> {\n  const { rows } = await db.query<ChunkRow>(\n    `${chunkSelect('plant.series')}\n     where x.subject_kind = $1 and coalesce(e.code, a.code) = $2 and x.tag = $3 and x.to_us >= $4::bigint and x.from_us < $5::bigint\n       and ($6::bigint is null or x.chunk_no > $6::bigint)\n     order by x.chunk_no limit $7`,\n    [q.subjectKind, q.subjectCode, q.tag, q.fromUs, q.toUs, q.after ?? null, q.limit + 1],\n  );\n  const page = rows.slice(0, q.limit);\n  return { chunks: page.map((r) => chunkView(app, r)), nextAfter: rows.length > q.limit ? (page.at(-1)?.chunk_no ?? null) : null };\n}\n\nexport async function batchSeries(app: AppContext, db: Db, batchId: string, tag: string, step?: string): Promise<SeriesChunkView[]> {\n  const { rows } = await db.query<ChunkRow>(`${chunkSelect('plant.series_in_context($1, $2, $3)')} order by x.from_us`, [batchId, step ?? null, tag]);\n  return rows.map((r) => chunkView(app, r));\n}\n\nexport async function equipmentEvents(app: AppContext, db: Db, equipmentCode?: string, batchId?: string): Promise<EquipmentEventView[]> {\n  const { rows } = await db.query<{\n    id: string; source: EquipmentEventView['source']; event_id: string; code: string; kind: EquipmentEventView['kind']; state: EquipmentEventView['state'];\n    recipe_version: string | null; message: string; occurred_us: string; batch_id: string | null; step: string | null; received_us: string;\n  }>(\n    `select v.id, v.source, v.event_id, e.code, v.kind, v.state, v.recipe_version, v.message, v.occurred_source_us::text as occurred_us, v.batch_id, v.step,\n            ${usOf('v.received_at')} as received_us\n     from plant.equipment_state_event v join plant.equipment e on e.id = v.equipment_id\n     where ($1::text is null or e.code = $1) and ($2::uuid is null or v.batch_id = $2)\n     order by v.occurred_source_us desc limit 500`,\n    [equipmentCode ?? null, batchId ?? null],\n  );\n  return rows.map((r) => ({\n    eventId: r.id,\n    source: r.source,\n    sourceEventId: r.event_id,\n    equipmentCode: r.code,\n    kind: r.kind,\n    state: r.state,\n    recipeVersion: r.recipe_version,\n    message: r.message,\n    occurredAtSource: app.formatInstant(r.occurred_us),\n    batchId: r.batch_id,\n    step: r.step,\n    receivedAt: app.formatInstant(r.received_us),\n  }));\n}\n\nexport async function deviceOriginals(app: AppContext, db: Db, batchId: string): Promise<DeviceOriginalView[]> {\n  const { rows } = await db.query<{\n    id: string; code: string; capture: DeviceOriginalView['capture']; device_ref: string | null; raw_output: string | null; value: string; unit: string;\n    device_us: string | null; ticket_sha256: string | null; ticket_ref: string | null; step: string; entry_ref: string | null; person_id: string; role_code: string | null;\n    recorded_us: string;\n  }>(\n    `select d.id, e.code, d.capture, d.device_ref, d.raw_output, d.value, d.unit, d.device_time_us::text as device_us, d.ticket_sha256, d.ticket_ref, d.step,\n            d.entry_ref, d.person_id, d.role_code, ${usOf('d.recorded_at')} as recorded_us\n     from plant.device_original d join plant.equipment e on e.id = d.equipment_id\n     where d.batch_id = $1 order by d.recorded_at, d.id`,\n    [batchId],\n  );\n  const people = await peopleOf(db, rows.map((r) => r.person_id));\n  return rows.map((r) => ({\n    recordId: r.id,\n    equipmentCode: r.code,\n    capture: r.capture,\n    deviceRef: r.device_ref,\n    rawOutput: r.raw_output,\n    value: r.value,\n    unit: r.unit,\n    deviceTime: r.device_us === null ? null : app.formatInstant(r.device_us),\n    ticketSha256: r.ticket_sha256,\n    ticketRef: r.ticket_ref,\n    step: r.step,\n    entryRef: r.entry_ref,\n    recordedBy: personRef(people, r.person_id, r.role_code ?? ''),\n    recordedAt: app.formatInstant(r.recorded_us),\n  }));\n}\n"
+    }
+  },
+  "schemaVersion": "1.0",
+  "thresholds": {
+    "high": 80,
+    "low": 80,
+    "break": null
+  },
+  "testFiles": {
+    "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts": {
+      "tests": [
+        {
+          "id": "0",
+          "name": "the OPC UA adapter worker (D-P6b-0-1) > [DI-31] the OPC UA adapter is a slot of the server, started by the rule of the EMS"
+        },
+        {
+          "id": "1",
+          "name": "the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-49] a session, native chunks, a reject-burst alarm and an equipment event from the feed land as sent"
+        },
+        {
+          "id": "2",
+          "name": "the OPC UA adapter worker (D-P6b-0-1) > [DI-20][DI-31] after a relocated endpoint session the data are refused with an alarm and none lands; a valid session restores the feed"
+        }
+      ],
+      "source": "/**\n * The server's OPC UA adapter worker over a gateway feed (Phase 6 slice 6b; DI-20, DI-31, DI-32, DI-49; D-P6b-0-1):\n * the worker pulls the 6a feed protocol under <root>/opcua/v1 and hands each envelope to its receiving command. The feed\n * here is a small HTTP server in the test serving envelopes built with the SDK (the server tests never import the\n * gateway's code, .dependency-cruiser.cjs no-app-to-app; the gateway's own feed has its tests in apps/site-gateway).\n * The worker runs as the registered OPCUA INTEGRATION identity of the sandbox world (opcua-support.ts).\n */\nimport { createHash, randomBytes } from 'node:crypto';\nimport { createServer, type Server } from 'node:http';\nimport type { AddressInfo } from 'node:net';\nimport { afterAll, beforeAll, describe, expect, it } from 'vitest';\nimport { seriesChunkHash, type SeriesChunkV1 } from '@ebmr/integration-sdk/adapter';\nimport { count, ctxOf, nowUs } from '../../../../packages/kernel/test/integrations/support.ts';\nimport type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';\nimport { OPCUA_ADAPTER } from '../../src/features/integrations/adapters/opcua/index.ts';\nimport { ADAPTER_SLOTS } from '../../src/features/integrations/adapters/start.ts';\nimport { feedWorker, type AdapterWorker, type CycleReport } from '../../src/features/integrations/adapters/framework.ts';\nimport { enrol } from '../devices/support.ts';\nimport { startServer, type TestServer } from '../support/harness.ts';\nimport { opcuaWorld, type OpcuaWorld } from './opcua-support.ts';\n\ntype Json = Record<string, unknown>;\n\n/** A gateway-like OPC UA feed: publish() appends an envelope with the next sequence number. */\ninterface Feed {\n  base: string;\n  publish(messageType: string, payload: Json): void;\n  close(): Promise<void>;\n}\n\nasync function startFeed(): Promise<Feed> {\n  const messages: Json[] = [];\n  const srv: Server = createServer((req, res) => {\n    const url = new URL(req.url ?? '/', 'http://x');\n    const send = (body: unknown) => {\n      res.writeHead(200, { 'content-type': 'application/json' });\n      res.end(JSON.stringify(body));\n    };\n    if (url.pathname === '/opcua/v1/feed') {\n      const after = BigInt(url.searchParams.get('after') ?? '0');\n      const limit = Number(url.searchParams.get('limit') ?? '500');\n      send({ messages: messages.filter((m) => BigInt(String(m['sequenceNo'])) > after).slice(0, limit), head: messages.length.toString() });\n    } else if (url.pathname === '/opcua/v1/heartbeat') {\n      send({ head: messages.length.toString(), atUs: nowUs() });\n    } else {\n      res.writeHead(404).end();\n    }\n  });\n  await new Promise<void>((resolve) => srv.listen(0, '127.0.0.1', resolve));\n  const port = (srv.address() as AddressInfo).port;\n  return {\n    base: `http://127.0.0.1:${port.toString()}`,\n    publish(messageType, payload) {\n      const seq = (messages.length + 1).toString();\n      messages.push({\n        sourceSystem: 'OPCUA', messageType, sourceRecordId: `GW-${seq}`, sourceTimestamp: nowUs(), sequenceNo: seq,\n        idempotencyKey: `${messageType}:${randomBytes(6).toString('hex')}`, schemaVersion: '1',\n        payloadHash: createHash('sha256').update(JSON.stringify(payload), 'utf8').digest('hex'), payload,\n      });\n    },\n    close: () => new Promise<void>((resolve) => srv.close(() => resolve())),\n  };\n}\n\nlet server: TestServer;\nlet db: TestDatabase;\nlet w: OpcuaWorld;\nlet feed: Feed;\nlet worker: AdapterWorker;\nlet clock = BigInt(Date.now()) * 1000n - 1_800_000_000n;\n\nbeforeAll(async () => {\n  server = await startServer('SANDBOX');\n  db = server.db as unknown as TestDatabase;\n  const chainId = await enrol(server);\n  w = await opcuaWorld(server, chainId);\n  feed = await startFeed();\n  worker = feedWorker(db.app, w.adapter.code, OPCUA_ADAPTER, () => Promise.resolve(ctxOf(w.adapter.actor)), { endpoint: `${feed.base}/opcua/v1`, timeoutMs: 1000 });\n}, 300_000);\nafterAll(async () => {\n  await feed?.close();\n  await server?.close();\n});\n\nconst session = (over: Json = {}): Json => ({\n  endpointCode: w.endpoint.code, endpointUrl: w.endpoint.url, securityMode: 'SignAndEncrypt', securityPolicy: 'Basic256Sha256',\n  certificateThumbprint: w.endpoint.thumbprint, reportedLocation: w.areaCode, equipmentCodes: [w.unit.code], openedAt: nowUs(), ...over,\n});\n\nlet chunkNo = 0;\n/** Samples as [raw, shown] pairs (a plain raw is shown as itself). */\nfunction chunk(raws: (string | [string, string])[]): SeriesChunkV1 {\n  chunkNo += 1;\n  clock += 10_000_000n;\n  const samples = raws.map((r, i) => {\n    const [raw, value] = typeof r === 'string' ? [r, r] : r;\n    return { sourceTime: (clock + BigInt(i) * 100_000n).toString(), serverTime: null, raw, value, status: '0x00000000' };\n  });\n  const c = { subjectKind: 'EQUIPMENT' as const, subjectCode: w.unit.code, tag: 'force.main_kN', unit: 'kN', chunkNo: chunkNo.toString(), samples };\n  return { ...c, chunkHash: seriesChunkHash(c) };\n}\n\nasync function settle(n = 4): Promise<CycleReport[]> {\n  const out: CycleReport[] = [];\n  for (let i = 0; i < n; i++) {\n    const r = await worker.cycle();\n    out.push(r);\n    if (r.caughtUp && r.stopped === null) break;\n  }\n  return out;\n}\nconst total = (rs: CycleReport[], k: 'accepted' | 'fetched') => rs.reduce((a, r) => a + r[k], 0);\nconst refusedOf = (rs: CycleReport[], cls: string) => rs.reduce((a, r) => a + ((r.refused as Record<string, number>)[cls] ?? 0), 0);\nconst seriesRows = () => count(db, 'select count(*) as n from plant.series s join plant.equipment e on e.id = s.equipment_id where e.code = $1', [w.unit.code]);\n\ndescribe('the OPC UA adapter worker (D-P6b-0-1)', () => {\n  it('[DI-31] the OPC UA adapter is a slot of the server, started by the rule of the EMS', () => {\n    expect(ADAPTER_SLOTS.find((s) => s.system === 'OPCUA')).toMatchObject({ terminal: 'SRV-OPCUA-ADAPTER-01', roleCode: 'SERVICE_ACCOUNT' });\n    expect(Object.keys(OPCUA_ADAPTER.receive).sort()).toEqual(['opcua.alarm', 'opcua.endpoint_session', 'opcua.equipment_event', 'opcua.series_chunk']);\n  });\n\n  it('[DI-32][DI-49] a session, native chunks, a reject-burst alarm and an equipment event from the feed land as sent', async () => {\n    feed.publish('opcua.endpoint_session', session());\n    const c = chunk(['12.5', ['1.251E1', '12.51'], '12.49']);\n    feed.publish('opcua.series_chunk', c);\n    const occ = `REJ-${randomBytes(3).toString('hex')}`;\n    feed.publish('opcua.alarm', {\n      subjectKind: 'EQUIPMENT', subjectCode: w.unit.code, occurrenceId: occ, transition: 'RAISED', alarmCode: 'REJECT_BURST', severity: '700',\n      tag: null, value: null, limit: null, limitKind: null, message: 'reject burst at the press discharge', occurredAt: nowUs(),\n    });\n    const ev = `EV-${randomBytes(3).toString('hex')}`;\n    feed.publish('opcua.equipment_event', { equipmentCode: w.unit.code, eventId: ev, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'press running', occurredAt: nowUs() });\n    const rs = await settle();\n    expect(total(rs, 'accepted')).toBe(4);\n    expect(rs.at(-1)).toMatchObject({ caughtUp: true, stopped: null });\n    const { rows } = await db.app.query<{ raws: string[]; values: (string | null)[] }>(\n      `select array(select x ->> 'raw' from jsonb_array_elements(s.samples) x) as raws, array(select x ->> 'value' from jsonb_array_elements(s.samples) x) as values\n         from plant.series s join plant.equipment e on e.id = s.equipment_id where e.code = $1 and s.chunk_no = $2`,\n      [w.unit.code, c.chunkNo],\n    );\n    expect(rows).toEqual([{ raws: ['12.5', '1.251E1', '12.49'], values: ['12.5', '12.51', '12.49'] }]);\n    expect(await count(db, \"select count(*) as n from plant.alarm where source = 'OPCUA' and occurrence_id = $1 and alarm_code = 'REJECT_BURST'\", [occ])).toBe(1);\n    expect(await count(db, 'select count(*) as n from plant.equipment_state_event where event_id = $1', [ev])).toBe(1);\n  });\n\n  it('[DI-20][DI-31] after a relocated endpoint session the data are refused with an alarm and none lands; a valid session restores the feed', async () => {\n    const before = await seriesRows();\n    feed.publish('opcua.endpoint_session', session({ reportedLocation: 'SOME-OTHER-ROOM' }));\n    feed.publish('opcua.series_chunk', chunk(['12.5']));\n    const rs = await settle();\n    expect(refusedOf(rs, 'WRONG_IDENTITY')).toBe(1);\n    expect(await seriesRows()).toBe(before);\n    expect(await count(db, \"select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'WRONG_IDENTITY'\", [w.adapter.code])).toBeGreaterThanOrEqual(2);\n    // A chunk whose hash does not state its samples is refused too (the database recomputes it).\n    const bad = { ...chunk(['12.6']), chunkHash: 'f'.repeat(64) };\n    feed.publish('opcua.endpoint_session', session());\n    feed.publish('opcua.series_chunk', bad);\n    const good = chunk(['12.7']);\n    feed.publish('opcua.series_chunk', good);\n    const rs2 = await settle();\n    expect(refusedOf(rs2, 'MALFORMED')).toBe(1);\n    expect(total(rs2, 'accepted')).toBe(2);\n    expect(await seriesRows()).toBe(before + 1);\n  });\n});\n"
+    },
+    "apps/tablets-server/test/alarms/alarm-routes.test.ts": {
+      "tests": [
+        {
+          "id": "3",
+          "name": "alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment"
+        },
+        {
+          "id": "4",
+          "name": "alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot"
+        },
+        {
+          "id": "5",
+          "name": "alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags"
+        }
+      ],
+      "source": "/**\n * The alarms and equipment-data routes (Phase 6 slice 6b-0; DI-49, DI-32, INV-40; contract ns/alarms.ts,\n * ns/equipment-data.ts; recipe-core 0960): the plant alarm list and an alarm; a person acknowledges a GMP-critical\n * alarm from a shared kiosk only with a fresh tap, only with a comment, once; QA without ALARM.ACKNOWLEDGE cannot.\n * The alarm row is arranged by the superuser with triggers off (test set-up only; raising is tested in recipe-core).\n */\nimport { randomUUID } from 'node:crypto';\nimport { routes } from '@ebmr/api-contract';\nimport { EMS_TAGS } from '@ebmr/integration-sdk/adapter';\nimport { PROCESS_TAGS } from '@ebmr/integration-sdk/process';\nimport { afterAll, beforeAll, describe, expect, it } from 'vitest';\nimport { personaIn, refusalOf, tapFor, valueOf } from '../esig/support.ts';\nimport { startServer, type TestServer } from '../support/harness.ts';\n\nconst A = routes.alarms;\nlet gmp: TestServer;\nlet alarmId = '';\nconst roomCode = `RM-ALM-${randomUUID().slice(0, 6).toUpperCase()}`;\n\nbeforeAll(async () => {\n  gmp = await startServer('GMP');\n  const c = await gmp.db.admin.connect();\n  try {\n    await c.query('begin');\n    await c.query('set local session_replication_role = replica');\n    const area = (await c.query<{ id: string }>(\n      \"insert into plant.area (code, kind, name, segregated, negative_pressure, recorded_by) values ($1, 'ROOM', 'Compression room', false, false, gen_random_uuid()) returning id\",\n      [roomCode],\n    )).rows[0]!.id;\n    alarmId = (await c.query<{ id: string }>(\n      `insert into plant.alarm (source, occurrence_id, subject_kind, area_id, alarm_code, gmp_critical, deviation_required, severity, tag, value, value_unit,\n                                limit_value, limit_unit, limit_kind, message, raised_source_us, raised_by_person, raised_by_account, correlation_id)\n       values ('EMS', $1, 'AREA', $2, 'RH_HIGH', true, false, 500, 'room.rh_pct', '61.2', '%RH', '60.0', '%RH', 'HIGH', 'Room humidity above 60 %RH',\n               1792000060000000, gen_random_uuid(), gen_random_uuid(), gen_random_uuid()) returning id`,\n      [`EMS-${randomUUID()}`, area],\n    )).rows[0]!.id;\n    await c.query('commit');\n  } finally {\n    c.release();\n  }\n}, 300_000);\nafterAll(async () => {\n  await gmp?.close();\n});\n\ndescribe('alarms routes (DI-49)', () => {\n  it('[DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment', async () => {\n    const qa = await gmp.asPersona('qaInvestigator');\n    const open = valueOf(await qa.call(A.list, { query: { subjectCode: roomCode } })).alarms;\n    expect(open).toEqual([expect.objectContaining({ alarmId, source: 'EMS', subject: { kind: 'AREA', code: roomCode }, gmpCritical: true, codeVersion: null, acknowledgement: null })]);\n    expect(open[0]?.limit).toEqual({ value: '60.0', unit: '%RH', kind: 'HIGH' });\n    expect(open[0]?.raisedAtSource.us).toBe('1792000060000000');\n    expect(refusalOf(await qa.call(A.alarm, { params: { alarmId: randomUUID() } }))?.status).toBe(404);\n    expect(valueOf(await qa.call(A.batchLog, { params: { batchId: randomUUID() } })).alarms).toEqual([]);\n  });\n\n  it('[DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot', async () => {\n    const kiosk = await gmp.asPersona('operator1');\n    const path = `/api/alarms/${alarmId}/acknowledge`;\n    const noComment = { actionTaken: 'Dehumidifier checked and restarted' };\n    expect(refusalOf(await kiosk.call(A.acknowledge, { params: { alarmId }, body: noComment }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });\n    expect(refusalOf(await kiosk.call(A.acknowledge, { params: { alarmId }, body: noComment, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, noComment) })))\n      .toMatchObject({ status: 422, code: 'EBMR-ALM-013' });\n    const qa = await gmp.asPersona('qaInvestigator');\n    const body = { ...noComment, comment: 'RH 61.2 %RH for 4 min; granules in closed containers' };\n    expect(refusalOf(await qa.call(A.acknowledge, { params: { alarmId }, body }))?.status).toBeGreaterThanOrEqual(400);\n    const acked = valueOf(await kiosk.call(A.acknowledge, { params: { alarmId }, body, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, body) }));\n    expect(acked.acknowledgement).toMatchObject({ actionTaken: body.actionTaken, comment: body.comment, deviationRef: null, by: { personId: personaIn(gmp, 'operator1').personId } });\n    expect(refusalOf(await kiosk.call(A.acknowledge, { params: { alarmId }, body, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, body) }))).toMatchObject({ status: 409, code: 'EBMR-ALM-016' });\n    expect(valueOf(await qa.call(A.list, { query: { state: 'ACKNOWLEDGED', subjectCode: roomCode } })).alarms.map((a) => a.alarmId)).toEqual([alarmId]);\n  });\n\n  it('[DI-32] the series tags list every released process tag and the EMS room tags', async () => {\n    const qa = await gmp.asPersona('qaInvestigator');\n    const tags = valueOf(await qa.call(routes.equipmentData.tags)).tags;\n    expect(tags.find((t) => t.tag === 'force.main_kN')).toEqual({ tag: 'force.main_kN', subjectKind: 'EQUIPMENT', equipmentType: 'PRESS', unit: 'kN', scale: '2' });\n    expect(tags.filter((t) => t.subjectKind === 'AREA').map((t) => t.tag).sort()).toEqual(['room.rh_pct', 'room.temp_C']);\n    // The database's tag list is the SDK's: every released process tag (with its kind, unit and digits) and the EMS tags.\n    const want = [\n      ...PROCESS_TAGS.map((t) => ({ tag: t.tag, subjectKind: 'EQUIPMENT', equipmentType: t.equipment, unit: t.unit, scale: t.scale.toString() })),\n      ...EMS_TAGS.map((t) => ({ tag: t.tag, subjectKind: 'AREA', equipmentType: null, unit: t.unit, scale: t.scale.toString() })),\n    ];\n    const byTag = (a: { tag: string }, b: { tag: string }) => a.tag.localeCompare(b.tag);\n    expect([...tags].sort(byTag)).toEqual(want.sort(byTag));\n    const page = valueOf(await qa.call(routes.equipmentData.series, { query: { subjectKind: 'AREA', subjectCode: roomCode, tag: 'room.rh_pct', fromUs: '0', toUs: '1900000000000000' } }));\n    expect(page).toEqual({ chunks: [], nextAfter: null });\n  });\n});\n"
+    },
+    "apps/tablets-server/test/equipment-data/opcua-readings.test.ts": {
+      "tests": [
+        {
+          "id": "6",
+          "name": "OPC UA readings on the gateway path (DI-32, DI-20) > [DI-32] an OPC UA reading stores raw output equal to the displayed value"
+        },
+        {
+          "id": "7",
+          "name": "OPC UA readings on the gateway path (DI-32, DI-20) > [DI-32] a rounded display, a quality that contradicts the status, a reading of an OPC UA unit without its original record are refused; nothing lands"
+        },
+        {
+          "id": "8",
+          "name": "OPC UA readings on the gateway path (DI-32, DI-20) > [DI-20] readings of a unit whose endpoint session was refused (certificate changed) are refused until a valid session"
+        }
+      ],
+      "source": "/**\n * Process readings taken over OPC UA on the gateway path (tablets 1210 over 0820; recipe-core 0961; DI-32, DI-20,\n * DI-31): the listener takes a request whose readings carry their native original record through\n * tab.ingest_opcua_readings. The gateway speaks the integration-sdk process wire to the listener; bypasses go straight\n * to the database as the application role.\n */\nimport { randomUUID } from 'node:crypto';\nimport { afterAll, beforeAll, describe, expect, it } from 'vitest';\nimport { enrol, fakeGateway, type FakeGateway } from '../devices/support.ts';\nimport { startServer, type TestServer } from '../support/harness.ts';\nimport { opcuaWorld, reportSession, type OpcuaWorld } from './opcua-support.ts';\n\nlet server: TestServer;\nlet gw: FakeGateway;\nlet w: OpcuaWorld;\nconst RUN = randomUUID();\nlet seq = 0;\n\nbeforeAll(async () => {\n  server = await startServer('SANDBOX');\n  const chainId = await enrol(server);\n  gw = await fakeGateway(server);\n  w = await opcuaWorld(server, chainId);\n}, 300_000);\nafterAll(async () => {\n  await gw?.close();\n  await server?.close();\n});\n\ntype Json = Record<string, unknown>;\nconst reading = (value: string, raw: string | null, over: Json = {}, nativeOver: Json = {}): Json => {\n  seq += 1;\n  const base: Json = { deviceSerial: w.device.serial, tag: 'force.main_kN', value, unit: 'kN', quality: 'GOOD', sourceTime: String(1790584618000000 + seq * 1000), sequence: String(seq), kind: 'ACTUAL', ...over };\n  if (raw !== null) base['native'] = { raw, status: '0x00000000', deviceTime: String(1790584617000000 + seq * 1000), endpointCode: w.endpoint.code, ...nativeOver };\n  return base;\n};\nconst send = (readings: Json[]) => gw.post('/gw/v1/process-readings', { sessionId: RUN, readings });\nconst errorOf = (r: { status: number; body: unknown }): string => JSON.stringify(r.body);\n\nasync function stored(): Promise<{ value: string; raw: string | null; status: string | null }[]> {\n  const { rows } = await server.db.app.query<{ value: string; raw: string | null; status: string | null }>(\n    'select r.value, n.raw, n.status from tab.process_reading r left join tab.process_reading_native n on n.reading_id = r.id where r.serial = $1 order by r.seq',\n    [w.device.serial],\n  );\n  return rows;\n}\n\ndescribe('OPC UA readings on the gateway path (DI-32, DI-20)', () => {\n  it('[DI-32] an OPC UA reading stores raw output equal to the displayed value', async () => {\n    expect(await reportSession(server, w)).toMatchObject({ applied: 'SESSION_VALID' });\n    const r = await send([reading('12.50', '12.5'), reading('12.43', '1.243E1')]);\n    expect(r.status, errorOf(r)).toBe(200);\n    expect(await stored()).toEqual([\n      { value: '12.50', raw: '12.5', status: '0x00000000' },\n      { value: '12.43', raw: '1.243E1', status: '0x00000000' },\n    ]);\n    // The same request again is a duplicate (nothing stored twice); the same sequence with another original record is refused.\n    seq -= 2;\n    const again = await send([reading('12.50', '12.5'), reading('12.43', '1.243E1')]);\n    expect(again.status, errorOf(again)).toBe(200);\n    seq -= 1;\n    const changed = await send([reading('12.43', '12.430')]);\n    expect(changed.status).toBe(422);\n    expect(errorOf(changed)).toMatch(/EBMR-DEV-176/);\n    expect(await stored()).toHaveLength(2);\n  });\n\n  it('[DI-32] a rounded display, a quality that contradicts the status, a reading of an OPC UA unit without its original record are refused; nothing lands', async () => {\n    await reportSession(server, w);\n    const before = (await stored()).length;\n    // The device sent 12.499; showing 12.50 would be a rounding (the wire validator and the database both refuse it).\n    const rounded = await send([reading('12.50', '12.499')]);\n    expect(rounded.status).toBe(400);\n    seq -= 1;\n    const bad = await send([reading('12.50', '12.5', {}, { status: '0x80000000' })]);\n    expect(bad.status).toBe(422);\n    expect(errorOf(bad)).toMatch(/EBMR-DEV-173/);\n    seq -= 1;\n    // The old path without the original record: refused at commit for a unit behind an OPC UA endpoint (bypass).\n    const plain = await send([reading('12.50', null)]);\n    expect(plain.status).toBe(422);\n    expect(errorOf(plain)).toMatch(/EBMR-DEV-171/);\n    seq -= 1;\n    // Another endpoint than the enrolled one.\n    const other = await send([reading('12.50', '12.5', {}, { endpointCode: 'OPC-SOMEONE-ELSE' })]);\n    expect(errorOf(other)).toMatch(/EBMR-DEV-174/);\n    seq -= 1;\n    expect(await stored()).toHaveLength(before);\n    // The application role cannot write an original record or a reading itself.\n    await expect(server.db.app.query(\"insert into tab.process_reading_native (reading_id, raw, status, device_time_us, endpoint_device_id, endpoint_session_id) values (gen_random_uuid(), '1', '0x00000000', 0, gen_random_uuid(), gen_random_uuid())\")).rejects.toThrow(/permission denied/);\n    await expect(server.db.app.query('delete from tab.process_reading_native')).rejects.toThrow(/permission denied/);\n  });\n\n  it('[DI-20] readings of a unit whose endpoint session was refused (certificate changed) are refused until a valid session', async () => {\n    const changed = await reportSession(server, w, { certificateThumbprint: 'a'.repeat(64) });\n    expect(changed).toMatchObject({ applied: 'SESSION_REFUSED', refusal: 'CERTIFICATE_CHANGED' });\n    const r = await send([reading('12.50', '12.5')]);\n    expect(r.status).toBe(422);\n    expect(errorOf(r)).toMatch(/EBMR-DEV-175 DI-20: the session of endpoint .* was refused \\(CERTIFICATE_CHANGED\\)/);\n    seq -= 1;\n    await reportSession(server, w);\n    expect((await send([reading('12.50', '12.5')])).status).toBe(200);\n  });\n});\n"
+    }
+  },
+  "projectRoot": "/root/wt/campaign-s1",
+  "config": {
+    "plugins": [
+      "@stryker-mutator/vitest-runner"
+    ],
+    "testRunner": "vitest",
+    "vitest": {
+      "configFile": "vitest.stryker-phase6.config.ts",
+      "related": false
+    },
+    "coverageAnalysis": "perTest",
+    "mutate": [
+      "apps/tablets-server/src/features/equipment-data/index.ts",
+      "apps/tablets-server/src/features/equipment-data/reads.ts"
+    ],
+    "ignoreStatic": true,
+    "incremental": true,
+    "incrementalFile": ".reports/stryker-phase6/server-equipment-data.incremental.json",
+    "concurrency": 2,
+    "dryRunTimeoutMinutes": 45,
+    "timeoutMS": 120000,
+    "thresholds": {
+      "high": 80,
+      "low": 80,
+      "break": null
+    },
+    "reporters": [
+      "clear-text",
+      "progress",
+      "html",
+      "json"
+    ],
+    "htmlReporter": {
+      "fileName": ".reports/stryker-phase6/server-equipment-data.html"
+    },
+    "jsonReporter": {
+      "fileName": ".reports/stryker-phase6/server-equipment-data.json"
+    },
+    "tempDirName": ".stryker-tmp-server-equipment-data",
+    "cleanTempDir": "always",
+    "configFile": "stryker.phase6.config.mjs",
+    "allowConsoleColors": true,
+    "checkers": [],
+    "checkerNodeArgs": [],
+    "commandRunner": {
+      "command": "npm test"
+    },
+    "clearTextReporter": {
+      "allowColor": true,
+      "allowEmojis": false,
+      "logTests": true,
+      "maxTestsToLog": 3,
+      "reportTests": true,
+      "reportMutants": true,
+      "reportScoreTable": true,
+      "skipFull": false
+    },
+    "dashboard": {
+      "baseUrl": "https://dashboard.stryker-mutator.io/api/reports",
+      "reportType": "full"
+    },
+    "dryRunOnly": false,
+    "eventReporter": {
+      "baseDir": "reports/mutation/events"
+    },
+    "ignorePatterns": [],
+    "force": false,
+    "fileLogLevel": "off",
+    "inPlace": false,
+    "logLevel": "info",
+    "maxConcurrentTestRunners": 9007199254740991,
+    "maxTestRunnerReuse": 0,
+    "mutator": {
+      "plugins": null,
+      "excludedMutations": []
+    },
+    "appendPlugins": [],
+    "disableTypeChecks": true,
+    "symlinkNodeModules": true,
+    "testRunnerNodeArgs": [],
+    "timeoutFactor": 1.5,
+    "tsconfigFile": "tsconfig.json",
+    "warnings": true,
+    "disableBail": false,
+    "allowEmpty": false,
+    "ignorers": [],
+    "testFiles": []
+  },
+  "framework": {
+    "name": "StrykerJS",
+    "version": "10.0.0",
+    "branding": {
+      "homepageUrl": "https://stryker-mutator.io",
+      "imageUrl": "data:image/svg+xml;utf8,%3Csvg viewBox='0 0 1458 1458' xmlns='http://www.w3.org/2000/svg' fill-rule='evenodd' clip-rule='evenodd' stroke-linejoin='round' stroke-miterlimit='2'%3E%3Cpath fill='none' d='M0 0h1458v1458H0z'/%3E%3CclipPath id='a'%3E%3Cpath d='M0 0h1458v1458H0z'/%3E%3C/clipPath%3E%3Cg clip-path='url(%23a)'%3E%3Cpath d='M1458 729c0 402.655-326.345 729-729 729S0 1131.655 0 729C0 326.445 326.345 0 729 0s729 326.345 729 729' fill='%23e74c3c' fill-rule='nonzero'/%3E%3Cpath d='M778.349 1456.15L576.6 1254.401l233-105 85-78.668v-64.332l-257-257-44-187-50-208 251.806-82.793L1076.6 389.401l380.14 379.15c-19.681 367.728-311.914 663.049-678.391 687.599z' fill-opacity='.3'/%3E%3Cpath d='M753.4 329.503c41.79 0 74.579 7.83 97.925 25.444 23.571 18.015 41.69 43.956 55.167 77.097l11.662 28.679 165.733-58.183-14.137-32.13c-26.688-60.655-64.896-108.61-114.191-144.011-49.329-35.423-117.458-54.302-204.859-54.302-50.78 0-95.646 7.376-134.767 21.542-40.093 14.671-74.09 34.79-102.239 60.259-28.84 26.207-50.646 57.06-65.496 92.701-14.718 35.052-22.101 72.538-22.101 112.401 0 72.536 20.667 133.294 61.165 182.704 38.624 47.255 98.346 88.037 179.861 121.291 42.257 17.475 78.715 33.125 109.227 46.994 27.193 12.361 49.294 26.124 66.157 41.751 15.309 14.186 26.497 30.584 33.63 49.258 7.721 20.214 11.16 45.69 11.16 76.402 0 28.021-4.251 51.787-13.591 71.219-8.832 18.374-20.171 33.178-34.523 44.219-14.787 11.374-31.193 19.591-49.393 24.466-19.68 5.359-39.14 7.993-58.69 7.993-29.359 0-54.387-3.407-75.182-10.747-20.112-7.013-37.144-16.144-51.259-27.486-13.618-11.009-24.971-23.766-33.744-38.279-9.64-15.8-17.272-31.924-23.032-48.408l-10.965-31.376-161.669 60.585 10.734 30.124c10.191 28.601 24.197 56.228 42.059 82.748 18.208 27.144 41.322 51.369 69.525 72.745 27.695 21.075 60.904 38.218 99.481 51.041 37.777 12.664 82.004 19.159 132.552 19.159 49.998 0 95.818-8.321 137.611-24.622 42.228-16.471 78.436-38.992 108.835-67.291 30.719-28.597 54.631-62.103 71.834-100.642 17.263-38.56 25.923-79.392 25.923-122.248 0-54.339-8.368-100.37-24.208-138.32-16.29-38.759-38.252-71.661-65.948-98.797-26.965-26.418-58.269-48.835-93.858-67.175-33.655-17.241-69.196-33.11-106.593-47.533-35.934-13.429-65.822-26.601-89.948-39.525-22.153-11.868-40.009-24.21-53.547-37.309-11.429-11.13-19.83-23.678-24.718-37.664-5.413-15.49-7.98-33.423-7.98-53.577 0-40.883 11.293-71.522 37.086-90.539 28.443-20.825 64.985-30.658 109.311-30.658z' fill='%23f1c40f' fill-rule='nonzero'/%3E%3Cpath d='M720 0h18v113h-18zM1458 738v-18h-113v18h113zM720 1345h18v113h-18zM113 738v-18H0v18h113z'/%3E%3C/g%3E%3C/svg%3E"
+    },
+    "dependencies": {
+      "typescript": "6.0.3"
+    }
+  }
+}
