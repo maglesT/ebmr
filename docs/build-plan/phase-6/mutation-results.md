@@ -425,7 +425,8 @@ exercised, or a refusal that a later layer repeats (named below).
   (the guard before the verifier widened: `tab.ed25519_verify` itself answers false or NULL for a missing key or a
   signature of the wrong length, coalesced to false, so the message is still refused; P3) and
   `recipe.record_qp_transcription#23` (`k.certification_id = c.id` to `<>`: told apart only while another
-  transcription's check exists, which the case lacks; P3, the wider read only refuses more).
+  transcription's check exists, which the case lacks; P3: a second pending transcription could then be recorded, but
+  whichever is verified first decides the lot and the other meets EBMR-DSP-051 at its verification).
 - Equivalent: `recipe.take_qp_message#19` (its only caller passes a non-NULL verdict), `recipe.record_qp_certification#21`
   (EBMR-DSP-075 unreachable after `assert_release_signature`).
 - P3 (57): `recipe.eu_certification_gate_problems#1 to #4, #6` (the cockpit's read); `recipe.eu_importer_canonical#6`,
