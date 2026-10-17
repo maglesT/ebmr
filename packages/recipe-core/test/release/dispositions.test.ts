@@ -879,7 +879,7 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
     const tag = randomUUID().slice(0, 6).toUpperCase();
     const firstUse = '2026-03-02T12:00:00Z';
     const cases = [{ name: 'none', at: null }, { name: 'late', at: '2026-03-03T08:00:00Z' }, { name: 'early', at: '2026-03-01T08:00:00Z' }] as const;
-    const made: Record<string, { batchId: string; lotId: string; lotCode: string }> = {};
+    const made = {} as Record<'none' | 'late' | 'early', { batchId: string; lotId: string; lotCode: string }>;
     for (const c of cases) {
       const batchId = await issuedBatch(all, ['IN']);
       const lotId = randomUUID();
@@ -901,17 +901,17 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
     }
     const evaluate = async (batchId: string): Promise<{ outcome: string; items: { id: string; outcome: string; detail: string | null; evidence: { label: string }[] }[] }> =>
       (await db.admin.query<{ e: never }>("select recipe.market_add_evaluate('BATCH', $1, 'US') as e", [batchId])).rows[0]!.e;
-    const route = async (name: string) => (await evaluate(made[name]!.batchId)).items.find((i) => i.id === 'MA.IDENTITY_ROUTE')!;
+    const route = async (name: 'none' | 'late' | 'early') => (await evaluate(made[name].batchId)).items.find((i) => i.id === 'MA.IDENTITY_ROUTE')!;
     const none = await route('none');
-    expect(none).toMatchObject({ outcome: 'UNMET_FINAL', evidence: [{ label: `${made.none!.lotCode} (no valid basis)` }] });
-    expect(none.detail).toMatch(new RegExp(`^lot ${made.none!.lotCode} has no identity result: a batch for markets \\{IN, US\\}`));
-    const late = await evaluate(made.late!.batchId);
+    expect(none).toMatchObject({ outcome: 'UNMET_FINAL', evidence: [{ label: `${made.none.lotCode} (no valid basis)` }] });
+    expect(none.detail).toMatch(new RegExp(`^lot ${made.none.lotCode} has no identity result: a batch for markets \\{IN, US\\}`));
+    const late = await evaluate(made.late.batchId);
     expect(late.outcome).toBe('UNMET_FINAL');
     expect(late.items.find((i) => i.id === 'MA.IDENTITY_ROUTE')).toMatchObject({ outcome: 'UNMET_FINAL',
-      detail: `the identity result of lot ${made.late!.lotCode} was recorded after the lot was first used in batch ${(await db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [made.late!.batchId])).rows[0]!.n}; the test had to precede use (3.3.3; IN-24)`,
-      evidence: [{ label: `${made.late!.lotCode} (IDENTITY_RESULT)` }] });
-    const early = await evaluate(made.early!.batchId);
-    expect(early.items.find((i) => i.id === 'MA.IDENTITY_ROUTE')).toMatchObject({ outcome: 'MET', detail: null, evidence: [{ label: `${made.early!.lotCode} (IDENTITY_RESULT)` }] });
+      detail: `the identity result of lot ${made.late.lotCode} was recorded after the lot was first used in batch ${(await db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [made.late.batchId])).rows[0]!.n}; the test had to precede use (3.3.3; IN-24)`,
+      evidence: [{ label: `${made.late.lotCode} (IDENTITY_RESULT)` }] });
+    const early = await evaluate(made.early.batchId);
+    expect(early.items.find((i) => i.id === 'MA.IDENTITY_ROUTE')).toMatchObject({ outcome: 'MET', detail: null, evidence: [{ label: `${made.early.lotCode} (IDENTITY_RESULT)` }] });
     expect(early.outcome).toBe('MET');
   });
 
