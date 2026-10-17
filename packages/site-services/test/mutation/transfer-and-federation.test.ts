@@ -112,6 +112,8 @@ describe('Ed25519 and seals in the database (kernel 1220, 1230)', () => {
     for (const message of ['00', '01', '02']) {
       expect(await verify(neutral, message, R + le32(1n << 252n))).toBe(true);
     }
+    // With no message there is no k: refused, even though R is [S]B (which is all a NULL k would leave to check).
+    expect(await verify(neutral, null, R + le32(1n << 252n))).toBe(false);
   });
 
   it('[DI-31] a seal verifies only for a listed purpose and in canonical base64 (platform.seal_valid)', async () => {
@@ -185,6 +187,11 @@ describe('the inbound package (site services 0981)', () => {
     expect(await goa.scalar<string>(
       "select platform.timestamptz_to_epoch_us(l.retest_at)::text || '/' || platform.timestamptz_to_epoch_us(t.hold_until)::text as v from site.material_lot l join site.transfer_receipt t on t.lot_id = l.id where t.id = $1",
       [r.receiptId])).toBe(`${retest}/${retest}`);
+    // What local QA signs names this receipt's own lot and its own re-resolved rules.
+    const content = await goa.scalar<{ lot_code: string; rules: unknown[] }>("select esig.provide('transfer_receipt', $1::text) -> 'content' as v", [r.receiptId]);
+    expect(content.lot_code).toBe(r.lotCode);
+    expect(content.rules.length).toBe(await goa.scalar<number>('select count(*)::int as v from site.transfer_rule_resolution where receipt_id = $1', [r.receiptId]));
+    expect(content.rules.length).toBeGreaterThan(0);
     // A retest stated after the expiry is the expiry.
     const after = reseal((x) => { x['packageId'] = randomUUID(); x['packageNo'] = unique('PK-'); lotOf(x)['retestAtUs'] = String(BigInt(expiry) + 1_000_000n); });
     const r2 = await goa.receive(after.payload, after.seal);
