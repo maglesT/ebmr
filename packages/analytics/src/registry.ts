@@ -113,7 +113,7 @@ export const METHODS: Readonly<Record<MethodId, MethodEntry>> = {
     slice: '6A-2',
     family: 'rates',
     inputKind: 'DEVIATION_GROUPS',
-    inputs: ['report.deviation_fact_v1', 'report.step_use_v1', 'report.batch_fact_v1'],
+    inputs: ['report.deviation_fact_v1', 'report.step_use_v1', 'report.step_shift_v1', 'report.batch_fact_v1'],
     reference: 'NONE',
     outputKinds: ['RATE_COMPARISON'],
     flagRules: ['RATE_ABOVE'],

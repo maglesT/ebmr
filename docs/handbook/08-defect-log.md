@@ -1175,6 +1175,22 @@ under the same key lands, exactly once; ...` and `[DI-31] M6-D2: a page that rep
 once; ...` (apps/tablets-server/test/equipment-data/opcua-adapter.test.ts). **Lesson.** De-duplicate on what you
 received, never on what the sender claims about it; a claim that failed its check identifies nothing.
 
+## Slice 6A-2: SPC, capability, drift and deviation rates (Phase 6A)
+
+### P6A2-1: a distribution function from an inverted quantile lost its tails (found while building)
+
+- **What went wrong:** the first normal distribution function was the pinned normal quantile inverted by bisection.
+  The quantile loses its precision below a probability of about 1e-16 (it returned an infinite value), so the
+  Anderson-Darling statistic, which sums log-probabilities of the outermost points, failed on ordinary data.
+- **Why it matters:** a normality note or a capability index computed from a wrong tail would mislead QA reading the
+  PQR annex, even though the result is advisory.
+- **Fix:** the normal distribution function is `@stdlib/math-base-special-erfc` 0.2.5, pinned and recorded in every
+  run's runtime (D-6A-2-10); the t distribution function stays the inverted t quantile, which keeps its precision.
+- **Test:** `packages/analytics/test/spc-methods.test.ts` "the normal and t distribution functions agree with SciPy,
+  deep into the tails" (down to z = -30) and the Anderson-Darling reference values.
+- **Lesson:** check a numerical door at the extremes it will meet, against an independent reference, before building
+  on it.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

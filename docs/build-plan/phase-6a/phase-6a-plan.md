@@ -257,6 +257,75 @@ Defaults of 6A-1 (taken without asking, as the owner's rule says; each is the de
   - `[DI-51] the PQR extract's content and hash are unchanged with analytics present`.
 - **Migrations:** site-services 1020 to 1029 (reserved), recipe-core 1130 to 1139, tablets 1340 to 1344.
 
+#### 6A-2 as built (17 October)
+
+- **Methods** (`packages/analytics/src/methods/spc`, `capability`, `drift`, `rates`): SPC.IMR, SPC.XBAR_S, CAP.INDEX,
+  DRIFT.TREND, RATE.DEVIATION version 1. Known answers in `packages/analytics/test/spc-methods.test.ts`: limits checked by
+  hand, the published examples (Newcombe's Wilson intervals, the tea-tasting Fisher table, Benjamini and Hochberg's
+  fifteen p-values, the c4, d2 and D4 table values) and `test/reference/spc-reference.json`, written by
+  `spc_reference.py` (Python 3.13, NumPy 2.2.6, SciPy 1.14.1).
+- **Runner:** `apps/tablets-server/src/analytics/spc.ts` (the assembly from the views and `SPC_METHOD_DEFINITIONS`, the
+  version 1 rows QA puts in force under a change record), one line in `IMPLEMENTATIONS`.
+- **Migration:** recipe-core 1130 (`report.deviation_fact_v1`, `report.step_shift_v1`, `report.shift_of`, the setting
+  `site.shift_boundaries` and its check). Tablets 1340-1344 and site-services 1020-1029 are not used.
+- **Server and screens:** feature `analytics-spc` (`features/analytics/spc/`, joined to `routes.ts` and
+  `NAMESPACE_OWNERS` as `P6A`); screens `tablets-web/src/features/analytics/spc/` (`/analytics/spc` with the
+  capability panel, `/analytics/rates` with the funnel); the PQR extract screen's advisory annex links.
+- **Tests:** the five plan titles (`[DI-52]` Nelson rule 2 at batch 24 and the seeded room on the synthetic history,
+  run end to end through the runner in `apps/tablets-server/test/analytics/spc.test.ts`; `[DI-52]` capability below 25
+  batches; `[DI-51]` the SPC response's decimal text and StatNumber; `[DI-51]` the PQR extract unchanged in
+  `packages/recipe-core/test/analytics/rate-inputs.test.ts`), the rate inputs over GMP records, and the screens.
+- **Mutation group:** `analytics-rate-inputs` (90 %), job in `mutation.yml`.
+- **Golden batches:** not run; the change does not touch the batch outputs (the golden runner uses its probe method,
+  and the new trigger acts only on the `site.shift_boundaries` setting).
+
+Defaults of 6A-2 (taken without asking, as the owner's rule says; each is the decision until the owner changes it):
+
+- **D-6A-2-1** Reference-set limits: the SPC methods take a reference model `{subjectRef, chart, centre, sigma}` and
+  then say REFERENCE_SET (tested). In v1 no run passes one, so every chart is PHASE_I and labelled: the analytics role
+  cannot read the effective reference sets (no EXECUTE on `analytics.effective_reference_sets`, a kernel grant), and the
+  interfaces table gives SPC no MODEL_CANDIDATE output to approve a set from. Both are lead changes (6A-3 meets the same
+  need); written up here for the lead.
+- **D-6A-2-2** The charted value of a batch is its last attempt of the item (highest attempt, then latest recorded):
+  earlier failed attempts are 6A-4's repeat-until-pass. Only completed GMP batches, in completion order.
+- **D-6A-2-3** One chart per product, MBR family and item (subject PRODUCT_ITEM `<product>|<family>|<item>`); the
+  specification echoed is the newest batch's master's.
+- **D-6A-2-4** Xbar-S: a point of n readings has sigma / sqrt(n); the drawn limits are for the most frequent subgroup
+  size; a batch with fewer readings than `minSubgroup` is left out and named. The rules run on every point, Phase I
+  included; one flag per rule and chart, one reason per hit naming its batches, severity ATTENTION.
+- **D-6A-2-5** Drift: the EWMA starts at the master's target (else the mean of every batch) with sigma from the mean
+  moving range of every batch; both signals concern the newest batch (a current drift, not a past one); the slope
+  projection uses the fitted line.
+- **D-6A-2-6** Rates are per product (the route takes the product): one output per group, subject GROUP
+  `<product>|<grouping>:<group>`, so a flag names its own output. The history's expected `ROOM:R-2` is that ref with the
+  product in front.
+- **D-6A-2-7** The shifts are the platform setting `site.shift_boundaries` (not `analytics.shift_boundaries`): the shift
+  pattern is a site fact, and a routine outside the analytics schema naming `analytics.` would break the DI-51
+  dependency proof. Format `NAME=HH:MM,...`, rising; anything else is refused by a trigger for every writer
+  (EBMR-ANA-020). It is under change control as every platform setting (area PLATFORM_SETTING).
+- **D-6A-2-8** Attribution: a deviation counts for the step of an exception it was linked (DEVIATION_LINKED) or escalated
+  (ESCALATED) to, with that step's units, rooms and consumed lots; its shift is the exception's time, else the
+  deviation's. Cancelled deviations are left out. A batch's shifts are those its steps started in
+  (`report.step_shift_v1`, added to the method's inputs in the registry).
+- **D-6A-2-9** The comparison: one-sided Fisher of the group against the product's batches not exposed to it, counting
+  only deviations attributed within the grouping (unattributed ones are counted apart); Benjamini-Hochberg within a
+  product and grouping; funnel limits by the normal approximation at the product's share. `report.alarm_v1` as a group
+  input is not wired in v1 (DI-49's trend stays as built).
+- **D-6A-2-10** The normal distribution function is `@stdlib/math-base-special-erfc` 0.2.5, pinned and in
+  `RUNTIME_LIBRARIES` (the normal quantile loses precision below 1e-16; defect log P6A2-1).
+- **D-6A-2-11** 6A-2's messages are EBMR-ANA-020 to -029, so the parallel slices do not collide.
+- **D-6A-2-12** A comparison covers every completed batch of the product in the run; `from` and `to` pick the newest
+  comparison whose batches all completed within them, else 404 (EBMR-ANA-021).
+- **D-6A-2-13** An output's batch ids and recorded values travel as comma-joined text (output values are numbers, number
+  arrays or text); the route joins the batch numbers and completion times from `report.batch_fact_v1`.
+- **D-6A-2-14** No migration writes a method version: QA puts the version 1 definitions in force under a change record
+  (the server test does it through the route).
+- **D-6A-2-15** Additive optional contract fields: `spreadChart` on the chart, `overall.unattributedDeviations` and
+  `groups[].funnel` on the rates.
+
+Residuals for the lead (not 6A-2's files): every run raises its flags again, and `analytics.open_flag_v1` lists each
+run's flags, so a nightly run repeats an open rule hit until it is dispositioned; D-6A-2-1's two changes.
+
 ### Slice 6A-3: multivariate monitoring (item 2)
 
 - **Model:** per product and MBR family (D-6A-11):

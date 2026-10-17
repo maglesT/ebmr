@@ -276,6 +276,9 @@ importers:
 
   packages/analytics:
     dependencies:
+      '@stdlib/math-base-special-erfc':
+        specifier: 0.2.5
+        version: 0.2.5
       '@stdlib/stats-base-dists-beta-quantile':
         specifier: 0.2.3
         version: 0.2.3
