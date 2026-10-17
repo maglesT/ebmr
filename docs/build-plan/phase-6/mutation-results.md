@@ -8,16 +8,39 @@ invalidation, limits, rounding, flow validation and release gating, 80 % elsewhe
 of decision 0019. Scores come from the harness and Stryker reports of the runs (`report.json`, `summary.md`,
 `.reports/stryker-phase6/<feature>.json`); a score no report holds is marked so and not estimated.
 
-This page was prepared before the campaign (branch `phase-6/slice-6j-mutation`, 16 October): the groups, the features,
-the run plan and the time estimates are in place; every result is **pending**.
+The page was prepared on 16 October (branch `phase-6/slice-6j-mutation`: the groups, the features, the run plan and the
+time estimates). The campaign ran on 17 October from commit b5aa5db6, on the pod, and the triage agents T1 to T13
+added the sections below, one per group or feature.
+Every number in the tables is taken from the harness reports (`report.json`, per stream) and the Stryker JSON reports;
+a first-run score is detected over valid mutants, where a harness-marked equivalent and an invalid mutant leave the
+denominator. A figure no report or triage section states is written "not stated".
+
+## Campaign record
+
+- Part 1 ran from 00:25 to about 07:00 UTC on 17 October, within its 12-hour box. Part 2's SQL started early, at 01:50,
+  on clusters part 1 had freed (D-P6j-L-2), and was stopped at 07:47 under its box (D-P6j-L-4).
+- Not run (time box), residuals: bulk-and-bright-stock (Phase 4: 116 / 149, 77.9 %) and execution-complete-forms
+  (Phase 4: 5 / 6); and the whole SQL re-run of the 80 earlier groups (about 128 worker hours), dropped by the owner's
+  instruction of 17 October (D-P6j-L-3).
+- Stryker server-integrations and gateway-opcua did not finish within 1 hour even on their high-risk files; T12 checked
+  them by hand (its section below).
+- Parallel Stryker runs in one worktree copied each other's sandboxes and failed (rc=1 and timeouts); they were re-run
+  from separate worktrees at the same commit (D-P6j-L-5).
+- The campaign ran from commit b5aa5db6.
+- The owner's instruction of 17 October ("focus only on important issues, don't keep re-testing minor ones") applied from
+  triage T4 onward.
+- Raw reports (`report.json`, `summary.md`, the Stryker JSON) are on branch `phase-6/slice-6j-mutation-reports`.
 
 ## Summary
 
 | Part | Scope | First-run survivors | Outcome after the new tests | Real defects fixed |
 |---|---|---|---|---|
-| 1, SQL | 14 Phase 6 groups (3,981 mutants) and the 11 re-created functions of earlier groups (202 mutants) | pending | pending | pending |
-| 1, Stryker | 20 Phase 6 features | pending | pending | pending |
-| 2 | Phase 4 leftovers (below) | pending | pending | pending |
+| 1, SQL | 14 Phase 6 groups (3,981 mutants, 3,967 valid) and the functions Phase 6 re-created in 10 earlier groups (332 mutants, 329 valid) | Groups: 1,392 of 3,967 valid (2,575 detected, 64.9 %). Re-created functions: 53 of 329 (276 detected, 83.9 %) | Groups: 13 of 14 state an after-triage score, 3,311 / 3,775 (87.7 %; the first run of the same 13 was 2,465 / 3,818, 64.6 %); five reach 90 % (equipment-data-and-alarms, erp-wms-receipt-and-stock, qms-capa-lims-cmms, inbound-adapters-and-mirrors, packaging-labels-and-line-completion); reporting-and-training: not stated. Re-created functions: 297 / 329 (90.3 %) | M6-D1 (medium) |
+| 1, Stryker | 20 Phase 6 features: 18 with a first-run report, server-integrations and gateway-opcua unfinished | High-risk zone of the 18: 1,555 / 3,223 detected (48.2 %), 928 survived and 740 without coverage; no feature reaches 90 %. Other zone: 2,300 / 4,681 (49.1 %, the simulators included) | No re-run (owner, 17 October). New tests for TypeScript-only rules: one each in server-transfers (DI-13) and server-governance (IN-10), three in kernel-config-and-dsc (IN-10), nine for the 23 hand-checked survivors of the two unfinished features; server-genealogy killed by an existing test; 5 features not triaged | M6-D2 (high), the gateway's 128-character id truncation (P2) |
+| 2 | Phase 4 leftovers (below) | Scope A: 115 of 708 valid (Phase 4: 298). New groups: us-disposition, qp-certification, market-changes 230 of 481 | Scope A 593 / 708 (83.8 %); scope B, four of six groups, 555 / 564 (98.4 %); the three new groups 251 / 481 (52.2 %) at first run, about 94 / 146 for us-disposition after triage; the Stryker features of the server: 59.1 to 78.9 %, no Priority 1 rule unenforced | M6-D3 (high) |
+
+**No Priority 1 defect was found by the campaign.** Four defects were fixed (section "Real defects fixed"); none is in the
+regulated core's Priority 1 list of decision 0019, though M6-D2 and M6-D3 are rated high.
 
 ## Part 1, SQL: the Phase 6 groups
 
@@ -27,35 +50,40 @@ targets 90 %; decisions D-P6j-M-1 to 3 in the Phase 6 plan). Mutant counts from 
 
 | Group | Decision 0019 area | Functions | Mutants | Baseline db / server (s) | Target | First run detected / valid | Score | Survivors | Equivalent | After |
 |---|---|---|---|---|---|---|---|---|---|---|
-| inbound-adapters-and-mirrors | adapters and mirrors | 21 | 310 | 17 / - | 90 % | pending | | | | |
-| erp-wms-receipt-and-stock | adapters and mirrors | 41 | 351 | 37 / 6 | 90 % | pending | | | | |
-| qms-capa-lims-cmms | adapters and mirrors | 38 | 401 | 12 / 5 | 90 % | pending | | | | |
+| inbound-adapters-and-mirrors | adapters and mirrors | 21 | 310 | 17 / - | 90 % | 198 / 299 | 66.2 % | 101 | 3 | 295 / 296, 99.7 % (confirmation 96 / 97, the last by hand; 11 mutants invalid) |
+| erp-wms-receipt-and-stock | adapters and mirrors | 41 | 351 | 37 / 6 | 90 % | 207 / 350 | 59.1 % | 143 | 7 | 325 / 343, 94.8 % (confirmation 118 / 125) |
+| qms-capa-lims-cmms | adapters and mirrors | 38 | 401 | 12 / 5 | 90 % | 239 / 399 | 59.9 % | 160 | 4 | 386 / 395, 97.7 % (confirmation 147 / 149; 98.0 % with one kill added after it) |
 | equipment-data-and-alarms | equipment, alarms, plant rules | 28 | 469 | 41 / 5 | 90 % | 307 / 469 | 65.5 % | 162 | 2 | 447 / 467, 95.7 % (confirmation 140 / 140) |
 | plant-rules | equipment, alarms, plant rules | 26 | 221 | 16 / 5 | 90 % | 163 / 221 | 73.8 % | 58 | 1 | 174 / 220, 79.1 % (confirmation 11 / 11; 191 / 220 with T1's unconfirmed tests) |
-| packaging-labels-and-line-completion | packaging and serialisation | 34 | 352 | 3 / 14 | 90 % | pending | | | | |
-| serialisation-l3 | packaging and serialisation | 7 | 112 | - / 5 | 90 % | pending | | | | |
-| genealogy-and-recall | genealogy and recall | 23 | 440 | 45 / 4 | 90 % | pending | | | | |
-| controlled-substance-mode | controlled-substance mode | 34 | 311 | 5 / 3 | 90 % | pending | | | | |
-| governance-change-control | governance, change control, DSC | 19 | 117 | 7 / 3 | 90 % | 84 / 117 (smoke run) | 71.8 % | 33 | not triaged | |
-| governance-support-and-contract-giver | governance, change control, DSC | 21 | 228 | 12 / 4 | 90 % | pending | | | | |
+| packaging-labels-and-line-completion | packaging and serialisation | 34 | 352 | 3 / 14 | 90 % | 274 / 352 | 77.8 % | 78 | 0 | 348 / 352, 98.9 % (confirmation 74 / 74; 99.1 % with one kill added after it) |
+| serialisation-l3 | packaging and serialisation | 7 | 112 | - / 5 | 90 % | 68 / 112 | 60.7 % | 44 | none stated | 71 / 112, 63.4 % (confirmation 3 / 3) |
+| genealogy-and-recall | genealogy and recall | 23 | 440 | 45 / 4 | 90 % | 291 / 440 | 66.1 % | 149 | 11 | 370 / 429, 86.2 % (confirmation 79 / 80) |
+| controlled-substance-mode | controlled-substance mode | 34 | 311 | 5 / 3 | 90 % | 207 / 311 | 66.6 % | 104 | 2 | 234 / 309, 75.7 % (confirmation 27 / 27) |
+| governance-change-control | governance, change control, DSC | 19 | 117 | 7 / 3 | 90 % | 84 / 117 | 71.8 % | 33 | none stated | 86 / 117, 73.5 % (confirmation 2 / 2) |
+| governance-support-and-contract-giver | governance, change control, DSC | 21 | 228 | 12 / 4 | 90 % | 163 / 228 | 71.5 % | 65 | none stated | 182 / 228, 79.8 % (confirmation 19 / 31); 188 / 228, 82.5 %, with six kills proved by hand |
 | india-dsc | governance, change control, DSC | 19 | 127 | 2 / 4 | 90 % | 75 / 127 | 59.1 % | 52 | 0 | 104 / 127, 81.9 % (confirmation 29 / 29) |
-| reporting-and-training | reporting and training mode | 14 | 149 | 3 / 3 | 90 % | pending | | | | |
-| transfer-and-federation | inter-site transfer and federation | 49 | 393 | 30 / 7 | 90 % | pending | | | | |
+| reporting-and-training | reporting and training mode | 14 | 149 | 3 / 3 | 90 % | 110 / 149 | 73.8 % | 39 | none stated | not stated (no confirmation run; kills by reasoning on a few survivors) |
+| transfer-and-federation | inter-site transfer and federation | 49 | 393 | 30 / 7 | 90 % | 189 / 393 | 48.1 % | 204 | 13 | 289 / 380, 76.1 % (confirmation 100 / 105); 309 / 380, 81.3 %, with 20 kills of tests added after it |
 
-Functions Phase 6 re-created in earlier groups (run alone with `--functions`, 202 mutants; the group keeps its
-earlier score for its other functions):
+Functions Phase 6 re-created in earlier groups (run alone with `--functions`, stream p6-6b, 332 mutants; the group keeps
+its earlier score for its other functions). The execution-commands row was added after the plan, when 6jc-R16 re-created
+its functions (recipe-core 1100, tablets 1320). First run over valid mutants (equivalent marked by the harness leaves the
+denominator); "after" is T10's figure after its confirmation runs (section "Functions Phase 6 re-created in earlier
+groups"):
 
-| Group | Re-created functions | Mutants | Result |
-|---|---|---|---|
-| plant-equipment-and-areas | plant.fitness_problems, plant.record_calibration (recipe-core 0950) | 13 | pending |
-| release-gate | recipe.grel_evaluate (recipe-core 0951) | 14 | pending |
-| tablets-release-items | tab.grel_recon_serial (tablets 1231) | 2 | pending |
-| read-authorisation | tab.record_read_problem (tablets 1276, 1290) | 11 | pending |
-| connection-roles | sandbox.apply_connect_policy, sandbox.segregation_problems (kernel 1210) | 115 | pending |
-| mbr-lifecycle | recipe.guard_critical_elements_risk_assessed (recipe-core 1050) | 6 | pending |
-| after-release-suspension | recipe.genealogy_downstream_lots (recipe-core 1011) | 33 | pending |
-| pqr-extract | recipe.pqr_run_query (recipe-core 1062) | 5 | pending |
-| lots-and-lims | site.lot_available (site services 0980) | 3 | pending |
+| Group | Re-created functions | Mutants | First run | After |
+|---|---|---|---|---|
+| plant-equipment-and-areas | plant.fitness_problems, plant.record_calibration (recipe-core 0950) | 13 | 12 / 12 (100 %), 1 equivalent | 12 / 12 |
+| release-gate | recipe.grel_evaluate (recipe-core 0951) | 14 | 10 / 14 (71.4 %), 4 survivors | 14 / 14 (100 %), confirmation 4 / 4 |
+| tablets-release-items | tab.grel_recon_serial (tablets 1231) | 2 | 2 / 2 (100 %) | 2 / 2 |
+| read-authorisation | tab.record_read_problem (tablets 1276, 1290) | 11 | 10 / 11 (90.9 %), 1 survivor | 11 / 11, confirmation 1 / 1 |
+| connection-roles | sandbox.apply_connect_policy, sandbox.segregation_problems (kernel 1210) | 115 | 107 / 115 (93.0 %), 8 survivors | 114 / 115 (99.1 %), confirmation 7 / 7 |
+| mbr-lifecycle | recipe.guard_critical_elements_risk_assessed (recipe-core 1050) | 6 | 6 / 6 (100 %) | 6 / 6 |
+| after-release-suspension | recipe.genealogy_downstream_lots (recipe-core 1011) | 33 | 30 / 32 (93.8 %), 1 equivalent, 2 survivors | 32 / 32, confirmation 2 / 2 |
+| pqr-extract | recipe.pqr_run_query (recipe-core 1062) | 5 | 5 / 5 (100 %) | 5 / 5 |
+| lots-and-lims | site.lot_available (site services 0980) | 3 | 3 / 3 (100 %) | 3 / 3 |
+| execution-commands | recipe.append_execution, recipe.check_engine_roles, recipe.require_command_permission, recipe.role_evaluation_problem, recipe.with_batch_scope, tab.engine_roles (6jc-R16) | 130 | 91 / 129 (70.5 %), 1 equivalent, 38 survivors | 98 / 129 (76.0 %), confirmation 10 / 10; 27 of the rest are in a dead overload |
+| **All ten** | | **332** | **276 / 329 (83.9 %), 53 survivors** | **297 / 329 (90.3 %)** |
 
 ### Smoke run (preparation)
 
@@ -82,26 +110,26 @@ by the SDK's own tests only (its behaviour through the server is covered by the 
 
 | Feature | Kind | 90 % zone | 80 % zone | First run (90 % / 80 %) | After |
 |---|---|---|---|---|---|
-| sdk-adapter | unit | envelope, errors, mirror, reconciliation, systems/* | contract | 23.3 % overall (smoke run) | |
-| sdk-equipment-data | unit | adapter/equipment-data, serialisation/wire | process/wire | pending | |
-| gateway-opcua | unit | drivers/opcua, opcua-feed | drivers/opcua-node, process-uplink, config, gateway | pending | |
-| server-integrations | server | adapters/framework, adapters/erp-wms/*, adapters/qms | the other adapters, start, reads, guidance | pending | |
-| kernel-config-and-dsc | db | config/change-control, esig/dsc | esig/dsc-test-ca | pending | |
-| server-alarms | server | alarms/index | reads, guidance | pending | |
-| server-plant-rules | server | plant-rules/index | reads, guidance | pending | |
-| server-equipment-data | server | - | equipment-data/index, reads | pending | |
-| server-capa | server | capa/index, signables | reads, guidance | pending | |
-| server-config-change | server | config-change/index, signables | reads, guidance | pending | |
-| server-controlled | server | controlled/index | reads | pending | |
-| server-dashboards-and-training | server | training/index | training/exercises, dashboards/* | pending | |
-| server-designer-hazard | server | designer/hazard | - | pending | |
-| server-genealogy | server | genealogy/index, signables | reads, guidance | pending | |
-| server-governance | server | governance/index, esig/dsc | - | pending | |
-| server-labels | server | labels/index | - | pending | |
-| server-quality-receipt | server | quality/receipt | quality/lims | pending | |
-| server-serialisation | server | serialisation/index | - | 80.2 % / - (smoke run) | |
-| server-transfers | server | transfers/federation, index, keys, signables | reads, guidance | pending | |
-| simulators | unit | - | opcua, erp, system-feed, serialisation servers and models | pending | |
+| sdk-adapter | unit | envelope, errors, mirror, reconciliation, systems/* | contract | 22.0 % / 41.9 % | not re-run; no TypeScript-only rule, P3 (T7) |
+| sdk-equipment-data | unit | adapter/equipment-data, serialisation/wire | process/wire | 57.7 % / 53.9 % | not re-run; no TypeScript-only rule, P3 (T7) |
+| gateway-opcua | unit | drivers/opcua, opcua-feed | drivers/opcua-node, process-uplink, config, gateway | not finished (1 h box, only an incremental file) | not re-run; checked by hand (T12): 17 mutants killed by new tests; P2 defect fixed (ids of 128 characters) |
+| server-integrations | server | adapters/framework, adapters/erp-wms/*, adapters/qms | the other adapters, start, reads, guidance | not finished (high-risk run: 305 of 631 mutants, no report) | not re-run; checked by hand (T12): 6 mutants killed by new tests; M6-D2 fixed |
+| kernel-config-and-dsc | db | config/change-control, esig/dsc | esig/dsc-test-ca | 68.9 % / 75.8 % | not re-run; 3 survivors of `verifyDsc` killed by new tests (T9) |
+| server-alarms | server | alarms/index | reads, guidance | 68.8 % / 60.5 % | not re-run; no TypeScript-only rule, P3 (T9) |
+| server-plant-rules | server | plant-rules/index | reads, guidance | 36.7 % / 38.7 % | not triaged |
+| server-equipment-data | server | - | equipment-data/index, reads | - / 20.5 % | not triaged |
+| server-capa | server | capa/index, signables | reads, guidance | 49.2 % / 62.7 % | not re-run; no TypeScript-only rule, P3 (T9) |
+| server-config-change | server | config-change/index, signables | reads, guidance | 46.9 % / 80.0 % | not re-run; no TypeScript-only rule, P3 (T7) |
+| server-controlled | server | controlled/index | reads | 61.6 % / 61.9 % | not re-run; no TypeScript-only rule, P3 (T7) |
+| server-dashboards-and-training | server | training/index | training/exercises, dashboards/* | 80.0 % / 56.1 % | not triaged |
+| server-designer-hazard | server | designer/hazard | - | 72.8 % / - | not re-run; no TypeScript-only Priority 1 rule (T9; owner note below) |
+| server-genealogy | server | genealogy/index, signables | reads, guidance | 29.4 % / 61.0 % | not re-run; remote recall part killed by an existing test outside the feature list (T7) |
+| server-governance | server | governance/index, esig/dsc | - | 28.2 % / - | not re-run; DSC trust-anchor check (IN-10) killed by a new test (T7) |
+| server-labels | server | labels/index | - | 43.8 % / - | not re-run; no TypeScript-only rule, P3 (T7) |
+| server-quality-receipt | server | quality/receipt | quality/lims | 62.2 % / 52.4 % | not re-run; no TypeScript-only rule, P3 (T7) |
+| server-serialisation | server | serialisation/index | - | 80.2 % / - | not triaged |
+| server-transfers | server | transfers/federation, index, keys, signables | reads, guidance | 64.2 % / 53.9 % | not re-run; https-only peer rule (DI-13) killed by a new test (T7) |
+| simulators | unit | - | opcua, erp, system-feed, serialisation servers and models | - / 45.5 % | not triaged |
 
 Left out (Phase 6 touched a few lines of a file of an earlier phase; the file's own mutation is deployment's): the
 server's `cli/*`, `config.ts`, `platform/http/*`, `devices/listener.ts`, `execution/seed-gmp.ts`,
@@ -412,22 +440,20 @@ keying, below); one high defect fixed on the lead's decision (M6-D2, DI-31, belo
 
 ## Part 2: the Phase 4 leftovers
 
+The SQL streams were p4-a (scope A, qp-certification), p4-b (us-disposition, market-changes), p4-c and p4-d (scope B).
+Part 2's SQL started at 01:50 UTC on clusters part 1 had freed (D-P6j-L-2); p4-d was stopped at 07:47 (D-P6j-L-4). Scores are detected over valid
+mutants as the harness counts them (harness-marked equivalents and invalid mutants leave the denominator); "Phase 4" is
+the score of the Phase 4 run of the same group.
+
 | Item | What runs | Result |
 |---|---|---|
-| Scope A kill confirmation (232) | release-gate, release-gate-market-items, manufacturer-release, tablets-release-items with `--only` on the survivors of the Phase 4 run (ids from that run's report; see the note on renumbering below) | pending |
-| Scope B kill confirmation (118) | the six scope B groups with `--only` on the unconfirmed survivors | pending |
-| us-disposition | first full run (146 mutants) | pending |
-| qp-certification | first full run | pending |
-| market-changes | first full run | pending |
-| Stryker survivor triage | server release, records, India, archive and PQR features | triaged (T13, below): no Priority 1 rule left unenforced; 3 TypeScript-only clusters now tested; defect M6-D3 fixed |
-
-| Scope A kill confirmation (232) | the four scope A groups run whole (D-P6j-M-7): the whole run is the kill confirmation and the new first run | release-gate 211 / 240 (**87.9 %**, Phase 4 47.2 %); release-gate-market-items 49 / 51 (**96.1 %**, 74.5 %); manufacturer-release 158 / 163 (**96.9 %**, 63.6 %); tablets-release-items 175 / 254 (**68.9 %**, 59.3 %). Phase 4's survivor list was lost, so the whole run stands for the confirmation: 115 survivors left in the four groups (Phase 4: 298), triaged in "Part 2 triage (T11)" |
-| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); after-release-decisions 187 / 192 (**97.4 %**, 76.6 %); shipping-interlock 75 / 75 (**100 %**, 85.5 %); record-lock-and-amendment 161 / 163 (**98.8 %**, 85.3 %); bulk-and-bright-stock and execution-complete-forms still running at the close of the T11 triage (not triaged, time box) |
+| Scope A kill confirmation (232) | the four scope A groups run whole (D-P6j-M-7): the whole run is the kill confirmation and the new first run. Phase 4's survivor list was lost, so no `--only` run was possible | release-gate 211 / 240 (**87.9 %**, Phase 4 47.2 %); release-gate-market-items 49 / 51 (**96.1 %**, 74.5 %); manufacturer-release 158 / 163 (**96.9 %**, 63.6 %); tablets-release-items 175 / 254 (**68.9 %**, 59.3 %). Together 593 / 708 (83.8 %); 115 survivors left (Phase 4: 298), triaged in "Part 2 triage (T11)". Kill tests then confirmed: release-gate 8 / 9, manufacturer-release 3 / 3, tablets-release-items 16 / 16. After-triage score: not stated |
+| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); after-release-decisions 187 / 192 (**97.4 %**, 76.6 %); shipping-interlock 75 / 75 (**100 %**, 85.5 %); record-lock-and-amendment 161 / 163 (**98.8 %**, 85.3 %). Together 555 / 564 (98.4 %). **bulk-and-bright-stock** (Phase 4: 116 / 149, 77.9 %) and **execution-complete-forms** (Phase 4: 5 / 6) were not run to a result (time box, residuals); the p4-d report holds 4 mutants of bulk-and-bright-stock, not a score |
 | us-disposition | first full run (146 mutants) | 83 / 146 (**56.8 %**, first score); 12 survivors aimed at by new tests (confirmation 11 / 12, the twelfth's near miss added after it), 2 equivalent, 49 P3: about 94 / 146 after triage |
-| qp-certification | first full run | 106 / 182 (**58.2 %**, first score); 17 survivors aimed at by new tests, 2 equivalent, 57 P3 |
-| market-changes | first full run | 62 / 153 (**40.5 %**, first score); 30 survivors aimed at by new tests (confirmation 26 / 30, 3 more tests added after it), 1 equivalent, 60 P3 |
-| Stryker survivor triage | server release, records, India, archive and PQR features | pending |
-| Whole SQL re-run | every group of `targets.ts`, under the decision 0009 organisation | pending |
+| qp-certification | first full run | 106 / 182 (**58.2 %**, first score); 17 survivors aimed at by new tests (confirmation 14 / 17), 2 equivalent, 57 P3; after-triage score: not stated (106 + 14 = 120 detected by the runs) |
+| market-changes | first full run | 62 / 153 (**40.5 %**, first score); 30 survivors aimed at by new tests (confirmation 26 / 30, 3 more tests added after it), 1 equivalent, 60 P3; after-triage score: not stated (62 + 26 = 88 detected by the runs) |
+| Stryker survivor triage | server release, records, India, archive and PQR features | triaged (T13, "Part 2, Stryker: triage" below): first-run scores p4-server-release 62.2 %, p4-server-records 59.1 %, p4-server-india 68.9 %, p4-server-pqr 78.9 %; no Priority 1 rule left unenforced; 3 TypeScript-only clusters now tested; defect M6-D3 fixed |
+| Whole SQL re-run | every group of `targets.ts`, under the decision 0009 organisation (80 earlier groups, about 128 worker hours) | **not run**: beyond part 2's box, dropped by the owner's instruction of 17 October (D-P6j-L-3); residual |
 
 Note on renumbering: a mutant id is `<function>#<n>`, numbered in the function's current definition. Phase 4's
 `recipe.grel_core_items` survivors were numbered in recipe-core 0783 and the function is now 0932's; Phase 6 re-created
@@ -623,6 +649,12 @@ exercised, or a refusal that a later layer repeats (named below).
 - bulk-and-bright-stock, execution-complete-forms: **not triaged, time box** (stream p4-d was still on
   bulk-and-bright-stock, the last but one group, when this triage closed).
 
+## Part 1, SQL: triage by group (T1 to T6, T8 to T10)
+
+One section per group, in the order the triage agents wrote them: the first run, the new tests, the confirmation run,
+the survivors in one line each (killed, equivalent, recorded, residual). The tables above hold the numbers; a number in a
+section is the triage agent's own.
+
 ### equipment-data-and-alarms (triage T1)
 
 - **First run** (stream p6-1): 307 / 469 detected, **65.5 %**, 162 survivors (27 GUARD_REMOVED, 70 LOGICAL, 34
@@ -747,10 +779,6 @@ Survivors, one line each:
 - Recorded (display): `esig.dsc_requirement#1` (an unknown challenge shows required), `esig.dsc_live_anchor#2` (differs
   only for a kind with no anchor, the mode OFF, where every caller has already returned; it shows only in the `live`
   flag of `esig.dsc_enrolments_of` while the option is off).
-
-## Survivors
-
-pending
 
 ### inbound-adapters-and-mirrors (triage T3)
 
@@ -1495,15 +1523,115 @@ chains and `?? null` defaults of arguments the definer validates again; view map
 
 ## Equivalent mutants
 
-pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)
+The SQL equivalents are in `tools/sql-mutation/equivalent.json`, each with the reason in its group's section; the audit
+tool `pnpm mutation:sql --audit-equivalents` reports the entries that no longer fit their mutant. Counts the triage
+sections state:
+
+- Part 1 groups: equipment-data-and-alarms 2, plant-rules 1, inbound-adapters-and-mirrors 3, erp-wms-receipt-and-stock 7,
+  qms-capa-lims-cmms 4, genealogy-and-recall 11, controlled-substance-mode 2, transfer-and-federation 13,
+  india-dsc 0, packaging-labels-and-line-completion 0 (43 in all); governance-change-control,
+  governance-support-and-contract-giver, serialisation-l3 and reporting-and-training: not stated.
+- Re-created functions (marked by the harness): execution-commands 1, plant-equipment-and-areas 1,
+  after-release-suspension 1.
+- Part 2, new equivalent entries (T11): release-gate 6, release-gate-market-items 1, manufacturer-release 1,
+  tablets-release-items 1, us-disposition 2, qp-certification 2, market-changes 1 (14 in all); marked by the harness in
+  scope B: after-release-suspension 3, after-release-decisions 5, shipping-interlock 14, record-lock-and-amendment 3.
+- Stryker (reason in the section): the `'utf8'` encodings (Node reads an empty encoding as utf8; T7, T9), the `?.` on the
+  reject reason of the release handler (the precheck requires the reason; T13).
 
 ## Real defects fixed
 
-pending
+No Priority 1 defect was found by the campaign. Four defects were fixed, each with a test that failed before the fix
+(found while writing kill tests, not as a survivor):
+
+| Id | Where | What | Severity | Controls | Fix |
+|---|---|---|---|---|---|
+| M6-D1 | site-services 1002 (T2) | Lot-code numbering counted the day's generated codes from `count(*)` but advanced the counter for a batch with a typed code, so after a delivery with a typed code on a batch other than the last, every later receipt that day failed on the unique lot code. No wrong record was written; receiving stopped until the next day | medium, fails safe | PR-17 | New migration site-services 1002 (decision 0008, D-P6j-L-8); test `[PR-17] a lot code typed by stores on any batch never makes a later receipt of the day reuse a generated code`; handbook defect log |
+| M6-D2 | server adapter framework (`adapters/framework.ts`, T12) | The worker remembered a refused message by the hash it stated. After a refusal because the payload did not match its hash, the intact resend under the same key and hash was taken for a duplicate in memory and never reached the database: an interface loss, alarmed only at the first refusal | high | DI-31 | TypeScript only: the memory holds the SHA-256 of the whole item as received (D-P6j-T12-3); two `[DI-31] M6-D2` tests |
+| M6-D3 | server archive route (`archive/index.ts`, T13) | The retention view read `records.retention_of` as the application role, which tablets 0460 (F34) keeps from it on purpose. Once a batch's retention was stored, `syncRetention` answered 500 "nothing was saved" after its command had committed, the batch page answered 500 and the evidence export could not be assembled | high | DI-41, DI-47, DI-17 | TypeScript only: the view reads what the role may read (`records.evaluate_retention`, `records.compute_effective_retention`); F34 stands (D-P6j-T13-2); two tests, reverting fails both |
+| (no id) | site gateway OPC UA driver `sink()` (T12) | Alarm and event ids were cut to 128 characters before the idempotency key was derived, although the contract allows 128: the RAISED and CLEARED transitions of a long occurrence id, or two events differing only at the end, shared a key and the second was refused by the database (alarmed) | P2 | DI-31 | TypeScript only: the key covers the whole id; test `[DI-31] the transitions of an alarm and distinct events with the longest ids ...` |
 
 ## Residuals for the owner
 
-pending
+One line each, deduplicated, grouped by subject; the per-group sections hold the mutant ids and reasons. Priority 3
+survivors and equivalents are recorded in those sections and not repeated here.
+
+**Not run (time box or owner's instruction)**
+- Whole SQL re-run of the 80 earlier groups, about 128 worker hours (D-P6j-L-3). Of the 56 stale `equivalent.json`
+  entries it was to re-check, T11 moved the ones it met in release-gate; the others are not re-checked.
+- bulk-and-bright-stock (Phase 4: 116 / 149, 77.9 %) and execution-complete-forms (Phase 4: 5 / 6): no new score (D-P6j-L-4).
+- Stryker server-integrations and gateway-opcua: no report; only the hand check of T12.
+- Stryker not triaged: server-plant-rules (36.7 % / 38.7 %), server-equipment-data (20.5 %), server-dashboards-and-training
+  (80.0 % / 56.1 %), server-serialisation (80.2 %, 24 mutants without coverage) and the simulators (45.5 %). No feature
+  reached its zone target on the first run and none was run again (owner, 17 October).
+- SDK-level tests of the envelope, mirror and system payload schemas (sdk-adapter 22.0 %, sdk-equipment-data 57.7 %): the
+  database validates the same rules again; Priority 2 work.
+
+**Below the 90 % target after triage** (the rest is recorded in the sections, within the owner's scope): SQL groups
+transfer-and-federation 76.1 % (81.3 % with the tests added after its run), genealogy-and-recall 86.2 %,
+controlled-substance-mode 75.7 %, plant-rules 79.1 % (86.8 % with T1's unconfirmed tests), india-dsc 81.9 %,
+governance-support-and-contract-giver 79.8 % (82.5 %), governance-change-control 73.5 %, serialisation-l3 63.4 %,
+reporting-and-training (not stated), execution-commands 76.0 %. In Part 2: tablets-release-items 68.9 %, us-disposition
+56.8 % (about 94 / 146 after triage), qp-certification 58.2 % and market-changes 40.5 % at first run.
+
+**Kill tests written but not run against their mutants** (decision 0019 allows one confirmation run per group; each passes
+on the original): plant-rules, T1's 17 tests; transfer-and-federation, 20 kills; governance-support-and-contract-giver, six
+kills proved by hand; one assertion each in inbound-adapters-and-mirrors (`lms_qualification_payload_problem#19`, proved on
+the real server), qms-capa-lims-cmms (`receive_lims_sample_result#70`) and packaging-labels-and-line-completion
+(`g21_specimen_step#3`); in Part 2 the near misses of us-disposition (`check_us_disposition#45`), market-changes
+(`record_market_change#57 to #59`), manufacturer-release (`release_deviations#6`) and the `grel_changed_since` survivors of
+tablets-release-items; the reporting-and-training tests.
+
+**Open survivors, Priority 2 (a test needs a setup the time box did not reach)**
+- Equipment data and alarms: `plant.acknowledge_alarm#5` and `#28`, `plant.bind_step_equipment#14`, and the tablets 1218
+  bridges (`tab.bridge_process_alarm_ack#2, #6`, `tab.bridge_device_alarm#1-#5`, `tab.bridge_step_device#3, #5-#12`).
+- Plant rules and review: `recipe.review_gate_problems#11` (an aborted batch whose own container is still usable).
+- Packaging: `tab.enable_reconciliation_waiver#16, #18` (a device re-bound to another gateway after a passing challenge),
+  `tab.refuse_incomplete_packaging#3` (stricter only).
+- ERP/WMS (18): the `for update` locks of `approve_manufacturer` and `erp_outbound_delivered` (need two sessions),
+  `receive_supplier_batches#22 to #32` (a material known under another kind or with a vendor route) and `#52` (numbering),
+  `erp_outbound_from_fact#7` (needs a finished lot), `approve_manufacturer#16`, `location_move_problem#18`.
+- QMS, CAPA, LIMS, CMMS: `site.close_capa#16` (defence in depth, the meaning's exclusion refuses first), `site.capa_view#7-#9`
+  (needs a deviation linked to batches), `site.raise_capa#88` (a CAPA of another site or year).
+- Genealogy and recall: `recipe.genealogy#30, #31` (the 200,000-edge cap), `site.record_chemical_recovery#5, #12, #21 to #63`,
+  `site.erp_apply_shipment#2 to #29`, `site.erp_shipment_distribution_fields#2` and `recipe.lot_dosage_form#2` (every test
+  lot is 500 mg tablets), `recipe.deviation_of_product#3, #4, #6`, `recipe.deviation_impact_batches#32` (an over-inclusion).
+- Controlled substances: `recipe.controlled_register_v1#3, #5, #7, #10 to #13` and `recipe.run_controlled_register#1 to #7`
+  (each test has one material), `recipe.sign_controlled_custody#34`, `recipe.controlled_checkpoint_current#13`.
+- Transfer and federation: `site.decide_transfer_receipt#44`, `platform.approve_peer_installation#15` (a signature whose
+  record changed state between signing and recording), `recipe.record_federation_failure#1` (attribution of a failed query).
+- Part 2: `recipe.packaging_order_markets_check#1 to #5` and `recipe.record_market_change#28, #31 to #33, #36, #38, #39,
+  #67 to #70, #73` (G11.MARKET_IN_SET keeps every such lot RED; the test file has no packaging order),
+  `tab.take_qp_certification_message#10` (not proven equivalent), `recipe.record_qp_transcription#23`,
+  `recipe.market_failed#12`.
+- Clock-microsecond boundaries kept as residual, not equivalent: `platform.mirror_freshness#10` (D-P6j-T3-3),
+  `plant.source_time_or_raise#4`, `site.receive_supplier_batches#94`, `site.qms_release_problem#10`,
+  `plant.receive_cmms_calibration#55`, `recipe.capa_master_version_facts#9`.
+
+**For the owner to decide (not mutation findings)**
+- O-T1-1: `plant.acknowledge_alarm` checks ALARM.ACKNOWLEDGE unscoped before the per-batch loop, so a person whose OPERATOR
+  grant is scoped to one product is refused even for an alarm bound only to a batch of that product (stricter, never weaker).
+  Should product-scoped people acknowledge their own product's alarms?
+- O-T12-1: `AdapterWorker.reconcile` (count and checksum per period, DI-31 "no silent loss") has no caller in the server.
+  Gaps, late messages and the mirror's caught-up check are enforced; a source that stops publishing its last messages is
+  seen only on the health page for feeds without a mirror class (OPC UA, EMS, LIMS). Is a scheduled reconciliation Phase 6
+  or deployment?
+- Gateway: samples of a chunk still open when the gateway process dies are not journalled (up to `chunkMaxSamples` or 60 s
+  per tag); the gap stays visible in source time but no alarm names it. The feed is unauthenticated (6jc-R9, in the review
+  backlog).
+- O-T13-1: a route that commits its command and then builds its answer outside it says "Nothing was saved" when only the
+  answer failed (the pattern of `withIdempotentActorCommand` then a read). Wording or structure across the routes?
+- Hazard designer (T9): no database rule requires the protective-equipment and decontamination operations in a hazardous
+  product's MBR; they rest on the designer and the QA approval (IN-27 containment itself is enforced at issue).
+- Dead overload `recipe.check_engine_roles` (2 arguments, recipe-core 0270): since recipe-core 1100 no function calls it;
+  27 survivors sit there. A later migration could drop it.
+- `platform.epoch_us_to_timestamptz` converts through double precision (D-P6j-T3-4): exact for 2023 to 2036, no GMP
+  decision reads the lost microsecond; a numeric conversion could be queued.
+- Controlled-substance custody (T6): a countersignature given while the record is still PROPOSED is refused when recorded,
+  and the kernel then refuses that witness a second signature on the record; the record cannot be completed and a new one is
+  proposed. The screen asks for the second signature only in AWAITING_COUNTERSIGN, so this needs a direct call.
+- The `setSetting` route (`config-change/index.ts:82-86`): no test in `test/config` calls it; the kernel's tests cover the
+  function (route coverage, P3).
 
 ## Run plan
 
