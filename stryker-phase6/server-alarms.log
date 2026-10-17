@@ -1,33 +1,376 @@
-[32m02:38:42 (794489) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-alarms.incremental.json, a full mutation testing run will be performed.
-[32m02:38:42 (794489) INFO ProjectReader[39m Found 3 of 3106 file(s) to be mutated.
-[32m02:38:42 (794489) INFO Instrumenter[39m Instrumented 3 source file(s) with 162 mutant(s)
-[32m02:38:43 (794489) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
-[91m02:38:43 (794489) ERROR Stryker[39m Unexpected error occurred while running Stryker Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-alarms/sandbox-n2E9BY/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s2/.stryker-tmp-server-alarms/sandbox-n2E9BY/.reports/stryker-phase6'
-}
-[32m02:38:43 (794489) INFO Stryker[39m This might be a known problem with a solution documented in our troubleshooting guide.
-[32m02:38:43 (794489) INFO Stryker[39m You can find it at https://stryker-mutator.io/docs/stryker-js/troubleshooting/
-[32m02:38:43 (794489) INFO Stryker[39m Still having trouble figuring out what went wrong? Try `npx stryker run --fileLogLevel trace --logLevel debug` to get some more info.
-node:internal/process/promises:394
-    triggerUncaughtException(err, true /* fromPromise */);
-    ^
+[32m04:01:24 (1042743) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-alarms.incremental.json, a full mutation testing run will be performed.
+[32m04:01:24 (1042743) INFO ProjectReader[39m Found 3 of 3123 file(s) to be mutated.
+[32m04:01:24 (1042743) INFO Instrumenter[39m Instrumented 3 source file(s) with 162 mutant(s)
+[32m04:01:28 (1042743) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m04:01:30 (1042743) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m04:01:30 (1042743) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m04:02:55 (1042743) INFO DryRunExecutor[39m Initial test run succeeded. Ran 11 tests in 1 minute and 24 seconds (net 10572.494122000033 ms, overhead 73817.50587799997 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~20m) 4/92 tested (1 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~18m) 6/92 tested (1 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~25m) 8/92 tested (2 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~22m) 11/92 tested (3 survived, 0 timed out)
+Mutation testing 4% (elapsed: <1m, remaining: ~15m) 14/92 tested (3 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~1m, remaining: ~11m) 18/92 tested (4 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~1m, remaining: ~10m) 19/92 tested (4 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~1m, remaining: ~6m) 23/92 tested (5 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~1m, remaining: ~6m) 24/92 tested (5 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~1m, remaining: ~5m) 27/92 tested (6 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~1m, remaining: ~4m) 29/92 tested (8 survived, 0 timed out)
+Mutation testing 31% (elapsed: ~2m, remaining: ~4m) 31/92 tested (9 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~2m, remaining: ~4m) 32/92 tested (9 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~2m, remaining: ~3m) 34/92 tested (10 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~2m, remaining: ~3m) 38/92 tested (11 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~2m, remaining: ~2m) 41/92 tested (11 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~2m, remaining: ~2m) 42/92 tested (11 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~3m, remaining: ~2m) 44/92 tested (12 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~3m, remaining: ~2m) 46/92 tested (12 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~3m, remaining: ~2m) 48/92 tested (14 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~3m, remaining: ~1m) 49/92 tested (15 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~3m, remaining: ~1m) 51/92 tested (16 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~3m, remaining: ~1m) 52/92 tested (16 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~4m, remaining: ~1m) 55/92 tested (18 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~4m, remaining: ~1m) 57/92 tested (18 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~4m, remaining: <1m) 62/92 tested (21 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~4m, remaining: <1m) 66/92 tested (23 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~4m, remaining: <1m) 72/92 tested (26 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~4m, remaining: <1m) 76/92 tested (28 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~5m, remaining: <1m) 79/92 tested (29 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~5m, remaining: <1m) 83/92 tested (29 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~5m, remaining: <1m) 89/92 tested (29 survived, 0 timed out)
 
-Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-alarms/sandbox-n2E9BY/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s2/.stryker-tmp-server-alarms/sandbox-n2E9BY/.reports/stryker-phase6'
-}
+All tests
+  alarm-bridge.test.ts
+    ✓ the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's (killed 18)
+    ✘ the process alarms in the plant alarm log (tablets 1218) > [DI-49] an alarm whose code needs a deviation is not acknowledged by the G-06 entry: it stays open in the log and keeps blocking the signature (covered 0)
+  alarm-routes.test.ts
+    ✓ alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment (killed 27)
+    ✓ alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot (killed 12)
+    ✘ alarms routes (DI-49) > [DI-32] the series tags list every released process tag and the EMS room tags (covered 0)
+  area-authorisation-matrix.test.ts
+    ✘ area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason (covered 0)
+  area-authorisation-signature.test.ts
+    ✘ area authorisation at the step (PR-15) > [PR-15] a user without area authorisation cannot sign a step in the controlled area (covered 0)
+  contract-enums.test.ts
+    ✘ alarms and equipment-data contracts and the integration SDK > [meta] the contract enums equal the SDK equipment-data enums (covered 0)
+    ✘ alarms and equipment-data contracts and the integration SDK > [meta] the alarms and equipment-data routes are GMP-only reads plus one attributed acknowledgment (covered 0)
+  plant-displays.test.ts
+    ✘ the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition (covered 0)
+    ✘ the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch (covered 0)
 
-Node.js v22.23.3
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/alarms/index.ts:35:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[Survived] CallExpression
+apps/tablets-server/src/features/alarms/index.ts:23:7
+-         requireSession();
++         ;
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/alarms/index.ts:27:7
+-         requireSession();
++         ;
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/alarms/index.ts:31:7
+-         requireSession();
++         ;
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/index.ts:36:130
+-           await c.query('select plant.acknowledge_alarm($1, $2, $3, $4)', [params.alarmId, body.actionTaken, body.comment ?? null, body.deviationRef ?? null]);
++           await c.query('select plant.acknowledge_alarm($1, $2, $3, $4)', [params.alarmId, body.actionTaken, body.comment ?? null, body.deviationRef && null]);
+Tests ran:
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/alarms/reads.ts:80:73
+-           ? { by: personRef(people, r.acked_by_person, r.acked_by_role ?? ''), at: app.formatInstant(r.acked_us), actionTaken: r.action_taken, comment: r.ack_comment, deviationRef: r.deviation_ref }
++           ? { by: personRef(people, r.acked_by_person, r.acked_by_role ?? "Stryker was here!"), at: app.formatInstant(r.acked_us), actionTaken: r.action_taken, comment: r.ack_comment, deviationRef: r.deviation_ref }
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/alarms/reads.ts:91:114
+-     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
++     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : "";
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/alarms/reads.ts:58:46
+-     const people = await peopleOf(db, rows.map((r) => r.acked_by_person));
++     const people = await peopleOf(db, rows.map(() => undefined));
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:65:18
+-       codeVersion: r.code_version === null ? null : r.code_version.toString(),
++       codeVersion: true ? null : r.code_version.toString(),
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:70:12
+-       value: r.value !== null && r.value_unit !== null ? { value: r.value, unit: r.value_unit } : null,
++       value: true ? { value: r.value, unit: r.value_unit } : null,
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/reads.ts:70:12
+-       value: r.value !== null && r.value_unit !== null ? { value: r.value, unit: r.value_unit } : null,
++       value: r.value !== null || r.value_unit !== null ? { value: r.value, unit: r.value_unit } : null,
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:70:12
+-       value: r.value !== null && r.value_unit !== null ? { value: r.value, unit: r.value_unit } : null,
++       value: true && r.value_unit !== null ? { value: r.value, unit: r.value_unit } : null,
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:70:32
+-       value: r.value !== null && r.value_unit !== null ? { value: r.value, unit: r.value_unit } : null,
++       value: r.value !== null && true ? { value: r.value, unit: r.value_unit } : null,
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:71:12
+-       limit: r.limit_kind === null ? null : { value: r.limit_value, unit: r.limit_unit, kind: r.limit_kind },
++       limit: false ? null : { value: r.limit_value, unit: r.limit_unit, kind: r.limit_kind },
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:76:27
+-       sourceAcknowledgedAt: r.source_acked_us === null ? null : app.formatInstant(r.source_acked_us),
++       sourceAcknowledgedAt: true ? null : app.formatInstant(r.source_acked_us),
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/reads.ts:79:7
+-         r.acked_by_person !== null && r.acked_us !== null && r.action_taken !== null
++         r.acked_by_person !== null && r.acked_us !== null || r.action_taken !== null
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:79:7
+-         r.acked_by_person !== null && r.acked_us !== null && r.action_taken !== null
++         true && r.action_taken !== null
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/reads.ts:79:7
+-         r.acked_by_person !== null && r.acked_us !== null && r.action_taken !== null
++         r.acked_by_person !== null || r.acked_us !== null && r.action_taken !== null
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:79:7
+-         r.acked_by_person !== null && r.acked_us !== null && r.action_taken !== null
++         true && r.acked_us !== null && r.action_taken !== null
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:79:37
+-         r.acked_by_person !== null && r.acked_us !== null && r.action_taken !== null
++         r.acked_by_person !== null && true && r.action_taken !== null
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:79:60
+-         r.acked_by_person !== null && r.acked_us !== null && r.action_taken !== null
++         r.acked_by_person !== null && r.acked_us !== null && true
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/reads.ts:80:54
+-           ? { by: personRef(people, r.acked_by_person, r.acked_by_role ?? ''), at: app.formatInstant(r.acked_us), actionTaken: r.action_taken, comment: r.ack_comment, deviationRef: r.deviation_ref }
++           ? { by: personRef(people, r.acked_by_person, r.acked_by_role && ''), at: app.formatInstant(r.acked_us), actionTaken: r.action_taken, comment: r.ack_comment, deviationRef: r.deviation_ref }
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/alarms/reads.ts:90:28
+-     const state = q.state ?? 'OPEN';
++     const state = q.state ?? "";
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:91:18
+-     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
++     const filter = false ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/alarms/reads.ts:91:28
+-     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
++     const filter = state === "" ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:91:60
+-     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
++     const filter = state === 'OPEN' ? 's.acked_at is null' : true ? 's.acked_at is not null' : 'true';
+Tests ran:
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/alarms/reads.ts:91:60
+-     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
++     const filter = state === 'OPEN' ? 's.acked_at is null' : false ? 's.acked_at is not null' : 'true';
+Tests ran:
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/alarms/reads.ts:91:60
+-     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
++     const filter = state === 'OPEN' ? 's.acked_at is null' : state !== 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
+Tests ran:
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/alarms/reads.ts:91:70
+-     const filter = state === 'OPEN' ? 's.acked_at is null' : state === 'ACKNOWLEDGED' ? 's.acked_at is not null' : 'true';
++     const filter = state === 'OPEN' ? 's.acked_at is null' : state === "" ? 's.acked_at is not null' : 'true';
+Tests ran:
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/reads.ts:94:6
+-       [q.source ?? null, q.subjectCode ?? null],
++       [q.source && null, q.subjectCode ?? null],
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/reads.ts:94:24
+-       [q.source ?? null, q.subjectCode ?? null],
++       [q.source ?? null, q.subjectCode && null],
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+    alarms routes (DI-49) > [DI-49][INV-40] a GMP-critical alarm is acknowledged from a kiosk only with a fresh tap and a comment, once; QA without ALARM.ACKNOWLEDGE cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/alarms/reads.ts:103:15
+-       [batchId, step ?? null],
++       [batchId, step && null],
+Tests ran:
+    the process alarms in the plant alarm log (tablets 1218) > [DI-49] a press alarm reading enters the batch's alarm log bound to the batch, the step and the unit, blocks the step signature, and its G-06 acknowledgment is the log's
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/alarms/reads.ts:116:12
+-         why: `Alarm ${alarmId} was never raised.`,
++         why: ``,
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/alarms/reads.ts:117:21
+-         whatYouCanDo: ['Open the alarm from the batch alarm log or the alarm list.'],
++         whatYouCanDo: [],
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/alarms/reads.ts:117:22
+-         whatYouCanDo: ['Open the alarm from the batch alarm log or the alarm list.'],
++         whatYouCanDo: [""],
+Tests ran:
+    alarms routes (DI-49) > [DI-49] the alarm list and the alarm show a room alarm with its limit, source time and no acknowledgment
+
+
+Ran 0.81 tests per mutant on average.
+-------------|------------------|----------|-----------|------------|----------|----------|
+             | % Mutation score |          |           |            |          |          |
+File         |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+-------------|--------|---------|----------|-----------|------------|----------|----------|
+All files    |  61.96 |   64.04 |       57 |         0 |         32 |        3 |        0 |
+ guidance.ts |    n/a |     n/a |        0 |         0 |          0 |        0 |        0 |
+ index.ts    |  68.75 |   73.33 |       11 |         0 |          4 |        1 |        0 |
+ reads.ts    |  60.53 |   62.16 |       46 |         0 |         28 |        2 |        0 |
+-------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m04:08:21 (1042743) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-alarms.json
+[32m04:08:21 (1042743) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-alarms.html
+[32m04:08:21 (1042743) INFO MutationTestExecutor[39m Done in 6 minutes and 57 seconds.

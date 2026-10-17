@@ -1,33 +1,461 @@
-[32m02:38:45 (794853) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-capa.incremental.json, a full mutation testing run will be performed.
-[32m02:38:45 (794853) INFO ProjectReader[39m Found 4 of 3106 file(s) to be mutated.
-[32m02:38:46 (794853) INFO Instrumenter[39m Instrumented 4 source file(s) with 245 mutant(s)
-[32m02:38:47 (794853) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
-[91m02:38:48 (794853) ERROR Stryker[39m Unexpected error occurred while running Stryker Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-capa/sandbox-LGgEdq/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s2/.stryker-tmp-server-capa/sandbox-LGgEdq/.reports/stryker-phase6'
-}
-[32m02:38:48 (794853) INFO Stryker[39m This might be a known problem with a solution documented in our troubleshooting guide.
-[32m02:38:48 (794853) INFO Stryker[39m You can find it at https://stryker-mutator.io/docs/stryker-js/troubleshooting/
-[32m02:38:48 (794853) INFO Stryker[39m Still having trouble figuring out what went wrong? Try `npx stryker run --fileLogLevel trace --logLevel debug` to get some more info.
-node:internal/process/promises:394
-    triggerUncaughtException(err, true /* fromPromise */);
-    ^
+[32m04:08:25 (1061346) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-capa.incremental.json, a full mutation testing run will be performed.
+[32m04:08:25 (1061346) INFO ProjectReader[39m Found 4 of 3127 file(s) to be mutated.
+[32m04:08:26 (1061346) INFO Instrumenter[39m Instrumented 4 source file(s) with 245 mutant(s)
+[32m04:08:30 (1061346) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m04:08:31 (1061346) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m04:08:32 (1061346) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m04:09:50 (1061346) INFO DryRunExecutor[39m Initial test run succeeded. Ran 4 tests in 1 minute and 17 seconds (net 5621.88249399999 ms, overhead 72085.11750600001 ms).
+Mutation testing 1% (elapsed: <1m, remaining: ~15m) 33/136 tested (0 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~9m) 35/136 tested (0 survived, 0 timed out)
+Mutation testing 4% (elapsed: <1m, remaining: ~11m) 36/136 tested (1 survived, 0 timed out)
+Mutation testing 5% (elapsed: <1m, remaining: ~11m) 37/136 tested (1 survived, 0 timed out)
+Mutation testing 6% (elapsed: <1m, remaining: ~11m) 38/136 tested (2 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~1m, remaining: ~11m) 40/136 tested (3 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~1m, remaining: ~10m) 42/136 tested (3 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~1m, remaining: ~9m) 44/136 tested (3 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~1m, remaining: ~7m) 48/136 tested (3 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~1m, remaining: ~6m) 52/136 tested (4 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~1m, remaining: ~6m) 54/136 tested (4 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~2m, remaining: ~6m) 58/136 tested (5 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~2m, remaining: ~5m) 62/136 tested (5 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~2m, remaining: ~5m) 64/136 tested (6 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~2m, remaining: ~4m) 68/136 tested (6 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~2m, remaining: ~4m) 70/136 tested (6 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~2m, remaining: ~3m) 74/136 tested (9 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~3m, remaining: ~3m) 76/136 tested (11 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~3m, remaining: ~3m) 78/136 tested (13 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~3m, remaining: ~3m) 82/136 tested (14 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~3m, remaining: ~2m) 86/136 tested (15 survived, 0 timed out)
+Mutation testing 56% (elapsed: ~3m, remaining: ~2m) 88/136 tested (17 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~3m, remaining: ~2m) 92/136 tested (18 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~4m, remaining: ~2m) 96/136 tested (18 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~4m, remaining: ~1m) 100/136 tested (19 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~4m, remaining: ~1m) 104/136 tested (19 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~4m, remaining: ~1m) 106/136 tested (20 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~4m, remaining: ~1m) 110/136 tested (20 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~4m, remaining: ~1m) 112/136 tested (22 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~5m, remaining: ~1m) 116/136 tested (24 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~5m, remaining: <1m) 118/136 tested (25 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~5m, remaining: <1m) 122/136 tested (25 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~5m, remaining: <1m) 126/136 tested (26 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~5m, remaining: <1m) 130/136 tested (26 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~5m, remaining: <1m) 132/136 tested (26 survived, 0 timed out)
 
-Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-capa/sandbox-LGgEdq/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s2/.stryker-tmp-server-capa/sandbox-LGgEdq/.reports/stryker-phase6'
-}
+All tests/capa-routes.test.ts
+  ✓ the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot (killed 75)
+  ✓ the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS) (killed 2)
+  ✘ the QMS status fetched at release (DI-31; D-P6a-3) > [DI-31] QMS unreachable at release: the release is refused and names the QMS (covered 0)
+  ✘ the QMS status fetched at release (DI-31; D-P6a-3) > [DI-31] a changed version token at signing refuses the release (covered 0)
 
-Node.js v22.23.3
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:38:98
+-       const { result } = await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null);
++       const { result } = await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? "Stryker was here!", ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/capa/index.ts:56:13
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_deviation($1, $2) as r', [params.capaId, body.deviationId], () => params.capaId),
++         write({}, 'select site.link_capa_deviation($1, $2) as r', [params.capaId, body.deviationId], () => params.capaId),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:56:53
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_deviation($1, $2) as r', [params.capaId, body.deviationId], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, "", [params.capaId, body.deviationId], () => params.capaId),
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/capa/index.ts:56:101
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_deviation($1, $2) as r', [params.capaId, body.deviationId], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_deviation($1, $2) as r', [], () => params.capaId),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/capa/index.ts:56:136
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_deviation($1, $2) as r', [params.capaId, body.deviationId], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_deviation($1, $2) as r', [params.capaId, body.deviationId], () => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/capa/index.ts:58:13
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_master_version($1, $2) as r', [params.capaId, body.versionId], () => params.capaId),
++         write({}, 'select site.link_capa_master_version($1, $2) as r', [params.capaId, body.versionId], () => params.capaId),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:58:53
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_master_version($1, $2) as r', [params.capaId, body.versionId], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, "", [params.capaId, body.versionId], () => params.capaId),
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/capa/index.ts:58:106
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_master_version($1, $2) as r', [params.capaId, body.versionId], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_master_version($1, $2) as r', [], () => params.capaId),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/capa/index.ts:58:139
+-         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_master_version($1, $2) as r', [params.capaId, body.versionId], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.link_capa_master_version($1, $2) as r', [params.capaId, body.versionId], () => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/capa/index.ts:62:13
+-         write({ actor, idempotencyKey, requestHash }, 'select site.schedule_capa_effectiveness_check($1, $2, $3) as r', [params.capaId, body.criteria, body.periodDays], () => params.capaId),
++         write({}, 'select site.schedule_capa_effectiveness_check($1, $2, $3) as r', [params.capaId, body.criteria, body.periodDays], () => params.capaId),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:62:53
+-         write({ actor, idempotencyKey, requestHash }, 'select site.schedule_capa_effectiveness_check($1, $2, $3) as r', [params.capaId, body.criteria, body.periodDays], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, "", [params.capaId, body.criteria, body.periodDays], () => params.capaId),
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/capa/index.ts:62:119
+-         write({ actor, idempotencyKey, requestHash }, 'select site.schedule_capa_effectiveness_check($1, $2, $3) as r', [params.capaId, body.criteria, body.periodDays], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.schedule_capa_effectiveness_check($1, $2, $3) as r', [], () => params.capaId),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/capa/index.ts:62:168
+-         write({ actor, idempotencyKey, requestHash }, 'select site.schedule_capa_effectiveness_check($1, $2, $3) as r', [params.capaId, body.criteria, body.periodDays], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.schedule_capa_effectiveness_check($1, $2, $3) as r', [params.capaId, body.criteria, body.periodDays], () => undefined),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/capa/index.ts:65:32
+-         if (owns.rowCount === 0) {
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
+-         }
++         if (owns.rowCount === 0) {}
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/capa/index.ts:66:28
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
++           throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:66:36
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
++           throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:66:59
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
++           throw refusal(404, { code: 'EBMR-CAPA-009', kind: "", whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:66:90
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
++           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: "", why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:66:148
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
++           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: ``, whatYouCanDo: ['Reload the CAPA.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/capa/index.ts:66:230
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
++           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:66:231
+-           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: ['Reload the CAPA.'] });
++           throw refusal(404, { code: 'EBMR-CAPA-009', kind: 'INVALID_INPUT', whatHappened: 'This effectiveness check is not one of this CAPA.', why: `Check ${params.checkId} is not a check of CAPA ${params.capaId}.`, whatYouCanDo: [""] });
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/capa/index.ts:71:13
+-         write({ actor, idempotencyKey, requestHash }, 'select site.cancel_capa($1, $2) as r', [params.capaId, body.reason], () => params.capaId),
++         write({}, 'select site.cancel_capa($1, $2) as r', [params.capaId, body.reason], () => params.capaId),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:71:53
+-         write({ actor, idempotencyKey, requestHash }, 'select site.cancel_capa($1, $2) as r', [params.capaId, body.reason], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, "", [params.capaId, body.reason], () => params.capaId),
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/capa/index.ts:71:93
+-         write({ actor, idempotencyKey, requestHash }, 'select site.cancel_capa($1, $2) as r', [params.capaId, body.reason], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.cancel_capa($1, $2) as r', [], () => params.capaId),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/capa/index.ts:71:123
+-         write({ actor, idempotencyKey, requestHash }, 'select site.cancel_capa($1, $2) as r', [params.capaId, body.reason], () => params.capaId),
++         write({ actor, idempotencyKey, requestHash }, 'select site.cancel_capa($1, $2) as r', [params.capaId, body.reason], () => undefined),
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/capa/index.ts:38:132
+-       const { result } = await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null);
++       const { result } = await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{
++     r: JsonValue;
++   }>(sql, params)).rows[0].r ?? null);
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/capa/index.ts:43:7
+-         requireSession();
++         ;
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/capa/index.ts:47:7
+-         requireSession();
++         ;
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/capa/index.ts:64:37
+-         const owns = await pool.query('select 1 from site.capa_effectiveness_check where id = $1 and capa_id = $2', [params.checkId, params.capaId]);
++         const owns = await pool.query("", [params.checkId, params.capaId]);
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/capa/index.ts:65:11
+-         if (owns.rowCount === 0) {
++         if (false) {
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/capa/reads.ts:23:32
+-     if (ids.length === 0) return [];
++     if (ids.length === 0) return ["Stryker was here"];
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/reads.ts:40:108
+-     const mode = (await db.query<{ m: 'STAND_IN' | 'MIRROR' }>('select site.qms_mode() as m')).rows[0]?.m ?? 'STAND_IN';
++     const mode = (await db.query<{ m: 'STAND_IN' | 'MIRROR' }>('select site.qms_mode() as m')).rows[0]?.m ?? "";
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/capa/reads.ts:50:112
+-     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks > 0);
++     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || false);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/capa/reads.ts:50:112
+-     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks > 0);
++     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks >= 0);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/capa/reads.ts:50:112
+-     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks > 0);
++     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks <= 0);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/capa/reads.ts:61:68
+-     const name = (id: string): string => names.get(id)?.legalName ?? 'unknown person';
++     const name = (id: string): string => names.get(id)?.legalName ?? "";
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/capa/reads.ts:71:42
+-       qmsHistory: v.qmsHistory.map((h) => ({ status: h.status, versionToken: h.versionToken, messageId: h.messageId })),
++       qmsHistory: v.qmsHistory.map((h) => ({})),
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/capa/reads.ts:23:7
+-     if (ids.length === 0) return [];
++     if (false) return [];
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/capa/reads.ts:34:35
+-       ownerName: v.ownerPersonId ? (names.get(v.ownerPersonId)?.legalName ?? null) : null, dueOn: v.dueOn, state: v.state, overdue: v.overdue,
++       ownerName: v.ownerPersonId ? (names.get(v.ownerPersonId).legalName ?? null) : null, dueOn: v.dueOn, state: v.state, overdue: v.overdue,
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/capa/reads.ts:35:66
+-       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status === 'OVERDUE').length, needsMasterChange: v.needsMasterChange,
++       versionToken: v.versionToken, overdueChecks: v.checks.filter(() => undefined).length, needsMasterChange: v.needsMasterChange,
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/capa/reads.ts:35:50
+-       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status === 'OVERDUE').length, needsMasterChange: v.needsMasterChange,
++       versionToken: v.versionToken, overdueChecks: v.checks.length, needsMasterChange: v.needsMasterChange,
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/capa/reads.ts:35:73
+-       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status === 'OVERDUE').length, needsMasterChange: v.needsMasterChange,
++       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => true).length, needsMasterChange: v.needsMasterChange,
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/capa/reads.ts:35:73
+-       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status === 'OVERDUE').length, needsMasterChange: v.needsMasterChange,
++       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => false).length, needsMasterChange: v.needsMasterChange,
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/capa/reads.ts:35:73
+-       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status === 'OVERDUE').length, needsMasterChange: v.needsMasterChange,
++       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status !== 'OVERDUE').length, needsMasterChange: v.needsMasterChange,
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/capa/reads.ts:35:86
+-       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status === 'OVERDUE').length, needsMasterChange: v.needsMasterChange,
++       versionToken: v.versionToken, overdueChecks: v.checks.filter((c) => c.status === "").length, needsMasterChange: v.needsMasterChange,
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/capa/reads.ts:40:16
+-     const mode = (await db.query<{ m: 'STAND_IN' | 'MIRROR' }>('select site.qms_mode() as m')).rows[0]?.m ?? 'STAND_IN';
++     const mode = (await db.query<{
++     m: 'STAND_IN' | 'MIRROR';
++   }>('select site.qms_mode() as m')).rows[0].m ?? 'STAND_IN';
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/capa/reads.ts:46:6
+-       [query.state ?? null],
++       [query.state && null],
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/capa/reads.ts:49:46
+-     const names = await peopleOf(db, views.map((v) => v.raw.ownerPersonId));
++     const names = await peopleOf(db, views.map(() => undefined));
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/capa/reads.ts:50:17
+-     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks > 0);
++     const capas = views.map(v => summary(v.raw, names));
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/capa/reads.ts:50:71
+-     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks > 0);
++     const capas = views.map((v) => summary(v.raw, names)).filter((c) => true);
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/capa/reads.ts:50:89
+-     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== 'true' || c.overdue || c.overdueChecks > 0);
++     const capas = views.map((v) => summary(v.raw, names)).filter((c) => query.overdue !== "" || c.overdue || c.overdueChecks > 0);
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [PR-51] with a QMS integrated the stand-in writes are refused (the CAPA is changed in the QMS)
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/capa/reads.ts:56:8
+-     if (!found?.raw) {
++     if (!found.raw) {
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/capa/reads.ts:57:125
+-       throw refusal(404, { code: 'EBMR-CAPA-003', kind: 'INVALID_INPUT', whatHappened: 'There is no CAPA with this id.', why: `CAPA ${capaId} does not exist.`, whatYouCanDo: ['Open the CAPA from the register.'] });
++       throw refusal(404, { code: 'EBMR-CAPA-003', kind: 'INVALID_INPUT', whatHappened: 'There is no CAPA with this id.', why: ``, whatYouCanDo: ['Open the CAPA from the register.'] });
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/capa/reads.ts:57:173
+-       throw refusal(404, { code: 'EBMR-CAPA-003', kind: 'INVALID_INPUT', whatHappened: 'There is no CAPA with this id.', why: `CAPA ${capaId} does not exist.`, whatYouCanDo: ['Open the CAPA from the register.'] });
++       throw refusal(404, { code: 'EBMR-CAPA-003', kind: 'INVALID_INPUT', whatHappened: 'There is no CAPA with this id.', why: `CAPA ${capaId} does not exist.`, whatYouCanDo: [] });
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/capa/reads.ts:57:174
+-       throw refusal(404, { code: 'EBMR-CAPA-003', kind: 'INVALID_INPUT', whatHappened: 'There is no CAPA with this id.', why: `CAPA ${capaId} does not exist.`, whatYouCanDo: ['Open the CAPA from the register.'] });
++       throw refusal(404, { code: 'EBMR-CAPA-003', kind: 'INVALID_INPUT', whatHappened: 'There is no CAPA with this id.', why: `CAPA ${capaId} does not exist.`, whatYouCanDo: [""] });
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/capa/reads.ts:60:82
+-     const names = await peopleOf(db, [v.ownerPersonId, v.raisedBy, ...v.events.map((e) => e.by)]);
++     const names = await peopleOf(db, [v.ownerPersonId, v.raisedBy, ...v.events.map(() => undefined)]);
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/capa/reads.ts:61:40
+-     const name = (id: string): string => names.get(id)?.legalName ?? 'unknown person';
++     const name = (id: string): string => names.get(id).legalName ?? 'unknown person';
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/capa/reads.ts:71:34
+-       qmsHistory: v.qmsHistory.map((h) => ({ status: h.status, versionToken: h.versionToken, messageId: h.messageId })),
++       qmsHistory: v.qmsHistory.map(() => undefined),
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/capa/signables.ts:23:14
+-         return { act: a.act, capaId: a.capaId };
++         return {};
+Tests ran:
+    the CAPA register over HTTP (IN-01 (d), PR-51) > [IN-01][PR-51] QA raises a CAPA with its check, implements it and records its effectiveness; another QA person closes it through the ceremony, the initiator cannot
+
+
+Ran 0.50 tests per mutant on average.
+--------------|------------------|----------|-----------|------------|----------|----------|
+              | % Mutation score |          |           |            |          |          |
+File          |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+--------------|--------|---------|----------|-----------|------------|----------|----------|
+All files     |  56.62 |   74.04 |       77 |         0 |         27 |       32 |        0 |
+ guidance.ts  |    n/a |     n/a |        0 |         0 |          0 |        0 |        0 |
+ index.ts     |  43.40 |   82.14 |       23 |         0 |          5 |       25 |        0 |
+ reads.ts     |  62.67 |   69.12 |       47 |         0 |         21 |        7 |        0 |
+ signables.ts |  87.50 |   87.50 |        7 |         0 |          1 |        0 |        0 |
+--------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m04:15:48 (1061346) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-capa.json
+[32m04:15:48 (1061346) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-capa.html
+[32m04:15:48 (1061346) INFO MutationTestExecutor[39m Done in 7 minutes and 23 seconds.

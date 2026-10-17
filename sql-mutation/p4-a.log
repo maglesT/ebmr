@@ -61,3 +61,7 @@ manufacturer-release: baseline db 175 s (limit 525 s)
   SURVIVED recipe.record_manufacturer_release#40 GUARD_REMOVED packages/recipe-core/sql/0823_manufacturer_release_cascade.sql:91 [raise exception using errcode = 'P0001', message = 'EBMR-REL-016 a person involv] -> [null]
   manufacturer-release: 25/165
   SURVIVED recipe.record_manufacturer_release#53 GUARD_REMOVED packages/recipe-core/sql/0823_manufacturer_release_cascade.sql:105 [raise exception using errcode = 'P0001', message = 'EBMR-REL-018 the signed chec] -> [null]
+  manufacturer-release: 50/165
+  manufacturer-release: 75/165
+  manufacturer-release: 100/165
+  SURVIVED recipe.investigation_justification_of#2 LOGICAL packages/recipe-core/sql/0781_manufacturer_release.sql:290 [and] -> [or]

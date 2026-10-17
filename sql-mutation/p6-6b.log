@@ -1,0 +1,46 @@
+mbr-lifecycle: 6 mutants in 1 functions (db + server)
+execution-commands: 130 mutants in 11 functions (server + db)
+read-authorisation: 11 mutants in 1 functions (server)
+connection-roles: 115 mutants in 2 functions (db)
+plant-equipment-and-areas: 13 mutants in 2 functions (db)
+lots-and-lims: 3 mutants in 1 functions (db + server)
+release-gate: 14 mutants in 1 functions (db + server)
+tablets-release-items: 2 mutants in 1 functions (server)
+after-release-suspension: 33 mutants in 1 functions (db + server)
+pqr-extract: 5 mutants in 1 functions (db)
+total: 332 mutants in 10 groups
+templates built in 22 s: ebmr_mut_base_6ed3b132, ebmr_stpl_6a9937d501b1, ebmr_sandbox_tpl2bade6845a14
+checked 26 functions: each re-applied unmutated leaves its pg_proc row unchanged; owners ebmr_owner (64); a copy of each template has the template's database privileges
+mbr-lifecycle: baseline db 48 s (limit 240 s), server 19 s (limit 240 s)
+  dropped 1 databases the tests left behind: ebmr_t_ef38f93807be
+mbr-lifecycle: score 100.0 % (6/6 detected, 0 invalid) in 54 s
+execution-commands: baseline server 46 s (limit 240 s), db 27 s (limit 240 s)
+  SURVIVED recipe.require_command_permission#2 GUARD_REMOVED packages/recipe-core/sql/0210_execution_writers.sql:52 [raise exception using errcode = 'P0001', message = format('%s is not available o] -> [null]
+  SURVIVED recipe.require_command_permission#6 RELATIONAL packages/recipe-core/sql/0210_execution_writers.sql:56 [=] -> [<>]
+  SURVIVED recipe.require_command_permission#8 RELATIONAL packages/recipe-core/sql/0210_execution_writers.sql:59 [=] -> [<>]
+  execution-commands: 25/130
+  SURVIVED recipe.check_engine_roles#1 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:521 [or] -> [and]
+  SURVIVED recipe.check_engine_roles#2 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:522 [raise exception using errcode = 'P0001', message = 'The role evidence of the com] -> [null]
+  SURVIVED recipe.check_engine_roles#5 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:525 [or] -> [and]
+  execution-commands: 50/130
+  SURVIVED recipe.check_engine_roles#6 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:526 [or] -> [and]
+  SURVIVED recipe.check_engine_roles#7 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:526 [or] -> [and]
+  SURVIVED recipe.check_engine_roles#8 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:527 [raise exception using errcode = 'P0001', message = 'The role evidence of the com] -> [null]
+  SURVIVED recipe.check_engine_roles#11 NOT_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:529 [not ] -> []
+  SURVIVED recipe.check_engine_roles#12 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:529 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#14 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:529 [and] -> [or]
+  SURVIVED recipe.check_engine_roles#15 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:529 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#17 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:530 [raise exception using errcode = 'P0001', message = format('Engine role %s cannot] -> [null]
+  SURVIVED recipe.check_engine_roles#24 NOT_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:539 [not ] -> []
+  SURVIVED recipe.check_engine_roles#25 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:540 [raise exception using errcode = 'P0001', message = format('Engine role %s is not] -> [null]
+  SURVIVED recipe.check_engine_roles#30 NOT_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:544 [not ] -> []
+  SURVIVED recipe.check_engine_roles#31 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:545 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#33 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:545 [and] -> [or]
+  SURVIVED recipe.check_engine_roles#34 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:545 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#36 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:545 [and] -> [or]
+  SURVIVED recipe.check_engine_roles#37 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:545 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#39 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:546 [raise exception using errcode = 'P0001', message = format('The declared role %s ] -> [null]
+  SURVIVED recipe.check_engine_roles#46 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:550 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#48 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:550 [or] -> [and]
+  SURVIVED recipe.check_engine_roles#51 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:551 [raise exception using errcode = 'P0001', message = format('The role evidence nam] -> [null]
+  SURVIVED recipe.check_engine_roles#50 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:550 [=] -> [<>]
