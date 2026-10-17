@@ -13,6 +13,7 @@
  *    on its layout (D-P6c-16);
  *  - line stops: a rejection on a job opens a stop even while another order's job has an open one, and again after
  *    its own earlier stop was resolved; a stop is resolved by its id with a reason of up to 2000 characters (PR-36);
+ *  - a step in progress that is not a printed-materials step takes no specimen (D-P6c-3);
  *  - the post-use inspection: only an order with a printed-materials step has one; each malformed answer or note alone
  *    is refused (a note of 1000 characters is not); an unknown inspection is not verified; an earlier inspection is not
  *    verified while a later one of the same order stands, and another order's later inspection does not block it
@@ -230,6 +231,9 @@ describe('packaging line completion, rule by rule (tablets 1230)', () => {
     const plain = await run([packPhase('p-destroy', 'G-23', {}, { signatures: { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'WITNESSED', role: 'PRODUCTION_VERIFIER' } } })]);
     expect(await plain.op('operator1', 'select tab.record_post_use_inspection($1, $2::jsonb, null) as r', [plain.d.runId, JSON.stringify(checks)])).toMatch(/EBMR-LBL-040 /);
     expect(await plain.sql<string>('select count(*)::text as r from tab.post_use_inspection where batch_id = $1', [plain.d.runId])).toBe('0');
+    // Its step in progress is no printed-materials step: no specimen is recorded on it (D-P6c-3).
+    await plain.d.ok('operator1', { type: 'START_STEP', stepKey: 'p-destroy@' });
+    expect(await plain.op('operator1', 'select tab.record_label_specimen($1, $2, $3, null) as r', [plain.d.runId, 'p-destroy@', 'CARTON'])).toMatch(/EBMR-LBL-030 p-destroy@ is no printed-materials step/);
     const r = await run([packPhase('p-g21', 'G-21', { items: [ITEM('CARTON')] })]);
     const inspect = (c: unknown, note: string | null = null) =>
       r.op<string>('operator1', 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [r.d.runId, JSON.stringify(c), note]);
