@@ -405,7 +405,9 @@ every receiving command calls before it writes, refuses an envelope of such a so
 verifier recorded its verification in the same transaction (`platform.record_source_verification`, granted to nobody).
 The verification is used up by its one envelope. Tablets [1405](../../../apps/tablets-server/sql/1405_gateway_feed_signature.sql)
 is that verifier: `tab.accept_gateway_envelope(json)` checks the adapter's bound gateway (`tab.gateway_feed_binding`,
-set by the device administrator with `tab.bind_gateway_feed`), finds the gateway's ACTIVE key whose SHA-256 is the key
+set by the device administrator with `tab.bind_gateway_feed`; one adapter per gateway, tablets
+[1406](../../../apps/tablets-server/sql/1406_gateway_feed_one_adapter.sql), so a signed envelope cannot be replayed
+through a second adapter's sequence space, EBMR-DEV-179), finds the gateway's ACTIVE key whose SHA-256 is the key
 id, checks that the payload text as sent hashes to the signed payload hash, verifies the signature with
 `tab.ed25519_verify` (a key the database does not trust, tablets 0702, is refused), records the verification and then
 calls the `plant.receive_*` command of the type. It takes `json`, not `jsonb`: jsonb reorders the payload's keys, and
@@ -432,7 +434,10 @@ client ([adapters/transport.ts](../../../apps/tablets-server/src/features/integr
 https only, presents its client certificate and verifies the peer against that one CA and the pinned server name (the
 base URL's host by default); the system trust store is never used. Each pulled page carries the SHA-256 fingerprint of
 the peer certificate, which `platform.accept_inbound_detail` keeps as `inbound_message.transport_peer` (the server
-reports it in the transaction setting `ebmr.transport_peer`). On a GMP installation an adapter whose base URL is off
+reports it in the transaction setting `ebmr.transport_peer`; only a 64-hex value is taken). The fingerprint is advisory:
+any application-role session can set that setting, so it records what the server's adapter worker saw and is not
+evidence by itself (kernel [1306](../../../packages/kernel/sql/1306_transport_peer_advisory.sql)); the evidence of
+the source is the verified gateway signature. On a GMP installation an adapter whose base URL is off
 loopback without TLS does not start (EBMR-INT-034); its health shows BLOCKED with the refusal as the last error.
 Loopback without TLS stays allowed (D-P7-10).
 

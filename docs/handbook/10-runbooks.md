@@ -411,7 +411,8 @@ The OPC UA feed is signed by the site gateway and checked by the database; every
    public key: `tab.enrol_gateway_key(<gateway code>, <SPKI base64>, <INTEGRATION login>)`.
 3. The device administrator binds the OPCUA adapter to the gateway:
    `tab.bind_gateway_feed(<adapter code>, <gateway code>, <reason code>, <reason text>)` (IAM.DEVICE_MANAGE). Binding to
-   another gateway ends the live binding with that reason.
+   another gateway ends the live binding with that reason. A gateway's feed is bound to one adapter only
+   (EBMR-DEV-179 when another adapter holds it).
 4. Start the gateway with a fresh journal directory. A journal written before 7a holds unsigned envelopes, which the
    server refuses (EBMR-INT-030).
 
@@ -438,6 +439,7 @@ refused (EBMR-INT-031) and alarmed on the integrations page. The binding names t
    health page then shows its worker BLOCKED with the refusal as the last error. Loopback without TLS is allowed.
 4. Each pulled message records the SHA-256 fingerprint of the peer certificate (`platform.inbound_message.transport_peer`).
    When the system's certificate is renewed, the fingerprint changes from the first page after the renewal.
+   The fingerprint is advisory (the server's report, settable by any application-role session), not evidence by itself.
 
 Tests create their CA and certificates at run time
 ([test-pki.ts](../../apps/tablets-server/test/support/test-pki.ts), OpenSSL command line); no key material is

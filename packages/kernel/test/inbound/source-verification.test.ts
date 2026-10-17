@@ -90,6 +90,9 @@ describe('the signing-source marker (kernel 1305)', () => {
     const [plain] = await acceptAll(ems, [envelopeFor(ems, 'ems.series_chunk', chunk())]);
     expect((await db.admin.query<{ p: string | null }>('select transport_peer as p from platform.inbound_message where id = $1', [plain!['messageId']])).rows[0]?.p).toBeNull();
     await expect(acceptAll(ems, [envelopeFor(ems, 'ems.series_chunk', chunk())], [], 'not-a-fingerprint')).rejects.toThrow(/transport_peer/);
+    // Advisory, and said so where it is stored (kernel 1306): any application-role session can set the setting.
+    const comment = (await db.admin.query<{ c: string }>("select col_description('platform.inbound_message'::regclass, (select attnum from pg_attribute where attrelid = 'platform.inbound_message'::regclass and attname = 'transport_peer')::int) as c")).rows[0]?.c;
+    expect(comment).toMatch(/^Advisory: .*not evidence by itself/);
   });
 
   it('[DI-31] the envelope check admits the gateway signature in its shape only', async () => {
