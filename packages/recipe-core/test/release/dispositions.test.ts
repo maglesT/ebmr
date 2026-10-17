@@ -788,3 +788,86 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     }
   });
 });
+
+// Phase 6 exit, mutation triage T11 (decision 0019, part 2): the US disposition's survivors of its first whole run that
+// a changed check could let through. Each case names the mutants it aims at.
+describe('the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5)', () => {
+  /** TEST FIXTURE rows (triggers off), for the near misses a changed check might accept. */
+  async function fixture(text: string, params: unknown[]): Promise<void> {
+    const fx = await db.admin.connect();
+    try {
+      await fx.query('begin');
+      await fx.query("set local session_replication_role = 'replica'");
+      await fx.query(text, params);
+      await fx.query('commit');
+    } catch (error) {
+      await fx.query('rollback');
+      throw error;
+    } finally {
+      fx.release();
+    }
+  }
+
+  // recipe.check_us_disposition#42, #44, #45, #47, #50, #53: each since-review item is acknowledged by the signer, for
+  // this lot, for the US and at the current epoch; an acknowledgement that misses any one of these does not count.
+  it('[PR-54][INV-05] a US release needs the signer\'s own acknowledgement of each since-review item for this lot, the US and this epoch; near misses do not count (EBMR-DSP-038)', async () => {
+    const lot = await readyLot();
+    await manufacturerRelease(lot);
+    const g = await grel(lot.lotId, 'US');
+    const since = g.items.filter((i) => i.since_review).map((i) => i.id);
+    expect(since.length).toBeGreaterThan(0);
+    const ack = 'insert into recipe.grel_acknowledgement (lot_id, market, item_id, epoch, person_id, account_id) values ($1, $2, $3, $4, $5, $5)';
+    for (const id of since) {
+      await fixture(ack, [lot.lotId, 'IN', id, g.epoch, qcu.personId]); // another market
+      await fixture(ack, [lot.lotId, 'US', id, g.epoch, ap.personId]); // another person
+      await fixture(ack, [lot.lotId, 'US', id, '0'.repeat(64), qcu.personId]); // another epoch
+      await fixture(ack, [randomUUID(), 'US', id, g.epoch, qcu.personId]); // another lot
+    }
+    expect(await codeOf(usAct(qcu, lot.lotId, 'RELEASE', g.epoch))).toBe('EBMR-DSP-038');
+    expect(await state(lot.lotId, 'US')).toBe('READY');
+    await acknowledgeAll(qcu, lot.lotId, 'US', g);
+    await usAct(qcu, lot.lotId, 'RELEASE', g.epoch);
+    expect(await state(lot.lotId, 'US')).toBe('RELEASED');
+  });
+
+  // recipe.market_act_problem#3 (the market set) and recipe.eu_importer_of#1, #2, #3 (the importer of the lot's own product).
+  it('[PR-54][INV-42] a US act on a lot not made for the US is refused (EBMR-DSP-031); the EU importer of a lot is the one registered for its own product, and no lot has none', async () => {
+    const lot = await readyLot(indiaOnly, ['IN']);
+    expect(await codeOf(w.run(qcu, (c) => c.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [lot.lotId, 'REJECT', randomUUID(), '0'.repeat(64), 'Not made for the US', null]))))
+      .toBe('EBMR-DSP-031');
+    const register = async (code: string, products: string[]): Promise<void> => {
+      const def = { code, name: `Importer ${code}`, technicalAgreementRef: 'TA-2026-011', miaNumber: 'DE-MIA-2024-211', publicKey: Buffer.alloc(32, 11).toString('base64'), products };
+      const sha = (await db.app.query<{ h: string }>("select encode(sha256(convert_to(recipe.eu_importer_canonical($1::jsonb), 'UTF8')), 'hex') as h", [JSON.stringify(def)])).rows[0]!.h;
+      const sig = await signAs(qaReviewer3, 'eu_importer', `${code}/${sha}`, 'EU_IMPORTER_APPROVED', 'NEW');
+      await w.run(qaReviewer3, (c) => c.query('select recipe.register_eu_importer($1::jsonb, $2)', [JSON.stringify(def), sig]));
+    };
+    const tag = randomUUID().slice(0, 6).toUpperCase();
+    await register(`EUA-${tag}`, [`T11A-${tag}`]);
+    await register(`EUB-${tag}`, [lot.productCode]);
+    const of = async (lotId: string): Promise<string | null> =>
+      (await db.app.query<{ c: string | null }>("select recipe.eu_importer_of($1) ->> 'code' as c", [lotId])).rows[0]!.c;
+    expect(await of(lot.lotId)).toBe(`EUB-${tag}`);
+    expect(await of(randomUUID())).toBeNull();
+  });
+
+  // recipe.record_release_with_us_disposition#16, #19: both rows of a two-row release are made in this ceremony; a
+  // manufacturer release signature of an earlier command does not join a US signature made now.
+  it('[D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)', async () => {
+    // The AP holds the QCU permission at this site (as the two-row describe above grants it, when it has not run).
+    const held = (await db.admin.query("select 1 from iam.role_permission where role_code = 'AUTHORISED_PERSON' and permission_code = 'RELEASE.US_DISPOSITION'")).rowCount;
+    if (!held) {
+      const request = await withCommand(db.app, underChange(withReason(admin)), async (c) => (await c.query<{ id: string }>("select iam.add_role_permission('AUTHORISED_PERSON', 'RELEASE.US_DISPOSITION', 'the AP holds the QCU permission at this site') as id")).rows[0]!.id);
+      await withCommand(db.app, underChange(withReason(owner)), (c) => c.query("select iam.decide_role_permission($1, true, 'approved for the two-row release')", [request]));
+    }
+    const lot = await readyLot();
+    const gin = await grel(lot.lotId, 'IN');
+    const gus = await grel(lot.lotId, 'US');
+    await acknowledgeAll(ap, lot.lotId, 'IN', gin);
+    await acknowledgeAll(ap, lot.lotId, 'US', gus);
+    const mr = await signAs(ap, 'manufacturer_release', `${lot.lotId}/RELEASE`, 'MANUFACTURER_RELEASE', 'READY');
+    const refused = await codeOf(signed(ap, 'us_disposition', `${lot.lotId}/RELEASE`, 'US_DISPOSITION', 'READY', (c, us) =>
+      c.query('select recipe.record_release_with_us_disposition($1, $2, $3, $4, $5)', [lot.lotId, mr, us, gin.epoch, gus.epoch])));
+    expect(refused).toBe('EBMR-DSP-042');
+    expect(await state(lot.lotId, 'IN')).toBe('READY');
+  });
+});
