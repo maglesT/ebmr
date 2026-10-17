@@ -283,11 +283,130 @@ the database cannot make. Killing tests were proved against the original (pass) 
   the reference-document lookup, messages) are P3. Owner note: no database rule requires those two operations in a
   hazardous product's MBR; they rest on the designer and on the QA approval (IN-27 containment itself is enforced).
 
+### Stryker triage, third pass (T12): server-integrations and gateway-opcua (unmeasured)
+
+Both features stopped in decision 0019's one-hour box even on their high-risk files (server-integrations-highrisk 305 of
+631 mutants, no report; gateway-opcua 21 %, an incremental file only). Residuals under decision 0019; no re-run (owner,
+17 October). The owner asked whether the unmeasured code hides a Priority 1 issue, so each high-risk file's P1
+decisions were listed and checked by hand (D-P6j-T12-1): (a) the database enforces it too, one line; (b) only the
+TypeScript does: the mutation applied by hand in the worktree, the narrowest test file run, then reverted. Mutant labels
+below are those of the hand check.
+
+**Verdict: no Priority 1 defect among the mutated decisions; there was a Priority 1 test gap, now closed. Writing its tests
+found one high DI-31 defect next to them (M6-D2), fixed.** 30 mutants were
+hand-applied against the features' whole test lists: 4 killed, 3 survivors are database-enforced (a), and 23 survivors of
+TypeScript-only rules (17 gateway, 6 server) had no test. Nine new tests in the packages' own test files kill those 23
+and 6 further variants applied afterwards; each passes on the original code. One P2 defect fixed (OPC UA ids cut before
+keying, below); one high defect fixed on the lead's decision (M6-D2, DI-31, below) and two owner observations.
+
+#### gateway-opcua (`drivers/opcua.ts`, `opcua-feed.ts`)
+
+(a), defence in depth (one line each):
+- Endpoint identity (DI-20): `certificateProblem` and the mismatch path (no subscription, session reported once): recipe-core
+  0961 judges every reported session against the registry (CERTIFICATE_CHANGED, INSECURE, URL_CHANGED, RELOCATED,
+  UNIT_NOT_SERVED) and `plant.opcua_data_guard` refuses series, events and alarms of a unit without a VALID session; process
+  readings: `tab.ingest_opcua_readings` (tablets 1210, EBMR-DEV-174/175). The existing `[DI-20]` tests also kill the
+  thumbprint compare and the once-per-certificate report.
+- Series integrity (DI-32): the chunk hash, increasing source times in a chunk, value equal to raw, no value for a BAD sample
+  (`plant.receive_series_chunk`, recipe-core 0960); a chunk number or source-time span recorded twice (EBMR-EQD-004/005).
+- Duplicates (DI-31): an exact re-delivery is suppressed by the feed (killed by the existing test) and refused as DUPLICATE by
+  `platform.accept_inbound_detail`; the same key with other content is published with FEED_DUPLICATE_KEY and refused by the
+  database with an alarm. Sequence gaps and late messages: SEQUENCE_GAP / OUT_OF_ORDER alarms (kernel 1180).
+- The constructor's enrolled-units check: UNIT_NOT_SERVED (0961). A doubtful setpoint read-back shown as GOOD: EBMR-DEV-173
+  (1210); a new test kills it too (G-m).
+
+(b), TypeScript only. Each survived the whole gateway test folder (13 files) and is killed by new tests in `apps/site-gateway/test/opcua-driver.test.ts`
+(describe "what only the gateway can check (T12)"):
+- `onChange` line 412 (G-g1, G-g2): a malformed data change, a setpoint value of a tag without a setpoint, a tag of another
+  kind of unit alarm MALFORMED and are never chunked (removing the guard crashed the callback: a silent loss).
+  `[DI-31] a malformed data change, a setpoint value of a tag without a setpoint and a tag of another kind of unit ...`
+- `onAlarm` 458, 462 and `onEvent` 471 (G-h, G-i, G-i2, G-i3, G-j): a malformed alarm or event alarms MALFORMED; an alarm
+  naming a unit the endpoint does not serve, or a room, is refused WRONG_UNIT. The database cannot make this check: one feed
+  carries every endpoint of the gateway, so an alarm of endpoint A naming a unit of endpoint B would pass 0961's guard (DI-20).
+  `[DI-31][DI-20] a malformed alarm or event alarms MALFORMED; an alarm naming a unit this endpoint does not serve, or a room, ...`
+- `readUnit` 519, 526, 532, 541 (G-k, G-n, G-m, G-l, G-l2, G-l3): the process view refuses (OFFLINE) once the session is
+  lost instead of serving the last values; a BAD sample shows no value; a doubtful setpoint is not shown; the active alarms of
+  the unit's tags reach the process path (its ALARM readings, the G-06 ALARM entries and DI-49 acknowledgements stand on them).
+  `[DI-31][DI-32] the process view: refused while the session is lost ...`
+- `OpcuaFeed.open` 92 (G-a, G-a2): a torn last line is dropped; a damaged earlier line refuses to open (`true` silently
+  truncated the journal and would have re-used its sequence numbers). `[DI-31] the feed journal at restart: ...`
+- `publish` 143, 151-153 and `healthy` 127 (G-b, G-c, G-d, G-e): a journal write that fails alarms once, stops the feed (the
+  head stays) and turns the heartbeat to 503. `[DI-31] a journal that cannot be written alarms once and stops the feed: ...`
+- `page` 174-176 (G-f1, G-f2, G-f3): pages in order, without a gap or a repeat (`start - n` served empty pages for ever: the
+  OPCUA adapter keeps no mirror class, so nothing would have aged). `[DI-31] the feed protocol pages the journal in order, ...`
+- **P2 defect fixed (TypeScript only, no migration):** `sink()` cut `alarm/<occurrenceId>/<transition>` and `event/<eventId>`
+  to 128 characters before the idempotency key was derived. The contract allows 128-character ids, so the RAISED and CLEARED
+  transitions of a long occurrence id, or two events whose ids differ only at the end, shared a key: the second was published
+  with FEED_DUPLICATE_KEY and refused by the database (alarmed, so not P1). The key now covers the whole id; only the
+  envelope's sourceRecordId is cut, as `publish` did already; keys of shorter ids are unchanged. `[DI-31] the transitions of an
+  alarm and distinct events with the longest ids the contract allows are each published, never taken for one another`
+  (failed before the fix).
+- P3, no test: alarm and message texts, the HTTP 400 limits of `serve` beyond those tested, `reconciliation`'s half-open
+  bounds (a shift shows as a RECONCILIATION_MISMATCH, never hides a loss), the recipe-version read (killed by the existing
+  test), the write-back's re-read (a failed parse keeps the last setpoint, which the process path compares with the target).
+- Not re-reported: the feed is unauthenticated (residual 6jc-R9). Observation (design, not a mutation finding): samples of a
+  chunk still open when the gateway process dies are not journalled (up to `chunkMaxSamples` or 60 s per tag); the gap stays
+  visible in source time and the G-06 values travel journal-first as process readings, but no alarm names it. For the owner.
+
+#### server-integrations (`adapters/framework.ts`, `adapters/erp-wms/*.ts`, `adapters/qms/index.ts`)
+
+(a), defence in depth (one line each):
+- Adapter identity and access: `openAdapterActor` goes through the kernel's SERVICE_KEY authentication bound to the
+  terminal's key (kernel 1180), INTERFACE.WRITE and `platform.authorize('interface.write', ...)` in every receiving command;
+  the legal name is the database's (DI-14).
+- Cursor, gaps and order (DI-31): line 350 (the cursor), 354 (caught up): `platform.accept_inbound_detail` raises SEQUENCE_GAP
+  and OUT_OF_ORDER; `platform.record_mirror_sync` refuses unless the adapter holds every number up to the head (kernel 1182,
+  EBMR-INT-019/024).
+- Classification, lines 431-432 and 440-442 (S3, S4, S5, survived): a TRANSPORT failure or an unclassified one recorded as a
+  refusal is refused by `platform.record_inbound_refusal` (EBMR-INT-014, no such class), so the worker retries and the cursor
+  stays; a refusal that cannot be recorded leaves a missing number (INT-024 / SEQUENCE_GAP).
+- The payload's contract (line 413-419): each receiving command validates its payload (e.g. `plant.receive_series_chunk`,
+  `site.erp_wms_receive`); unknown types EBMR-INT-004; `feedAdapterDefinition` without a command fails closed.
+- QMS at release (`qmsReleaseFetch`, S9): `site.qms_release_problem` refuses a release without a fetch in the same
+  transaction (EBMR-QMS-013), a stale one (014), an open deviation (015); a malformed answer EBMR-QMS-012 (site services 0925,
+  recipe-core 0951).
+- WMS move questions (`moves.ts`, S8 killed by the existing `[PR-46]` test): the answer is `site.wms_location_question`'s; a
+  move made anyway raises the alarm and the exception (D-P6a-7).
+
+(b), TypeScript only:
+- Heartbeat gating of the mirror sync, lines 131 and 358 (S1, S2): killed by the existing stale-mirror tests (`[DI-31] stale
+  mirror: ...` ERP/WMS, EMS, `[PR-42]` L3).
+- Payload hash, line 410 (S6), and the refused-keys short-cut, line 407 (S10): survived. The database stores the payload and
+  its stated hash as given, so this is the one check that a value was not altered in transit. New test in
+  `apps/tablets-server/test/equipment-data/opcua-adapter.test.ts`: `[DI-31] a message whose payload is not the one its hash
+  states is refused as malformed with an alarm and lands nowhere; a changed message the source then sends under the same key
+  is not taken for the refused one`.
+- ERP outbound (`outbound.ts`, S7a, S7a2, S7b, S7c, S7d): survived. The database lists pending messages in order but does not
+  hold a lot's later message back, and records whatever reference it is given. New test in
+  `apps/tablets-server/test/integrations/erp-wms/contract.test.ts`: `[DI-31] outbound: the messages of a lot keep their order
+  while one waits; only a 200 answer naming the ERP's reference acknowledges a message`.
+- P3, no test: refusal texts, counters of the cycle report, the `exchange` and page-shape checks (each failure ends as a
+  TransportError, the cursor stays), `qmsLinkFromEnv` defaults.
+- **Defect M6-D2 (high, DI-31; fixed in the worker, no migration; D-P6j-T12-3):** data loss on an interface, alarmed only at
+  the first refusal. The worker remembered a refused message by the hash it *stated*. After a refusal because the payload
+  did not match its hash, the intact message under the same key and hash was answered DUPLICATE in memory and never reached
+  the database; the cursor moved on, reconciliation by (key, hash) matched the refusal, and only the first MALFORMED alarm
+  was left. Found while writing the S6 test. Fix (`framework.ts`): the memory holds the SHA-256 of the whole item as
+  received, checked before the envelope; only the very same item repeated is handled, anything else is checked and
+  received anew (a tampered copy under a new sequence number is refused again and recorded). The database does not block
+  the intact copy: `platform.accept_inbound_detail` (kernel 1180) looks for the key among accepted messages only, so a
+  refusal does not reserve the key, and "same key, other content" stays EBMR-INT-005 for accepted messages (unchanged).
+  Tests in `opcua-adapter.test.ts`: `[DI-31] M6-D2: after a message refused because its payload is not the one its hash
+  states, the intact message under the same key lands, exactly once; the tampered payload sent again is refused again`
+  (failed before the fix) and `[DI-31] M6-D2: a page that repeats a refused item unchanged is handled once; the refusal is
+  not recorded twice` (keeps the de-duplication); both hand-mutated against the fix (the short-cut removed, the memory on
+  the stated hash): each fails.
+- **Owner observation O-T12-1:** `AdapterWorker.reconcile` (count and checksum per period, DI-31 "no silent loss") has no
+  caller in the server: nothing submits a reconciliation on a period. Gaps, late messages and the mirror's caught-up check
+  are enforced (above), so a loss inside the sequence is alarmed; a source that stops publishing its last messages is seen
+  only on the health page (head ahead of cursor) for feeds without a mirror class (OPCUA, EMS, LIMS). Whether a scheduled
+  reconciliation belongs to Phase 6 or to deployment is the owner's call.
+
 ### Not triaged
 
-- `server-integrations-highrisk` (no report): nothing to triage. `kernel-config-and-dsc` (rc=1 at T7's pass) was re-run
+- `server-integrations-highrisk` (no report): checked by hand in T12 above. `kernel-config-and-dsc` (rc=1 at T7's pass) was re-run
   and is triaged above (T9).
-- `gateway-opcua`: stopped at 21 % (rc=124), only an incremental file; no final report.
+- `gateway-opcua`: stopped at 21 % (rc=124), only an incremental file; no final report. Checked by hand in T12 above.
 - Features outside this assignment (server-plant-rules, server-equipment-data, server-dashboards-and-training,
   server-serialisation, simulators) are not triaged here.
 

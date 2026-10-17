@@ -9,6 +9,8 @@ import { withCommand, type ActorContext } from '@ebmr/kernel';
 import { openPersonaSession, passwordActor } from '@ebmr/test-kit';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withChangeRecord } from '../../../../../packages/kernel/test/support/change-record.ts';
+import type { FetchFn } from '../../../src/features/integrations/adapters/framework.ts';
+import { OutboundDelivery } from '../../../src/features/integrations/adapters/erp-wms/outbound.ts';
 import { approvedManufacturer, count, drain, erpWmsRig, goodsReceipt, type ErpWmsRig } from './support.ts';
 
 /** Asymmetric matchers, typed for the object literals they sit in. */
@@ -244,5 +246,60 @@ describe('the ERP/WMS adapter against its simulators (DI-31)', () => {
     await drain(rig.wms.worker, rig.wms.sim);
     expect(await count(server, 'select count(*) as n from site.lot_location_exception e join site.material_lot l on l.id = e.lot_id where l.lot_code = $1', [lot])).toBe(1);
     expect(await count(server, "select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'OUT_OF_RANGE' and details ->> 'rule' = 'PR-46'", [rig.wms.id.code])).toBeGreaterThanOrEqual(1);
+  });
+
+  // Mutation triage T12 (Phase 6 slice 6j): the delivery's order and acknowledgment rules are the adapter's alone (the
+  // database records the reference it is given and lists the pending messages in order, but does not hold a lot's later
+  // message back).
+  it('[DI-31] outbound: the messages of a lot keep their order while one waits; only a 200 answer naming the ERP\'s reference acknowledges a message', async () => {
+    const server = rig.server;
+    const lot = await receiveLot();
+    const lotId = (await server.db.app.query<{ id: string }>('select id from site.material_lot where lot_code = $1', [lot])).rows[0]?.id ?? '';
+    const stockBlock = async (): Promise<string> => {
+      const c = await server.db.admin.connect();
+      try {
+        await c.query('begin');
+        await c.query(`select kernel.set_actor_context(jsonb_build_object('person_id', '00000000-0000-0000-0000-000000000000', 'account_id', '00000000-0000-0000-0000-000000000000',
+          'role_code', 'SOFTWARE_RELEASE', 'session_id', '00000000-0000-0000-0000-000000000000', 'source', 'SYSTEM', 'site_zone', 'UTC', 'correlation_id', gen_random_uuid(),
+          'legal_name', 'Test fixture (after-release act)', 'reason_code', 'TEST', 'reason_text', 'a stock block as the suspension writes it'))`);
+        const request = (await c.query<{ id: string }>("select site.request_erp_stock_block($1, 'BLOCK', $2, '{}'::jsonb) as id", [lotId, `SUSPENSION/${randomUUID()}`])).rows[0]?.id ?? '';
+        await c.query('commit');
+        return (await server.db.app.query<{ id: string }>("select id from site.erp_outbound_message where payload ->> 'requestId' = $1", [request])).rows[0]?.id ?? '';
+      } finally {
+        c.release();
+      }
+    };
+    const m1 = await stockBlock();
+    const m2 = await stockBlock();
+    const posted: string[] = [];
+    let answer: (id: string) => { status: number; body: unknown } = () => ({ status: 503, body: { erpReference: 'ERP-REFUSED' } });
+    const fetchFn: FetchFn = async (url, init) => {
+      const id = (JSON.parse(init?.body ?? '{}') as { messageId?: string }).messageId ?? '';
+      if (id !== m1 && id !== m2) return globalThis.fetch(url, init); // another lot's message goes to the simulator
+      posted.push(id);
+      const a = answer(id);
+      return { ok: a.status === 200, status: a.status, text: () => Promise.resolve(JSON.stringify(a.body)) };
+    };
+    const delivery = new OutboundDelivery(rig.erp.sim.url, { fetchFn, timeoutMs: 1000 });
+    const pending = () => count(server, `select count(*) as n from site.erp_outbound_message m where m.id = any($1::uuid[])
+                                           and not exists (select 1 from site.erp_outbound_delivery d where d.message_id = m.id)`, [[m1, m2]]);
+    // The ERP answers 503 (a reference in the body changes nothing): not acknowledged; the lot's later message waits.
+    await delivery.deliver(rig.erp.worker);
+    expect(posted).toEqual([m1]);
+    // While the first waits for its back-off, the later one still waits behind it.
+    await delivery.deliver(rig.erp.worker);
+    expect(posted).toEqual([m1]);
+    // A 200 without a reference does not acknowledge either.
+    delivery.retryNow();
+    answer = () => ({ status: 200, body: {} });
+    await delivery.deliver(rig.erp.worker);
+    expect(posted).toEqual([m1, m1]);
+    expect(await pending()).toBe(2);
+    // A proper answer: both go, in their order, each acknowledged once.
+    delivery.retryNow();
+    answer = (id) => ({ status: 200, body: { erpReference: `ERP-${id.slice(0, 8)}` } });
+    await delivery.deliver(rig.erp.worker);
+    expect(posted).toEqual([m1, m1, m1, m2]);
+    expect(await pending()).toBe(0);
   });
 });
