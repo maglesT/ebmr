@@ -1,0 +1,12 @@
+release-gate: 240 mutants in 16 functions (db + server)
+release-gate-market-items: 51 mutants in 2 functions (db)
+manufacturer-release: 165 mutants in 17 functions (db)
+tablets-release-items: 254 mutants in 22 functions (server)
+qp-certification: 182 mutants in 22 functions (db + server)
+total: 892 mutants in 5 groups
+templates built in 54 s: ebmr_mut_base_cba89d8f, ebmr_stpl_506dd6e279c8, ebmr_sandbox_tpl237b50b3a153
+checked 79 functions: each re-applied unmutated leaves its pg_proc row unchanged; owners ebmr_owner (176); a copy of each template has the template's database privileges
+release-gate: baseline db 145 s (limit 434 s), server 31 s (limit 240 s)
+  SURVIVED recipe.grel_evaluate#8 RELATIONAL packages/recipe-core/sql/0951_qms_status_at_release.sql:62 [=] -> [<>]
+  SURVIVED recipe.grel_evaluate#9 LOGICAL packages/recipe-core/sql/0951_qms_status_at_release.sql:62 [and] -> [or]
+  SURVIVED recipe.grel_evaluate#10 RELATIONAL packages/recipe-core/sql/0951_qms_status_at_release.sql:62 [=] -> [<>]

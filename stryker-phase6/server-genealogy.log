@@ -1,3 +1,1336 @@
 [32m01:54:48 (627304) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-genealogy.incremental.json, a full mutation testing run will be performed.
 [32m01:54:49 (627304) INFO ProjectReader[39m Found 4 of 150027 file(s) to be mutated.
 [32m01:54:49 (627304) INFO Instrumenter[39m Instrumented 4 source file(s) with 479 mutant(s)
+[32m02:05:40 (627304) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m02:08:02 (627304) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m02:08:06 (627304) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m02:08:44 (627304) INFO DryRunExecutor[39m Initial test run succeeded. Ran 5 tests in 37 seconds (net 2014.9629140000106 ms, overhead 35856.03708599999 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~22m) 106/372 tested (1 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~39m) 107/372 tested (2 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~49m) 109/372 tested (3 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~1h 3m) 111/372 tested (4 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~48m) 113/372 tested (4 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~28m) 117/372 tested (6 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~1m, remaining: ~19m) 121/372 tested (7 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~1m, remaining: ~15m) 125/372 tested (8 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~1m, remaining: ~13m) 129/372 tested (9 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~1m, remaining: ~11m) 133/372 tested (13 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~1m, remaining: ~11m) 136/372 tested (15 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~2m, remaining: ~11m) 138/372 tested (17 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~2m, remaining: ~10m) 141/372 tested (18 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~2m, remaining: ~9m) 145/372 tested (18 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~2m, remaining: ~8m) 148/372 tested (18 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~2m, remaining: ~7m) 150/372 tested (18 survived, 0 timed out)
+Mutation testing 29% (elapsed: ~2m, remaining: ~6m) 154/372 tested (19 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~3m, remaining: ~6m) 156/372 tested (19 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~3m, remaining: ~6m) 160/372 tested (20 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~3m, remaining: ~5m) 164/372 tested (20 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~3m, remaining: ~5m) 168/372 tested (20 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~3m, remaining: ~5m) 171/372 tested (21 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~3m, remaining: ~5m) 174/372 tested (22 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~4m, remaining: ~4m) 177/372 tested (23 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~4m, remaining: ~4m) 181/372 tested (24 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~4m, remaining: ~4m) 184/372 tested (24 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~4m, remaining: ~4m) 187/372 tested (24 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~4m, remaining: ~4m) 190/372 tested (24 survived, 0 timed out)
+Mutation testing 55% (elapsed: ~4m, remaining: ~3m) 193/372 tested (25 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~5m, remaining: ~3m) 197/372 tested (26 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~5m, remaining: ~3m) 201/372 tested (28 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~5m, remaining: ~3m) 205/372 tested (28 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~5m, remaining: ~3m) 207/372 tested (28 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~5m, remaining: ~3m) 210/372 tested (29 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~5m, remaining: ~3m) 214/372 tested (30 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~6m, remaining: ~3m) 216/372 tested (30 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~6m, remaining: ~4m) 219/372 tested (32 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~6m, remaining: ~4m) 222/372 tested (32 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~6m, remaining: ~4m) 226/372 tested (35 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~6m, remaining: ~4m) 229/372 tested (38 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~6m, remaining: ~4m) 233/372 tested (39 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~7m, remaining: ~4m) 237/372 tested (40 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~7m, remaining: ~4m) 239/372 tested (42 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~7m, remaining: ~4m) 241/372 tested (43 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~7m, remaining: ~4m) 245/372 tested (43 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~7m, remaining: ~4m) 247/372 tested (43 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~7m, remaining: ~4m) 251/372 tested (43 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~8m, remaining: ~4m) 253/372 tested (44 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~8m, remaining: ~4m) 257/372 tested (44 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~8m, remaining: ~4m) 260/372 tested (44 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~8m, remaining: ~4m) 263/372 tested (44 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~8m, remaining: ~4m) 265/372 tested (44 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~8m, remaining: ~4m) 266/372 tested (44 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~9m, remaining: ~4m) 268/372 tested (45 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~9m, remaining: ~4m) 271/372 tested (45 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~9m, remaining: ~4m) 273/372 tested (45 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~9m, remaining: ~5m) 273/372 tested (45 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~9m, remaining: ~5m) 274/372 tested (45 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~9m, remaining: ~5m) 278/372 tested (47 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~10m, remaining: ~5m) 282/372 tested (47 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~10m, remaining: ~5m) 284/372 tested (47 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~10m, remaining: ~5m) 285/372 tested (47 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~10m, remaining: ~5m) 289/372 tested (48 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~10m, remaining: ~5m) 290/372 tested (48 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~10m, remaining: ~5m) 293/372 tested (48 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~11m, remaining: ~5m) 295/372 tested (48 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~11m, remaining: ~5m) 298/372 tested (48 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~11m, remaining: ~5m) 301/372 tested (48 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~11m, remaining: ~5m) 301/372 tested (48 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~11m, remaining: ~5m) 304/372 tested (49 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~11m, remaining: ~5m) 306/372 tested (49 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~12m, remaining: ~5m) 309/372 tested (51 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~12m, remaining: ~5m) 309/372 tested (51 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~12m, remaining: ~6m) 310/372 tested (52 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~12m, remaining: ~6m) 313/372 tested (54 survived, 0 timed out)
+Mutation testing 68% (elapsed: ~12m, remaining: ~5m) 315/372 tested (55 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~12m, remaining: ~5m) 317/372 tested (56 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~13m, remaining: ~5m) 319/372 tested (56 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~13m, remaining: ~5m) 322/372 tested (56 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~13m, remaining: ~4m) 324/372 tested (56 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~13m, remaining: ~4m) 327/372 tested (56 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~13m, remaining: ~4m) 328/372 tested (56 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~13m, remaining: ~4m) 331/372 tested (56 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~14m, remaining: ~3m) 333/372 tested (56 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~14m, remaining: ~3m) 336/372 tested (58 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~14m, remaining: ~3m) 337/372 tested (59 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~14m, remaining: ~3m) 339/372 tested (60 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~14m, remaining: ~2m) 343/372 tested (60 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~14m, remaining: ~2m) 346/372 tested (60 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~15m, remaining: ~2m) 347/372 tested (61 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~15m, remaining: ~2m) 349/372 tested (61 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~15m, remaining: ~2m) 350/372 tested (61 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~15m, remaining: ~1m) 352/372 tested (61 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~15m, remaining: ~1m) 355/372 tested (61 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~15m, remaining: ~1m) 357/372 tested (62 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~16m, remaining: ~1m) 359/372 tested (64 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~16m, remaining: ~1m) 360/372 tested (65 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~16m, remaining: <1m) 363/372 tested (66 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~16m, remaining: <1m) 365/372 tested (67 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~16m, remaining: <1m) 367/372 tested (67 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~16m, remaining: <1m) 370/372 tested (67 survived, 0 timed out)
+
+All tests/genealogy-routes.test.ts
+  ✓ genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404 (killed 49)
+  ✓ genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier (killed 73)
+  ✓ genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there (killed 20)
+  ✓ mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once (killed 58)
+  ~ chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused (covered 59)
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/index.ts:37:39
+-         withActorCommand(pool, actor(), (c) => federatedTrace(app, c, query.kind, query.id, query.direction, query.asOfUs)),
++         withActorCommand(pool, actor(), () => undefined),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:68:96
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/genealogy/index.ts:80:82
+-       refreshFederation: async ({ params, actor, idempotencyKey, requestHash }) => {
+-         const m = (await pool.query<{ us: string; kind: 'LOT' | 'DEVIATION'; subject: string }>(
+-           `select ${usOf('as_of')} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
+-         if (!m) return mockRecallView(app, pool, params.mockRecallId);
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           const asked = await askDestinations(app, c, m.kind, m.subject, m.us, open);
+-           await recordRemote(c, params.mockRecallId, asked);
+-           return params.mockRecallId;
+-         });
+-         return mockRecallView(app, pool, params.mockRecallId);
+-       },
++       refreshFederation: async ({ params, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:82:9
+-           `select ${usOf('as_of')} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
++           ``, [params.mockRecallId])).rows[0];
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:82:24
+-           `select ${usOf('as_of')} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
++           `select ${usOf("")} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/index.ts:82:131
+-           `select ${usOf('as_of')} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
++           `select ${usOf('as_of')} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [])).rows[0];
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/genealogy/index.ts:83:11
+-         if (!m) return mockRecallView(app, pool, params.mockRecallId);
++         if (m) return mockRecallView(app, pool, params.mockRecallId);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:83:11
+-         if (!m) return mockRecallView(app, pool, params.mockRecallId);
++         if (true) return mockRecallView(app, pool, params.mockRecallId);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:83:11
+-         if (!m) return mockRecallView(app, pool, params.mockRecallId);
++         if (false) return mockRecallView(app, pool, params.mockRecallId);
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/genealogy/index.ts:84:20
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
++         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.map((t) => t.transferId);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/index.ts:84:98
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
++         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter(() => undefined).map((t) => t.transferId);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:84:105
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
++         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => true).map((t) => t.transferId);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:84:105
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
++         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => false).map((t) => t.transferId);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/genealogy/index.ts:84:105
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
++         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status === 'ANSWERED').map((t) => t.transferId);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:84:118
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
++         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== "").map((t) => t.transferId);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/index.ts:84:134
+-         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
++         const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map(() => undefined);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/genealogy/index.ts:85:55
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:85:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/genealogy/index.ts:85:103
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           const asked = await askDestinations(app, c, m.kind, m.subject, m.us, open);
+-           await recordRemote(c, params.mockRecallId, asked);
+-           return params.mockRecallId;
+-         });
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {});
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/genealogy/index.ts:121:19
+-         async () => {
+-           await c.query('rollback to savepoint recall_destinations');
+-           return [] as { k: string; i: string }[];
+-         },
++         async () => {},
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:122:23
+-           await c.query('rollback to savepoint recall_destinations');
++           await c.query("");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/index.ts:126:57
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = (await nodeViews(c, rows.map((r) => ({})))).filter((n) => n.subKind === 'OUTBOUND');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:126:98
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => true);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:126:98
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => false);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/genealogy/index.ts:126:98
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind !== 'OUTBOUND');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:126:112
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === "");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/genealogy/index.ts:128:29
+-     for (const t of outbound) {
+-       if (only && !only.includes(t.id)) continue;
+-       const a = await askPeer(app, c, otherEnd(t), t.id, 'FORWARD', us);
+-       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
+-     }
++     for (const t of outbound) {}
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:129:9
+-       if (only && !only.includes(t.id)) continue;
++       if (true) continue;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:129:9
+-       if (only && !only.includes(t.id)) continue;
++       if (false) continue;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/genealogy/index.ts:129:9
+-       if (only && !only.includes(t.id)) continue;
++       if (only || !only.includes(t.id)) continue;
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/genealogy/index.ts:129:17
+-       if (only && !only.includes(t.id)) continue;
++       if (only && only.includes(t.id)) continue;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:130:56
+-       const a = await askPeer(app, c, otherEnd(t), t.id, 'FORWARD', us);
++       const a = await askPeer(app, c, otherEnd(t), t.id, "", us);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/index.ts:131:14
+-       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
++       out.push({});
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:131:42
+-       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
++       out.push({ transferId: t.id, status: true ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/index.ts:131:42
+-       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
++       out.push({ transferId: t.id, status: false ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/genealogy/index.ts:131:42
+-       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
++       out.push({ transferId: t.id, status: a.status !== 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:131:55
+-       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
++       out.push({ transferId: t.id, status: a.status === "" ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:131:72
+-       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
++       out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? "" : a.status, excerptId: a.excerptId, detail: a.detail });
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/genealogy/index.ts:137:26
+-     for (const a of asked) {
+-       await c.query('select recipe.record_mock_recall_remote($1, $2, $3, $4, $5)', [runId, a.transferId, a.status, a.excerptId, a.detail]);
+-     }
++     for (const a of asked) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:138:19
+-       await c.query('select recipe.record_mock_recall_remote($1, $2, $3, $4, $5)', [runId, a.transferId, a.status, a.excerptId, a.detail]);
++       await c.query("", [runId, a.transferId, a.status, a.excerptId, a.detail]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/index.ts:138:82
+-       await c.query('select recipe.record_mock_recall_remote($1, $2, $3, $4, $5)', [runId, a.transferId, a.status, a.excerptId, a.detail]);
++       await c.query('select recipe.record_mock_recall_remote($1, $2, $3, $4, $5)', []);
+
+[Survived] CallExpression
+apps/tablets-server/src/features/genealogy/index.ts:32:7
+-         requireSession();
++         ;
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/genealogy/index.ts:39:7
+-         requireSession();
++         ;
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/genealogy/index.ts:43:7
+-         requireSession();
++         ;
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/genealogy/index.ts:47:7
+-         requireSession();
++         ;
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/genealogy/index.ts:51:7
+-         requireSession();
++         ;
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/genealogy/index.ts:57:7
+-         requireSession();
++         ;
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/genealogy/index.ts:61:7
+-         requireSession();
++         ;
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/genealogy/index.ts:69:20
+-           const us = body.asOfUs ?? String(await dbNowUs(c));
++           const us = body.asOfUs && String(await dbNowUs(c));
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/genealogy/index.ts:73:74
+-             [body.subjectKind, body.subjectId, us, body.authorityInformed, body.authorityReference ?? null],
++             [body.subjectKind, body.subjectId, us, body.authorityInformed, body.authorityReference && null],
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:112:5
+-       `select distinct g.node_kind as k, g.node_id::text as i
+-          from (select 'LOT'::text as kind, $2::uuid as id where $1 = 'LOT'
+-                union select y.subject_kind, y.subject_id from site.deviation_link y where $1 = 'DEVIATION' and y.deviation_id = $2::uuid and y.linked_at <= ${tsOf('$3')}) s,
+-               recipe.genealogy(s.kind, s.id, 'FORWARD', ${tsOf('$3')}) g
+-         where g.node_kind = 'TRANSFER'`, [kind, id, us]).then(
++       ``, [kind, id, us]).then(
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:114:162
+-                union select y.subject_kind, y.subject_id from site.deviation_link y where $1 = 'DEVIATION' and y.deviation_id = $2::uuid and y.linked_at <= ${tsOf('$3')}) s,
++                union select y.subject_kind, y.subject_id from site.deviation_link y where $1 = 'DEVIATION' and y.deviation_id = $2::uuid and y.linked_at <= ${tsOf("")}) s,
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:115:62
+-               recipe.genealogy(s.kind, s.id, 'FORWARD', ${tsOf('$3')}) g
++               recipe.genealogy(s.kind, s.id, 'FORWARD', ${tsOf("")}) g
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/index.ts:116:40
+-         where g.node_kind = 'TRANSFER'`, [kind, id, us]).then(
++         where g.node_kind = 'TRANSFER'`, []).then(
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/index.ts:118:23
+-           await c.query('release savepoint recall_destinations');
++           await c.query("");
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/genealogy/index.ts:126:20
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = await nodeViews(c, rows.map(r => ({
++     kind: r.k,
++     id: r.i
++   })));
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/index.ts:126:49
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = (await nodeViews(c, rows.map(() => undefined))).filter((n) => n.subKind === 'OUTBOUND');
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/index.ts:126:91
+-     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
++     const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter(() => undefined);
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/genealogy/index.ts:136:102
+-   async function recordRemote(c: pg.PoolClient, runId: string, asked: readonly Asked[]): Promise<void> {
+-     for (const a of asked) {
+-       await c.query('select recipe.record_mock_recall_remote($1, $2, $3, $4, $5)', [runId, a.transferId, a.status, a.excerptId, a.detail]);
+-     }
+-   }
++   async function recordRemote(c: pg.PoolClient, runId: string, asked: readonly Asked[]): Promise<void> {}
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:52:25
+-     return (rows[0]?.v ?? []).map(nodeView);
++     return (rows[0]?.v ?? ["Stryker was here"]).map(nodeView);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:75:34
+-     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
++     if (!start) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:75:42
+-     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
++     if (!start) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:75:64
+-     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
++     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: "", whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:75:95
+-     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
++     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: "", whatYouCanDo: ['Check the number.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:75:153
+-     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
++     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:75:154
+-     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
++     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: [""] });
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:88:146
+-       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? { transfers: count('TRANSFER') } : {}) },
++       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? {} : {}) },
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:88:165
+-       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? { transfers: count('TRANSFER') } : {}) },
++       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? { transfers: count("") } : {}) },
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:110:35
+-     if (lotIds.length === 0) return [];
++     if (lotIds.length === 0) return ["Stryker was here"];
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:151:134
+-     const batchIds = (await db.query<{ b: string[] | null }>('select recipe.release_batches($1)::text[] as b', [lotId])).rows[0]?.b ?? [];
++     const batchIds = (await db.query<{ b: string[] | null }>('select recipe.release_batches($1)::text[] as b', [lotId])).rows[0]?.b ?? ["Stryker was here"];
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:152:229
+-     const deviations = (await db.query<{ d: { deviation_id: string; ref: string; kind: string; title: string; classification: string; state: string }[] }>('select recipe.genealogy_lot_deviations($1) as d', [lotId])).rows[0]?.d ?? [];
++     const deviations = (await db.query<{ d: { deviation_id: string; ref: string; kind: string; title: string; classification: string; state: string }[] }>('select recipe.genealogy_lot_deviations($1) as d', [lotId])).rows[0]?.d ?? ["Stryker was here"];
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:160:40
+-       deviations: deviations.map((d) => ({ deviationId: d.deviation_id, ref: d.ref, kind: d.kind, title: d.title, classification: d.classification, state: d.state })),
++       deviations: deviations.map((d) => ({})),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:170:32
+-     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
++     if (!lot) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:170:40
+-     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
++     if (!lot) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:170:62
+-     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
++     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: "", whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:170:93
+-     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
++     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: "", whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:170:132
+-     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
++     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:170:133
+-     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
++     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: [""] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:172:97
+-       `select recipe.genealogy_supply_chain($1, ${tsOf('$2')}) as l`, [lotId, us])).rows[0]?.l ?? [];
++       `select recipe.genealogy_supply_chain($1, ${tsOf('$2')}) as l`, [lotId, us])).rows[0]?.l ?? ["Stryker was here"];
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/genealogy/reads.ts:185:15
+-     const ref = (await db.query<{ ref: string }>('select ref from site.deviation where id = $1', [deviationId])).rows[0]?.ref ?? deviationId;
++     const ref = (await db.query<{
++     ref: string;
++   }>('select ref from site.deviation where id = $1', [deviationId])).rows[0]?.ref && deviationId;
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/genealogy/reads.ts:185:15
+-     const ref = (await db.query<{ ref: string }>('select ref from site.deviation where id = $1', [deviationId])).rows[0]?.ref ?? deviationId;
++     const ref = (await db.query<{
++     ref: string;
++   }>('select ref from site.deviation where id = $1', [deviationId])).rows[0].ref ?? deviationId;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:185:48
+-     const ref = (await db.query<{ ref: string }>('select ref from site.deviation where id = $1', [deviationId])).rows[0]?.ref ?? deviationId;
++     const ref = (await db.query<{ ref: string }>("", [deviationId])).rows[0]?.ref ?? deviationId;
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:185:96
+-     const ref = (await db.query<{ ref: string }>('select ref from site.deviation where id = $1', [deviationId])).rows[0]?.ref ?? deviationId;
++     const ref = (await db.query<{ ref: string }>('select ref from site.deviation where id = $1', [])).rows[0]?.ref ?? deviationId;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:186:10
+-     return {
+-       deviationId,
+-       ref,
+-       asOf: app.formatInstant(us),
+-       batches: rows.map((r) => ({ batchId: r.batch_id, batchNumber: r.batch_number ?? r.batch_id, productCode: r.product_code, relation: r.relation })),
+-     };
++     return {};
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:190:23
+-       batches: rows.map((r) => ({ batchId: r.batch_id, batchNumber: r.batch_number ?? r.batch_id, productCode: r.product_code, relation: r.relation })),
++       batches: rows.map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:190:31
+-       batches: rows.map((r) => ({ batchId: r.batch_id, batchNumber: r.batch_number ?? r.batch_id, productCode: r.product_code, relation: r.relation })),
++       batches: rows.map((r) => ({})),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/genealogy/reads.ts:190:67
+-       batches: rows.map((r) => ({ batchId: r.batch_id, batchNumber: r.batch_number ?? r.batch_id, productCode: r.product_code, relation: r.relation })),
++       batches: rows.map((r) => ({ batchId: r.batch_id, batchNumber: r.batch_number && r.batch_id, productCode: r.product_code, relation: r.relation })),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:206:34
+-       items: r.r.items.map((i) => ({
+-         deviationId: i.deviation_id,
+-         ref: i.ref,
+-         title: i.title,
+-         rootCauseCategory: i.root_cause_category,
+-         productCode: i.product_code,
+-         occurrences: i.occurrences,
+-         warning: i.warning,
+-         others: i.others.map((o) => ({ deviationId: o.deviation_id, ref: o.ref, raisedAt: app.formatInstant(o.raised_us) })),
+-       })),
++       items: r.r.items.map((i) => ({})),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:214:28
+-         others: i.others.map((o) => ({ deviationId: o.deviation_id, ref: o.ref, raisedAt: app.formatInstant(o.raised_us) })),
++         others: i.others.map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:214:36
+-         others: i.others.map((o) => ({ deviationId: o.deviation_id, ref: o.ref, raisedAt: app.formatInstant(o.raised_us) })),
++         others: i.others.map((o) => ({})),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:316:79
+-     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x !== null);
++     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => true);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:316:79
+-     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x !== null);
++     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => false);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/genealogy/reads.ts:316:79
+-     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x !== null);
++     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x === null);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:317:187
+-     const payloads = new Map((await db.query<{ id: string; payload: string }>('select id::text, payload from recipe.federated_excerpt where id = any ($1::uuid[])', [ids])).rows.map((r) => [r.id, r.payload]));
++     const payloads = new Map((await db.query<{ id: string; payload: string }>('select id::text, payload from recipe.federated_excerpt where id = any ($1::uuid[])', [ids])).rows.map((r) => []));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:320:48
+-       beyondOneHop: f.beyond_one_hop.map((b) => ({ transferId: b.transfer_id, packageNo: b.package_no, destination: b.destination })),
++       beyondOneHop: f.beyond_one_hop.map((b) => ({})),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/genealogy/reads.ts:321:39
+-       transfers: f.transfers.map((t) => {
+-         const nodes = t.excerpt_id ? ((JSON.parse(payloads.get(t.excerpt_id) ?? '{"nodes":[]}') as { nodes: NodeRow[] }).nodes) : [];
+-         return {
+-           transferId: t.transfer_id,
+-           packageNo: t.package_no,
+-           destination: t.destination,
+-           depth: t.depth,
+-           status: t.status,
+-           excerptAsOf: t.excerpt_as_of_us ? app.formatInstant(t.excerpt_as_of_us) : null,
+-           detail: t.detail,
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+-         };
+-       }),
++       transfers: f.transfers.map((t) => {}),
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:322:129
+-         const nodes = t.excerpt_id ? ((JSON.parse(payloads.get(t.excerpt_id) ?? '{"nodes":[]}') as { nodes: NodeRow[] }).nodes) : [];
++         const nodes = t.excerpt_id ? ((JSON.parse(payloads.get(t.excerpt_id) ?? '{"nodes":[]}') as { nodes: NodeRow[] }).nodes) : ["Stryker was here"];
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:323:14
+-         return {
+-           transferId: t.transfer_id,
+-           packageNo: t.package_no,
+-           destination: t.destination,
+-           depth: t.depth,
+-           status: t.status,
+-           excerptAsOf: t.excerpt_as_of_us ? app.formatInstant(t.excerpt_as_of_us) : null,
+-           detail: t.detail,
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+-         };
++         return {};
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/genealogy/reads.ts:331:15
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:331:28
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.filter(() => undefined).map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:331:35
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.filter((n) => true).map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:331:35
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.filter((n) => false).map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/genealogy/reads.ts:331:35
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.filter((n) => n.kind !== 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:331:46
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.filter((n) => n.kind === "").map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:331:57
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.filter((n) => n.kind === 'LOT').map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:331:65
+-           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({ lotId: n.id, lotCode: n.label, materialCode: n.code, state: n.state })),
++           lots: nodes.filter((n) => n.kind === 'LOT').map((n) => ({})),
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/genealogy/reads.ts:332:18
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.map((n) => ({ batchId: n.id, batchNumber: n.label })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:332:31
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.filter(() => undefined).map((n) => ({ batchId: n.id, batchNumber: n.label })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:332:38
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.filter((n) => true).map((n) => ({ batchId: n.id, batchNumber: n.label })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:332:38
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.filter((n) => false).map((n) => ({ batchId: n.id, batchNumber: n.label })),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/genealogy/reads.ts:332:38
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.filter((n) => n.kind !== 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:332:49
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.filter((n) => n.kind === "").map((n) => ({ batchId: n.id, batchNumber: n.label })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:332:62
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.filter((n) => n.kind === 'BATCH').map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:332:70
+-           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({ batchId: n.id, batchNumber: n.label })),
++           batches: nodes.filter((n) => n.kind === 'BATCH').map((n) => ({})),
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/genealogy/reads.ts:333:20
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:333:33
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.filter(() => undefined).map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:333:40
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.filter((n) => true).map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:333:40
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.filter((n) => false).map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/genealogy/reads.ts:333:40
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.filter((n) => n.kind !== 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:333:51
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.filter((n) => n.kind === "").map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:333:67
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map(() => undefined),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:333:75
+-           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({ shipmentId: n.id, shipmentNo: n.label, consigneeCode: n.state, market: n.sub_kind })),
++           shipments: nodes.filter((n) => n.kind === 'SHIPMENT').map((n) => ({})),
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:50:7
+-     if (refs.length === 0) return [];
++     if (false) return [];
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+  and 1 more test!
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/genealogy/reads.ts:52:11
+-     return (rows[0]?.v ?? []).map(nodeView);
++     return (rows[0].v ?? []).map(nodeView);
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/genealogy/reads.ts:74:35
+-     const start = nodes.find((n) => n.kind === kind && n.id === id);
++     const start = nodes.find((n) => n.kind === kind || n.id === id);
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:74:35
+-     const start = nodes.find((n) => n.kind === kind && n.id === id);
++     const start = nodes.find((n) => true && n.id === id);
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:74:54
+-     const start = nodes.find((n) => n.kind === kind && n.id === id);
++     const start = nodes.find((n) => n.kind === kind && true);
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:75:7
+-     if (!start) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
++     if (false) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such node at the time asked.', whatYouCanDo: ['Check the number.'] });
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/genealogy/reads.ts:84:15
+-         parent: r.parent_kind && r.parent_id ? { kind: r.parent_kind, id: r.parent_id } : null,
++         parent: r.parent_kind || r.parent_id ? { kind: r.parent_kind, id: r.parent_id } : null,
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:88:78
+-       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? { transfers: count('TRANSFER') } : {}) },
++       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count(""), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? { transfers: count('TRANSFER') } : {}) },
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:88:132
+-       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count('TRANSFER') ? { transfers: count('TRANSFER') } : {}) },
++       counts: { lots: count('LOT'), batches: count('BATCH'), containers: count('CONTAINER'), shipments: count('SHIPMENT'), ...(count("") ? { transfers: count('TRANSFER') } : {}) },
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the trace both ways, with node labels, depth and the as-of point; an unknown start is a 404
+    chemical recovery over HTTP (IN-29, PR-48; site services 0960) > [IN-29][PR-48] the stores record the chemical recovery of returns QC assessed and signed for it; the recovered lot is in quarantine and the forward trace reaches it; a second recovery is refused
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:110:7
+-     if (lotIds.length === 0) return [];
++     if (false) return [];
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:132:15
+-       complete: r.consignee_address !== null,
++       complete: true,
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/genealogy/reads.ts:137:17
+-     const lotId = (await db.query<{ id: string | null }>('select recipe.genealogy_lookup($1)::text as id', [code])).rows[0]?.id ?? null;
++     const lotId = (await db.query<{
++     id: string | null;
++   }>('select recipe.genealogy_lookup($1)::text as id', [code])).rows[0].id ?? null;
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:138:7
+-     if (!lotId) {
++     if (false) {
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/genealogy/reads.ts:138:15
+-     if (!lotId) {
+-       throw refusal(404, {
+-         code: 'EBMR-GEN-010',
+-         kind: 'INVALID_INPUT',
+-         whatHappened: 'No lot, finished batch or shipment has this number.',
+-         why: `Nothing is recorded under ${code}.`,
+-         whatYouCanDo: ['Check the number on the complaint (lot or batch number, or the shipment number).'],
+-         whoCanHelp: ['QA'],
+-         controls: ['PR-57'],
+-       });
+-     }
++     if (!lotId) {}
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:143:12
+-         why: `Nothing is recorded under ${code}.`,
++         why: ``,
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:144:21
+-         whatYouCanDo: ['Check the number on the complaint (lot or batch number, or the shipment number).'],
++         whatYouCanDo: [],
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:144:22
+-         whatYouCanDo: ['Check the number on the complaint (lot or batch number, or the shipment number).'],
++         whatYouCanDo: [""],
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:145:19
+-         whoCanHelp: ['QA'],
++         whoCanHelp: [],
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:146:17
+-         controls: ['PR-57'],
++         controls: [],
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:145:20
+-         whoCanHelp: ['QA'],
++         whoCanHelp: [""],
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:146:18
+-         controls: ['PR-57'],
++         controls: [""],
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/genealogy/reads.ts:151:20
+-     const batchIds = (await db.query<{ b: string[] | null }>('select recipe.release_batches($1)::text[] as b', [lotId])).rows[0]?.b ?? [];
++     const batchIds = (await db.query<{
++     b: string[] | null;
++   }>('select recipe.release_batches($1)::text[] as b', [lotId])).rows[0].b ?? [];
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/genealogy/reads.ts:152:22
+-     const deviations = (await db.query<{ d: { deviation_id: string; ref: string; kind: string; title: string; classification: string; state: string }[] }>('select recipe.genealogy_lot_deviations($1) as d', [lotId])).rows[0]?.d ?? [];
++     const deviations = (await db.query<{
++     d: {
++       deviation_id: string;
++       ref: string;
++       kind: string;
++       title: string;
++       classification: string;
++       state: string;
++     }[];
++   }>('select recipe.genealogy_lot_deviations($1) as d', [lotId])).rows[0]?.d && [];
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/genealogy/reads.ts:152:22
+-     const deviations = (await db.query<{ d: { deviation_id: string; ref: string; kind: string; title: string; classification: string; state: string }[] }>('select recipe.genealogy_lot_deviations($1) as d', [lotId])).rows[0]?.d ?? [];
++     const deviations = (await db.query<{
++     d: {
++       deviation_id: string;
++       ref: string;
++       kind: string;
++       title: string;
++       classification: string;
++       state: string;
++     }[];
++   }>('select recipe.genealogy_lot_deviations($1) as d', [lotId])).rows[0].d ?? [];
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:152:154
+-     const deviations = (await db.query<{ d: { deviation_id: string; ref: string; kind: string; title: string; classification: string; state: string }[] }>('select recipe.genealogy_lot_deviations($1) as d', [lotId])).rows[0]?.d ?? [];
++     const deviations = (await db.query<{ d: { deviation_id: string; ref: string; kind: string; title: string; classification: string; state: string }[] }>("", [lotId])).rows[0]?.d ?? [];
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:155:71
+-     const lotsOf = (rows: TraceRow[]) => [...new Set(rows.filter((r) => r.node_kind === 'LOT' && r.depth > 0).map((r) => r.node_id))].map((id) => ({ kind: 'LOT', id }));
++     const lotsOf = (rows: TraceRow[]) => [...new Set(rows.filter((r) => true && r.depth > 0).map((r) => r.node_id))].map((id) => ({ kind: 'LOT', id }));
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:160:32
+-       deviations: deviations.map((d) => ({ deviationId: d.deviation_id, ref: d.ref, kind: d.kind, title: d.title, classification: d.classification, state: d.state })),
++       deviations: deviations.map(() => undefined),
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:170:7
+-     if (!lot) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
++     if (false) throw refusal(404, { code: 'EBMR-GEN-002', kind: 'INVALID_INPUT', whatHappened: 'There is no such lot.', whatYouCanDo: ['Open the lot from the release queue or the lookup.'] });
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/genealogy/reads.ts:171:17
+-     const lines = (await db.query<{ l: { lot_id: string; depth: number; supplier: string | null; supplier_lot: string | null; manufacturer_code: string | null; consumed_by: string[] }[] }>(
+-       `select recipe.genealogy_supply_chain($1, ${tsOf('$2')}) as l`, [lotId, us])).rows[0]?.l ?? [];
++     const lines = (await db.query<{
++     l: {
++       lot_id: string;
++       depth: number;
++       supplier: string | null;
++       supplier_lot: string | null;
++       manufacturer_code: string | null;
++       consumed_by: string[];
++     }[];
++   }>(`select recipe.genealogy_supply_chain($1, ${tsOf('$2')}) as l`, [lotId, us])).rows[0].l ?? [];
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/genealogy/reads.ts:177:177
+-       lines: lines.map((l) => ({ lot: views.get(l.lot_id)!, depth: l.depth, supplier: l.supplier, supplierLot: l.supplier_lot, manufacturerCode: l.manufacturer_code, consumedBy: l.consumed_by.sort() })),
++       lines: lines.map((l) => ({ lot: views.get(l.lot_id)!, depth: l.depth, supplier: l.supplier, supplierLot: l.supplier_lot, manufacturerCode: l.manufacturer_code, consumedBy: l.consumed_by })),
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-57][IN-07] the complaint lookup by lot, batch or shipment number opens the lot, its deviations, shipments and genealogy; the supply-chain report names the API lot and its supplier
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/genealogy/reads.ts:198:8
+-     if (!r?.finished || !r.r) {
++     if (!r.finished || !r.r) {
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:199:127
+-       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: ['Open the lot from the release queue.'], controls: ['PR-49'] });
++       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: [], controls: ['PR-49'] });
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:199:128
+-       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: ['Open the lot from the release queue.'], controls: ['PR-49'] });
++       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: [""], controls: ['PR-49'] });
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:199:179
+-       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: ['Open the lot from the release queue.'], controls: ['PR-49'] });
++       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: ['Open the lot from the release queue.'], controls: [] });
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:199:180
+-       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: ['Open the lot from the release queue.'], controls: ['PR-49'] });
++       throw refusal(404, { code: 'EBMR-GEN-011', kind: 'INVALID_INPUT', whatHappened: 'This is no finished lot.', whatYouCanDo: ['Open the lot from the release queue.'], controls: [""] });
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:206:26
+-       items: r.r.items.map((i) => ({
+-         deviationId: i.deviation_id,
+-         ref: i.ref,
+-         title: i.title,
+-         rootCauseCategory: i.root_cause_category,
+-         productCode: i.product_code,
+-         occurrences: i.occurrences,
+-         warning: i.warning,
+-         others: i.others.map((o) => ({ deviationId: o.deviation_id, ref: o.ref, raisedAt: app.formatInstant(o.raised_us) })),
+-       })),
++       items: r.r.items.map(() => undefined),
+Tests ran:
+    genealogy routes over HTTP (PR-57, IN-07) > [PR-49][PR-50] the recurrence read of a finished lot and the deviation impact query answer; neither exists for what is not there
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:254:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.person_id, r.signoff?.person_id]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:254:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.person_id, r.signoff?.person_id]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/genealogy/reads.ts:282:181
+-       throw refusal(404, { code: 'EBMR-RCL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no mock recall with this id.', why: `Mock recall ${id} was never run.`, whatYouCanDo: ['Open the mock recall from the list.'] });
++       throw refusal(404, { code: 'EBMR-RCL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no mock recall with this id.', why: `Mock recall ${id} was never run.`, whatYouCanDo: [] });
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:282:131
+-       throw refusal(404, { code: 'EBMR-RCL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no mock recall with this id.', why: `Mock recall ${id} was never run.`, whatYouCanDo: ['Open the mock recall from the list.'] });
++       throw refusal(404, { code: 'EBMR-RCL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no mock recall with this id.', why: ``, whatYouCanDo: ['Open the mock recall from the list.'] });
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:282:182
+-       throw refusal(404, { code: 'EBMR-RCL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no mock recall with this id.', why: `Mock recall ${id} was never run.`, whatYouCanDo: ['Open the mock recall from the list.'] });
++       throw refusal(404, { code: 'EBMR-RCL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no mock recall with this id.', why: `Mock recall ${id} was never run.`, whatYouCanDo: [""] });
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/genealogy/reads.ts:286:22
+-     const federation = r.query_version >= 2 ? await mockRecallFederation(app, db, id) : undefined;
++     const federation = true ? await mockRecallFederation(app, db, id) : undefined;
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/genealogy/reads.ts:291:74
+-       batches: res.batches.map((b) => ({ batchId: b.batch_id, batchNumber: b.batch_number ?? b.batch_id, productCode: b.product_code, depth: b.depth })),
++       batches: res.batches.map((b) => ({ batchId: b.batch_id, batchNumber: b.batch_number && b.batch_id, productCode: b.product_code, depth: b.depth })),
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/genealogy/reads.ts:316:15
+-     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x !== null);
++     const ids = f.transfers.map(t => t.excerpt_id);
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:316:31
+-     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x !== null);
++     const ids = f.transfers.map(() => undefined).filter((x): x is string => x !== null);
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:316:59
+-     const ids = f.transfers.map((t) => t.excerpt_id).filter((x): x is string => x !== null);
++     const ids = f.transfers.map((t) => t.excerpt_id).filter(() => undefined);
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/genealogy/reads.ts:317:77
+-     const payloads = new Map((await db.query<{ id: string; payload: string }>('select id::text, payload from recipe.federated_excerpt where id = any ($1::uuid[])', [ids])).rows.map((r) => [r.id, r.payload]));
++     const payloads = new Map((await db.query<{ id: string; payload: string }>("", [ids])).rows.map((r) => [r.id, r.payload]));
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:317:180
+-     const payloads = new Map((await db.query<{ id: string; payload: string }>('select id::text, payload from recipe.federated_excerpt where id = any ($1::uuid[])', [ids])).rows.map((r) => [r.id, r.payload]));
++     const payloads = new Map((await db.query<{ id: string; payload: string }>('select id::text, payload from recipe.federated_excerpt where id = any ($1::uuid[])', [ids])).rows.map(() => undefined));
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/genealogy/reads.ts:320:40
+-       beyondOneHop: f.beyond_one_hop.map((b) => ({ transferId: b.transfer_id, packageNo: b.package_no, destination: b.destination })),
++       beyondOneHop: f.beyond_one_hop.map(() => undefined),
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/genealogy/signables.ts:23:14
+-         return { mockRecallId: a.mockRecallId, signOffId: rows[0]!.id };
++         return {};
+Tests ran:
+    mock recall routes over HTTP (IN-29) > [IN-29] QA runs a mock recall from a lot; it lists the consignee and the reconciliation, reproduces and is listed; the AP signs it off through the ceremony, QA cannot, and only once
+
+
+Ran 0.59 tests per mutant on average.
+--------------|------------------|----------|-----------|------------|----------|----------|
+              | % Mutation score |          |           |            |          |          |
+File          |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+--------------|--------|---------|----------|-----------|------------|----------|----------|
+All files     |  53.76 |   74.63 |      200 |         0 |         68 |      104 |        0 |
+ guidance.ts  |    n/a |     n/a |        0 |         0 |          0 |        0 |        0 |
+ index.ts     |  23.38 |   50.00 |       18 |         0 |         18 |       41 |        0 |
+ reads.ts     |  60.98 |   78.13 |      175 |         0 |         49 |       63 |        0 |
+ signables.ts |  87.50 |   87.50 |        7 |         0 |          1 |        0 |        0 |
+--------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m02:25:43 (627304) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-genealogy.json
+[32m02:25:43 (627304) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-genealogy.html
+[32m02:25:43 (627304) INFO MutationTestExecutor[39m Done in 31 minutes and 43 seconds.

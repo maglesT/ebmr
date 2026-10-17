@@ -213,3 +213,37 @@ packaging-labels-and-line-completion: baseline db 7 s (limit 240 s), server 25 s
   SURVIVED tab.enable_reconciliation_waiver#35 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:537 [and] -> [or]
   SURVIVED tab.enable_reconciliation_waiver#41 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:538 [=] -> [<>]
   packaging-labels-and-line-completion: 325/352
+  SURVIVED tab.refuse_incomplete_packaging#3 RELATIONAL apps/tablets-server/sql/1230_packaging_line_completion.sql:631 [=] -> [<>]
+  SURVIVED tab.print_job_rules#6 LOGICAL apps/tablets-server/sql/1230_packaging_line_completion.sql:655 [and] -> [or]
+  packaging-labels-and-line-completion: 350/352
+packaging-labels-and-line-completion: score 77.8 % (274/352 detected, 0 invalid) in 4768 s
+serialisation-l3: baseline server 21 s (limit 240 s)
+  SURVIVED tab.receive_l3_message#2 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:145 [or] -> [and]
+  SURVIVED tab.receive_l3_message#4 GUARD_REMOVED apps/tablets-server/sql/1231_serialisation_l3_l4.sql:146 [raise exception using errcode = 'P0001', message = format('EBMR-L3-101 this comm] -> [null]
+  SURVIVED tab.receive_l3_message#17 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:159 [or] -> [and]
+  SURVIVED tab.receive_l3_message#19 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:160 [or] -> [and]
+  SURVIVED tab.receive_l3_message#26 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:161 [or] -> [and]
+  SURVIVED tab.receive_l3_message#28 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:162 [or] -> [and]
+  SURVIVED tab.receive_l3_message#30 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:162 [or] -> [and]
+  serialisation-l3: 25/112
+  SURVIVED tab.receive_l3_message#37 GUARD_REMOVED apps/tablets-server/sql/1231_serialisation_l3_l4.sql:167 [raise exception using errcode = 'P0001', message = format('EBMR-L3-103 pool %s i] -> [null]
+  SURVIVED tab.receive_l3_message#42 RELATIONAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:171 [=] -> [<>]
+  SURVIVED tab.receive_l3_message#53 RELATIONAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:175 [>] -> [>=]
+  SURVIVED tab.receive_l3_message#72 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:186 [or] -> [and]
+  SURVIVED tab.receive_l3_message#76 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:187 [or] -> [and]
+  SURVIVED tab.receive_l3_message#74 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:187 [or] -> [and]
+  SURVIVED tab.receive_l3_message#78 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:188 [or] -> [and]
+  SURVIVED tab.receive_l3_message#80 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:188 [or] -> [and]
+  SURVIVED tab.receive_l3_message#82 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189 [or] -> [and]
+  SURVIVED tab.receive_l3_message#86 RELATIONAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189 [>] -> [>=]
+  SURVIVED tab.receive_l3_message#84 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189 [or] -> [and]
+  SURVIVED tab.receive_l3_message#87 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189 [or] -> [and]
+  serialisation-l3: 50/112
+  SURVIVED tab.receive_l3_message#90 LOGICAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:190 [or] -> [and]
+  SURVIVED tab.receive_l3_message#92 GUARD_REMOVED apps/tablets-server/sql/1231_serialisation_l3_l4.sql:191 [raise exception using errcode = 'P0001', message = 'EBMR-L3-101 malformed l3.dec] -> [null]
+  SURVIVED tab.receive_l3_message#97 GUARD_REMOVED apps/tablets-server/sql/1231_serialisation_l3_l4.sql:195 [raise exception using errcode = 'P0001', message = format('EBMR-L3-103 pool %s i] -> [null]
+  SURVIVED tab.receive_l3_message#114 RELATIONAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:205 [=] -> [<>]
+  SURVIVED tab.receive_l3_message#117 RELATIONAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:205 [=] -> [<>]
+  SURVIVED tab.receive_l3_message#119 RELATIONAL apps/tablets-server/sql/1231_serialisation_l3_l4.sql:205 [>] -> [>=]
+  SURVIVED tab.receive_l3_message#120 GUARD_REMOVED apps/tablets-server/sql/1231_serialisation_l3_l4.sql:206 [raise exception using errcode = 'P0001', message = format('EBMR-L3-104 a newer s] -> [null]
+  SURVIVED tab.assert_pool_rejection#2 GUARD_REMOVED apps/tablets-server/sql/1231_serialisation_l3_l4.sql:226 [raise exception using errcode = 'P0001', message = format('EBMR-L3-106 %s is no ] -> [null]

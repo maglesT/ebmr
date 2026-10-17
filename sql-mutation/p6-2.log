@@ -146,3 +146,26 @@ genealogy-and-recall: baseline db 33 s (limit 240 s), server 8 s (limit 240 s)
   SURVIVED recipe.run_mock_recall#13 RELATIONAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:149 [<=] -> [<]
   SURVIVED recipe.run_mock_recall#15 LOGICAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:151 [and] -> [or]
   SURVIVED recipe.run_mock_recall#16 RELATIONAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:151 [<=] -> [<]
+  SURVIVED recipe.mock_recall_content#3 RELATIONAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:187 [=] -> [<>]
+  SURVIVED recipe.sign_off_mock_recall#2 GUARD_REMOVED packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:287 [raise exception using errcode = 'P0001', message = format('EBMR-RCL-010 there is] -> [null]
+  genealogy-and-recall: 350/440
+  SURVIVED recipe.sign_off_mock_recall#5 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:290 [=] -> [<>]
+  SURVIVED recipe.sign_off_mock_recall#11 GUARD_REMOVED packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:295 [raise exception using errcode = 'P0001', message = 'EBMR-RCL-012 a re-run as of ] -> [null]
+  SURVIVED recipe.sign_off_mock_recall#16 GUARD_REMOVED packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:301 [raise exception using errcode = 'P0001', message = format('EBMR-RCL-013 a mock r] -> [null]
+  SURVIVED recipe.sign_off_mock_recall#20 GUARD_REMOVED packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:306 [raise exception using errcode = 'P0001', message = 'EBMR-RCL-014 the signed mock] -> [null]
+  SURVIVED recipe.deviation_impact_batches#4 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:331 [<=] -> [<]
+  SURVIVED recipe.deviation_impact_batches#8 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:334 [>] -> [>=]
+  SURVIVED recipe.deviation_impact_batches#9 GUARD_REMOVED packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:335 [raise exception using errcode = 'P0001', message = 'EBMR-RCL-002 the as-of point] -> [null]
+  SURVIVED recipe.deviation_impact_batches#14 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:339 [<=] -> [<]
+  genealogy-and-recall: 375/440
+  SURVIVED recipe.deviation_impact_batches#20 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:342 [<=] -> [<]
+  SURVIVED recipe.deviation_impact_batches#24 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:342 [<=] -> [<]
+  SURVIVED recipe.deviation_impact_batches#31 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:349 [<=] -> [<]
+  SURVIVED recipe.deviation_impact_batches#32 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:351 [=] -> [<>]
+  SURVIVED recipe.deviation_impact_batches#34 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:351 [<=] -> [<]
+  genealogy-and-recall: 400/440
+  SURVIVED recipe.deviation_of_product#3 NOT_REMOVED packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:377 [not ] -> []
+  SURVIVED recipe.deviation_of_product#4 LOGICAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:377 [and] -> [or]
+  SURVIVED recipe.deviation_of_product#6 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:377 [=] -> [<>]
+  SURVIVED recipe.deviation_recurrence#11 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:394 [>] -> [>=]
+  genealogy-and-recall: 425/440

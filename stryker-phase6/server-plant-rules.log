@@ -22,3 +22,1678 @@ Mutation testing 13% (elapsed: ~2m, remaining: ~14m) 184/372 tested (6 survived,
 Mutation testing 14% (elapsed: ~2m, remaining: ~14m) 186/372 tested (6 survived, 0 timed out)
 Mutation testing 15% (elapsed: ~2m, remaining: ~14m) 188/372 tested (6 survived, 0 timed out)
 Mutation testing 16% (elapsed: ~2m, remaining: ~14m) 190/372 tested (6 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~3m, remaining: ~13m) 192/372 tested (6 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~3m, remaining: ~13m) 194/372 tested (7 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~3m, remaining: ~13m) 196/372 tested (9 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~3m, remaining: ~13m) 198/372 tested (11 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~3m, remaining: ~13m) 200/372 tested (12 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~3m, remaining: ~13m) 202/372 tested (12 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~4m, remaining: ~13m) 203/372 tested (12 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~4m, remaining: ~13m) 204/372 tested (12 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~4m, remaining: ~13m) 206/372 tested (13 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~4m, remaining: ~13m) 208/372 tested (13 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~4m, remaining: ~12m) 210/372 tested (13 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~4m, remaining: ~13m) 211/372 tested (14 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~5m, remaining: ~12m) 213/372 tested (16 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~5m, remaining: ~12m) 215/372 tested (18 survived, 0 timed out)
+Mutation testing 29% (elapsed: ~5m, remaining: ~12m) 217/372 tested (19 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~5m, remaining: ~12m) 218/372 tested (19 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~5m, remaining: ~12m) 219/372 tested (19 survived, 0 timed out)
+Mutation testing 31% (elapsed: ~5m, remaining: ~12m) 221/372 tested (19 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~6m, remaining: ~12m) 223/372 tested (19 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~6m, remaining: ~12m) 225/372 tested (20 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~6m, remaining: ~12m) 225/372 tested (20 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~6m, remaining: ~12m) 227/372 tested (22 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~6m, remaining: ~12m) 227/372 tested (22 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~6m, remaining: ~12m) 229/372 tested (24 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~7m, remaining: ~12m) 231/372 tested (25 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~7m, remaining: ~11m) 233/372 tested (25 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~7m, remaining: ~12m) 233/372 tested (25 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~7m, remaining: ~11m) 235/372 tested (26 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~7m, remaining: ~11m) 237/372 tested (26 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~7m, remaining: ~11m) 239/372 tested (26 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~8m, remaining: ~11m) 241/372 tested (26 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~8m, remaining: ~11m) 241/372 tested (26 survived, 0 timed out)
+Mutation testing 42% (elapsed: ~8m, remaining: ~11m) 243/372 tested (26 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~8m, remaining: ~10m) 245/372 tested (26 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~8m, remaining: ~10m) 245/372 tested (26 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~8m, remaining: ~10m) 247/372 tested (27 survived, 0 timed out)
+Mutation testing 48% (elapsed: ~9m, remaining: ~9m) 251/372 tested (29 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~9m, remaining: ~9m) 253/372 tested (30 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~9m, remaining: ~8m) 255/372 tested (32 survived, 0 timed out)
+Mutation testing 52% (elapsed: ~9m, remaining: ~8m) 257/372 tested (32 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~9m, remaining: ~8m) 259/372 tested (34 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~9m, remaining: ~8m) 260/372 tested (35 survived, 0 timed out)
+Mutation testing 56% (elapsed: ~10m, remaining: ~7m) 262/372 tested (36 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~10m, remaining: ~7m) 264/372 tested (37 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~10m, remaining: ~7m) 264/372 tested (37 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~10m, remaining: ~7m) 267/372 tested (39 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~10m, remaining: ~6m) 269/372 tested (39 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~10m, remaining: ~7m) 269/372 tested (39 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~11m, remaining: ~7m) 271/372 tested (39 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~11m, remaining: ~7m) 273/372 tested (39 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~11m, remaining: ~7m) 275/372 tested (39 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~11m, remaining: ~7m) 277/372 tested (39 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~11m, remaining: ~7m) 281/372 tested (42 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~11m, remaining: ~7m) 283/372 tested (44 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~12m, remaining: ~7m) 285/372 tested (45 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~12m, remaining: ~7m) 287/372 tested (45 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~12m, remaining: ~7m) 289/372 tested (46 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~12m, remaining: ~7m) 291/372 tested (46 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~12m, remaining: ~7m) 293/372 tested (47 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~12m, remaining: ~7m) 295/372 tested (48 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~13m, remaining: ~7m) 298/372 tested (49 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~13m, remaining: ~7m) 300/372 tested (50 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~13m, remaining: ~7m) 302/372 tested (50 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~13m, remaining: ~7m) 303/372 tested (50 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~13m, remaining: ~7m) 305/372 tested (50 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~13m, remaining: ~7m) 307/372 tested (51 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~14m, remaining: ~7m) 307/372 tested (51 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~14m, remaining: ~6m) 311/372 tested (53 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~14m, remaining: ~6m) 312/372 tested (53 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~14m, remaining: ~6m) 315/372 tested (55 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~14m, remaining: ~5m) 317/372 tested (55 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~14m, remaining: ~5m) 318/372 tested (55 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~15m, remaining: ~5m) 320/372 tested (55 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~15m, remaining: ~5m) 322/372 tested (55 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~15m, remaining: ~4m) 326/372 tested (56 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~15m, remaining: ~4m) 328/372 tested (56 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~15m, remaining: ~4m) 328/372 tested (56 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~15m, remaining: ~4m) 330/372 tested (57 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~16m, remaining: ~4m) 332/372 tested (58 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~16m, remaining: ~4m) 332/372 tested (58 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~16m, remaining: ~3m) 334/372 tested (59 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~16m, remaining: ~3m) 336/372 tested (59 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~16m, remaining: ~3m) 338/372 tested (59 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~16m, remaining: ~3m) 340/372 tested (59 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~17m, remaining: ~3m) 342/372 tested (59 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~17m, remaining: ~2m) 344/372 tested (61 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~17m, remaining: ~2m) 346/372 tested (62 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~17m, remaining: ~2m) 348/372 tested (62 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~17m, remaining: ~2m) 350/372 tested (63 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~17m, remaining: ~2m) 352/372 tested (64 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~18m, remaining: ~1m) 354/372 tested (64 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~18m, remaining: ~1m) 356/372 tested (64 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~18m, remaining: ~1m) 358/372 tested (64 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~18m, remaining: ~1m) 360/372 tested (64 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~18m, remaining: ~1m) 362/372 tested (64 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~18m, remaining: ~1m) 362/372 tested (64 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~19m, remaining: <1m) 364/372 tested (64 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~19m, remaining: <1m) 365/372 tested (65 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~19m, remaining: <1m) 366/372 tested (66 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~19m, remaining: <1m) 368/372 tested (68 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~19m, remaining: <1m) 368/372 tested (68 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~19m, remaining: <1m) 370/372 tested (70 survived, 0 timed out)
+
+All tests
+  alarms
+    area-authorisation-matrix.test.ts
+      ✓ area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason (killed 81)
+    plant-displays.test.ts
+      ✓ the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition (killed 32)
+      ✓ the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch (killed 28)
+  integrations/ems/ems-adapter.test.ts
+    ✘ the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31][DI-32] EMS: room temperature and humidity chunks land in plant.series as received; the room conditions show the latest sample (covered 0)
+    ✘ the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS feed gap alarms (covered 0)
+    ✘ the EMS adapter against its simulator (DI-31, DI-32, DI-49) > [DI-31] EMS: the soak with every fault in turn reconciles (no silent loss) (covered 0)
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:25:55
+-       String((await c.query(sql, params)).rows[0]?.r ?? '');
++       String((await c.query(sql, params)).rows[0]?.r ?? "Stryker was here!");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:37:42
+-       rooms: async ({ requireSession }) => {
+-         requireSession();
+-         return { rooms: await rooms(app, pool) };
+-       },
++       rooms: async ({ requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/plant-rules/index.ts:38:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:39:14
+-         return { rooms: await rooms(app, pool) };
++         return {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:41:59
+-       roomConditions: async ({ params, requireSession }) => {
+-         requireSession();
+-         return roomConditions(app, pool, params.code);
+-       },
++       roomConditions: async ({ params, requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/plant-rules/index.ts:42:7
+-         requireSession();
++         ;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:46:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:50:82
+-       setRoomRule: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.set_area_rule($1, $2, $3, $4) as r', [params.code, body.authorisationRequired, body.cleanHoldSeconds, body.reason]));
+-         return room(app, pool, params.code);
+-       },
++       setRoomRule: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:51:55
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:51:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/index.ts:51:90
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.set_area_rule($1, $2, $3, $4) as r', [params.code, body.authorisationRequired, body.cleanHoldSeconds, body.reason]));
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:52:16
+-           one(c, 'select plant.set_area_rule($1, $2, $3, $4) as r', [params.code, body.authorisationRequired, body.cleanHoldSeconds, body.reason]));
++           one(c, "", [params.code, body.authorisationRequired, body.cleanHoldSeconds, body.reason]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:52:67
+-           one(c, 'select plant.set_area_rule($1, $2, $3, $4) as r', [params.code, body.authorisationRequired, body.cleanHoldSeconds, body.reason]));
++           one(c, 'select plant.set_area_rule($1, $2, $3, $4) as r', []));
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:55:48
+-       adjacencies: async ({ requireSession }) => {
+-         requireSession();
+-         return { adjacencies: await adjacencies(app, pool) };
+-       },
++       adjacencies: async ({ requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/plant-rules/index.ts:56:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:57:14
+-         return { adjacencies: await adjacencies(app, pool) };
++         return {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:59:78
+-       defineAdjacency: async ({ body, actor, idempotencyKey, requestHash }) => {
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
+-         return { version };
+-       },
++       defineAdjacency: async ({ body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:60:83
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:60:101
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/index.ts:60:118
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:61:16
+-           one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
++           one(c, "", [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:61:79
+-           one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
++           one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', []));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:61:132
+-           one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
++           one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification && null]));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:62:14
+-         return { version };
++         return {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:64:86
+-       setFacilityRule: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.set_facility_rule($1, $2, $3) as r', [params.site, body.penicillinFacility, body.justification]));
+-         return { version };
+-       },
++       setFacilityRule: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:65:83
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:65:101
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/index.ts:65:118
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.set_facility_rule($1, $2, $3) as r', [params.site, body.penicillinFacility, body.justification]));
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:66:16
+-           one(c, 'select plant.set_facility_rule($1, $2, $3) as r', [params.site, body.penicillinFacility, body.justification]));
++           one(c, "", [params.site, body.penicillinFacility, body.justification]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:66:67
+-           one(c, 'select plant.set_facility_rule($1, $2, $3) as r', [params.site, body.penicillinFacility, body.justification]));
++           one(c, 'select plant.set_facility_rule($1, $2, $3) as r', []));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:67:14
+-         return { version };
++         return {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:69:81
+-       classifyBetaLactam: async ({ body, actor, idempotencyKey, requestHash }) => {
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.classify_beta_lactam($1, $2, $3, $4) as r', [body.kind, body.code, body.betaLactam, body.reason]));
+-         return { version };
+-       },
++       classifyBetaLactam: async ({ body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:70:83
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:70:101
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/index.ts:70:118
+-         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.classify_beta_lactam($1, $2, $3, $4) as r', [body.kind, body.code, body.betaLactam, body.reason]));
++         const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:71:16
+-           one(c, 'select plant.classify_beta_lactam($1, $2, $3, $4) as r', [body.kind, body.code, body.betaLactam, body.reason]));
++           one(c, "", [body.kind, body.code, body.betaLactam, body.reason]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:71:74
+-           one(c, 'select plant.classify_beta_lactam($1, $2, $3, $4) as r', [body.kind, body.code, body.betaLactam, body.reason]));
++           one(c, 'select plant.classify_beta_lactam($1, $2, $3, $4) as r', []));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:72:14
+-         return { version };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:75:111
+-         const { result: qualificationCode } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: qualificationCode } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:95:96
+-         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:103:76
+-         await withIdempotentActorCommand(pool, withReason, idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, withReason, idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:109:48
+-       reagentLots: async ({ requireSession }) => {
+-         requireSession();
+-         return { lots: await reagentLots(app, pool) };
+-       },
++       reagentLots: async ({ requireSession }) => {},
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/plant-rules/index.ts:110:7
+-         requireSession();
++         ;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:111:14
+-         return { lots: await reagentLots(app, pool) };
++         return {};
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:113:79
+-       recordReagentLot: async ({ body, actor, idempotencyKey, requestHash }) => {
+-         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
+-         return reagentLot(app, pool, body.lotCode);
+-       },
++       recordReagentLot: async ({ body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/plant-rules/index.ts:114:38
+-         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
++         const lot = Object.fromEntries(Object.entries(body));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/index.ts:114:66
+-         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
++         const lot = Object.fromEntries(Object.entries(body).filter(() => undefined));
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/index.ts:114:75
+-         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
++         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => true));
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/index.ts:114:75
+-         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
++         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => false));
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/plant-rules/index.ts:114:75
+-         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
++         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k === 'attribution'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:114:81
+-         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== 'attribution'));
++         const lot = Object.fromEntries(Object.entries(body).filter(([k]) => k !== ""));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:115:55
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:115:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/index.ts:115:90
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:115:104
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, "", [JSON.stringify(lot)]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:115:154
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', [JSON.stringify(lot)]));
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) => one(c, 'select site.record_reagent_lot($1::jsonb) as r', []));
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:118:89
+-       withdrawReagentLot: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           await c.query('select site.withdraw_reagent_lot($1, $2)', [params.lotCode, body.reason]);
+-           return params.lotCode;
+-         });
+-         return reagentLot(app, pool, params.lotCode);
+-       },
++       withdrawReagentLot: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:119:55
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:119:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:119:103
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
+-           await c.query('select site.withdraw_reagent_lot($1, $2)', [params.lotCode, body.reason]);
+-           return params.lotCode;
+-         });
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:120:23
+-           await c.query('select site.withdraw_reagent_lot($1, $2)', [params.lotCode, body.reason]);
++           await c.query("", [params.lotCode, body.reason]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:120:67
+-           await c.query('select site.withdraw_reagent_lot($1, $2)', [params.lotCode, body.reason]);
++           await c.query('select site.withdraw_reagent_lot($1, $2)', []);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/index.ts:125:79
+-       recordReagentUse: async ({ body, actor, idempotencyKey, requestHash }) => {
+-         const { result: useId } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.record_reagent_use($1, $2, $3, $4) as r', [body.batchId, body.step, body.lotCode, body.purpose]));
+-         return { useId };
+-       },
++       recordReagentUse: async ({ body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:126:81
+-         const { result: useId } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: useId } = await withIdempotentActorCommand(pool, actor(), idempotencyKey && '', requestHash, (c) =>
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:126:99
+-         const { result: useId } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
++         const { result: useId } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, (c) =>
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/index.ts:126:116
+-         const { result: useId } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
+-           one(c, 'select plant.record_reagent_use($1, $2, $3, $4) as r', [body.batchId, body.step, body.lotCode, body.purpose]));
++         const { result: useId } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, () => undefined);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:127:16
+-           one(c, 'select plant.record_reagent_use($1, $2, $3, $4) as r', [body.batchId, body.step, body.lotCode, body.purpose]));
++           one(c, "", [body.batchId, body.step, body.lotCode, body.purpose]));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:127:72
+-           one(c, 'select plant.record_reagent_use($1, $2, $3, $4) as r', [body.batchId, body.step, body.lotCode, body.purpose]));
++           one(c, 'select plant.record_reagent_use($1, $2, $3, $4) as r', []));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:128:14
+-         return { useId };
++         return {};
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/plant-rules/index.ts:25:12
+-       String((await c.query(sql, params)).rows[0]?.r ?? '');
++       String((await c.query(sql, params)).rows[0].r ?? '');
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/plant-rules/index.ts:28:7
+-         requireSession();
++         ;
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/plant-rules/index.ts:32:7
+-         requireSession();
++         ;
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:47:121
+-           one(c, 'select plant.record_spill($1, $2, $3, $4) as r', [params.code, body.description, body.material ?? null, body.batchId ?? null]));
++           one(c, 'select plant.record_spill($1, $2, $3, $4) as r', [params.code, body.description, body.material ?? null, body.batchId && null]));
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:47:98
+-           one(c, 'select plant.record_spill($1, $2, $3, $4) as r', [params.code, body.description, body.material ?? null, body.batchId ?? null]));
++           one(c, 'select plant.record_spill($1, $2, $3, $4) as r', [params.code, body.description, body.material && null, body.batchId ?? null]));
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/plant-rules/index.ts:80:7
+-         requireSession();
++         ;
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:88:155
+-         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: [], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:88:208
+-         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: [], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:88:156
+-         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: [""], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:88:209
+-         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: [""], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:88:248
+-         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: [] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:88:249
+-         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!person) throw refusal(404, { code: 'EBMR-PLANT-186', kind: 'INVALID_INPUT', whatHappened: `There is no user ${body.loginName}.`, whatYouCanDo: ['Check the user id and record again.'], whoCanHelp: ['The training coordinator'], controls: [""] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/plant-rules/index.ts:93:12
+-         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!rows[0].defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:93:190
+-         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: [], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:93:191
+-         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: [""], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:93:288
+-         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: [], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:93:289
+-         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: [""], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:93:328
+-         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: [] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:93:329
+-         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (!rows[0]?.defined) throw refusal(422, { code: 'EBMR-PLANT-187', kind: 'INVALID_INPUT', whatHappened: `The area authorisation of ${params.code} is not defined yet.`, whatYouCanDo: ['Define the area authorisation of the room or line first, then record the person.'], whoCanHelp: ['The training coordinator'], controls: [""] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:94:204
+-         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: [], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:94:205
+-         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: [""], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:94:257
+-         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: [], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/index.ts:94:297
+-         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: [] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:94:258
+-         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: [""], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/index.ts:94:298
+-         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++         if (rows[0].future === false) throw refusal(422, { code: 'EBMR-PLANT-188', kind: 'INVALID_INPUT', whatHappened: 'The authorisation would end before it starts: it is valid from now.', whatYouCanDo: ['Give an end in the future, or none.'], whoCanHelp: ['The training coordinator'], controls: [""] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/index.ts:96:151
+-           one(c, 'select iam.record_qualification($1, iam.area_authorisation_code($2), clock_timestamp(), $3::timestamptz) as r', [person, params.code, body.validTo ?? null]));
++           one(c, 'select iam.record_qualification($1, iam.area_authorisation_code($2), clock_timestamp(), $3::timestamptz) as r', [person, params.code, body.validTo && null]));
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:24:55
+-     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
++     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{
++     us: string;
++   }>(`select ${NOW_US} as us`)).rows[0].us ?? '0');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:24:87
+-     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
++     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(``)).rows[0]?.us ?? '0');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:24:129
+-     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
++     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? "");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:34:27
+-       batch: b['batchId'] ? { batchId: b['batchId'] as string, batchRef: String(b['batchRef']), product: String(b['product']) } : null,
++       batch: b['batchId'] ? {} : null,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:34:81
+-       batch: b['batchId'] ? { batchId: b['batchId'] as string, batchRef: String(b['batchRef']), product: String(b['product']) } : null,
++       batch: b['batchId'] ? { batchId: b['batchId'] as string, batchRef: String(b[""]), product: String(b['product']) } : null,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:34:113
+-       batch: b['batchId'] ? { batchId: b['batchId'] as string, batchRef: String(b['batchRef']), product: String(b['product']) } : null,
++       batch: b['batchId'] ? { batchId: b['batchId'] as string, batchRef: String(b['batchRef']), product: String(b[""]) } : null,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:70:44
+-       readAt: app.formatInstant(r?.now_us ?? '0'),
++       readAt: app.formatInstant(r?.now_us ?? ""),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/reads.ts:104:80
+-   export async function rooms(app: AppContext, db: Db): Promise<RoomStateView[]> {
+-     const { rows } = await db.query<RoomRow>(`${ROOMS} order by a.code`);
+-     return rows.map((r) => roomView(app, r));
+-   }
++   export async function rooms(app: AppContext, db: Db): Promise<RoomStateView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:105:44
+-     const { rows } = await db.query<RoomRow>(`${ROOMS} order by a.code`);
++     const { rows } = await db.query<RoomRow>(``);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/reads.ts:106:19
+-     return rows.map((r) => roomView(app, r));
++     return rows.map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:112:30
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:112:38
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:112:62
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: "", whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:112:93
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: ``, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:112:144
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: [], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:112:145
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: [""], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:112:182
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: [], controls: ['PR-25'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:112:183
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: [""], controls: ['PR-25'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:112:218
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:112:219
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: [""] });
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/reads.ts:116:106
+-   export async function roomConditions(app: AppContext, db: Db, code: string): Promise<RoomConditionsView> {
+-     await room(app, db, code);
+-     const { rows } = await db.query<{ c: Record<string, unknown>; now_us: string }>(`select plant.room_conditions($1) as c, ${NOW_US} as now_us`, [code]);
+-     const c = rows[0]?.c ?? {};
+-     const received = await db.query<{ tag: string; us: string | null }>(
+-       `select t ->> 'tag' as tag, ${tsUs("t ->> 'receivedAt'")} as us from jsonb_array_elements($1::jsonb) t`,
+-       [JSON.stringify(c['tags'] ?? [])],
+-     );
+-     const receivedOf = new Map(received.rows.map((x) => [x.tag, x.us]));
+-     const tags = (c['tags'] as { tag: string; unit: string; sample: Record<string, unknown> | null }[]).map((t) => {
+-       const us = receivedOf.get(t.tag) ?? null;
+-       const s = t.sample;
+-       return {
+-         tag: t.tag,
+-         unit: t.unit,
+-         sample: s
+-           ? {
+-               sourceTime: String(s['sourceTime']),
+-               serverTime: (s['serverTime'] as string | null) ?? null,
+-               raw: String(s['raw']),
+-               value: (s['value'] as string | null) ?? null,
+-               status: String(s['status']),
+-               quality: qualityOf(String(s['status'])),
+-             }
+-           : null,
+-         receivedAt: us === null ? null : app.formatInstant(us),
+-       };
+-     });
+-     const alarms = (c['openAlarms'] as { id: string; source: 'EBMR' | 'OPCUA' | 'EMS'; alarmCode: string; message: string; gmpCritical: boolean; raisedSourceUs: string }[]).map((a) => ({
+-       alarmId: a.id,
+-       source: a.source,
+-       alarmCode: a.alarmCode,
+-       message: a.message,
+-       gmpCritical: a.gmpCritical,
+-       raisedAtSource: app.formatInstant(a.raisedSourceUs),
+-     }));
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
+-   }
++   export async function roomConditions(app: AppContext, db: Db, code: string): Promise<RoomConditionsView> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:118:83
+-     const { rows } = await db.query<{ c: Record<string, unknown>; now_us: string }>(`select plant.room_conditions($1) as c, ${NOW_US} as now_us`, [code]);
++     const { rows } = await db.query<{ c: Record<string, unknown>; now_us: string }>(``, [code]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:118:145
+-     const { rows } = await db.query<{ c: Record<string, unknown>; now_us: string }>(`select plant.room_conditions($1) as c, ${NOW_US} as now_us`, [code]);
++     const { rows } = await db.query<{ c: Record<string, unknown>; now_us: string }>(`select plant.room_conditions($1) as c, ${NOW_US} as now_us`, []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:119:13
+-     const c = rows[0]?.c ?? {};
++     const c = rows[0]?.c && {};
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:119:13
+-     const c = rows[0]?.c ?? {};
++     const c = rows[0].c ?? {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:121:5
+-       `select t ->> 'tag' as tag, ${tsUs("t ->> 'receivedAt'")} as us from jsonb_array_elements($1::jsonb) t`,
++       ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:121:40
+-       `select t ->> 'tag' as tag, ${tsUs("t ->> 'receivedAt'")} as us from jsonb_array_elements($1::jsonb) t`,
++       `select t ->> 'tag' as tag, ${tsUs("")} as us from jsonb_array_elements($1::jsonb) t`,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:122:5
+-       [JSON.stringify(c['tags'] ?? [])],
++       [],
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:122:21
+-       [JSON.stringify(c['tags'] ?? [])],
++       [JSON.stringify(c['tags'] && [])],
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:122:23
+-       [JSON.stringify(c['tags'] ?? [])],
++       [JSON.stringify(c[""] ?? [])],
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:122:34
+-       [JSON.stringify(c['tags'] ?? [])],
++       [JSON.stringify(c['tags'] ?? ["Stryker was here"])],
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/reads.ts:124:48
+-     const receivedOf = new Map(received.rows.map((x) => [x.tag, x.us]));
++     const receivedOf = new Map(received.rows.map(() => undefined));
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:124:55
+-     const receivedOf = new Map(received.rows.map((x) => [x.tag, x.us]));
++     const receivedOf = new Map(received.rows.map((x) => []));
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/reads.ts:125:114
+-     const tags = (c['tags'] as { tag: string; unit: string; sample: Record<string, unknown> | null }[]).map((t) => {
+-       const us = receivedOf.get(t.tag) ?? null;
+-       const s = t.sample;
+-       return {
+-         tag: t.tag,
+-         unit: t.unit,
+-         sample: s
+-           ? {
+-               sourceTime: String(s['sourceTime']),
+-               serverTime: (s['serverTime'] as string | null) ?? null,
+-               raw: String(s['raw']),
+-               value: (s['value'] as string | null) ?? null,
+-               status: String(s['status']),
+-               quality: qualityOf(String(s['status'])),
+-             }
+-           : null,
+-         receivedAt: us === null ? null : app.formatInstant(us),
+-       };
+-     });
++     const tags = (c['tags'] as { tag: string; unit: string; sample: Record<string, unknown> | null }[]).map((t) => {});
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:126:16
+-       const us = receivedOf.get(t.tag) ?? null;
++       const us = receivedOf.get(t.tag) && null;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:128:12
+-       return {
+-         tag: t.tag,
+-         unit: t.unit,
+-         sample: s
+-           ? {
+-               sourceTime: String(s['sourceTime']),
+-               serverTime: (s['serverTime'] as string | null) ?? null,
+-               raw: String(s['raw']),
+-               value: (s['value'] as string | null) ?? null,
+-               status: String(s['status']),
+-               quality: qualityOf(String(s['status'])),
+-             }
+-           : null,
+-         receivedAt: us === null ? null : app.formatInstant(us),
+-       };
++       return {};
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:132:11
+-           ? {
+-               sourceTime: String(s['sourceTime']),
+-               serverTime: (s['serverTime'] as string | null) ?? null,
+-               raw: String(s['raw']),
+-               value: (s['value'] as string | null) ?? null,
+-               status: String(s['status']),
+-               quality: qualityOf(String(s['status'])),
+-             }
++           ? {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:133:34
+-               sourceTime: String(s['sourceTime']),
++               sourceTime: String(s[""]),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:134:25
+-               serverTime: (s['serverTime'] as string | null) ?? null,
++               serverTime: s['serverTime'] as string | null && null,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:135:27
+-               raw: String(s['raw']),
++               raw: String(s[""]),
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:136:20
+-               value: (s['value'] as string | null) ?? null,
++               value: s['value'] as string | null && null,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:137:30
+-               status: String(s['status']),
++               status: String(s[""]),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:138:41
+-               quality: qualityOf(String(s['status'])),
++               quality: qualityOf(String(s[""])),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:141:19
+-         receivedAt: us === null ? null : app.formatInstant(us),
++         receivedAt: true ? null : app.formatInstant(us),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:141:19
+-         receivedAt: us === null ? null : app.formatInstant(us),
++         receivedAt: false ? null : app.formatInstant(us),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:141:19
+-         receivedAt: us === null ? null : app.formatInstant(us),
++         receivedAt: us !== null ? null : app.formatInstant(us),
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/reads.ts:144:176
+-     const alarms = (c['openAlarms'] as { id: string; source: 'EBMR' | 'OPCUA' | 'EMS'; alarmCode: string; message: string; gmpCritical: boolean; raisedSourceUs: string }[]).map((a) => ({
+-       alarmId: a.id,
+-       source: a.source,
+-       alarmCode: a.alarmCode,
+-       message: a.message,
+-       gmpCritical: a.gmpCritical,
+-       raisedAtSource: app.formatInstant(a.raisedSourceUs),
+-     }));
++     const alarms = (c['openAlarms'] as { id: string; source: 'EBMR' | 'OPCUA' | 'EMS'; alarmCode: string; message: string; gmpCritical: boolean; raisedSourceUs: string }[]).map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:144:184
+-     const alarms = (c['openAlarms'] as { id: string; source: 'EBMR' | 'OPCUA' | 'EMS'; alarmCode: string; message: string; gmpCritical: boolean; raisedSourceUs: string }[]).map((a) => ({
+-       alarmId: a.id,
+-       source: a.source,
+-       alarmCode: a.alarmCode,
+-       message: a.message,
+-       gmpCritical: a.gmpCritical,
+-       raisedAtSource: app.formatInstant(a.raisedSourceUs),
+-     }));
++     const alarms = (c['openAlarms'] as { id: string; source: 'EBMR' | 'OPCUA' | 'EMS'; alarmCode: string; message: string; gmpCritical: boolean; raisedSourceUs: string }[]).map((a) => ({}));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:152:10
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
++     return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:152:27
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
++     return { code: String(c[""]), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:152:52
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
++     return { code: String(c['code']), name: String(c[""]), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:152:77
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
++     return { code: String(c['code']), name: String(c['name']), cleaningState: c['cleaningState'] as RoomConditionsView['cleaningState'] && null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:152:198
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
++     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us && '0') };
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:152:198
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
++     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0].now_us ?? '0') };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:152:217
+-     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? '0') };
++     return { code: String(c['code']), name: String(c['name']), cleaningState: (c['cleaningState'] as RoomConditionsView['cleaningState']) ?? null, tags, openAlarms: alarms, readAt: app.formatInstant(rows[0]?.now_us ?? "") };
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/reads.ts:156:66
+-   function qualityOf(status: string): 'GOOD' | 'UNCERTAIN' | 'BAD' {
+-     const top = Number.parseInt(status.slice(2, 3), 16) >> 2;
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
+-   }
++   function qualityOf(status: string): 'GOOD' | 'UNCERTAIN' | 'BAD' {}
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:157:31
+-     const top = Number.parseInt(status.slice(2, 3), 16) >> 2;
++     const top = Number.parseInt(status, 16) >> 2;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:158:10
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return true ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:158:10
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return false ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:158:10
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return top !== 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:158:22
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return top === 0 ? "" : top === 1 ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:158:31
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return top === 0 ? 'GOOD' : true ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:158:31
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return top === 0 ? 'GOOD' : false ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:158:31
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return top === 0 ? 'GOOD' : top !== 1 ? 'UNCERTAIN' : 'BAD';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:158:43
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return top === 0 ? 'GOOD' : top === 1 ? "" : 'BAD';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:158:57
+-     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : 'BAD';
++     return top === 0 ? 'GOOD' : top === 1 ? 'UNCERTAIN' : "";
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/reads.ts:161:86
+-   export async function adjacencies(app: AppContext, db: Db): Promise<AdjacencyView[]> {
+-     const { rows } = await db.query<{ one: string; two: string; version: number; adjacent: boolean; segregated: boolean; justification: string | null; us: string }>(
+-       `select a.code as one, b.code as two, j.version, j.adjacent, j.segregated, j.segregation_justification as justification, ${usOf('j.recorded_at')} as us
+-          from plant.area_adjacency_current j join plant.area a on a.id = j.area_a join plant.area b on b.id = j.area_b order by a.code, b.code`,
+-     );
+-     return rows.map((r) => ({ one: r.one, two: r.two, version: r.version.toString(), adjacent: r.adjacent, segregated: r.segregated, justification: r.justification, recordedAt: app.formatInstant(r.us) }));
+-   }
++   export async function adjacencies(app: AppContext, db: Db): Promise<AdjacencyView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:163:5
+-       `select a.code as one, b.code as two, j.version, j.adjacent, j.segregated, j.segregation_justification as justification, ${usOf('j.recorded_at')} as us
+-          from plant.area_adjacency_current j join plant.area a on a.id = j.area_a join plant.area b on b.id = j.area_b order by a.code, b.code`,
++       ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:163:133
+-       `select a.code as one, b.code as two, j.version, j.adjacent, j.segregated, j.segregation_justification as justification, ${usOf('j.recorded_at')} as us
++       `select a.code as one, b.code as two, j.version, j.adjacent, j.segregated, j.segregation_justification as justification, ${usOf("")} as us
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/reads.ts:166:19
+-     return rows.map((r) => ({ one: r.one, two: r.two, version: r.version.toString(), adjacent: r.adjacent, segregated: r.segregated, justification: r.justification, recordedAt: app.formatInstant(r.us) }));
++     return rows.map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:166:27
+-     return rows.map((r) => ({ one: r.one, two: r.two, version: r.version.toString(), adjacent: r.adjacent, segregated: r.segregated, justification: r.justification, recordedAt: app.formatInstant(r.us) }));
++     return rows.map((r) => ({}));
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:186:66
+-   const lotView = (app: AppContext, r: LotRow): ReagentLotView => ({
+-     lotCode: r.lot_code,
+-     kind: r.kind,
+-     reagentCode: r.reagent_code,
+-     name: r.name,
+-     nominal: r.nominal,
+-     preparedAt: app.formatInstant(r.prepared_us),
+-     expiresAt: app.formatInstant(r.expires_us),
+-     state: r.state,
+-     withdrawalReason: r.reason,
+-   });
++   const lotView = (app: AppContext, r: LotRow): ReagentLotView => ({});
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/reads.ts:198:87
+-   export async function reagentLots(app: AppContext, db: Db): Promise<ReagentLotView[]> {
+-     const { rows } = await db.query<LotRow>(`${LOTS} order by l.expires_at desc, l.lot_code limit 500`);
+-     return rows.map((r) => lotView(app, r));
+-   }
++   export async function reagentLots(app: AppContext, db: Db): Promise<ReagentLotView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:199:43
+-     const { rows } = await db.query<LotRow>(`${LOTS} order by l.expires_at desc, l.lot_code limit 500`);
++     const { rows } = await db.query<LotRow>(``);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/plant-rules/reads.ts:200:19
+-     return rows.map((r) => lotView(app, r));
++     return rows.map(() => undefined);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/plant-rules/reads.ts:203:101
+-   export async function reagentLot(app: AppContext, db: Db, lotCode: string): Promise<ReagentLotView> {
+-     const { rows } = await db.query<LotRow>(`${LOTS} where l.lot_code = $1`, [lotCode]);
+-     const r = rows[0];
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+-     return lotView(app, r);
+-   }
++   export async function reagentLot(app: AppContext, db: Db, lotCode: string): Promise<ReagentLotView> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:204:43
+-     const { rows } = await db.query<LotRow>(`${LOTS} where l.lot_code = $1`, [lotCode]);
++     const { rows } = await db.query<LotRow>(``, [lotCode]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:204:76
+-     const { rows } = await db.query<LotRow>(`${LOTS} where l.lot_code = $1`, [lotCode]);
++     const { rows } = await db.query<LotRow>(`${LOTS} where l.lot_code = $1`, []);
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:7
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:206:7
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (true) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:206:7
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (false) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:30
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:38
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:61
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: "", whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:92
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: ``, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:206:145
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: [], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:146
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: [""], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:206:202
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: [], controls: ['PR-29'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:203
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: [""], controls: ['PR-29'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:206:235
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:206:236
+-     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: ['PR-29'] });
++     if (!r) throw refusal(404, { code: 'EBMR-SITE-953', kind: 'INVALID_INPUT', whatHappened: `There is no reagent lot ${lotCode}.`, whatYouCanDo: ['Check the lot code on the bottle label.'], whoCanHelp: ['The QC laboratory'], controls: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:268:89
+-     const now = (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0';
++     const now = (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? "";
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:24:36
+-     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
++     const readAt = app.formatInstant((rows[0]?.now_us ?? (await db.query<{
++     us: string;
++   }>(`select ${NOW_US} as us`)).rows[0]?.us) && '0');
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:24:36
+-     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
++     const readAt = app.formatInstant(rows[0]?.now_us && (await db.query<{
++     us: string;
++   }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:24:36
+-     const readAt = app.formatInstant(rows[0]?.now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
++     const readAt = app.formatInstant(rows[0].now_us ?? (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0');
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:28:20
+-       name: String(b['name']),
++       name: String(b[""]),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:29:20
+-       kind: String(b['kind']),
++       kind: String(b[""]),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:30:16
+-       classCode: (b['classCode'] as string | null) ?? null,
++       classCode: b['classCode'] as string | null && null,
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:33:17
+-       stateSince: since_us === null ? null : app.formatInstant(since_us),
++       stateSince: true ? null : app.formatInstant(since_us),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:33:17
+-       stateSince: since_us === null ? null : app.formatInstant(since_us),
++       stateSince: false ? null : app.formatInstant(since_us),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:33:17
+-       stateSince: since_us === null ? null : app.formatInstant(since_us),
++       stateSince: since_us !== null ? null : app.formatInstant(since_us),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:34:14
+-       batch: b['batchId'] ? { batchId: b['batchId'] as string, batchRef: String(b['batchRef']), product: String(b['product']) } : null,
++       batch: b[""] ? { batchId: b['batchId'] as string, batchRef: String(b['batchRef']), product: String(b['product']) } : null,
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:36:20
+-       lastCleanedAt: cleaned_us === null ? null : app.formatInstant(cleaned_us),
++       lastCleanedAt: true ? null : app.formatInstant(cleaned_us),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:37:24
+-       openAlarms: Number(b['openAlarms'] ?? 0),
++       openAlarms: Number(b['openAlarms'] && 0),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:37:26
+-       openAlarms: Number(b['openAlarms'] ?? 0),
++       openAlarms: Number(b[""] ?? 0),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:44:162
+-     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
++     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: [], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:44:215
+-     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
++     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: [], controls: ['PR-35'] });
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:44:163
+-     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
++     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: [""], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:44:216
+-     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
++     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: [""], controls: ['PR-35'] });
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:44:251
+-     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
++     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: [] });
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:44:252
+-     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-35'] });
++     if (known.rowCount === 0) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the line code on the station.'], whoCanHelp: ['The shift supervisor'], controls: [""] });
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:50:13
+-     const s = r?.s ?? {};
++     const s = r.s ?? {};
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:53:20
+-       name: String(s['name']),
++       name: String(s[""]),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:56:19
+-       stateVersion: (s['stateVersion'] as string | null) ?? null,
++       stateVersion: s['stateVersion'] as string | null && null,
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:58:7
+-         s['batchId'] && r?.since_us
++         s['batchId'] || r?.since_us
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:58:23
+-         s['batchId'] && r?.since_us
++         s['batchId'] && r.since_us
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:70:31
+-       readAt: app.formatInstant(r?.now_us ?? '0'),
++       readAt: app.formatInstant(r?.now_us && '0'),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:70:31
+-       readAt: app.formatInstant(r?.now_us ?? '0'),
++       readAt: app.formatInstant(r.now_us ?? '0'),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-35] the station display shows the product and batch
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:97:18
+-     lastCleanedAt: r.cleaned_us === null ? null : app.formatInstant(r.cleaned_us),
++     lastCleanedAt: true ? null : app.formatInstant(r.cleaned_us),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:99:54
+-     authorisationRequired: r.authorisation_required ?? false,
++     authorisationRequired: r.authorisation_required ?? true,
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:100:16
+-     ruleVersion: r.version === null ? null : r.version.toString(),
++     ruleVersion: true ? null : r.version.toString(),
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:112:7
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
++     if (false) throw refusal(404, { code: 'EBMR-PLANT-011', kind: 'INVALID_INPUT', whatHappened: `There is no room or line ${code}.`, whatYouCanDo: ['Check the room code.'], whoCanHelp: ['The shift supervisor'], controls: ['PR-25'] });
+Tests ran:
+    the status displays (PR-22, PR-35) > [PR-22] the status display matches the system state after each transition
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:242:48
+-           person: personRef(people, r.person_id, ''),
++           person: personRef(people, r.person_id, "Stryker was here!"),
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:244:18
+-           validTo: r.to_us === null ? null : app.formatInstant(r.to_us),
++           validTo: true ? null : app.formatInstant(r.to_us),
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:246:61
+-           recordedBy: personRef(people, r.recorded_by_person, ''),
++           recordedBy: personRef(people, r.recorded_by_person, "Stryker was here!"),
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/plant-rules/reads.ts:268:15
+-     const now = (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0';
++     const now = (await db.query<{
++     us: string;
++   }>(`select ${NOW_US} as us`)).rows[0].us ?? '0';
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/plant-rules/reads.ts:268:15
+-     const now = (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0';
++     const now = (await db.query<{
++     us: string;
++   }>(`select ${NOW_US} as us`)).rows[0]?.us && '0';
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:268:47
+-     const now = (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0';
++     const now = (await db.query<{ us: string }>(``)).rows[0]?.us ?? '0';
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:277:16
+-         records: recs.rows.filter((r) => r.code === a.qcode).map((r) => views.get(r.id) as AreaAuthorisationRecordView),
++         records: recs.rows.map((r) => views.get(r.id) as AreaAuthorisationRecordView),
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/plant-rules/reads.ts:277:40
+-         records: recs.rows.filter((r) => r.code === a.qcode).map((r) => views.get(r.id) as AreaAuthorisationRecordView),
++         records: recs.rows.filter((r) => true).map((r) => views.get(r.id) as AreaAuthorisationRecordView),
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:287:154
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: [], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:287:155
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: [""], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:287:243
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: [], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:287:244
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: [""], controls: ['PR-15'] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/plant-rules/reads.ts:287:283
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: [] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/plant-rules/reads.ts:287:284
+-     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
++     if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: [""] });
+Tests ran:
+    area authorisation in the qualification matrix (PR-15) > [PR-15] area authorisations are recorded in the qualification matrix by the training coordinator, never for oneself, and withdrawn with a reason
+
+
+Ran 0.37 tests per mutant on average.
+-------------|------------------|----------|-----------|------------|----------|----------|
+             | % Mutation score |          |           |            |          |          |
+File         |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+-------------|--------|---------|----------|-----------|------------|----------|----------|
+All files    |  37.90 |   66.82 |      141 |         0 |         70 |      161 |        0 |
+ guidance.ts |    n/a |     n/a |        0 |         0 |          0 |        0 |        0 |
+ index.ts    |  36.67 |   67.90 |       55 |         0 |         26 |       69 |        0 |
+ reads.ts    |  38.74 |   66.15 |       86 |         0 |         44 |       92 |        0 |
+-------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m02:12:55 (599917) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-plant-rules.json
+[32m02:12:55 (599917) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/server-plant-rules.html
+[32m02:12:55 (599917) INFO MutationTestExecutor[39m Done in 27 minutes and 12 seconds.

@@ -1,0 +1,103 @@
+[
+  {
+    "id": "recipe.grel_evaluate#2",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 54,
+    "operator": "NOT_REMOVED",
+    "original": "not ",
+    "replacement": "",
+    "group": "release-gate",
+    "status": "KILLED",
+    "detail": "db:  FAIL  |db| packages/recipe-core/test/release/release.test.ts > G-REL and the manufacturer release (outline 5.2.6, 5.2.7; IN-05, INV-05) > [IN-05][INV-05] a reviewed, tested and sampled lot is READY; the AP acknowledges the since-review items, signs the checklist and the lot leaves quarantine RELEASED with the checklist stored",
+    "ms": 36518
+  },
+  {
+    "id": "recipe.grel_evaluate#1",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 54,
+    "operator": "LOGICAL",
+    "original": "or",
+    "replacement": "and",
+    "group": "release-gate",
+    "status": "KILLED",
+    "detail": "server:  FAIL  |server| apps/tablets-server/test/release/grel-interfaces.test.ts > G-REL interfaces (slice 3-0) > [meta] G-REL answers the fixed item shape; a lot that is no finished lot gets one RED edition item; only IN, US and EU are evaluated | AssertionError: expected 'ok' to be 'EBMR-REL-002' // Object.is equality",
+    "ms": 125627
+  },
+  {
+    "id": "recipe.grel_evaluate#7",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 59,
+    "operator": "RELATIONAL",
+    "original": "=",
+    "replacement": "<>",
+    "group": "release-gate",
+    "status": "KILLED",
+    "detail": "db:  FAIL  |db| packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [INV-05][IN-05] a lot that is no finished lot gets the RED lot item, the edition placeholders and no market items for any market; the gate and the scope refuse it | AssertionError: IN: expected [ 'G6.LICENCE', …(3) ] to d",
+    "ms": 17587
+  },
+  {
+    "id": "recipe.grel_evaluate#3",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 55,
+    "operator": "GUARD_REMOVED",
+    "original": "raise exception using errcode = 'P0001', message = format('EBMR-REL-002 G-REL is",
+    "replacement": "null",
+    "group": "release-gate",
+    "status": "KILLED",
+    "detail": "server:  FAIL  |server| apps/tablets-server/test/release/grel-interfaces.test.ts > G-REL interfaces (slice 3-0) > [meta] G-REL answers the fixed item shape; a lot that is no finished lot gets one RED edition item; only IN, US and EU are evaluated | AssertionError: expected 'ok' to be 'EBMR-REL-002' // Object.is equality",
+    "ms": 135335
+  },
+  {
+    "id": "recipe.grel_evaluate#8",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 62,
+    "operator": "RELATIONAL",
+    "original": "=",
+    "replacement": "<>",
+    "group": "release-gate",
+    "status": "SURVIVED",
+    "ms": 128516
+  },
+  {
+    "id": "recipe.grel_evaluate#9",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 62,
+    "operator": "LOGICAL",
+    "original": "and",
+    "replacement": "or",
+    "group": "release-gate",
+    "status": "SURVIVED",
+    "ms": 156630
+  },
+  {
+    "id": "recipe.grel_evaluate#11",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 66,
+    "operator": "LOGICAL",
+    "original": "and",
+    "replacement": "or",
+    "group": "release-gate",
+    "status": "KILLED",
+    "detail": "db:  FAIL  |db| packages/recipe-core/test/mutation/release-gate.test.ts > G-REL: the gate functions read only the lot's own evidence (decision 0012, mutation checks; INV-05, IN-05) > [INV-05][IN-05] a lot that is no finished lot gets the RED lot item, the edition placeholders and no market items for any market; the gate and the scope refuse it | AssertionError: US: expected [ 'G1.LOT', 'G8.MARKET_ADD'",
+    "ms": 34044
+  },
+  {
+    "id": "recipe.grel_evaluate#10",
+    "function": "recipe.grel_evaluate",
+    "file": "packages/recipe-core/sql/0951_qms_status_at_release.sql",
+    "line": 62,
+    "operator": "RELATIONAL",
+    "original": "=",
+    "replacement": "<>",
+    "group": "release-gate",
+    "status": "SURVIVED",
+    "ms": 184619
+  }
+]

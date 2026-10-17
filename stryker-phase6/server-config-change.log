@@ -1,0 +1,3 @@
+[32m02:15:18 (702268) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-config-change.incremental.json, a full mutation testing run will be performed.
+[32m02:15:20 (702268) INFO ProjectReader[39m Found 4 of 225087 file(s) to be mutated.
+[32m02:15:20 (702268) INFO Instrumenter[39m Instrumented 4 source file(s) with 193 mutant(s)

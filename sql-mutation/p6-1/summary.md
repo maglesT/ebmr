@@ -1,0 +1,170 @@
+# SQL mutation report
+
+| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| equipment-data-and-alarms | db 51, server 11 | db 240, server 240 | 469 | 0 | 0 | 307 | 162 | 65.5 % | 90 % |
+
+## Surviving mutants
+
+- equipment-data-and-alarms plant.raw_states_value (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:380) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.raw_states_value (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:380) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.raw_states_value (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:382) BOOLEAN: `false` -> `true`
+- equipment-data-and-alarms plant.raw_states_value (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:381) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:395) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:395) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:395) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:395) RELATIONAL: `<=` -> `<`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:398) RELATIONAL: `<=` -> `<`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:398) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:401) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:402) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:402) RELATIONAL: `<=` -> `<`
+- equipment-data-and-alarms plant.batch_context_at (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:402) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms plant.source_time_or_raise (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:442) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:461) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:462) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:462) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:462) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:463) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ALM-030 an alarm code n` -> `null`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:470) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:470) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.define_alarm_code (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:470) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:488) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ALM-032 a step binding ` -> `null`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:491) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:492) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:492) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:493) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ALM-033 unit %s ` -> `null`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:496) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:496) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:496) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:496) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:496) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.bind_step_equipment (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:497) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ALM-034 step %s ` -> `null`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:556) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ALM-001 this com` -> `null`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:570) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:571) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:571) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:572) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:572) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:572) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:573) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:574) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:575) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:591) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.receive_equipment_alarm (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:596) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:23) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ALM-011 there is` -> `null`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:28) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:32) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-ALM-010 DI-49: an alarm` -> `null`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:47) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:53) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:53) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:53) NOT_REMOVED: `not ` -> ``
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:53) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.acknowledge_alarm (packages/recipe-core/sql/0976_alarm_ack_every_batch_scope.sql:54) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-ALM-015 DI-49: %` -> `null`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:698) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-001 this com` -> `null`
+- equipment-data-and-alarms plant.alarm_problem (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:665) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:712) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:708) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-001 malforme` -> `null`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:713) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:714) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:716) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:716) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms plant.receive_equipment_event (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:723) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-002 unit %s ` -> `null`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:757) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-001 this com` -> `null`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:771) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:770) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:771) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:772) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-EQD-001 malformed serie` -> `null`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:776) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:782) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:782) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:783) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:783) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:783) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:783) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:784) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-EQD-001 malformed sampl` -> `null`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:786) RELATIONAL: `<=` -> `<`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:787) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-EQD-001 malformed serie` -> `null`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:809) RELATIONAL: `<=` -> `<`
+- equipment-data-and-alarms plant.receive_series_chunk (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:809) RELATIONAL: `>=` -> `>`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:867) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:868) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:868) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:869) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-011 DI-32: d` -> `null`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:871) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:872) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:872) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.record_device_original (packages/recipe-core/sql/0960_plant_alarms_series_interfaces.sql:873) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-EQD-012 DI-32: an origi` -> `null`
+- equipment-data-and-alarms plant.device_area (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:108) NOT_REMOVED: `not ` -> ``
+- equipment-data-and-alarms plant.device_area (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:108) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.device_area (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:108) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms plant.device_area (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:108) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.device_area (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:108) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.enrol_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:126) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-EQD-030 an endpoint enr` -> `null`
+- equipment-data-and-alarms plant.enrol_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:129) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.enrol_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:158) NOT_REMOVED: `not ` -> ``
+- equipment-data-and-alarms plant.enrol_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:159) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-036 DI-20: u` -> `null`
+- equipment-data-and-alarms plant.enrol_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:163) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.retire_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:181) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-EQD-030 an endpoint ret` -> `null`
+- equipment-data-and-alarms plant.retire_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:185) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.retire_opcua_endpoint (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:186) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-038 %s is no` -> `null`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:252) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-020 this com` -> `null`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:262) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-EQD-020 malforme` -> `null`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:265) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:266) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:266) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:267) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:268) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:268) NOT_REMOVED: `not ` -> ``
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:268) RELATIONAL: `<>` -> `=`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:269) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:269) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:270) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:270) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:271) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-EQD-020 malformed endpo` -> `null`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:305) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:306) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:306) NOT_REMOVED: `not ` -> ``
+- equipment-data-and-alarms plant.receive_opcua_endpoint_session (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:309) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms plant.opcua_unit_problem (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:370) NOT_REMOVED: `not ` -> ``
+- equipment-data-and-alarms plant.opcua_unit_problem (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:376) RELATIONAL: `<` -> `<=`
+- equipment-data-and-alarms plant.opcua_data_guard (packages/recipe-core/sql/0961_opcua_endpoint_identity.sql:405) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.process_device_endpoint (apps/tablets-server/sql/1210_opcua_process_readings.sql:49) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:74) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:75) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-DEV-121 DI-31: the proc` -> `null`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:84) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:85) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:85) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:86) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:85) RELATIONAL: `>` -> `>=`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:86) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:87) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:88) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DEV-170 DI-32: r` -> `null`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:91) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:92) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-DEV-172 DI-32: r` -> `null`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:99) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:99) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.ingest_opcua_readings (apps/tablets-server/sql/1210_opcua_process_readings.sql:120) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.bridge_process_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:49) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_process_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:49) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_process_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:49) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_process_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:50) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_process_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:50) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_process_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:50) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_process_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:50) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_process_alarm_ack (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:67) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_process_alarm_ack (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:68) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_device_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:84) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.bridge_device_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:87) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_device_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:89) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_device_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:90) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_device_alarm (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:90) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:111) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:111) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:113) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:113) LOGICAL: `or` -> `and`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:113) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:113) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:113) RELATIONAL: `=` -> `<>`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:113) LOGICAL: `and` -> `or`
+- equipment-data-and-alarms tab.bridge_step_device (apps/tablets-server/sql/1218_plant_alarm_bridge.sql:113) RELATIONAL: `=` -> `<>`
