@@ -1,7 +1,6 @@
 # analytics: advisory analytics (Phase 6A)
 
-**Draft.** This page is still being written; facts on it were checked against the code on 17 October 2026 (slices
-6A-0, 6A-1, 6A-2, 6A-3, 6A-4, 6A-5 and 6A-6).
+Facts on this page were checked against the code on 17 October 2026, at the Phase 6A exit (slices 6A-0 to 6A-7).
 
 This page explains the advisory analytics of the Tablets edition: the pure package `packages/analytics`, the runner in
 the tablets server, the analytics role and schema in the database, the input views it reads, the method versions under
@@ -43,7 +42,8 @@ the plan is [phase-6a-plan.md](../../build-plan/phase-6a/phase-6a-plan.md) and t
 | Multivariate monitoring: method MSPC.PCA and its PCA arithmetic (6A-3) | [methods/mspc/](../../../packages/analytics/src/methods/mspc/index.ts#sym=runMspc), [pca.ts](../../../packages/analytics/src/methods/mspc/pca.ts#sym=fitPca) |
 | Its runner implementation, routes and screens (6A-3) | [mspc.ts](../../../apps/tablets-server/src/analytics/mspc.ts#sym=MSPC_IMPLEMENTATION), [features/analytics/mspc/](../../../apps/tablets-server/src/features/analytics/mspc/), [ns/analytics-mspc.ts](../../../packages/api-contract/src/ns/analytics-mspc.ts), [tablets-web features/analytics/mspc/](../../../apps/tablets-web/src/features/analytics/mspc/) |
 | A reference set carries its candidate's model; repeated flags shown once (6A-3) | kernel [1270](../../../packages/kernel/sql/1270_analytics_reference_candidate.sql), [1271](../../../packages/kernel/sql/1271_analytics_flag_repeats.sql) |
-| Tests | [kernel test/analytics](../../../packages/kernel/test/analytics/), [recipe-core test/analytics](../../../packages/recipe-core/test/analytics/), [server test/analytics](../../../apps/tablets-server/test/analytics/), [web test/analytics](../../../apps/tablets-web/test/analytics/) |
+| Tests | [package test/](../../../packages/analytics/test/), [kernel test/analytics](../../../packages/kernel/test/analytics/), [recipe-core test/analytics](../../../packages/recipe-core/test/analytics/), [server test/analytics](../../../apps/tablets-server/test/analytics/), [web test/analytics](../../../apps/tablets-web/test/analytics/) |
+| Browser flows (6A-7) | [specs/phase6a/](../../../tools/e2e/specs/phase6a/analytics.spec.ts) and their [support.ts](../../../tools/e2e/specs/phase6a/support.ts#sym=analyticsCopy) |
 
 ## What it does
 
@@ -74,11 +74,66 @@ flowchart LR
    disposition supersedes the current one with a reason. Flags about a person are for data-integrity review only.
 5. **Monitoring** gives, per method version and month, the runs, failures, flags, the share dispositioned and the
    false-alarm rate (`analytics.method_monitor_v1`), on the methods page.
+6. **The contract** (slice 6A-0) puts every route in an `analytics*` namespace under `/api/analytics/`, GMP only and
+   read-only but for the disposition and the configuration writes. Each response carries the advisory envelope
+   (`advisory`, `notForGmpDecisions`, the method and version, the run and its data age). A statistic is a `StatNumber`;
+   a GMP value a response repeats (a recorded value, a limit) is the source's decimal text, unchanged.
+
+The slices: 6A-0 fixed the interfaces, the schema, the role and the record functions; 6A-1 built the runner, the input
+views, the method change control and the methods, flags and monitoring screens; 6A-2 to 6A-6 each added methods with
+their inputs, routes and screens (below); 6A-7 is the exit (trace, browser flows, this handbook, the review).
+
+## Pharma context
+
+- **Why analytics at all.** Continued process verification (EU GMP Annex 15 and the FDA's process validation guidance,
+  paraphrased: keep checking that a validated process stays in control) and the annual product quality review (PQR)
+  ask a site to look at trends across batches. A control chart, a capability index or a drift alert helps QA see
+  them earlier than a yearly report does.
+- **Why advisory.** A statistic is not a GMP record. If a score could release, block or change a batch, the scoring
+  code would itself become a GMP system to validate like the record (decision 0015). Here it only points QA at records;
+  the decision is taken on the record, through the usual review, deviation and release paths.
+- **Models under control.** The draft Annex 22 on artificial intelligence and the FDA's draft guidance on AI in
+  regulatory decisions (both drafts, status U, paraphrased) expect a model with a stated intended use, a locked version,
+  change control, monitoring of how it performs, and people who check its outputs. Here a method version is
+  configuration under change control (DI-09), never changes once in force, and QA's verdict on each flag feeds the
+  false-alarm rate of the monitor.
+- **People in the data.** Audit-trail patterns describe how a person works. Data-integrity guidance (MHRA, PIC/S,
+  paraphrased) wants the audit trail reviewed, but a pattern is a reason to look, never a finding: those flags are
+  restricted to data-integrity review and close only with a person's disposition.
+- **The controls.** Four draft controls describe the module, each with `expert_decision` PENDING and target phase 7
+  (D-6A-3): [DI-51](../../../compliance/controls/DI-51.yaml) (advisory, never changes a GMP record),
+  [DI-52](../../../compliance/controls/DI-52.yaml) (versioned, change-controlled, reproducible, with QA feedback and
+  monitoring), [DI-53](../../../compliance/controls/DI-53.yaml) (audit-trail flags) and
+  [PR-61](../../../compliance/controls/PR-61.yaml) (review priority never skips a review). The module also adds tests
+  to [PR-60](../../../compliance/controls/PR-60.yaml) (AI inventory), [DI-09](../../../compliance/controls/DI-09.yaml),
+  [DI-25](../../../compliance/controls/DI-25.yaml), [DI-26](../../../compliance/controls/DI-26.yaml),
+  [PR-52](../../../compliance/controls/PR-52.yaml) and [PR-58](../../../compliance/controls/PR-58.yaml).
+
+## Main tables (kernel 1241)
+
+Every table of the schema `analytics` is owned by `ebmr_owner`, insert-only and registered with the hash-chained audit
+trail (UPDATE, DELETE and TRUNCATE are refused, `EBMR-AUDIT-004`). No role but the owner reads or writes them: the
+runner writes through the record functions of kernel 1242, the screens read the `analytics.*_v1` views. No GMP table,
+view, function or trigger refers to them (DI-51).
+
+| Table | One row per | Written by |
+|---|---|---|
+| `analytics.input_registry` | input the analytics role may read: a report view or a parameterised row function, with its version and grain | migrations only, `analytics.register_input` |
+| `analytics.method_version` | method version (configuration area `ANALYTICS_METHOD`): intended use, acceptance criteria, parameters and their SHA-256, code identity, validation reference | `analytics.set_method_version`, under an approved change record |
+| `analytics.reference_set` | QA-approved reference set (area `ANALYTICS_REFERENCE`): scope, batches, the model candidate, the model and its SHA-256 | `analytics.set_reference_set`, under an approved change record |
+| `analytics.run`, `analytics.run_end` | run of a method version over recorded inputs; its end, DONE or FAILED, once | the runner: `begin_run`, `finish_run`, `fail_run` |
+| `analytics.output`, `analytics.flag` | advisory output of a run, and a flag about a subject, each with its reasons | the runner: `record_output`, `record_flag` |
+| `analytics.flag_disposition` | QA's verdict on a flag (true signal, false alarm, not assessable), with the cause; a later one supersedes the current one with a reason | the person: `analytics.record_disposition` |
+
+The read views (SELECT to the application role): `input_catalog_v1`, `method_version_v1`, `reference_set_v1`,
+`run_v1`, `output_v1`, `flag_v1`, `open_flag_v1`, `flag_disposition_v1`, `review_priority_v1` and
+`method_monitor_v1`. None of them shows a flag about a person or an account.
 
 ## The runner
 
-`AnalyticsRunner` holds the method implementations of the running code (`IMPLEMENTATIONS`; slice 6A-1 has none, so it
-runs nothing until a method slice adds one and QA makes a version effective). For each version in force
+`AnalyticsRunner` holds the method implementations of the running code (`IMPLEMENTATIONS`: the audit-trail methods of
+6A-4, the five SPC, capability, drift and rate methods of 6A-2, `MSPC.PCA` of 6A-3, `REVIEW.PRIORITY` of 6A-5 and
+`GBP.DTW_BAND` of 6A-6). It runs nothing until QA makes a version effective. For each version in force
 (`analytics.effective_methods()`):
 
 - a version no implementation covers is skipped and logged;
@@ -155,6 +210,67 @@ with `raised_count` and `first_raised_at`, and the flags screen says how often i
 closes the signal, including the same hit raised later; a hit that differs in anything is listed on its own. The
 monitor counts each raise with its signal's disposition.
 
+## Permissions (Tablets)
+
+| Permission | Roles | Used by |
+|---|---|---|
+| `ANALYTICS.VIEW` | QA reviewer, head of production, AP, EU QP, CSV/DI lead | every analytics read; the review queue's priority order |
+| `ANALYTICS.DISPOSITION` | QA reviewer, CSV/DI lead | dispositions |
+| `ANALYTICS.DI_REVIEW` | CSV/DI lead | flags about a person |
+| `ANALYTICS.METHOD` | QA reviewer, process owner | method versions, reference sets |
+
+## SPC, capability, drift and deviation rates (slice 6A-2)
+
+Five methods, each a version 1 that QA puts in force on `/analytics/methods` under an approved change record (the
+definitions are `SPC_METHOD_DEFINITIONS`: the plan's parameters, intended use, acceptance criteria and validation
+reference). Charts, capability and drift are per product, MBR family and critical item (`report.cpp_value_v1`, the
+batch's last attempt, completed batches in completion order); the master's limits are echoed as its decimal text.
+
+| Method | What it gives | Flags |
+|---|---|---|
+| `SPC.IMR` | I-MR chart of one value per batch: centre and sigma (mean moving range / d2) of the first 20 batches (Phase I), or of an approved reference set when one is passed; limits centre +- 3 sigma | `NELSON_1`, `_2`, `_3`, `_5`, one flag per rule naming the batches of each hit |
+| `SPC.XBAR_S` | Mean and S chart of the readings of a SERIES item (two or more per batch); sigma the mean of s / c4(n) | as above |
+| `CAP.INDEX` | Cpk (within sigma) and Ppk (overall) with Bissell 95 % intervals and an Anderson-Darling note; NOT_SHOWN below 25 batches or without a limit | none |
+| `DRIFT.TREND` | Slope of the last 10 batches (t test) projected 5 batches ahead, and an EWMA (0.2, 2.7) from the master's target | `DRIFT_SLOPE`, `DRIFT_EWMA` (about the newest batch) |
+| `RATE.DEVIATION` | Per product and grouping (step, unit, room, lot, supplier, shift): share of batches with a deviation (Wilson), deviations per 100 batches (Garwood), one-sided Fisher against the rest, Benjamini-Hochberg q, funnel limits | `RATE_ABOVE` when q <= 10 % and the share is higher |
+
+The deviation inputs are `report.deviation_fact_v1` (a deviation linked to a GMP batch, attributed to the step of the
+exception it was linked or escalated to, with that step's unit, room and lots, and the shift it falls in; linked to the
+batch only it is unattributed but for its shift) and `report.step_shift_v1`. The shifts are the platform setting
+`site.shift_boundaries` (default `A=06:00,B=14:00,C=22:00` in site time), changed under a change record; a malformed
+value is refused (EBMR-ANA-020). The routes read the newest recorded output; nothing recorded answers 404
+(EBMR-ANA-021). The PQR extract screen links to the charts and rates as an advisory annex; the extract and its signed
+content do not change (D-6A-18). Known answers: `packages/analytics/test/reference/spc_reference.py` (SciPy) and the
+published examples in `spc-methods.test.ts`.
+
+## Multivariate monitoring (slice 6A-3)
+
+Method `MSPC.PCA` v1 shows a batch whose combination of critical values departs from QA's reference batches, even when
+each value is within its own limits, and names the variables that contribute most (decision 0016 item 2; plan defaults
+D-6A-11 and D-6A-3-1 to D-6A-3-11). It is advisory.
+
+- **Batch vector.** Per product and MBR family, the critical items of the newest completed batch: one value per batch
+  (the last attempt) or the mean of a subgroup item's readings, autoscaled. A batch missing a variable is skipped with
+  the reason.
+- **Candidate** (MODEL_CANDIDATE, subject `<product>|<family>`). It is fitted on the newest 100 batches that may be
+  reference batches: released, no critical deviation, every variable recorded; at least 15. PCA by SVD keeps the fewest
+  components reaching 90 % of the variance, at most 5. A first fit's Phase I limits leave out the batches beyond them,
+  named, and the model is fitted again. The candidate holds the model and its SHA-256.
+- **Reference set.** QA makes a candidate the reference set on `/analytics/mspc` under a change record approved for
+  `ANALYTICS_REFERENCE`. The database checks the hash (EBMR-ANA-010) and, since kernel 1270, the model and batches
+  themselves (EBMR-ANA-030).
+- **Scoring.** For each set in force a run scores the reference batches and the newest 50 others. T-squared has a beta
+  limit for a reference batch and an F limit for a new one, Q a Jackson-Mudholkar limit (Box's when that fails), all at
+  99 %. A batch outside the set beyond a limit is flagged `T2_ABOVE` or `Q_ABOVE`, with its top contributors.
+- **Screens.** `/analytics/mspc` shows the T-squared and Q charts, the scores plot, the batches and the candidates.
+  `/analytics/mspc/batches/:batchId` shows the contribution bars and the recorded values, and drills to the batch record.
+  The routes answer EBMR-ANA-031 before a scoring run and EBMR-ANA-032 for a batch without a score.
+- **Reference sets for SPC** (D-6A-3-7). An I-MR or Xbar-S chart with complete Phase I limits gives a candidate of those
+  limits; QA makes it the chart's reference set from the SPC screen. The run without a set then leaves that chart to the
+  set's own run, which charts `REFERENCE_SET` limits. Both methods read the sets in force as 6A-6 does
+  (`report.analytics_reference_v1`, a run per set).
+- **Known answers:** `packages/analytics/test/reference/mspc_reference.py` (NumPy, SciPy).
+
 ## Audit-trail anomaly detection (slice 6A-4)
 
 Decision 0016 item 8, rules first, then per-person baselines; no machine learning (decision 0023). A flag is a pointer
@@ -218,39 +334,6 @@ queue and shows its top three reasons. It never skips, narrows or completes a re
   `/analytics/review-priority/$batchId` shows one record's priority with every reason and the link into its review.
 - QA puts version 1 in force (`REVIEW_METHOD_DEFINITIONS`) under a change record; no migration writes it.
 
-## Permissions (Tablets)
-
-| Permission | Roles | Used by |
-|---|---|---|
-| `ANALYTICS.VIEW` | QA reviewer, head of production, AP, EU QP, CSV/DI lead | every analytics read; the review queue's priority order |
-| `ANALYTICS.DISPOSITION` | QA reviewer, CSV/DI lead | dispositions |
-| `ANALYTICS.DI_REVIEW` | CSV/DI lead | flags about a person |
-| `ANALYTICS.METHOD` | QA reviewer, process owner | method versions, reference sets |
-
-## SPC, capability, drift and deviation rates (slice 6A-2)
-
-Five methods, each a version 1 that QA puts in force on `/analytics/methods` under an approved change record (the
-definitions are `SPC_METHOD_DEFINITIONS`: the plan's parameters, intended use, acceptance criteria and validation
-reference). Charts, capability and drift are per product, MBR family and critical item (`report.cpp_value_v1`, the
-batch's last attempt, completed batches in completion order); the master's limits are echoed as its decimal text.
-
-| Method | What it gives | Flags |
-|---|---|---|
-| `SPC.IMR` | I-MR chart of one value per batch: centre and sigma (mean moving range / d2) of the first 20 batches (Phase I), or of an approved reference set when one is passed; limits centre +- 3 sigma | `NELSON_1`, `_2`, `_3`, `_5`, one flag per rule naming the batches of each hit |
-| `SPC.XBAR_S` | Mean and S chart of the readings of a SERIES item (two or more per batch); sigma the mean of s / c4(n) | as above |
-| `CAP.INDEX` | Cpk (within sigma) and Ppk (overall) with Bissell 95 % intervals and an Anderson-Darling note; NOT_SHOWN below 25 batches or without a limit | none |
-| `DRIFT.TREND` | Slope of the last 10 batches (t test) projected 5 batches ahead, and an EWMA (0.2, 2.7) from the master's target | `DRIFT_SLOPE`, `DRIFT_EWMA` (about the newest batch) |
-| `RATE.DEVIATION` | Per product and grouping (step, unit, room, lot, supplier, shift): share of batches with a deviation (Wilson), deviations per 100 batches (Garwood), one-sided Fisher against the rest, Benjamini-Hochberg q, funnel limits | `RATE_ABOVE` when q <= 10 % and the share is higher |
-
-The deviation inputs are `report.deviation_fact_v1` (a deviation linked to a GMP batch, attributed to the step of the
-exception it was linked or escalated to, with that step's unit, room and lots, and the shift it falls in; linked to the
-batch only it is unattributed but for its shift) and `report.step_shift_v1`. The shifts are the platform setting
-`site.shift_boundaries` (default `A=06:00,B=14:00,C=22:00` in site time), changed under a change record; a malformed
-value is refused (EBMR-ANA-020). The routes read the newest recorded output; nothing recorded answers 404
-(EBMR-ANA-021). The PQR extract screen links to the charts and rates as an advisory annex; the extract and its signed
-content do not change (D-6A-18). Known answers: `packages/analytics/test/reference/spc_reference.py` (SciPy) and the
-published examples in `spc-methods.test.ts`.
-
 ## The golden batch profile (slice 6A-6)
 
 Method `GBP.DTW_BAND` v1 compares a batch's equipment curve with the band of QA's reference batches (decision 0016
@@ -292,34 +375,6 @@ of slice 6b (`plant.series`). It is advisory, and no profile is ever a GMP recor
     the flags and every sample as recorded (DI-32).
   - The routes answer EBMR-ANA-060 for a step without a series and EBMR-ANA-061 before a profile exists.
 
-## Multivariate monitoring (slice 6A-3)
-
-Method `MSPC.PCA` v1 shows a batch whose combination of critical values departs from QA's reference batches, even when
-each value is within its own limits, and names the variables that contribute most (decision 0016 item 2; plan defaults
-D-6A-11 and D-6A-3-1 to D-6A-3-11). It is advisory.
-
-- **Batch vector.** Per product and MBR family, the critical items of the newest completed batch: one value per batch
-  (the last attempt) or the mean of a subgroup item's readings, autoscaled. A batch missing a variable is skipped with
-  the reason.
-- **Candidate** (MODEL_CANDIDATE, subject `<product>|<family>`). It is fitted on the newest 100 batches that may be
-  reference batches: released, no critical deviation, every variable recorded; at least 15. PCA by SVD keeps the fewest
-  components reaching 90 % of the variance, at most 5. A first fit's Phase I limits leave out the batches beyond them,
-  named, and the model is fitted again. The candidate holds the model and its SHA-256.
-- **Reference set.** QA makes a candidate the reference set on `/analytics/mspc` under a change record approved for
-  `ANALYTICS_REFERENCE`. The database checks the hash (EBMR-ANA-010) and, since kernel 1270, the model and batches
-  themselves (EBMR-ANA-030).
-- **Scoring.** For each set in force a run scores the reference batches and the newest 50 others. T-squared has a beta
-  limit for a reference batch and an F limit for a new one, Q a Jackson-Mudholkar limit (Box's when that fails), all at
-  99 %. A batch outside the set beyond a limit is flagged `T2_ABOVE` or `Q_ABOVE`, with its top contributors.
-- **Screens.** `/analytics/mspc` shows the T-squared and Q charts, the scores plot, the batches and the candidates.
-  `/analytics/mspc/batches/:batchId` shows the contribution bars and the recorded values, and drills to the batch record.
-  The routes answer EBMR-ANA-031 before a scoring run and EBMR-ANA-032 for a batch without a score.
-- **Reference sets for SPC** (D-6A-3-7). An I-MR or Xbar-S chart with complete Phase I limits gives a candidate of those
-  limits; QA makes it the chart's reference set from the SPC screen. The run without a set then leaves that chart to the
-  set's own run, which charts `REFERENCE_SET` limits. Both methods read the sets in force as 6A-6 does
-  (`report.analytics_reference_v1`, a run per set).
-- **Known answers:** `packages/analytics/test/reference/mspc_reference.py` (NumPy, SciPy).
-
 ## Adding a method (slices 6A-2 to 6A-6)
 
 1. Write the pure method in `packages/analytics/src/methods/<family>/` with its tests and reference values.
@@ -329,3 +384,75 @@ D-6A-11 and D-6A-3-1 to D-6A-3-11). It is advisory.
    `references` (as `profile.ts` does).
 3. Add any input view in your migration range and register it with `analytics.register_input`.
 4. QA makes version 1 effective under a change record on `/analytics/methods`.
+
+## State machines
+
+A run, a method version and a flag each have a short life. None of them is a GMP state; each step is a new row.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Running: begin_run (version and reference set in force)
+  Running --> Done: finish_run (outputs and flags recorded)
+  Running --> Failed: fail_run (error recorded, no output)
+  Running --> Failed: no end an hour after the start (run_v1 shows it FAILED)
+  Done --> [*]
+  Failed --> [*]
+```
+
+- **Method version:** EFFECTIVE, then at most once RETIRED by a later row with the same parameters, intended use and code
+  (EBMR-ANA-013). A retired version stays retired; a change is a new version.
+- **Reference set:** EFFECTIVE, then at most once RETIRED with the same method, scope, batches, candidate and model
+  (EBMR-ANA-014).
+- **Flag:** open until a person dispositions it; a later disposition supersedes the current one with a reason
+  (EBMR-ANA-008). A disposition on any raise of the same signal (6A-3) or key (6A-4) closes the hits raised again later.
+
+## How to test it
+
+- **The package:** known answers in `packages/analytics/test/`, against published examples and the offline reference
+  values in `test/reference/` (each with the script that wrote it).
+- **The database:** kernel and recipe-core tests in `test/analytics/` prove the core controls on a real database: the
+  analytics role cannot write GMP data, no GMP object depends on the schema, no floating-point column outside it, the
+  insert-only tables, the change control, the restricted reads and the input views over GMP records. Run them on a
+  spare cluster (the [local CI skill](../10-runbooks.md#3-run-ci-locally)).
+- **The server:** `apps/tablets-server/test/analytics/` runs each method end to end through the runner on the
+  synthetic history (test-kit `analyticsHistory`), with the input row functions replaced by the history's tables in the
+  test's own database.
+- **The screens:** `apps/tablets-web/test/analytics/`, `analytics-audit/` and `analytics-review/`.
+- **The browser flows** (6A-7, `tools/e2e/specs/phase6a/`): the SPC chart and its drill to the record, QA's
+  disposition of an audit-trail flag, the review queue in priority order with the lowest record still asking for its
+  full review, and the golden profile overlay in the trend viewer. They run on a copy of the E2E GMP database with its
+  own server, so their fixtures never reach the database the other specs share (D-6A-7-b-1), and they record their
+  runs through the analytics role's own record functions (D-6A-7-b-2).
+- **The golden batches** GB-T-01 to GB-T-03 run with the runner on and keep their exact outputs (`[DI-51]`).
+- **Mutation groups** (90 %): `analytics-method-change`, `analytics-inputs`, `analytics-rate-inputs`,
+  `analytics-mspc-reference`, `analytics-audit`, `analytics-review-inputs` and `analytics-profile-inputs`.
+- **The trace:** the four drafts have target phase 7, so `pnpm trace` at phase 6 does not gate them; their catalog tests
+  are mapped to `clauses`, and the Phase 6A exit dry-runs the trace at phase 7 over their tests (D-6A-7-b-3).
+
+## Pitfalls
+
+- **A JavaScript number only through `statOf`.** In the runner, `Number()`, `parseFloat`, `parseInt` and unary `+` are
+  banned by lint. Read a GMP value as decimal text and convert it in the package.
+- **Never read the analytics schema from a GMP object.** A report view, trigger or function that names `analytics.`
+  breaks the DI-51 dependency proof. A GMP-side setting the runner needs lives outside the schema (as
+  `site.shift_boundaries`, D-6A-2-7), and the review queue reads the priority through its view in its own SQL, never
+  through code.
+- **The runner's role has 4 connections on the whole cluster.** Server tests run with `EBMR_ANALYTICS=off` unless they
+  test the runner; a test that connects as `ebmr_analytics` waits while the limit is reached.
+- **A version records the build.** A version's code identity names the package version and commit; after an upgrade,
+  the runner refuses a version whose identity is not the running code's (a FAILED run with the reason). QA puts in force
+  a new version, validated on the new build.
+- **Re-runs raise hits again.** Each run assesses its whole input; the views group the repeats (kernel 1261, 1271), the
+  tables keep every raise. Count raises, not signals, only where the monitor says so.
+- **Flags about persons stay restricted.** Anything derived from them is restricted too: the review priority's
+  audit-trail term is hidden from viewers without `ANALYTICS.DI_REVIEW` (defect P6A5-1).
+
+## Related pages
+
+- [Architecture](../03-architecture.md#the-analytics-path-phase-6a): the analytics path beside the reporting path.
+- [Database reference](../05-database.md#database-roles): the role `ebmr_analytics` and the schema `analytics`.
+- [Runbooks](../10-runbooks.md#analytics-method-versions-and-reference-sets-phase-6a): putting a method version or a
+  reference set in force under change control.
+- [Defects and lessons](../08-defect-log.md#phase-6a-advisory-analytics): the Phase 6A entries.
+- [kernel](kernel.md), [recipe-core](recipe-core.md), [tablets-server](tablets-server.md),
+  [tablets-web](tablets-web.md).

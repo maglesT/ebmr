@@ -17,8 +17,11 @@
  * with the reason) and, for each series charted with complete Phase I limits, gives a MODEL_CANDIDATE: the model
  * {subjectRef, chart, centre, sigma, batchIds (the Phase I batches, sorted), phaseOneBatches} and its SHA-256, which QA
  * can make a reference set under a change record (the database checks the hash, EBMR-ANA-010).
- * The rules run on every point, standardised by its own sigma. A series with fewer batches than Phase I needs, or no
- * variation in Phase I, is skipped with the reason.
+ * The rules run on every charted point, standardised by its own sigma. A series with fewer batches than Phase I needs,
+ * or no variation in Phase I, is skipped with the reason.
+ * Bounded outputs (slice 6A-7, D-6A-7-R3): a chart shows, and its rules flag, its newest `chartBatches` batches; the
+ * Phase I limits stay those of the series' first batches. Every completed batch runs the methods again, so an output
+ * that held the whole series would grow the insert-only, audited output table with the site's history at every run.
  */
 import type { Method, MethodResult, Parameters, ReferenceModel, Skipped } from '../../method.ts';
 import { canonicalText } from '../../numeric/canonical.ts';
@@ -32,7 +35,15 @@ import { c4, D2_TWO, D4_TWO, mean, movingRanges, sampleSd } from './stats.ts';
 export interface SpcParameters extends Parameters {
   readonly rules: readonly string[];
   readonly phaseOneBatches: number;
+  /** The newest batches a chart shows and its rules flag (slice 6A-7, D-6A-7-R3). */
+  readonly chartBatches: number;
 }
+
+/** Where the charted window of n points starts: the newest `chartBatches` (slice 6A-7, D-6A-7-R3). */
+const windowStart = (n: number, chartBatches: number): number => Math.max(0, n - chartBatches);
+/** The chart's text: its batches, and the series' when the window leaves older ones out. */
+const ofBatches = (charted: number, all: number): string =>
+  charted === all ? `${charted.toString()} batches` : `the newest ${charted.toString()} of ${all.toString()} batches`;
 
 export interface XbarSParameters extends SpcParameters {
   readonly minSubgroup: number;
@@ -136,14 +147,18 @@ export function runImr(input: BatchValueInput, params: SpcParameters, ref: Refer
       skipped.push({ subject: subjectRef, reason: 'an I-MR chart needs two or more batches' });
       continue;
     }
-    const mr = movingRanges(x);
     const phaseMr = movingRanges(x.slice(0, m));
     const limits: Limits = fromRef ?? { centre: mean(x.slice(0, m)), sigma: mean(phaseMr) / D2_TWO, source: 'PHASE_I' };
     if (!(limits.sigma > 0)) {
       skipped.push({ subject: subjectRef, reason: 'the Phase I batches show no variation (every moving range is 0), so no limits can be set' });
       continue;
     }
-    const z = x.map((v) => (v - limits.centre) / limits.sigma);
+    // The charted window (D-6A-7-R3): the newest chartBatches points, with their moving ranges.
+    const start = windowStart(x.length, params.chartBatches);
+    const points = s.points.slice(start);
+    const charted = x.slice(start);
+    const mr = movingRanges(charted);
+    const z = charted.map((v) => (v - limits.centre) / limits.sigma);
     const hits = nelsonHits(z, params.rules);
     const mrBar = limits.sigma * D2_TWO;
     outputs.push({
@@ -155,13 +170,14 @@ export function runImr(input: BatchValueInput, params: SpcParameters, ref: Refer
         centre: limits.centre, sigma: limits.sigma, upperControl: limits.centre + 3 * limits.sigma, lowerControl: limits.centre - 3 * limits.sigma,
         movingRangeMean: mrBar, movingRangeUpper: D4_TWO * mrBar,
         ...specificationValues(s.specification),
-        batchIds: s.points.map((p) => p.batchId).join(','),
-        valueTexts: s.points.map((p) => p.value).join(','),
-        plotted: x, spread: mr, pointRules: pointRules(x.length, hits),
+        batchIds: points.map((p) => p.batchId).join(','),
+        valueTexts: points.map((p) => p.value).join(','),
+        plotted: charted, spread: mr, pointRules: pointRules(charted.length, hits),
+        ...(start > 0 ? { seriesBatches: x.length } : {}),
       },
-      reasons: [limitsReason(limits, m, ref?.id ?? null), { code: 'CHART_IMR', text: `I-MR chart of ${x.length.toString()} batches (${LABEL[limits.source]})` }],
+      reasons: [limitsReason(limits, m, ref?.id ?? null), { code: 'CHART_IMR', text: `I-MR chart of ${ofBatches(charted.length, x.length)} (${LABEL[limits.source]})` }],
     });
-    flags.push(...ruleFlags(subjectRef, hits, s.points, `${s.item} I-MR chart`));
+    flags.push(...ruleFlags(subjectRef, hits, points, `${s.item} I-MR chart`));
     if (limits.source === 'PHASE_I' && x.length >= m) outputs.push(spcCandidate(subjectRef, 'IMR', limits, s.points.slice(0, m), m));
   }
   return { outputs, flags, skipped };
@@ -212,9 +228,13 @@ export function runXbarS(input: SubgroupInput, params: XbarSParameters, ref: Ref
       skipped.push({ subject: subjectRef, reason: 'the Phase I subgroups show no variation, so no limits can be set' });
       continue;
     }
-    const z = means.map((v, k) => (v - limits.centre) / (limits.sigma / Math.sqrt(sizes[k]!)));
+    // The charted window (D-6A-7-R3): the newest chartBatches subgroups.
+    const start = windowStart(means.length, params.chartBatches);
+    const shown = kept.slice(start);
+    const [wMeans, wSds, wSizes] = [means.slice(start), sds.slice(start), sizes.slice(start)];
+    const z = wMeans.map((v, k) => (v - limits.centre) / (limits.sigma / Math.sqrt(wSizes[k]!)));
     const hits = nelsonHits(z, params.rules);
-    const n = modalSize(sizes);
+    const n = modalSize(wSizes);
     const c = c4(n);
     const half = (3 * limits.sigma) / Math.sqrt(n);
     outputs.push({
@@ -226,12 +246,13 @@ export function runXbarS(input: SubgroupInput, params: XbarSParameters, ref: Ref
         centre: limits.centre, sigma: limits.sigma, upperControl: limits.centre + half, lowerControl: limits.centre - half, subgroupSize: n,
         sCentre: c * limits.sigma, sUpper: limits.sigma * (c + 3 * Math.sqrt(1 - c * c)), sLower: Math.max(0, limits.sigma * (c - 3 * Math.sqrt(1 - c * c))),
         ...specificationValues(s.specification),
-        batchIds: kept.map((p) => p.batchId).join(','),
-        plotted: means, spread: sds, sizes, pointRules: pointRules(means.length, hits),
+        batchIds: shown.map((p) => p.batchId).join(','),
+        plotted: wMeans, spread: wSds, sizes: wSizes, pointRules: pointRules(wMeans.length, hits),
+        ...(start > 0 ? { seriesBatches: means.length } : {}),
       },
-      reasons: [limitsReason(limits, m, ref?.id ?? null), { code: 'CHART_XBAR_S', text: `Xbar-S chart of ${means.length.toString()} batches, subgroups of ${n.toString()} readings (${LABEL[limits.source]})` }],
+      reasons: [limitsReason(limits, m, ref?.id ?? null), { code: 'CHART_XBAR_S', text: `Xbar-S chart of ${ofBatches(wMeans.length, means.length)}, subgroups of ${n.toString()} readings (${LABEL[limits.source]})` }],
     });
-    flags.push(...ruleFlags(subjectRef, hits, kept, `${s.item} Xbar-S chart`));
+    flags.push(...ruleFlags(subjectRef, hits, shown, `${s.item} Xbar-S chart`));
     if (limits.source === 'PHASE_I' && groups.length >= m) outputs.push(spcCandidate(subjectRef, 'XBAR_S', limits, kept.slice(0, m), m));
   }
   return { outputs, flags, skipped };

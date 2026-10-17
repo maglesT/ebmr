@@ -93,8 +93,9 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         const v = await keyViews(app, c, [shown]);
         const flag = v.flags[0];
         if (!flag) throw notFound();
-        // The dispositions of the key: those of the flag holding its current one, and of this flag.
-        const own = shown.disposition_flag === row.flag_id ? [] : await dispositionsOf(c, [row]);
+        // The dispositions of the key: its group's (kernel 1280), read through the flag holding its current one; a key
+        // without one has none.
+        const own = shown.disposition_flag !== null ? [] : await dispositionsOf(c, [row]);
         const people = await peopleOf(c, own.map((d) => d.person_id));
         const dispositions = [...v.all, ...dispositionViews(app, own, people)];
         return {

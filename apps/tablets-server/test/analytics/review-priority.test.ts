@@ -7,10 +7,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { ReviewPriority, ReviewSummaryView } from '@ebmr/api-contract';
-import { defaultParameters } from '@ebmr/analytics';
+import { defaultParameters, review } from '@ebmr/analytics';
 import { analyticsHistory, analyticsReviewFacts, REVIEW_EXPECTED, type AnalyticsHistory } from '@ebmr/test-kit';
 import { REVIEW_METHOD_DEFINITIONS, REVIEW_PRIORITY_IMPLEMENTATION } from '../../src/analytics/review.ts';
 import { IMPLEMENTATIONS } from '../../src/analytics/implementation.ts';
+import { ATA_RULES_IMPLEMENTATION } from '../../src/analytics/audit.ts';
 import { priorityOrder, type PrioritisedRecord } from '../../src/features/review/reads.ts';
 
 type Row = Record<string, unknown>;
@@ -82,9 +83,35 @@ describe('the review priority on the synthetic history (REVIEW.PRIORITY v1)', ()
     expect(queue[1]).toMatchObject({ batchId: rich.batch_id, priority: { score: REVIEW_EXPECTED.score } });
   });
 
+  it('[DI-52] QA\'s FALSE_ALARM on the key of a record\'s audit-trail flag takes the hit off its score; another verdict leaves it (P6A5-2)', () => {
+    const h = analyticsHistory();
+    const rows = viewRows(h);
+    const P = defaultParameters('REVIEW.PRIORITY') as never;
+    const score = (r: Record<string, Row[]>) => REVIEW_PRIORITY_IMPLEMENTATION.method.run(REVIEW_PRIORITY_IMPLEMENTATION.assemble(r), P, null).outputs;
+    const term = (outputs: ReturnType<typeof score>, n: number) => outputs.find((o) => o.subjectRef === h.batches[n - 1]!.batch_id)!.values['OPEN_AUDIT_FLAG.count'];
+    // The flags ATA.RULES raises over the same audit facts, keyed as kernel 1261 keys them; those naming batch 12's entries.
+    const flags = ATA_RULES_IMPLEMENTATION.method.run(ATA_RULES_IMPLEMENTATION.assemble(rows), defaultParameters('ATA.RULES') as never, null).flags;
+    const chain = `batch:${h.batches[11]!.batch_id}#`;
+    const on12 = flags.filter((f) => f.reasons.some((r) => (r.evidence ?? []).some((e) => e.kind === 'AUDIT_EVENT' && e.ref.startsWith(chain))));
+    expect(on12.length).toBeGreaterThan(0);
+    const keys = on12.map((f) => review.auditFlagKey({ rule: f.rule, personId: f.subjectRef, reason: f.reasons[0] }));
+    const before = score(rows);
+    expect(term(before, 12)).toBeGreaterThan(0);
+    // The verdicts as analytics.audit_key_verdict_v1 gives them (kernel 1282).
+    const verdicts = (verdict: string) => ({ ...rows, 'analytics.audit_key_verdict_v1': keys.map((k) => ({ flag_key: k, verdict, dispositioned_at: '2026-10-17 04:30:00+00' })) });
+    const falseAlarm = score(verdicts('FALSE_ALARM'));
+    expect(term(falseAlarm, 12)).toBe(0);
+    expect(term(falseAlarm, 9)).toBe(term(before, 9));
+    expect(term(score(verdicts('TRUE_SIGNAL')), 12)).toBe(term(before, 12));
+    // A malformed verdict fails the run (it is never read as no verdict).
+    expect(() => REVIEW_PRIORITY_IMPLEMENTATION.assemble(verdicts('MAYBE'))).toThrow(/not a disposition verdict/);
+  });
+
   it('[PR-61] the runner runs REVIEW.PRIORITY version 1 from its catalogued inputs; QA\'s version 1 row holds the plan\'s weights', () => {
     expect(IMPLEMENTATIONS.find((i) => i.id === 'REVIEW.PRIORITY')).toMatchObject({ versions: [1] });
-    expect(REVIEW_PRIORITY_IMPLEMENTATION.inputs.map((i) => i.view)).toEqual(['report.review_fact_v1', 'report.cpp_value_v1', 'report.step_use_v1', 'report.batch_fact_v1', 'report.audit_fact_v1']);
+    expect(REVIEW_PRIORITY_IMPLEMENTATION.inputs.map((i) => i.view)).toEqual([
+      'report.review_fact_v1', 'report.cpp_value_v1', 'report.step_use_v1', 'report.batch_fact_v1', 'report.audit_fact_v1', 'analytics.audit_key_verdict_v1',
+    ]);
     expect(REVIEW_METHOD_DEFINITIONS).toEqual([expect.objectContaining({ method: 'REVIEW.PRIORITY', version: 1, parameters: defaultParameters('REVIEW.PRIORITY') })]);
   });
 });

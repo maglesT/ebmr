@@ -57,6 +57,7 @@ describe('the review queue ordered by the review priority (GMP)', () => {
     expect(items.map((li) => li.getAttribute('data-testid'))).toEqual(batches.map((b) => `review-batch-${b.batchNumber}`));
     expect(screen.getByTestId(`review-priority-${batches[0]!.batchId}`).getAttribute('data-scored')).toBe('false');
     expect(screen.getByTestId(`review-priority-${batches[0]!.batchId}`).textContent).toContain('not scored yet');
+    expect(screen.getByTestId(`review-priority-${batches[0]!.batchId}`).textContent).not.toContain('listed first');
     const top = screen.getByTestId(`review-priority-${batches[1]!.batchId}`);
     expect(top.textContent).toContain('Priority 14 (advisory)');
     expect(screen.getByTestId(`review-priority-reasons-${batches[1]!.batchId}`).textContent).toBe(PRIORITY.reasons.map((r) => r.text).join('; '));
