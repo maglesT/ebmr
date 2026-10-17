@@ -95,8 +95,16 @@ validation pack generators and interlocks, 7d load, soak, drills, security and a
 Tablets-gate controls reach VERIFIED, the 5 drafts IMPLEMENTED, 3 stay SPECIFIED (Injectables parts); 12 clauses in 11
 controls deferred to Phase 7. Migrations from kernel 1300, site-services 1100, recipe-core 1200, tablets 1400.
 
-Next: Phase 7 (validation pack and hardening), built here without waiting for another go (decision 0023), starting
-with the decision 0022 items (R9, R10, R2 and the rest of R16), then the heavy test run on the pod; then Tablets v1.0.
+- **7-0 interfaces (branch `phase-7/slice-7-0`):** kernel 1300 (release identity `platform.schema_release()`,
+  validation-summary approval, approved system description, permissions VALIDATION.APPROVE_SUMMARY,
+  CONFIG.SYSTEM_DESCRIPTION, CONTROLLED.READ) and tablets 1400 (their grants); the evidence bundle v1 schema, types and
+  reader in `packages/validation-kit`; `feedSignatureMessage` and its vectors and `AdapterTls` in the integration SDK;
+  the test-kit helpers `approveValidationSummary` and `approveSystemDescription`; `compliance/validation/` (control
+  class, critical limits, reviews, open findings) checked by `register:validate`; the `[meta]` migration-order check
+  (6jc-R4). As-built notes in section 9 of `slice-7-0-interfaces.md` (D-P7-0-7: 7c wires the helpers into the set-ups).
+
+Next: the Phase 7 slices after 7-0 (7a first: the decision 0022 items R9, R10, R2 and the rest of R16), built here
+(decision 0023), then the heavy test run on the pod; then Tablets v1.0.
 Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo
 mode, install and reset scripts) on a cloud server the owner provides.
 

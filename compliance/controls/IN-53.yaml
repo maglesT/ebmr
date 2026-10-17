@@ -63,6 +63,7 @@ tests:
   - "packages/site-services/test/mutation/controlled-substance-mode.test.ts > controlled-substance mode, rule by rule (IN-53, draft; recipe-core 1031 to 1033) > [IN-53] a return or destruction never exceeds what this batch holds of this lot: its own consumption, less its own returns and destructions awaiting or confirmed"
   - "packages/site-services/test/mutation/controlled-substance-mode.test.ts > controlled-substance mode, rule by rule (IN-53, draft; recipe-core 1031 to 1033) > [IN-53] a stage sign-off reads the checkpoint of its own stage and batch: a signed checkpoint of another stage or of another batch does not close it"
   - "packages/site-services/test/mutation/controlled-substance-mode.test.ts > controlled-substance mode, rule by rule (IN-53, draft; recipe-core 1031 to 1033) > [IN-53] the account covers every controlled API that moved into the batch, also one consumed before the flag, and only the controlled API"
+  - "apps/tablets-server/test/validation/role-permissions.test.ts > the Phase 7 permissions of the Tablets roles (tablets 1400) > [IN-53] CONTROLLED.READ is held by every role holding another CONTROLLED permission and by QA, and by no other role"
 clauses:
   - clause: "flag a product as controlled and have a second QA person approve it;"
     tests:

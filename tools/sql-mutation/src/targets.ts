@@ -1437,4 +1437,14 @@ export const TARGETS: Target[] = [
     tests: [k('analytics/exit-review.test.ts')],
     threshold: 90,
   },
+  // Phase 7 slice 7-0 (kernel 1300): the release identity, the validation-summary approval and the system description.
+  {
+    group: 'release-identity',
+    functions: [
+      'platform.schema_release', 'platform.validation_summary_content', 'platform.approve_validation_summary',
+      'platform.validation_summary_problem', 'platform.describe_interface', 'platform.system_description', 'platform.interface_described',
+    ],
+    tests: [k('config/release-identity.test.ts')],
+    threshold: 90,
+  },
 ];

@@ -49,6 +49,11 @@ jobs:
       EBMR_PG_ADMIN_URL: postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
+      # The migration-order check (tools/register/test/migration-order.test.ts, 6jc-R4) compares the branch's
+      # migrations with origin/main's tree; the shallow checkout of a pull request does not hold it. One commit of
+      # main is enough (only its tree is read); on GitHub Actions the test fails, not skips, without it.
+      - name: Fetch origin/main for the migration-order check
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
       # The runner's own PostgreSQL 16 (Debian layout, pg_hba allows replication from localhost): the physical-copy
       # reproducer (review/f55) takes a pg_basebackup of the running cluster and starts the copy with these binaries.
       - name: Start PostgreSQL 16

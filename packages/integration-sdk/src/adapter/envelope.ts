@@ -17,6 +17,9 @@
  *  - schemaVersion    the payload schema version, whole number as text.
  *  - payloadHash      SHA-256 (lower-case hex) of the raw bytes exactly as received from the source (rawPayloadHash).
  *  - payload          the parsed payload, a JSON object; it keeps raw values and their units as the source sent them.
+ *  - gatewaySignature (optional; Phase 7 slice 7-0) the site gateway's Ed25519 signature over the envelope's
+ *                     identity lines (feed-signature.ts); required for the OPCUA source from slice 7a on, checked in the
+ *                     database (docs/build-plan/phase-7/slice-7-0-interfaces.md section 2).
  *
  * Numbers in payloads travel as decimal text (never JSON numbers), as in every other contract of this package.
  */
@@ -39,6 +42,23 @@ export const IdempotencyKey = z.string().regex(/^[\x21-\x7E]{1,128}$/, 'printabl
 export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
 export const MessageType = z.string().regex(/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*$/, 'a message type such as erp.production_order');
 
+/** A gateway's code as `tab.gateway_key.gateway_code` holds it (the device code rule of the scale contract). */
+export const GatewayCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a registered gateway code');
+/** Standard base64 (padded) of a 64-byte Ed25519 signature. */
+export const Ed25519SignatureBase64 = z.string().regex(/^[A-Za-z0-9+/]{86}==$/, 'standard base64 of a 64-byte signature');
+
+/**
+ * The gateway's signature of a feed envelope (slice 7-0 section 2). keyId is the lowercase hex SHA-256 of the key's
+ * SPKI DER (feedKeyId); sig signs feedSignatureMessage(envelope, gatewayCode, keyId).
+ */
+export const GatewaySignature = z.strictObject({
+  alg: z.literal('Ed25519'),
+  gatewayCode: GatewayCode,
+  keyId: Sha256Hex,
+  sig: Ed25519SignatureBase64,
+});
+export type GatewaySignature = z.infer<typeof GatewaySignature>;
+
 /** The most bytes one payload may hold once serialised (the database refuses more). */
 export const PAYLOAD_MAX_BYTES = 1_048_576;
 
@@ -53,6 +73,7 @@ export const InboundEnvelope = z
     schemaVersion: SchemaVersionText,
     payloadHash: Sha256Hex,
     payload: z.record(z.string(), z.unknown()),
+    gatewaySignature: GatewaySignature.optional(),
   })
   .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), 'utf8') <= PAYLOAD_MAX_BYTES, {
     message: `the payload exceeds ${PAYLOAD_MAX_BYTES.toString()} bytes`,

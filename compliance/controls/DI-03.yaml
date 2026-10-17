@@ -35,6 +35,13 @@ catalog_test: In a test environment, change a DB row outside the application. Th
 implemented_by: {}
 tests:
   - "packages/kernel/test/audit/verification.test.ts > the verification job (DI-23) > [DI-23][INV-08][DI-03][DI-44] a chain altered in the database raises a critical alarm that names the entry, announced at once; the run record cannot be changed"
+  - "packages/kernel/test/config/release-identity.test.ts > the release identity (kernel 1300) > [DI-03] the schema release is the SHA-256 of the migration ledger in namespace and name order, the same as computed from the files"
+  - "packages/kernel/test/config/release-identity.test.ts > the release identity (kernel 1300) > [DI-03] the ledger is not writable by the application role, so the release cannot be faked from a session"
+  - "packages/kernel/test/config/release-identity.test.ts > the validation-summary approval (kernel 1300) > [DI-03] until a validation summary of the running release is approved, the database reports EBMR-VAL-001"
+  - "packages/kernel/test/config/release-identity.test.ts > the validation-summary approval (kernel 1300) > [DI-03] a validation summary is approved only by a QA person with their own signature bound to the running release and the summary hash"
+  - "packages/kernel/test/config/release-identity.test.ts > the validation-summary approval (kernel 1300) > [DI-03] an approved validation summary is insert-only and in the audit trail"
+  - "packages/test-kit/test/seed.test.ts > test-kit validation approvals (slice 7-0, kernel 1300, D-P7-12) > [DI-03][DI-06] a seeded GMP site approves the validation summary of its release and its system description through real signed acts"
+  - "apps/tablets-server/test/validation/role-permissions.test.ts > the Phase 7 permissions of the Tablets roles (tablets 1400) > [DI-03] VALIDATION.APPROVE_SUMMARY is held by the quality unit only"
 clauses:
   - clause: "In a test environment, change a DB row outside the application. The integrity job alarms and names the record."
     tests:

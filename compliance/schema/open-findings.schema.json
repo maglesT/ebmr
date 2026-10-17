@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ebmr.local/schema/open-findings.schema.json",
+  "title": "Open review findings (compliance/validation/open-findings.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["findings"],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "controls", "summary", "source"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[0-9A-Za-z]+([.-][0-9A-Za-z]+)*$" },
+          "severity": { "enum": ["critical", "high", "medium", "low"] },
+          "controls": { "type": "array", "uniqueItems": true, "items": { "type": "string", "pattern": "^(DI|PR|ST|IN)-\\d{2}$" } },
+          "summary": { "type": "string", "minLength": 10 },
+          "source": { "type": "string", "pattern": "^[^/].*\\.md$" }
+        }
+      }
+    }
+  }
+}

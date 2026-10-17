@@ -1,0 +1,109 @@
+# The open review findings the release carries (Phase 7 slice 7-0, interfaces note section 1c); the pack's known
+# issues are built from them. Each summary paraphrases its backlog entry; the full entry, with what was checked, is in
+# the review subsection of the phase plan the backlog names. Entries are sorted by id (numbers compared as numbers);
+# every control named must be a control of the register, and every source file must exist.
+#
+# Seeded in 7-0 from the 6j-c and 6A-7 backlogs. Owner decision 0022 schedules 6jc-R2, R9, R10 and the rest of R16
+# for Phase 7 and puts the smaller items on the hardening list; an entry leaves this file when its fix merges.
+# Not listed: the item carried from 6A-3 (two SPC reference sets in force for one chart), which has no id or severity.
+findings:
+  - id: 6jc-R2
+    severity: medium
+    controls: [IN-53]
+    summary: "The controlled-substance list and register reads need only a session (IN-53 is still a draft)."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R3
+    severity: low
+    controls: [IN-30]
+    summary: "The contract giver reviewer's scope is not enforced when a record read problem is recorded."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R4
+    severity: low
+    controls: []
+    summary: "Migrations were merged out of numeric order; a CI check that a branch's new migrations sort after main's is added in slice 7-0."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R5
+    severity: low
+    controls: []
+    summary: "The ERP outbound message table has no insert-only trigger."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R6
+    severity: low
+    controls: [DI-18]
+    summary: "The DSC enrolment and the DSC record do not refuse an administrator."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R7
+    severity: low
+    controls: []
+    summary: "The authorization meta scans leave out the plant, tab, iam, esig and sandbox schemas."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R9
+    severity: medium
+    controls: [DI-31]
+    summary: "The adapter feed protocol and the gateway's OPC UA feed do not authenticate their source; to be signed with the gateway key or put behind mutual TLS before a networked deployment."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R10
+    severity: medium
+    controls: [PR-27]
+    summary: "The penicillin facility rule and the beta-lactam classification are set by one master-data steward without QA approval."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R11
+    severity: low
+    controls: [DI-31]
+    summary: "An operator acknowledging a sequence-gap alarm lets a blocking mirror be marked fresh."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R12
+    severity: low
+    controls: []
+    summary: "The mock recall reads a failed forward read as no destinations, and asks its peers before the permission check."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R13
+    severity: low
+    controls: [DI-32]
+    summary: "The gateway turns a missing OPC UA timestamp into epoch 0; source time has no lower bound."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R14
+    severity: low
+    controls: [IN-10]
+    summary: "The companion signature never records a DSC (it fails closed)."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R15
+    severity: low
+    controls: []
+    summary: "The training attempt read does not check whose attempt it is (sandbox only)."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: 6jc-R16
+    severity: medium
+    controls: [IN-04]
+    summary: "The part left: disposition proposals, exception-register acts, review freeze, deviation references, dispensing consumption and batch issue are still authorised at the location only, so a product-limited training requirement still applies to them on every batch (fails closed)."
+    source: docs/build-plan/phase-6/review-backlog.md
+  - id: P6A7-4
+    severity: medium
+    controls: []
+    summary: "An analytics run still reads its whole inputs on the GMP primary and sorts and hashes them in the server's event loop; a recency bound or a separate runner is suggested once a real site's history is measured."
+    source: docs/build-plan/phase-6a/review-backlog.md
+  - id: P6A7-5
+    severity: medium
+    controls: []
+    summary: "The flag table grows by one row per hit and run, and the flag views group the whole table on each read; to be measured at a real site."
+    source: docs/build-plan/phase-6a/review-backlog.md
+  - id: P6A7-6
+    severity: low
+    controls: [DI-53]
+    summary: "The score's top reasons are chosen with the audit-trail term among them, so a viewer without ANALYTICS.DI_REVIEW may see fewer reasons, which hints that a term is hidden."
+    source: docs/build-plan/phase-6a/review-backlog.md
+  - id: P6A7-7
+    severity: low
+    controls: [DI-53]
+    summary: "The method monitor and run views show the site-wide counts of the audit-trail methods' flags to every ANALYTICS.VIEW holder (no person, rule or entry)."
+    source: docs/build-plan/phase-6a/review-backlog.md
+  - id: P6A7-8
+    severity: low
+    controls: [DI-51]
+    summary: "The analytics runner does not check at start-up that its connection is the analytics role, so a misconfigured URL would run it with another role's rights."
+    source: docs/build-plan/phase-6a/review-backlog.md
+  - id: P6A7-9
+    severity: low
+    controls: []
+    summary: "The audit-trail flag key leaves out the method version, so a verdict on one version's key also covers the same hit raised by a later version."
+    source: docs/build-plan/phase-6a/review-backlog.md
