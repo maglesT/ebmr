@@ -1381,6 +1381,16 @@ The DI-51 dependency proof is unchanged: nothing outside the schema reads it.
 **Tests.** Package and server `review-priority.test.ts`; kernel `exit-review.test.ts`; the key spelling against
 `analytics.flag_key` in server `audit.test.ts`.
 
+### 6jc-R10: one steward set the penicillin facility rule and the beta-lactam classification (PR-27; recipe-core 1210)
+
+**Symptom.** A master-data steward alone could declare a site a penicillin facility, or declassify a penicillin material,
+and the latest version counted at once. **Fix.** Recipe-core 1210 makes each version a proposal: it is in force once a
+QA person other than the proposer signs it `QA_APPROVED` (`plant.approve_facility_rule`, `plant.approve_beta_lactam_class`);
+the readers read the approved value only (tablets 1410 maps the ceremony). **Tests.** Recipe-core
+`test/plant-rules/rule-approval.test.ts` ("[PR-27] a facility rule or beta-lactam classification takes effect only with a
+QA signature by someone other than the proposer"), site services `test/plant-rules/materials.test.ts`, server
+`test/alarms/plant-rule-approval.test.ts`.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

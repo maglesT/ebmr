@@ -1,7 +1,7 @@
 /**
- * The material rules of slice 6b (builder B): the penicillin facility rule (recipe-core 0973, PR-27) on the receipt of
- * a component and on the start of a product, and reagent and buffer lots with an expiry at an in-process control (site
- * services 0940, recipe-core 0974; PR-29). As the application role through the real commands, with bypass attempts and
+ * The material rules of slice 6b (builder B): the penicillin facility rule (recipe-core 0973, PR-27; in force only once
+ * QA approves it, recipe-core 1210) on the receipt of a component and on the start of a product, and reagent and buffer
+ * lots with an expiry at an in-process control (site services 0940, recipe-core 0974; PR-29). As the application role through the real commands, with bypass attempts and
  * a success after each refusal. Kept with site services (it uses both packages' test worlds; recipe-core may import
  * only kernel and expr, .dependency-cruiser.cjs).
  */
@@ -27,6 +27,16 @@ afterAll(async () => {
 });
 
 const steward = <T>(sql: string, params: unknown[]) => w.run(w.cast.steward, async (c) => (await c.query<{ r: T }>(sql, params)).rows[0]?.r as T);
+// A steward's classification or facility rule is a proposal; QA's QA_APPROVED signature brings it into force (recipe-core 1210).
+async function approved(kind: 'MATERIAL' | 'PRODUCT' | 'SITE', code: string, version: number): Promise<number> {
+  const [table, type, fn, where] = kind === 'SITE'
+    ? ['plant.facility_rule', 'facility_rule', 'plant.approve_facility_rule', 'site_code = $1 and version = $2']
+    : ['plant.beta_lactam_class', 'beta_lactam_class', 'plant.approve_beta_lactam_class', `subject_kind = '${kind}' and code = $1 and version = $2`];
+  const id = (await db.app.query<{ id: string }>(`select id from ${table} where ${where}`, [code, version])).rows[0]?.id ?? '';
+  const sig = await w.sign(q.cast.qa, type, id, 'QA_APPROVED', 'PROPOSED');
+  await w.run(q.cast.qa, (c) => c.query(`select ${fn}($1, $2)`, [id, sig]));
+  return version;
+}
 const receive = (materialCode: string) =>
   q.sql(q.cast.warehouse, 'select site.receive_lot($1::jsonb) as r', [JSON.stringify({ lotCode: unique('L'), materialCode, quantity: '1', expiresAt: '2030-01-01T00:00:00Z' })]);
 
@@ -37,6 +47,7 @@ describe('the penicillin facility (PR-27)', () => {
     await expectRefused(w.run(w.cast.operator, (c) => c.query("select plant.classify_beta_lactam('MATERIAL', $1, true, 'x')", [amox])), 'EBMR-IAM-040');
     await expectRefused(steward("select plant.classify_beta_lactam('SUBSTANCE', $1, true, 'x') as r", [amox]), 'EBMR-PLANT-172');
     expect(await steward<number>("select plant.classify_beta_lactam('MATERIAL', $1, true, 'Amoxicillin trihydrate: a penicillin') as r", [amox])).toBe(1);
+    await approved('MATERIAL', amox, 1);
     // SITE-1 has no facility rule: it is not a penicillin facility (fail safe). The receipt is refused.
     await expect(receive(amox)).rejects.toThrow(/EBMR-PLANT-170 material .* is beta-lactam \(penicillin\) and site SITE-1 is not a penicillin facility/);
     // Bypass: even the owner writing the lot row directly is refused; the application cannot write it at all.
@@ -61,18 +72,21 @@ describe('the penicillin facility (PR-27)', () => {
     await expect(receive(lactose)).resolves.toBeDefined();
     // A beta-lactam product does not start in a room of the site either (the product classified; the start is the act).
     const product = await w.product();
-    await steward("select plant.classify_beta_lactam('PRODUCT', $1, true, 'Amoxicillin capsules') as r", [product]);
+    await approved('PRODUCT', product, await steward<number>("select plant.classify_beta_lactam('PRODUCT', $1, true, 'Amoxicillin capsules') as r", [product]));
     const room = await w.room();
     await expect(occupy(w, room.code, 'PEN-1', product)).rejects.toThrow(new RegExp(`EBMR-PLANT-170 product ${product} is beta-lactam`));
     // Success: the site is declared a penicillin facility (dedicated, separate air handling); receipt and start pass.
     await expectRefused(steward("select plant.set_facility_rule('SITE-1', true, ' ') as r", []), 'EBMR-PLANT-171');
     expect(await steward<number>("select plant.set_facility_rule('SITE-1', true, 'Dedicated penicillin facility, separate AHU and personnel') as r", [])).toBe(1);
+    // The steward's rule alone is a proposal: the receipt is still refused until QA approves it (PR-27, 6jc-R10).
+    await expect(receive(amox)).rejects.toThrow(/EBMR-PLANT-170/);
+    await approved('SITE', 'SITE-1', 1);
     await expect(receive(amox)).resolves.toBeDefined();
     const b = await w.batch('PEN-1', product);
     await w.startIn(room.code, { batch: 'PEN-1', product });
     expect((await db.app.query('select batch_id from plant.area_occupancy_status where area_id = $1 and ended_at is null', [room.id])).rows).toEqual([{ batch_id: b.id }]);
     // Back to non-penicillin (the rule's next version): refused again.
-    await steward("select plant.set_facility_rule('SITE-1', false, 'Penicillin manufacture moved to the other site') as r", []);
+    await approved('SITE', 'SITE-1', await steward<number>("select plant.set_facility_rule('SITE-1', false, 'Penicillin manufacture moved to the other site') as r", []));
     await expect(receive(amox)).rejects.toThrow(/EBMR-PLANT-170/);
   });
 });

@@ -373,7 +373,7 @@ the database command, which stays the decider. How the ceremony works (challenge
 | `RECORD_LOCK_ACT` | AMENDMENT_OPEN, AMENDMENT_CLOSE of a locked batch record | [records/signables.ts](../../../apps/tablets-server/src/features/records/signables.ts) | AMENDMENT_OPENED, AMENDMENT_CLOSED |
 | `PQR_SIGN_OFF` | sign-off of a product quality review extract | [pqr/signables.ts](../../../apps/tablets-server/src/features/pqr/signables.ts) | PQR_SIGNED_OFF |
 | `ARCHIVE_ACT` | CERTIFY_EXPORT, SIGN_FORMS | [archive/index.ts](../../../apps/tablets-server/src/features/archive/index.ts) | EVIDENCE_EXPORT_CERTIFIED, FORMS_RECONCILED |
-| `INDIA_ACT` | LICENCE_APPROVE, EXPORT_PERMISSION_APPROVE, HAZARD_APPROVE, DEDICATION_APPROVE | [india/index.ts](../../../apps/tablets-server/src/features/india/index.ts) | LICENCE_APPROVED, EXPORT_PERMISSION_APPROVED, ... |
+| `INDIA_ACT` | LICENCE_APPROVE, EXPORT_PERMISSION_APPROVE, HAZARD_APPROVE, DEDICATION_APPROVE, FACILITY_RULE_APPROVE, BETA_LACTAM_APPROVE (QA_APPROVED, recipe-core 1210) | [india/index.ts](../../../apps/tablets-server/src/features/india/index.ts) | LICENCE_APPROVED, EXPORT_PERMISSION_APPROVED, ... |
 
 The header of [signable.ts](../../../packages/api-contract/src/signable.ts) lists, for each act, the aggregate it signs
 (for example `us_disposition <lot>/RELEASE`), the meaning and who may sign. Act inputs are strict objects

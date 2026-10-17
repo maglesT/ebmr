@@ -1372,7 +1372,9 @@ action `ARCHIVE_ACT`: certifying an export, signing a form reconciliation),
 feature keeps the Indian regulatory records: manufacturing and loan **licences**, **export permissions** (a product
 made only for export needs one), the allocation register, the India label particulars and the Schedule H2 payload,
 the stability basis of a shelf life, and product hazard classes with area dedication. Each approval is by a second
-QA person (signable action `INDIA_ACT`).
+QA person (signable action `INDIA_ACT`). The same action carries QA's approval of a penicillin facility rule or a
+beta-lactam classification proposed by the master-data steward (`FACILITY_RULE_APPROVE`, `BETA_LACTAM_APPROVE`, meaning
+`QA_APPROVED`; recipe-core 1210, tablets 1410, PR-27); the plant-rules routes return the proposal's id to sign.
 
 **Routes** (contract [india.ts](../../../packages/api-contract/src/ns/india.ts)):
 

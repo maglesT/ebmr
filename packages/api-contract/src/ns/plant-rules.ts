@@ -2,7 +2,8 @@
  * Namespace `plantRules` (Phase 6 slice 6b, builder B; GMP): the plant rules behind the clauses Phase 4 deferred to
  * Phase 6 (recipe-core 0973 to 0975, kernel 1190, site services 0940). Rooms and lines with their clean-hold time and
  * cleaning state (PR-25), spills (PR-27), the room's conditions from the EMS (DI-32, DI-49), line adjacency and
- * segregation (PR-35), the penicillin facility rule and beta-lactam classification (PR-27), controlled areas and area
+ * segregation (PR-35), the penicillin facility rule and beta-lactam classification (PR-27; proposals in force once QA
+ * approves them, recipe-core 1210), controlled areas and area
  * authorisations (PR-15), reagent and buffer lots and their use at an in-process control (PR-29). Every rule is the
  * database's; a refusal carries its EBMR-PLANT-*, EBMR-SITE-95x or EBMR-IAM-20x code.
  */
@@ -108,6 +109,12 @@ export type AreaAuthorisationMatrixView = z.infer<typeof AreaAuthorisationMatrix
 
 const roomParams = z.strictObject({ code: PlantCode });
 const VersionResponse = z.strictObject({ version: WholeText });
+/**
+ * A proposed penicillin facility rule or beta-lactam classification (recipe-core 1210, PR-27): PROPOSED until a QA
+ * person other than the proposer approves it (signable action INDIA_ACT FACILITY_RULE_APPROVE or BETA_LACTAM_APPROVE,
+ * meaning QA_APPROVED, subject the proposal id); until then the earlier approved version stays in force.
+ */
+const PlantRuleProposalResponse = z.strictObject({ version: WholeText, proposalId: Uuid, state: z.literal('PROPOSED') });
 
 export const plantRules = {
   rooms: defineRoute({
@@ -187,10 +194,10 @@ export const plantRules = {
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
-    summary: 'Whether a site is a penicillin facility (PR-27; MASTERDATA.CHANGE); a site without a rule is not one',
+    summary: 'Propose whether a site is a penicillin facility (PR-27; MASTERDATA.CHANGE); in force once QA approves it (INDIA_ACT FACILITY_RULE_APPROVE); a site without an approved rule is not one',
     params: z.strictObject({ site: z.string().regex(/^[A-Z0-9][A-Z0-9-]{0,15}$/) }),
     body: withAttribution({ penicillinFacility: z.boolean(), justification: Text(500) }),
-    response: VersionResponse,
+    response: PlantRuleProposalResponse,
   }),
   classifyBetaLactam: defineRoute({
     id: 'plantRules.classifyBetaLactam',
@@ -200,9 +207,9 @@ export const plantRules = {
     auth: 'SESSION',
     mutating: true,
     attribution: 'FRESH_ON_SHARED',
-    summary: 'Classify a material or product as beta-lactam (penicillin) or not (PR-27; MASTERDATA.CHANGE)',
+    summary: 'Propose a material or product as beta-lactam (penicillin) or not (PR-27; MASTERDATA.CHANGE); in force once QA approves it (INDIA_ACT BETA_LACTAM_APPROVE)',
     body: withAttribution({ kind: z.enum(['MATERIAL', 'PRODUCT']), code: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9/._-]{0,63}$/), betaLactam: z.boolean(), reason: Text(500) }),
-    response: VersionResponse,
+    response: PlantRuleProposalResponse,
   }),
   createAreaAuthorisation: defineRoute({
     id: 'plantRules.createAreaAuthorisation',

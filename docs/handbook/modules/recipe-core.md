@@ -803,6 +803,35 @@ stateDiagram-v2
 > - **Tests:** [india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts).
 > - **Error:** `EBMR-IND-035`, `EBMR-IND-036`, `EBMR-IND-060` to `EBMR-IND-063`.
 
+**The penicillin facility rule and the beta-lactam classification (1210).** The plant rules of 0973 keep a beta-lactam
+(penicillin) material out of the receipt and a beta-lactam product out of a room start at a site that is not a
+penicillin facility (`EBMR-PLANT-170`). Since 1210 (Phase 7 slice 7a, 6jc-R10) the master-data steward only proposes
+the rule: [plant.set_facility_rule](../../../packages/recipe-core/sql/0973_plant_room_rules.sql#sym=plant.set_facility_rule)
+and [plant.classify_beta_lactam](../../../packages/recipe-core/sql/0973_plant_room_rules.sql#sym=plant.classify_beta_lactam)
+write a new version (state PROPOSED, with its `id`). It takes effect when a QA person (QA MBR approver or QA reviewer,
+permission `PLANT_RULE.APPROVE`) who is not the proposer signs it with meaning `QA_APPROVED` and calls
+[plant.approve_facility_rule](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.approve_facility_rule)
+or [plant.approve_beta_lactam_class](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.approve_beta_lactam_class)
+(server: signable action `INDIA_ACT` `FACILITY_RULE_APPROVE` or `BETA_LACTAM_APPROVE` on the proposal id). Only the latest
+proposal of a site, material or product is approved, and only once; an older one is SUPERSEDED. The readers,
+[plant.classified_beta_lactam](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.classified_beta_lactam)
+(and through it `plant.batch_beta_lactam` and the receipt guard) and
+[plant.penicillin_problem](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.penicillin_problem),
+read the views `plant.facility_rule_in_force` and `plant.beta_lactam_class_in_force`: the latest approved version. Until
+QA signs, the earlier approved version stays in force (none: the site is not a penicillin facility, the subject is not
+classified beta-lactam; the ERP flag and the MBR predicate still add to `plant.batch_beta_lactam`). What QA signs names
+the proposed value and the value in force before it. On an upgrade the latest classification of a subject that says
+beta-lactam stays in force (`CARRIED_OVER`, attributed to the release), because it only restricts; a penicillin facility
+rule from before 1210 is not carried over, because it lifts a restriction: QA approves it again.
+
+> **Why this exists**
+> - **Pharma reason:** declaring a site a penicillin facility, or declassifying a penicillin material, lets a
+>   sensitising product into a building that is not segregated for it; that is a quality decision, not one steward's.
+> - **Control:** [PR-27](../../../compliance/controls/PR-27.yaml), decision 0022 (6jc-R10).
+> - **Code:** [plant.assert_plant_rule_approval](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.assert_plant_rule_approval), the approval tables `plant.facility_rule_approval` and `plant.beta_lactam_class_approval` (insert-only, audited, never written by the application), and the two readers above (1210); the ceremony mapping is tablets 1410.
+> - **Tests:** [rule-approval.test.ts](../../../packages/recipe-core/test/plant-rules/rule-approval.test.ts), [materials.test.ts](../../../packages/site-services/test/plant-rules/materials.test.ts), [plant-rule-approval.test.ts](../../../apps/tablets-server/test/alarms/plant-rule-approval.test.ts).
+> - **Error:** `EBMR-PLANT-170`, `EBMR-PLANT-173` to `EBMR-PLANT-176`.
+
 **How to test it.** `pnpm vitest run --project db packages/recipe-core/test/plant`; the machine seeds are checked by
 `machine.test.ts` against [plant/write-seeds.ts](../../../packages/recipe-core/src/plant/write-seeds.ts).
 
