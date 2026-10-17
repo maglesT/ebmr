@@ -2,7 +2,7 @@
  * Kill tests of the SQL mutation group "plant-rules" on the site-services side (site services 0940; Phase 6 exit,
  * decision 0019): a reagent or buffer lot is recorded whole or refused, one malformed field at a time; it is withdrawn
  * only when it exists and with a reason; and it may be used from the microsecond it was recorded until the microsecond
- * it expires, which is no longer in date.
+ * it expires, which is no longer in date; a use at a step is recorded against the very lot used, among others in store.
  *
  * Controls: PR-29 (an expired or withdrawn reagent or buffer is not used at an in-process control).
  */
@@ -11,13 +11,17 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { expectRefused } from '../../../kernel/test/identity/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import { QualityWorld, seedQualityCast } from '../quality/support.ts';
+import { PlantWorld, seedPlantCast } from '../../../recipe-core/test/plant/support.ts';
+import { batchWithSteps } from '../../../recipe-core/test/plant-rules/support.ts';
 
 let db: TestDatabase;
 let q: QualityWorld;
+let w: PlantWorld;
 
 beforeAll(async () => {
   db = await createTestDatabase();
   q = new QualityWorld(db, await seedQualityCast(db));
+  w = new PlantWorld(db, await seedPlantCast(db));
 }, 300_000);
 afterAll(async () => {
   await db.drop();
@@ -66,5 +70,18 @@ describe('reagent and buffer lots (site services 0940)', () => {
     )).rows[0]!.t;
     expect(await problem(l.lotCode, recorded.t)).toBeNull();
     expect(await problem(l.lotCode, withdrawn)).toMatch(/^EBMR-SITE-954 /);
+  });
+
+  it('[PR-29] a use at a step is recorded against the lot used, not another lot in store', async () => {
+    const batch = await batchWithSteps(db, await w.product(), ['p-ipc']);
+    const [a, b, c] = [lot(), lot(), lot()];
+    for (const l of [a, b, c]) await record(l);
+    const useOf = async (code: string) => {
+      const id = await w.run(w.cast.operator, async (x) => (await x.query<{ r: string }>('select plant.record_reagent_use($1, $2, $3, $4) as r', [batch, 'p-ipc', code, 'pH meter calibration'])).rows[0]!.r);
+      return (await db.admin.query<{ code: string }>('select l.lot_code as code from plant.reagent_use u join site.reagent_lot l on l.id = u.reagent_lot_id where u.id = $1', [id])).rows[0]?.code;
+    };
+    expect(await useOf(b.lotCode)).toBe(b.lotCode);
+    expect(await useOf(c.lotCode)).toBe(c.lotCode);
+    expect(await useOf(a.lotCode)).toBe(a.lotCode);
   });
 });
