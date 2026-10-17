@@ -1,0 +1,18 @@
+record-lock-and-amendment: 166 mutants in 14 functions (db + server)
+bulk-and-bright-stock: 99 mutants in 12 functions (db + server)
+execution-complete-forms: 6 mutants in 1 functions (db)
+total: 271 mutants in 3 groups
+templates built in 54 s: ebmr_mut_base_7628473c, ebmr_stpl_b85f40fd0e5e, ebmr_sandbox_tpl2ecf4a053aa2
+checked 27 functions: each re-applied unmutated leaves its pg_proc row unchanged; owners ebmr_owner (79); a copy of each template has the template's database privileges
+record-lock-and-amendment: baseline db 276 s (limit 828 s), server 25 s (limit 240 s)
+  SURVIVED recipe.lock_at_first_disposition#9 RELATIONAL packages/recipe-core/sql/0870_record_lock.sql:147 [=] -> [<>]
+  record-lock-and-amendment: 25/166
+  record-lock-and-amendment: 50/166
+  record-lock-and-amendment: 75/166
+  record-lock-and-amendment: 100/166
+  SURVIVED recipe.append_amendment_entry#8 RELATIONAL packages/recipe-core/sql/0873_record_lock_roles_and_entries.sql:51 [=] -> [<>]
+  record-lock-and-amendment: 125/166
+  record-lock-and-amendment: 150/166
+record-lock-and-amendment: score 98.8 % (161/163 detected, 0 invalid) in 9247 s
+bulk-and-bright-stock: baseline db 103 s (limit 308 s), server 8 s (limit 240 s)
+SIGTERM: dropping the run's databases

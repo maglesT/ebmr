@@ -361,3 +361,4 @@ Mutation testing 58% (elapsed: ~58m, remaining: ~42m) 275/551 tested (116 surviv
 Mutation testing 58% (elapsed: ~58m, remaining: ~42m) 275/551 tested (116 survived, 0 timed out)
 Mutation testing 58% (elapsed: ~58m, remaining: ~41m) 277/551 tested (117 survived, 0 timed out)
 Mutation testing 58% (elapsed: ~58m, remaining: ~41m) 277/551 tested (117 survived, 0 timed out)
+[32m04:13:27 (925457) INFO MutationTestReportHelper[39m Saved a partial incremental report to ".reports/stryker-phase6/gateway-opcua.incremental.json" after an unexpected interrupt.
