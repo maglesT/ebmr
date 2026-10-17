@@ -81,6 +81,10 @@ export function fixturesFromExamples(installation: 'GMP' | 'SANDBOX'): FixtureMa
     ...(installation === 'GMP'
       ? Object.fromEntries(Object.values(ANALYTICS_EXAMPLES).filter((e) => e.routeId.startsWith('analyticsSpc.')).map((e) => [e.routeId, e.data]))
       : {}),
+    // Phase 6A slice 6A-5: the review-priority route likewise.
+    ...(installation === 'GMP'
+      ? Object.fromEntries(Object.values(ANALYTICS_EXAMPLES).filter((e) => e.routeId.startsWith('analyticsReview.')).map((e) => [e.routeId, e.data]))
+      : {}),
     // Phase 6 slice 6g: training mode answers on the sandbox only.
     ...(installation === 'SANDBOX'
       ? { 'training.overview': EXAMPLES['training-overview'].data, 'training.start': EXAMPLES['training-start'].data, 'training.completeStep': EXAMPLES['training-complete-step'].data }

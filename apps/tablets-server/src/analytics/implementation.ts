@@ -4,8 +4,9 @@
  * implementations to IMPLEMENTATIONS in its own file under this folder; slice 6A-1 has none, so the runner runs nothing
  * until a slice adds a method and QA makes a version of it EFFECTIVE under a change record (D-6A-1-10).
  */
-import type { AuditBaselineParameters, AuditInput, AuditRulesParameters, Method, MethodId, Parameters } from '@ebmr/analytics';
+import type { AuditBaselineParameters, AuditInput, AuditRulesParameters, Method, MethodId, Parameters, ReviewInput, ReviewPriorityParameters } from '@ebmr/analytics';
 import { ATA_BASELINE_IMPLEMENTATION, ATA_RULES_IMPLEMENTATION } from './audit.ts';
+import { REVIEW_PRIORITY_IMPLEMENTATION } from './review.ts';
 import { SPC_IMPLEMENTATIONS } from './spc.ts';
 
 /** One row of an input view: the view's columns, as text, booleans, integers, arrays or JSON (never a Date). */
@@ -41,4 +42,6 @@ export const IMPLEMENTATIONS: readonly MethodImplementation[] = [
   // Slice 6A-4: the audit-trail methods (audit.ts).
   implementation<AuditInput, AuditRulesParameters>(ATA_RULES_IMPLEMENTATION),
   implementation<AuditInput, AuditBaselineParameters>(ATA_BASELINE_IMPLEMENTATION),
+  // Slice 6A-5: the review priority (review.ts).
+  implementation<ReviewInput, ReviewPriorityParameters>(REVIEW_PRIORITY_IMPLEMENTATION),
 ];
