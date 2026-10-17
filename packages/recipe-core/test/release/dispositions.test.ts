@@ -907,6 +907,27 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
     expect((await db.app.query<{ f: boolean }>('select removed_after_failure as f from recipe.market_change where id = $1', [id])).rows[0]!.f).toBe(true);
   });
 
+  // recipe.record_market_change#47, #52, #54, #57 to #60: a removal names a deviation linked to the subject and not
+  // cancelled; a cancelled one linked to the lot, or an open one linked only to another lot, is refused.
+  it('[INV-43][PR-56] a market removal naming a cancelled deviation of the lot, or a deviation of another lot only, is refused (EBMR-DSP-018)', async () => {
+    const lot = await readyLot();
+    const other = await readyLot();
+    const message = async (ref: string): Promise<string> => {
+      try {
+        await marketChange(qaReviewer3, 'LOT', lot.lotId, 'REMOVE', 'EU', ref);
+        return 'ok';
+      } catch (e) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    };
+    const cancelled = await deviationOnLot(lot.lotId);
+    await w.run(qaReviewer, (c) => c.query("select site.cancel_deviation($1, 'raised against the wrong lot')", [cancelled]));
+    expect(await message(cancelled)).toMatch(/EBMR-DSP-018 the deviation record named for the removal is CANCELLED/);
+    const elsewhere = await deviationOnLot(other.lotId);
+    expect(await message(elsewhere)).toMatch(/EBMR-DSP-018 the deviation record is not linked to lot /);
+    expect(await state(lot.lotId, 'EU')).not.toBe('REMOVED');
+  });
+
   // recipe.record_release_with_us_disposition#16, #19: both rows of a two-row release are made in this ceremony; a
   // manufacturer release signature of an earlier command does not join a US signature made now.
   it('[D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)', async () => {

@@ -295,9 +295,9 @@ the database cannot make. Killing tests were proved against the original (pass) 
 
 | Item | What runs | Result |
 |---|---|---|
-| Scope A kill confirmation (232) | release-gate, release-gate-market-items, manufacturer-release, tablets-release-items with `--only` on the survivors of the Phase 4 run (ids from that run's report; see the note on renumbering below) | pending |
-| Scope B kill confirmation (118) | the six scope B groups with `--only` on the unconfirmed survivors | pending |
-| us-disposition | first full run (146 mutants) | pending |
+| Scope A kill confirmation (232) | the four scope A groups run whole (D-P6j-M-7): the whole run is the kill confirmation and the new first run | release-gate 211 / 240 (**87.9 %**, Phase 4 47.2 %); release-gate-market-items 49 / 51 (**96.1 %**, 74.5 %); manufacturer-release 158 / 163 (**96.9 %**, 63.6 %); tablets-release-items 175 / 254 (**68.9 %**, 59.3 %). Of Phase 4's 232 aimed-at survivors, all but the 115 survivors below are now killed; see "Part 2 triage (T11)" |
+| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); the others: see "Part 2 triage (T11)" |
+| us-disposition | first full run (146 mutants) | 83 / 146 (**56.8 %**, first score); 12 survivors aimed at by new tests, 2 equivalent, 49 P3 |
 | qp-certification | first full run | pending |
 | market-changes | first full run | pending |
 | Stryker survivor triage | server release, records, India, archive and PQR features | pending |
