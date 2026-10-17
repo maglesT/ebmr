@@ -272,13 +272,15 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
         // What the step measured, if it says; the reporter adds the assertions it made and the actual result from
         // them. Nothing here may state the expected text as observed (review F28).
         const observed = (await base.step(title, fn)) ?? null;
-        const shotPath = page ? testInfo.outputPath(`evidence-${testInfo.attachments.length + 1}.png`) : undefined;
-        if (page && shotPath) await page.screenshot({ path: shotPath, fullPage: false });
+        // EBMR_E2E_EVIDENCE_JPEG=1 (the Phase 6 exit demo's record): small JPEG screenshots instead of PNG.
+        const jpeg = process.env['EBMR_E2E_EVIDENCE_JPEG'] === '1';
+        const shotPath = page ? testInfo.outputPath(`evidence-${testInfo.attachments.length + 1}.${jpeg ? 'jpeg' : 'png'}`) : undefined;
+        if (page && shotPath) await page.screenshot({ path: shotPath, fullPage: false, ...(jpeg ? { type: 'jpeg' as const, quality: 50 } : {}) });
         await testInfo.attach(`evidence: ${title}`, {
           body: JSON.stringify({ title, expected, observed, started, finished: new Date().toISOString(), screenshot: shotPath ?? null }),
           contentType: 'application/json',
         });
-        if (shotPath) await testInfo.attach(`screenshot: ${title}`, { path: shotPath, contentType: 'image/png' });
+        if (shotPath) await testInfo.attach(`screenshot: ${title}`, { path: shotPath, contentType: jpeg ? 'image/jpeg' : 'image/png' });
       },
     });
   },

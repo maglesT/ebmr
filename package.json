@@ -11,6 +11,7 @@
     "dev": "node --import tsx tools/demo/src/cli.ts run --dev",
     "demo:setup": "node --import tsx tools/demo/src/cli.ts setup",
     "demo": "node --import tsx tools/demo/src/cli.ts run",
+    "demo:phase6-exit": "flock /tmp/ebmr-e2e.lock node --import tsx tools/e2e/demo/run.ts",
     "build:web": "pnpm --filter @ebmr/tablets-web build",
     "openapi": "node --import tsx apps/tablets-server/src/cli/openapi.ts .reports/openapi.json",
     "e2e": "flock /tmp/ebmr-e2e.lock pnpm --filter @ebmr/e2e test",
