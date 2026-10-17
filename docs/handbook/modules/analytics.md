@@ -1,7 +1,7 @@
 # analytics: advisory analytics (Phase 6A)
 
 **Draft.** This page is still being written; facts on it were checked against the code on 17 October 2026 (slices
-6A-0 and 6A-1). Slices 6A-2 to 6A-6 add their methods here.
+6A-0, 6A-1 and 6A-6). Slices 6A-2 to 6A-5 add their methods here.
 
 This page explains the advisory analytics of the Tablets edition: the pure package `packages/analytics`, the runner in
 the tablets server, the analytics role and schema in the database, the input views it reads, the method versions under
@@ -27,6 +27,9 @@ the plan is [phase-6a-plan.md](../../build-plan/phase-6a/phase-6a-plan.md) and t
 | Schema, role, tables, record functions, read views (6A-0) | kernel [1240](../../../packages/kernel/sql/1240_analytics_schema_role.sql) to [1244](../../../packages/kernel/sql/1244_analytics_permissions.sql) |
 | Method change control, the screens' views (6A-1) | kernel [1245](../../../packages/kernel/sql/1245_analytics_method_change.sql) |
 | Input views v1 | recipe-core [1115](../../../packages/recipe-core/sql/1115_analytics_input_views.sql) |
+| Golden batch profile: method GBP.DTW_BAND and its curve arithmetic (6A-6) | [methods/profile/](../../../packages/analytics/src/methods/profile/) |
+| Its runner implementation, routes and screens (6A-6) | [profile.ts](../../../apps/tablets-server/src/analytics/profile.ts#sym=GOLDEN_PROFILE), [features/analytics/profile/](../../../apps/tablets-server/src/features/analytics/profile/), [ns/analytics-profile.ts](../../../packages/api-contract/src/ns/analytics-profile.ts), [tablets-web features/analytics/profile/](../../../apps/tablets-web/src/features/analytics/profile/) |
+| Series inputs and the reference sets in force (6A-6) | recipe-core [1170](../../../packages/recipe-core/sql/1170_analytics_series_inputs.sql) |
 | Tests | [kernel test/analytics](../../../packages/kernel/test/analytics/), [recipe-core test/analytics](../../../packages/recipe-core/test/analytics/), [server test/analytics](../../../apps/tablets-server/test/analytics/), [web test/analytics](../../../apps/tablets-web/test/analytics/) |
 
 ## What it does
@@ -141,10 +144,52 @@ run as the person inside a command, insert-only and audited.
 | `ANALYTICS.DI_REVIEW` | CSV/DI lead | flags about a person |
 | `ANALYTICS.METHOD` | QA reviewer, process owner | method versions, reference sets |
 
+## The golden batch profile (slice 6A-6)
+
+Method `GBP.DTW_BAND` v1 compares a batch's equipment curve with the band of QA's reference batches (decision 0016
+item 10; plan defaults D-6A-16 and D-6A-6-1 to D-6A-6-11). It covers connected equipment only: the native OPC UA series
+of slice 6b (`plant.series`). It is advisory, and no profile is ever a GMP record.
+
+- **Inputs** (recipe-core 1170, on the analytics role's allow-list):
+  - `report.series_ref_v1` has one row per GMP batch, step bound to a unit, and tag the unit sent during the step's
+    binding window (the window `plant.series_in_context` uses). Each row carries the chunk ids, whether the window has
+    ended, the release, the deviations linked to the batch and the alarms on the step.
+  - `report.series_samples_v1(batch, step, tag)` gives the window's samples exactly as received: source time, raw text,
+    shown decimal, status code and quality.
+  - `report.analytics_reference_v1` gives the reference sets in force, read from the configuration store. The analytics
+    role may not run the kernel's owner-only reader, and 6A-6 has no kernel range (D-6A-6-7).
+- **The runner** calls the samples function once per distinct batch, step and tag (an `InputSpec` with `call`). It gives
+  each sample to the unit whose chunk holds it.
+  - A method with `references` runs once without a reference set, to fit the model candidates, and then once per
+    reference set in force. Each set is read again in the run's snapshot.
+  - Before scoring, the runner checks that the set's model hashes to its SHA-256 and that its batches and scope are the
+    model's.
+- **The method.**
+  - **Samples.** BAD samples are dropped and counted; UNCERTAIN ones are used and counted. A curve is not assessed, with
+    the reason, when its step has not ended, when it has fewer than 20 usable samples, or when a gap between samples is
+    longer than 5 % of its time.
+  - **Resampling.** A curve is resampled to 200 points from its first to its last usable sample.
+  - **Fit.** The medoid is found by DTW with a Sakoe-Chiba band of 10 %. Every reference curve is aligned to it.
+    - The band is the pointwise 5th to 95th percentile, with a timing tolerance of one point (D-6A-6-3).
+    - The distance limit is a log-normal 99 % prediction limit of the references' distances (D-6A-6-4).
+  - **Flags.** A batch is flagged `OUT_OF_BAND` when more than 10 % of its aligned points lie outside the band, and
+    `DTW_DISTANCE` when its distance is above the limit.
+- **Reference batches** (D-6A-6-2) are released, with no deviation linked to the batch and no alarm on the step.
+  - The candidate (`MODEL_CANDIDATE`) is fitted on all of them, at least 10, and lists the batches it leaves out and why.
+  - QA makes it a reference set on `/analytics/profiles` under a change record approved for `ANALYTICS_REFERENCE`. The
+    database checks the model hash (EBMR-ANA-010).
+- **Screens.**
+  - `/analytics/profiles` lists the candidates and shows a batch against its band.
+  - The 6b trend viewer shows the same overlay under its chart: the band, the reference curve, the aligned batch curve,
+    the flags and every sample as recorded (DI-32).
+  - The routes answer EBMR-ANA-060 for a step without a series and EBMR-ANA-061 before a profile exists.
+
 ## Adding a method (slices 6A-2 to 6A-6)
 
 1. Write the pure method in `packages/analytics/src/methods/<family>/` with its tests and reference values.
 2. Add its implementation (inputs, `assemble`, the method) to the runner in `apps/tablets-server/src/analytics/`, and
-   list it in `IMPLEMENTATIONS`.
+   list it in `IMPLEMENTATIONS`. Import the shapes from `method-types.ts`, not `implementation.ts`, or the list makes an
+   import cycle. A parameterised input is an `InputSpec` with `call`; a method with reference sets declares
+   `references` (as `profile.ts` does).
 3. Add any input view in your migration range and register it with `analytics.register_input`.
 4. QA makes version 1 effective under a change record on `/analytics/methods`.

@@ -30,10 +30,10 @@
 --                                      kernel range (D-6A-6-7). It reads the configuration store, not the analytics
 --                                      schema, so the dependency proof of DI-51 stays as it is.
 --
--- series_ref_v1 is in the report catalogue with SELECT to the reporting and application roles (D-6A-1-5); the samples
--- function is EXECUTE to the analytics role (its allow-list) and the application role (the profile overlay shows the
--- raw values the profile read, DI-32); the reference view is on the analytics role's allow-list only. Nothing here
--- writes, and nothing changes plant.series or a record's dynamic data references (DI-51).
+-- Both views are in the report catalogue with SELECT to the reporting and application roles (D-6A-1-5; every report
+-- view is catalogued) and on the analytics role's allow-list; the samples function is EXECUTE to the analytics role
+-- (its allow-list) and the application role (the profile overlay shows the raw values the profile read, DI-32).
+-- Nothing here writes, and nothing changes plant.series or a record's dynamic data references (DI-51).
 
 set local role ebmr_owner;
 
@@ -121,12 +121,14 @@ revoke all on function report.series_ref_rows_v1(), report.series_samples_v1(uui
 create view report.series_ref_v1 as select * from report.series_ref_rows_v1();
 create view report.analytics_reference_v1 as select * from report.analytics_reference_rows_v1();
 revoke all on report.series_ref_v1, report.analytics_reference_v1 from public;
-grant execute on function report.series_ref_rows_v1() to ebmr_app, ebmr_report;
-grant select on report.series_ref_v1 to ebmr_app, ebmr_report;
+grant execute on function report.series_ref_rows_v1(), report.analytics_reference_rows_v1() to ebmr_app, ebmr_report;
+grant select on report.series_ref_v1, report.analytics_reference_v1 to ebmr_app, ebmr_report;
 grant execute on function report.series_samples_v1(uuid, text, text) to ebmr_app;
 insert into report.view_registry (view_name, version, grain, description) values
   ('series_ref_v1', 1, 'batch, step, unit and series tag',
-   'The native equipment series of each GMP batch step on its unit: product and family, completion and release, unit and class, tag and unit, binding window, chunk ids, linked deviations and step alarms (analytics input)');
+   'The native equipment series of each GMP batch step on its unit: product and family, completion and release, unit and class, tag and unit, binding window, chunk ids, linked deviations and step alarms (analytics input)'),
+  ('analytics_reference_v1', 1, 'analytics reference set in force',
+   'The advisory analytics reference sets in force, from the configuration store: method, scope, reference batches, model candidate, model and its SHA-256, change record (analytics input)');
 
 -- The analytics role's allow-list (kernel 1242): SELECT on each view with EXECUTE on its row function, EXECUTE on the
 -- samples function.

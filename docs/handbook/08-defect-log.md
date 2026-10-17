@@ -1175,6 +1175,38 @@ under the same key lands, exactly once; ...` and `[DI-31] M6-D2: a page that rep
 once; ...` (apps/tablets-server/test/equipment-data/opcua-adapter.test.ts). **Lesson.** De-duplicate on what you
 received, never on what the sender claims about it; a claim that failed its check identifies nothing.
 
+## Slice 6A-6: golden batch profile (Phase 6A)
+
+### P6A6-1: the plan's band rule would flag about half of the normal curves (found while building)
+
+**Symptom.** With a pointwise 5th to 95th percentile band of n curves, two curves lie outside it at every point by
+construction. Each reference curve therefore has about 10 % of its points outside, which is exactly the flag threshold.
+On the synthetic history, the 20 normal curves had 0.5 % to 15 % outside, so about half would have been flagged.
+
+**Fix.** The band at a point spans its neighbours within one resampling step (a timing tolerance, parameter
+`bandTolerancePoints`, D-6A-6-3). The normal curves then have at most 5.5 % outside, and the abnormal curve 31 %.
+
+**Test.** `[DI-52] the seeded abnormal press curve is flagged and the 20 normal ones are not` (package and server).
+
+### P6A6-2: an empirical 99th percentile of the references flags a reference (found while building)
+
+**Symptom.** With 10 to 50 references, the empirical 99th percentile of their distances lies below the largest one. That
+reference would then be flagged against its own set.
+
+**Fix.** The limit is a log-normal 99 % prediction limit for one new batch (D-6A-6-4).
+
+### P6A6-3: the runner could not read the reference sets (found while building)
+
+**Symptom.** `analytics.effective_reference_sets()` is owner only (kernel 1242), and the analytics role may read only its
+catalogued report inputs.
+
+**Fix.** Recipe-core 1170 adds `report.analytics_reference_v1` over the configuration store. It does not read the
+analytics schema, so the DI-51 dependency proof is unchanged (D-6A-6-7).
+
+### P6A6-4: an import cycle between the implementation list and a method file (found while building)
+
+**Fix.** The implementation shapes moved to `method-types.ts`, and `implementation.ts` re-exports them.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

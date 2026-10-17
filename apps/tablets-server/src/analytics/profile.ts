@@ -15,7 +15,7 @@ import {
   type ProfileSample,
   type SampleStatus,
 } from '@ebmr/analytics';
-import type { InputRow, InputSpec, MethodImplementation, ReferenceRow } from './implementation.ts';
+import type { InputRow, InputSpec, MethodImplementation, ReferenceRow } from './method-types.ts';
 
 const REF = 'report.series_ref_v1';
 const SAMPLES = 'report.series_samples_v1(uuid,text,text)';
@@ -24,7 +24,7 @@ const REFERENCES: InputSpec = { view: 'report.analytics_reference_v1', version: 
 const refInput = (filter: Readonly<Record<string, string | number | boolean>>): InputSpec => ({ view: REF, version: 1, filter: { ended: true, ...filter } });
 const samplesInput: InputSpec = { view: SAMPLES, version: 1, filter: null, call: { from: REF, args: ['batch_id', 'step', 'tag'] } };
 
-const text = (v: unknown): string => (typeof v === 'string' ? v : v === null || v === undefined ? '' : String(v));
+const text = (v: unknown): string => (typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' || typeof v === 'bigint' ? String(v) : '');
 const orDash = (v: unknown): string => text(v) || '-';
 const STATUSES: readonly SampleStatus[] = ['GOOD', 'UNCERTAIN', 'BAD'];
 const statusOf = (v: unknown): SampleStatus => (STATUSES.includes(v as SampleStatus) ? (v as SampleStatus) : 'BAD');
@@ -98,4 +98,4 @@ const PROFILE: MethodImplementation<ProfileInput, GbpParameters> = {
 };
 
 /** GBP.DTW_BAND as the runner holds it (IMPLEMENTATIONS). */
-export const GOLDEN_PROFILE: MethodImplementation = PROFILE as unknown as MethodImplementation;
+export const GOLDEN_PROFILE: MethodImplementation = PROFILE;

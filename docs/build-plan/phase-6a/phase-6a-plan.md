@@ -377,6 +377,97 @@ Defaults of 6A-1 (taken without asking, as the owner's rule says; each is the de
   - `[DI-32] the overlay shows the raw values as recorded`.
 - **Migrations:** recipe-core 1170 to 1179, tablets 1360 to 1364.
 
+#### 6A-6 as built (17 October)
+
+- **Migrations.** Recipe-core 1170 holds `report.series_ref_v1`, `report.series_samples_v1(uuid,text,text)` and
+  `report.analytics_reference_v1`, with their row functions and the step windows. Tablets 1360-1364 are not used. There is
+  no kernel or site-services migration (D-6A-6-7).
+- **Package.** `packages/analytics/src/methods/profile/`: `curves.ts` (resampling, DTW, alignment, medoid, percentiles,
+  band) and `gbp.ts` (GBP.DTW_BAND v1). The registry entry gained three parameters (D-6A-6-3, D-6A-6-5). `OutputDraft`
+  values may now be objects and text lists (D-6A-6-10).
+- **Runner.**
+  - `profile.ts` is the implementation, listed in `IMPLEMENTATIONS`.
+  - `inputs.ts` reads row function inputs (`InputSpec.call`).
+  - `runner.ts` runs a method with `references` once per reference set in force (D-6A-6-8).
+  - The implementation shapes moved to `method-types.ts` to avoid an import cycle (re-exported).
+- **Server and screens.**
+  - The feature is `features/analytics/profile/` (`analytics-profile`; `analyticsProfile` joins `routes.ts` and
+    `NAMESPACE_OWNERS`).
+  - The screens are `/analytics/profiles` (`features/analytics/profile/`) and the overlay under the 6b trend viewer's
+    chart.
+- **Tests.**
+  - Package `test/profile.test.ts`, with the offline reference `test/reference/profile-dtw.json` and its script.
+  - Recipe-core `test/analytics/series-inputs.test.ts`.
+  - Server `test/analytics/profile.test.ts`.
+  - Web `test/analytics/profile.test.tsx`.
+- **Mutation group.** `analytics-profile-inputs` (90 %), with its job in `mutation.yml`.
+- **Messages.** EBMR-ANA-060 and -061 (the range 060 to 069 is 6A-6's).
+
+Defaults of 6A-6 (taken without asking, as the owner's rule says; each is the decision until the owner changes it):
+
+- **D-6A-6-1 Scope.** A profile is per product code, family, equipment type, step and tag.
+  - The equipment type is the unit's class, as `report.step_use_v1` names it.
+  - The MBR step is the step key bound to the unit (`plant.step_equipment`).
+  - A candidate's subject is `product|family|type|step|tag` (EQUIPMENT_STEP_TAG). A profile's subject is the batch
+    (BATCH), with the step and tag in its values.
+  - A step that ran on two units of the type gives two curves; that batch is not a reference batch.
+- **D-6A-6-2 Reference batches.** A batch may be a reference batch when it is released, has no deviation linked to it
+  and has no alarm bound to it on the step or on no step.
+  - Deviations carry no step, so any linked deviation counts against every step of the batch.
+  - The runner fits one candidate per scope on every such batch, and needs at least 10. It lists the batches it leaves
+    out, with why.
+  - QA selects by approving a candidate as a whole under an ANALYTICS_REFERENCE change record. A candidate on a
+    narrower selection would need a new route; that is left for later, as an additive change.
+  - Before scoring, the runner checks that the set's batches and scope are the model's.
+  - Why: a model's hash must equal its candidate's (EBMR-ANA-010), so the batches QA approves are the candidate's. The
+    percentile band and the log-normal limit stay robust to one abnormal reference curve, and the test shows it.
+- **D-6A-6-3 Band tolerance.** The band at point j spans the lowest 5th and highest 95th percentile within j ± 1 point
+  (parameter `bandTolerancePoints`, default 1, one resampling step).
+  - Why: taken literally, a pointwise 5 % to 95 % band leaves about 10 % of every reference curve's points outside it,
+    which is exactly the flag threshold. On the synthetic history, half the normal curves would have been flagged.
+  - With one point of tolerance, the normal curves have at most 5.5 % of their points outside and the abnormal curve
+    31 %.
+  - The 5 %, 95 % and 10 % of D-6A-16 are unchanged.
+- **D-6A-6-4 Distance limit.** The references' 99th percentile of DTW distance to the medoid is estimated as a
+  log-normal prediction limit for one new batch: exp(m + t(0.99, n - 1) s sqrt(1 + 1/n)), over the positive distances.
+  With fewer than three positive distances, the limit is the largest distance.
+  - Why: the empirical 99th percentile of 10 to 50 distances lies below the largest one, so a reference would be
+    flagged against its own set.
+- **D-6A-6-5 Samples.**
+  - BAD samples, and samples without a shown value, are dropped and counted. UNCERTAIN samples (a stale or last-usable
+    value) are used and counted. A repeated source time keeps its first sample.
+  - A curve is not assessed, with the reason, when its step's window has not ended, when it has fewer than `minSamples`
+    (20) usable samples, or when a gap between usable samples is longer than `maxGapShare` (5 %) of its time.
+  - Normalised step time runs from the first to the last usable sample. Resampling is linear.
+  - Only steps whose window has ended are read (`ended = true`).
+- **D-6A-6-6 Fit parameters.** A reference set is scored only by a method version with the same fit parameters (points,
+  band, percentiles, tolerance, distance percentile). Otherwise its curves are skipped with the reason. A malformed
+  model, or one that does not hash to its recorded SHA-256, fails the run.
+- **D-6A-6-7 No kernel range.** The runner reads the reference sets in force through a recipe-core report view over
+  the configuration store (`platform.config_version`, area ANALYTICS_REFERENCE).
+  - It is catalogued like every report view, so the reporting and application roles may read it too. The models are
+    advisory configuration, not GMP data.
+  - Why: `analytics.effective_reference_sets()` is owner only (kernel 1242), and a grant would need a kernel migration.
+    The view does not depend on the analytics schema, so the DI-51 dependency proof is unchanged.
+  - The lead may later replace it with a kernel grant; 6A-3 can reuse it with a method filter.
+- **D-6A-6-8 Runs and results.**
+  - A method with reference sets runs once without one (the model candidates) and then once per reference set in force.
+  - The scoring run gives one PROFILE_DISTANCE per curve: PROFILED, or NOT_ASSESSED with the reason. Its flags are
+    ATTENTION.
+  - The samples function is also EXECUTE to the application role, so that the overlay shows the samples the profile
+    read.
+  - The trend viewer's overlay appears on request, behind a button, under the native chart.
+- **D-6A-6-9 Row function inputs.** A FUNCTION input is called once per distinct argument list taken from the rows of a
+  view input, in the same snapshot. Its rows carry the arguments, and the input record covers all of its rows. A sample
+  belongs to the unit whose chunk holds it.
+- **D-6A-6-10 Output values.** `OutputDraft.values` also takes text lists and plain objects (a candidate's model). This
+  is an additive widening of the package type.
+- **D-6A-6-11 Contract.** `ns/analytics-profile.ts` (6A-6's own file) gained, before any consumer:
+  - the samples as recorded and the status with its reason;
+  - the counts and the reference batches;
+  - the candidate's scope, batches and medoid.
+  The routes answer EBMR-ANA-060 for a step without a series and EBMR-ANA-061 when no profile exists yet.
+
 ### Slice 6A-7: Phase 6A exit
 
 - **Trace:**

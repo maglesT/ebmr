@@ -182,9 +182,9 @@ describe('method GBP.DTW_BAND (methods/profile/gbp.ts)', () => {
     expect(byBatch.get(inside.batchId)!['distance']).toBeLessThanOrEqual(model.distanceLimit);
     expect(byBatch.get(outside.batchId)!['outsideShare']).toBeGreaterThan(0.25);
     expect(r.flags.map((f) => [f.subjectRef, f.rule, f.severity])).toEqual([[outside.batchId, 'OUT_OF_BAND', 'ATTENTION'], [outside.batchId, 'DTW_DISTANCE', 'ATTENTION']]);
-    expect(r.flags[0]!.reasons[0]!.text).toMatch(/^\d+(\.\d)? % of the 200 points of force.main_kN in compression fall outside the band of 20 reference batches \(flagged above 10 %\)$/);
-    expect(r.flags[0]!.reasons[0]!.evidence).toEqual([{ kind: 'BATCH', ref: outside.batchId }, { kind: 'REFERENCE_SET', ref: 'e6000000-0000-4000-8000-000000000006' }]);
-    expect(r.flags[1]!.reasons[0]!.text).toMatch(/^the DTW distance to the reference curve is [\d.]+ kN, against the references' 99th percentile of [\d.]+$/);
+    expect(r.flags[0]!.reasons[0].text).toMatch(/^\d+(\.\d)? % of the 200 points of force.main_kN in compression fall outside the band of 20 reference batches \(flagged above 10 %\)$/);
+    expect(r.flags[0]!.reasons[0].evidence).toEqual([{ kind: 'BATCH', ref: outside.batchId }, { kind: 'REFERENCE_SET', ref: 'e6000000-0000-4000-8000-000000000006' }]);
+    expect(r.flags[1]!.reasons[0].text).toMatch(/^the DTW distance to the reference curve is [\d.]+ kN, against the references' 99th percentile of [\d.]+$/);
   });
 
   it('a time-shifted but good curve is aligned by DTW and not flagged; compared point by point it would be', () => {

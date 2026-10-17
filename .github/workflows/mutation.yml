@@ -95,7 +95,7 @@ jobs:
                 packaging-labels-and-line-completion, serialisation-l3, genealogy-and-recall, controlled-substance-mode,
                 governance-change-control, governance-support-and-contract-giver, india-dsc, reporting-and-training,
                 transfer-and-federation, analytics-foundation,
-                analytics-method-change, analytics-inputs]
+                analytics-method-change, analytics-inputs, analytics-profile-inputs]
     services:
       postgres:
         image: postgres:16

@@ -203,6 +203,17 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   (ml-matrix, @stdlib quantiles), the runner's number lint ban, and the golden batches with the runner on. Defaults
   D-6A-1-1 to 23 in the plan. Quick review: one medium fixed (a version validated with an earlier build could not
   be retired after an upgrade; D-6A-1-23); golden GB-T-01 to GB-T-03 passed with the runner on.
+- **6A-6 (17 October, branch `phase-6a/slice-6`, pushed, no PR yet):** the golden batch profile.
+  - Method `GBP.DTW_BAND` on the native OPC UA series: 200 points, DTW with a 10 % Sakoe-Chiba band, a 5 % to 95 %
+    band. It flags a curve with more than 10 % of its points out of band, or one beyond the distance limit.
+  - Recipe-core 1170: `series_ref_v1`, `series_samples_v1`, and `analytics_reference_v1` over the configuration store;
+    no kernel range was needed (D-6A-6-7).
+  - Runner: row function inputs, and one run per reference set in force.
+  - Candidates are fitted on the released batches without a deviation or a step alarm; QA makes one a reference set
+    under a change record.
+  - Screens: `/analytics/profiles` and the trend viewer's overlay. The routes are `analyticsProfile`.
+  - Defaults D-6A-6-1 to 11 are in the plan. Two of them correct literal readings of D-6A-16 that would flag normal
+    curves (D-6A-6-3, D-6A-6-4).
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).

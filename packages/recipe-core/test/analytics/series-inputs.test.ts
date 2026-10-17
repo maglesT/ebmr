@@ -132,7 +132,7 @@ describe('the golden batch profile inputs (recipe-core 1170)', () => {
   it('[DI-32] report.series_samples_v1 gives the window\'s samples exactly as received, oldest first, with their quality', async () => {
     const rows = await asAnalytics<{ source_us: string; raw_text: string; value_text: string | null; status_code: string; status: string; chunk_id: string; source_time: Date }>(
       'select source_us, raw_text, value_text, status_code, status, chunk_id::text, source_time from report.series_samples_v1($1, $2, $3)', [main.batchId, STEP, TAG]);
-    expect(rows.map(({ source_time: _t, ...r }) => r)).toEqual([
+    expect(rows.map(({ source_time: _t, ...r }) => { void _t; return r; })).toEqual([
       { source_us: (t0 + 1_000n).toString(), raw_text: '1.25E1', value_text: '12.50', status_code: '0x00000000', status: 'GOOD', chunk_id: chunkIds[0] },
       { source_us: (t0 + 2_000n).toString(), raw_text: '12.61', value_text: '12.61', status_code: '0x40000000', status: 'UNCERTAIN', chunk_id: chunkIds[0] },
       { source_us: (t0 + 3_000n).toString(), raw_text: 'NaN', value_text: null, status_code: '0x80000000', status: 'BAD', chunk_id: chunkIds[1] },

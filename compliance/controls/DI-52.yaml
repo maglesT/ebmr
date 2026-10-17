@@ -52,6 +52,11 @@ tests:
   - "packages/kernel/test/analytics/method-change.test.ts > method versions under change control (kernel 1245) > [DI-52][DI-09] a reference set is written under an approved change record, is its candidate's model, never changes and retires once"
   - "packages/kernel/test/analytics/method-change.test.ts > the flags views (kernel 1245) > [DI-52] the flags view shows every unrestricted flag of a completed run with its current disposition; the dispositions view marks the current one"
   - "packages/recipe-core/test/analytics/input-views.test.ts > the analytics input views (recipe-core 1115) > [DI-51][DI-52] report.cpp_value_v1 gives every critical value of a GMP batch record as the source's decimal text with the issued master's outermost limits, recomputable from the record"
+  - "packages/analytics/test/profile.test.ts > method GBP.DTW_BAND (methods/profile/gbp.ts) > [DI-52] the seeded abnormal press curve is flagged and the 20 normal ones are not"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51][DI-52] report.series_ref_v1 names each GMP batch step's native series on its unit, with its chunks, release, deviations and step alarms"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-52] report.analytics_reference_v1 gives the reference sets in force from the configuration store, and none retired"
+  - "apps/tablets-server/test/analytics/profile.test.ts > the golden batch profile (GBP.DTW_BAND) > [DI-52] the seeded abnormal press curve is flagged and the 20 normal ones are not"
+  - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-52] the candidates list the batches they leave out; QA makes one the reference set under a change record"
 expert_decision:
   status: PENDING
   pack_version: draft

@@ -49,6 +49,10 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-01/gb-t-01.test.ts > GB-T-01, the tablets golden batch > [DI-51] the golden batches keep their exact outputs with the analytics runner on"
   - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [DI-51] the golden batches keep their exact outputs with the analytics runner on"
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [DI-51] the golden batches keep their exact outputs with the analytics runner on"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51][DI-52] report.series_ref_v1 names each GMP batch step's native series on its unit, with its chunks, release, deviations and step alarms"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51] the inputs are on the analytics role's allow-list, which reads nothing behind them; the segregation check stays clean"
+  - "apps/tablets-server/test/analytics/profile.test.ts > the golden batch profile (GBP.DTW_BAND) > [DI-51] the profile reads the native series and never changes plant.series or the record's dynamic data refs"
+  - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-51] the profile screens show the advisory band, the method and the data age, and label every statistic"
 expert_decision:
   status: PENDING
   pack_version: draft

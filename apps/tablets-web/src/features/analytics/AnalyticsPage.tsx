@@ -20,7 +20,7 @@ export function AnalyticsPage() {
         <>
           <AdvisoryBand v={q.data} />
           <p>
-            <Link to="/analytics/flags">Open flags</Link> · <Link to="/analytics/methods">Methods, versions and monitoring</Link>
+            <Link to="/analytics/flags">Open flags</Link> · <Link to="/analytics/methods">Methods, versions and monitoring</Link> · <Link to="/analytics/profiles">Golden batch profiles</Link>
           </p>
           <Section title="Methods" testId="analytics-methods-catalog">
             <ul>

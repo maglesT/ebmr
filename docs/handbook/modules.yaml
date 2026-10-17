@@ -188,6 +188,21 @@ modules:
       - 'apps/tablets-web/test/analytics/**'
       - 'tools/boundaries/test/number-ban.test.ts'
 
+  - id: analytics-profile
+    title: Golden batch profile (Phase 6A slice 6A-6) - method GBP.DTW_BAND on the native OPC UA series, series inputs, reference sets, band overlay
+    page: modules/analytics.md
+    package: apps/tablets-server
+    migrations:
+      packages/recipe-core/sql: ['^117[0-9]_']
+    # The server feature (features/analytics/profile) and screens (features/analytics/profile) sit inside the analytics
+    # feature folders that analytics-foundation claims.
+    src: [packages/analytics/src/methods/profile, apps/tablets-server/src/analytics/profile.ts]
+    tests:
+      - 'packages/recipe-core/test/analytics/series-inputs.test.ts'
+      - 'apps/tablets-server/test/analytics/profile*.ts'
+      - 'apps/tablets-web/test/analytics/profile.test.tsx'
+      - 'packages/analytics/test/profile.test.ts'
+
   - id: kernel-integration
     title: Integration wiring between kernel modules
     page: modules/kernel.md
