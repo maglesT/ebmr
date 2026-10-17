@@ -620,6 +620,9 @@ describe('the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55)', () => {
     const at = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
     const id = await transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', at);
     expect(await state(lot.lotId, 'EU')).toBe('AWAITING_QP_CERTIFICATION');
+    // One transcription waits for its second person at a time (mutation triage T11, record_qp_transcription#18 to #24).
+    const at2 = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+    expect(await codeOf(transcribe(qaReviewer3, lot.lotId, 'CERTIFIED', at2))).toBe('EBMR-DSP-069');
     expect(await codeOf(verify(qaReviewer3, id))).toMatch(/EBMR-(DSP-072|ESIG-04\d)/);
     expect(await codeOf(verify(operator, id))).toMatch(/EBMR-(ESIG|IAM)-\d{3}/);
     await verify(qaReviewer2, id);
