@@ -93,14 +93,19 @@ describe('the OPC UA equipment simulator', () => {
       await sim.setFault('RELOCATED', true);
       expect((await read('_endpoint/location')).value.value).toBe('RM-COMP-1-ELSEWHERE');
       await sim.setFault('RELOCATED', false);
-      // A tick may publish once more between a read and the fault, so the frozen value's source time is compared with
-      // the moment the fault began: it is that last value's old time, never a time after the freeze.
-      const faultAt = Date.now();
+      // A tick may publish once more while the fault is being set, so the frozen value's source time is compared with
+      // the moment the fault was in force (after setFault returns), and the value must then stay frozen: two reads
+      // 300 ms apart give the same old source time, never a time after the freeze.
       await sim.setFault('STALE_VALUE', true);
+      const frozenBy = Date.now();
       await new Promise((r) => setTimeout(r, 300));
       const stale = await read('PRESS-01/force.main_kN');
       expect(stale.statusCode.value.toString(16)).toBe('40900000');
-      expect(stale.sourceTimestamp?.getTime() ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(faultAt);
+      expect(stale.sourceTimestamp?.getTime() ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(frozenBy);
+      await new Promise((r) => setTimeout(r, 300));
+      const still = await read('PRESS-01/force.main_kN');
+      expect(still.statusCode.value.toString(16)).toBe('40900000');
+      expect(still.sourceTimestamp?.getTime()).toBe(stale.sourceTimestamp?.getTime());
       await sim.setFault('STALE_VALUE', false);
       await sim.setFault('EXCURSION', true);
       await new Promise((r) => setTimeout(r, 300));
