@@ -38,12 +38,13 @@ Specs searched, not read whole: outline sections 4.7, 7.4, 9.1, 9.2, 11 and the 
 review and mutation sections; the Phase 6 and 6A review backlogs; the Phase 4 trace deferrals; the Phase 4 and Phase 6
 mutation results; `docs/security/threat-model.md` and `asvs-l2-review.md`; `docs/operations/ha-and-restore.md`.
 
-## Starting point (checked on main ddf3dfe and on PR #50's head, 17 October)
+## Starting point (checked on main ddf3dfe and on PR #50's head; PR #50 merged as bc46d55, 17 October)
 
 - **Phases:** Phase 6 is closed (`phase.yaml` at 6, `editions: [tablets]`). Phase 6A's slices 6A-0 to 6A-6 are on main
-  (PRs #43 to #49). The 6A exit, slice 6A-7, is PR #50 (branch `phase-6a/slice-7`), open: kernel 1280 to 1282, the four
-  drafts' 23 clauses proven at a phase-7 dry run, `pnpm trace` at 6 ok with 151 of 246 controls.
-- **Highest migrations (main, and PR #50):** kernel 1271 (1282), site-services 1002 (1002), recipe-core 1170 (1170),
+  (PRs #43 to #49). The 6A exit, slice 6A-7, is merged (PR #50, main bc46d55): kernel 1280 to 1282, the four drafts'
+  23 clauses proven at a phase-7 dry run, `pnpm trace` at 6 ok with 151 of 246 controls; residuals P6A7-4 to 9 in
+  `docs/build-plan/phase-6a/review-backlog.md` (dispositions in slice 7b-1).
+- **Highest migrations (before PR #50, and on main after it):** kernel 1271 (1282), site-services 1002 (1002), recipe-core 1170 (1170),
   tablets 1330 (1330). The 6A-7 ranges stay reserved for 6A exit fixes: kernel 1280-1289, site-services 1050-1059,
   recipe-core 1190-1199, tablets 1380-1389.
 - **The register (counted by script over `compliance/controls/*.yaml`, on main and on PR #50; the same numbers):**
@@ -189,12 +190,27 @@ a misleading answer; the rest stay in the backlogs with a line in the pack's kno
 | Stale-mirror refusal does not name the mirror | F-6jb-2 | The floor's message names the mirror, its age and the system owner to call | DI-31 |
 | Runner does not check its own role | P6A7-8 (low) | Start-up check that `current_user` is `ebmr_analytics` with no elevated attribute, else the runner does not start | *DI-51* |
 | Top reasons hint at a hidden term | P6A7-6 (low) | Choose the top reasons among the visible terms, then add the audit-trail reason for DI_REVIEW holders | *DI-53* |
+| Audit-trail methods' counts shown to every ANALYTICS.VIEW holder | P6A7-7 (low) | `analytics.method_monitor_v1` and `analytics.run_v1` (re-created in a new kernel migration) show the flag counts of the audit-trail methods only to `ANALYTICS.DI_REVIEW` holders; others see the run without them | *DI-53* |
 | A record lock counts as a change since review | F-6jb-g1 (medium, fail-safe) | Fixed only if the database can tell a lock-only epoch bump from an evidence change without loosening any other change detection; otherwise a residual (D-P7-7) | IN-05, INV-05 (release) |
 
-- **Measured, not fixed here:** P6A7-4 and P6A7-5 (analytics reads and flag grouping) and the Phase 3 trigger load are
-  measured by 7d's load test; they are fixed in 7d only if an SLO fails.
-- **Stay residuals (listed in the known issues):** 6jc-R14 (fails closed), P6A7-7, P6A7-9, the two SPC sets in force
-  for one chart, R-6c-1 (the specimens in the true copy would move the golden hashes; v1.1), R-6g-1 to R-6g-4, the
+- **The Phase 6A residuals (P6A7-4 to 9), one disposition each:**
+  - P6A7-4 (medium; whole inputs read on the GMP primary, sorted and hashed in the server's event loop) and P6A7-5
+    (medium; the flag table grows by a row per hit and run, and the flag views group it whole): the backlog asks for a
+    measurement on a real site's history; 7d's load test on a generated year of history (D-P7-4) is that measurement,
+    with two SLOs of their own (the nightly run within 30 minutes, no event-loop block over 200 ms; a flag view under
+    1 s). If either fails, 7d fixes it the way the backlog suggests: a recency bound in the input views (as
+    `report.series_ref_v1` has) or the runner in its own worker process for P6A7-4, a stored group column or an index
+    for P6A7-5. If both pass, they are known issues with the measured values.
+  - P6A7-6, P6A7-7 and P6A7-8 (low, restricted reads and the runner's role): fixed in the table above, because they
+    touch access (D-P7-6).
+  - P6A7-9 (low; the audit-trail flag key leaves out the method version, 6A-4's design): stays, with its reason in the
+    known issues. A verdict covering a later version's identical hit is the intended reading of the key; a new
+    `ATA.RULES` version that changes a rule's meaning is approved under change control, where the reviewer decides
+    whether old verdicts carry over.
+  - The carried 6A-3 item (two SPC reference sets in force for one chart, the screen shows the newest): stays; the
+    administrator guide says to retire the older set when approving a new one.
+- The Phase 3 trigger load is measured by 7d's load test too and fixed in 7d only if an SLO fails.
+- **Stay residuals (listed in the known issues):** 6jc-R14 (fails closed), P6A7-9 and the 6A-3 SPC item (above), R-6c-1 (the specimens in the true copy would move the golden hashes; v1.1), R-6g-1 to R-6g-4, the
   Phase 6 slice residuals (the live QMS fetch needs a QMS that signs its answers; DSC revocation needs a licensed CA;
   federation one hop), D-P6j-T3-4 (microsecond conversion through double precision, exact for 2023 to 2036), the
   mutation residuals of the Phase 4 and Phase 6 records.
@@ -290,7 +306,8 @@ a misleading answer; the rest stay in the backlogs with a line in the pack's kno
   - SLOs: a 50,000-entry batch review opens under 5 s; p95 command under 300 ms (on the pod's loopback, recorded as an
     upper bound for a site LAN); a release commits under concurrent ingestion with at most one serialisation retry in
     99 of 100 releases; no message lost or duplicated (counts and checksums equal at the end); the nightly analytics run
-    finishes within 30 minutes and blocks the event loop for no more than 200 ms at a time.
+    finishes within 30 minutes and blocks the event loop for no more than 200 ms at a time; each analytics flag view
+    answers under 1 s (P6A7-4, P6A7-5).
   - Soak: 4 hours at three times the reference rate on the pod: memory steady after warm-up (RSS growth under 10 %), no
     connection or file-handle leak, journal and spool sizes bounded, no error in the logs.
   - In the cloud session a 10-minute smoke of the same driver; the measured run is on the pod at the exit (7f).
@@ -559,7 +576,7 @@ replace a function in a new one. Ranges ascend in the merge order of D-P7-9, so 
   7a has merged (it needs the mTLS set-up) and uses 7c's bundle when it lands. Merges follow D-P7-9.
 - Each builder has its own spare cluster (local-ci skill) and runs the changed folders locally; GitHub CI is the merge
   gate. The cloud session runs the smoke versions of load and soak only.
-- PR #50 (the 6A exit) merges first; this plan's branch takes main with a merge commit.
+- PR #50 (the 6A exit) merged first (bc46d55); this plan's branch took main with a merge commit.
 - 7f last: trace at 7, exit review, then the pod run (D-P7-3), then the release-candidate PR.
 - Per slice: done when it has its tests, green CI, its module guide and `08-defect-log.md` updated, `pnpm handbook`
   regenerated and `pnpm handbook:check` green. One quick review, then one PR, then PROGRESS.md and
