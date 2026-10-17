@@ -150,6 +150,9 @@ describe('recipe.change_impact (D-P6g-0-8)', () => {
     expect(await refusal(impact('SPECIFICATION', '00000000-0000-4000-8000-000000000000'))).toMatch(/EBMR-CIM-002/);
     expect(await refusal(impact('EQUIPMENT', 'EQ-NONE'))).toMatch(/EBMR-CIM-002/);
     expect(await refusal(impact('SITE_VALUE', 'no.such.key'))).toMatch(/EBMR-CIM-002/);
+    // Phase 6 mutation triage (recipe.change_impact#29, #49): an unknown supplier and a well-formed but unknown MBR version.
+    expect(await refusal(impact('SUPPLIER', unique('MFR-NONE-')))).toMatch(/EBMR-CIM-002 there is no supplier/);
+    expect(await refusal(impact('MBR_VERSION', '00000000-0000-4000-8000-000000000000'))).toMatch(/EBMR-CIM-002 there is no MBR version/);
     const { rows } = await db.admin.query<{ v: string }>("select provolatile::text as v from pg_catalog.pg_proc where oid = 'recipe.change_impact(text, text)'::regprocedure");
     expect(rows[0]!.v).toBe('s');
   });

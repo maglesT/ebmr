@@ -177,6 +177,31 @@ describe('F34: the database (tablets 0410)', () => {
     expect((await gmp.db.app.query('select challenge_id::text as id from tab.session_challenge($1, $2)', [hashOf(gmp, author), stubChallenge])).rows).toEqual([{ id: stubChallenge }]);
     expect((await gmp.db.app.query('select challenge_id from tab.session_challenge($1, $2)', [hashOf(gmp, qaBrowser), stubChallenge])).rows).toEqual([]);
   });
+
+  it('[IN-53][DI-17] a controlled-substance record is read as content to be signed only in a role that records or signs that kind, or reviews governance records (tablets 1290; mutation triage)', async () => {
+    const q = async <T extends Record<string, unknown>>(text: string, args: unknown[]): Promise<T | undefined> => (await gmp.db.admin.query<T>(text, args)).rows[0];
+    const problem = async (role: string, type: string): Promise<string | null> =>
+      (await q<{ p: string | null }>('select tab.record_read_problem(row(null, null, null, $1, false)::tab.reader, $2, $3) as p', [role, type, randomUUID()]))?.p ?? null;
+    const holder = async (perm: string): Promise<string> => {
+      const r = await q<{ role: string }>("select role_code as role from iam.role_permission where permission_code = $1 and removed_at is null order by 1 limit 1", [perm]);
+      if (!r) throw new Error(`SETUP: no role holds ${perm}`);
+      return r.role;
+    };
+    const kinds: Record<string, string[]> = {
+      controlled_product: ['CONTROLLED.RECORD', 'CONTROLLED.APPROVE'],
+      controlled_custody: ['CONTROLLED.CUSTODY'],
+      controlled_checkpoint: ['CONTROLLED.BALANCE'],
+    };
+    const governance = await holder('RECORD.AUDIT_TRAIL_REVIEW');
+    for (const [type, perms] of Object.entries(kinds)) {
+      const outsider = 'OPERATOR';
+      const may = await q<{ kind: boolean; gov: boolean }>('select tab.role_may($1, $2::text[]) as kind, tab.role_may($1, tab.governance_read_permissions()) as gov', [outsider, perms]);
+      if (may?.kind !== false || may.gov !== false) throw new Error(`SETUP: ${outsider} must hold neither ${perms.join(', ')} nor a governance read permission: ${JSON.stringify(may)}`);
+      expect(await problem(outsider, type), type).toMatch(new RegExp(`^${type} records are read only by the roles that record or sign them \\(IN-53\\); the role OPERATOR does not$`));
+      for (const perm of perms) expect(await problem(await holder(perm), type), `${type} by a holder of ${perm}`).toBeNull();
+      expect(await problem(governance, type), `${type} by ${governance}`).toBeNull();
+    }
+  });
 });
 
 /**

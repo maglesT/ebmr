@@ -137,6 +137,10 @@ describe('genealogy traversal (recipe.genealogy; PR-57)', () => {
     const { rows: down } = await db.admin.query<{ lots: string[] }>("select recipe.genealogy_downstream_lots('LOT', $1)::text[] as lots", [s.A.id]);
     expect(down[0]!.lots).toEqual(expect.arrayContaining([s.F1.id, s.F2.id, s.F4.id]));
     expect(down[0]!.lots).not.toContain(s.A.id);
+    // Only the recovery of a lot on the path is followed: from the unrelated lot B (consumed by X, which made no finished
+    // lot) nothing is downstream, F1's recovered material and F4 included (mutation triage, genealogy_downstream_lots#10, #11).
+    const { rows: fromB } = await db.admin.query<{ lots: string[] }>("select recipe.genealogy_downstream_lots('LOT', $1)::text[] as lots", [s.B.id]);
+    expect(fromB[0]!.lots).toEqual([]);
   });
 
   it('[PR-57] the as-of point: a trace as of an earlier instant leaves out what was recorded after it, and repeats exactly', async () => {
