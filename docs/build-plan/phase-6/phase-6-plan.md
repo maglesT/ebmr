@@ -1161,6 +1161,13 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
 - **D-P6j-T9-2** A refusal that only a role segregation makes unreachable (the support-grant requester or engineer as an
   approver, EBMR-IAM-188) is recorded as defence in depth with a test that proves the segregation itself, not as an
   equivalent mutant.
+- **D-P6j-T12-1** (mutation triage T12: server-integrations and gateway-opcua, which did not finish in the box) A feature
+  without a usable Stryker report is triaged by its high-risk files' Priority 1 decisions: each is (a) also enforced by the
+  database (named, one line) or (b) TypeScript only, then hand-mutated, run against the narrowest test file and reverted; a
+  survivor gets a test in the package's own test files. The features stay residuals under decision 0019 (no re-run).
+- **D-P6j-T12-2** A P2 finding outside the P1 question (the worker's refused-key memory keyed on the stated hash, R-T12-1) is
+  recorded for the owner rather than fixed in a triage commit; a P2 defect whose fix is a TypeScript change of a few tokens
+  and whose test is already written (the OPC UA ids cut before keying) is fixed.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 
