@@ -370,6 +370,7 @@ describe('the LMS qualification source (INV-26, DI-31)', () => {
     expect(await problem({ ...ok, validTo: '2000' })).toBeNull();
     expect(await problem({ ...ok, validTo: MAX_US })).toBeNull();
     expect(await problem({ ...ok, validTo: '999999999999999999' })).toMatch(/^validTo is UTC epoch microseconds/);
+    expect(await problem({ ...ok, validTo: 5 })).toMatch(/^validTo is UTC epoch microseconds/);
     expect(await problem({ ...ok, validTo: '1000' })).toBe('validTo is after validFrom');
   });
 
