@@ -571,6 +571,58 @@ describe('mutation triage T11: container exclusions of the Tablets items read th
     expect((await item('E.RECONCILIATION_PACKS')).status).toBe('GREEN');
   });
 
+  // tab.grel_changed_since#45 to #94 (not the `>` to `>=` boundaries): "since review" reads each kind of fact of the
+  // referenced container, lot, deviation or rule set itself, and every one of them; another subject's facts never count.
+  it('[INV-05][DI-37] since_review reads every fact of the referenced container, lot, deviation and rule set, and theirs only (tab.grel_changed_since)', async () => {
+    const rev = '2030-06-01T00:00:00Z'; // the review instant: every real row of the world is older
+    const after = '2030-06-01T01:00:00Z';
+    const before = '2030-05-31T23:00:00Z';
+    const changed = async (kind: string, ref: string): Promise<boolean> =>
+      (await w.gmp.db.admin.query<{ c: boolean }>('select tab.grel_changed_since($1, $2::uuid[], $3::jsonb) as c', [rev, [], JSON.stringify([{ kind, ref, label: 'x' }])])).rows[0]!.c;
+    // Containers: one fact each after the review, and one with none.
+    const [cHold, cCharge, cBulk, cState, cNone] = [await container(parentId, 'CLOSED'), await container(parentId, 'CLOSED'), await container(parentId, 'CLOSED'),
+                                                    await container(parentId, 'CLOSED'), await container(parentId, 'CLOSED')];
+    await arrange('insert into plant.container_hold (container_id, ipc_check_id, person_id, account_id, recorded_at) values ($1, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), $2)', [cHold.id, after]);
+    await arrange("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id, recorded_at) values ($1, $2, 'BLENDING', 'CHARGE', 'FX', gen_random_uuid(), gen_random_uuid(), $3)", [cCharge.id, orderId, after]);
+    await arrange("insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id, recorded_at) values ($1, $2, $3, gen_random_uuid(), 1, 'kg', gen_random_uuid(), gen_random_uuid(), $4)", [orderId, parentId, cBulk.id, after]);
+    await arrange("update platform.aggregate_state set updated_at = $2 where aggregate_type = 'output_container' and aggregate_id = $1", [cState.id, after]);
+    for (const c of [cHold, cCharge, cBulk, cState]) expect(await changed('CONTAINER', c.id), c.label).toBe(true);
+    expect(await changed('CONTAINER', cNone.id)).toBe(false);
+    // Lots: a state change or an epoch bump after the review, and a lot with neither.
+    const [lState, lEpoch, lNone] = [randomUUID(), randomUUID(), randomUUID()];
+    for (const l of [lState, lEpoch, lNone]) {
+      await arrange("insert into platform.aggregate_state (aggregate_type, aggregate_id, machine_code, machine_version, state, version, updated_at) values ('material_lot', $1, 'material_lot', 2, 'QUARANTINE', 1, $2)",
+        [l, l === lState ? after : before]);
+    }
+    await arrange("insert into recipe.evidence_epoch (subject_kind, subject_id, version, bumped_at) values ('LOT', $1, 2, $2), ('LOT', $3, 1, $4)", [lEpoch, after, lNone, before]);
+    expect(await changed('LOT', lState)).toBe(true);
+    expect(await changed('LOT', lEpoch)).toBe(true);
+    expect(await changed('LOT', lNone)).toBe(false);
+    // Deviations: an epoch bump after the review, and one before.
+    const [dAfter, dBefore] = [randomUUID(), randomUUID()];
+    await arrange("insert into recipe.evidence_epoch (subject_kind, subject_id, version, bumped_at) values ('DEVIATION', $1, 2, $2), ('DEVIATION', $3, 1, $4)", [dAfter, after, dBefore, before]);
+    expect(await changed('DEVIATION', dAfter)).toBe(true);
+    expect(await changed('DEVIATION', dBefore)).toBe(false);
+    // Rule sets: verified after the review; signed after it; its signature invalidated after it; and one with nothing after.
+    const tag = randomUUID().slice(0, 6).toUpperCase();
+    const rs = async (code: string, verifiedAt: string, signedAt: string | null, invalidatedAt: string | null): Promise<void> => {
+      const v = randomUUID();
+      const sig = randomUUID();
+      await arrange("insert into tab.rule_set_verification (id, code, version, document_ref, note, recorded_by_person, recorded_by_account, recorded_at) values ($1, $2, 1, 'DOC-1', 'Verified', gen_random_uuid(), gen_random_uuid(), $3)", [v, code, verifiedAt]);
+      if (signedAt) await arrange('insert into tab.rule_set_verification_signature (verification_id, signature_id, signed_by_person, signed_by_account, signed_at) values ($1, $2, gen_random_uuid(), gen_random_uuid(), $3)', [v, sig, signedAt]);
+      if (invalidatedAt) {
+        await arrange(`insert into esig.signature_invalidation (signature_id, aggregate_ref, reason, previous_content_hash, current_content_hash, change_id, recorded_at)
+                       values ($1, 'compendial_rule_set:x', 'SUPERSEDED_BY_CHANGE', repeat('0', 64), repeat('1', 64), 1, $2)`, [sig, invalidatedAt]);
+      }
+    };
+    await rs(`T11V-${tag}`, after, null, null);
+    await rs(`T11S-${tag}`, before, after, null);
+    await rs(`T11I-${tag}`, before, before, after);
+    await rs(`T11N-${tag}`, before, before, null);
+    for (const code of [`T11V-${tag}`, `T11S-${tag}`, `T11I-${tag}`]) expect(await changed('RULE_SET', `${code}:1`), code).toBe(true);
+    expect(await changed('RULE_SET', `T11N-${tag}:1`)).toBe(false);
+  });
+
   // tab.grel_container_release#5: the bracketing check applies to a CLOSED container packed into the order.
   it('[L-30][INV-27] E.CONTAINER_RELEASE: a CLOSED container packed into the order with no passing in-process check after its close is red', async () => {
     const c = await container(parentId, 'CLOSED');
