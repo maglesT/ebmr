@@ -378,6 +378,8 @@ describe('LIMS results through the adapter (DI-31; site services 0926)', () => {
     const ts = nowUs();
     await send(result({ sampleId: sample, state: 'ENTERED' }), { sourceTimestamp: ts });
     await expectRefused(send(result({ sampleId: sample, state: 'REVIEWED' }), { sourceTimestamp: ts }), 'EBMR-LIMS-104');
+    // A newer state of the same sample and test is applied.
+    expect(await send(result({ sampleId: sample, state: 'REVIEWED' }), { sourceTimestamp: (BigInt(ts) + 1_000_000n).toString() })).toMatchObject({ applied: 'RECORDED' });
     // An older timestamp for another test of the same sample, and for the same test of another sample: both applied.
     const older = (BigInt(ts) - 1_000_000n).toString();
     expect(await send(result({ sampleId: sample, testCode: 'WATER', result: { value: '0.2', unit: '%' } }), { sourceTimestamp: older })).toMatchObject({ applied: 'RECORDED' });

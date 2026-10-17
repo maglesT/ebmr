@@ -146,6 +146,44 @@ its current number with its place updated, or dropped, by the part 2 triage.
 
 pending
 
+### qms-capa-lims-cmms (triage T2)
+
+- **First run:** 239 / 399 detected (2 invalid), 59.9 %; 160 survivors (51 guard removals, 48 logical, 42 relational,
+  10 boolean, 9 not-removed).
+- **Killed by new tests (confirmation run, `--only` on 149 survivors): 147.** Tests in
+  `packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts` (CAPA commands, resolver, QMS and LIMS receiving
+  commands, the QMS fetch at release) and `packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts` (CMMS
+  commands and the maintenance rule, the QMS guard on QP certification and after-release reconfirmation, G-REL's QMS
+  item). Killed by function: site.raise_capa (20), plant.receive_cmms_maintenance (14), plant.receive_cmms_calibration (9),
+  site.receive_lims_sample_result (10), recipe.qms_release_guard (9), register_capa_master_resolver (7),
+  schedule_capa_effectiveness_check (7), record_qms_release_fetch (7), capa_content (6), link_capa_deviation (6),
+  cancel_capa (6), receive_qms_capa (6), record_capa_effectiveness (5), site.capa_master_version_facts (4),
+  receive_qms_deviation_status (4), receive_qms_change_control (4), link_capa_master_version (3), lock_capa (2),
+  record_capa_implemented (2), qms_payload_problem (2), close_capa (2), capa_view (2), plant.cmms_accept (2),
+  recipe.grel_qms_item (2), recipe.capa_master_version_facts (2), capa_state, capa_close_problem, qms_accept,
+  qms_assert_newest, plant.cmms_maintenance_problems (1 each).
+- **Equivalent (4, in `equivalent.json`):** site.receive_lims_sample_result#11, plant.receive_cmms_calibration#2,
+  plant.receive_cmms_maintenance#2 (the not-an-object guard: the stored payload is an object by constraint and the
+  envelope check refuses any other first, kernel 1180); site.close_capa#6 (the signature-state refusal: a CAPA's state is
+  in its signed content, so esig.assert_signature refuses a changed state first).
+- **Defects (P1):** none. Every survivor was a correct rule without a test, or equivalent.
+- **Killed after the confirmation run (not re-run, decision 0019 allows no third run):** site.receive_lims_sample_result#70
+  (0926:106, `and` to `or` refuses every newer state of a sample and test); one assertion added: a newer state of the
+  same sample and test is applied.
+- **Residuals (8):**
+  - site.qms_release_problem#10 (0927:100, `>` to `>=` on the fetch age against a running clock): equal to the
+    microsecond cannot be set up deterministically.
+  - plant.receive_cmms_calibration#55 (0950:156, `<=` to `<` on due start against clock_timestamp()): the same.
+  - recipe.capa_master_version_facts#9 (0952:31, `>` to `>=` on effective_from against clock_timestamp()): the same.
+  - site.close_capa#16 (0925:759, initiator guard): reached only with a CAPA_CLOSED signature by the initiator, which the
+    meaning's entered-by exclusion refuses first (EBMR-ESIG-044, existing test); kept as defence in depth, not equivalent
+    because the exclusion is policy data.
+  - site.capa_view#7-#9 (0925:340, the batches of each linked deviation in the view and the CAPA_CLOSED content):
+    needs a deviation linked to batches; not reached in the time box (P2).
+  - site.raise_capa#88 (0925:545, the reference serial scoped by site and year): needs a CAPA of another site or year
+    in the same database; not reached in the time box (P2, numbering only).
+- **Confirmation score:** 386 / 395 valid non-equivalent = 97.7 % (98.0 % with #70).
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)
