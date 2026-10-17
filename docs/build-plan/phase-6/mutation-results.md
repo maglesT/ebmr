@@ -30,7 +30,7 @@ targets 90 %; decisions D-P6j-M-1 to 3 in the Phase 6 plan). Mutant counts from 
 | inbound-adapters-and-mirrors | adapters and mirrors | 21 | 310 | 17 / - | 90 % | pending | | | | |
 | erp-wms-receipt-and-stock | adapters and mirrors | 41 | 351 | 37 / 6 | 90 % | pending | | | | |
 | qms-capa-lims-cmms | adapters and mirrors | 38 | 401 | 12 / 5 | 90 % | pending | | | | |
-| equipment-data-and-alarms | equipment, alarms, plant rules | 28 | 469 | 41 / 5 | 90 % | pending | | | | |
+| equipment-data-and-alarms | equipment, alarms, plant rules | 28 | 469 | 41 / 5 | 90 % | 307 / 469 | 65.5 % | 162 | 2 | 447 / 467, 95.7 % (confirmation 140 / 140) |
 | plant-rules | equipment, alarms, plant rules | 26 | 221 | 16 / 5 | 90 % | pending | | | | |
 | packaging-labels-and-line-completion | packaging and serialisation | 34 | 352 | 3 / 14 | 90 % | pending | | | | |
 | serialisation-l3 | packaging and serialisation | 7 | 112 | - / 5 | 90 % | pending | | | | |
@@ -141,6 +141,60 @@ of `equivalent.json` that no longer fit their mutant (the place they cite is not
 mutant number no longer exists), all from Phase 2 to 4 re-creations (recipe-core 0471, 0501, 0502, 0844, 0932; tablets
 0702, 0715). A run applies only fitting entries and runs the others as ordinary mutants (D-P6j-M-4); each is moved to
 its current number with its place updated, or dropped, by the part 2 triage.
+
+### equipment-data-and-alarms (triage T1)
+
+- **First run** (stream p6-1): 307 / 469 detected, **65.5 %**, 162 survivors (27 GUARD_REMOVED, 70 LOGICAL, 34
+  RELATIONAL, 6 NOT_REMOVED, 1 BOOLEAN at the first read; the rest in the tablets 1218 bridges at the end of the run).
+- **New tests:** `packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts` (18 cases) and
+  `apps/tablets-server/test/mutation/equipment-data-and-alarms.test.ts` (4): each payload form (alarm, equipment event,
+  series chunk and sample, endpoint session, device original, OPC UA native record) refused one malformed
+  field at a time, with the boundary length taken; the binding windows of `plant.batch_context_at` read at the exact
+  microseconds they open and close; the enrolment, retirement and step-binding refusals; the bridged ALARM_CLEARED;
+  the OPC UA data guard on owner-level writes; tablets 1210's DEV-121/170/172 refusals, which the listener's wire
+  validator otherwise shields. 140 survivors are aimed at (the `--only` list of the confirmation run).
+- **Equivalent:** `plant.acknowledge_alarm#8` (EBMR-ALM-010 is unreachable: a SERVICE or INTEGRATION account is refused
+  the ACKNOWLEDGE permission first), `plant.alarm_problem#10` (`having count(*) >= 0` returns NULL as the original does).
+- **Real defects (P1):** none. The 27 removed guards were reachable refusals the suite did not exercise at database
+  level, or refusals a later layer repeats with the same code (D-P6j-T1-1); none let a wrong GMP write through.
+- **Residuals:**
+  - `plant.source_time_or_raise#4` (0960:442, `>` to `>=`): P3, a tolerance against `clock_timestamp()` at microsecond
+    resolution; the exact instant cannot be hit deterministically.
+  - `plant.acknowledge_alarm#5` (0976:28): P2, the per-batch scope loop runs after an unscoped ALARM.ACKNOWLEDGE check
+    that a product-scoped person already fails (owner item O-T1-1), so no test person reaches the loop with a scope it
+    would refuse.
+  - `plant.acknowledge_alarm#28` (0976:47): P2, needs a GMP (non-test-run) batch with a linked deviation-lite record
+    (`site.deviation_ref_problem` refuses test runs); not done in the time box.
+  - `plant.bind_step_equipment#14` (0960:496): P2, needs the same step bound to the same unit in an earlier use by
+    another batch; time box.
+  - `tab.bridge_process_alarm_ack#2, #6`, `tab.bridge_device_alarm#1-#5`, `tab.bridge_step_device#3, #5-#12` (tablets
+    1218): P2, the last mutants of the run, reached after the time box; they need the gateway alarm and G-06
+    acknowledgment world of `alarms/alarm-bridge.test.ts`.
+- **Confirmation run** (`--only` on the 140 aimed at, 2034 s): **140 / 140 detected**. The group stands at 447 / 467
+  valid (469 less 2 equivalent), **95.7 %**, with the 20 residuals below.
+- **Owner item O-T1-1:** `plant.acknowledge_alarm` (recipe-core 0976) checks ALARM.ACKNOWLEDGE unscoped before the
+  per-batch loop, so a person whose OPERATOR grant is scoped to one product is refused (EBMR-IAM-040 "in scope {}") even
+  for an alarm bound only to a batch of that product. The Q-6b-1 test in `plant-rules/room-rules.test.ts` passes on that
+  first check, not on the per-batch one. Stricter, never weaker; whether product-scoped people should acknowledge their
+  own product's alarms is the owner's call.
+
+### plant-rules (triage T1)
+
+- **First run** (stream p6-3): still running at triage (65 / 221 mutants; 23 survivors, of which 16 in
+  `iam.person_area_authorised`, `site.record_reagent_lot`, `site.withdraw_reagent_lot` and `site.reagent_lot_problem`
+  were triaged; the later ones in `plant.set_area_rule`, `plant.record_spill`, `plant.room_start_problem` and after are
+  not). Score: pending the end of the run.
+- **New tests:** `packages/kernel/test/mutation/plant-rules.test.ts` (an area authorisation read at the microseconds it
+  is recorded, valid from, valid to and withdrawn: `iam.person_area_authorised#5, #7, #10, #13`) and
+  `packages/site-services/test/mutation/plant-rules.test.ts` (a reagent lot refused one malformed field at a time, an
+  expiry equal to the preparation, withdrawal of an unknown lot or without a reason, the lot read at the microseconds it
+  is recorded, expires and is withdrawn: `site.record_reagent_lot#1, #5, #14, #17, #20, #23, #30`,
+  `site.withdraw_reagent_lot#2, #6`, `site.reagent_lot_problem#2, #3, #5, #6`).
+- **Equivalent:** none. **Real defects (P1):** none.
+- **Residuals:** `site.record_reagent_lot#34` (0940:77, `preparedAt > clock_timestamp()` to `>=`): P3, a clock instant
+  that cannot be hit deterministically. The survivors after the first 65 mutants are not triaged (time box).
+- **Confirmation run:** not run (D-P6j-T1-3): once the first run ends, one `--only` run on the ids above and on the
+  later survivors' tests.
 
 ## Survivors
 
