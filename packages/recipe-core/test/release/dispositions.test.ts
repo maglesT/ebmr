@@ -928,6 +928,32 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
     expect(await state(lot.lotId, 'EU')).not.toBe('REMOVED');
   });
 
+  // recipe.eu_outcome_problem#7 (qp-certification): a certification is taken only while the lot awaits it, that is
+  // with G-REL for the EU ready, also after the manufacturer release (which market_act_problem checks first).
+  it('[PR-55][INV-39][DI-39] after the manufacturer release, a certification of a lot whose G-REL for the EU is not ready is refused (EBMR-DSP-053)', async () => {
+    const lot = await readyLot();
+    const dev = await deviationOnLot(lot.lotId);
+    await assessedOpen(dev, { IN: 'NONE', US: 'NONE', EU: 'POTENTIAL' });
+    await manufacturerRelease(lot);
+    expect(await state(lot.lotId, 'IN')).toBe('RELEASED');
+    expect(await state(lot.lotId, 'EU')).toBe('NOT_READY');
+    let mia = (await db.admin.query<{ m: string | null }>('select (recipe.lot_importer($1)).mia_number as m', [lot.lotId])).rows[0]!.m;
+    if (!mia) {
+      const code = `EUQ-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const def = { code, name: `Importer ${code}`, technicalAgreementRef: 'TA-2026-012', miaNumber: 'DE-MIA-2024-312', publicKey: Buffer.alloc(32, 12).toString('base64'), products: [lot.productCode] };
+      const sha = (await db.app.query<{ h: string }>("select encode(sha256(convert_to(recipe.eu_importer_canonical($1::jsonb), 'UTF8')), 'hex') as h", [JSON.stringify(def)])).rows[0]!.h;
+      const sig = await signAs(qaReviewer3, 'eu_importer', `${code}/${sha}`, 'EU_IMPORTER_APPROVED', 'NEW');
+      await w.run(qaReviewer3, (c) => c.query('select recipe.register_eu_importer($1::jsonb, $2)', [JSON.stringify(def), sig]));
+      mia = def.miaNumber;
+    }
+    const at = (await db.app.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as t`)).rows[0]!.t;
+    const f = ['CERTIFIED', 'Dr. Lena Vogel', mia, at, 'QP-CERT-2026-0977', null] as const;
+    const sha = (await db.app.query<{ h: string }>('select recipe.qp_details_sha256($1, $2, $3, $4, $5, $6) as h', [...f])).rows[0]!.h;
+    expect(await codeOf(signed(qaReviewer3, 'qp_transcription', `${lot.lotId}/${sha}`, 'QP_CERTIFICATION_RECORDED', 'NOT_READY', (c, sig) =>
+      c.query('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [lot.lotId, ...f, sig])))).toBe('EBMR-DSP-053');
+    expect(await state(lot.lotId, 'EU')).toBe('NOT_READY');
+  });
+
   // recipe.record_release_with_us_disposition#16, #19: both rows of a two-row release are made in this ceremony; a
   // manufacturer release signature of an earlier command does not join a US signature made now.
   it('[D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)', async () => {
