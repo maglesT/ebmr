@@ -146,6 +146,88 @@ its current number with its place updated, or dropped, by the part 2 triage.
 
 pending
 
+### inbound-adapters-and-mirrors (triage T3)
+
+- First run (stream p6-5): 198 detected / 299 valid, **66.2 %** (101 survivors, 11 invalid).
+- Kill tests: `packages/kernel/test/mutation/inbound-adapters-and-mirrors.test.ts` (19 tests, DI-20, DI-31, INV-26).
+- Confirmation run (`--only` on the 97 survivors the tests aim at): **96 / 97 killed**. The one left,
+  `iam.lms_qualification_payload_problem#19`, is killed by one more assertion (a numeric `validTo`), checked against
+  the mutant on the real server (original and mutant side by side in a scratch schema: the original refuses, the
+  mutant returns NULL); no third run.
+- After triage: 295 killed, 3 equivalent, 1 residual: **99.7 %** of the non-equivalent mutants (98.7 % counting the
+  equivalents as survivors).
+- Defects (P1): none. Every survivor showed a rule that holds but that no test took to its deciding input.
+
+Survivors, one line each:
+- P2 killed: `iam.integration_adapter_guard#3, #25` (registered ACTIVE; decommissioned is final), `#7, #13, #15, #17,
+  #19` (each identifying column alone; `registered_at` is a database time kernel 0500 keeps on update, so its own
+  clause cannot fire, and its neighbours' mutants are killed through the other columns).
+- P2 killed: `iam.set_integration_adapter_status#2, #9` (reason; unknown adapter); `iam.current_integration_adapter#2`
+  (an integration account acting with source SYSTEM is not an adapter).
+- P2 killed: `platform.inbound_envelope_problem#10, #12` (the year-9999 timestamp and the 1 MiB payload at their
+  limits); `platform.record_inbound_refusal#7, #18, #20` (refusal text; source time at and past the limit);
+  `platform.acknowledge_integration_alarm#3` (unknown alarm).
+- P2 killed: `platform.record_reconciliation#2, #3, #5, #7, #9, #11, #13, #15, #17, #18` (each malformed report alone,
+  the period ending at the limit), `#25, #27, #28, #30, #32, #34, #36, #38` (the [from, to) period and what counts as
+  received), `#39 to #50` (accepted and refused counts), `#53` (same count, other checksum).
+- P2 killed (stale mirrors): `platform.record_mirror_sync#3` (unknown class), `#26, #27, #29` (the check starts after
+  the same adapter's proof at head 0), `#28, #30` (another adapter's head does not shorten it), `#31` (D-P6j-T3-2),
+  `#33 to #37` (the first held number is the adapter's own, refusals included, resends not), `#38` (the head alone),
+  `#42, #44` (another adapter's refusals fill no hole), `#49, #51, #54` (only the adapter's own gap alarm over the
+  whole hole covers it).
+- P2 killed: `iam.qualification_source_fresh#4, #6, #10, #12` (the STAND_IN heartbeat and the MIRROR bound, each fresh
+  up to and including its bound).
+- P2 killed: `iam.lms_qualification_payload_problem#1 to #27` (11 survivors, each rule alone at its limits);
+  `iam.receive_lms_qualification#2` (message type), `#49` (a state as old as the applied one), `#56, #61 to #69`
+  (supersession by a new end date), `#75 to #81, #91 to #96` (withdrawal touches one person's row only).
+- Equivalent (`tools/sql-mutation/equivalent.json`): `platform.accept_inbound_detail#47` (v_seq = v_max is refused as
+  a taken number before), `platform.record_mirror_sync#19, #25` (every held sequence number is at least 1).
+- Residual: `platform.mirror_freshness#10`, the one microsecond of the database clock where the age equals the bound
+  (D-P6j-T3-3).
+- Finding for the lead (not P1): `platform.epoch_us_to_timestamptz` goes through double precision (D-P6j-T3-4).
+
+### packaging-labels-and-line-completion (triage T3)
+
+- First run (stream p6-5): 274 detected / 352 valid, **77.8 %** (78 survivors).
+- Kill tests: `packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts` (label store, PR-32),
+  `packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts` (templates and declarations, IN-31,
+  PR-36), `apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts` (specimens, waiver, line
+  stops, post-use inspection; PR-16, PR-34, PR-36, PR-39, IN-16).
+- Confirmation run (`--only` on the 74 survivors the tests aim at): **74 / 74 killed** (no survivor).
+- After triage: 348 killed, 0 equivalent, 4 left (one of them with a kill test added after the run, below): **98.9 %**
+  (99.1 % counting that test's kill, which follows from the code: the mutant lets the G-23 step through to EBMR-LBL-036).
+- Defects (P1): none. The post-use inspection gate and the waiver rules hold; the survivors were untested inputs.
+
+Survivors, one line each:
+- P2 killed: `site.open_label_store_transaction#2, #4, #5, #7, #14` (each malformed transaction alone), `#52, #63` (an
+  issue of exactly the balance, a return of exactly what the order holds).
+- P2 killed: `recipe.label_layout_fields#1 to #32, #34` (13 survivors: each malformed layout or element alone, a text
+  or default is a value, 40 elements and an 80-character caption at the limit); `recipe.create_label_template#1 to
+  #17` (9: each malformed template alone); `recipe.label_template_status#1` (another template's retirement,
+  D-P6j-T3-1).
+- P2 killed: `recipe.declare_packaging_labelling#3, #14, #16, #17, #20, #32, #33` (unknown version, form, option and
+  template refused by name); `recipe.packaging_labelling_problem#2` (a declared item the draft no longer prints);
+  `recipe.master_labelling#1, #3` (the view's state is the version's own).
+- P2 killed: `tab.g21_coding_applies#1, #3` (printer or coded item, never vision alone); `tab.record_coding_specimen#5,
+  #7, #12` (each malformed specimen alone); `tab.record_label_specimen#7, #10, #11, #12, #16` (note limits; one item's
+  specimen does not stand for another's); `tab.void_packaging_specimen#2, #8, #12, #13` (unknown, reason limit, twice,
+  another's withdrawal); `tab.g21_specimen_problem#9` (an item judged on its own label specimen).
+- P2 killed (release gating, PR-34): `tab.record_post_use_inspection#2` (no G-21 step), `#11, #13, #14` (extra or
+  non-boolean answer), `#15 to #19` (note limits, 1000 characters accepted); `tab.verify_post_use_inspection#2` (unknown),
+  `#14, #17` (an earlier inspection is not verified over a later one of the order; another order's does not block).
+- P2 killed: `tab.vision_line_stop#7, #9` (a rejection opens a stop while another order's is open, and after its own
+  was resolved); `tab.resolve_line_stop#2, #8` (unknown stop; reason limit); `tab.enable_reconciliation_waiver#35, #41`
+  (an item on its own declaration; CUT_LABEL with ELECTRONIC_100 qualifies); `tab.print_job_rules#6` (a step declared
+  without a template releases a job on its layout).
+- Killed by a test added after the confirmation run (not confirmed by a run; decision 0019 allows no third):
+  `tab.g21_specimen_step#3`, a G-23 step in progress takes no specimen (EBMR-LBL-030); under the mutant the call goes on
+  to EBMR-LBL-036, which the test does not accept.
+- Residual (P2, time box): `tab.enable_reconciliation_waiver#16, #18`, the challenge must come through the gateway the
+  device is bound to now; killing it needs a device re-bound to another gateway after a passing challenge.
+- Residual (P2): `tab.refuse_incomplete_packaging#3` (`tg_op = 'INSERT'` to `<>`): the mutant only adds the
+  completion check to an update that leaves EXECUTION_COMPLETE unchanged, a stricter refusal; reaching it needs a
+  completed order whose completion problem changes afterwards.
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)

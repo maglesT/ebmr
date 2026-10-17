@@ -981,6 +981,20 @@ Groups, harness options, the Stryker feature table and the run plan: `docs/build
   alone on a cluster); the campaign keeps about 4 test files per cluster.
 - **D-P6j-M-7:** the scope A and B kill confirmations are whole-group runs, not `--only`: the Phase 4 survivor lists
   were lost with the container and several of their functions were re-created since.
+- **D-P6j-T3-1 (triage of inbound-adapters-and-mirrors and packaging-labels-and-line-completion):** a survivor whose
+  test needs a state no command reaches yet is killed by arranging that state as test set-up (a RETIRED label template
+  event; another order's later post-use inspection), as the scenario tests arrange labelling declarations; the
+  mutant's effect is still observed through the real function.
+- **D-P6j-T3-2:** `platform.record_mirror_sync` keeps a range the same adapter proved caught up: a late message below
+  the adapter's first held number does not reopen it (kernel 1182's header rule); the kill test for #31 states this.
+- **D-P6j-T3-3:** `platform.mirror_freshness#10` (`>` to `>=` on the age against the bound) is a residual, not an
+  equivalent: the two differ only in the one microsecond of the database clock where the age equals the bound, which
+  no test can hold (the bound itself is proven both ways through `iam.qualification_source_fresh`, which takes the
+  instant as an argument).
+- **D-P6j-T3-4:** `platform.epoch_us_to_timestamptz` converting through double precision is recorded, not fixed here:
+  every instant from 2023 to 2036 converts exactly (200,000 random values on the real server), the loss of a
+  microsecond starts decades ahead and the year-9999 limit lands on 10000-01-01. No GMP decision reads that
+  microsecond; the lead may queue a numeric conversion.
 
 #### 6j-b golden batches
 
