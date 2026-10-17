@@ -164,12 +164,20 @@ pending
   or <field check>` made `and`: for a non-object every field read is NULL, so the field check raises anyway);
   receive_supplier_batches#50 (mirror_freshness never returns a NULL 'stale'); erp_outbound_delivered#11 (only a stock
   block payload names a request, and a repeated delivery meets the conflict).
-- **Defects (P1):** none from the survivors. Found while writing the tests (not a survivor, outside the P1 list because it
-  fails closed): **receive_supplier_batches numbers generated lot codes from `count(*)` of today's GR codes but advances
-  the counter for a batch whose lot code stores gave**, so after a delivery in which a given code is not the last batch,
-  the next generated code of the day already exists and the next receipt fails on `material_lot_site_code_lot_code_key`
-  (reproduced: a 100-batch delivery with the code on the first batch, then any delivery). No wrong record is written;
-  receipts stop until the next day. Reported to the lead/owner; the kill test puts the given code on the last batch.
+- **Defects (P1):** none from the survivors.
+- **Defect M6-D1 (medium, fails safe; fixed in site services 1002):** found while writing the tests, not a survivor.
+  site.receive_supplier_batches numbered generated lot codes from `count(*)` of the day's GR codes but advanced the
+  counter for a batch whose lot code stores typed, so after a delivery with a typed code on a batch other than the last,
+  the next generated code of the day already existed and every later receipt that day failed on
+  `material_lot_site_code_lot_code_key`. No wrong record was written; receiving stopped until the next day. The fix takes
+  the next number from the highest generated code of the day, advances it only for a batch without a typed code and skips
+  a code already held (codes unique, never reused, gaps allowed; no cut to four digits past 9999). Test: `[PR-17] a lot
+  code typed by stores on any batch never makes a later receipt of the day reuse a generated code` (failed before with
+  the duplicate key, passes after); the kill test now types the code on the first batch again. Defect log entry in
+  `docs/handbook/08-defect-log.md`. The equivalents receive_supplier_batches#1 and #50 now cite 1002:37 and 1002:67
+  (the mutants keep their numbers; `--audit-equivalents` reports them fitting).
+  - **D-P6j-T2-1 (lead):** M6-D1 is fixed now under decision 0008 although it is not Priority 1: it stops all receiving
+    for the rest of the day. The function stays in erp-wms-receipt-and-stock; targets.ts is unchanged.
 - **Residuals (18):**
   - approve_manufacturer#6-#10 (0910:301) and erp_outbound_delivered#13 (0916:57): the WHERE of a `for update` lock;
     only concurrent approvals or deliveries tell them apart (a two-session test was not reached in the time box).

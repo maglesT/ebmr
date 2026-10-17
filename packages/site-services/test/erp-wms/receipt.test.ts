@@ -80,6 +80,31 @@ describe('one lot per supplier batch (PR-17 clause 2)', () => {
   });
 });
 
+describe('internal receiving codes (PR-17 clause 2; defect M6-D1)', () => {
+  it('[PR-17] a lot code typed by stores on any batch never makes a later receipt of the day reuse a generated code', async () => {
+    const code = await material();
+    const manual = (batches: Record<string, unknown>[]) => w.run(w.cast.warehouse, async (c) =>
+      (await c.query<{ r: ReceivedLots }>('select site.receive_delivery($1::jsonb) as r', [JSON.stringify({ deliveryId: unique('DEL'), materialCode: code, supplierCode: 'SUP-1', supplierBatches: batches })])).rows[0]!.r);
+    const batch = (over: Record<string, unknown> = {}) => ({ supplierLot: unique('SB-'), manufacturerCode: 'MFR-A', containers: '1', quantity: { value: '1.000', unit: 'kg' }, expiresAt: '2030-01-01T00:00:00Z', ...over });
+    const typed = unique('TYPED-').toUpperCase();
+    // The typed code sits on the first batch, not the last.
+    const first = await manual([batch({ lotCode: typed }), batch(), batch()]);
+    expect(first.lots[0]?.lotCode).toBe(typed);
+    // The next receipt of the day generates its codes without meeting an existing one.
+    const second = await manual([batch(), batch()]);
+    const generated = [...first.lots.slice(1), ...second.lots].map((l) => l.lotCode);
+    expect(generated.every((c) => /^GR\d{6}-\d{4,}$/.test(c))).toBe(true);
+    expect(new Set([typed, ...generated]).size).toBe(5);
+    // A typed code shaped like a generated one is skipped, never reused.
+    const next = Number(/-(\d+)$/.exec(generated[generated.length - 1] ?? '')?.[1]) + 1;
+    const lookalike = `${(generated[0] ?? '').slice(0, 9)}${String(next).padStart(4, '0')}`;
+    await manual([batch({ lotCode: lookalike })]);
+    const third = await manual([batch()]);
+    expect(third.lots[0]?.lotCode).not.toBe(lookalike);
+    expect(Number(/-(\d+)$/.exec(third.lots[0]?.lotCode ?? '')?.[1])).toBeGreaterThan(next);
+  });
+});
+
 describe('the approved-manufacturer register (PR-17 clause 3)', () => {
   it('[PR-17] an unapproved manufacturer blocks the lot', async () => {
     const code = await material();

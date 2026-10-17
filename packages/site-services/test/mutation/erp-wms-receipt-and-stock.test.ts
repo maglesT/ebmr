@@ -121,11 +121,10 @@ describe('receipt (PR-17, PR-18, INV-13; site services 0910)', () => {
     await expectCode(manual({ ...delivery(code), supplierBatches: [batch(unique('SB-'), { expiresAt: '2001-01-01T00:00:00Z' })] }), /EBMR-SITE-104 supplier batch .* expiry instant in the future/);
     // The limits are inclusive: 100 batches, a retest on the expiry instant, a lot code given by stores.
     const lotCode = unique('LC-').toUpperCase();
-    // (The given code is the last batch's: see the finding on generated codes after a given one in the campaign results.)
-    const many = await manual({ ...delivery(code), supplierBatches: [...Array.from({ length: 99 }, () => batch(unique('SB-'))),
-      batch(unique('SB-'), { retestAt: '2030-01-01T00:00:00Z', lotCode })] });
+    const many = await manual({ ...delivery(code), supplierBatches: [batch(unique('SB-'), { retestAt: '2030-01-01T00:00:00Z', lotCode }),
+      ...Array.from({ length: 99 }, () => batch(unique('SB-')))] });
     expect(many.lots).toHaveLength(100);
-    expect(many.lots[99]?.lotCode).toBe(lotCode);
+    expect(many.lots[0]?.lotCode).toBe(lotCode);
     // The same delivery again is refused.
     const once = delivery(code);
     await manual(once);
