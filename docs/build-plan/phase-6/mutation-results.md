@@ -813,6 +813,38 @@ Survivors, one line each:
   `recipe.record_federation_failure#1` (the failure and its alarm recorded against another request: audit attribution
   of a failed query).
 
+### reporting-and-training (triage T10)
+
+- First run (stream p6-5): 110 killed / 149, **73.8 %** (39 survivors).
+- Scope (owner, 17 October): P1 would be the report role able to write, or to read beyond the report views, or
+  training able to run or write on a GMP installation. No survivor touches either: the report role's privileges and the
+  segregation check are tested in `sandbox/reporting-and-training.test.ts` (every write refused by a privilege, the
+  check reporting any extra grant), and training state in a GMP database is refused by the insert trigger
+  `sandbox.training_sandbox_only` whoever writes (killed: no survivor there) before any command's own guard.
+- Tests added (single lines, verified to pass; not run against the mutants, the owner's rule for minor survivors, so no
+  confirmation run for this group): `complete_training_step` on a GMP database refuses with EBMR-SBX-039 (DI-05;
+  `sandbox.complete_training_step#1`); an unknown supplier and a well-formed unknown MBR version are refused with
+  EBMR-CIM-002 (`recipe.change_impact#29, #49`, and with them likely `#24 to #28`).
+- Defects (P1): none.
+
+Survivors, one line each:
+- P2/P3, killed by reasoning with the lines above: `sandbox.complete_training_step#1` (guard removed: without it the
+  call still refuses, EBMR-SBX-040, since no attempt can exist in a GMP database; now its own code is asserted);
+  `recipe.change_impact#24 to #29` (unknown-supplier check), `#48, #49` (unknown MBR version check).
+- P3 (sandbox only, refused by a later layer): `sandbox.complete_training_step#9` (`p_step is null and p_step < 1`): a
+  step 0 or NULL is still refused by the table's check and not-null constraints; the step-range and other-person rules
+  are proven through the training routes (`dashboards-routes.test.ts`).
+- P3 (dashboard display; outline 7.3, the views write and decide nothing): `report.batch_version#1, #2` (the MBR version
+  shown), `report.batch_outcome_rows_v1#2, #10 to #12, #18` (completion time, QA review time, deviation count filters),
+  `report.press_counter_rows_v1#2, #4, #6, #7, #31` (event and series filters), `report.alarm_rows_v1#2` (the subject
+  code shown).
+- P3 (the change-impact explorer: a read that writes nothing and decides nothing; its rows are exported with their
+  hash for the change record, where the person proposing the change reviews them): `recipe.change_impact#33, #35, #37`
+  (approved and not withdrawn manufacturer filter), `#58 to #60` (authorisation cell filter for SITE_VALUE), `#70`
+  (lot consumption join), `#81, #82` (released lot reach), `#85, #86` (authorisation markets), `#88 to #93` (config
+  history filter).
+- Residuals: none in the owner's scope.
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)

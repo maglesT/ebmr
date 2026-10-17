@@ -143,6 +143,9 @@ describe('training attempts stay in the sandbox (kernel 1211)', () => {
     const actor = await seededTestActor(gmp);
     await expect(withCommand(gmp.app, { ...actor, correlationId: randomUUID() }, (c) => c.query("select sandbox.start_training('EX-FLOOR-1', 1, 3)")))
       .rejects.toThrow(/Training runs only on the sandbox installation.*EBMR-SBX-039/);
+    // The step command refuses on its own guard too, before it looks for the attempt (mutation triage, complete_training_step#1).
+    await expect(withCommand(gmp.app, { ...actor, correlationId: randomUUID() }, (c) => c.query('select sandbox.complete_training_step(gen_random_uuid(), 1)')))
+      .rejects.toThrow(/Training runs only on the sandbox installation.*EBMR-SBX-039/);
     // Not even the table owner or a superuser can put training state into a GMP database.
     await expect(gmp.admin.query(
       "insert into sandbox.training_attempt (exercise_code, exercise_version, step_count, person_id, account_id) values ('EX-FLOOR-1', 1, 3, gen_random_uuid(), gen_random_uuid())",
