@@ -1,0 +1,46 @@
+id: DI-52
+title: "Analytics methods: versioned, change-controlled, reproducible, with QA feedback and monitoring"
+part: A
+group: Controls (draft, analytics; decision 0023)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 7
+target_phase_source: default
+requirement_rows:
+  - 80
+  - 180
+  - 196
+  - 680
+sources: "EU GMP Annex 22 draft (July 2025), row 180; FDA draft guidance on AI to support regulatory decisions (January 2025), row 680 (draft); FDA process validation guidance stage 3 (row 80) and EU GMP Annex 15 ongoing process verification (row 196) on statistical trending; all paraphrased, status U for the AI texts. Decisions 0015 (items 6 and 9) and 0023; ADR 0020; DI-09."
+behaviour: "Each analytics method (rule set, statistical method or model) is a versioned configuration item with its intended use, acceptance criteria, parameters and their hash, code identity and validation reference. A method version, or a reference set (the batches and the fitted model a method compares against), becomes effective only under an approved configuration change record (DI-09); a method never changes itself, and refitting or retuning gives a new version. Every run records the method version, the reference set, each input (view and version, filter, data time, row count and hash) and the runtime; every output and flag names its run; a re-run on the same inputs reproduces the flags, and the values within a stated tolerance. Every flag shows the reasons it was raised. QA marks each flag a true signal, a false alarm or not assessable, with the cause and an optional deviation reference; the disposition is attributable to the person, insert-only and audited, and a later one supersedes it only with a reason. Flag and false-alarm rates are monitored per method version."
+catalog_test: "write a method version without an approved change record; refused; write it with one; it becomes effective and the configuration as of that date shows it; a run's outputs name the run, the method version and the input references; re-run on the same inputs; the same flags and the values within the tolerance; a reference set whose model hash differs from its candidate is refused; QA disposes a flag as a false alarm; the disposition shows the person and is in the audit trail; a second disposition without a reason is refused; the monitor shows the false-alarm rate of the method version."
+implemented_by:
+  modules:
+    - "packages/kernel/sql/1241_analytics_tables.sql"
+    - "packages/kernel/sql/1242_analytics_record_functions.sql"
+    - "packages/kernel/sql/1243_analytics_read_views.sql"
+    - "packages/analytics/src/registry.ts"
+    - "packages/analytics/src/numeric/canonical.ts"
+  invariants: []
+  guards:
+    - "platform.config_change_guard on analytics.method_version and analytics.reference_set (areas ANALYTICS_METHOD, ANALYTICS_REFERENCE)"
+    - "analytics.reference_model_check (a10_reference_model on analytics.reference_set, EBMR-ANA-010)"
+  db_constraints: []
+  rule_keys: []
+tests:
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics tables (kernel 1241) > [DI-52] the analytics tables are insert-only and audited: the runner's rows carry its identity and run, a disposition the person who gave it"
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics tables (kernel 1241) > [DI-52] a method version without an approved change record is refused"
+  - "packages/kernel/test/analytics/analytics.test.ts > the analytics tables (kernel 1241) > [DI-52] a reference set whose model hash differs from its candidate is refused"
+  - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-52] a run is refused unless its method version and reference set are in force and its inputs and runtime are complete; it records outputs and flags until it ends, once, and the views count it only when DONE"
+  - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-52] a disposition is recorded by the person who gave it, audited, and superseded only with a reason"
+  - "packages/api-contract/test/analytics.test.ts > the analytics contract (Phase 6A slice 6A-0) > [DI-52] a disposition names its verdict and a cause of at least 10 characters; a flag shows at least one reason"
+  - "apps/tablets-server/test/analytics/role-permissions.test.ts > the analytics permissions of the Tablets roles (tablets 1330) > [DI-52][DI-53] each analytics permission is held by exactly its Tablets roles, ANALYTICS.DI_REVIEW by the data-integrity reviewer alone, none by an administration role"
+expert_decision:
+  status: PENDING
+  pack_version: draft
+build_status: SPECIFIED
+notes: "status U: Annex 22 is a consultation draft and FDA's AI guidance a draft; neither verified against a final text. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

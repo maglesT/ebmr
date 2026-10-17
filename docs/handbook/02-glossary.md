@@ -190,7 +190,7 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
   [recipe-core](modules/recipe-core.md); INV-41.
 - **Excipient** — any ingredient other than the active.
 - **Expert decision** — the external expert's verdict on a control (`PENDING`, `FOLLOW`, `DONT_FOLLOW`, `MODIFY`). All
-  242 are `PENDING` (the 241 of the review pack and the draft IN-53, whose `pack_version` is `draft`). Never change it yourself. Where: each file in `compliance/controls/`.
+  246 are `PENDING` (the 241 of the review pack and the drafts IN-53, DI-51, DI-52, DI-53 and PR-61, whose `pack_version` is `draft`). Never change it yourself. Where: each file in `compliance/controls/`.
 - **Export permission** — an Indian permission to make a product only for export when it is not approved for India.
   Where: `ns/india.ts`; D-6-2.
 - **Expression language** — the project's own exact-decimal calculation language with units and rounding. Where:
@@ -449,7 +449,7 @@ Quick jump: [A](#a) [B](#b) [C](#c) [D](#d) [E](#e) [F](#f) [G](#g) [H](#h) [I](
 
 ## Control-ID families
 
-The register holds 242 controls in four families (241 from the review pack and the draft IN-53, controlled substances), one YAML file each in
+The register holds 246 controls in four families (241 from the review pack, the draft IN-53 for controlled substances and the analytics drafts DI-51, DI-52, DI-53 and PR-61), one YAML file each in
 [compliance/controls/](../../compliance/controls/). A control has an ID, a title, the editions, a type (`ENFORCED`,
 `CONFIGURABLE`, `DESIGN_CHOICE`), a target phase, the regulatory sources and a behaviour text. Tests that prove a control
 carry its ID in the test name.

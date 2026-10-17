@@ -1,0 +1,32 @@
+id: PR-61
+title: Review priority orders the QA review queue and never skips or narrows a review
+part: B
+group: I. Batch record review and release
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows:
+  - 172
+  - 184
+  - 201
+sources: "EMA Q&A on review of electronic data and review by exception (rows 184, 201) and EU GMP Annex 11 draft revision on audit-trail review before release (row 172); paraphrased. Decisions 0016 (item 9) and 0023; DI-25, DI-26, PR-52."
+behaviour: "A review-priority score per completed batch record (a transparent weighted sum of exceptions, values near limits, corrections, audit-trail flags, new operators or equipment, unusual durations and linked deviations) may order the QA review queue and show its top reasons. It never removes a record from the queue, never marks a record or an exception reviewed, and never changes what the reviewer must open or disposition, the review-by-exception rule set (DI-26), the audit-trail review (DI-25) or the release interlocks. Records without a score are listed first. No review, exception-register or release function reads the score. The weights are a versioned method under change control (DI-52)."
+catalog_test: "list the review queue with scores, without scores and with the analytics runner stopped; the same records each time; an unscored record is listed first; the lowest-scored record still needs its full review, the disposition of every exception and the audit-trail review before release; search the database for a review, register or release function that depends on the score; none."
+implemented_by:
+  modules:
+    - "packages/kernel/sql/1243_analytics_read_views.sql"
+    - "packages/api-contract/src/ns/analytics-review.ts"
+  invariants: []
+  guards: []
+  db_constraints: []
+  rule_keys: []
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: draft
+build_status: SPECIFIED
+notes: "status U: drafted from decision 0016 item 9; no regulation names review ordering. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

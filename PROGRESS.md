@@ -170,7 +170,35 @@ on; one demo when the product is there (v1.0). Decision 0020 (owner, 17 October)
 Medhanta (editions Batchwright Tablets and Injectables), logo concept A; files in `docs/brand/`, branding in Phase 7.
 Decision 0022 (owner, 17 October): the Phase 6 owner items. R9, R10, R2 and the rest of R16 are fixed early in Phase 7;
 IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 starts only when the owner says so.
-Next: Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
+**Phase 6A (analytics; decision 0023, owner, 17 October).**
+- **What it builds:** decision 0016's items 1, 2, 3, 8, 9 and 10, between Phase 6 and Phase 7, so that v1.0 ships with
+  them. Item 16, the scheduler, is dropped altogether.
+- **Plan:** `docs/build-plan/phase-6a/phase-6a-plan.md` (branch `phase-6a/plan`). The architecture is ADR 0020: the
+  pure package `@ebmr/analytics`, a runner reading as `ebmr_analytics` with no GMP privilege, and the non-GMP,
+  insert-only, audited `analytics` schema. Interfaces are in `slice-6A-0-interfaces.md`.
+- **Slices:**
+  - 6A-0: interfaces.
+  - 6A-1: foundation.
+  - 6A-2: SPC, capability and drift; deviation rates.
+  - 6A-3: PCA monitoring.
+  - 6A-4: audit-trail anomaly flags.
+  - 6A-5: review priority (orders the queue, never skips a review).
+  - 6A-6: golden batch profile.
+  - 6A-7: exit.
+- **Draft controls:** DI-51, DI-52, DI-53 and PR-61 (status U, PENDING). They entered the register in
+  6A-0 at target phase 7 (246 controls, 680 requirement rows).
+- **Defaults:** D-6A-1 to 23; the interface defaults D-6A-0-1 to 9.
+- **6A-0 done (17 October, branch `phase-6a/plan`):** kernel 1240 to 1244 (schema `analytics`, role `ebmr_analytics`,
+  the insert-only audited tables, the runner and disposition functions, the read views, `ANALYTICS.*`, the areas
+  `ANALYTICS_METHOD` and `ANALYTICS_REFERENCE`), recipe-core 1110 (the draft names), tablets 1330 (role grants); the
+  package `@ebmr/analytics` (`statOf`, registry, canonical hashing), the five ADR 0020 boundary rules with fixtures, the
+  contract namespaces `ns/analytics*.ts` with examples (joining `routes.ts` when bound, D-6A-0-4), `analyticsHistory`
+  (test-kit), and DI-51 to DI-53 and PR-61 in the register (246 controls, 680 rows) with their first tests.
+- **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
+  go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
+  with the Phase 7 exit run on the pod (D-6A-15).
+
+Next: Phase 6A, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
 

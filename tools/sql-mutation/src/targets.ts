@@ -70,7 +70,7 @@ export const LEFT_OUT: Record<string, string> = Object.fromEntries(
       'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
-      'report.catalog_rows_v1'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+      'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
 );
 
 const k = (f: string) => `packages/kernel/test/${f}`;
@@ -1351,6 +1351,18 @@ export const TARGETS: Target[] = [
                 'recipe.mock_recall_federation', 'recipe.record_mock_recall_remote', 'tab.kernel_signing_meanings',
                 'tab.aggregate_read_class'],
     tests: [site('transfer/transfer.test.ts'), s('transfers/transfer-routes.test.ts')],
+    threshold: 90,
+  },
+  // ---- 6A-0, analytics interfaces (kernel 1240-1244; ADR 0020): the runner's run lifecycle and output recording, the QA
+  //      disposition, the person-flag restriction (DI-53), the change-controlled methods and reference sets (DI-52) and
+  //      the role and segregation checks that keep ebmr_analytics from any GMP write (DI-51). ----
+  {
+    group: 'analytics-foundation',
+    functions: ['analytics.runner_actor', 'analytics.enter_runner', 'analytics.open_run', 'analytics.begin_run', 'analytics.finish_run',
+                'analytics.fail_run', 'analytics.record_output', 'analytics.record_flag', 'analytics.reasons_ok',
+                'analytics.record_disposition', 'analytics.person_flags', 'analytics.register_input', 'analytics.role_problems',
+                'analytics.effective_methods', 'analytics.effective_reference_sets', 'analytics.reference_model_check'],
+    tests: [k('analytics/analytics.test.ts')],
     threshold: 90,
   },
 ];

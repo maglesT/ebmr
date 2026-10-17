@@ -38,8 +38,8 @@ no passing test. The validation pack of Phase 7 is generated from the same data.
 
 | File | What it holds |
 |---|---|
-| [compliance/controls/&lt;ID&gt;.yaml](../../../compliance/controls/) | one file per control (242: DI 50, PR 60, ST 79, IN 53; IN-53 is the draft added by slice 6e): title, editions, type, `target_phase`, the requirement rows it covers, `behaviour`, `catalog_test`, `implemented_by`, `tests`, `clauses`, `expert_decision`, `build_status` |
-| [compliance/requirements/requirements.jsonl](../../../compliance/requirements/) | 679 clause-level requirement rows (n-numbers; n679 is IN-53's unverified NDPS row) |
+| [compliance/controls/&lt;ID&gt;.yaml](../../../compliance/controls/) | one file per control (246: DI 53, PR 61, ST 79, IN 53; IN-53 is the draft added by slice 6e, DI-51 to DI-53 and PR-61 the analytics drafts of slice 6A-0): title, editions, type, `target_phase`, the requirement rows it covers, `behaviour`, `catalog_test`, `implemented_by`, `tests`, `clauses`, `expert_decision`, `build_status` |
+| [compliance/requirements/requirements.jsonl](../../../compliance/requirements/) | 680 clause-level requirement rows (n-numbers; n679 is IN-53's unverified NDPS row, n680 the analytics drafts' unverified FDA AI-guidance row) |
 | [compliance/schema/control.schema.json](../../../compliance/schema/) | the schema of a control file |
 | [compliance/phase.yaml](../../../compliance/phase.yaml) | the current phase (4) and the editions the gate covers (tablets) |
 

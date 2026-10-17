@@ -1,0 +1,60 @@
+{
+  "priority": {
+    "advisory": true,
+    "notForGmpDecisions": true,
+    "method": {
+      "id": "REVIEW.PRIORITY",
+      "version": 1
+    },
+    "run": {
+      "id": "a6000000-0000-4000-8000-000000000005",
+      "dataAsOf": {
+        "us": "1791612000000000",
+        "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)"
+      },
+      "finishedAt": {
+        "us": "1791615600000000",
+        "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+      }
+    },
+    "dataAgeSeconds": 3600,
+    "batchId": "b6000000-0000-4000-8000-000000000024",
+    "priority": {
+      "score": 14,
+      "reasons": [
+        {
+          "code": "EXCEPTION_CRITICAL",
+          "text": "One critical exception (weight 5)",
+          "weight": 5
+        },
+        {
+          "code": "DEVIATION",
+          "text": "One linked deviation (weight 4)",
+          "weight": 4
+        },
+        {
+          "code": "OPEN_AUDIT_FLAG",
+          "text": "One open audit-trail flag (weight 3)",
+          "weight": 3
+        }
+      ],
+      "methodVersion": {
+        "id": "REVIEW.PRIORITY",
+        "version": 1
+      },
+      "scoredAt": {
+        "us": "1791615600000000",
+        "text": "12-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+      }
+    }
+  },
+  "unscored": {
+    "advisory": true,
+    "notForGmpDecisions": true,
+    "method": null,
+    "run": null,
+    "dataAgeSeconds": 0,
+    "batchId": "b6000000-0000-4000-8000-000000000024",
+    "priority": null
+  }
+}

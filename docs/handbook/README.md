@@ -37,6 +37,7 @@ The module list behind the generated pages is [modules.yaml](modules.yaml). Writ
 
 | Page | Covers |
 |---|---|
+| [analytics](modules/analytics.md) | `packages/analytics`: advisory analytics (Phase 6A; the page arrives at the 6A exit): methods, the analytics role and schema |
 | [kernel](modules/kernel.md) | `packages/kernel`: identity, access, e-signatures, audit trail, time, records, market rules, sandbox |
 | [site-services](modules/site-services.md) | `packages/site-services`: batch numbers, lots, deviations, specifications, LIMS-lite, ERP masters |
 | [expr](modules/expr.md) | `packages/expr`: the calculation language (exact decimals, units, rounding) |

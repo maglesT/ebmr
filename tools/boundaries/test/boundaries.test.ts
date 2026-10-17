@@ -52,6 +52,16 @@ const PHASE_2_RULES: Record<string, string> = {
   'integration-sdk-subpaths-no-kernel': 'packages/integration-sdk/src/adapter/bad-kernel.ts',
 };
 
+// Phase 6A slice 6A-0: the analytics rules of ADR 0020 point 2 (the self-containment rule split in two: paths and node
+// core modules).
+const PHASE_6A_RULES: Record<string, string> = {
+  'analytics-is-self-contained': 'packages/analytics/src/bad-reach.ts',
+  'analytics-no-node-core': 'packages/analytics/src/bad-node.ts',
+  'analytics-only-from-runner': 'apps/tablets-server/src/features/bad-analytics.ts',
+  'analytics-runner-no-gmp-path': 'apps/tablets-server/src/analytics/bad-gmp.ts',
+  'no-gmp-feature-imports-analytics': 'apps/tablets-server/src/features/bad-analytics.ts',
+};
+
 describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
   it('[meta] every boundary rule fires on a deliberate violation', async () => {
     const rules = new Set((await violations()).map((v) => v.rule));
@@ -67,7 +77,7 @@ describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
       ).toBe(true);
     }
     // Every configured rule except no-circular (dependency-cruiser's own) is proven by a fixture.
-    const proven = new Set([...PHASE_1_RULES, ...Object.keys(PHASE_2_RULES)]);
+    const proven = new Set([...PHASE_1_RULES, ...Object.keys(PHASE_2_RULES), ...Object.keys(PHASE_6A_RULES)]);
     for (const r of config.forbidden) if (r.name !== 'no-circular') expect(proven, r.name).toContain(r.name);
   });
 
@@ -79,5 +89,24 @@ describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
     expect(found.filter((v) => v.from === 'apps/tablets-server/src/cli/setup.ts')).toEqual([]);
     // tools/e2e may import tools/demo, but not an app.
     expect(found.filter((v) => v.rule === 'e2e-imports').map((v) => v.to)).toEqual(['apps/tablets-server/src/index.ts']);
+  });
+
+  it('[meta] each analytics rule of ADR 0020 fires on its own fixture; the runner may import the package', async () => {
+    const found = await violations();
+    for (const [rule, from] of Object.entries(PHASE_6A_RULES)) {
+      expect(
+        found.some((v) => v.rule === rule && v.from === from),
+        `${rule} should fire on ${from}`,
+      ).toBe(true);
+    }
+    // The package reaches neither another package nor a database driver.
+    expect(found).toContainEqual({ rule: 'analytics-is-self-contained', from: 'packages/analytics/src/bad-reach.ts', to: 'pg' });
+    expect(found).toContainEqual({ rule: 'analytics-is-self-contained', from: 'packages/analytics/src/bad-reach.ts', to: 'packages/expr/src/index.ts' });
+    // The runner reaches neither the kernel nor a feature; a feature reaches neither the package nor the runner.
+    expect(found).toContainEqual({ rule: 'analytics-runner-no-gmp-path', from: 'apps/tablets-server/src/analytics/bad-gmp.ts', to: 'packages/kernel/src/index.ts' });
+    expect(found).toContainEqual({ rule: 'analytics-runner-no-gmp-path', from: 'apps/tablets-server/src/analytics/bad-gmp.ts', to: 'apps/tablets-server/src/features/bad-test-kit.ts' });
+    expect(found).toContainEqual({ rule: 'no-gmp-feature-imports-analytics', from: 'apps/tablets-server/src/features/bad-analytics.ts', to: 'apps/tablets-server/src/analytics/runner.ts' });
+    // The runner importing the package breaks no rule.
+    expect(found.filter((v) => v.from === 'apps/tablets-server/src/analytics/runner.ts')).toEqual([]);
   });
 });
