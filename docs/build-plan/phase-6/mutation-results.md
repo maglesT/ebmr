@@ -711,6 +711,108 @@ Survivors, one line each:
   `#117` and `tab.record_pool_rejection#34` (the same task id in another pool; the L3 issues task ids per system);
   `tab.serial_lookup#1, #3, #9, #10` (the serial query's answer validation: a display read, not a release gate).
 
+### transfer-and-federation (triage T8)
+
+- First run (stream p6-4): 189 detected (188 killed, 1 time-out) / 393 valid, **48.1 %** (204 survivors). The group's
+  own tests were the two scenario files only; no test anywhere acknowledged an installation alarm, revoked a peer,
+  rotated the installation key, read a receipt's signed content or called `platform.ed25519_verify` with a known-answer
+  vector.
+- Scope (owner, 17 October): possible P1 defects (a tampered, misaddressed, replayed or untrusted package or answer let
+  through; a QUARANTINE lot used without the signed acceptance or past its hold limit; a laxer rule winning) and
+  untested high-risk guards; the rest is recorded below, grouped, not chased.
+- Kill tests: `packages/site-services/test/mutation/transfer-and-federation.test.ts` (14 tests; DI-18, DI-31, DI-39,
+  INV-13, PR-18, IN-29): Ed25519 against the RFC 8032 vectors 1 to 3 with a malleated S (S + L), one byte more or less on
+  signature and key, NULL arguments and a key that is no point; under the neutral point S = L (refused) and S = 2^252
+  (verifies only with every bit of the ladder) and no message (refused although R = [S]B); a seal for an unlisted
+  purpose and a non-canonical base64 seal; 21 packages re-sealed by the trusted origin with one field wrong
+  (MALFORMED, or WRONG_DESTINATION for another site); the received lot's retest instant and hold limit (the earliest of
+  carried hold, retest and expiry) and the receipt's signed content; a revoked peer, the approval's signer, a second key
+  for a trusted installation, key rotation, the identity and proposal shapes; the origin's request shape, a past stated
+  hold, exactly the quantity left, the hold basis without a retest, an expired or retest-due lot; the federation
+  request and query shapes (ok = false, the refusal logged against the request's own nonce), an unsealed package to the
+  asker, and an answer differing from the request in one field (FED-018 / FED-019); an installation alarm's
+  acknowledgment (once, with a note, never by an administrator), the seal by the preparer, and a mock recall's remote
+  part (transfer reached, status, the destination's forward excerpt of that transfer).
+- Confirmation run (`--only` on the 105 survivors the first tests aim at): **100 / 105 killed**; of the five
+  left, `platform.propose_peer_installation#1` and `site.prepare_transfer_package#8` are equivalent,
+  `platform.ed25519_verify#1` and `platform.set_installation_identity#22` are killed by the tests added after (below) and
+  `site.prepare_transfer_package#54` is a later layer.
+- Tests added after the confirmation run had started (verified to pass; counted as kills by reasoning, not run against
+  the mutants, since decision 0019 allows one confirmation run per group, D-P6j-T8-1): `platform.acknowledge_installation_alarm#1, #2, #3, #6, #7, #9, #13, #14`, `site.seal_transfer_package#2,
+  #7`, `recipe.record_mock_recall_remote#11, #14, #16, #21, #23, #25, #28`, `site.transfer_receipt_content#2, #4`,
+  `platform.ed25519_verify#1`, `platform.set_installation_identity#22`.
+- After triage: 289 detected (confirmed), 13 equivalent: **76.1 %** (289 / 380); 309 / 380, 81.3 %, with the 20 kills of
+  the tests added after the run; below the 90 % target, the rest recorded or residual within the owner's scope.
+- Defects (P1): none. Checked: every seal goes through `platform.seal_valid`, which refuses a key of small order or no
+  point before `ed25519_verify` and a seal that is not canonical base64 of 64 bytes; S below L, the full ladder and the
+  RFC vectors are now proven; trust is approved-and-not-revoked (`trusted_peer#6` now killed); an import is refused when
+  the origin is untrusted, the seal fails, the installation or site differs, or the package was taken in (package id
+  unique); the acceptance needs QA's signature by the signer and a hold limit ahead, and the hold limit is already the
+  earliest of carried hold, retest and expiry, so the acceptance's own expiry and retest checks (`decide#30 to #35`)
+  and its origin-state check (`#39, #40`, refused at import first) are a second layer; a carried rule is compared with
+  the local one and only the stricter (or the union) is kept: the surviving `resolve_carried_rules` mutants can only add
+  a stricter local value or skip an entry no origin database builds. The federation answer is bound to the request
+  (installations, nonce, transfer, direction, as-of) and to an exchanged, sealed transfer (`answer#16`, an unsealed
+  package, now killed).
+
+Survivors, one line each:
+- P2 killed (seals and keys, DI-31): `platform.ed25519_verify#2, #3, #5, #7 to #11`; `platform.seal_valid#4, #6, #7`;
+  `platform.trusted_peer#6`, `platform.peer_installation_state#1` (a revoked peer); `platform.set_installation_identity#1
+  to #3, #5, #8, #11 to #18, #21, #23` (shape, key, code, site and edition never change, the same key is no new
+  version); `platform.propose_peer_installation#3 to #26` (shape, URL length, never its own peer);
+  `platform.approve_peer_installation#11, #20` (a second key for a trusted installation; the signer records);
+  `platform.revoke_peer_installation#2, #3, #6, #7`.
+- P2 killed (import, DI-31, DI-39, PR-18): `site.import_transfer_package#5, #7, #8, #13, #21 to #54` (the format,
+  origin, package id, destination site and every lot, status, hold, market and number field after the seal; a lot
+  stated QUARANTINE or REJECTED at its origin), `#58, #59` (the retest instant kept, clamped to the expiry).
+- P2 killed (origin, DI-39, INV-13, PR-18): `site.prepare_transfer_package#10 to #23` (the request shape),
+  `#41, #42, #45` (an expired or retest-due lot), `#49` (exactly what is left), `#62` (a stated hold in the past).
+- P2 killed (federation, DI-31, D-P6i-0-7, D-P6i-0-9): `platform.accept_federation_request#6 to #12` (request shape),
+  `platform.refuse_federation_query#1, #2` (ok = false, logged against its own request),
+  `recipe.answer_federated_genealogy#4, #9, #12, #16`, `recipe.record_federated_excerpt#10 to #26` (the answer's shape
+  and its binding to the request; ok = false).
+- Equivalent (13, `tools/sql-mutation/equivalent.json`): `platform.ed25519_verify#14` (one more doubling of the neutral
+  point), `platform.seal_valid#1, #2, #3` (a NULL alone is refused further on), `#8` (a key that is no point: verify
+  refuses it), `#10` and `platform.own_seal_valid#1`, `platform.peer_seal_valid#1` (never NULL),
+  `platform.propose_peer_installation#1`, `site.prepare_transfer_package#8` (a non-object fails the next check of the
+  same IF),
+  `site.import_transfer_package#60` (retest equal to expiry), `site.resolve_carried_rules#23` (NULL both ways or
+  neither), `recipe.answer_federated_genealogy#3` (ok is always a boolean).
+- Recorded (cryptographically unreachable): `platform.ed25519_verify#13` (the ladder skips k's bit 252 only when k is
+  at least 2^252, about 4e-39 for a hash; it can only refuse a good seal, and under a key of small order that bit
+  changes nothing); `platform.ed25519_pow#1` timed out (detected).
+- Recorded (later layer): `platform.approve_peer_installation#2` (unknown peer: the signature assertion), `#6` (the
+  approval is keyed by the peer: approved once), `platform.acknowledge_installation_alarm` (the note check, the primary
+  key and the foreign key of `installation_alarm_ack` refuse what its guards refuse); `site.import_transfer_package#18`
+  (the receipt's package id is unique); `site.decide_transfer_receipt#2` (unknown receipt), `#7` (the acceptance's
+  primary key and the kernel's second signature), `#10, #12` (the decision's table check), `#23` (a lot QA moved out of
+  QUARANTINE: acceptance changes no state and the lot machine still gates use), `#30 to #35`, `#39, #40` (above);
+  `site.prepare_transfer_package#1` (the permission is scoped to the lot's site), `#54` (a retest after the expiry
+  would become the package's hold; the receiving site's limit is the least of hold, expiry and retest clamped to the
+  expiry, 0981:353), `#4, #5` (an installation without an
+  identity for this site: its key seals nothing, and the origin site in the package is its identity's);
+  `recipe.issue_federated_request#1 to #25` (the asking site's own checks; the answering site refuses an untrusted,
+  misdirected, future or unexchanged request); `recipe.record_federation_failure#2, #5, #7` (the failure's foreign key
+  and status check); `recipe.record_federated_excerpt#2` (unknown nonce: FED-015 from the failure), `#6` (the
+  excerpt's nonce is unique); `recipe.record_mock_recall_remote#2` (unknown recall: RCL-021).
+- Recorded (content, messages, boundaries, locks): `site.prepare_transfer_package#55, #58, #59, #65` (the hold basis
+  text when two limits are equal; the carried hold is never later than the lot's expiry or retest), `#67, #69, #71,
+  #73` (which release decision and CoA rows the package shows; the receiving site tests the lot itself before its
+  release), `#40, #44, #61` and `site.decide_transfer_receipt#17, #26`, `site.transfer_use_problem#3`,
+  `platform.accept_federation_request#17`, `recipe.answer_federated_genealogy#26, #27` (exact-microsecond or 10-character
+  boundaries, the as-of wait), `platform.acknowledge_installation_alarm#8` (1000 characters), `#12`,
+  `platform.approve_peer_installation#9`, `platform.revoke_peer_installation#1`, `site.decide_transfer_receipt#5` (lock
+  only), `site.transfer_use_problem#2` (message), `platform.accept_federation_request#24` (the query column of a refusal
+  row), `site.transfer_rule_resolutions#2, #4` (a rule the market model does not apply is carried: the receiving site
+  re-resolves and the stricter wins), `site.resolve_carried_rules#2, #5, #14, #16` (an entry without key or value; an
+  inapplicable local value compared: only a stricter value can win), `platform.raw_public_key#1` (a key text in
+  non-canonical base64 is decoded: the same 32 bytes).
+- Residual (P2, not chased per the owner): `site.decide_transfer_receipt#44` and
+  `platform.approve_peer_installation#15` (a signature whose record changed state after signing: needs a state change
+  between signing and recording; the kernel's signature checks are proven in the signing groups);
+  `recipe.record_federation_failure#1` (the failure and its alarm recorded against another request: audit attribution
+  of a failed query).
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)
