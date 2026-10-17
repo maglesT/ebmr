@@ -1096,6 +1096,14 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
   - **F-6jb-2** The floor's refusal of a stale-mirror signature names `STALE_QUALIFICATION_SOURCE:<qualification>` but not
     the mirror, its age or who to call (6a screens item); `iam.lms_mirror_problem()` has no caller.
   - The health page writes source systems as words ("Lms", "call the Lms system owner"): cosmetic.
+- **D-P6j-T1-1** (mutation triage T1: equipment-data-and-alarms, plant-rules) A kill test matches the refusal's message,
+  not only its code, where a later layer refuses with the same code (the OPC UA data guard's EBMR-EQD-002, the chunk
+  hash's EBMR-EQD-001): otherwise the mutant's later refusal passes the test.
+- **D-P6j-T1-2** A defence-in-depth clause that only an owner-level write reaches (plant.opcua_data_guard, the relocation
+  clauses of plant.opcua_unit_problem and of the session verdict) is killed by an owner-level write test, not recorded
+  as equivalent: an owner-level writer is an input.
+- **D-P6j-T1-3** The plant-rules confirmation run waits until the group's first run on stream p6-3 has finished (65 of
+  221 mutants at triage); one --only run then covers the tests written here and the later survivors.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

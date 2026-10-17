@@ -53,11 +53,18 @@ describe('reagent and buffer lots (site services 0940)', () => {
     await withdraw(l.lotCode, 'Contaminated: bottle left open');
   });
 
-  it('[PR-29] a lot may be used from the microsecond it was recorded, and not at the microsecond it expires', async () => {
+  it('[PR-29] a lot may be used from the microsecond it was recorded, and not at the microsecond it expires or is withdrawn', async () => {
     const l = lot({ expiresAt: '2098-06-01T00:00:00.000001Z' });
     await record(l);
     const recorded = (await db.admin.query<{ t: string; e: string }>('select recorded_at::text as t, expires_at::text as e from site.reagent_lot where lot_code = $1', [l.lotCode])).rows[0]!;
     expect(await problem(l.lotCode, recorded.t)).toBeNull();
     expect(await problem(l.lotCode, recorded.e)).toMatch(/^EBMR-SITE-955 /);
+    // Withdrawn: in use until the withdrawal, not from its own microsecond on.
+    await withdraw(l.lotCode, 'Contaminated: bottle left open');
+    const withdrawn = (await db.admin.query<{ t: string }>(
+      'select w.withdrawn_at::text as t from site.reagent_lot_withdrawal w join site.reagent_lot r on r.id = w.reagent_lot_id where r.lot_code = $1', [l.lotCode],
+    )).rows[0]!.t;
+    expect(await problem(l.lotCode, recorded.t)).toBeNull();
+    expect(await problem(l.lotCode, withdrawn)).toMatch(/^EBMR-SITE-954 /);
   });
 });
