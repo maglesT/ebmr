@@ -3,7 +3,9 @@
  * the batch, or one step, held its unit or occupied its room; ns/equipment-data batchSeries) or of a unit or room over a
  * window of source time (ns/equipment-data series, paged by chunk number, every page loaded before drawing). The chart is
  * TrendChart: interactive zoom and pan over the samples as received, for live data and for a restored archive alike.
- * Opened from the batch review (?batchId=) or from the home tile.
+ * Opened from the batch review (?batchId=) or from the home tile. Phase 6A slice 6A-6: for a batch, a step and a tag, the
+ * golden profile overlay (advisory: the band of the reference batches with this batch's curve, analytics/profile) can
+ * be shown under the chart; the chart and the sample table above it stay the native data as received (DI-32).
  */
 import { getRouteApi } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +16,7 @@ import { api } from '../../api/client.ts';
 import { ApiError, useApiQuery } from '../../api/hooks.ts';
 import { Section } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { ProfileOverlay } from '../analytics/profile/ProfileOverlay.tsx';
 import { PLANT_CODE } from './reads.ts';
 import { TrendChart } from './TrendChart.tsx';
 
@@ -83,6 +86,7 @@ export function TrendsPage() {
 function BatchTrend({ search, tag, unit }: { search: TrendSearch; tag: string; unit: string }) {
   const [batchId, setBatchId] = useState(search.batchId ?? '');
   const [step, setStep] = useState(search.step ?? '');
+  const [golden, setGolden] = useState(false);
   const ready = UUID.test(batchId.trim()) && TAG.test(tag);
   const q = useApiQuery(
     routes.equipmentData.batchSeries,
@@ -96,6 +100,12 @@ function BatchTrend({ search, tag, unit }: { search: TrendSearch; tag: string; u
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
       {!ready ? <p>Choose a batch and a tag.</p> : null}
       {ready && q.data ? <TrendChart chunks={q.data.chunks} unit={unit} tag={tag} /> : null}
+      {ready && step.trim() ? (
+        <>
+          <Button onPress={() => setGolden((g) => !g)}>{golden ? 'Hide the golden profile' : 'Show the golden profile (advisory)'}</Button>
+          {golden ? <ProfileOverlay batchId={batchId.trim()} step={step.trim()} tag={tag} /> : null}
+        </>
+      ) : null}
     </Section>
   );
 }

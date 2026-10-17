@@ -22,13 +22,17 @@
  *      canonical outputs and flags. A flag is linked to the run's output about the same subject, if there is one.
  *   5. Any failure in 2 to 4 rolls the recording back and records the run as begun and FAILED with the error, in a
  *      transaction of its own: a failed run leaves no output (D-6A-0-3).
+ * A method with reference sets (an implementation with `references`, slice 6A-6) runs once without a reference set
+ * (its model candidates) and then once per reference set in force: the set is read again in the run's snapshot (an
+ * input of the run like any other), its model must hash to its recorded SHA-256 and fit the running code, and the run
+ * names it (analytics.begin_run checks it is EFFECTIVE, EBMR-ANA-002).
  */
 import type { FastifyBaseLogger } from 'fastify';
 import type pg from 'pg';
-import { outputHash, type FlagDraft, type MethodId, type OutputDraft, type Parameters } from '@ebmr/analytics';
+import { canonicalText, outputHash, sha256Hex, type FlagDraft, type MethodId, type OutputDraft, type Parameters, type ReferenceModel } from '@ebmr/analytics';
 import { codeRuns, methodDefinitionProblems, parametersSha256, runtimeOf } from './catalog.ts';
-import { IMPLEMENTATIONS, type MethodImplementation } from './implementation.ts';
-import { readSnapshot, type InputRecord } from './inputs.ts';
+import { IMPLEMENTATIONS, type InputRow, type InputSpec, type MethodImplementation, type ReferenceRow } from './implementation.ts';
+import { readSnapshot, recordedFilter, type InputRecord } from './inputs.ts';
 import { connectRetrying, queryRetrying } from './pool.ts';
 
 export type RunTrigger = 'SCHEDULED' | 'BATCH_COMPLETE' | 'ON_DEMAND';
@@ -53,6 +57,8 @@ export interface RunReport {
   trigger: RunTrigger;
   status: 'DONE' | 'FAILED' | 'SKIPPED';
   runId: string | null;
+  /** The reference set the run scored against (slice 6A-6), when it had one. */
+  referenceSet?: string;
   outputSha256?: string;
   outputs?: number;
   flags?: number;
@@ -157,21 +163,68 @@ export class AnalyticsRunner {
       'select method, version, parameters, parameters_sha256, code_identity from analytics.effective_methods() order by method, version',
     );
     const reports: RunReport[] = [];
-    for (const v of rows) reports.push(await this.runVersion(v, trigger));
+    for (const v of rows) reports.push(...(await this.runVersionAll(v, trigger)));
     return reports;
   }
 
-  /** Runs one method version in force (see the header). */
-  async runVersion(v: EffectiveVersion, trigger: RunTrigger): Promise<RunReport> {
+  /**
+   * Runs one method version in force: once, or for a method with reference sets once without one and once per
+   * reference set in force (see the header). A failed read of the reference sets is a FAILED run of its own.
+   */
+  async runVersionAll(v: EffectiveVersion, trigger: RunTrigger): Promise<RunReport[]> {
+    const impl = this.impls.find((i) => i.id === v.method && i.versions.includes(v.version));
+    const reports = [await this.runVersion(v, trigger)];
+    if (!impl?.references || reports[0]!.status === 'SKIPPED') return reports;
+    let sets: string[];
+    try {
+      const snapshot = await readSnapshot(this.o.pool, [impl.references]);
+      sets = (snapshot.rows[impl.references.view] ?? []).map((r) => String(r['reference_set_id'])).sort();
+    } catch (error) {
+      const message = `the reference sets of ${v.method} could not be read: ${error instanceof Error ? error.message : String(error)}`;
+      const runId = await this.recordFailure(v, trigger, impl.inputs.map(emptyInput), message, null).catch(() => null);
+      return [...reports, { method: v.method, version: v.version, trigger, status: 'FAILED', runId, error: message }];
+    }
+    for (const id of sets) reports.push(await this.runVersion(v, trigger, id));
+    return reports;
+  }
+
+  /**
+   * Runs one method version in force (see the header); with `referenceSet`, against that reference set of a method
+   * with reference sets.
+   */
+  async runVersion(v: EffectiveVersion, trigger: RunTrigger, referenceSet: string | null = null): Promise<RunReport> {
     const impl = this.impls.find((i) => i.id === v.method && i.versions.includes(v.version));
     if (!impl) {
       this.o.log.warn({ method: v.method, version: v.version }, 'analytics runner: a method version in force has no implementation in the running code; it is not run');
       return { method: v.method, version: v.version, trigger, status: 'SKIPPED', runId: null, error: 'no implementation of this version in the running code' };
     }
-    let inputs: InputRecord[] = impl.inputs.map((s) => ({ view: s.view, version: s.version, filter: s.filter, data_as_of: '1970-01-01T00:00:00Z', rows: 0, sha256: '0'.repeat(64) }));
+    if (referenceSet !== null && !impl.references) throw new Error(`${v.method} has no reference sets`);
+    const refs = impl.references;
+    const refSpec: InputSpec | null = referenceSet !== null && refs ? { ...refs, filter: { ...(refs.filter ?? {}), reference_set_id: referenceSet } } : null;
+    let specs: readonly InputSpec[] = impl.inputs;
+    let inputs: InputRecord[] = impl.inputs.map(emptyInput);
     try {
-      const snapshot = await readSnapshot(this.o.pool, impl.inputs);
+      let ref: ReferenceRow | null = null;
+      if (refSpec) {
+        // The set as it is in force now (outside the snapshot) decides which inputs the run reads; the snapshot's
+        // own read of it is what the run uses and records.
+        const now = (await readSnapshot(this.o.pool, [refSpec])).rows[refSpec.view]?.[0];
+        if (!now) throw new RunFailure(`reference set ${referenceSet} of ${v.method} is not in force`);
+        specs = [...(impl.inputsFor?.(referenceRowOf(now)) ?? impl.inputs), refSpec];
+        inputs = specs.map(emptyInput);
+      }
+      const snapshot = await readSnapshot(this.o.pool, specs);
       inputs = snapshot.inputs;
+      if (refSpec) {
+        const row = snapshot.rows[refSpec.view]?.[0];
+        if (!row) throw new RunFailure(`reference set ${referenceSet} of ${v.method} is not in force`);
+        ref = referenceRowOf(row);
+        const refProblems = [
+          ...(sha256Hex(canonicalText(ref.model)) === ref.modelSha256 ? [] : ['its model does not hash to its recorded SHA-256']),
+          ...(impl.referenceProblems?.(ref) ?? []),
+        ];
+        if (refProblems.length > 0) throw new RunFailure(`reference set ${ref.id} of ${v.method} is not scored: ${refProblems.join('; ')}`);
+      }
       const problems = [
         ...(parametersSha256(v.parameters) === v.parameters_sha256 ? [] : ['its parameters do not hash to the recorded SHA-256']),
         ...methodDefinitionProblems(v.method, v.parameters),
@@ -179,16 +232,17 @@ export class AnalyticsRunner {
       ];
       if (problems.length > 0) throw new RunFailure(`${v.method} version ${v.version} is not run: ${problems.join('; ')}`);
       const params = v.parameters as Parameters;
-      const result = impl.method.run(impl.assemble(snapshot.rows, params), params, null);
-      return await this.record(v, trigger, inputs, result.outputs, result.flags, result.skipped.length);
+      const model: ReferenceModel | null = ref ? { id: ref.id, method: v.method as MethodId, model: ref.model, modelSha256: ref.modelSha256 } : null;
+      const result = impl.method.run(impl.assemble(snapshot.rows, params), params, model);
+      return await this.record(v, trigger, inputs, result.outputs, result.flags, result.skipped.length, referenceSet);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const runId = await this.recordFailure(v, trigger, inputs, message).catch((e: unknown) => {
+      const runId = await this.recordFailure(v, trigger, inputs, message, referenceSet).catch((e: unknown) => {
         this.o.log.error({ err: e, method: v.method, version: v.version }, 'analytics runner: the failure of a run could not be recorded');
         return null;
       });
       this.o.log.warn({ method: v.method, version: v.version, runId, error: message }, 'analytics runner: a run failed and left no output');
-      return { method: v.method, version: v.version, trigger, status: 'FAILED', runId, error: message };
+      return { method: v.method, version: v.version, trigger, status: 'FAILED', runId, error: message, ...(referenceSet ? { referenceSet } : {}) };
     }
   }
 
@@ -196,13 +250,15 @@ export class AnalyticsRunner {
     return runtimeOf(this.o.commit, process.version);
   }
 
-  private async record(v: EffectiveVersion, trigger: RunTrigger, inputs: InputRecord[], outputs: readonly OutputDraft[], flags: readonly FlagDraft[], skipped: number): Promise<RunReport> {
+  private async record(
+    v: EffectiveVersion, trigger: RunTrigger, inputs: InputRecord[], outputs: readonly OutputDraft[], flags: readonly FlagDraft[], skipped: number, referenceSet: string | null,
+  ): Promise<RunReport> {
     const sha = outputHash(outputs, flags);
     const client = await connectRetrying(this.o.pool);
     try {
       await client.query('begin');
-      const { rows } = await client.query<{ id: string }>('select analytics.begin_run($1, $2, null, $3, $4::jsonb, $5::jsonb)::text as id', [
-        v.method, v.version, trigger, JSON.stringify(inputs), JSON.stringify(this.runtime()),
+      const { rows } = await client.query<{ id: string }>('select analytics.begin_run($1, $2, $3, $4, $5::jsonb, $6::jsonb)::text as id', [
+        v.method, v.version, referenceSet, trigger, JSON.stringify(inputs), JSON.stringify(this.runtime()),
       ]);
       const runId = rows[0]!.id;
       const outputIds = new Map<string, string>();
@@ -221,7 +277,7 @@ export class AnalyticsRunner {
       await client.query('select analytics.finish_run($1, $2, $3::jsonb)', [runId, sha, JSON.stringify({ outputs: outputs.length, flags: flags.length, skipped })]);
       await client.query('commit');
       this.o.log.info({ method: v.method, version: v.version, runId, outputs: outputs.length, flags: flags.length }, 'analytics runner: run recorded (advisory)');
-      return { method: v.method, version: v.version, trigger, status: 'DONE', runId, outputSha256: sha, outputs: outputs.length, flags: flags.length };
+      return { method: v.method, version: v.version, trigger, status: 'DONE', runId, ...(referenceSet ? { referenceSet } : {}), outputSha256: sha, outputs: outputs.length, flags: flags.length };
     } catch (error) {
       await client.query('rollback').catch(() => undefined);
       throw error;
@@ -230,12 +286,12 @@ export class AnalyticsRunner {
     }
   }
 
-  private async recordFailure(v: EffectiveVersion, trigger: RunTrigger, inputs: InputRecord[], message: string): Promise<string> {
+  private async recordFailure(v: EffectiveVersion, trigger: RunTrigger, inputs: InputRecord[], message: string, referenceSet: string | null): Promise<string> {
     const client = await connectRetrying(this.o.pool);
     try {
       await client.query('begin');
-      const { rows } = await client.query<{ id: string }>('select analytics.begin_run($1, $2, null, $3, $4::jsonb, $5::jsonb)::text as id', [
-        v.method, v.version, trigger, JSON.stringify(inputs), JSON.stringify(this.runtime()),
+      const { rows } = await client.query<{ id: string }>('select analytics.begin_run($1, $2, $3, $4, $5::jsonb, $6::jsonb)::text as id', [
+        v.method, v.version, referenceSet, trigger, JSON.stringify(inputs), JSON.stringify(this.runtime()),
       ]);
       const runId = rows[0]!.id;
       await client.query('select analytics.fail_run($1, $2)', [runId, message.slice(0, 2000)]);
@@ -248,6 +304,28 @@ export class AnalyticsRunner {
       client.release();
     }
   }
+}
+
+/** An input record before its read (a run that fails before reading names its inputs this way). */
+function emptyInput(s: InputSpec): InputRecord {
+  return { view: s.view, version: s.version, filter: recordedFilter(s), data_as_of: '1970-01-01T00:00:00Z', rows: 0, sha256: '0'.repeat(64) };
+}
+
+/** PostgreSQL array text ({a,b}) or a parsed array, as strings. */
+function textArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v.map(String);
+  if (typeof v === 'string' && /^\{.*\}$/.test(v)) return v.slice(1, -1).split(',').filter((x) => x !== '');
+  return [];
+}
+
+const objectOf = (v: unknown): Record<string, unknown> => (v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+
+/** A row of a reference view (report.analytics_reference_v1) as the runner uses it. */
+function referenceRowOf(r: InputRow): ReferenceRow {
+  return {
+    id: String(r['reference_set_id']), method: String(r['method']), scope: objectOf(r['scope']), batchIds: textArray(r['batch_ids']), model: objectOf(r['model']),
+    modelSha256: String(r['model_sha256']),
+  };
 }
 
 /** The method ids the running code implements (for the catalogue's screens). */

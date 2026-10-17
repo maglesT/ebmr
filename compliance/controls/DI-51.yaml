@@ -57,6 +57,10 @@ tests:
   - "apps/tablets-server/test/analytics/spc.test.ts > the SPC, capability, drift and rate methods (slice 6A-2) > [DI-51] every SPC read needs ANALYTICS.VIEW; an item without a chart answers 404"
   - "apps/tablets-web/test/analytics/spc.test.tsx > analytics SPC and rates screens (GMP) > [DI-51] the chart screen shows the advisory band, the limits source, the master's limits and each recorded value as decimal text"
   - "apps/tablets-web/test/analytics/spc.test.tsx > analytics SPC and rates screens (GMP) > [DI-51] the PQR extract links to the product's charts and rates as an advisory annex outside its signed content"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51][DI-52] report.series_ref_v1 names each GMP batch step's native series on its unit, with its chunks, release, deviations and step alarms"
+  - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51] the inputs are on the analytics role's allow-list, which reads nothing behind them; the segregation check stays clean"
+  - "apps/tablets-server/test/analytics/profile.test.ts > the golden batch profile (GBP.DTW_BAND) > [DI-51] the profile reads the native series and never changes plant.series or the record's dynamic data refs"
+  - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-51] the profile screens show the advisory band, the method and the data age, and label every statistic"
 expert_decision:
   status: PENDING
   pack_version: draft
