@@ -1,33 +1,507 @@
-[32m02:38:50 (795445) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-designer-hazard.incremental.json, a full mutation testing run will be performed.
-[32m02:38:50 (795445) INFO ProjectReader[39m Found 1 of 3106 file(s) to be mutated.
-[32m02:38:50 (795445) INFO Instrumenter[39m Instrumented 1 source file(s) with 173 mutant(s)
-[32m02:38:53 (795445) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
-[91m02:38:54 (795445) ERROR Stryker[39m Unexpected error occurred while running Stryker Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
-}
-[32m02:38:54 (795445) INFO Stryker[39m This might be a known problem with a solution documented in our troubleshooting guide.
-[32m02:38:54 (795445) INFO Stryker[39m You can find it at https://stryker-mutator.io/docs/stryker-js/troubleshooting/
-[32m02:38:54 (795445) INFO Stryker[39m Still having trouble figuring out what went wrong? Try `npx stryker run --fileLogLevel trace --logLevel debug` to get some more info.
-node:internal/process/promises:394
-    triggerUncaughtException(err, true /* fromPromise */);
-    ^
+[32m04:15:51 (1084120) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-designer-hazard.incremental.json, a full mutation testing run will be performed.
+[32m04:15:51 (1084120) INFO ProjectReader[39m Found 1 of 3131 file(s) to be mutated.
+[32m04:15:51 (1084120) INFO Instrumenter[39m Instrumented 1 source file(s) with 173 mutant(s)
+[32m04:15:55 (1084120) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m04:15:56 (1084120) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m04:15:57 (1084120) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m04:17:49 (1084120) INFO DryRunExecutor[39m Initial test run succeeded. Ran 8 tests in 1 minute and 51 seconds (net 15063.269649999973 ms, overhead 96809.73035000003 ms).
+Mutation testing 0% (elapsed: <1m, remaining: n/a) 11/169 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~48m) 12/169 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~1h 12m) 12/169 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~1h 36m) 12/169 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: <1m, remaining: ~59m) 13/169 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: ~1m, remaining: ~1h 11m) 13/169 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: ~1m, remaining: ~55m) 14/169 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: ~1m, remaining: ~1h 3m) 14/169 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: ~1m, remaining: ~1h 11m) 14/169 tested (0 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~46m) 16/169 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~51m) 16/169 tested (1 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~2m, remaining: ~39m) 18/169 tested (2 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~2m, remaining: ~42m) 18/169 tested (2 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~2m, remaining: ~39m) 20/169 tested (2 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~2m, remaining: ~42m) 20/169 tested (2 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~2m, remaining: ~39m) 22/169 tested (3 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~2m, remaining: ~42m) 22/169 tested (3 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~3m, remaining: ~36m) 24/169 tested (3 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~3m, remaining: ~38m) 24/169 tested (3 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~3m, remaining: ~34m) 26/169 tested (4 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~3m, remaining: ~36m) 26/169 tested (4 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~3m, remaining: ~32m) 28/169 tested (5 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~3m, remaining: ~34m) 28/169 tested (5 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~4m, remaining: ~31m) 30/169 tested (5 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~4m, remaining: ~32m) 30/169 tested (5 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~4m, remaining: ~30m) 32/169 tested (5 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~4m, remaining: ~31m) 32/169 tested (5 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~4m, remaining: ~28m) 34/169 tested (5 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~4m, remaining: ~29m) 34/169 tested (5 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~5m, remaining: ~27m) 36/169 tested (6 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~5m, remaining: ~28m) 36/169 tested (6 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~5m, remaining: ~27m) 38/169 tested (6 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~5m, remaining: ~27m) 38/169 tested (6 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~5m, remaining: ~26m) 40/169 tested (6 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~5m, remaining: ~24m) 42/169 tested (6 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~6m, remaining: ~25m) 42/169 tested (6 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~6m, remaining: ~24m) 44/169 tested (6 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~6m, remaining: ~24m) 44/169 tested (6 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~6m, remaining: ~23m) 46/169 tested (6 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~6m, remaining: ~22m) 48/169 tested (6 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~6m, remaining: ~23m) 48/169 tested (6 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~7m, remaining: ~22m) 50/169 tested (6 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~7m, remaining: ~21m) 52/169 tested (6 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~7m, remaining: ~21m) 52/169 tested (6 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~7m, remaining: ~20m) 54/169 tested (7 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~7m, remaining: ~21m) 54/169 tested (7 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~7m, remaining: ~20m) 56/169 tested (7 survived, 0 timed out)
+Mutation testing 29% (elapsed: ~8m, remaining: ~19m) 58/169 tested (7 survived, 0 timed out)
+Mutation testing 29% (elapsed: ~8m, remaining: ~19m) 58/169 tested (7 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~8m, remaining: ~19m) 60/169 tested (7 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~8m, remaining: ~19m) 60/169 tested (7 survived, 0 timed out)
+Mutation testing 31% (elapsed: ~8m, remaining: ~18m) 62/169 tested (7 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~8m, remaining: ~17m) 64/169 tested (8 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~9m, remaining: ~18m) 64/169 tested (8 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~9m, remaining: ~17m) 66/169 tested (9 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~9m, remaining: ~16m) 68/169 tested (9 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~9m, remaining: ~17m) 68/169 tested (9 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~9m, remaining: ~16m) 70/169 tested (9 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~9m, remaining: ~16m) 70/169 tested (9 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~10m, remaining: ~16m) 72/169 tested (9 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~10m, remaining: ~15m) 74/169 tested (10 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~10m, remaining: ~15m) 74/169 tested (10 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~10m, remaining: ~15m) 76/169 tested (10 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~10m, remaining: ~15m) 76/169 tested (10 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~10m, remaining: ~15m) 78/169 tested (10 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~11m, remaining: ~14m) 80/169 tested (10 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~11m, remaining: ~13m) 82/169 tested (11 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~11m, remaining: ~14m) 82/169 tested (11 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~11m, remaining: ~13m) 84/169 tested (11 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~11m, remaining: ~13m) 86/169 tested (11 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~11m, remaining: ~13m) 86/169 tested (11 survived, 0 timed out)
+Mutation testing 48% (elapsed: ~12m, remaining: ~12m) 88/169 tested (11 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~12m, remaining: ~12m) 90/169 tested (11 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~12m, remaining: ~12m) 90/169 tested (11 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~12m, remaining: ~12m) 92/169 tested (12 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~12m, remaining: ~12m) 92/169 tested (12 survived, 0 timed out)
+Mutation testing 52% (elapsed: ~12m, remaining: ~11m) 94/169 tested (14 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~13m, remaining: ~11m) 96/169 tested (14 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~13m, remaining: ~11m) 96/169 tested (14 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~13m, remaining: ~10m) 98/169 tested (15 survived, 0 timed out)
+Mutation testing 56% (elapsed: ~13m, remaining: ~10m) 100/169 tested (16 survived, 0 timed out)
+Mutation testing 56% (elapsed: ~13m, remaining: ~10m) 100/169 tested (16 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~13m, remaining: ~10m) 102/169 tested (17 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~14m, remaining: ~9m) 104/169 tested (18 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~14m, remaining: ~9m) 104/169 tested (18 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~14m, remaining: ~9m) 106/169 tested (18 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~14m, remaining: ~9m) 108/169 tested (18 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~14m, remaining: ~9m) 108/169 tested (18 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~14m, remaining: ~8m) 110/169 tested (19 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~15m, remaining: ~9m) 110/169 tested (19 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~15m, remaining: ~8m) 112/169 tested (20 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~15m, remaining: ~8m) 112/169 tested (20 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~15m, remaining: ~8m) 114/169 tested (21 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~15m, remaining: ~7m) 116/169 tested (21 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~15m, remaining: ~8m) 116/169 tested (21 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~16m, remaining: ~7m) 118/169 tested (21 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~16m, remaining: ~7m) 118/169 tested (21 survived, 0 timed out)
+Mutation testing 68% (elapsed: ~16m, remaining: ~7m) 120/169 tested (21 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~16m, remaining: ~7m) 122/169 tested (22 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~16m, remaining: ~7m) 122/169 tested (22 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~16m, remaining: ~6m) 124/169 tested (23 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 126/169 tested (25 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~17m, remaining: ~6m) 126/169 tested (25 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~17m, remaining: ~6m) 128/169 tested (25 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~17m, remaining: ~6m) 128/169 tested (25 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~17m, remaining: ~5m) 130/169 tested (26 survived, 0 timed out)
+Mutation testing 76% (elapsed: ~17m, remaining: ~5m) 132/169 tested (28 survived, 0 timed out)
+Mutation testing 76% (elapsed: ~18m, remaining: ~5m) 132/169 tested (28 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~18m, remaining: ~5m) 134/169 tested (29 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~18m, remaining: ~5m) 134/169 tested (29 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~18m, remaining: ~4m) 136/169 tested (29 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~18m, remaining: ~4m) 138/169 tested (29 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~18m, remaining: ~4m) 138/169 tested (29 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~19m, remaining: ~4m) 140/169 tested (29 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~19m, remaining: ~4m) 140/169 tested (29 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~19m, remaining: ~4m) 142/169 tested (29 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~19m, remaining: ~3m) 144/169 tested (29 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~19m, remaining: ~3m) 144/169 tested (29 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~19m, remaining: ~3m) 146/169 tested (29 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~20m, remaining: ~3m) 148/169 tested (29 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~20m, remaining: ~3m) 148/169 tested (29 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~20m, remaining: ~2m) 150/169 tested (29 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~20m, remaining: ~2m) 150/169 tested (29 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~20m, remaining: ~2m) 152/169 tested (29 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~20m, remaining: ~2m) 152/169 tested (29 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~21m, remaining: ~2m) 154/169 tested (31 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~21m, remaining: ~1m) 156/169 tested (31 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~21m, remaining: ~1m) 156/169 tested (31 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~21m, remaining: ~1m) 158/169 tested (32 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~21m, remaining: ~1m) 160/169 tested (32 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~21m, remaining: ~1m) 160/169 tested (32 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~22m, remaining: ~1m) 162/169 tested (33 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~22m, remaining: <1m) 164/169 tested (34 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~22m, remaining: <1m) 164/169 tested (34 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~22m, remaining: <1m) 166/169 tested (34 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~22m, remaining: <1m) 168/169 tested (34 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~22m, remaining: <1m) 168/169 tested (34 survived, 0 timed out)
 
-Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
-    at async Object.copyFile (node:internal/fs/promises:621:10)
-    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
-    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
-  errno: -21,
-  code: 'EISDIR',
-  syscall: 'copyfile',
-  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
-  dest: '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
-}
+All tests
+  hazard-containment.test.ts
+    ✓ the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas (killed 121)
+    ✓ the designer for a hazardous product (IN-27) > [IN-27] a product without a hazard class keeps the template as it is (killed 2)
+  references.test.ts
+    ✘ reference documents (DMS stand-in) > [PR-03][DI-04] lists the seeded DEMO-ONLY documents with their hash, all EFFECTIVE today (covered 0)
+    ✘ reference documents (DMS stand-in) > [DI-04] the status of a pinned reference: unknown, hash mismatch, not yet effective, superseded, retired, withdrawn (covered 0)
+    ✘ reference documents (DMS stand-in) > [DI-04] a later registered version supersedes the pinned one, and a withdrawal is read from the register (covered 0)
+    ✘ reference documents (DMS stand-in) > [DI-04] the register refuses a body that does not hash to the pinned value, and an author cannot record documents (covered 0)
+    ✘ palette > offers the insertable blocks with plain names; SANDBOX_ONLY versions badged; G-06, G-21 and non-steps hidden (covered 0)
+    ✘ installation > [DI-05] the designer routes do not exist on the sandbox installation (covered 0)
 
-Node.js v22.23.3
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/designer/hazard.ts:36:39
+-     const classes = rows[0]?.classes ?? [];
++     const classes = rows[0]?.classes ?? ["Stryker was here"];
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:55:29
+-     if (!doc) throw new Error(`reference document ${code} is not in the catalogue`);
++     if (!doc) throw new Error(``);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/designer/hazard.ts:74:133
+-     signatures: checked ? { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } : { perform: { role: 'PRODUCTION_OPERATOR' } },
++     signatures: checked ? { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } : {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/designer/hazard.ts:74:144
+-     signatures: checked ? { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } : { perform: { role: 'PRODUCTION_OPERATOR' } },
++     signatures: checked ? { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } : { perform: {} },
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:74:152
+-     signatures: checked ? { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } : { perform: { role: 'PRODUCTION_OPERATOR' } },
++     signatures: checked ? { perform: { role: 'PRODUCTION_OPERATOR' }, check: { meaning: 'VERIFIED', role: 'PRODUCTION_VERIFIER' } } : { perform: { role: "" } },
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:95:75
+-     const risk = (out.riskScale as { classes: string[] }).classes.at(-1) ?? 'HIGH';
++     const risk = (out.riskScale as { classes: string[] }).classes.at(-1) ?? "";
+
+[NoCoverage] CallExpression
+apps/tablets-server/src/features/designer/hazard.ts:120:17
+-       if (at < 0) body.children.push(decon);
++       if (at < 0) ;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:129:34
+-     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => `${p.path}: ${p.message}`).join('; ')}`);
++     if (!check.ok) throw new Error(``);
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/designer/hazard.ts:129:111
+-     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => `${p.path}: ${p.message}`).join('; ')}`);
++     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map(() => undefined).join('; ')}`);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:129:118
+-     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => `${p.path}: ${p.message}`).join('; ')}`);
++     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => ``).join('; ')}`);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:129:150
+-     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => `${p.path}: ${p.message}`).join('; ')}`);
++     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => `${p.path}: ${p.message}`).join("")}`);
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/designer/hazard.ts:36:19
+-     const classes = rows[0]?.classes ?? [];
++     const classes = rows[0].classes ?? [];
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+    the designer for a hazardous product (IN-27) > [IN-27] a product without a hazard class keeps the template as it is
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:37:7
+-     if (classes.length === 0) return { classes, containedAreas: [] };
++     if (false) return { classes, containedAreas: [] };
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+    the designer for a hazardous product (IN-27) > [IN-27] a product without a hazard class keeps the template as it is
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/designer/hazard.ts:37:63
+-     if (classes.length === 0) return { classes, containedAreas: [] };
++     if (classes.length === 0) return { classes, containedAreas: ["Stryker was here"] };
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a product without a hazard class keeps the template as it is
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:49:11
+-       super(`no room or line is dedicated and contained for ${classes.join(', ')}`);
++       super(``);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:49:74
+-       super(`no room or line is dedicated and contained for ${classes.join(', ')}`);
++       super(`no room or line is dedicated and contained for ${classes.join("")}`);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:55:7
+-     if (!doc) throw new Error(`reference document ${code} is not in the catalogue`);
++     if (false) throw new Error(`reference document ${code} is not in the catalogue`);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/designer/hazard.ts:75:16
+-     significant: true,
++     significant: false,
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/designer/hazard.ts:83:7
+-     if (!n || typeof n !== 'object') return false;
++     if (!n && typeof n !== 'object') return false;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:83:13
+-     if (!n || typeof n !== 'object') return false;
++     if (!n || false) return false;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/designer/hazard.ts:85:25
+-     if ((node.computes ?? []).some((c) => ids.has(c))) return true;
++     if ((node.computes ?? ["Stryker was here"]).some((c) => ids.has(c))) return true;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/designer/hazard.ts:86:28
+-     return (node.children ?? []).some((c) => computesAny(c, ids)) || computesAny(node.body, ids);
++     return (node.children ?? ["Stryker was here"]).some((c) => computesAny(c, ids)) || computesAny(node.body, ids);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/designer/hazard.ts:94:39
+-     const classes = hazard.classes.join(', ');
++     const classes = hazard.classes.join("");
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] UnaryOperator
+apps/tablets-server/src/features/designer/hazard.ts:95:68
+-     const risk = (out.riskScale as { classes: string[] }).classes.at(-1) ?? 'HIGH';
++     const risk = (out.riskScale as { classes: string[] }).classes.at(+1) ?? 'HIGH';
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/designer/hazard.ts:95:16
+-     const risk = (out.riskScale as { classes: string[] }).classes.at(-1) ?? 'HIGH';
++     const risk = (out.riskScale as {
++     classes: string[];
++   }).classes.at(-1) && 'HIGH';
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:97:9
+-       if (!out.references.some((r) => r.id === code)) out.references.push(reference(code));
++       if (true) out.references.push(reference(code));
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/designer/hazard.ts:97:10
+-       if (!out.references.some((r) => r.id === code)) out.references.push(reference(code));
++       if (!out.references.every(r => r.id === code)) out.references.push(reference(code));
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/designer/hazard.ts:97:30
+-       if (!out.references.some((r) => r.id === code)) out.references.push(reference(code));
++       if (!out.references.some(() => undefined)) out.references.push(reference(code));
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:97:37
+-       if (!out.references.some((r) => r.id === code)) out.references.push(reference(code));
++       if (!out.references.some((r) => false)) out.references.push(reference(code));
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:102:9
+-       if (!n || typeof n !== 'object') return;
++       if (false) return;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/designer/hazard.ts:102:9
+-       if (!n || typeof n !== 'object') return;
++       if (!n && typeof n !== 'object') return;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:102:15
+-       if (!n || typeof n !== 'object') return;
++       if (!n || false) return;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/designer/hazard.ts:105:38
+-       for (const c of node.children ?? []) walk(c);
++       for (const c of node.children ?? ["Stryker was here"]) walk(c);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:106:9
+-       if (node.body) walk(node.body);
++       if (true) walk(node.body);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:106:9
+-       if (node.body) walk(node.body);
++       if (false) walk(node.body);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/designer/hazard.ts:106:20
+-       if (node.body) walk(node.body);
++       if (node.body) ;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/designer/hazard.ts:110:17
+-       const key = stage.id.toLowerCase();
++       const key = stage.id.toUpperCase();
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:112:9
+-       if (body.kind !== 'sequence' || !body.children) continue;
++       if (false) continue;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/designer/hazard.ts:112:9
+-       if (body.kind !== 'sequence' || !body.children) continue;
++       if (body.kind !== 'sequence' && !body.children) continue;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:112:9
+-       if (body.kind !== 'sequence' || !body.children) continue;
++       if (false || !body.children) continue;
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:120:9
+-       if (at < 0) body.children.push(decon);
++       if (false) body.children.push(decon);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/designer/hazard.ts:120:9
+-       if (at < 0) body.children.push(decon);
++       if (at <= 0) body.children.push(decon);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:123:9
+-       if (binding) {
++       if (true) {
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/designer/hazard.ts:124:41
+-         const kept = binding.rooms.filter((r) => hazard.containedAreas.includes(r));
++         const kept = binding.rooms.filter(() => undefined);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:125:23
+-         binding.rooms = kept.length > 0 ? kept : [...hazard.containedAreas];
++         binding.rooms = false ? kept : [...hazard.containedAreas];
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/designer/hazard.ts:129:7
+-     if (!check.ok) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => `${p.path}: ${p.message}`).join('; ')}`);
++     if (false) throw new Error(`the content with the containment steps does not parse: ${check.problems.map((p) => `${p.path}: ${p.message}`).join('; ')}`);
+Tests ran:
+    the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas
+
+
+Ran 0.93 tests per mutant on average.
+-----------|------------------|----------|-----------|------------|----------|----------|
+           | % Mutation score |          |           |            |          |          |
+File       |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+-----------|--------|---------|----------|-----------|------------|----------|----------|
+All files  |  72.78 |   77.85 |      123 |         0 |         35 |       11 |        0 |
+ hazard.ts |  72.78 |   77.85 |      123 |         0 |         35 |       11 |        0 |
+-----------|--------|---------|----------|-----------|------------|----------|----------|
+[32m04:40:43 (1084120) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-designer-hazard.json
+[32m04:40:43 (1084120) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-designer-hazard.html
+[32m04:40:43 (1084120) INFO MutationTestExecutor[39m Done in 24 minutes and 52 seconds.

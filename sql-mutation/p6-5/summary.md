@@ -1,0 +1,478 @@
+# SQL mutation report
+
+| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| inbound-adapters-and-mirrors | db 20 | db 240 | 310 | 11 | 0 | 198 | 101 | 66.2 % | 90 % |
+| packaging-labels-and-line-completion | db 7, server 25 | db 240, server 240 | 352 | 0 | 0 | 274 | 78 | 77.8 % | 90 % |
+| serialisation-l3 | server 21 | server 240 | 112 | 0 | 0 | 68 | 44 | 60.7 % | 90 % |
+| controlled-substance-mode | db 22, server 17 | db 240, server 240 | 311 | 0 | 0 | 207 | 104 | 66.6 % | 90 % |
+| governance-change-control | db 15, server 8 | db 240, server 240 | 117 | 0 | 0 | 84 | 33 | 71.8 % | 90 % |
+| governance-support-and-contract-giver | db 32, server 15 | db 240, server 240 | 228 | 0 | 0 | 163 | 65 | 71.5 % | 90 % |
+| reporting-and-training | db 7, server 7 | db 240, server 240 | 149 | 0 | 0 | 110 | 39 | 73.8 % | 90 % |
+
+## Surviving mutants
+
+- inbound-adapters-and-mirrors iam.integration_adapter_guard (packages/kernel/sql/1180_inbound_adapter_framework.sql:65) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-INT-016 an integration ` -> `null`
+- inbound-adapters-and-mirrors iam.integration_adapter_guard (packages/kernel/sql/1180_inbound_adapter_framework.sql:70) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.integration_adapter_guard (packages/kernel/sql/1180_inbound_adapter_framework.sql:71) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.integration_adapter_guard (packages/kernel/sql/1180_inbound_adapter_framework.sql:71) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.integration_adapter_guard (packages/kernel/sql/1180_inbound_adapter_framework.sql:71) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.integration_adapter_guard (packages/kernel/sql/1180_inbound_adapter_framework.sql:72) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.integration_adapter_guard (packages/kernel/sql/1180_inbound_adapter_framework.sql:77) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-INT-016 a decommissione` -> `null`
+- inbound-adapters-and-mirrors iam.set_integration_adapter_status (packages/kernel/sql/1180_inbound_adapter_framework.sql:119) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-004 a reason is req` -> `null`
+- inbound-adapters-and-mirrors iam.set_integration_adapter_status (packages/kernel/sql/1180_inbound_adapter_framework.sql:123) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-INT-016 unknown ` -> `null`
+- inbound-adapters-and-mirrors iam.current_integration_adapter (packages/kernel/sql/1180_inbound_adapter_framework.sql:136) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.inbound_envelope_problem (packages/kernel/sql/1180_inbound_adapter_framework.sql:321) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors platform.inbound_envelope_problem (packages/kernel/sql/1180_inbound_adapter_framework.sql:327) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors platform.accept_inbound_detail (packages/kernel/sql/1180_inbound_adapter_framework.sql:412) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors platform.record_inbound_refusal (packages/kernel/sql/1180_inbound_adapter_framework.sql:457) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-INT-014 a refusal is re` -> `null`
+- inbound-adapters-and-mirrors platform.record_inbound_refusal (packages/kernel/sql/1180_inbound_adapter_framework.sql:464) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_inbound_refusal (packages/kernel/sql/1180_inbound_adapter_framework.sql:464) RELATIONAL: `<=` -> `<`
+- inbound-adapters-and-mirrors platform.acknowledge_integration_alarm (packages/kernel/sql/1180_inbound_adapter_framework.sql:488) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-INT-007 unknown ` -> `null`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:522) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:523) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:523) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:524) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:524) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:525) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:525) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:526) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:526) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:527) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-INT-015 a reconciliatio` -> `null`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:535) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:535) RELATIONAL: `<` -> `<=`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:539) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:539) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:539) NOT_REMOVED: `not ` -> ``
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:539) NOT_REMOVED: `not ` -> ``
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:540) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:540) RELATIONAL: `<` -> `<=`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:546) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:546) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:546) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:546) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:546) RELATIONAL: `<` -> `<=`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:548) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:548) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:548) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:548) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:548) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:548) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:548) RELATIONAL: `<` -> `<=`
+- inbound-adapters-and-mirrors platform.record_reconciliation (packages/kernel/sql/1180_inbound_adapter_framework.sql:549) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:53) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-INT-011 unknown ` -> `null`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:68) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:73) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:74) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:76) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:76) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:76) NOT_REMOVED: `not ` -> ``
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:76) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:76) RELATIONAL: `<=` -> `<`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:78) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:78) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:78) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:78) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:78) NOT_REMOVED: `not ` -> ``
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:80) RELATIONAL: `<=` -> `<`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:87) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:87) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:100) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:101) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.record_mirror_sync (packages/kernel/sql/1182_mirror_sync_caught_up.sql:101) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors platform.mirror_freshness (packages/kernel/sql/1180_inbound_adapter_framework.sql:611) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors iam.qualification_source_fresh (packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:100) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.qualification_source_fresh (packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:101) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors iam.qualification_source_fresh (packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:103) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors iam.qualification_source_fresh (packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:104) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:41) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:49) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:52) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:58) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:59) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:59) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:65) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:66) LOGICAL: `or` -> `and`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:66) RELATIONAL: `>` -> `>=`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:69) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.lms_qualification_payload_problem (packages/kernel/sql/1186_lms_qualification_inbound.sql:69) RELATIONAL: `<=` -> `<`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:96) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LMS-002 this com` -> `null`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:125) RELATIONAL: `>=` -> `>`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:131) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:134) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:134) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:135) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:135) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:135) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:141) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:141) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:141) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:141) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:141) RELATIONAL: `=` -> `<>`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:141) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:150) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:150) LOGICAL: `and` -> `or`
+- inbound-adapters-and-mirrors iam.receive_lms_qualification (packages/kernel/sql/1186_lms_qualification_inbound.sql:150) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion site.open_label_store_transaction (packages/site-services/sql/0950_label_store.sql:73) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion site.open_label_store_transaction (packages/site-services/sql/0950_label_store.sql:74) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion site.open_label_store_transaction (packages/site-services/sql/0950_label_store.sql:74) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion site.open_label_store_transaction (packages/site-services/sql/0950_label_store.sql:75) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion site.open_label_store_transaction (packages/site-services/sql/0950_label_store.sql:78) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion site.open_label_store_transaction (packages/site-services/sql/0950_label_store.sql:97) RELATIONAL: `<` -> `<=`
+- packaging-labels-and-line-completion site.open_label_store_transaction (packages/site-services/sql/0950_label_store.sql:101) RELATIONAL: `<` -> `<=`
+- packaging-labels-and-line-completion recipe.label_template_status (packages/recipe-core/sql/0990_label_templates.sql:125) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:145) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:146) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:146) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:147) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:147) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:151) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:155) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:156) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:156) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:157) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:157) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:157) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.label_layout_fields (packages/recipe-core/sql/0990_label_templates.sql:158) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LBL-001 element ` -> `null`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:183) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:184) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:184) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:184) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:185) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:185) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:186) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:186) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.create_label_template (packages/recipe-core/sql/0990_label_templates.sql:187) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LBL-001 a label templat` -> `null`
+- packaging-labels-and-line-completion recipe.packaging_labelling_problem (packages/recipe-core/sql/0990_label_templates.sql:294) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.master_labelling (packages/recipe-core/sql/0990_label_templates.sql:316) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion recipe.master_labelling (packages/recipe-core/sql/0990_label_templates.sql:316) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion recipe.declare_packaging_labelling (packages/recipe-core/sql/0990_label_templates.sql:332) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LBL-010 %s is no` -> `null`
+- packaging-labels-and-line-completion recipe.declare_packaging_labelling (packages/recipe-core/sql/0990_label_templates.sql:342) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.declare_packaging_labelling (packages/recipe-core/sql/0990_label_templates.sql:343) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion recipe.declare_packaging_labelling (packages/recipe-core/sql/0990_label_templates.sql:343) NOT_REMOVED: `not ` -> ``
+- packaging-labels-and-line-completion recipe.declare_packaging_labelling (packages/recipe-core/sql/0990_label_templates.sql:344) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LBL-013 the form is CUT` -> `null`
+- packaging-labels-and-line-completion recipe.declare_packaging_labelling (packages/recipe-core/sql/0990_label_templates.sql:349) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion recipe.declare_packaging_labelling (packages/recipe-core/sql/0990_label_templates.sql:350) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LBL-014 %s is no` -> `null`
+- packaging-labels-and-line-completion tab.g21_coding_applies (apps/tablets-server/sql/1230_packaging_line_completion.sql:106) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.g21_coding_applies (apps/tablets-server/sql/1230_packaging_line_completion.sql:106) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.g21_specimen_step (apps/tablets-server/sql/1230_packaging_line_completion.sql:146) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_coding_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:172) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_coding_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:172) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_coding_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:174) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_label_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:216) NOT_REMOVED: `not ` -> ``
+- packaging-labels-and-line-completion tab.record_label_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:216) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_label_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:216) RELATIONAL: `>` -> `>=`
+- packaging-labels-and-line-completion tab.record_label_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:217) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LBL-035 a specimen note` -> `null`
+- packaging-labels-and-line-completion tab.record_label_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:220) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion tab.void_packaging_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:240) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LBL-037 %s is no` -> `null`
+- packaging-labels-and-line-completion tab.void_packaging_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:244) RELATIONAL: `>` -> `>=`
+- packaging-labels-and-line-completion tab.void_packaging_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:247) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.void_packaging_specimen (apps/tablets-server/sql/1230_packaging_line_completion.sql:248) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LBL-037 the specimen is` -> `null`
+- packaging-labels-and-line-completion tab.g21_specimen_problem (apps/tablets-server/sql/1230_packaging_line_completion.sql:275) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:343) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LBL-040 this batch has ` -> `null`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:350) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:351) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:352) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:352) NOT_REMOVED: `not ` -> ``
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:352) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:352) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:352) LOGICAL: `or` -> `and`
+- packaging-labels-and-line-completion tab.record_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:352) RELATIONAL: `>` -> `>=`
+- packaging-labels-and-line-completion tab.verify_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:373) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LBL-043 %s is no` -> `null`
+- packaging-labels-and-line-completion tab.verify_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:382) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.verify_post_use_inspection (apps/tablets-server/sql/1230_packaging_line_completion.sql:383) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LBL-043 a later post-us` -> `null`
+- packaging-labels-and-line-completion tab.vision_line_stop (apps/tablets-server/sql/1230_packaging_line_completion.sql:444) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion tab.vision_line_stop (apps/tablets-server/sql/1230_packaging_line_completion.sql:444) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.resolve_line_stop (apps/tablets-server/sql/1230_packaging_line_completion.sql:464) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LBL-045 %s is no` -> `null`
+- packaging-labels-and-line-completion tab.resolve_line_stop (apps/tablets-server/sql/1230_packaging_line_completion.sql:467) RELATIONAL: `>` -> `>=`
+- packaging-labels-and-line-completion tab.enable_reconciliation_waiver (apps/tablets-server/sql/1230_packaging_line_completion.sql:530) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion tab.enable_reconciliation_waiver (apps/tablets-server/sql/1230_packaging_line_completion.sql:530) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion tab.enable_reconciliation_waiver (apps/tablets-server/sql/1230_packaging_line_completion.sql:537) LOGICAL: `and` -> `or`
+- packaging-labels-and-line-completion tab.enable_reconciliation_waiver (apps/tablets-server/sql/1230_packaging_line_completion.sql:538) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.refuse_incomplete_packaging (apps/tablets-server/sql/1230_packaging_line_completion.sql:631) RELATIONAL: `=` -> `<>`
+- packaging-labels-and-line-completion tab.print_job_rules (apps/tablets-server/sql/1230_packaging_line_completion.sql:655) LOGICAL: `and` -> `or`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:145) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:146) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-L3-101 this comm` -> `null`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:159) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:160) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:161) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:162) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:162) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:167) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-L3-103 pool %s i` -> `null`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:171) RELATIONAL: `=` -> `<>`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:175) RELATIONAL: `>` -> `>=`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:186) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:187) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:187) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:188) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:188) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189) RELATIONAL: `>` -> `>=`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:189) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:190) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:191) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-L3-101 malformed l3.dec` -> `null`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:195) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-L3-103 pool %s i` -> `null`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:205) RELATIONAL: `=` -> `<>`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:205) RELATIONAL: `=` -> `<>`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:205) RELATIONAL: `>` -> `>=`
+- serialisation-l3 tab.receive_l3_message (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:206) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-L3-104 a newer s` -> `null`
+- serialisation-l3 tab.assert_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:226) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-L3-106 %s is no ` -> `null`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:244) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-L3-106 %s is no ` -> `null`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:247) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:247) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:247) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:247) RELATIONAL: `>` -> `>=`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:248) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-L3-107 QA rejects a poo` -> `null`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:251) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:251) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:253) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:253) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:254) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:254) RELATIONAL: `>` -> `>=`
+- serialisation-l3 tab.record_pool_rejection (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:257) RELATIONAL: `=` -> `<>`
+- serialisation-l3 tab.serial_lookup (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:278) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.serial_lookup (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:279) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.serial_lookup (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:281) LOGICAL: `or` -> `and`
+- serialisation-l3 tab.serial_lookup (apps/tablets-server/sql/1231_serialisation_l3_l4.sql:281) RELATIONAL: `<>` -> `=`
+- controlled-substance-mode plant.controlled_materials (packages/recipe-core/sql/1031_controlled_product_flag.sql:84) LOGICAL: `and` -> `or`
+- controlled-substance-mode plant.controlled_materials (packages/recipe-core/sql/1031_controlled_product_flag.sql:88) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode plant.controlled_materials (packages/recipe-core/sql/1031_controlled_product_flag.sql:89) RELATIONAL: `>` -> `>=`
+- controlled-substance-mode plant.controlled_record_state (packages/recipe-core/sql/1031_controlled_product_flag.sql:101) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode plant.controlled_product_state (packages/recipe-core/sql/1031_controlled_product_flag.sql:116) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode plant.controlled_product_state (packages/recipe-core/sql/1031_controlled_product_flag.sql:117) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode plant.record_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:166) LOGICAL: `or` -> `and`
+- controlled-substance-mode plant.record_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:166) LOGICAL: `or` -> `and`
+- controlled-substance-mode plant.record_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:167) LOGICAL: `or` -> `and`
+- controlled-substance-mode plant.record_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:167) LOGICAL: `or` -> `and`
+- controlled-substance-mode plant.record_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:168) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-001 a controlled-su` -> `null`
+- controlled-substance-mode plant.record_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:172) LOGICAL: `or` -> `and`
+- controlled-substance-mode plant.record_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:173) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-002 a controlled pr` -> `null`
+- controlled-substance-mode plant.approve_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:201) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-004 unknown ` -> `null`
+- controlled-substance-mode plant.approve_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:210) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-006 a controlled-su` -> `null`
+- controlled-substance-mode plant.approve_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:215) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-007 ' || v_prob` -> `null`
+- controlled-substance-mode plant.approve_controlled_product (packages/recipe-core/sql/1031_controlled_product_flag.sql:218) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-007 the approval is` -> `null`
+- controlled-substance-mode recipe.controlled_custody_content (packages/recipe-core/sql/1032_controlled_custody.sql:129) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:165) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:166) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-010 a custody recor` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:170) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-010 unknown ` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:173) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:174) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-011 %s is no` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:176) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:176) RELATIONAL: `<=` -> `<`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:176) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:177) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-012 the quan` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:182) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-013 a transfer move` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:184) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:190) RELATIONAL: `>` -> `>=`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:191) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-012 lot %s h` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:195) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:205) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:206) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-015 the batc` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:208) RELATIONAL: `>` -> `>=`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:209) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-012 lot %s h` -> `null`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:213) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:215) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:215) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:216) RELATIONAL: `<>` -> `=`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:217) RELATIONAL: `>` -> `>=`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:223) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.propose_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:224) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-013 only a transfer` -> `null`
+- controlled-substance-mode recipe.sign_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:254) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-018 unknown ` -> `null`
+- controlled-substance-mode recipe.sign_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:260) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-019 this custody re` -> `null`
+- controlled-substance-mode recipe.sign_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:270) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.sign_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:271) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-022 dual custody: t` -> `null`
+- controlled-substance-mode recipe.sign_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:280) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-023 ' || v_prob` -> `null`
+- controlled-substance-mode recipe.sign_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:283) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-023 a custodian rec` -> `null`
+- controlled-substance-mode recipe.sign_controlled_custody (packages/recipe-core/sql/1032_controlled_custody.sql:287) NOT_REMOVED: `not ` -> ``
+- controlled-substance-mode recipe.controlled_balance (packages/recipe-core/sql/1033_controlled_checkpoint.sql:82) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.controlled_moved_materials (packages/recipe-core/sql/1033_controlled_checkpoint.sql:99) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_moved_materials (packages/recipe-core/sql/1033_controlled_checkpoint.sql:99) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.controlled_moved_materials (packages/recipe-core/sql/1033_controlled_checkpoint.sql:99) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_moved_materials (packages/recipe-core/sql/1033_controlled_checkpoint.sql:100) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.controlled_moved_materials (packages/recipe-core/sql/1033_controlled_checkpoint.sql:100) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_moved_materials (packages/recipe-core/sql/1033_controlled_checkpoint.sql:100) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.controlled_moved_materials (packages/recipe-core/sql/1033_controlled_checkpoint.sql:100) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_checkpoint_state (packages/recipe-core/sql/1033_controlled_checkpoint.sql:106) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_checkpoint_state (packages/recipe-core/sql/1033_controlled_checkpoint.sql:106) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_checkpoint_state (packages/recipe-core/sql/1033_controlled_checkpoint.sql:107) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_checkpoint_current (packages/recipe-core/sql/1033_controlled_checkpoint.sql:117) BOOLEAN: `false` -> `true`
+- controlled-substance-mode recipe.controlled_checkpoint_problem (packages/recipe-core/sql/1033_controlled_checkpoint.sql:127) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.controlled_checkpoint_problem (packages/recipe-core/sql/1033_controlled_checkpoint.sql:127) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.controlled_checkpoint_content (packages/recipe-core/sql/1033_controlled_checkpoint.sql:160) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_checkpoint_content (packages/recipe-core/sql/1033_controlled_checkpoint.sql:167) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:198) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:199) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-030 a checkpoint na` -> `null`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:207) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-031 a checkpoint na` -> `null`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:210) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-032 %s is no` -> `null`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:213) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:214) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-033 the quantity co` -> `null`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:219) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-034 the acco` -> `null`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:221) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:237) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:238) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:238) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:239) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-037 an explanation,` -> `null`
+- controlled-substance-mode recipe.record_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:242) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-037 the account clo` -> `null`
+- controlled-substance-mode recipe.sign_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:266) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-038 unknown ` -> `null`
+- controlled-substance-mode recipe.sign_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:272) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CSM-039 this che` -> `null`
+- controlled-substance-mode recipe.sign_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:275) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-040 the account has` -> `null`
+- controlled-substance-mode recipe.sign_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:280) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-041 ' || v_prob` -> `null`
+- controlled-substance-mode recipe.sign_controlled_checkpoint (packages/recipe-core/sql/1033_controlled_checkpoint.sql:283) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-041 the checkpoint ` -> `null`
+- controlled-substance-mode recipe.controlled_sign_off_guard (packages/recipe-core/sql/1033_controlled_checkpoint.sql:301) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.controlled_sign_off_guard (packages/recipe-core/sql/1033_controlled_checkpoint.sql:301) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.controlled_register_v1 (packages/recipe-core/sql/1034_controlled_register.sql:28) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_register_v1 (packages/recipe-core/sql/1034_controlled_register.sql:29) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.controlled_register_v1 (packages/recipe-core/sql/1034_controlled_register.sql:29) LOGICAL: `and` -> `or`
+- controlled-substance-mode recipe.controlled_register_v1 (packages/recipe-core/sql/1034_controlled_register.sql:34) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_register_v1 (packages/recipe-core/sql/1034_controlled_register.sql:34) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_register_v1 (packages/recipe-core/sql/1034_controlled_register.sql:37) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.controlled_register_v1 (packages/recipe-core/sql/1034_controlled_register.sql:37) RELATIONAL: `=` -> `<>`
+- controlled-substance-mode recipe.run_controlled_register (packages/recipe-core/sql/1034_controlled_register.sql:86) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.run_controlled_register (packages/recipe-core/sql/1034_controlled_register.sql:86) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.run_controlled_register (packages/recipe-core/sql/1034_controlled_register.sql:86) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.run_controlled_register (packages/recipe-core/sql/1034_controlled_register.sql:86) RELATIONAL: `>` -> `>=`
+- controlled-substance-mode recipe.run_controlled_register (packages/recipe-core/sql/1034_controlled_register.sql:86) LOGICAL: `or` -> `and`
+- controlled-substance-mode recipe.run_controlled_register (packages/recipe-core/sql/1034_controlled_register.sql:86) RELATIONAL: `>` -> `>=`
+- controlled-substance-mode recipe.run_controlled_register (packages/recipe-core/sql/1034_controlled_register.sql:87) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CSM-050 a register expo` -> `null`
+- controlled-substance-mode recipe.controlled_batch_end_guard (packages/recipe-core/sql/1035_controlled_batch_end.sql:38) LOGICAL: `or` -> `and`
+- controlled-substance-mode tab.controlled_preview (apps/tablets-server/sql/1250_controlled_signing_content.sql:31) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('A %s record is not si` -> `null`
+- controlled-substance-mode tab.controlled_preview (apps/tablets-server/sql/1250_controlled_signing_content.sql:35) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('This session may not ` -> `null`
+- controlled-substance-mode tab.controlled_signing_content (apps/tablets-server/sql/1250_controlled_signing_content.sql:46) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('A %s record is not si` -> `null`
+- governance-change-control platform.is_release_actor (packages/kernel/sql/1195_configuration_change_control.sql:157) RELATIONAL: `=` -> `<>`
+- governance-change-control platform.is_release_actor (packages/kernel/sql/1195_configuration_change_control.sql:157) LOGICAL: `and` -> `or`
+- governance-change-control platform.is_release_actor (packages/kernel/sql/1195_configuration_change_control.sql:157) RELATIONAL: `=` -> `<>`
+- governance-change-control platform.is_release_actor (packages/kernel/sql/1195_configuration_change_control.sql:158) LOGICAL: `and` -> `or`
+- governance-change-control platform.is_release_actor (packages/kernel/sql/1195_configuration_change_control.sql:158) BOOLEAN: `false` -> `true`
+- governance-change-control platform.is_release_actor (packages/kernel/sql/1195_configuration_change_control.sql:158) RELATIONAL: `=` -> `<>`
+- governance-change-control platform.require_change_record (packages/kernel/sql/1195_configuration_change_control.sql:172) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CFG-001 %s is a ` -> `null`
+- governance-change-control platform.config_change_guard (packages/kernel/sql/1195_configuration_change_control.sql:211) NOT_REMOVED: `not ` -> ``
+- governance-change-control platform.config_version_log (packages/kernel/sql/1196_config_areas_roles_retention.sql:37) RELATIONAL: `=` -> `<>`
+- governance-change-control platform.config_version_log (packages/kernel/sql/1196_config_areas_roles_retention.sql:37) LOGICAL: `or` -> `and`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:60) LOGICAL: `and` -> `or`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:61) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CFG-010 %s has n` -> `null`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) RELATIONAL: `=` -> `<>`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) NOT_REMOVED: `not ` -> ``
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) LOGICAL: `and` -> `or`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) RELATIONAL: `=` -> `<>`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) LOGICAL: `and` -> `or`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) RELATIONAL: `>` -> `>=`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) LOGICAL: `and` -> `or`
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:64) NOT_REMOVED: `not ` -> ``
+- governance-change-control platform.register_config_area (packages/kernel/sql/1196_config_areas_roles_retention.sql:65) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CFG-010 %s has n` -> `null`
+- governance-change-control platform.approve_change_record (packages/kernel/sql/1195_configuration_change_control.sql:323) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CFG-002 change r` -> `null`
+- governance-change-control platform.approve_change_record (packages/kernel/sql/1195_configuration_change_control.sql:326) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CFG-013 change r` -> `null`
+- governance-change-control platform.approve_change_record (packages/kernel/sql/1195_configuration_change_control.sql:330) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CFG-013 the appr` -> `null`
+- governance-change-control platform.approve_change_record (packages/kernel/sql/1195_configuration_change_control.sql:337) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format( 'EBMR-CFG-014 change ` -> `null`
+- governance-change-control platform.close_change_record (packages/kernel/sql/1195_configuration_change_control.sql:356) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CFG-002 change r` -> `null`
+- governance-change-control recipe.rbe_rule_guard (packages/recipe-core/sql/1050_rbe_rules.sql:68) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-RBE-003 rule %s:` -> `null`
+- governance-change-control recipe.set_rbe_rule (packages/recipe-core/sql/1050_rbe_rules.sql:104) RELATIONAL: `=` -> `<>`
+- governance-change-control recipe.notify_departments_of_excursion (packages/recipe-core/sql/1051_excursion_notifications.sql:47) LOGICAL: `or` -> `and`
+- governance-change-control recipe.notify_departments_of_excursion (packages/recipe-core/sql/1051_excursion_notifications.sql:48) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format( 'EBMR-NTF-010 the exc` -> `null`
+- governance-change-control recipe.pqr_cpp_of (packages/recipe-core/sql/1062_pqr_cpp_extract.sql:32) BOOLEAN: `false` -> `true`
+- governance-change-control recipe.pqr_cpp_of (packages/recipe-core/sql/1062_pqr_cpp_extract.sql:39) BOOLEAN: `false` -> `true`
+- governance-change-control recipe.pqr_cpp_of (packages/recipe-core/sql/1062_pqr_cpp_extract.sql:42) LOGICAL: `and` -> `or`
+- governance-support-and-contract-giver iam.support_grant_open_at (packages/kernel/sql/1202_support_grant.sql:170) RELATIONAL: `<=` -> `<`
+- governance-support-and-contract-giver iam.support_grant_open_at (packages/kernel/sql/1202_support_grant.sql:170) RELATIONAL: `<` -> `<=`
+- governance-support-and-contract-giver iam.support_grant_open_at (packages/kernel/sql/1202_support_grant.sql:171) RELATIONAL: `<=` -> `<`
+- governance-support-and-contract-giver iam.support_grant_open_at (packages/kernel/sql/1202_support_grant.sql:171) LOGICAL: `and` -> `or`
+- governance-support-and-contract-giver iam.support_grant_state (packages/kernel/sql/1202_support_grant.sql:188) RELATIONAL: `<` -> `<=`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:257) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:257) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:257) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:257) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:258) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-181 a support grant` -> `null`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:264) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-182 nobody requests` -> `null`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:269) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.request_support_grant (packages/kernel/sql/1202_support_grant.sql:269) RELATIONAL: `>` -> `>=`
+- governance-support-and-contract-giver iam.approve_support_grant (packages/kernel/sql/1202_support_grant.sql:305) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-IAM-186 %s is no` -> `null`
+- governance-support-and-contract-giver iam.approve_support_grant (packages/kernel/sql/1202_support_grant.sql:309) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-186 the approval is` -> `null`
+- governance-support-and-contract-giver iam.approve_support_grant (packages/kernel/sql/1202_support_grant.sql:312) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-IAM-187 the supp` -> `null`
+- governance-support-and-contract-giver iam.approve_support_grant (packages/kernel/sql/1202_support_grant.sql:316) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-188 neither the req` -> `null`
+- governance-support-and-contract-giver iam.approve_support_grant (packages/kernel/sql/1202_support_grant.sql:323) NOT_REMOVED: `not ` -> ``
+- governance-support-and-contract-giver iam.approve_support_grant (packages/kernel/sql/1202_support_grant.sql:324) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-188 the QA and IT a` -> `null`
+- governance-support-and-contract-giver iam.revoke_support_grant (packages/kernel/sql/1202_support_grant.sql:346) RELATIONAL: `=` -> `<>`
+- governance-support-and-contract-giver iam.revoke_support_grant (packages/kernel/sql/1202_support_grant.sql:349) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-IAM-186 %s is no` -> `null`
+- governance-support-and-contract-giver iam.revoke_support_grant (packages/kernel/sql/1202_support_grant.sql:355) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-IAM-189 the supp` -> `null`
+- governance-support-and-contract-giver iam.session_state (packages/kernel/sql/1202_support_grant.sql:415) RELATIONAL: `>=` -> `>`
+- governance-support-and-contract-giver iam.session_state (packages/kernel/sql/1202_support_grant.sql:418) RELATIONAL: `>=` -> `>`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:451) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:452) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-096 unknown authent` -> `null`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:454) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:455) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:460) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-IAM-094 a signature aut` -> `null`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:498) BOOLEAN: `true` -> `false`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:500) RELATIONAL: `=` -> `<>`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:511) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:512) BOOLEAN: `true` -> `false`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:512) RELATIONAL: `<>` -> `=`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:519) RELATIONAL: `=` -> `<>`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:520) BOOLEAN: `true` -> `false`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:524) BOOLEAN: `true` -> `false`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:545) BOOLEAN: `true` -> `false`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:549) RELATIONAL: `=` -> `<>`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:549) RELATIONAL: `=` -> `<>`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:551) RELATIONAL: `<=` -> `<`
+- governance-support-and-contract-giver iam.authn_resolve (packages/kernel/sql/1202_support_grant.sql:554) RELATIONAL: `<=` -> `<`
+- governance-support-and-contract-giver tab.support_grant_preview (apps/tablets-server/sql/1275_support_grant_signing.sql:23) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('A support grant is si` -> `null`
+- governance-support-and-contract-giver tab.support_grant_preview (apps/tablets-server/sql/1275_support_grant_signing.sql:27) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('This session may not ` -> `null`
+- governance-support-and-contract-giver iam.contract_giver_role_permission_guard (packages/kernel/sql/1204_contract_giver_reviewer.sql:41) LOGICAL: `and` -> `or`
+- governance-support-and-contract-giver iam.contract_giver_role_permission_guard (packages/kernel/sql/1204_contract_giver_reviewer.sql:42) LOGICAL: `and` -> `or`
+- governance-support-and-contract-giver recipe.contract_giver_access_live (packages/recipe-core/sql/1060_contract_giver_access.sql:89) RELATIONAL: `<=` -> `<`
+- governance-support-and-contract-giver recipe.contract_giver_access_live (packages/recipe-core/sql/1060_contract_giver_access.sql:89) RELATIONAL: `<` -> `<=`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:111) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CGA-001 a contract-give` -> `null`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:114) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:114) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:114) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:114) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:115) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CGA-002 a contract-give` -> `null`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:118) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CGA-002 nobody grants a` -> `null`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:120) RELATIONAL: `=` -> `<>`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:120) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:124) LOGICAL: `or` -> `and`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:124) RELATIONAL: `<=` -> `<`
+- governance-support-and-contract-giver recipe.grant_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:124) RELATIONAL: `>` -> `>=`
+- governance-support-and-contract-giver recipe.revoke_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:143) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CGA-006 %s is no` -> `null`
+- governance-support-and-contract-giver recipe.revoke_contract_giver_access (packages/recipe-core/sql/1060_contract_giver_access.sql:146) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CGA-006 a revocation st` -> `null`
+- governance-support-and-contract-giver recipe.contract_giver_batches (packages/recipe-core/sql/1060_contract_giver_access.sql:182) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CGA-003 a contract give` -> `null`
+- governance-support-and-contract-giver recipe.read_contract_giver_batch (packages/recipe-core/sql/1060_contract_giver_access.sql:211) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CGA-003 a contract give` -> `null`
+- governance-support-and-contract-giver recipe.read_contract_giver_batch (packages/recipe-core/sql/1060_contract_giver_access.sql:223) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.batch_version (packages/recipe-core/sql/1070_reporting_views.sql:31) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.batch_version (packages/recipe-core/sql/1070_reporting_views.sql:31) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.batch_outcome_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:51) LOGICAL: `and` -> `or`
+- reporting-and-training report.batch_outcome_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:53) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.batch_outcome_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:53) LOGICAL: `and` -> `or`
+- reporting-and-training report.batch_outcome_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:53) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.batch_outcome_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:57) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.press_counter_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:122) LOGICAL: `and` -> `or`
+- reporting-and-training report.press_counter_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:123) LOGICAL: `and` -> `or`
+- reporting-and-training report.press_counter_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:123) LOGICAL: `and` -> `or`
+- reporting-and-training report.press_counter_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:123) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.press_counter_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:140) RELATIONAL: `=` -> `<>`
+- reporting-and-training report.alarm_rows_v1 (packages/recipe-core/sql/1070_reporting_views.sql:149) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:63) NOT_REMOVED: `not ` -> ``
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:63) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:64) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:64) NOT_REMOVED: `not ` -> ``
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:64) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:65) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CIM-002 there is` -> `null`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:70) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:71) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:71) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:82) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:83) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CIM-002 there is` -> `null`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:93) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:93) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:93) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:110) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:129) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:129) LOGICAL: `or` -> `and`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:135) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:135) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:149) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:149) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:149) RELATIONAL: `=` -> `<>`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:149) LOGICAL: `and` -> `or`
+- reporting-and-training recipe.change_impact (packages/recipe-core/sql/1071_change_impact.sql:149) RELATIONAL: `=` -> `<>`
+- reporting-and-training sandbox.complete_training_step (packages/kernel/sql/1211_training_attempts.sql:82) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'Training runs only on the sa` -> `null`
+- reporting-and-training sandbox.complete_training_step (packages/kernel/sql/1211_training_attempts.sql:87) LOGICAL: `or` -> `and`

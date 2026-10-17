@@ -65,3 +65,30 @@ manufacturer-release: baseline db 175 s (limit 525 s)
   manufacturer-release: 75/165
   manufacturer-release: 100/165
   SURVIVED recipe.investigation_justification_of#2 LOGICAL packages/recipe-core/sql/0781_manufacturer_release.sql:290 [and] -> [or]
+  SURVIVED recipe.investigation_justification_of#4 LOGICAL packages/recipe-core/sql/0781_manufacturer_release.sql:290 [and] -> [or]
+  SURVIVED recipe.investigation_justification_of#6 LOGICAL packages/recipe-core/sql/0781_manufacturer_release.sql:291 [and] -> [or]
+  manufacturer-release: 125/165
+  manufacturer-release: 150/165
+  dropped 2 databases the tests left behind: ebmr_t_ac47c5ef9fb8, ebmr_t_2572d1edc12f
+manufacturer-release: score 96.9 % (158/163 detected, 0 invalid) in 3649 s
+tablets-release-items: baseline server 12 s (limit 240 s)
+  SURVIVED tab.grel_container_release#5 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:198 [=] -> [<>]
+  SURVIVED tab.grel_held_containers#1 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:173 [=] -> [<>]
+  tablets-release-items: 25/254
+  SURVIVED tab.grel_held_containers#8 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:176 [=] -> [<>]
+  SURVIVED tab.grel_held_containers#9 LOGICAL apps/tablets-server/sql/1162_grel_edition_items.sql:176 [and] -> [or]
+  SURVIVED tab.grel_held_containers#11 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:177 [=] -> [<>]
+  SURVIVED tab.grel_held_containers#10 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:176 [=] -> [<>]
+  SURVIVED tab.grel_held_containers#13 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:179 [=] -> [<>]
+  SURVIVED tab.grel_held_containers#14 LOGICAL apps/tablets-server/sql/1162_grel_edition_items.sql:179 [and] -> [or]
+  SURVIVED tab.grel_held_containers#15 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:179 [=] -> [<>]
+  SURVIVED tab.grel_item_of#1 BOOLEAN apps/tablets-server/sql/1162_grel_edition_items.sql:102 [false] -> [true]
+  SURVIVED tab.grel_posted_quantity#1 BOOLEAN apps/tablets-server/sql/1162_grel_edition_items.sql:384 [false] -> [true]
+  SURVIVED tab.grel_posted_quantity#6 RELATIONAL apps/tablets-server/sql/1162_grel_edition_items.sql:392 [>] -> [>=]
+  SURVIVED tab.grel_printed_tablets#1 LOGICAL apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:142 [or] -> [and]
+  tablets-release-items: 50/254
+  SURVIVED tab.grel_printed_tablets#28 BOOLEAN apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:169 [false] -> [true]
+  SURVIVED tab.grel_recon_packs#1 BOOLEAN apps/tablets-server/sql/1162_grel_edition_items.sql:335 [false] -> [true]
+  tablets-release-items: 75/254
+  SURVIVED tab.grel_recon_printed#13 RELATIONAL apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:236 [=] -> [<>]
+  SURVIVED tab.grel_recon_printed#15 RELATIONAL apps/tablets-server/sql/1163_grel_edition_items_fail_closed.sql:241 [=] -> [<>]

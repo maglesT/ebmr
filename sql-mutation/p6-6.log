@@ -1,0 +1,12 @@
+mbr-lifecycle: 6 mutants in 1 functions (db + server)
+execution-commands: 130 mutants in 11 functions (server + db)
+read-authorisation: 11 mutants in 1 functions (server)
+connection-roles: 115 mutants in 2 functions (db)
+plant-equipment-and-areas: 13 mutants in 2 functions (db)
+lots-and-lims: 3 mutants in 1 functions (db + server)
+release-gate: 14 mutants in 1 functions (db + server)
+tablets-release-items: 2 mutants in 1 functions (server)
+after-release-suspension: 33 mutants in 1 functions (db + server)
+pqr-extract: 5 mutants in 1 functions (db)
+total: 332 mutants in 10 groups
+SIGTERM: dropping the run's databases

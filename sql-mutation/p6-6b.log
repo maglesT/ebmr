@@ -44,3 +44,41 @@ execution-commands: baseline server 46 s (limit 240 s), db 27 s (limit 240 s)
   SURVIVED recipe.check_engine_roles#48 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:550 [or] -> [and]
   SURVIVED recipe.check_engine_roles#51 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:551 [raise exception using errcode = 'P0001', message = format('The role evidence nam] -> [null]
   SURVIVED recipe.check_engine_roles#50 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:550 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#59 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:557 [=] -> [<>]
+  SURVIVED recipe.check_engine_roles#57 NOT_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:557 [not ] -> []
+  execution-commands: 75/130
+  SURVIVED recipe.check_engine_roles#60 GUARD_REMOVED packages/recipe-core/sql/0270_execution_guards.sql:558 [raise exception using errcode = 'P0001', message = format('The command claims en] -> [null]
+  execution-commands: 100/130
+  SURVIVED recipe.role_evaluation_problem#10 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:229 [or] -> [and]
+  SURVIVED recipe.role_evaluation_problem#11 RELATIONAL packages/recipe-core/sql/0270_execution_guards.sql:229 [<] -> [<=]
+  SURVIVED recipe.role_evaluation_problem#12 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:229 [or] -> [and]
+  SURVIVED recipe.role_evaluation_problem#15 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:232 [or] -> [and]
+  SURVIVED recipe.role_evaluation_problem#16 LOGICAL packages/recipe-core/sql/0270_execution_guards.sql:232 [or] -> [and]
+  SURVIVED recipe.role_evaluation_problem#7 LOGICAL packages/recipe-core/sql/1100_batch_product_in_step_authority.sql:161 [or] -> [and]
+  recipe.role_evaluation_problem#13: its equivalent.json entry does not fit (cites 0270:229; the mutant is at 1100:170); run as an ordinary mutant
+  SURVIVED recipe.role_evaluation_problem#13 RELATIONAL packages/recipe-core/sql/1100_batch_product_in_step_authority.sql:170 [>] -> [>=]
+  execution-commands: 125/130
+  SURVIVED recipe.with_batch_scope#3 LOGICAL packages/recipe-core/sql/1100_batch_product_in_step_authority.sql:48 [and] -> [or]
+execution-commands: score 70.5 % (91/129 detected, 0 invalid) in 2425 s
+read-authorisation: baseline server 25 s (limit 240 s)
+  SURVIVED tab.record_read_problem#3 NOT_REMOVED apps/tablets-server/sql/1290_controlled_read.sql:30 [not ] -> []
+  dropped 2 databases the tests left behind: ebmr_t_69d6a3ed0c76, ebmr_sandbox_tc2711f03a6a5
+read-authorisation: score 90.9 % (10/11 detected, 0 invalid) in 107 s
+connection-roles: baseline db 17 s (limit 240 s)
+  connection-roles: 25/115
+  SURVIVED sandbox.apply_connect_policy#24 BOOLEAN packages/kernel/sql/1210_reporting_role.sql:122 [false] -> [true]
+  connection-roles: 50/115
+  SURVIVED sandbox.segregation_problems#33 RELATIONAL packages/kernel/sql/1210_reporting_role.sql:218 [=] -> [<>]
+  SURVIVED sandbox.segregation_problems#36 LOGICAL packages/kernel/sql/1210_reporting_role.sql:222 [or] -> [and]
+  SURVIVED sandbox.segregation_problems#37 LOGICAL packages/kernel/sql/1210_reporting_role.sql:222 [or] -> [and]
+  SURVIVED sandbox.segregation_problems#38 LOGICAL packages/kernel/sql/1210_reporting_role.sql:222 [or] -> [and]
+  SURVIVED sandbox.segregation_problems#39 LOGICAL packages/kernel/sql/1210_reporting_role.sql:222 [or] -> [and]
+  SURVIVED sandbox.segregation_problems#40 LOGICAL packages/kernel/sql/1210_reporting_role.sql:222 [or] -> [and]
+  SURVIVED sandbox.segregation_problems#44 LOGICAL packages/kernel/sql/1210_reporting_role.sql:228 [or] -> [and]
+  connection-roles: 75/115
+  connection-roles: 100/115
+  dropped 45 databases the tests left behind: ebmr_t_6f803e8f6705, ebmr_sandbox_t6114deb71e53, ebmr_t_f04c6aed4249, ebmr_t_2c56951ccb09, ebmr_t_31cae96d3c17, ebmr_t_2fc96746d4a4, ebmr_sandbox_ted4e16ea3d98, ebmr_t_648056815b74, ebmr_t_b485a55c57c7, ebmr_t_4728553f34bc, ebmr_t_718531f15da2, ebmr_t_41084c713a69, ebmr_sandbox_t4044177dee18, ebmr_t_94ba1df62c76, ebmr_t_91fb185b17ad, ebmr_t_4478e3a979f0, ebmr_t_05a61a608282, ebmr_t_3233c0bde008, ebmr_t_8c1b172602a2, ebmr_t_5aae1719de23, ebmr_t_6d997538c7bd, ebmr_t_86b0a3083bfc, ebmr_sandbox_tc98fc3d2ff36, ebmr_t_7434e0d88781, ebmr_t_25c6aa09d303, ebmr_t_2a818b535f1d, ebmr_t_30af65dea875, ebmr_t_5916ae9b6a78, ebmr_t_18e7369274a8, ebmr_t_68f42b9d73ce, ebmr_t_5b4120a6f18b, ebmr_t_b77966790970, ebmr_t_1dd80171f26b, ebmr_t_3d760d4898f0, ebmr_t_999751b2840a, ebmr_t_f67d941e7471, ebmr_t_c29cd890f226, ebmr_t_72a209f3b077, ebmr_t_0b203e3acb46, ebmr_t_216bdb6f1d6b, ebmr_t_11d797045237, ebmr_t_c5ce1f48cc51, ebmr_t_dc8e295c08a9, ebmr_t_45e5a9f91da6, ebmr_t_205d94e43a62
+connection-roles: score 93.0 % (107/115 detected, 0 invalid) in 646 s
+plant-equipment-and-areas: baseline db 37 s (limit 240 s)
+  dropped 1 databases the tests left behind: ebmr_t_0094e767f64d
+plant-equipment-and-areas: score 100.0 % (12/12 detected, 0 invalid) in 83 s
