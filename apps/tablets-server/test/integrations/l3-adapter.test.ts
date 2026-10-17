@@ -194,6 +194,17 @@ describe('serialisation L3/L4 (tablets 1231) against the L3/L4 simulator', () =>
     expect(await send('l3.aggregation', { eventId: 'A-2', action: 'ADD', poolId: pool.poolId, parentId: SSCC, childCount: '4', eventTime: '1000' })).toBe('EBMR-L3-104');
     expect(await send('l3.decommission_task', { taskId: 'DT-X', poolId: pool.poolId, packagingOrder: 'NOT-OURS', serialCount: '1', reason: 'x', state: 'OPEN', changedAt: '1790584618000000' })).toBe('EBMR-L3-103');
     expect(await send('l3.decommission_task', { taskId: 'DT-X', poolId: pool.poolId, packagingOrder: batchNumber, serialCount: '9', reason: 'x', state: 'OPEN', changedAt: '1790584618000000' })).toBe('EBMR-L3-105');
+    // Staleness is per task (mutation run, phase 6): an OPEN task changed earlier than another task's last change still
+    // lands and keeps release red; an older state of the same task is refused; a repeat at the same change time lands.
+    const task = (taskId: string, state: string, changedAt: string, reason = 'order test') => send('l3.decommission_task', { taskId, poolId: pool.poolId, packagingOrder: batchNumber, serialCount: '1', reason, state, changedAt });
+    expect(await task('DT-ORD-B', 'OPEN', '1790584700000010')).toBe('ok');
+    expect(await task('DT-ORD-A', 'OPEN', '1790584700000005')).toBe('ok');
+    expect(await sql<string>('select tab.l3_release_problem($1) as r', [runId])).toMatch(/open decommissioning task DT-ORD-A/);
+    expect(await task('DT-ORD-A', 'DONE', '1790584700000006')).toBe('ok');
+    expect(await task('DT-ORD-A', 'OPEN', '1790584700000005')).toBe('EBMR-L3-104');
+    expect(await task('DT-ORD-A', 'DONE', '1790584700000006', 'order test, repeated')).toBe('ok');
+    expect(await task('DT-ORD-B', 'DONE', '1790584700000011')).toBe('ok');
+    expect(String(await sql<string>('select tab.l3_release_problem($1) as r', [runId]))).not.toMatch(/DT-ORD/);
     // QA's rejection through the server records the L3's OPEN task; others may not.
     const reject = async (persona: string, task: Json) => codeOf(withCommand(sbx.db.app, await as(persona), (c) => c.query('select tab.record_pool_rejection($1, $2, $3::jsonb)', [pool.poolId, 'recall assessment', JSON.stringify(task)])));
     const answer = { taskId: 'DT-QA-1', poolId: pool.poolId, packagingOrder: batchNumber, reason: 'recall assessment', createdAt: '1790584619000000', state: 'OPEN', serials: [pool.serials[0]] };

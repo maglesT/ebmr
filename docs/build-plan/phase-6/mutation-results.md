@@ -424,6 +424,97 @@ Survivors, one line each:
 - Recorded (display): `recipe.genealogy_node_views#12 to #28` (14: sub-kind, state and label of a node in the explorer
   and the federated excerpt).
 
+### controlled-substance-mode (triage T6)
+
+- First run (stream p6-5): 207 detected / 311 valid, **66.6 %** (104 survivors).
+- Scope (owner, 17 October): possible P1 defects of draft control IN-53 (dual custody, the account closing at a stage
+  sign-off and at batch completion) and untested high-risk rules (signatures, limits, the gate); the rest is recorded
+  below, grouped, not chased.
+- Kill tests: `packages/site-services/test/mutation/controlled-substance-mode.test.ts` (7 tests: custody, checkpoint
+  and flag signatures recorded only by their signer and only in the state they were given in; the kernel's refusal of
+  the first custodian as the second; a pending flag over an approved one; custody quantities against the lot and the
+  batch's holding; a stage sign-off reads its own stage, batch and controlled API; IN-53, DI-35, INV-03).
+- Confirmation run (`--only` on the 27 survivors the tests aim at): CSM_CONFIRMATION.
+- Defects (P1): none. Checked: a second custodian who is the first or the proposer is refused by the kernel at signing
+  (D-P6j-T6-1), with the command's EBMR-CSM-022 behind it; a dispensing, transfer, return or destruction without the
+  countersignature is not counted or covered (the CONFIRMED checks of the consumption guard, the transfer cover and the
+  balance were all killed); the checkpoint table itself keeps the account identity, non-negative figures and "a
+  difference only with an explanation and the batch's deviation", so no checkpoint closes with an unexplained balance
+  even with the command's checks removed. The stage-selection survivors (below) were untested, not wrong.
+- Observation (not a defect): a countersignature given while the record is still PROPOSED is refused when recorded
+  (EBMR-CSM-023), and the kernel then refuses that witness a second COUNTERSIGNED signature on the record (EBMR-ESIG-042);
+  that record cannot be completed and a new one is proposed. The custody screen asks the second signature only in
+  AWAITING_COUNTERSIGN, so this needs a direct call.
+
+Survivors, one line each:
+- P2 killed (signature binding, IN-53, DI-35): `recipe.sign_controlled_custody#24` (a countersignature given in
+  PROPOSED), `#29` (a third custodian records the witness's signature); `recipe.sign_controlled_checkpoint#21`,
+  `plant.approve_controlled_product#20` (another person records the signature).
+- P2 killed (limits): `recipe.propose_controlled_custody#19, #21, #22, #25` (zero, seven decimals, another unit),
+  `#47, #48, #72, #73` (a transfer or dispensing above the lot's quantity, and exactly at it), `#67, #69` (a dispensing
+  into a completed batch), `#77, #79, #81, #84, #85` (a return counts this batch's own consumption of this lot, less its
+  own returns awaiting or confirmed, never a proposal; exactly what is left may be returned).
+- P2 killed (the stage gate): `recipe.controlled_checkpoint_problem#2, #4` (another stage's or another batch's signed
+  checkpoint closed the stage); `recipe.controlled_moved_materials#1 to #4` (an API consumed before the flag; a batch
+  that consumed only an excipient); `recipe.controlled_balance#2` (the excipient counted as dispensed API);
+  `plant.controlled_materials#7` (a pending flag adding an API over an approved flag counts at once).
+- Equivalent (2, `tools/sql-mutation/equivalent.json`): `plant.controlled_materials#2` (a not-controlled record names
+  no material), `#12` (a pending record is never the approved one).
+- Recorded (later layer): `recipe.sign_controlled_custody#17, #20` and `plant.approve_controlled_product#11` (the
+  kernel's meanings refuse the signature, D-P6j-T6-1); `recipe.sign_controlled_custody#2`,
+  `recipe.sign_controlled_checkpoint#2`, `plant.approve_controlled_product#2` (an unknown record: the signature
+  assertion refuses); `recipe.sign_controlled_custody#7` (a third signature: the (custody, position) key);
+  `recipe.sign_controlled_checkpoint#8` (a second signature: the checkpoint key; a superseded checkpoint is never read,
+  the gate takes the latest), `#12` (a checkpoint the account has moved past: the gate re-checks it, EBMR-CSM-042),
+  `#16` and `plant.approve_controlled_product#15` (the state problem after EBMR-CSM-039 / -005, which already refuse
+  every changed state); `recipe.propose_controlled_custody#2, #4, #9, #13, #15, #34, #52` (lot, kind, location and
+  batch shape: the cast, the table checks and the foreign keys); `recipe.record_controlled_checkpoint#1, #3, #14, #25,
+  #27, #33` (batch, stage, decimal and unit shape: the cast, the foreign key and the table checks, negatives included).
+- Recorded (fail-closed): `recipe.controlled_sign_off_guard#1, #4`, `recipe.controlled_batch_end_guard#1` (the guard
+  runs on more rows); `plant.controlled_record_state#2` (a newer record of another product supersedes: approval refused).
+- Recorded (record hygiene, no rule reads it): `recipe.propose_controlled_custody#30, #89, #90` (a batch named on a
+  transfer is dropped; locations named on a batch act are stored); `recipe.record_controlled_checkpoint#20` (a checkpoint
+  of a non-controlled material), `#64, #66, #67, #68, #71` (an explanation or deviation named with no difference; a blank
+  explanation is stored as none); `plant.record_controlled_product#2, #3, #4, #7, #9, #15, #17` (flag shape: a duplicate
+  material collapses, a mismatch of `controlled` and the list restricts nothing beyond what QA recorded and a second QA
+  approved); `recipe.controlled_checkpoint_state#2, #4, #6` (which old checkpoint is marked superseded; the gate reads
+  the latest); `recipe.controlled_moved_materials#5, #6, #7` (a material moved by a custody record alone has a zero
+  account).
+- Recorded (message, display, signed-content fields): `recipe.record_controlled_checkpoint#37`,
+  `recipe.controlled_custody_content#2`, `recipe.controlled_checkpoint_content#2, #4`, `plant.controlled_product_state#1,
+  #2`, `tab.controlled_preview#2, #6`, `tab.controlled_signing_content#2` (the preview's pair check; the commands assert
+  the meaning).
+- Residual (P2, not chased per the owner): `recipe.controlled_register_v1#3, #5, #7, #10 to #13` (the register's
+  joins and filters: another material's or an unconfirmed movement; each test has one material) and
+  `recipe.run_controlled_register#1 to #7` (the period's validation); reproducibility itself is killed.
+- Residual (not chased): `recipe.sign_controlled_custody#34` (the batch epoch is bumped for a transfer instead of a batch
+  act: the screens re-read on the next bump), `recipe.controlled_checkpoint_current#13` (an account in two units:
+  recording a checkpoint is refused then, EBMR-CSM-034).
+
+### serialisation-l3 (triage T6)
+
+- First run (stream p6-5): 68 detected / 112 valid, **60.7 %** (44 survivors).
+- The release gate and the stale mirror: `tab.l3_release_problem` and `tab.l3_tasks_of` have no survivors.
+- Kill tests: three more steps in `apps/tablets-server/test/integrations/l3-adapter.test.ts` (the malformed and stale
+  messages test): staleness is per task, an older state of the same task is refused, a repeat at the same change time
+  lands (PR-42, DI-31).
+- Confirmation run (`--only` on the 3 survivors the tests aim at): L3_CONFIRMATION.
+- Defects (P1): none.
+
+Survivors, one line each:
+- P2 killed (stale mirror): `tab.receive_l3_message#114` (another task's later change refused a new OPEN task, so the
+  release would not see it), `#120` (an older state of the same task), `#119` (same change time).
+- Recorded (later layer): `tab.receive_l3_message#2, #4` (another message type: the decommission-task shape or the
+  table checks refuse it), `#17, #19, #26, #28, #30, #72 to #90, #92` (each malformed field is still refused by a table
+  check, event id, action, SSCC, counts, task id, state, or by the pool, shipper and order lookups; only unknown keys and
+  the reason's characters and length are not), `#37, #97` (an unknown pool: the shipper lookup or the order comparison
+  refuses, EBMR-L3-103); `tab.assert_pool_rejection#2` (its caller refuses an unknown pool).
+- Recorded (fail-closed, D-P6j-T6-1): `tab.record_pool_rejection#2, #5 to #8, #10, #14 to #26` (it only records an
+  OPEN task, a release block).
+- Recorded: `tab.receive_l3_message#42` (message only), `#53` (an aggregation at the same event time: clock boundary),
+  `#117` and `tab.record_pool_rejection#34` (the same task id in another pool; the L3 issues task ids per system);
+  `tab.serial_lookup#1, #3, #9, #10` (the serial query's answer validation: a display read, not a release gate).
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)
