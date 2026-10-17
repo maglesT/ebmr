@@ -532,3 +532,85 @@ describe('slice 3 quick review: the Tablets items fail closed (tablets 1163)', (
     expect(await item('E.CONTAINER_RELEASE')).toMatchObject({ status: 'GREEN', since_review: true });
   });
 });
+
+// Phase 6 exit, mutation triage T11 (decision 0019, part 2): the Tablets gate items' survivors of the whole re-run that
+// could let a lot pass a container check. Last in the file: the cases add charges, merges and links to the shared world.
+describe('mutation triage T11: container exclusions of the Tablets items read the container itself (tablets 1162; L-30, INV-27, PR-47, TB-11)', () => {
+  const charge = (containerId: string, batchId: string) =>
+    arrange("insert into plant.container_charge (container_id, batch_id, stage, purpose, scanned_label, person_id, account_id) values ($1, $2, 'BLENDING', 'CHARGE', 'FX', gen_random_uuid(), gen_random_uuid())", [containerId, batchId]);
+  const parentLink = (child: string, parent: string) =>
+    arrange(`insert into recipe.batch_parent_link (child_batch_id, parent_batch_id, parent_batch_number, parent_containers, request_id)
+             select $1, b.id, b.batch_number, '{}', gen_random_uuid() from recipe.batch_execution b where b.id = $2 on conflict do nothing`, [child, parent]);
+
+  // tab.grel_recon_packs#1: with no completed secondary packaging step nothing reconciled the packs.
+  it('[IN-17][PR-39] E.RECONCILIATION_PACKS: red while no secondary packaging step is completed, however clean the rest', async () => {
+    expect((await item('E.RECONCILIATION_PACKS')).status).toBe('GREEN');
+    const before = (await w.gmp.db.admin.query<{ s: Json }>("select state -> 'steps' -> 'p-tb24@' as s from recipe.execution_state where batch_id = $1", [orderId])).rows[0]!.s;
+    await setStep(orderId, 'p-tb24@', { ...before, status: 'IN_PROGRESS' });
+    try {
+      expect(await item('E.RECONCILIATION_PACKS')).toMatchObject({ status: 'RED', problem: 'no completed secondary packaging step reconciled the packs' });
+    } finally {
+      await setStep(orderId, 'p-tb24@', before);
+    }
+    expect((await item('E.RECONCILIATION_PACKS')).status).toBe('GREEN');
+  });
+
+  // tab.grel_unresolved#6, #20: an exception is resolved by its own disposition and its closed deviation; a closed
+  // deviation without the disposition, or another batch's disposition of an exception with the same id, does not resolve it.
+  it('[IN-17][PR-39] E.RECONCILIATION_PACKS: an exception linked to a closed deviation but not dispositioned keeps the lot red, whatever another batch dispositioned', async () => {
+    expect((await item('E.RECONCILIATION_PACKS')).status).toBe('GREEN');
+    const ex = await raise(orderId, 'p-tb24@', 'PACK_RECONCILIATION');
+    const d = await deviation();
+    await link(orderId, ex, d.ref);
+    await close(d.id);
+    await disposition(parentId, ex); // another batch's act under the same exception id
+    const red = await item('E.RECONCILIATION_PACKS');
+    expect(red.status).toBe('RED');
+    expect(red.problem).toMatch(new RegExp(`exception ${ex} \\(PACK_RECONCILIATION\\) of batch .* is not dispositioned`));
+    await disposition(orderId, ex);
+    expect((await item('E.RECONCILIATION_PACKS')).status).toBe('GREEN');
+  });
+
+  // tab.grel_container_release#5: the bracketing check applies to a CLOSED container packed into the order.
+  it('[L-30][INV-27] E.CONTAINER_RELEASE: a CLOSED container packed into the order with no passing in-process check after its close is red', async () => {
+    const c = await container(parentId, 'CLOSED');
+    await arrange("update plant.output_container set press_code = 'PRESS-T11' where id = $1", [c.id]);
+    await arrange("insert into recipe.packaging_bulk_issue (order_batch_id, parent_batch_id, container_id, charge_id, quantity, unit, person_id, account_id) values ($1, $2, $3, gen_random_uuid(), 10, 'kg', gen_random_uuid(), gen_random_uuid())",
+      [orderId, parentId, c.id]);
+    const i = await item('E.CONTAINER_RELEASE');
+    expect(i.status).toBe('RED');
+    expect(i.evidence.map((e) => e.ref)).toContain(c.id);
+    await setContainerState(c.id, 'RELEASED_BY_QA');
+  });
+
+  // tab.grel_whole_batch_parents#5, #6, #7, #10, #15, #16, #17, #18: a parent's container is excluded only when it was
+  // itself charged into the parent or into a child of it, or merged away; other containers' charges and merges do not count.
+  it('[PR-47][INV-33] E.WHOLE_BATCH_PARENTS: other containers\' charges and merges, and the container\'s own charge into an unrelated batch, do not excuse an unrejected container of the parent', async () => {
+    const issuer = await w.gmp.asPersona('issuer');
+    const x = await w.issued(issuer);
+    const other = await w.issued(issuer);
+    await parentLink(parentId, x);
+    const o = await container(x, 'CLOSED');
+    const noise = await Promise.all([container(x, 'REJECTED'), container(other, 'REJECTED'), container(other, 'REJECTED'), container(other, 'REJECTED')]);
+    await charge(noise[0].id, x); // another container charged into the parent itself
+    await charge(noise[1].id, parentId); // another container charged into the parent's child
+    await arrange("insert into plant.container_merge (source_id, target_id, person_id, account_id) values ($1, $2, gen_random_uuid(), gen_random_uuid())", [noise[2].id, noise[3].id]);
+    await charge(o.id, orderId); // the container's own charge into a batch that is no child of the parent
+    await parentLink(orderId, other); // the batch it was charged into is a child of another parent
+    const i = await item('E.WHOLE_BATCH_PARENTS');
+    expect(i.status).toBe('RED');
+    expect(i.evidence.map((e) => e.ref)).toContain(o.id);
+  });
+
+  // tab.grel_held_containers#8, #9, #10, #11: a held container is excused only by its own charge into a child batch.
+  it('[L-30][TB-11] E.HELD_CONTAINERS: a held container charged into its own batch, while another container is charged into a child of that batch, still keeps the lot red', async () => {
+    const h = await container(parentId, 'HELD', true);
+    await charge(h.id, parentId);
+    const c = await container(parentId, 'REJECTED');
+    await charge(c.id, orderId);
+    await parentLink(orderId, parentId);
+    const i = await item('E.HELD_CONTAINERS');
+    expect(i.status).toBe('RED');
+    expect(i.evidence.map((e) => e.ref)).toContain(h.id);
+  });
+});
