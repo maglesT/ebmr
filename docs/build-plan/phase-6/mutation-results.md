@@ -31,14 +31,14 @@ targets 90 %; decisions D-P6j-M-1 to 3 in the Phase 6 plan). Mutant counts from 
 | erp-wms-receipt-and-stock | adapters and mirrors | 41 | 351 | 37 / 6 | 90 % | pending | | | | |
 | qms-capa-lims-cmms | adapters and mirrors | 38 | 401 | 12 / 5 | 90 % | pending | | | | |
 | equipment-data-and-alarms | equipment, alarms, plant rules | 28 | 469 | 41 / 5 | 90 % | 307 / 469 | 65.5 % | 162 | 2 | 447 / 467, 95.7 % (confirmation 140 / 140) |
-| plant-rules | equipment, alarms, plant rules | 26 | 221 | 16 / 5 | 90 % | pending | | | | |
+| plant-rules | equipment, alarms, plant rules | 26 | 221 | 16 / 5 | 90 % | 163 / 221 | 73.8 % | 58 | 1 | 174 / 220, 79.1 % (confirmation 11 / 11; 191 / 220 with T1's unconfirmed tests) |
 | packaging-labels-and-line-completion | packaging and serialisation | 34 | 352 | 3 / 14 | 90 % | pending | | | | |
 | serialisation-l3 | packaging and serialisation | 7 | 112 | - / 5 | 90 % | pending | | | | |
 | genealogy-and-recall | genealogy and recall | 23 | 440 | 45 / 4 | 90 % | pending | | | | |
 | controlled-substance-mode | controlled-substance mode | 34 | 311 | 5 / 3 | 90 % | pending | | | | |
 | governance-change-control | governance, change control, DSC | 19 | 117 | 7 / 3 | 90 % | 84 / 117 (smoke run) | 71.8 % | 33 | not triaged | |
 | governance-support-and-contract-giver | governance, change control, DSC | 21 | 228 | 12 / 4 | 90 % | pending | | | | |
-| india-dsc | governance, change control, DSC | 19 | 127 | 2 / 4 | 90 % | pending | | | | |
+| india-dsc | governance, change control, DSC | 19 | 127 | 2 / 4 | 90 % | 75 / 127 | 59.1 % | 52 | 0 | 104 / 127, 81.9 % (confirmation 29 / 29) |
 | reporting-and-training | reporting and training mode | 14 | 149 | 3 / 3 | 90 % | pending | | | | |
 | transfer-and-federation | inter-site transfer and federation | 49 | 393 | 30 / 7 | 90 % | pending | | | | |
 
@@ -178,23 +178,94 @@ its current number with its place updated, or dropped, by the part 2 triage.
   first check, not on the per-batch one. Stricter, never weaker; whether product-scoped people should acknowledge their
   own product's alarms is the owner's call.
 
-### plant-rules (triage T1)
+### plant-rules (triage T1, then T5)
 
-- **First run** (stream p6-3): still running at triage (65 / 221 mutants; 23 survivors, of which 16 in
-  `iam.person_area_authorised`, `site.record_reagent_lot`, `site.withdraw_reagent_lot` and `site.reagent_lot_problem`
-  were triaged; the later ones in `plant.set_area_rule`, `plant.record_spill`, `plant.room_start_problem` and after are
-  not). Score: pending the end of the run.
-- **New tests:** `packages/kernel/test/mutation/plant-rules.test.ts` (an area authorisation read at the microseconds it
-  is recorded, valid from, valid to and withdrawn: `iam.person_area_authorised#5, #7, #10, #13`) and
+- **First run** (stream p6-3, finished): 163 detected / 221 valid, **73.8 %** (58 survivors).
+- Scope (owner, 17 October): only survivors that could let a room or area start, or a step be signed, when it should
+  be refused (PR-15, PR-22, PR-25, PR-27, PR-29, PR-35, DI-49) or that touch a release or review gate were chased.
+- **Kill tests, T1:** `packages/kernel/test/mutation/plant-rules.test.ts` (an area authorisation read at the microseconds
+  it is recorded, valid from, valid to and withdrawn: `iam.person_area_authorised#5, #7, #10, #13`) and
   `packages/site-services/test/mutation/plant-rules.test.ts` (a reagent lot refused one malformed field at a time, an
   expiry equal to the preparation, withdrawal of an unknown lot or without a reason, the lot read at the microseconds it
   is recorded, expires and is withdrawn: `site.record_reagent_lot#1, #5, #14, #17, #20, #23, #30`,
-  `site.withdraw_reagent_lot#2, #6`, `site.reagent_lot_problem#2, #3, #5, #6`).
-- **Equivalent:** none. **Real defects (P1):** none.
-- **Residuals:** `site.record_reagent_lot#34` (0940:77, `preparedAt > clock_timestamp()` to `>=`): P3, a clock instant
-  that cannot be hit deterministically. The survivors after the first 65 mutants are not triaged (time box).
-- **Confirmation run:** not run (D-P6j-T1-3): once the first run ends, one `--only` run on the ids above and on the
-  later survivors' tests.
+  `site.withdraw_reagent_lot#2, #6`, `site.reagent_lot_problem#2, #3, #5, #6`). Not re-run in the confirmation run
+  (D-P6j-T5-3).
+- **Kill tests, T5:** `packages/recipe-core/test/mutation/plant-rules.test.ts` (clean hold, beta-lactam predicate, step
+  alarm), a reagent-use test in `packages/site-services/test/mutation/plant-rules.test.ts`, and one QA-review test in
+  `packages/recipe-core/test/review/review.test.ts` (D-P6j-T5-1).
+- **Confirmation run** (`--only` on the 11 survivors the T5 tests aim at): **11 / 11 killed** (100 %).
+- **After triage:** 174 killed by confirmed runs, 1 equivalent: **79.1 %** (174 / 220); with T1's 17 kill tests (not confirmed by a harness run, D-P6j-T5-3) 191 / 220, 86.8 %. Below the 90 % target; the rest is recorded below or residual within the owner's scope.
+- **Defects (P1):** none. Every room-start, signature or gate survivor was an untested input; the code was right.
+
+Survivors, one line each (T5):
+- P2 killed (clean hold, PR-25): `plant.room_start_problem#13` (a room with a clean hold that was never cleaned is
+  refused), `#8, #10, #11` (another batch's occupancy, of this room or anywhere, does not lend its start to this batch,
+  so an expired hold still refuses it).
+- P2 killed (penicillin, PR-27): `plant.batch_beta_lactam#7, #8` (the MBR's betaLactam predicate alone makes the batch
+  beta-lactam and its start at a non-penicillin site is refused; a predicate of false does not).
+- P2 killed (DI-49): `plant.step_rules_problem#11` (an alarm bound to the step blocks its signature when the command
+  names a room without alarms; the mutant let the room query overwrite the step alarm with nothing).
+- P2 killed (PR-29): `plant.record_reagent_use#13` (the use is recorded against the lot used, not another in store).
+- P2 killed (QA review gate, PR-49, PR-52): `recipe.review_gate_problems#18, #20, #22` (an exception whose deviation
+  was cancelled is not covered by a later escalation of another exception to a linked deviation).
+- Equivalent (`tools/sql-mutation/equivalent.json`): `plant.step_rules_problem#22` (`having count(*) >= 0`: an empty
+  group's aggregate row concatenates to NULL, the same as no row).
+- Recorded (a table check refuses the same input; only the message differs): `plant.set_area_rule#2, #3, #5, #6, #8`
+  (not null and `clean_hold > 0` on plant.area_rule), `plant.define_area_adjacency#5`, `plant.set_facility_rule#1`,
+  `plant.classify_beta_lactam#3, #4`.
+- Recorded (lock only, the FOR UPDATE flag of plant.area_by_code): `plant.set_area_rule#1`, `plant.record_spill#11`,
+  `plant.define_area_adjacency#1, #2`.
+- Recorded (numbering of classification versions): `plant.classify_beta_lactam#9, #10, #11`.
+- Recorded (a later layer refuses): `plant.record_spill#4` (an unknown batch fails the foreign key),
+  `plant.record_spill#8`, `plant.record_reagent_use#3` (an integration identity holds neither LOGBOOK.ENTRY nor
+  STEP.EXECUTE, EBMR-IAM-040 in `room-rules.test.ts` and `materials.test.ts`; a blank purpose fails the table check).
+- Recorded (stricter only): `plant.step_rules_check#2, #5` (a refused command row is checked too and raises instead
+  of being recorded as refused; nothing is let through).
+- Recorded (clock microsecond boundaries): `plant.room_start_problem#4, #12, #14, #16`,
+  `recipe.review_gate_problems#23`, `site.record_reagent_lot#34` (T1).
+- Recorded (display): `recipe.review_gate_problems#27` (an unknown review act; every gate passes a constant act).
+- Residual (P2, not chased): `recipe.review_gate_problems#11` (0974:155, the abort branch reads other batches' output
+  containers: an aborted batch whose own container is still usable would pass production approval; the original is
+  right, and a test needs a closed, usable container of an aborted batch, L-20).
+
+### india-dsc (triage T5)
+
+- **First run** (stream p6-3, finished): 75 detected / 127 valid, **59.1 %** (52 survivors).
+- Scope: a DSC that would verify when it should not, or bind to the wrong signer, certificate, anchor or record, and the
+  e-signature policy limits. The server verifies a DSC before the database stores it; the database's own checks were
+  untested because every test went through the server. The kill tests call the database functions straight
+  (D-P6j-T5-1).
+- **Kill tests:** `packages/kernel/test/mutation/india-dsc.test.ts` (IN-10, DI-38, DI-09).
+- **Confirmation run** (`--only` on the 29 survivors the tests aim at): **29 / 29 killed** (100 %).
+- **After triage:** 104 killed, 0 equivalent: **81.9 %** (104 / 127). Below the 90 % target; the other 23 are recorded below (later layer, harmless, stricter, race or display).
+- **Defects (P1):** none.
+
+Survivors, one line each:
+- P2 killed (enrolling account): `esig.enrol_dsc_certificate#4, #6, #9, #10, #11` (a SERVICE account and a break-glass
+  account inside an open window are refused; a generic account is refused earlier by the actor context, EBMR-IAM-106).
+- P2 killed (chain and leaf): `esig.enrol_dsc_certificate#25, #27` (a chain of another CA, and the anchor alone, are
+  refused), `#31` (a claimed signer certificate that is not the chain's first); `esig.record_dsc_signature#24` (a
+  signing DSC claiming the signer's enrolled certificate while its chain carries another certificate).
+- P2 killed (one certificate, one person): `esig.enrol_dsc_certificate#39` (a certificate live for one person is not
+  enrolled for another while other enrolments have ended), `#45, #47, #48` (a new enrolment ends the person's previous
+  one under the same anchor).
+- P2 killed (anchor): `esig.dsc_live_anchor#4` (after a new anchor is registered, a chain to the retired one is refused).
+- P2 killed (policy limits; `esig.set_policy` as kernel 1203 re-creates it, D-P6j-T5-2): `#3, #7, #9, #13, #16, #18,
+  #19, #20, #22, #23, #27, #28, #31, #34, #35` (an unknown key, a blank reason or change reference, not a whole number,
+  below or above the limits, the limits themselves accepted, not true or false, not an allowed value).
+- Recorded (a later check or a table constraint refuses the same input): `esig.enrol_dsc_certificate#15, #18, #21`,
+  `esig.record_dsc_signature#11, #14`, `esig.register_dsc_anchor#5, #8, #9, #10, #11`, `esig.set_dsc_meaning#6, #7`,
+  `esig.end_dsc_enrolment#7`, `esig.dsc_enrolment_input#2, #5` (a read; the enrolment itself refuses).
+- Recorded (harmless): `esig.set_dsc_meaning#2, #3` (a setting for an unknown meaning is stored; no signature carries
+  one); `esig.record_dsc_signature#8` (a DSC kept on a signature whose meaning does not need one now: stronger, not
+  weaker).
+- Recorded (stricter only): `esig.record_dsc_signature#17`, `esig.enrol_dsc_certificate#24` (a two-certificate chain,
+  a leaf issued by the root, is refused by the mutant; the test CA always has a sub-CA).
+- Recorded (race only): `esig.enrol_dsc_certificate#8` (the actor context, kernel 0190, refuses an account that is not
+  ACTIVE or is generic at the command's start; only a suspension committed between that and this statement differs).
+- Recorded (display): `esig.dsc_requirement#1` (an unknown challenge shows required), `esig.dsc_live_anchor#2` (differs
+  only for a kind with no anchor, the mode OFF, where every caller has already returned; it shows only in the `live`
+  flag of `esig.dsc_enrolments_of` while the option is off).
 
 ## Survivors
 

@@ -1005,6 +1005,16 @@ Groups, harness options, the Stryker feature table and the run plan: `docs/build
   a lot, consignee or depth level and do not touch the sign-off (input validation of chemical recovery and the ERP
   shipment, display of node views, the recurrence's batch branch, lock-only and clock-microsecond differences) are
   recorded, not chased.
+- **D-P6j-T5-1 (triage of plant-rules and india-dsc):** a database guard behind a server check (the DSC chain, the
+  claimed signer certificate, the enrolling account) is proven by calling the database function straight with what a
+  server that skipped its own check would send, as the existing bypass tests do; a state no command can produce (a
+  break-glass account with an open window, an alarm bound to a step) is arranged as test set-up (superuser, triggers
+  off).
+- **D-P6j-T5-2:** `esig.set_policy` (re-created by kernel 1203, so held by india-dsc) is killed by tests in
+  `packages/kernel/test/mutation/india-dsc.test.ts`; the group's test list is not widened to `esig/sessions.test.ts`.
+- **D-P6j-T5-3:** the plant-rules confirmation run covers only the survivors the owner's instruction of 17 October
+  counts as important (clean hold, beta-lactam, step alarm, reagent lot binding, the QA review gate); triage T1's 17
+  kill tests (field validation and microsecond boundaries) are not re-run.
 
 #### 6j-b golden batches
 
