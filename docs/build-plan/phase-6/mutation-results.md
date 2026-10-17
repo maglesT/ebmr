@@ -296,9 +296,9 @@ the database cannot make. Killing tests were proved against the original (pass) 
 | Item | What runs | Result |
 |---|---|---|
 | Scope A kill confirmation (232) | the four scope A groups run whole (D-P6j-M-7): the whole run is the kill confirmation and the new first run | release-gate 211 / 240 (**87.9 %**, Phase 4 47.2 %); release-gate-market-items 49 / 51 (**96.1 %**, 74.5 %); manufacturer-release 158 / 163 (**96.9 %**, 63.6 %); tablets-release-items 175 / 254 (**68.9 %**, 59.3 %). Phase 4's survivor list was lost, so the whole run stands for the confirmation: 115 survivors left in the four groups (Phase 4: 298), triaged in "Part 2 triage (T11)" |
-| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); the others: see "Part 2 triage (T11)" |
+| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); after-release-decisions 187 / 192 (**97.4 %**, 76.6 %); shipping-interlock 75 / 75 (**100 %**, 85.5 %); the other three: SCOPE_B_REST |
 | us-disposition | first full run (146 mutants) | 83 / 146 (**56.8 %**, first score); 12 survivors aimed at by new tests (confirmation 11 / 12, the twelfth's near miss added after it), 2 equivalent, 49 P3: about 94 / 146 after triage |
-| qp-certification | first full run | pending |
+| qp-certification | first full run | 106 / 182 (**58.2 %**, first score); 17 survivors aimed at by new tests, 2 equivalent, 57 P3 |
 | market-changes | first full run | 62 / 153 (**40.5 %**, first score); 30 survivors aimed at by new tests (confirmation 26 / 30, 3 more tests added after it), 1 equivalent, 60 P3 |
 | Stryker survivor triage | server release, records, India, archive and PQR features | pending |
 | Whole SQL re-run | every group of `targets.ts`, under the decision 0009 organisation | pending |
@@ -410,6 +410,42 @@ exercised, or a refusal that a later layer repeats (named below).
   addition is caught by its base set and by its ADD row); `recipe.market_ineligible_by#12 to #14` (a batch-level
   UNMET_FINAL addition still keeps G8.MARKET_ADD RED, so no release); `recipe.lock_release_evidence#1, #2` (lock only).
 
+#### qp-certification: 106 / 182 (58.2 %), first run
+
+- Kill tests: after the manufacturer release, a certification of a lot whose G-REL for the EU is not ready is refused
+  EBMR-DSP-053 (`recipe.eu_outcome_problem#7`: every earlier case met EBMR-DSP-033 first; PR-55, INV-39); a transcription
+  verified after the lot's release was suspended is refused, the lot stays uncertified (`recipe.verify_qp_transcription#18`:
+  the outcome's checks at the instant it takes effect); QA never registers itself as QP (`recipe.register_qp#13`; S14);
+  one transcription waits for its second person at a time (`recipe.record_qp_transcription#18, #20, #22 to #24`; DI-30);
+  the in-system QP's own acknowledgement of each since-review item, near misses refused EBMR-DSP-076
+  (`recipe.record_qp_certification#33, #35, #36, #38, #41, #46`) (all in `recipe-core/test/release/dispositions.test.ts`);
+  a message whose signature is missing or not 64 bytes is refused EBMR-DSP-082 also when the application role calls the
+  database function directly (`tab.take_qp_certification_message#1, #6, #8`: the default verdict `false` had no case;
+  `tablets-server/test/release/market-routes.test.ts`; DI-39). Confirmation run: **14 / 17**. Survived: `tab.take_qp_certification_message#6, #8`
+  (the guard before the verifier widened: `tab.ed25519_verify` itself answers false or NULL for a missing key or a
+  signature of the wrong length, coalesced to false, so the message is still refused; P3) and
+  `recipe.record_qp_transcription#23` (`k.certification_id = c.id` to `<>`: told apart only while another
+  transcription's check exists, which the case lacks; P3, the wider read only refuses more).
+- Equivalent: `recipe.take_qp_message#19` (its only caller passes a non-NULL verdict), `recipe.record_qp_certification#21`
+  (EBMR-DSP-075 unreachable after `assert_release_signature`).
+- P3 (57): `recipe.eu_certification_gate_problems#1 to #4, #6` (the cockpit's read); `recipe.eu_importer_canonical#6`,
+  `recipe.eu_importer_content#2`, `recipe.qp_certification_content#1 to #6`, `recipe.qp_register_content#1, #4`,
+  `recipe.qp_transcription_content#1, #3` (signed content: a wrong row gives another hash or "exists false", so a
+  signature is refused, never accepted); `recipe.eu_outcome_problem#5` (an outcome outside the two is refused by the
+  table's check), `#10, #12` (microsecond boundaries of the certification time); `recipe.register_eu_importer#1, #3, #6,
+  #9, #12, #13, #15, #19, #21, #24, #26, #39` (the importer table's own checks, unique code and product key refuse the
+  same definitions with a database error); `recipe.register_qp#1, #3, #7, #8, #17` (the action check, the MIA of the
+  registration, which a certification must match to the importer's anyway (EBMR-DSP-055), a repeated registration);
+  `recipe.take_qp_message#6, #8, #9, #32, #38` (malformed messages and the importer of another product meet the next
+  refusal: unknown importer, no lot, or the importer's MIA, EBMR-DSP-055), `#26, #29` (the lot looked up by code or by
+  batch number: one finished lot per batch, so the same lot), `#44`, `#52` and `recipe.record_qp_certification#49, #50`,
+  `recipe.record_qp_transcription#2, #10, #11` (completeness of a rejection's reason and of a transcription's names: no
+  certification follows), `recipe.record_qp_transcription#19` (wider: another lot's pending transcription also blocks),
+  `recipe.verify_qp_transcription#4, #7, #9` (no such transcription fails at its scope; lock only; a second verification
+  meets EBMR-DSP-051), `recipe.eu_pending_transcription_problem#2` (wider, fail closed),
+  `tab.take_qp_certification_message#10` (`coalesce(ed25519_verify(...), false)` to `true`: the verifier gets a 32-byte
+  key, a 64-byte signature and the message bytes, never NULL; not proven, so not marked equivalent).
+
 #### market-changes: 62 / 153 (40.5 %), first run
 
 - Kill tests (`recipe-core/test/release/dispositions.test.ts`, same describe): the market-add evaluation reads the
@@ -439,6 +475,21 @@ exercised, or a refusal that a later layer repeats (named below).
   `recipe.packaging_order_markets_check#1 to #5` (a packaging order holding a market its processing batch lacks, either
   way round: G11.MARKET_IN_SET still keeps every such lot RED for that market; residual, as this file has no packaging
   order to test them with).
+
+
+#### Scope B (streams p4-c, p4-d)
+
+- after-release-suspension: 132 / 134 (**98.5 %**, Phase 4 74.7 %); `recipe.genealogy_downstream_lots#10, #11` killed
+  by T10 (the same assertion was written here and merged as T10's).
+- after-release-decisions: 187 / 192 (**97.4 %**; 5 equivalent marked by the harness, 1 invalid; Phase 4 76.6 %). P3:
+  `recipe.record_after_release_decision#37` (the act's own copy of INV-35: the release-suspension content lists the
+  lot's involved persons, so the kernel refuses an involved signer at signing), `#60, #61` (the lot's version token for
+  its transition read from another row: a wrong token is refused by the lot transition), `recipe.witness_disposal#16`
+  (EBMR-ARL-043 the witness is not the recorder: the kernel's signature segregation refuses the recorder first,
+  EBMR-ESIG-043/044, after-release.test.ts), `recipe.release_suspension_content#1` (the existence check of a finished
+  lot reads another row: content for a lot id that is no finished lot, which the act refuses).
+- shipping-interlock: 75 / 75 (**100 %**; 14 equivalent marked by the harness; Phase 4 85.5 %).
+- record-lock-and-amendment, bulk-and-bright-stock, execution-complete-forms: RECORD_LOCK_LINE
 
 ### equipment-data-and-alarms (triage T1)
 
