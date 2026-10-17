@@ -45,6 +45,7 @@ import {
   rawPayloadHash,
   ReconciliationSubmission,
   retryDelayMs,
+  type AdapterTransportOptions,
   type ErrorClass,
   type SourceSystem,
   type SystemContract,
@@ -52,6 +53,7 @@ import {
 import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
 import type { AppContext } from '../../../platform/context.ts';
+import { mtlsFetch, type FetchFn } from './transport.ts';
 
 // ---------------------------------------------------------------------------------------------------------------
 // The feed client
@@ -60,6 +62,8 @@ import type { AppContext } from '../../../platform/context.ts';
 export interface FeedPage {
   messages: unknown[];
   head: string;
+  /** The SHA-256 fingerprint of the TLS peer certificate the page came with (mutual TLS, slice 7a); absent over plain HTTP. */
+  peer?: string;
 }
 
 export interface FeedClient {
@@ -76,14 +80,11 @@ export class TransportError extends Error {
   }
 }
 
-export type FetchFn = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal }) => Promise<{
-  ok: boolean;
-  status: number;
-  text(): Promise<string>;
-}>;
+/** The fetch an adapter's feed client uses (globalThis.fetch, or mtlsFetch with mutual TLS); see ./transport.ts. */
+export type { FetchFn } from './transport.ts';
 
 /** GET/POST JSON with a timeout; every failure to complete the exchange is a TransportError. */
-export async function exchange(fetchFn: FetchFn, url: string, timeoutMs: number, init: { method?: string; body?: unknown } = {}): Promise<{ status: number; body: unknown }> {
+export async function exchange(fetchFn: FetchFn, url: string, timeoutMs: number, init: { method?: string; body?: unknown } = {}): Promise<{ status: number; body: unknown; peer?: string }> {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), timeoutMs);
   try {
@@ -102,7 +103,7 @@ export async function exchange(fetchFn: FetchFn, url: string, timeoutMs: number,
         throw new TransportError(`${url}: the answer is not complete JSON (${text.length.toString()} bytes)`);
       }
     }
-    return { status: res.status, body };
+    return { status: res.status, body, ...(res.peer ? { peer: res.peer } : {}) };
   } catch (error) {
     if (error instanceof TransportError) throw error;
     throw new TransportError(`${url}: ${error instanceof Error ? error.message : String(error)}`);
@@ -123,7 +124,7 @@ export function httpFeedClient(baseUrl: string, opts: { timeoutMs?: number; fetc
       if (r.status !== 200 || !b || !Array.isArray(b.messages) || typeof b.head !== 'string') {
         throw new TransportError(`${base}/feed answered ${r.status.toString()} without a page`);
       }
-      return { messages: b.messages, head: b.head };
+      return { messages: b.messages, head: b.head, ...(r.peer ? { peer: r.peer } : {}) };
     },
     async heartbeat() {
       try {
@@ -291,6 +292,8 @@ export class AdapterWorker {
    *  it is not recorded twice). Not the hash the item states: a refused item may not match it, and the intact message
    *  under the same key must still reach the database (defect M6-D2, DI-31). */
   private readonly refusedKeys = new Map<string, string>();
+  /** The TLS peer of the page being handled (slice 7a), recorded with each of its messages; null over plain HTTP. */
+  private pagePeer: string | null = null;
   readonly healthState: AdapterHealth;
 
   constructor(pool: pg.Pool, def: AdapterDefinition, feed: FeedClient, openActor: () => Promise<ActorContext>, opts: { pageSize?: number; maxPages?: number } = {}) {
@@ -341,6 +344,7 @@ export class AdapterWorker {
       for (let pageNo = 0; pageNo < this.maxPages; pageNo++) {
         const before: bigint = this.cursor;
         const page = await this.feed.page(before, this.pageSize);
+        this.pagePeer = page.peer ?? null;
         this.healthState.head = page.head;
         head = page.head;
         report.received += page.messages.length;
@@ -426,7 +430,12 @@ export class AdapterWorker {
     }
     // An unknown type or version is left to the database, which refuses it (EBMR-INT-004) and so names it.
     try {
-      const r = await this.command((c) => this.def.receive(c, e), sourceReason(e));
+      const peer = this.pagePeer;
+      const r = await this.command(async (c) => {
+        // Slice 7a (kernel 1305): the TLS peer of the page, kept with the message by platform.accept_inbound_detail.
+        if (peer !== null) await c.query("select set_config('ebmr.transport_peer', $1, true)", [peer]);
+        return this.def.receive(c, e);
+      }, sourceReason(e));
       if (r.outcome === 'ACCEPTED') this.healthState.accepted += 1;
       else this.healthState.duplicates += 1;
       return { sequenceNo: e.sequenceNo, idempotencyKey: e.idempotencyKey, result: r.outcome };
@@ -522,6 +531,9 @@ export interface FeedAdapterSpec {
   receive: Readonly<Record<string, string>>;
   /** Mirror data classes the system feeds (kernel 1180 platform.mirror_data_class). */
   mirrorClasses: readonly string[];
+  /** The receiving command's parameter type: jsonb (default), or json where the command needs the payload's text as
+   *  sent (the gateway feed's verifier, tablets 1405, checks its hash). */
+  envelopeType?: 'json' | 'jsonb';
 }
 
 /** The definition of a spec'd system's adapter registered as `code`. */
@@ -536,7 +548,7 @@ export function feedAdapterDefinition(code: string, spec: FeedAdapterSpec): Adap
       // A type the contract and the database know but this adapter has no command for is refused as the database
       // refuses an unknown type (EBMR-INT-004, MALFORMED), never accepted without being applied.
       if (!fn) throw Object.assign(new Error(`EBMR-INT-004 ${spec.system} message type ${envelope.messageType} has no receiving command here`), { code: 'P0001' });
-      const { rows } = await client.query<{ r: Partial<ReceiveResult> | null }>(`select ${fn}($1::jsonb) as r`, [JSON.stringify(envelope)]);
+      const { rows } = await client.query<{ r: Partial<ReceiveResult> | null }>(`select ${fn}($1::${spec.envelopeType ?? 'jsonb'}) as r`, [JSON.stringify(envelope)]);
       const r = rows[0]?.r;
       return {
         messageId: r?.messageId ?? '',
@@ -554,8 +566,9 @@ export function feedWorker(
   code: string,
   spec: FeedAdapterSpec,
   openActor: () => Promise<ActorContext>,
-  opts: { endpoint: string; timeoutMs?: number; fetchFn?: FetchFn; pageSize?: number },
+  opts: { endpoint: string; timeoutMs?: number; fetchFn?: FetchFn; pageSize?: number } & AdapterTransportOptions,
 ): AdapterWorker {
-  const fetchOpts = { ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}), ...(opts.fetchFn ? { fetchFn: opts.fetchFn } : {}) };
+  const fetchFn = opts.fetchFn ?? (opts.tls ? mtlsFetch(opts.tls) : undefined);
+  const fetchOpts = { ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}), ...(fetchFn ? { fetchFn } : {}) };
   return new AdapterWorker(pool, feedAdapterDefinition(code, spec), httpFeedClient(opts.endpoint, fetchOpts), openActor, opts.pageSize ? { pageSize: opts.pageSize } : {});
 }

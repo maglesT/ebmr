@@ -1425,6 +1425,31 @@ The DI-51 dependency proof is unchanged: nothing outside the schema reads it.
 **Tests.** Package and server `review-priority.test.ts`; kernel `exit-review.test.ts`; the key spelling against
 `analytics.flag_key` in server `audit.test.ts`.
 
+## Slice 7a: the decision 0022 security and scope fixes (Phase 7)
+
+### 6jc-R9: the gateway's OPC UA feed and the adapters did not authenticate the sender (DI-31, DI-20; kernel 1305, tablets 1405)
+
+**Symptom.** Anyone holding the OPCUA adapter's credentials, or the application role's, could hand the database series,
+alarms, events and endpoint sessions as if from the gateway. Every adapter spoke plain HTTP.
+
+**Why it matters.** Equipment data and alarms enter the batch record. A record that cannot show where its data came
+from fails the interface control (DI-31) and the device identity it rests on (DI-20).
+
+**Cause.** The 6a framework authenticated the adapter, not the source. The gateway's feed carried no proof of origin.
+
+**Fix.** The gateway signs each feed envelope with its enrolled key and journals the signature. The database verifies
+it (`tab.accept_gateway_envelope`, bound gateway, ACTIVE key, payload text hash). `platform.accept_inbound_detail`
+refuses an OPCUA envelope that has no verification in its transaction, so a direct `plant.receive_*` call is refused.
+On a GMP installation, adapters off loopback need mutual TLS (EBMR-INT-034). The peer certificate's fingerprint is kept
+with each message.
+
+**Tests.** Server `test/equipment-data/feed-signature.test.ts` (the fixed DI-31 titles), kernel
+`test/inbound/source-verification.test.ts`, server `test/integrations/adapter-startup.test.ts` (EBMR-INT-034), and the
+gateway's `test/opcua-driver.test.ts` (restart serves the same signed bytes).
+
+**Lesson.** A signature over a hash proves nothing about the payload unless the payload is checked against that hash
+where the signature is checked. Here that is the database, on the payload text as sent (`json`, not `jsonb`).
+
 ### 6jc-R10: one steward set the penicillin facility rule and the beta-lactam classification (PR-27; recipe-core 1210)
 
 **Symptom.** A master-data steward alone could declare a site a penicillin facility, or declassify a penicillin material,

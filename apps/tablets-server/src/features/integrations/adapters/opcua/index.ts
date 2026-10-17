@@ -11,6 +11,12 @@
  *   opcua.alarm             plant.receive_equipment_alarm (0960): occurrences that are not tag readings (DI-49)
  *   opcua.equipment_event   plant.receive_equipment_event (0960): state, recipe and fault events in batch context
  *
+ * Phase 7 slice 7a (6jc-R9; DI-31): the gateway signs every envelope of the feed (gatewaySignature, SDK
+ * feed-signature.ts) and the worker hands each to tab.accept_gateway_envelope (tablets 1405), which checks the signature
+ * against the ACTIVE key of the gateway bound to this adapter (tab.gateway_feed_binding) and only then calls the
+ * receiving command above for its type; the kernel refuses an OPCUA envelope that reaches any receiving command without
+ * that check in the same transaction (kernel 1305, EBMR-INT-030). Refusals EBMR-INT-030 to -033 are WRONG_IDENTITY.
+ *
  * Refusals are recorded by the framework worker with their class and alarm (6a pattern); a session refusal is applied
  * (the session is kept, judged REFUSED), so it is ACCEPTED as a message and its verdict acts on the data after it.
  *
@@ -23,12 +29,15 @@ import type { FeedAdapterSpec } from '../framework.ts';
 export const OPCUA_ADAPTER: FeedAdapterSpec = {
   system: 'OPCUA',
   prefix: 'opcua',
+  // Slice 7a (6jc-R9): every envelope goes through the database's verifier of the gateway's signature, which calls the
+  // receiving command of its type (header); json, so the database checks the payload's hash on its text as sent.
   receive: {
-    'opcua.endpoint_session': 'plant.receive_opcua_endpoint_session',
-    'opcua.series_chunk': 'plant.receive_series_chunk',
-    'opcua.alarm': 'plant.receive_equipment_alarm',
-    'opcua.equipment_event': 'plant.receive_equipment_event',
+    'opcua.endpoint_session': 'tab.accept_gateway_envelope',
+    'opcua.series_chunk': 'tab.accept_gateway_envelope',
+    'opcua.alarm': 'tab.accept_gateway_envelope',
+    'opcua.equipment_event': 'tab.accept_gateway_envelope',
   },
+  envelopeType: 'json',
   mirrorClasses: [],
   contract: OPCUA,
 };

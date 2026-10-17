@@ -3,12 +3,15 @@
  * transport plays the endpoint, so each rule is exercised exactly (the real node-opcua transport against the simulator
  * is opcua-simulator.test.ts).
  */
+import { verify } from 'node:crypto';
 import { appendFileSync, closeSync, mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   canonicalDecimal,
+  feedSignatureMessage,
+  InboundEnvelope,
   ENDPOINT_LOCATION_NODE,
   OpcuaEndpointSessionV1,
   opcuaActiveAlarmsNodeId,
@@ -24,7 +27,7 @@ import {
 import type { GatewayClock } from '../src/clock.ts';
 import { OpcuaDriver, type OpcuaDataChange, type OpcuaDriverAlarm, type OpcuaTransport } from '../src/drivers/opcua.ts';
 import { OpcuaFeed } from '../src/opcua-feed.ts';
-import { until } from './support.ts';
+import { TEST_FEED_KEY, until } from './support.ts';
 
 const THUMB = 'a'.repeat(64);
 const endpoint: OpcuaEndpoint = { endpointUrl: 'opc.tcp://press-01:4840/ebmr', securityMode: 'SignAndEncrypt', securityPolicy: 'Basic256Sha256', certificateThumbprint: THUMB, equipmentCodes: ['PRESS-01'], areaCode: 'RM-COMP-1' };
@@ -116,7 +119,7 @@ afterEach(async () => {
 function rig(over: Partial<FakeTransport> = {}, opts: { chunkMaxSamples?: number; gapAfterMs?: number } = {}): Promise<Rig> {
   const t = Object.assign(new FakeTransport(), over);
   const clock = new TestClock();
-  const feed = OpcuaFeed.open({ dir: mkdtempSync(join(tmpdir(), 'opcua-feed-')), gatewayCode: 'GW-TEST', clock });
+  const feed = OpcuaFeed.open({ dir: mkdtempSync(join(tmpdir(), 'opcua-feed-')), gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock });
   const d = new OpcuaDriver({
     code: 'OPC-PRESS-01', endpoint, equipment: { 'PRESS-01': 'PRESS' }, transport: t, clock, sink: feed.sink(), nextChunkNo: (u, tag) => feed.nextChunkNo(u, tag),
     backoffInitialMs: 20, backoffMaxMs: 40, chunkMaxSamples: opts.chunkMaxSamples ?? 3, gapAfterMs: opts.gapAfterMs ?? 600_000,
@@ -250,15 +253,44 @@ describe('the OPC UA client driver', () => {
   it('the feed journal survives a restart: same sequence numbers, chunk numbers continue', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'opcua-feed-'));
     const clock = new TestClock();
-    const f1 = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', clock });
+    const f1 = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock });
     const sink = f1.sink();
     sink.chunk({ subjectKind: 'EQUIPMENT', subjectCode: 'PRESS-01', tag: 'force.main_kN', unit: 'kN', chunkNo: '7', samples: [{ sourceTime: '1', serverTime: null, raw: '1', value: '1', status: '0x00000000' }], chunkHash: 'c'.repeat(64) });
     await f1.close();
-    const f2 = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', clock });
+    const f2 = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock });
     expect(f2.head()).toBe(1n);
     expect(f2.nextChunkNo('PRESS-01', 'force.main_kN')).toBe(8n);
     expect(f2.reconciliation(0n, 10n)).toMatchObject({ sourceCount: '1' });
     await f2.close();
+  });
+
+  it('[DI-31][DI-20] every feed envelope is signed with the gateway key when journalled, and a gateway restart serves the same signed bytes', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opcua-feed-'));
+    const clock = new TestClock();
+    const f1 = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock });
+    const sink = f1.sink();
+    sink.chunk({ subjectKind: 'EQUIPMENT', subjectCode: 'PRESS-01', tag: 'force.main_kN', unit: 'kN', chunkNo: '1', samples: [{ sourceTime: '1', serverTime: null, raw: '1', value: '1', status: '0x00000000' }], chunkHash: 'c'.repeat(64) });
+    sink.event({ equipmentCode: 'PRESS-01', eventId: 'e-1', kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'running', occurredAt: '2' });
+    const port1 = await f1.serve('127.0.0.1', 0);
+    const before = await (await fetch(`http://127.0.0.1:${String(port1)}/opcua/v1/feed?after=0&limit=10`)).text();
+    await f1.close();
+    const page = JSON.parse(before) as { messages: (Record<string, unknown> & { gatewaySignature: { alg: string; gatewayCode: string; keyId: string; sig: string } })[] };
+    expect(page.messages.map((m) => m['messageType'])).toEqual(['opcua.series_chunk', 'opcua.equipment_event']);
+    for (const m of page.messages) {
+      expect(InboundEnvelope.safeParse(m).success).toBe(true);
+      expect(m.gatewaySignature).toMatchObject({ alg: 'Ed25519', gatewayCode: 'GW-TEST', keyId: TEST_FEED_KEY.keyId });
+      const message = feedSignatureMessage(m as unknown as InboundEnvelope, 'GW-TEST', TEST_FEED_KEY.keyId);
+      expect(verify(null, message, TEST_FEED_KEY.publicKey, Buffer.from(m.gatewaySignature.sig, 'base64'))).toBe(true);
+      // The sequence number is inside the signature: the same envelope with another one does not verify.
+      const replayed = feedSignatureMessage({ ...(m as unknown as InboundEnvelope), sequenceNo: '99' }, 'GW-TEST', TEST_FEED_KEY.keyId);
+      expect(verify(null, replayed, TEST_FEED_KEY.publicKey, Buffer.from(m.gatewaySignature.sig, 'base64'))).toBe(false);
+    }
+    // The journal holds the signature: a restarted gateway serves byte for byte what it served before.
+    const f2 = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock });
+    const port2 = await f2.serve('127.0.0.1', 0);
+    const after = await (await fetch(`http://127.0.0.1:${String(port2)}/opcua/v1/feed?after=0&limit=10`)).text();
+    await f2.close();
+    expect(after).toBe(before);
   });
 });
 
@@ -313,14 +345,14 @@ describe('the OPC UA driver and feed: what only the gateway can check (T12)', ()
     const clock = new TestClock();
     const make = async (): Promise<string> => {
       const dir = mkdtempSync(join(tmpdir(), 'opcua-feed-'));
-      const f = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', clock });
+      const f = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock });
       for (const id of ['e-1', 'e-2', 'e-3']) f.sink().event({ equipmentCode: 'PRESS-01', eventId: id, kind: 'FAULT', state: null, recipeVersion: null, message: 'x', occurredAt: '1' });
       await f.close();
       return dir;
     };
     const torn = await make();
     appendFileSync(join(torn, 'opcua-feed.jsonl'), '{"sourceSystem":"OPCUA","messageTy');
-    const f1 = OpcuaFeed.open({ dir: torn, gatewayCode: 'GW-TEST', clock });
+    const f1 = OpcuaFeed.open({ dir: torn, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock });
     expect(f1.head()).toBe(3n);
     await f1.close();
     const damaged = await make();
@@ -328,13 +360,13 @@ describe('the OPC UA driver and feed: what only the gateway can check (T12)', ()
     const lines = readFileSync(path, 'utf8').split('\n');
     lines[1] = '{"damaged';
     writeFileSync(path, lines.join('\n'));
-    expect(() => OpcuaFeed.open({ dir: damaged, gatewayCode: 'GW-TEST', clock })).toThrow(/damaged at line 2/);
+    expect(() => OpcuaFeed.open({ dir: damaged, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock })).toThrow(/damaged at line 2/);
   });
 
   it('[DI-31] a journal that cannot be written alarms once and stops the feed: nothing more is published, the head stays, the heartbeat answers 503', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'opcua-feed-'));
     const alarms: string[] = [];
-    const feed = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', clock: new TestClock(), onAlarm: (a) => alarms.push(a.kind) });
+    const feed = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock: new TestClock(), onAlarm: (a) => alarms.push(a.kind) });
     const ev = (id: string): EquipmentEventV1 => ({ equipmentCode: 'PRESS-01', eventId: id, kind: 'FAULT', state: null, recipeVersion: null, message: 'x', occurredAt: '1' });
     feed.sink().event(ev('e-1'));
     const port = await feed.serve('127.0.0.1', 0);
@@ -353,7 +385,7 @@ describe('the OPC UA driver and feed: what only the gateway can check (T12)', ()
   });
 
   it('[DI-31] the feed protocol pages the journal in order, without a gap or a repeat, and refuses malformed requests', async () => {
-    const feed = OpcuaFeed.open({ dir: mkdtempSync(join(tmpdir(), 'opcua-feed-')), gatewayCode: 'GW-TEST', clock: new TestClock() });
+    const feed = OpcuaFeed.open({ dir: mkdtempSync(join(tmpdir(), 'opcua-feed-')), gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock: new TestClock() });
     for (let i = 1; i <= 5; i++) feed.sink().event({ equipmentCode: 'PRESS-01', eventId: `e-${i.toString()}`, kind: 'FAULT', state: null, recipeVersion: null, message: 'x', occurredAt: i.toString() });
     const port = await feed.serve('127.0.0.1', 0);
     const get = async (q: string): Promise<{ status: number; body: { messages?: { sequenceNo: string }[]; head?: string } }> => {

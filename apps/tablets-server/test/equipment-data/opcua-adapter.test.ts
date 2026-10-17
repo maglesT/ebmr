@@ -15,9 +15,9 @@ import type { TestDatabase } from '../../../../packages/kernel/test/support/db.t
 import { OPCUA_ADAPTER } from '../../src/features/integrations/adapters/opcua/index.ts';
 import { ADAPTER_SLOTS } from '../../src/features/integrations/adapters/start.ts';
 import { AdapterWorker, feedAdapterDefinition, feedWorker, type CycleReport } from '../../src/features/integrations/adapters/framework.ts';
-import { enrol } from '../devices/support.ts';
+import { enrol, GW } from '../devices/support.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
-import { opcuaWorld, type OpcuaWorld } from './opcua-support.ts';
+import { bindFeed, opcuaWorld, seededGatewaySigner, signed, type FeedSigner, type OpcuaWorld } from './opcua-support.ts';
 
 type Json = Record<string, unknown>;
 
@@ -29,7 +29,8 @@ interface Feed {
   close(): Promise<void>;
 }
 
-async function startFeed(): Promise<Feed> {
+/** Slice 7a: every envelope is signed as the gateway does (the seeded gateway's key; the adapter is bound to its feed). */
+async function startFeed(signer: FeedSigner): Promise<Feed> {
   const messages: Json[] = [];
   const srv: Server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://x');
@@ -53,11 +54,11 @@ async function startFeed(): Promise<Feed> {
     base: `http://127.0.0.1:${port.toString()}`,
     publish(messageType, payload, opts = {}) {
       const seq = (messages.length + 1).toString();
-      messages.push({
+      messages.push(signed({
         sourceSystem: 'OPCUA', messageType, sourceRecordId: `GW-${seq}`, sourceTimestamp: nowUs(), sequenceNo: seq,
         idempotencyKey: opts.key ?? `${messageType}:${randomBytes(6).toString('hex')}`, schemaVersion: '1',
         payloadHash: createHash('sha256').update(JSON.stringify(payload), 'utf8').digest('hex'), payload: opts.sent ?? payload,
-      });
+      }, signer));
     },
     close: () => new Promise<void>((resolve) => srv.close(() => resolve())),
   };
@@ -75,7 +76,8 @@ beforeAll(async () => {
   db = server.db as unknown as TestDatabase;
   const chainId = await enrol(server);
   w = await opcuaWorld(server, chainId);
-  feed = await startFeed();
+  await bindFeed(server, w.adapter.code, GW);
+  feed = await startFeed(seededGatewaySigner(server));
   worker = feedWorker(db.app, w.adapter.code, OPCUA_ADAPTER, () => Promise.resolve(ctxOf(w.adapter.actor)), { endpoint: `${feed.base}/opcua/v1`, timeoutMs: 1000 });
 }, 300_000);
 afterAll(async () => {

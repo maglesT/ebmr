@@ -17,16 +17,24 @@
  * A message that cannot be journalled is alarmed and the feed stops accepting (the head no longer moves; the server's
  * heartbeat check sees it).
  *
- * The feed holds no secret and changes nothing at the server: the server pulls. It listens on loopback unless the site
+ * Phase 7 slice 7a (6jc-R9; DI-31, DI-20): every envelope is signed with the gateway's Ed25519 key when it is journalled
+ * (gatewaySignature over feedSignatureMessage of the SDK; keyId the SHA-256 of the key's SPKI DER), and the signature is
+ * journalled with it, so a restart serves the very same bytes. The database checks the signature against the gateway's
+ * ACTIVE enrolled key (tab.accept_gateway_envelope, tablets 1405); an envelope journalled unsigned before 7a is served as
+ * it stands and refused there (EBMR-INT-030).
+ *
+ * The feed changes nothing at the server: the server pulls. It listens on loopback unless the site
  * configures otherwise; every message is also checked again by the server (hash, contract) and the database.
  */
-import { createHash } from 'node:crypto';
+import { createHash, type KeyObject } from 'node:crypto';
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, writeSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { join } from 'node:path';
 import {
   rawPayloadHash,
   reconciliationChecksum,
+  signFeedEnvelope,
+  type GatewaySignature,
   type EquipmentAlarmV1,
   type EquipmentEventV1,
   type OpcuaEndpointSessionV1,
@@ -49,6 +57,8 @@ export interface OpcuaEnvelope {
   schemaVersion: '1';
   payloadHash: string;
   payload: Record<string, unknown>;
+  /** Slice 7a: the gateway's signature, made when the envelope is journalled (absent in a journal written before 7a). */
+  gatewaySignature?: GatewaySignature;
 }
 
 export interface OpcuaFeedAlarm {
@@ -61,6 +71,8 @@ export interface OpcuaFeedOptions {
   dir: string;
   gatewayCode: string;
   clock: GatewayClock;
+  /** The gateway's Ed25519 key (DEMO-ONLY key file; a KMS or HSM at deployment) and its key id (SDK feedKeyId). */
+  signingKey: { privateKey: KeyObject; keyId: string };
   onAlarm?: (a: OpcuaFeedAlarm) => void;
 }
 
@@ -141,10 +153,18 @@ export class OpcuaFeed {
       this.options.onAlarm?.({ kind: 'FEED_DUPLICATE_KEY', message: `${messageType} ${sourceRecordId} arrived again with other content; published so the server records the refusal`, details: { sourceRecordId } });
     }
     if (this.failed || this.fd === null) return null;
-    const env: OpcuaEnvelope = {
+    const unsigned: OpcuaEnvelope = {
       sourceSystem: 'OPCUA', messageType, sourceRecordId: sourceRecordId.slice(0, 128), sourceTimestamp, sequenceNo: (this.messages.length + 1).toString(), idempotencyKey,
       schemaVersion: '1', payloadHash, payload: JSON.parse(text) as Record<string, unknown>,
     };
+    let env: OpcuaEnvelope;
+    try {
+      // Slice 7a: signed before it is journalled; the journal line is the signed envelope (what every restart serves).
+      env = { ...unsigned, gatewaySignature: signFeedEnvelope(unsigned, this.options.gatewayCode, this.options.signingKey.keyId, this.options.signingKey.privateKey) };
+    } catch (e) {
+      this.options.onAlarm?.({ kind: 'FEED_JOURNAL_FAILED', message: `the OPC UA feed cannot sign ${messageType} ${sourceRecordId}: ${e instanceof Error ? e.message : String(e)}; not published`, details: { sourceRecordId } });
+      return null;
+    }
     try {
       writeSync(this.fd, `${JSON.stringify(env)}\n`);
       fsyncSync(this.fd);

@@ -1119,7 +1119,7 @@ export const TARGETS: Target[] = [
                 'platform.mirror_fresh_or_raise', 'platform.record_inbound_override', 'iam.qualification_source_fresh',
                 'iam.lms_mirror_problem', 'iam.lms_qualification_payload_problem', 'iam.receive_lms_qualification'],
     tests: [k('inbound/inbound.test.ts'), k('inbound/overrides-and-lms-mirror.test.ts'), k('integrations/lms-inbound.test.ts'),
-            k('integration/authorization.test.ts')],
+            k('integration/authorization.test.ts'), k('inbound/source-verification.test.ts'), s('equipment-data/feed-signature.test.ts')],
     threshold: 90,
   },
   // ---- 6a, adapters and mirrors: receipt, approved manufacturers, stock locations, the ERP lot status mirror and
@@ -1445,6 +1445,17 @@ export const TARGETS: Target[] = [
       'platform.validation_summary_problem', 'platform.describe_interface', 'platform.system_description', 'platform.interface_described',
     ],
     tests: [k('config/release-identity.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7a (decision 0022): the gateway feed signature checked in the database (6jc-R9, DI-31, DI-20; kernel
+  // 1305, tablets 1405). The re-created platform.accept_inbound_detail and inbound_envelope_problem stay in their group.
+  {
+    group: 'gateway-feed-signature',
+    functions: [
+      'platform.source_requires_signature', 'platform.inbound_envelope_key', 'platform.record_source_verification',
+      'tab.accept_gateway_envelope', 'tab.feed_signature_message', 'tab.bind_gateway_feed', 'tab.gateway_feed_binding_guard',
+    ],
+    tests: [k('inbound/source-verification.test.ts'), s('equipment-data/feed-signature.test.ts')],
     threshold: 90,
   },
   // Phase 7 slice 7a (decision 0022): QA approval of the plant rules (6jc-R10, PR-27; recipe-core 1210).

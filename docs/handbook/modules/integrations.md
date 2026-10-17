@@ -24,6 +24,7 @@ The server side (how a reading is stored, claimed by an entry and checked by the
 | Device drivers | [drivers/](../../../apps/site-gateway/src/drivers/) |
 | Gateway configuration (`EBMR_GW_CONFIG`) | [config.ts](../../../apps/site-gateway/src/config.ts#sym=parseGatewayConfig) |
 | Simulators: scale, process, printer, serialisation L3, ERP | [apps/simulators/src/](../../../apps/simulators/src/) |
+| Gateway feed signature and adapter mutual TLS (Phase 7 slice 7a) | [feed-signature.ts](../../../packages/integration-sdk/src/adapter/feed-signature.ts), [transport.ts](../../../packages/integration-sdk/src/adapter/transport.ts), [adapters/transport.ts](../../../apps/tablets-server/src/features/integrations/adapters/transport.ts) |
 | Server side: gateway listener, enrolment, reading storage | [apps/tablets-server/src/features/devices/](../../../apps/tablets-server/src/features/devices/) |
 | Tests | [integration-sdk/test](../../../packages/integration-sdk/test/), [site-gateway/test](../../../apps/site-gateway/test/), [simulators/test](../../../apps/simulators/test/) |
 
@@ -382,6 +383,65 @@ AGGREGATION_MISMATCH plus the feed's DUPLICATE, OUT_OF_ORDER, MALFORMED, WRONG_B
 [l3-adapter.test.ts](../../../apps/tablets-server/test/integrations/l3-adapter.test.ts) (GMP server whose L3 is the
 simulator; the period reconciles, no silent loss).
 
+## The signed gateway feed and mutual TLS (Phase 7, slice 7a)
+
+Before 7a, whoever held an adapter's credentials (or the application role's, ADR 0012) could hand the database any
+OPC UA series, alarm, event or endpoint session "from the gateway", and the adapters spoke plain HTTP. Slice 7a closes
+both (6jc-R9; [DI-31](../../../compliance/controls/DI-31.yaml), [DI-20](../../../compliance/controls/DI-20.yaml);
+interfaces sections 2 and 3 of [slice-7-0-interfaces.md](../../build-plan/phase-7/slice-7-0-interfaces.md)).
+
+**The signature.** The gateway signs each envelope of its OPC UA feed with its enrolled Ed25519 key. The signed bytes
+are built only by `feedSignatureMessage` in
+[feed-signature.ts](../../../packages/integration-sdk/src/adapter/feed-signature.ts): a domain line, the gateway code,
+the source, type and version, the sequence number, the idempotency key, the payload hash and the key id (SHA-256 of the
+key's SPKI DER). The envelope carries `gatewaySignature {alg, gatewayCode, keyId, sig}`. The sequence, type and payload
+hash are signed, so a captured envelope replayed under a new sequence number fails. The source record id and the
+envelope's source timestamp are not signed; the data's own times are in the payload, which the hash covers.
+
+**Where it is checked: in the database.** Kernel
+[1305](../../../packages/kernel/sql/1305_source_signature_marker.sql) adds an edition-neutral marker:
+`platform.signing_source` lists the sources that must be verified (OPCUA), and `platform.accept_inbound_detail`, which
+every receiving command calls before it writes, refuses an envelope of such a source unless an owner-level edition
+verifier recorded its verification in the same transaction (`platform.record_source_verification`, granted to nobody).
+The verification is used up by its one envelope. Tablets [1405](../../../apps/tablets-server/sql/1405_gateway_feed_signature.sql)
+is that verifier: `tab.accept_gateway_envelope(json)` checks the adapter's bound gateway (`tab.gateway_feed_binding`,
+set by the device administrator with `tab.bind_gateway_feed`), finds the gateway's ACTIVE key whose SHA-256 is the key
+id, checks that the payload text as sent hashes to the signed payload hash, verifies the signature with
+`tab.ed25519_verify` (a key the database does not trust, tablets 0702, is refused), records the verification and then
+calls the `plant.receive_*` command of the type. It takes `json`, not `jsonb`: jsonb reorders the payload's keys, and
+then the payload could be swapped under a valid signature. `tab.feed_signature_message` is the SQL twin of the message
+builder; the test compares it with the SDK's committed vectors.
+
+| Code | Refusal |
+|---|---|
+| EBMR-INT-030 | no `gatewaySignature`, or an OPCUA envelope reached a receiving command without verification |
+| EBMR-INT-031 | the adapter is bound to no gateway, or the gateway has no ACTIVE trusted key with this id |
+| EBMR-INT-032 | the payload is not the signed one, or the signature does not verify (replays among them) |
+| EBMR-INT-033 | the envelope names another gateway than the bound one, or another gateway's key |
+
+All four are WRONG_IDENTITY. The transaction rolls back and the worker records the refusal with its alarm
+(`platform.record_inbound_refusal`), so nothing else is written. The EMS adapter, which also calls
+`plant.receive_series_chunk` and `plant.receive_equipment_alarm`, is not a signing source and works as before. Tests
+that exercise a receiving command directly deliver an OPCUA envelope through a TEST-ONLY verifier made in the test's
+own database (`receive` in [packages/kernel/test/integrations/support.ts](../../../packages/kernel/test/integrations/support.ts)).
+
+**Mutual TLS.** Every adapter's options take `tls?: AdapterTls` (CA, certificate, key, server name;
+[transport.ts](../../../packages/integration-sdk/src/adapter/transport.ts)). The server reads them from
+`EBMR_ADAPTER_TLS_DIR` (`<adapter code>.ca.pem`, `.cert.pem`, `.key.pem`; all three or none). With TLS, the server's
+client ([adapters/transport.ts](../../../apps/tablets-server/src/features/integrations/adapters/transport.ts)) talks
+https only, presents its client certificate and verifies the peer against that one CA and the pinned server name (the
+base URL's host by default); the system trust store is never used. Each pulled page carries the SHA-256 fingerprint of
+the peer certificate, which `platform.accept_inbound_detail` keeps as `inbound_message.transport_peer` (the server
+reports it in the transaction setting `ebmr.transport_peer`). On a GMP installation an adapter whose base URL is off
+loopback without TLS does not start (EBMR-INT-034); its health shows BLOCKED with the refusal as the last error.
+Loopback without TLS stays allowed (D-P7-10).
+
+Tests: [feed-signature.test.ts](../../../apps/tablets-server/test/equipment-data/feed-signature.test.ts) (server),
+[source-verification.test.ts](../../../packages/kernel/test/inbound/source-verification.test.ts) (kernel),
+[adapter-startup.test.ts](../../../apps/tablets-server/test/integrations/adapter-startup.test.ts) (EBMR-INT-034 at
+start-up) and the gateway's [opcua-driver.test.ts](../../../apps/site-gateway/test/opcua-driver.test.ts). The test
+certificates are made at run time by [test-pki.ts](../../../apps/tablets-server/test/support/test-pki.ts).
+
 ## site-gateway: the equipment gateway
 
 ### Start, identity and gateway keys
@@ -504,6 +564,16 @@ events (counts, reader, vision and challenge results, faults, OFFLINE and STALE)
 
 Tests: [process.test.ts](../../../apps/site-gateway/test/process.test.ts),
 [printer.test.ts](../../../apps/site-gateway/test/printer.test.ts).
+
+### The OPC UA feed signature (Phase 7, slice 7a)
+
+[OpcuaFeed](../../../apps/site-gateway/src/opcua-feed.ts) signs every envelope with the gateway key when it journals it
+(`signFeedEnvelope` of the SDK; the key id is the SHA-256 of the key's SPKI DER, `feedKeyId`) and writes the signed
+envelope as the journal line. A restart therefore serves the very same bytes, signature included. An envelope that
+cannot be signed is alarmed and not published. A journal written before 7a holds unsigned envelopes; the server refuses
+them (EBMR-INT-030), so start a 7a gateway with a fresh journal directory. The key is the gateway's own key file
+(DEMO-ONLY; a KMS or HSM at deployment), the one enrolled in `tab.gateway_key`. On the server, the device administrator
+binds the OPCUA adapter to the gateway (`tab.bind_gateway_feed`); see the [runbook](../10-runbooks.md).
 
 ### The clock
 
