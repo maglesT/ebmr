@@ -50,6 +50,8 @@ interface EvidenceTest {
   steps: { title: string; durationMs: number; error: string | null }[];
   evidence: EvidenceRecord[];
   screenshots: string[];
+  /** The test's first error (a failed or timed-out test), for the Phase 6 exit demo's record. */
+  error: string | null;
 }
 
 /** The expect steps a step made, at any depth (a helper's assertions count), but not expect.poll's inner retries. */
@@ -113,7 +115,8 @@ export default class EvidenceReporter implements Reporter {
       startedAt: result.startTime.toISOString(),
       steps: result.steps.filter((s) => s.category === 'test.step').map((s) => ({ title: s.title, durationMs: s.duration, error: s.error?.message ?? null })),
       evidence: evidenceOf(result),
-      screenshots: result.attachments.filter((a) => a.contentType === 'image/png' && a.path).map((a) => a.path ?? ''),
+      screenshots: result.attachments.filter((a) => (a.contentType === 'image/png' || a.contentType === 'image/jpeg') && a.path).map((a) => a.path ?? ''),
+      error: result.error?.message ?? null,
     });
   }
 
