@@ -2925,3 +2925,7 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
 
 ## 17 October 2026: Phase 6A exit (slice 6A-7) merged
 - The trace half (drafts DI-51, DI-52, DI-53 and PR-61 with all 23 clauses proven at a phase-7 dry run, four browser flows, handbook) and the review half (0 critical; P6A7-1 to 3 high and P6A5-2 fixed in kernel 1280 to 1282; residuals P6A7-4 to 9 in `docs/build-plan/phase-6a/review-backlog.md`) joined by a merge commit; local runs 6,882 tests, golden 44/44, `pnpm trace` at 6 ok (151/246); next Phase 7 (decision 0023).
+
+## 17 October 2026: Phase 7 planned (validation pack and hardening)
+
+- Plan `docs/build-plan/phase-7/phase-7-plan.md` (slices 7-0 to 7f, defaults D-P7-1 to 16), interfaces `slice-7-0-interfaces.md`, decision 0024 (scope and reconciled exit criteria, the lead's default): at v1.0-rc 147 of 155 Tablets-gate controls VERIFIED, 5 drafts IMPLEMENTED, 3 SPECIFIED for their Injectables parts; mutation focused and boxed (6 + 4 pod hours); targets, IQ/OQ/PQ, the expert's decisions and the external penetration test at deployment.
