@@ -52,7 +52,7 @@ function FlagLine({ f }: { f: FlagView }) {
   return (
     <li data-testid={`analytics-flag-${f.flagId}`}>
       <StatusChip tone={f.severity === 'HIGH' ? 'error' : f.severity === 'ATTENTION' ? 'warning' : 'info'} label={f.severity} /> <strong>{f.rule}</strong> on{' '}
-      {f.drill ? <Link to={f.drill}>{f.subjectLabel}</Link> : f.subjectLabel} · {f.method.id} version {f.method.version.toString()} · raised {f.raisedAt.text} · data as of{' '}
+      {f.drill ? <Link to={f.drill}>{f.subjectLabel}</Link> : f.subjectLabel} · {f.method.id} version {f.method.version.toString()} · raised {f.raisedAt.text}{f.raisedCount !== undefined && f.raisedCount > 1 && f.firstRaisedAt ? <span data-testid="analytics-flag-repeats">{` (raised ${f.raisedCount.toString()} times since ${f.firstRaisedAt.text})`}</span> : null} · data as of{' '}
       {f.run.dataAsOf.text}
       <ul>{f.reasons.map((r, i) => <li key={`${r.code}-${i.toString()}`}>{r.text}</li>)}</ul>
       {f.disposition ? (

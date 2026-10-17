@@ -96,7 +96,7 @@ jobs:
                 governance-change-control, governance-support-and-contract-giver, india-dsc, reporting-and-training,
                 transfer-and-federation, analytics-foundation,
                 analytics-method-change, analytics-inputs,
-                analytics-rate-inputs, analytics-profile-inputs]
+                analytics-rate-inputs, analytics-profile-inputs, analytics-mspc-reference]
     services:
       postgres:
         image: postgres:16

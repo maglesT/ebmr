@@ -61,6 +61,8 @@ tests:
   - "packages/recipe-core/test/analytics/series-inputs.test.ts > the golden batch profile inputs (recipe-core 1170) > [DI-51] the inputs are on the analytics role's allow-list, which reads nothing behind them; the segregation check stays clean"
   - "apps/tablets-server/test/analytics/profile.test.ts > the golden batch profile (GBP.DTW_BAND) > [DI-51] the profile reads the native series and never changes plant.series or the record's dynamic data refs"
   - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-51] the profile screens show the advisory band, the method and the data age, and label every statistic"
+  - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-51] the multivariate screen shows the advisory band, the T-squared and Q charts, the scores plot and the flagged batch, every statistic labelled"
+  - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-51] a batch's contributions show each recorded value as decimal text, largest first, and drill to the batch record"
 expert_decision:
   status: PENDING
   pack_version: draft

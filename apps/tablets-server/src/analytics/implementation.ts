@@ -6,6 +6,7 @@
  * method-types.ts (re-exported here); an implementation file imports them from there, so this list causes no import cycle.
  */
 import type { MethodImplementation } from './method-types.ts';
+import { MSPC_IMPLEMENTATION } from './mspc.ts';
 import { GOLDEN_PROFILE } from './profile.ts';
 import { SPC_IMPLEMENTATIONS } from './spc.ts';
 
@@ -14,5 +15,6 @@ export { implementation, type InputRow, type InputSpec, type MethodImplementatio
 /** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10); each method slice adds its own line. */
 export const IMPLEMENTATIONS: readonly MethodImplementation[] = [
   ...SPC_IMPLEMENTATIONS, // 6A-2 (spc.ts)
+  MSPC_IMPLEMENTATION, // 6A-3 (mspc.ts)
   GOLDEN_PROFILE, // 6A-6
 ];

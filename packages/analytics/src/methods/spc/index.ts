@@ -12,11 +12,18 @@
  * sigma (c4 +- 3 sqrt(1 - c4^2)) at that size, the lower one not below 0.
  * With a reference model (an approved reference set, D-6A-2-1) whose subject and chart match, its centre and sigma are
  * used instead, and the output says REFERENCE_SET; otherwise PHASE_I, labelled as such.
+ * Reference sets in runs (slice 6A-3, D-6A-3-7): a run with a reference set charts only that set's series (any other is
+ * skipped with the reason). A run without one leaves out the series a set in force covers (input `covered`, skipped
+ * with the reason) and, for each series charted with complete Phase I limits, gives a MODEL_CANDIDATE: the model
+ * {subjectRef, chart, centre, sigma, batchIds (the Phase I batches, sorted), phaseOneBatches} and its SHA-256, which QA
+ * can make a reference set under a change record (the database checks the hash, EBMR-ANA-010).
  * The rules run on every point, standardised by its own sigma. A series with fewer batches than Phase I needs, or no
  * variation in Phase I, is skipped with the reason.
  */
 import type { Method, MethodResult, Parameters, ReferenceModel, Skipped } from '../../method.ts';
+import { canonicalText } from '../../numeric/canonical.ts';
 import { statOf } from '../../numeric/from-decimal.ts';
+import { sha256Hex } from '../../numeric/sha256.ts';
 import type { FlagDraft, OutputDraft, Reason } from '../../types.ts';
 import { seriesRef, specificationValues, type BatchRef, type BatchValueInput, type SubgroupInput } from './input.ts';
 import { RULE_TEXT, nelsonHits, type RuleHit } from './rules.ts';
@@ -79,6 +86,30 @@ function ruleFlags(subjectRef: string, hits: readonly RuleHit[], points: readonl
   return flags;
 }
 
+/**
+ * Whether a run charts a series: a run with a reference set only that set's series and chart; a run without one every
+ * series no set in force covers. Returns the reason it does not, or null.
+ */
+function notCharted(subjectRef: string, chart: 'IMR' | 'XBAR_S', ref: ReferenceModel | null, covered: readonly string[] | undefined): string | null {
+  if (ref === null) return covered?.includes(subjectRef) ? 'a reference set in force covers this chart; it is charted by that set\'s own run' : null;
+  if (ref.model['subjectRef'] !== subjectRef || ref.model['chart'] !== chart) return `outside reference set ${ref.id}'s scope; it is charted by the run without a reference set`;
+  return referenceLimits(ref, subjectRef, chart) ? null : `reference set ${ref.id} does not hold a centre and a positive sigma; not charted`;
+}
+
+/** The model candidate of a chart with complete Phase I limits (D-6A-3-7). */
+function spcCandidate(subjectRef: string, chart: 'IMR' | 'XBAR_S', limits: Limits, phaseOne: readonly BatchRef[], m: number): OutputDraft {
+  const model = { subjectRef, chart, centre: limits.centre, sigma: limits.sigma, batchIds: phaseOne.map((b) => b.batchId).sort(), phaseOneBatches: m };
+  const [product, family, item] = subjectRef.split('|');
+  return {
+    subjectKind: 'PRODUCT_ITEM', subjectRef, kind: 'MODEL_CANDIDATE',
+    values: {
+      model, modelSha256: sha256Hex(canonicalText(model)), product: product ?? '', family: family ?? '', item: item ?? '', chart, centre: limits.centre, sigma: limits.sigma,
+      batches: phaseOne.length, batchIds: phaseOne.map((b) => b.batchId), batchNumbers: phaseOne.map((b) => b.batchNumber),
+    },
+    reasons: [{ code: 'CANDIDATE', text: `the Phase I limits of the first ${m.toString()} batches; QA can make them the chart's reference set under a change record` }],
+  };
+}
+
 /** The rule names per point (for the chart's points), as a ';'-separated list per point, ','-joined. */
 const pointRules = (n: number, hits: readonly RuleHit[]): string =>
   Array.from({ length: n }, (_, k) => [...new Set(hits.filter((h) => h.points.includes(k)).map((h) => h.rule))].sort().join(';')).join(',');
@@ -90,6 +121,11 @@ export function runImr(input: BatchValueInput, params: SpcParameters, ref: Refer
   for (const s of input.series) {
     const subjectRef = seriesRef(s);
     const m = params.phaseOneBatches;
+    const not = notCharted(subjectRef, 'IMR', ref, input.covered);
+    if (not !== null) {
+      skipped.push({ subject: subjectRef, reason: not });
+      continue;
+    }
     const x = s.points.map((p) => statOf(p.value));
     const fromRef = referenceLimits(ref, subjectRef, 'IMR');
     if (!fromRef && x.length < m) {
@@ -126,6 +162,7 @@ export function runImr(input: BatchValueInput, params: SpcParameters, ref: Refer
       reasons: [limitsReason(limits, m, ref?.id ?? null), { code: 'CHART_IMR', text: `I-MR chart of ${x.length.toString()} batches (${LABEL[limits.source]})` }],
     });
     flags.push(...ruleFlags(subjectRef, hits, s.points, `${s.item} I-MR chart`));
+    if (limits.source === 'PHASE_I' && x.length >= m) outputs.push(spcCandidate(subjectRef, 'IMR', limits, s.points.slice(0, m), m));
   }
   return { outputs, flags, skipped };
 }
@@ -144,6 +181,11 @@ export function runXbarS(input: SubgroupInput, params: XbarSParameters, ref: Ref
   for (const s of input.series) {
     const subjectRef = seriesRef(s);
     const m = params.phaseOneBatches;
+    const not = notCharted(subjectRef, 'XBAR_S', ref, input.covered);
+    if (not !== null) {
+      skipped.push({ subject: subjectRef, reason: not });
+      continue;
+    }
     const kept = s.points.filter((p) => {
       if (p.values.length >= params.minSubgroup) return true;
       skipped.push({ subject: `${subjectRef}|${p.batchNumber}`, reason: `fewer than ${params.minSubgroup.toString()} readings (${p.values.length.toString()}); not charted` });
@@ -190,6 +232,7 @@ export function runXbarS(input: SubgroupInput, params: XbarSParameters, ref: Ref
       reasons: [limitsReason(limits, m, ref?.id ?? null), { code: 'CHART_XBAR_S', text: `Xbar-S chart of ${means.length.toString()} batches, subgroups of ${n.toString()} readings (${LABEL[limits.source]})` }],
     });
     flags.push(...ruleFlags(subjectRef, hits, kept, `${s.item} Xbar-S chart`));
+    if (limits.source === 'PHASE_I' && groups.length >= m) outputs.push(spcCandidate(subjectRef, 'XBAR_S', limits, kept.slice(0, m), m));
   }
   return { outputs, flags, skipped };
 }

@@ -105,6 +105,8 @@ export async function monitor(db: Db): Promise<AnalyticsMonitorView> {
 export interface FlagRow {
   flag_id: string; run_id: string; method: string; version: number; subject_kind: FlagView['subjectKind']; subject_ref: string; rule: string;
   severity: FlagView['severity']; reasons: FlagView['reasons']; raised_us: string; asof_us: string; finished_us: string; restricted: boolean;
+  /** The open-flags list only (kernel 1271, D-6A-3-9): the raises of the same hit and the first one's time. */
+  raised_count?: number; first_us?: string;
 }
 
 interface DispositionRow {
@@ -119,7 +121,7 @@ const FLAG_COLUMNS = `f.flag_id::text, f.run_id::text, f.method, f.version, f.su
 export async function unrestrictedFlags(db: Db, q: { from: string | null; to: string | null; kind: string | null; zone: string; flagId?: string }): Promise<FlagRow[]> {
   const open = q.from === null && q.to === null && q.flagId === undefined;
   const { rows } = await db.query<FlagRow>(
-    `select ${FLAG_COLUMNS}, false as restricted
+    `select ${FLAG_COLUMNS}, false as restricted${open ? `, f.raised_count, ${usOf('f.first_raised_at')} as first_us` : ''}
        from ${open ? 'analytics.open_flag_v1' : 'analytics.flag_v1'} f
       where ($1::text is null or f.subject_kind = $1)
         and ($2::date is null or f.raised_at >= ($2::date::timestamp at time zone $4))
@@ -200,6 +202,7 @@ export async function flagViews(app: AppContext, db: Db, rows: readonly FlagRow[
       restricted: r.restricted,
       disposition: views.find((d) => d.flagId === r.flag_id && d.current) ?? null,
       drill: r.subject_kind === 'BATCH' && batchNumber.has(r.subject_ref) ? `/review/${r.subject_ref}` : null,
+      ...(r.raised_count !== undefined && r.first_us !== undefined ? { raisedCount: r.raised_count, firstRaisedAt: app.formatInstant(r.first_us) } : {}),
     };
   });
   return { flags, dataAgeSeconds: age[0]?.age ?? 0 };

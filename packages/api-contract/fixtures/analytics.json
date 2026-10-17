@@ -158,7 +158,12 @@
         },
         "restricted": false,
         "disposition": null,
-        "drill": "/analytics/spc?product=PCM-500&family=GRAN&item=granulation.endpoint"
+        "drill": "/analytics/spc?product=PCM-500&family=GRAN&item=granulation.endpoint",
+        "raisedCount": 3,
+        "firstRaisedAt": {
+          "us": "1791439200000000",
+          "text": "10-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+        }
       }
     ]
   },

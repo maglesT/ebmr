@@ -114,6 +114,12 @@ export async function chartView(app: AppContext, db: Db, q: { product: string; f
     }];
   });
   const flags = [...(await runFlags(app, db, o.run_id, [ref])), ...(await driftFlags(app, db, ref))];
+  // Slice 6A-3 (D-6A-3-7): the reference set behind REFERENCE_SET limits, or the run's candidate of its Phase I limits.
+  const { rows: runRows } = await db.query<{ reference_set: string | null }>('select reference_set::text from analytics.run_v1 where run_id = $1', [o.run_id]);
+  const { rows: cand } = await db.query<{ output_id: string; values: Values }>(
+    `select output_id::text, "values" from analytics.output_v1 where run_id = $1 and kind = 'MODEL_CANDIDATE' and subject_ref = $2 order by output_id limit 1`, [o.run_id, ref]);
+  const c = cand[0];
+  const candidateIds = c && Array.isArray(c.values['batchIds']) ? (c.values['batchIds'] as unknown[]).filter((x): x is string => typeof x === 'string') : [];
   return {
     ...envelopeOf(app, o),
     product: q.product,
@@ -131,6 +137,10 @@ export async function chartView(app: AppContext, db: Db, q: { product: string; f
     points,
     flags,
     skipped: ids.length === points.length ? [] : [{ subject: ref, reason: `${(ids.length - points.length).toString()} charted batch(es) are no longer completed GMP batches and are not shown` }],
+    referenceSet: runRows[0]?.reference_set ?? null,
+    candidate: c && str(c.values['modelSha256']) && candidateIds.length > 0
+      ? { outputId: c.output_id, modelSha256: str(c.values['modelSha256'])!, batches: candidateIds.length, batchIds: candidateIds }
+      : null,
   };
 }
 

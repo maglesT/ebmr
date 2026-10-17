@@ -1397,4 +1397,13 @@ export const TARGETS: Target[] = [
     tests: [r('analytics/series-inputs.test.ts')],
     threshold: 90,
   },
+  // ---- 6A-3, multivariate monitoring's lead items (kernel 1270, 1271): a reference set carries its candidate's own
+  //      model and batches (DI-52); the monitor counts a repeated flag with its signal's disposition (kernel 1271 replaces
+  //      analytics.method_monitor_rows_v1, which stays in LEFT_OUT as a screen's read). ----
+  {
+    group: 'analytics-mspc-reference',
+    functions: ['analytics.reference_candidate_check'],
+    tests: [k('analytics/repeats-and-candidates.test.ts')],
+    threshold: 90,
+  },
 ];

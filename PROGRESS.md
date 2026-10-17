@@ -222,6 +222,16 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   - Defaults D-6A-6-1 to 12 are in the plan. Quick review: one high fixed with tests (unbounded reads and outputs;
     each run now takes the latest 50 curves of each scope, D-6A-6-12). Two of them correct literal readings of D-6A-16 that would flag normal
     curves (D-6A-6-3, D-6A-6-4).
+- **6A-3 (17 October, branch `phase-6a/slice-3`, pushed, no PR yet; merges `phase-6a/slice-6`):** multivariate
+  monitoring.
+  - Method `MSPC.PCA`: autoscaled PCA by SVD (90 %, at most 5 components), T-squared (beta and F limits), Q
+    (Jackson-Mudholkar), contributions; checked against NumPy and SciPy. The synthetic history's batch 27 is caught by Q
+    with hardness and thickness named, every value within its limits.
+  - Reference sets in runs (lead item a): SPC and PCA read the sets in force as 6A-6 does; SPC charts give their Phase I
+    limits as a candidate QA can approve. Kernel 1270 checks a set's model and batches are its candidate's.
+  - Repeated flags (lead item b): kernel 1271 lists an open hit once with its count; a disposition covers its repeats.
+  - Screens `/analytics/mspc` and `/analytics/mspc/batches/:batchId`; routes `analyticsMspc`. Defaults D-6A-3-1 to 11 in
+    the plan.
 - **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).

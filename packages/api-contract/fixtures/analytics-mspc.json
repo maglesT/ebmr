@@ -34,9 +34,29 @@
     "limits": {
       "t2": 13.2,
       "q": 2.9,
-      "confidence": 0.99
+      "confidence": 0.99,
+      "t2Reference": 9.6,
+      "qMethod": "JACKSON_MUDHOLKAR"
     },
     "batches": [
+      {
+        "batchId": "b6000000-0000-4000-8000-000000000001",
+        "batchNumber": "PCM500-2610-001",
+        "reference": true,
+        "t2": 1.7,
+        "q": 0.4,
+        "scores": [
+          0.8,
+          -0.9
+        ],
+        "flagged": false,
+        "drill": "/analytics/mspc/batches/b6000000-0000-4000-8000-000000000001",
+        "completedAt": {
+          "us": "1791529200000000",
+          "text": "11-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "t2Limit": 9.6
+      },
       {
         "batchId": "b6000000-0000-4000-8000-000000000027",
         "batchNumber": "PCM500-2610-027",
@@ -48,7 +68,12 @@
           -3.4
         ],
         "flagged": true,
-        "drill": "/review/b6000000-0000-4000-8000-000000000027"
+        "drill": "/analytics/mspc/batches/b6000000-0000-4000-8000-000000000027",
+        "completedAt": {
+          "us": "1791529200000000",
+          "text": "11-OCT-2026 11:10:00 +05:30 (Asia/Kolkata)"
+        },
+        "t2Limit": 13.2
       }
     ],
     "flags": [
@@ -132,6 +157,17 @@
         "value": "4.12",
         "t2": 7.7,
         "q": 0.5
+      },
+      {
+        "variable": "tablet.weight",
+        "value": null,
+        "readings": [
+          "250.1",
+          "249.8",
+          "250.4"
+        ],
+        "t2": 0.6,
+        "q": 0.1
       }
     ],
     "flags": [
@@ -173,7 +209,11 @@
         "drill": "/analytics/mspc/batches/b6000000-0000-4000-8000-000000000027"
       }
     ],
-    "drill": "/review/b6000000-0000-4000-8000-000000000027"
+    "drill": "/review/b6000000-0000-4000-8000-000000000027",
+    "product": "PCM-500",
+    "family": "GRAN",
+    "referenceSet": "e6000000-0000-4000-8000-000000000001",
+    "reference": false
   },
   "candidates": {
     "advisory": true,
@@ -210,6 +250,38 @@
             "subject": "b6000000-0000-4000-8000-000000000005",
             "reason": "hardness not recorded"
           }
+        ],
+        "batchIds": [
+          "b6000000-0000-4000-8000-000000000001",
+          "b6000000-0000-4000-8000-000000000002"
+        ],
+        "batchNumbers": [
+          "PCM500-2610-001",
+          "PCM500-2610-002"
+        ],
+        "variables": [
+          "hardness",
+          "thickness",
+          "granulation.endpoint"
+        ],
+        "explainedVariance": [
+          0.61,
+          0.27
+        ],
+        "limits": {
+          "t2": 13.2,
+          "q": 2.9,
+          "confidence": 0.99,
+          "t2Reference": 9.6,
+          "qMethod": "JACKSON_MUDHOLKAR"
+        },
+        "referenceT2": [
+          1.7,
+          2.2
+        ],
+        "referenceQ": [
+          0.4,
+          0.6
         ]
       }
     ]

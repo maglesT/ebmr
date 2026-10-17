@@ -1190,6 +1190,7 @@ received, never on what the sender claims about it; a claim that failed its chec
   deep into the tails" (down to z = -30) and the Anderson-Darling reference values.
 - **Lesson:** check a numerical door at the extremes it will meet, against an independent reference, before building
   on it.
+
 ## Slice 6A-6: golden batch profile (Phase 6A)
 
 ### P6A6-1: the plan's band rule would flag about half of the normal curves (found while building)
@@ -1221,6 +1222,29 @@ analytics schema, so the DI-51 dependency proof is unchanged (D-6A-6-7).
 ### P6A6-4: an import cycle between the implementation list and a method file (found while building)
 
 **Fix.** The implementation shapes moved to `method-types.ts`, and `implementation.ts` re-exports them.
+
+## Slice 6A-3: multivariate monitoring (Phase 6A)
+
+### P6A3-1: the open flags list repeated every run's raise of the same hit (6A-2's residual)
+
+**Symptom.** Each run assesses its whole input again, so a nightly run raised an open rule hit again, and
+`analytics.open_flag_v1` listed every raise until QA dispositioned each one.
+
+**Fix.** Kernel 1271 lists each open signal (method, version, subject, rule, severity and reasons) once, as its latest
+raise with its count; a disposition on any raise covers the signal. The runs still record every raise (D-6A-3-9).
+
+**Test.** `[DI-52] a flag raised again by later runs is listed once while open, ...` (kernel) and the end-to-end test in
+`apps/tablets-server/test/analytics/mspc.test.ts`.
+
+### P6A3-2: a reference set was checked against its candidate by hash only (found while building)
+
+**Symptom.** EBMR-ANA-010 compares the set's model SHA-256 with the candidate's recorded hash. A writer could pair that
+hash with another model or with other batches; only the runner's later hash check would notice.
+
+**Fix.** Kernel 1270 (EBMR-ANA-030) requires the candidate's own model and batches, for every writer (D-6A-3-8).
+
+**Test.** `[DI-52] a reference set must carry its model candidate's own model and batches, not only its hash
+(EBMR-ANA-030)`.
 
 ## Open residuals for the owner
 

@@ -20,6 +20,7 @@
  */
 import {
   CAP_INDEX,
+  canonicalText,
   DRIFT_TREND,
   GROUPINGS,
   METHODS,
@@ -34,7 +35,6 @@ import {
   type DecimalText,
   type DriftParameters,
   type Grouping,
-  type Method,
   type MethodId,
   type Parameters,
   type RateInput,
@@ -45,22 +45,7 @@ import {
   type XbarSParameters,
 } from '@ebmr/analytics';
 
-// The shapes of implementation.ts (InputRow, InputSpec, MethodImplementation), declared here structurally: that file
-// lists this one's implementations, and an import back would be a cycle (dependency-cruiser no-circular).
-type InputRow = Readonly<Record<string, unknown>>;
-interface InputSpec {
-  readonly view: string;
-  readonly version: number;
-  readonly filter: Readonly<Record<string, string | number | boolean>> | null;
-}
-interface MethodImplementation<I = unknown, P extends Parameters = Parameters> {
-  readonly id: MethodId;
-  readonly versions: readonly number[];
-  readonly inputs: readonly InputSpec[];
-  assemble(rows: Readonly<Record<string, readonly InputRow[]>>, params: P): I;
-  readonly method: Method<I, P>;
-}
-const implementation = <I, P extends Parameters>(impl: MethodImplementation<I, P>): MethodImplementation => impl;
+import { implementation, type InputRow, type InputSpec, type MethodImplementation, type ReferenceRow } from './method-types.ts';
 
 type Rows = Readonly<Record<string, readonly InputRow[]>>;
 
@@ -233,9 +218,59 @@ export function assembleRates(rows: Rows): RateInput {
   };
 }
 
+/**
+ * Reference sets of the SPC charts (slice 6A-3, D-6A-3-7), read as 6A-6 reads its own (report.analytics_reference_v1,
+ * recipe-core 1170): a run without a reference set reads the sets in force too, and leaves the charts they cover to
+ * their own runs; a run with a set reads only the set's product, family and item. A set's scope and batches must be its
+ * model's (the candidate's), else that run fails with the reason.
+ */
+export const REFERENCE_VIEW = 'report.analytics_reference_v1';
+const referencesOf = (method: 'SPC.IMR' | 'SPC.XBAR_S'): InputSpec => ({ view: REFERENCE_VIEW, version: 1, filter: { method } });
+const objectOf = (v: unknown): Record<string, unknown> => (v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+
+/** The chart subjects the reference sets in force cover (their models' subjectRef), for a run without a set. */
+export function coveredSubjects(rows: Rows, chart: 'IMR' | 'XBAR_S'): string[] {
+  return (rows[REFERENCE_VIEW] ?? []).map((r) => objectOf(r['model'])).filter((m) => m['chart'] === chart && typeof m['subjectRef'] === 'string')
+    .map((m) => m['subjectRef'] as string).sort();
+}
+
+/** The inputs of a run against a reference set: its product, family and item. */
+function spcInputsFor(ref: ReferenceRow): readonly InputSpec[] {
+  const subjectRef = ref.model['subjectRef'];
+  const [product, family, item] = (typeof subjectRef === 'string' ? subjectRef : '').split('|');
+  return [
+    { view: BATCH_FACT, version: 1, filter: { product_code: product ?? '', family_code: family ?? '' } },
+    { view: CPP_VALUE, version: 1, filter: { item: item ?? '' } },
+  ];
+}
+
+/** Why a reference set cannot be used for this chart (empty when it can): its scope and batches must be its model's. */
+export function spcReferenceProblems(ref: ReferenceRow, chart: 'IMR' | 'XBAR_S'): string[] {
+  const m = ref.model;
+  const problems: string[] = [];
+  const parts = typeof m['subjectRef'] === 'string' ? m['subjectRef'].split('|') : [];
+  if (parts.length !== 3 || m['chart'] !== chart) problems.push(`its model is not an ${chart === 'IMR' ? 'I-MR' : 'Xbar-S'} chart's (subjectRef product|family|item and chart ${chart})`);
+  const [product, family, item] = parts;
+  const scope = ref.scope;
+  if (scope['product'] !== product || scope['family'] !== family || scope['item'] !== item || (scope['chart'] !== undefined && scope['chart'] !== chart)) {
+    problems.push("its scope is not its model's (product, family and item)");
+  }
+  const modelBatches = Array.isArray(m['batchIds']) ? (m['batchIds'] as unknown[]).map(String).sort() : [];
+  if (canonicalText([...ref.batchIds].sort()) !== canonicalText(modelBatches)) problems.push("its batches are not its model's Phase I batches");
+  return problems;
+}
+
 export const SPC_IMPLEMENTATIONS: readonly MethodImplementation[] = [
-  implementation<BatchValueInput, SpcParameters>({ id: 'SPC.IMR', versions: [1], inputs: [spec(BATCH_FACT), spec(CPP_VALUE)], assemble: assembleBatchValues, method: SPC_IMR }),
-  implementation<SubgroupInput, XbarSParameters>({ id: 'SPC.XBAR_S', versions: [1], inputs: [spec(BATCH_FACT), spec(CPP_VALUE)], assemble: assembleSubgroups, method: SPC_XBAR_S }),
+  implementation<BatchValueInput, SpcParameters>({
+    id: 'SPC.IMR', versions: [1], inputs: [spec(BATCH_FACT), spec(CPP_VALUE), referencesOf('SPC.IMR')],
+    assemble: (rows) => ({ ...assembleBatchValues(rows), covered: coveredSubjects(rows, 'IMR') }), method: SPC_IMR,
+    references: referencesOf('SPC.IMR'), inputsFor: spcInputsFor, referenceProblems: (ref) => spcReferenceProblems(ref, 'IMR'),
+  }),
+  implementation<SubgroupInput, XbarSParameters>({
+    id: 'SPC.XBAR_S', versions: [1], inputs: [spec(BATCH_FACT), spec(CPP_VALUE), referencesOf('SPC.XBAR_S')],
+    assemble: (rows) => ({ ...assembleSubgroups(rows), covered: coveredSubjects(rows, 'XBAR_S') }), method: SPC_XBAR_S,
+    references: referencesOf('SPC.XBAR_S'), inputsFor: spcInputsFor, referenceProblems: (ref) => spcReferenceProblems(ref, 'XBAR_S'),
+  }),
   implementation<BatchValueInput, CapabilityParameters>({ id: 'CAP.INDEX', versions: [1], inputs: [spec(BATCH_FACT), spec(CPP_VALUE)], assemble: assembleBatchValues, method: CAP_INDEX }),
   implementation<BatchValueInput, DriftParameters>({ id: 'DRIFT.TREND', versions: [1], inputs: [spec(BATCH_FACT), spec(CPP_VALUE)], assemble: assembleBatchValues, method: DRIFT_TREND }),
   implementation<RateInput, RateParameters>({

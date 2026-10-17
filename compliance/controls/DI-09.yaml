@@ -57,6 +57,7 @@ tests:
   - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-52][DI-09] a method version without an approved change record is refused; under one it is listed with its intended use, parameters hash, validation reference, validity and change record"
   - "packages/kernel/test/analytics/method-change.test.ts > method versions under change control (kernel 1245) > [DI-52][DI-09] a method version without an approved change record is refused; a person holding ANALYTICS.METHOD writes it under one, and an administrator never does"
   - "packages/kernel/test/analytics/method-change.test.ts > method versions under change control (kernel 1245) > [DI-52][DI-09] a reference set is written under an approved change record, is its candidate's model, never changes and retires once"
+  - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-09] a reference set without an approved change record is refused"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:

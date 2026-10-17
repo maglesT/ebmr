@@ -1,7 +1,7 @@
 # analytics: advisory analytics (Phase 6A)
 
 **Draft.** This page is still being written; facts on it were checked against the code on 17 October 2026 (slices
-6A-0, 6A-1, 6A-2 and 6A-6). Slices 6A-3 to 6A-5 add their methods here.
+6A-0, 6A-1, 6A-2, 6A-3 and 6A-6). Slices 6A-4 and 6A-5 add their methods here.
 
 This page explains the advisory analytics of the Tablets edition: the pure package `packages/analytics`, the runner in
 the tablets server, the analytics role and schema in the database, the input views it reads, the method versions under
@@ -34,6 +34,9 @@ the plan is [phase-6a-plan.md](../../build-plan/phase-6a/phase-6a-plan.md) and t
 | Golden batch profile: method GBP.DTW_BAND and its curve arithmetic (6A-6) | [methods/profile/](../../../packages/analytics/src/methods/profile/) |
 | Its runner implementation, routes and screens (6A-6) | [profile.ts](../../../apps/tablets-server/src/analytics/profile.ts#sym=GOLDEN_PROFILE), [features/analytics/profile/](../../../apps/tablets-server/src/features/analytics/profile/), [ns/analytics-profile.ts](../../../packages/api-contract/src/ns/analytics-profile.ts), [tablets-web features/analytics/profile/](../../../apps/tablets-web/src/features/analytics/profile/) |
 | Series inputs and the reference sets in force (6A-6) | recipe-core [1170](../../../packages/recipe-core/sql/1170_analytics_series_inputs.sql) |
+| Multivariate monitoring: method MSPC.PCA and its PCA arithmetic (6A-3) | [methods/mspc/](../../../packages/analytics/src/methods/mspc/index.ts#sym=runMspc), [pca.ts](../../../packages/analytics/src/methods/mspc/pca.ts#sym=fitPca) |
+| Its runner implementation, routes and screens (6A-3) | [mspc.ts](../../../apps/tablets-server/src/analytics/mspc.ts#sym=MSPC_IMPLEMENTATION), [features/analytics/mspc/](../../../apps/tablets-server/src/features/analytics/mspc/), [ns/analytics-mspc.ts](../../../packages/api-contract/src/ns/analytics-mspc.ts), [tablets-web features/analytics/mspc/](../../../apps/tablets-web/src/features/analytics/mspc/) |
+| A reference set carries its candidate's model; repeated flags shown once (6A-3) | kernel [1270](../../../packages/kernel/sql/1270_analytics_reference_candidate.sql), [1271](../../../packages/kernel/sql/1271_analytics_flag_repeats.sql) |
 | Tests | [kernel test/analytics](../../../packages/kernel/test/analytics/), [recipe-core test/analytics](../../../packages/recipe-core/test/analytics/), [server test/analytics](../../../apps/tablets-server/test/analytics/), [web test/analytics](../../../apps/tablets-web/test/analytics/) |
 
 ## What it does
@@ -139,6 +142,13 @@ when asked for by kind (PERSON, ACCOUNT). A disposition is
 [`analytics.record_disposition`](../../../packages/kernel/sql/1242_analytics_record_functions.sql#sym=analytics.record_disposition),
 run as the person inside a command, insert-only and audited.
 
+Each run assesses its whole input again, so a nightly run raises an open hit again. The runs keep every raise
+(`analytics.flag_v1`, the audit trail); kernel 1271 groups them in the views (D-6A-3-9). A flag's signal is its method,
+version, subject, rule, severity and reasons. `analytics.open_flag_v1` lists each open signal once, as its latest raise
+with `raised_count` and `first_raised_at`, and the flags screen says how often it was raised. A disposition on any raise
+closes the signal, including the same hit raised later; a hit that differs in anything is listed on its own. The
+monitor counts each raise with its signal's disposition.
+
 ## Permissions (Tablets)
 
 | Permission | Roles | Used by |
@@ -212,6 +222,34 @@ of slice 6b (`plant.series`). It is advisory, and no profile is ever a GMP recor
   - The 6b trend viewer shows the same overlay under its chart: the band, the reference curve, the aligned batch curve,
     the flags and every sample as recorded (DI-32).
   - The routes answer EBMR-ANA-060 for a step without a series and EBMR-ANA-061 before a profile exists.
+
+## Multivariate monitoring (slice 6A-3)
+
+Method `MSPC.PCA` v1 shows a batch whose combination of critical values departs from QA's reference batches, even when
+each value is within its own limits, and names the variables that contribute most (decision 0016 item 2; plan defaults
+D-6A-11 and D-6A-3-1 to D-6A-3-11). It is advisory.
+
+- **Batch vector.** Per product and MBR family, the critical items of the newest completed batch: one value per batch
+  (the last attempt) or the mean of a subgroup item's readings, autoscaled. A batch missing a variable is skipped with
+  the reason.
+- **Candidate** (MODEL_CANDIDATE, subject `<product>|<family>`). It is fitted on the newest 100 batches that may be
+  reference batches: released, no critical deviation, every variable recorded; at least 15. PCA by SVD keeps the fewest
+  components reaching 90 % of the variance, at most 5. A first fit's Phase I limits leave out the batches beyond them,
+  named, and the model is fitted again. The candidate holds the model and its SHA-256.
+- **Reference set.** QA makes a candidate the reference set on `/analytics/mspc` under a change record approved for
+  `ANALYTICS_REFERENCE`. The database checks the hash (EBMR-ANA-010) and, since kernel 1270, the model and batches
+  themselves (EBMR-ANA-030).
+- **Scoring.** For each set in force a run scores the reference batches and the newest 50 others. T-squared has a beta
+  limit for a reference batch and an F limit for a new one, Q a Jackson-Mudholkar limit (Box's when that fails), all at
+  99 %. A batch outside the set beyond a limit is flagged `T2_ABOVE` or `Q_ABOVE`, with its top contributors.
+- **Screens.** `/analytics/mspc` shows the T-squared and Q charts, the scores plot, the batches and the candidates.
+  `/analytics/mspc/batches/:batchId` shows the contribution bars and the recorded values, and drills to the batch record.
+  The routes answer EBMR-ANA-031 before a scoring run and EBMR-ANA-032 for a batch without a score.
+- **Reference sets for SPC** (D-6A-3-7). An I-MR or Xbar-S chart with complete Phase I limits gives a candidate of those
+  limits; QA makes it the chart's reference set from the SPC screen. The run without a set then leaves that chart to the
+  set's own run, which charts `REFERENCE_SET` limits. Both methods read the sets in force as 6A-6 does
+  (`report.analytics_reference_v1`, a run per set).
+- **Known answers:** `packages/analytics/test/reference/mspc_reference.py` (NumPy, SciPy).
 
 ## Adding a method (slices 6A-2 to 6A-6)
 
