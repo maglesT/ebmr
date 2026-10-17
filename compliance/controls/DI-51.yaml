@@ -66,6 +66,7 @@ tests:
   - "apps/tablets-web/test/analytics/profile.test.tsx > golden batch profile screens (GMP) > [DI-51] the profile screens show the advisory band, the method and the data age, and label every statistic"
   - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-51] the multivariate screen shows the advisory band, the T-squared and Q charts, the scores plot and the flagged batch, every statistic labelled"
   - "apps/tablets-web/test/analytics/mspc.test.tsx > multivariate monitoring screens (GMP) > [DI-51] a batch's contributions show each recorded value as decimal text, largest first, and drill to the batch record"
+  - "packages/kernel/test/analytics/exit-review.test.ts > the verdicts of the audit-trail keys as an analytics input (kernel 1282; P6A5-2) > [DI-51][DI-53] the analytics role reads the current verdict of each audit-trail key from its allow-list; the application and reporting roles cannot, and the segregation check stays clean"
 expert_decision:
   status: PENDING
   pack_version: draft

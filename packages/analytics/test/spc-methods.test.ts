@@ -127,6 +127,33 @@ describe('SPC.IMR', () => {
     expect(r.outputs[0]!.reasons[0]!.code).toBe('LIMITS_PHASE_I');
   });
 
+  it('[DI-52] a chart shows, and its rules flag, only its newest chartBatches batches; its Phase I limits stay those of the first batches (D-6A-7-R3)', () => {
+    // 150 batches: Phase I alternates 10 and 12; a point far out at batch 31 (before the window) and at batch 121 (in it).
+    const values = Array.from({ length: 150 }, (_, k) => (k === 30 || k === 120 ? '30' : k % 2 === 0 ? '10' : '12'));
+    const r = runImr(series(values), spc, null);
+    const chart = r.outputs.find((o) => o.kind === 'CONTROL_CHART')!;
+    expect(spc.chartBatches).toBe(100);
+    close(chart.values['centre'] as number, 11, 1e-15);
+    expect((chart.values['plotted'] as number[]).length).toBe(100);
+    expect((chart.values['spread'] as number[]).length).toBe(99);
+    expect((chart.values['batchIds'] as string).split(',')[0]).toBe(batch(51).batchId);
+    expect((chart.values['valueTexts'] as string).split(',')).toHaveLength(100);
+    expect(chart.values).toMatchObject({ seriesBatches: 150, phaseOneBatches: 20 });
+    expect(chart.reasons[1]!.text).toMatch(/the newest 100 of 150 batches/);
+    const rule1 = r.flags.filter((f) => f.rule === 'NELSON_1');
+    expect(rule1.flatMap((f) => f.reasons.map((x) => x.text))).toEqual([expect.stringMatching(/batch B-121 /)]);
+    // The candidate keeps the first 20 batches; a series within the window is charted whole, as before.
+    expect((r.outputs.find((o) => o.kind === 'MODEL_CANDIDATE')!.values['batchIds'] as string[])).toHaveLength(20);
+    const short = runImr(series(values.slice(0, 40)), spc, null).outputs.find((o) => o.kind === 'CONTROL_CHART')!;
+    expect((short.values['plotted'] as number[]).length).toBe(40);
+    expect(short.values).not.toHaveProperty('seriesBatches');
+    // The Xbar-S chart likewise.
+    const groups: SubgroupInput = { series: [{ product: 'P', family: 'F', item: 'w', specification: SPEC,
+      points: Array.from({ length: 130 }, (_, k) => ({ ...batch(k + 1), values: [dt('10'), dt(k % 2 === 0 ? '11' : '12')] })) }] };
+    const xs = runXbarS(groups, defaultParameters('SPC.XBAR_S') as XbarSParameters, null).outputs.find((o) => o.kind === 'CONTROL_CHART')!;
+    expect([(xs.values['plotted'] as number[]).length, (xs.values['sizes'] as number[]).length, xs.values['seriesBatches']]).toEqual([100, 100, 130]);
+  });
+
   it('agrees with the offline reference: Phase I limits of 20 batches, and the shift from the 25th flagged with its batches', () => {
     const r = runImr(series(ref.imr.values), spc, null);
     const v = r.outputs[0]!.values;
@@ -399,6 +426,17 @@ describe('RATE.DEVIATION', () => {
     const compared = r.outputs.filter((o) => o.values['grouping'] === 'ROOM' && o.values['status'] === 'COMPARED');
     const q = benjaminiHochberg(compared.map((o) => o.values['pValue'] as number));
     compared.forEach((o, k) => close(o.values['qValue'] as number, q[k]!, 1e-15));
+  });
+
+  it('[DI-52] a comparison covers the product\'s newest windowBatches completed batches, so a group seen only before them is not output (D-6A-7-R3)', () => {
+    const at = (k: number) => ({ batchId: `00000000-0000-4000-8000-${k.toString().padStart(12, '0')}`, batchNumber: `B-${k.toString().padStart(4, '0')}`,
+                                 completedAt: `2026-01-01 00:00:00+00`.replace('00:00:00', `${Math.floor(k / 60).toString().padStart(2, '0')}:${(k % 60).toString().padStart(2, '0')}:00`) });
+    const batches = Array.from({ length: 250 }, (_, k) => ({ ...at(k + 1), groups: { ROOM: [k < 50 ? 'R-OLD' : k % 2 === 0 ? 'R-1' : 'R-2'], MATERIAL_LOT: [`L-${k.toString()}`] } }));
+    expect(params.windowBatches).toBe(200);
+    const r = RATE_DEVIATION.run({ products: [{ product: 'P', batches, deviations: [] }] }, params, null);
+    expect(r.outputs.filter((o) => o.values['grouping'] === 'ROOM').map((o) => o.subjectRef)).toEqual(['P|ROOM:R-1', 'P|ROOM:R-2']);
+    expect(r.outputs.filter((o) => o.values['grouping'] === 'MATERIAL_LOT')).toHaveLength(200);
+    expect(r.outputs[0]!.values).toMatchObject({ overallBatches: 200, periodFrom: at(51).completedAt, periodTo: at(250).completedAt });
   });
 
   it('the plan\'s default parameters fit the registry schema', () => {

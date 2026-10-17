@@ -29,7 +29,8 @@ export interface Snapshot {
   dataAsOf: string;
 }
 
-const VIEW = /^report\.[a-z][a-z0-9_]*_v[1-9][0-9]*$/;
+/** A report view, or a view of the analytics schema on the analytics role's allow-list (kernel 1282; slice 6A-7). */
+const VIEW = /^(report|analytics)\.[a-z][a-z0-9_]*_v[1-9][0-9]*$/;
 const FUNCTION = /^(report\.[a-z][a-z0-9_]*_v([1-9][0-9]*))\(([a-z0-9_, ]*)\)$/;
 const ARG_TYPE = /^[a-z][a-z0-9_]*( [a-z][a-z0-9_]*)*$/;
 const COLUMN = /^[a-z_][a-z0-9_]*$/;
@@ -54,7 +55,7 @@ export function callQuery(spec: InputSpec): string {
 
 /** The SQL and parameters of one input read; refuses a name that is not a catalogued view's or a column's shape. */
 export function inputQuery(spec: InputSpec): { text: string; values: unknown[] } {
-  if (!VIEW.test(spec.view)) throw new InputSpecError(`${spec.view} is not a report view name`);
+  if (!VIEW.test(spec.view)) throw new InputSpecError(`${spec.view} is not a catalogued view name`);
   if (!spec.view.endsWith(`_v${spec.version}`)) throw new InputSpecError(`${spec.view} is not version ${spec.version} of its name`);
   const entries = Object.entries(spec.filter ?? {});
   const bounds = Object.entries(spec.atMost ?? {});

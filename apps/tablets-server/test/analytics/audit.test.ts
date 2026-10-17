@@ -12,6 +12,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { review } from '@ebmr/analytics';
 import { routes } from '@ebmr/api-contract';
 import type { AnalyticsRunner } from '../../src/analytics/runner.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
@@ -205,5 +206,42 @@ describe('the audit-trail flags (GMP; ATA.RULES, ATA.BASELINE)', () => {
     const e = valueOf(await diLead.call(routes.analyticsAudit.entries, { params: { batchId: batch } }));
     expect(e).toMatchObject({ advisory: true, notForGmpDecisions: true, batchId: batch });
     expect(e.entries).toEqual([{ eventId: '424242', chainKey: `batch:${batch}`, flags: [{ flagId: f!.id, rule: 'LATE_ENTRY', severity: 'INFO', verdict: null }] }]);
+  });
+
+  it('[DI-52][DI-53] a later raise of a dispositioned key is shown with its verdict in the flags about persons and takes no fresh first verdict; the review priority keys a hit as the kernel does (P6A7-1, P6A5-2)', async () => {
+    const b = randomUUID();
+    const runtime = { package: '@ebmr/analytics 0.1.0', commit: 'test', node: process.version, libraries: {} };
+    // Two runs raise the same LATE_ENTRY hit about the target, its reason drifting (written as the analytics role).
+    const raise = async (minutes: number): Promise<string> => {
+      const inputs = [{ view: 'report.audit_fact_v1', version: 1, filter: null, data_as_of: '2026-10-12T04:40:00Z', rows: 1, sha256: 'a'.repeat(64) }];
+      const [r] = await asAnalytics<{ id: string }>(gmp, "select analytics.begin_run('ATA.RULES', 1, null, 'ON_DEMAND', $1::jsonb, $2::jsonb)::text as id", [JSON.stringify(inputs), JSON.stringify(runtime)]);
+      const reasons = [{ code: 'LATE_ENTRY', text: `hardness was recorded ${String(minutes)} minutes after the time it claims`, evidence: [{ kind: 'AUDIT_EVENT', ref: `batch:${b}#515151` }, { kind: 'BATCH', ref: b }] }];
+      const [f] = await asAnalytics<{ id: string }>(gmp, "select analytics.record_flag($1, null, 'PERSON', $2, 'LATE_ENTRY', 'INFO', $3::jsonb)::text as id", [r!.id, target.personId, JSON.stringify(reasons)]);
+      await asAnalytics(gmp, "select analytics.finish_run($1, $2, '{}')", [r!.id, 'b'.repeat(64)]);
+      return f!.id;
+    };
+    const first = await raise(47);
+    const d = valueOf(await diLead.call(routes.analytics.dispose, { params: { flagId: first }, body: { verdict: 'FALSE_ALARM', cause: 'The sheet was keyed at the end of the shift, as allowed' } }));
+    const later = await raise(48);
+    // The open flags about persons leave the later raise out; its detail shows the key's verdict.
+    const open = valueOf(await diLead.call(routes.analytics.flags, { query: { kind: 'PERSON' } }));
+    expect(open.flags.map((f) => f.flagId)).not.toContain(later);
+    expect(open.flags.map((f) => f.flagId)).not.toContain(first);
+    const detail = valueOf(await diLead.call(routes.analytics.flag, { params: { flagId: later } }));
+    expect(detail.flag.disposition).toMatchObject({ verdict: 'FALSE_ALARM', dispositionId: d.disposition.dispositionId });
+    // A fresh first verdict on the later raise is refused; a new one supersedes the key's current verdict with a reason.
+    expect(codeIn(await diLead.call(routes.analytics.dispose, { params: { flagId: later }, body: { verdict: 'TRUE_SIGNAL', cause: 'Looked again at the sheet and the log' } }))).toBe('EBMR-ANA-008');
+    const s2 = valueOf(await diLead.call(routes.analytics.dispose, { params: { flagId: later },
+      body: { verdict: 'TRUE_SIGNAL', cause: 'Looked again at the sheet and the log', supersedes: d.disposition.dispositionId, reason: 'the shift log shows no late keying' } }));
+    expect(s2.disposition).toMatchObject({ verdict: 'TRUE_SIGNAL', supersedes: d.disposition.dispositionId, current: true });
+    // The review priority's key of a hit is the kernel's (analytics.flag_key) for every flag the runner raised, and the
+    // verdict input gives the key's current verdict to the analytics role.
+    await runAudit();
+    const { rows } = await gmp.db.admin.query<{ rule: string; subject_ref: string; reasons: { code: string; text: string; evidence?: { kind: string; ref: string }[] }[]; k: string }>(
+      "select f.rule, f.subject_ref, f.reasons, analytics.flag_key(r.method, f.rule, f.subject_kind, f.subject_ref, f.reasons) as k from analytics.flag f join analytics.run r on r.id = f.run where r.method = 'ATA.RULES'");
+    expect(rows.length).toBeGreaterThan(2);
+    for (const r of rows) expect(review.auditFlagKey({ rule: r.rule, personId: r.subject_ref, reason: r.reasons[0]! })).toBe(r.k);
+    const key = review.auditFlagKey({ rule: 'LATE_ENTRY', personId: target.personId, reason: { code: 'LATE_ENTRY', text: '', evidence: [{ kind: 'AUDIT_EVENT', ref: `batch:${b}#515151` }] } });
+    expect(await asAnalytics<{ verdict: string }>(gmp, 'select verdict from analytics.audit_key_verdict_v1 where flag_key = $1', [key])).toEqual([{ verdict: 'TRUE_SIGNAL' }]);
   });
 });
