@@ -24,7 +24,8 @@ type Json = Record<string, unknown>;
 /** A gateway-like OPC UA feed: publish() appends an envelope with the next sequence number. */
 interface Feed {
   base: string;
-  publish(messageType: string, payload: Json): void;
+  /** `opts.key`: the idempotency key (default a new one); `opts.sent`: the payload actually sent, when it is not the hashed one. */
+  publish(messageType: string, payload: Json, opts?: { key?: string; sent?: Json }): void;
   close(): Promise<void>;
 }
 
@@ -50,12 +51,12 @@ async function startFeed(): Promise<Feed> {
   const port = (srv.address() as AddressInfo).port;
   return {
     base: `http://127.0.0.1:${port.toString()}`,
-    publish(messageType, payload) {
+    publish(messageType, payload, opts = {}) {
       const seq = (messages.length + 1).toString();
       messages.push({
         sourceSystem: 'OPCUA', messageType, sourceRecordId: `GW-${seq}`, sourceTimestamp: nowUs(), sequenceNo: seq,
-        idempotencyKey: `${messageType}:${randomBytes(6).toString('hex')}`, schemaVersion: '1',
-        payloadHash: createHash('sha256').update(JSON.stringify(payload), 'utf8').digest('hex'), payload,
+        idempotencyKey: opts.key ?? `${messageType}:${randomBytes(6).toString('hex')}`, schemaVersion: '1',
+        payloadHash: createHash('sha256').update(JSON.stringify(payload), 'utf8').digest('hex'), payload: opts.sent ?? payload,
       });
     },
     close: () => new Promise<void>((resolve) => srv.close(() => resolve())),
@@ -161,5 +162,27 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     expect(refusedOf(rs2, 'MALFORMED')).toBe(1);
     expect(total(rs2, 'accepted')).toBe(2);
     expect(await seriesRows()).toBe(before + 1);
+  });
+
+  // Mutation triage T12 (Phase 6 slice 6j): the payload hash is checked only by the worker (the database stores the
+  // payload and its stated hash as given), so this is the one place an altered value is caught.
+  it('[DI-31] a message whose payload is not the one its hash states is refused as malformed with an alarm and lands nowhere; a changed message the source then sends under the same key is not taken for the refused one', async () => {
+    feed.publish('opcua.endpoint_session', session());
+    const ev = `EV-${randomBytes(3).toString('hex')}`;
+    const event: Json = { equipmentCode: w.unit.code, eventId: ev, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'press running', occurredAt: nowUs() };
+    const key = `opcua.equipment_event:${randomBytes(6).toString('hex')}`;
+    const malformed = () => count(db, "select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'MALFORMED'", [w.adapter.code]);
+    const events = () => count(db, 'select count(*) as n from plant.equipment_state_event where event_id = $1', [ev]);
+    const before = await malformed();
+    feed.publish('opcua.equipment_event', event, { key, sent: { ...event, state: 'STOPPED' } });
+    const rs = await settle();
+    expect(refusedOf(rs, 'MALFORMED')).toBe(1);
+    expect(await malformed()).toBe(before + 1);
+    expect(await events()).toBe(0);
+    // The source sends that record again, changed (its hash states it): it is received, not taken for the refused message.
+    feed.publish('opcua.equipment_event', { ...event, state: 'HELD' }, { key });
+    const rs2 = await settle();
+    expect(total(rs2, 'accepted')).toBe(1);
+    expect(await events()).toBe(1);
   });
 });
