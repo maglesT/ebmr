@@ -206,3 +206,48 @@ plant-rules: baseline db 29 s (limit 240 s), server 10 s (limit 240 s)
   SURVIVED plant.define_area_adjacency#2 BOOLEAN packages/recipe-core/sql/0973_plant_room_rules.sql:233 [false] -> [true]
   plant-rules: 100/221
   SURVIVED plant.define_area_adjacency#5 LOGICAL packages/recipe-core/sql/0973_plant_room_rules.sql:234 [or] -> [and]
+  SURVIVED plant.set_facility_rule#1 LOGICAL packages/recipe-core/sql/0973_plant_room_rules.sql:307 [or] -> [and]
+  plant-rules: 125/221
+  SURVIVED plant.classify_beta_lactam#3 LOGICAL packages/recipe-core/sql/0973_plant_room_rules.sql:326 [or] -> [and]
+  SURVIVED plant.classify_beta_lactam#4 LOGICAL packages/recipe-core/sql/0973_plant_room_rules.sql:327 [or] -> [and]
+  SURVIVED plant.classify_beta_lactam#9 RELATIONAL packages/recipe-core/sql/0973_plant_room_rules.sql:331 [=] -> [<>]
+  SURVIVED plant.classify_beta_lactam#10 LOGICAL packages/recipe-core/sql/0973_plant_room_rules.sql:331 [and] -> [or]
+  SURVIVED plant.classify_beta_lactam#11 RELATIONAL packages/recipe-core/sql/0973_plant_room_rules.sql:331 [=] -> [<>]
+  SURVIVED plant.batch_beta_lactam#7 LOGICAL packages/recipe-core/sql/0973_plant_room_rules.sql:350 [or] -> [and]
+  SURVIVED plant.batch_beta_lactam#8 RELATIONAL packages/recipe-core/sql/0973_plant_room_rules.sql:350 [=] -> [<>]
+  plant-rules: 150/221
+  SURVIVED plant.step_rules_problem#11 LOGICAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:58 [and] -> [or]
+  plant-rules: 175/221
+  SURVIVED plant.step_rules_problem#22 RELATIONAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:67 [>] -> [>=]
+  SURVIVED plant.step_rules_check#2 LOGICAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:80 [or] -> [and]
+  SURVIVED plant.step_rules_check#5 LOGICAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:80 [or] -> [and]
+  SURVIVED plant.record_reagent_use#3 LOGICAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:121 [or] -> [and]
+  SURVIVED plant.record_reagent_use#13 RELATIONAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:131 [=] -> [<>]
+  plant-rules: 200/221
+  SURVIVED recipe.review_gate_problems#11 RELATIONAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:176 [=] -> [<>]
+  SURVIVED recipe.review_gate_problems#18 LOGICAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:199 [and] -> [or]
+  SURVIVED recipe.review_gate_problems#20 LOGICAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:200 [and] -> [or]
+  SURVIVED recipe.review_gate_problems#22 LOGICAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:200 [and] -> [or]
+  SURVIVED recipe.review_gate_problems#23 RELATIONAL packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:200 [>] -> [>=]
+  SURVIVED recipe.review_gate_problems#27 GUARD_REMOVED packages/recipe-core/sql/0974_plant_step_guards_and_review.sql:216 [raise exception using errcode = 'P0001', message = format('EBMR-REV-001 %s is no] -> [null]
+plant-rules: score 73.8 % (163/221 detected, 0 invalid) in 4227 s
+india-dsc: baseline db 4 s (limit 240 s), server 8 s (limit 240 s)
+  SURVIVED esig.set_policy#3 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:138 [raise exception using errcode = 'P0001', message = format('EBMR-ESIG-002 unknown] -> [null]
+  SURVIVED esig.set_policy#7 LOGICAL packages/kernel/sql/1203_india_dsc.sql:140 [or] -> [and]
+  SURVIVED esig.set_policy#9 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:141 [raise exception using errcode = 'P0001', message = 'EBMR-ESIG-005 a policy chang] -> [null]
+  SURVIVED esig.set_policy#13 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:146 [raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s take] -> [null]
+  SURVIVED esig.set_policy#16 NOT_REMOVED packages/kernel/sql/1203_india_dsc.sql:149 [not ] -> []
+  SURVIVED esig.set_policy#18 RELATIONAL packages/kernel/sql/1203_india_dsc.sql:149 [<] -> [<=]
+  SURVIVED esig.set_policy#19 LOGICAL packages/kernel/sql/1203_india_dsc.sql:149 [or] -> [and]
+  SURVIVED esig.set_policy#20 NOT_REMOVED packages/kernel/sql/1203_india_dsc.sql:149 [not ] -> []
+  SURVIVED esig.set_policy#22 RELATIONAL packages/kernel/sql/1203_india_dsc.sql:149 [>] -> [>=]
+  SURVIVED esig.set_policy#23 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:150 [raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s must] -> [null]
+  SURVIVED esig.set_policy#27 NOT_REMOVED packages/kernel/sql/1203_india_dsc.sql:154 [not ] -> []
+  SURVIVED esig.set_policy#28 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:155 [raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s take] -> [null]
+  india-dsc: 25/127
+  SURVIVED esig.set_policy#31 NOT_REMOVED packages/kernel/sql/1203_india_dsc.sql:157 [not ] -> []
+  SURVIVED esig.set_policy#34 RELATIONAL packages/kernel/sql/1203_india_dsc.sql:157 [=] -> [<>]
+  SURVIVED esig.set_policy#35 GUARD_REMOVED packages/kernel/sql/1203_india_dsc.sql:158 [raise exception using errcode = 'P0001', message = format('EBMR-ESIG-005 %s take] -> [null]
+  SURVIVED esig.dsc_live_anchor#2 LOGICAL packages/kernel/sql/1203_india_dsc.sql:191 [and] -> [or]
+  SURVIVED esig.dsc_live_anchor#4 RELATIONAL packages/kernel/sql/1203_india_dsc.sql:191 [=] -> [<>]
+  SURVIVED esig.dsc_requirement#1 BOOLEAN packages/kernel/sql/1203_india_dsc.sql:220 [false] -> [true]

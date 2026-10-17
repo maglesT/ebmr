@@ -1,0 +1,176 @@
+[32m02:39:19 (797564) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-serialisation.incremental.json, a full mutation testing run will be performed.
+[32m02:39:19 (797564) INFO ProjectReader[39m Found 1 of 3114 file(s) to be mutated.
+[32m02:39:19 (797564) INFO Instrumenter[39m Instrumented 1 source file(s) with 159 mutant(s)
+[32m02:39:22 (797564) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m02:39:23 (797564) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m02:39:24 (797564) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m02:40:03 (797564) INFO DryRunExecutor[39m Initial test run succeeded. Ran 5 tests in 39 seconds (net 1121.0442369999946 ms, overhead 38330.955763000005 ms).
+Mutation testing 1% (elapsed: <1m, remaining: ~16m) 25/121 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: <1m, remaining: ~15m) 26/121 tested (0 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~15m) 27/121 tested (0 survived, 0 timed out)
+Mutation testing 5% (elapsed: <1m, remaining: ~12m) 29/121 tested (0 survived, 0 timed out)
+Mutation testing 8% (elapsed: <1m, remaining: ~9m) 32/121 tested (0 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~1m, remaining: ~7m) 35/121 tested (0 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~1m, remaining: ~6m) 38/121 tested (0 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~1m, remaining: ~6m) 40/121 tested (0 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~1m, remaining: ~5m) 44/121 tested (0 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~1m, remaining: ~4m) 49/121 tested (0 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~1m, remaining: ~4m) 52/121 tested (0 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~2m, remaining: ~3m) 57/121 tested (0 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~2m, remaining: ~3m) 61/121 tested (0 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~2m, remaining: ~3m) 66/121 tested (0 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~2m, remaining: ~2m) 70/121 tested (0 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~2m, remaining: ~2m) 72/121 tested (0 survived, 0 timed out)
+Mutation testing 52% (elapsed: ~2m, remaining: ~2m) 75/121 tested (0 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~3m, remaining: ~2m) 80/121 tested (0 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~3m, remaining: ~1m) 84/121 tested (0 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~3m, remaining: ~1m) 88/121 tested (0 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~3m, remaining: ~1m) 91/121 tested (0 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~3m, remaining: ~1m) 95/121 tested (0 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~3m, remaining: ~1m) 100/121 tested (0 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~4m, remaining: <1m) 104/121 tested (0 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~4m, remaining: <1m) 107/121 tested (0 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~4m, remaining: <1m) 111/121 tested (0 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~4m, remaining: <1m) 116/121 tested (0 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~4m, remaining: <1m) 120/121 tested (0 survived, 0 timed out)
+
+All tests/l3-adapter.test.ts
+  ✘ serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] a query on a commissioned serial returns its lot, expiry and status: the record's lot and expiry for the serial's pool; an L3 lot or expiry that differs is a problem, never the answer (covered 0)
+  ✘ serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42][DI-31] the L3 adapter lands aggregations and decommissioning tasks; an aggregation mismatch, a parent that is no shipper of the order, a missing-events gap and a duplicate delivery each end accepted or refused with an alarm, and the period reconciles; an OPEN task keeps release red until the L3 reports it DONE (covered 0)
+  ✘ serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] a stale L3 report refuses release: with the L3 heartbeat stopped the mirror ages past its bound and E.RECONCILIATION_SERIAL fails closed naming the stale mirror; a fresh synchronisation clears it (covered 0)
+  ✘ serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42][DI-31] malformed and stale L3 messages are refused by the receiving command; a QA rejection records the L3 system's OPEN task, and nobody else records one (covered 0)
+  ✓ serialisation L3/L4 (tablets 1231) against the L3/L4 simulator > [PR-42] the serialisation routes: a serial query through the server answers the record's lot, expiry and status; the pools of the order show the release problem; QA rejects a pool through the L3 and nobody else may (killed 97)
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:61:38
+-     if (base === null) throw fail(503, 'no serialisation L3 system is configured for this server (EBMR_L3_URL)');
++     if (base === null) throw fail(503, "");
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/serialisation/index.ts:70:19
+-     } catch (error) {
+-       throw fail(503, `the L3 system is unreachable: ${error instanceof Error ? error.message : String(error)}`);
+-     }
++     } catch (error) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:71:21
+-       throw fail(503, `the L3 system is unreachable: ${error instanceof Error ? error.message : String(error)}`);
++       throw fail(503, ``);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:76:184
+-       throw refusal(404, { code: 'L3-UNKNOWN', kind: 'INVALID_INPUT', whatHappened: 'The L3 system does not know this.', why: typeof e?.message === 'string' ? e.message.slice(0, 300) : 'not found', controls: ['PR-42'], whatYouCanDo: ['Check the serial or pool and try again.'], whoCanHelp: ['QA'] });
++       throw refusal(404, { code: 'L3-UNKNOWN', kind: 'INVALID_INPUT', whatHappened: 'The L3 system does not know this.', why: typeof e?.message === 'string' ? e.message.slice(0, 300) : "", controls: ['PR-42'], whatYouCanDo: ['Check the serial or pool and try again.'], whoCanHelp: ['QA'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:80:40
+-     if (!parsed.success) throw fail(502, `the L3 answer to ${method} ${path} is not in the contract's form`);
++     if (!parsed.success) throw fail(502, ``);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:85:42
+-     mode: v.mode === 'MIRROR' ? 'MIRROR' : 'STAND_IN', stale: v.stale, ageSeconds: v.ageSeconds, boundSeconds: v.boundSeconds,
++     mode: v.mode === 'MIRROR' ? 'MIRROR' : "", stale: v.stale, ageSeconds: v.ageSeconds, boundSeconds: v.boundSeconds,
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/serialisation/index.ts:90:30
+-     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:90:38
+-     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:90:59
+-     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: "", whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:90:90
+-     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: "", why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:90:130
+-     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: ``, whatYouCanDo: ['Open the packaging order from its batch.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/serialisation/index.ts:90:180
+-     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:90:181
+-     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: [""] });
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/serialisation/index.ts:103:47
+-         return { ...view, mirror: mirrorOf(f ?? { mode: 'STAND_IN', stale: false, ageSeconds: null, boundSeconds: 3600 }) };
++         return { ...view, mirror: mirrorOf(f ?? {}) };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:103:55
+-         return { ...view, mirror: mirrorOf(f ?? { mode: 'STAND_IN', stale: false, ageSeconds: null, boundSeconds: 3600 }) };
++         return { ...view, mirror: mirrorOf(f ?? { mode: "", stale: false, ageSeconds: null, boundSeconds: 3600 }) };
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/serialisation/index.ts:103:74
+-         return { ...view, mirror: mirrorOf(f ?? { mode: 'STAND_IN', stale: false, ageSeconds: null, boundSeconds: 3600 }) };
++         return { ...view, mirror: mirrorOf(f ?? { mode: 'STAND_IN', stale: true, ageSeconds: null, boundSeconds: 3600 }) };
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/serialisation/index.ts:111:35
+-         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
++         if (!sp) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:111:43
+-         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
++         if (!sp) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:111:64
+-         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
++         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: "", whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:111:95
+-         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
++         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: "", why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:111:141
+-         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
++         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: ``, whatYouCanDo: ['Open the pool from its packaging order.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/serialisation/index.ts:111:208
+-         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
++         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:111:209
+-         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: ['Open the pool from its packaging order.'] });
++         if (!sp) throw refusal(404, { code: 'EBMR-L3-106', kind: 'INVALID_INPUT', whatHappened: 'There is no serial pool with this id.', why: `Pool ${params.poolId} is not a pool of this site.`, whatYouCanDo: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/serialisation/index.ts:114:73
+-         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+Ran 0.61 tests per mutant on average.
+----------|------------------|----------|-----------|------------|----------|----------|
+          | % Mutation score |          |           |            |          |          |
+File      |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+All files |  80.17 |  100.00 |       97 |         0 |          0 |       24 |        0 |
+ index.ts |  80.17 |  100.00 |       97 |         0 |          0 |       24 |        0 |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+[32m02:44:47 (797564) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-serialisation.json
+[32m02:44:47 (797564) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-serialisation.html
+[32m02:44:47 (797564) INFO MutationTestExecutor[39m Done in 5 minutes and 28 seconds.

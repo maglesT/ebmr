@@ -1,0 +1,714 @@
+[32m02:39:19 (797563) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-labels.incremental.json, a full mutation testing run will be performed.
+[32m02:39:19 (797563) INFO ProjectReader[39m Found 1 of 3114 file(s) to be mutated.
+[32m02:39:20 (797563) INFO Instrumenter[39m Instrumented 1 source file(s) with 264 mutant(s)
+[32m02:39:22 (797563) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m02:39:23 (797563) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m02:39:24 (797563) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m02:42:07 (797563) INFO DryRunExecutor[39m Initial test run succeeded. Ran 17 tests in 2 minutes and 43 seconds (net 73024.23187900003 ms, overhead 90018.76812099997 ms).
+Mutation testing 1% (elapsed: <1m, remaining: ~12m) 66/178 tested (0 survived, 0 timed out)
+Mutation testing 3% (elapsed: <1m, remaining: ~8m) 68/178 tested (2 survived, 0 timed out)
+Mutation testing 6% (elapsed: <1m, remaining: ~7m) 70/178 tested (3 survived, 0 timed out)
+Mutation testing 7% (elapsed: <1m, remaining: ~7m) 71/178 tested (4 survived, 0 timed out)
+Mutation testing 11% (elapsed: <1m, remaining: ~6m) 74/178 tested (4 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~1m, remaining: ~4m) 78/178 tested (6 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~1m, remaining: ~3m) 82/178 tested (6 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~1m, remaining: ~3m) 88/178 tested (6 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~1m, remaining: ~3m) 90/178 tested (6 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~1m, remaining: ~2m) 95/178 tested (9 survived, 0 timed out)
+Mutation testing 42% (elapsed: ~1m, remaining: ~2m) 99/178 tested (11 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~2m, remaining: ~2m) 105/178 tested (12 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~2m, remaining: ~2m) 109/178 tested (14 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~2m, remaining: ~2m) 115/178 tested (17 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~2m, remaining: ~2m) 121/178 tested (19 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~2m, remaining: ~2m) 127/178 tested (22 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~2m, remaining: ~2m) 132/178 tested (23 survived, 0 timed out)
+Mutation testing 55% (elapsed: ~3m, remaining: ~2m) 138/178 tested (23 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~3m, remaining: ~2m) 142/178 tested (26 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~3m, remaining: ~1m) 146/178 tested (27 survived, 0 timed out)
+Mutation testing 73% (elapsed: ~3m, remaining: ~1m) 152/178 tested (28 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~3m, remaining: ~1m) 155/178 tested (29 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~3m, remaining: <1m) 160/178 tested (31 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~4m, remaining: <1m) 164/178 tested (32 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~4m, remaining: <1m) 168/178 tested (32 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~4m, remaining: <1m) 174/178 tested (34 survived, 0 timed out)
+
+All tests
+  blocks/packaging
+    completion.test.ts
+      ✘ G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [IN-22][PR-37] a scheduled challenge not done within its interval (at database time) is MISSED: the late challenge carries the exception that stops the step, the line unit records MISSED and the output since the last good challenge is held; a forged engine that calls it on time, or drops the exception, is refused (covered 0)
+      ✘ G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [PR-40][IN-22][INV-32] the destruction step of the coded surplus closes only when it destroyed exactly the coded quantity the reconciliation counts; coded material is never returned to stores, not even through a forged engine (covered 0)
+      ✘ G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [PR-42] the packaging order does not reach EXECUTION_COMPLETE while its serial pool is unreconciled: a serial event after the closed report its step closed on leaves the pool open, and a newer report the record does not reconcile keeps it so; a clean order completes (covered 0)
+      ✘ G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [IN-22][PR-37] a G-21 step does not close while a failed challenge result of its devices is not recorded: the FAIL becomes an entry, with its exception and its hold (covered 0)
+      ✘ G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [IN-31] an MRP a person gives is checked by a second person before a print job carries it, and its giver, though holding the rights to check and release, neither checks nor releases (covered 0)
+      ✘ G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [L-29][PR-36] the database refuses a print job on a G-21 step whose stored configuration names no plant unit of the line (arranged past the engine, which refuses such a master), so a batch-data change can always hold (covered 0)
+      ✘ G-21 when time passes and steps and the batch close (recipe-core 0581, tablets 0952) > [PR-42] without a configured L3 system (EBMR_L3_URL unset) serialisation is off: a pool request is refused with a clear reason and nothing is recorded; the URL is read from the environment, https only in production (covered 0)
+    line-completion.test.ts
+      ✘ packaging line completion in the database (tablets 1230) > [IN-16] start, middle and end coding specimens are required, in that order, each showing the record's batch number, manufacture date and expiry; the step does not close without them (covered 0)
+      ✘ packaging line completion in the database (tablets 1230) > [PR-16] removing one label specimen or one checker signature blocks completion and names the gap (covered 0)
+      ✘ packaging line completion in the database (tablets 1230) > [PR-34] closing an order without the post-use inspection is blocked; a failed or unverified inspection blocks it too; the inspection is recorded after printing ended and verified by another person (covered 0)
+      ✘ packaging line completion in the database (tablets 1230) > [PR-36] a wrong expiry on a test unit is rejected by vision and stops the line: the gateway's EXPIRY_REJECTED opens a line stop; no job is released and the step does not close until QA resolves it with a reason (covered 0)
+      ✘ packaging line completion in the database (tablets 1230) > [PR-39] the waiver without a qualifying device is refused: not a vision or reader device, no passing challenge on a job of the step, or an item not declared for a 100 % electronic inspection; it records the device and its challenge and never switches the reconciliation off (covered 0)
+      ✘ packaging line completion in the database (tablets 1230) > [PR-36][IN-31] a print job carries an approved label template the master names for its step, with every record field the template binds (D-P6c-16) (covered 0)
+      ✘ packaging line completion in the database (tablets 1230) > [PR-42] a pool the L3 system issues with a duplicate serial is refused and nothing is recorded (the simulator's DUPLICATE_SERIAL fault) (covered 0)
+  labels/labels-routes.test.ts
+    ✓ labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer (killed 40)
+    ✓ labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues (killed 18)
+    ✓ labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version (killed 20)
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:96:90
+-     const name = (id: string | null): string | null => (id ? (people.get(id)?.legalName ?? 'unknown person') : null);
++     const name = (id: string | null): string | null => (id ? (people.get(id)?.legalName ?? "") : null);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:99:81
+-       fields: r.fields, status: r.status, createdBy: name(r.created_by_person) ?? 'unknown person', approvedBy: name(r.approved_by),
++       fields: r.fields, status: r.status, createdBy: name(r.created_by_person) ?? "", approvedBy: name(r.approved_by),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:116:58
+-     if (!lot || lot.material_kind !== 'PRINTED_PACKAGING') {
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
+-     }
++     if (!lot || lot.material_kind !== 'PRINTED_PACKAGING') {}
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:117:24
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
++       throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:117:32
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
++       throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:117:54
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
++       throw refusal(404, { code: 'EBMR-LBL-021', kind: "", whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:117:85
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
++       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: "", why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:117:144
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
++       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: ``, whatYouCanDo: ['Choose a printed-packaging lot.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:117:203
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
++       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:117:204
+-       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: ['Choose a printed-packaging lot.'] });
++       throw refusal(404, { code: 'EBMR-LBL-021', kind: 'INVALID_INPUT', whatHappened: 'The label store holds printed-packaging lots only.', why: `Lot ${lotId} is no printed-packaging lot.`, whatYouCanDo: [""] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:126:218
+-       transactions: rows.map((r) => ({ transactionId: r.id, kind: r.kind, lotId, lotCode: lot.lot_code, quantity: r.quantity, batchRef: r.batch_ref, reason: r.reason, by: people.get(r.performed_by_person)?.legalName ?? 'unknown person', at: r.at })),
++       transactions: rows.map((r) => ({ transactionId: r.id, kind: r.kind, lotId, lotCode: lot.lot_code, quantity: r.quantity, batchRef: r.batch_ref, reason: r.reason, by: people.get(r.performed_by_person)?.legalName ?? "", at: r.at })),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:148:80
+-       (await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null)).result;
++       (await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? "Stryker was here!", ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null)).result;
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:150:137
+-     const batchOf = async (table: 'tab.packaging_specimen' | 'tab.post_use_inspection' | 'tab.line_stop', id: string): Promise<string> => {
+-       const r = (await pool.query<{ b: string }>(`select batch_id as b from ${table} where id = $1`, [id])).rows[0]?.b;
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
+-       return r;
+-     };
++     const batchOf = async (table: 'tab.packaging_specimen' | 'tab.post_use_inspection' | 'tab.line_stop', id: string): Promise<string> => {};
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/labels/index.ts:151:15
+-       const r = (await pool.query<{ b: string }>(`select batch_id as b from ${table} where id = $1`, [id])).rows[0]?.b;
++       const r = (await pool.query<{
++     b: string;
++   }>(`select batch_id as b from ${table} where id = $1`, [id])).rows[0].b;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:151:48
+-       const r = (await pool.query<{ b: string }>(`select batch_id as b from ${table} where id = $1`, [id])).rows[0]?.b;
++       const r = (await pool.query<{ b: string }>(``, [id])).rows[0]?.b;
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:151:100
+-       const r = (await pool.query<{ b: string }>(`select batch_id as b from ${table} where id = $1`, [id])).rows[0]?.b;
++       const r = (await pool.query<{ b: string }>(`select batch_id as b from ${table} where id = $1`, [])).rows[0]?.b;
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/labels/index.ts:152:9
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:152:9
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (true) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:152:9
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (false) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:152:32
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (!r) throw refusal(404, {});
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:152:40
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (!r) throw refusal(404, { code: "", kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:152:62
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: "", whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:152:93
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: "", why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:152:126
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: ``, whatYouCanDo: ['Reload the packaging completion page.'] });
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:152:163
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: [] });
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:152:164
+-       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: ['Reload the packaging completion page.'] });
++       if (!r) throw refusal(404, { code: 'EBMR-LBL-037', kind: 'INVALID_INPUT', whatHappened: 'There is no such record.', why: `${id} is not found.`, whatYouCanDo: [""] });
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:184:87
+-       declareLabelling: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await write({ actor, idempotencyKey, requestHash }, 'select recipe.declare_packaging_labelling($1, $2, $3, $4, $5, $6) as r',
+-           [params.versionId, body.step, body.item, body.form, body.templateId ?? null, body.option211122g ?? null]);
+-         return master(pool, params.versionId);
+-       },
++       declareLabelling: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:185:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select recipe.declare_packaging_labelling($1, $2, $3, $4, $5, $6) as r',
++         await write({}, 'select recipe.declare_packaging_labelling($1, $2, $3, $4, $5, $6) as r',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:185:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select recipe.declare_packaging_labelling($1, $2, $3, $4, $5, $6) as r',
++         await write({ actor, idempotencyKey, requestHash }, "",
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:186:9
+-           [params.versionId, body.step, body.item, body.form, body.templateId ?? null, body.option211122g ?? null]);
++           []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:186:61
+-           [params.versionId, body.step, body.item, body.form, body.templateId ?? null, body.option211122g ?? null]);
++           [params.versionId, body.step, body.item, body.form, body.templateId && null, body.option211122g ?? null]);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:186:86
+-           [params.versionId, body.step, body.item, body.form, body.templateId ?? null, body.option211122g ?? null]);
++           [params.versionId, body.step, body.item, body.form, body.templateId ?? null, body.option211122g && null]);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:203:91
+-       recordCodingSpecimen: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_coding_specimen($1, $2, $3, $4::jsonb) as r', [params.batchId, params.stepKey, body.position, JSON.stringify(compact(body.coded))]);
+-         return packaging(pool, params.batchId);
+-       },
++       recordCodingSpecimen: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:204:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_coding_specimen($1, $2, $3, $4::jsonb) as r', [params.batchId, params.stepKey, body.position, JSON.stringify(compact(body.coded))]);
++         await write({}, 'select tab.record_coding_specimen($1, $2, $3, $4::jsonb) as r', [params.batchId, params.stepKey, body.position, JSON.stringify(compact(body.coded))]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:204:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_coding_specimen($1, $2, $3, $4::jsonb) as r', [params.batchId, params.stepKey, body.position, JSON.stringify(compact(body.coded))]);
++         await write({ actor, idempotencyKey, requestHash }, "", [params.batchId, params.stepKey, body.position, JSON.stringify(compact(body.coded))]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:204:124
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_coding_specimen($1, $2, $3, $4::jsonb) as r', [params.batchId, params.stepKey, body.position, JSON.stringify(compact(body.coded))]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_coding_specimen($1, $2, $3, $4::jsonb) as r', []);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:207:90
+-       recordLabelSpecimen: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_label_specimen($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.note ?? null]);
+-         return packaging(pool, params.batchId);
+-       },
++       recordLabelSpecimen: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:208:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_label_specimen($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.note ?? null]);
++         await write({}, 'select tab.record_label_specimen($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.note ?? null]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:208:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_label_specimen($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.note ?? null]);
++         await write({ actor, idempotencyKey, requestHash }, "", [params.batchId, params.stepKey, body.item, body.note ?? null]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:208:116
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_label_specimen($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.note ?? null]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_label_specimen($1, $2, $3, $4) as r', []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:208:160
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_label_specimen($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.note ?? null]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_label_specimen($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.note && null]);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:211:83
+-       voidSpecimen: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         const batch = await batchOf('tab.packaging_specimen', params.specimenId);
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.void_packaging_specimen($1, $2) as r', [params.specimenId, body.reason]);
+-         return packaging(pool, batch);
+-       },
++       voidSpecimen: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:212:35
+-         const batch = await batchOf('tab.packaging_specimen', params.specimenId);
++         const batch = await batchOf("", params.specimenId);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:213:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.void_packaging_specimen($1, $2) as r', [params.specimenId, body.reason]);
++         await write({}, 'select tab.void_packaging_specimen($1, $2) as r', [params.specimenId, body.reason]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:213:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.void_packaging_specimen($1, $2) as r', [params.specimenId, body.reason]);
++         await write({ actor, idempotencyKey, requestHash }, "", [params.specimenId, body.reason]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:213:110
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.void_packaging_specimen($1, $2) as r', [params.specimenId, body.reason]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.void_packaging_specimen($1, $2) as r', []);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:216:94
+-       recordPostUseInspection: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [params.batchId, JSON.stringify(body.checks), body.note ?? null]);
+-         return packaging(pool, params.batchId);
+-       },
++       recordPostUseInspection: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:217:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [params.batchId, JSON.stringify(body.checks), body.note ?? null]);
++         await write({}, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [params.batchId, JSON.stringify(body.checks), body.note ?? null]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:217:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [params.batchId, JSON.stringify(body.checks), body.note ?? null]);
++         await write({ actor, idempotencyKey, requestHash }, "", [params.batchId, JSON.stringify(body.checks), body.note ?? null]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:217:124
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [params.batchId, JSON.stringify(body.checks), body.note ?? null]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:217:170
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [params.batchId, JSON.stringify(body.checks), body.note ?? null]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.record_post_use_inspection($1, $2::jsonb, $3) as r', [params.batchId, JSON.stringify(body.checks), body.note && null]);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:220:88
+-       verifyPostUseInspection: async ({ params, actor, idempotencyKey, requestHash }) => {
+-         const batch = await batchOf('tab.post_use_inspection', params.inspectionId);
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.verify_post_use_inspection($1) as r', [params.inspectionId]);
+-         return packaging(pool, batch);
+-       },
++       verifyPostUseInspection: async ({ params, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:221:35
+-         const batch = await batchOf('tab.post_use_inspection', params.inspectionId);
++         const batch = await batchOf("", params.inspectionId);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:222:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.verify_post_use_inspection($1) as r', [params.inspectionId]);
++         await write({}, 'select tab.verify_post_use_inspection($1) as r', [params.inspectionId]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:222:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.verify_post_use_inspection($1) as r', [params.inspectionId]);
++         await write({ actor, idempotencyKey, requestHash }, "", [params.inspectionId]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:222:109
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.verify_post_use_inspection($1) as r', [params.inspectionId]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.verify_post_use_inspection($1) as r', []);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:225:86
+-       resolveLineStop: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         const batch = await batchOf('tab.line_stop', params.stopId);
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.resolve_line_stop($1, $2) as r', [params.stopId, body.reason]);
+-         return packaging(pool, batch);
+-       },
++       resolveLineStop: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:226:35
+-         const batch = await batchOf('tab.line_stop', params.stopId);
++         const batch = await batchOf("", params.stopId);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:227:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.resolve_line_stop($1, $2) as r', [params.stopId, body.reason]);
++         await write({}, 'select tab.resolve_line_stop($1, $2) as r', [params.stopId, body.reason]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:227:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.resolve_line_stop($1, $2) as r', [params.stopId, body.reason]);
++         await write({ actor, idempotencyKey, requestHash }, "", [params.stopId, body.reason]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:227:104
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.resolve_line_stop($1, $2) as r', [params.stopId, body.reason]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.resolve_line_stop($1, $2) as r', []);
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/labels/index.ts:230:83
+-       enableWaiver: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.enable_reconciliation_waiver($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.device]);
+-         return packaging(pool, params.batchId);
+-       },
++       enableWaiver: async ({ params, body, actor, idempotencyKey, requestHash }) => {},
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/labels/index.ts:231:19
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.enable_reconciliation_waiver($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.device]);
++         await write({}, 'select tab.enable_reconciliation_waiver($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.device]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:231:59
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.enable_reconciliation_waiver($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.device]);
++         await write({ actor, idempotencyKey, requestHash }, "", [params.batchId, params.stepKey, body.item, body.device]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:231:123
+-         await write({ actor, idempotencyKey, requestHash }, 'select tab.enable_reconciliation_waiver($1, $2, $3, $4) as r', [params.batchId, params.stepKey, body.item, body.device]);
++         await write({ actor, idempotencyKey, requestHash }, 'select tab.enable_reconciliation_waiver($1, $2, $3, $4) as r', []);
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/labels/index.ts:95:50
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.created_by_person, r.approved_by]));
++     const people = await peopleOf(db, rows.flatMap(() => undefined));
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:95:57
+-     const people = await peopleOf(db, rows.flatMap((r) => [r.created_by_person, r.approved_by]));
++     const people = await peopleOf(db, rows.flatMap((r) => []));
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:96:61
+-     const name = (id: string | null): string | null => (id ? (people.get(id)?.legalName ?? 'unknown person') : null);
++     const name = (id: string | null): string | null => (id ? (people.get(id)?.legalName && 'unknown person') : null);
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/labels/index.ts:96:61
+-     const name = (id: string | null): string | null => (id ? (people.get(id)?.legalName ?? 'unknown person') : null);
++     const name = (id: string | null): string | null => (id ? (people.get(id).legalName ?? 'unknown person') : null);
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:99:52
+-       fields: r.fields, status: r.status, createdBy: name(r.created_by_person) ?? 'unknown person', approvedBy: name(r.approved_by),
++       fields: r.fields, status: r.status, createdBy: name(r.created_by_person) && 'unknown person', approvedBy: name(r.approved_by),
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:100:22
+-       approvalProblem: r.status === 'DRAFT' ? r.problem : null,
++       approvalProblem: true ? r.problem : null,
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:106:140
+-     if (!t) throw refusal(404, { code: 'EBMR-LBL-004', kind: 'INVALID_INPUT', whatHappened: 'There is no label template with this id.', why: `Template ${id} does not exist.`, whatYouCanDo: ['Open the template from the list.'] });
++     if (!t) throw refusal(404, { code: 'EBMR-LBL-004', kind: 'INVALID_INPUT', whatHappened: 'There is no label template with this id.', why: ``, whatYouCanDo: ['Open the template from the list.'] });
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:106:188
+-     if (!t) throw refusal(404, { code: 'EBMR-LBL-004', kind: 'INVALID_INPUT', whatHappened: 'There is no label template with this id.', why: `Template ${id} does not exist.`, whatYouCanDo: ['Open the template from the list.'] });
++     if (!t) throw refusal(404, { code: 'EBMR-LBL-004', kind: 'INVALID_INPUT', whatHappened: 'There is no label template with this id.', why: `Template ${id} does not exist.`, whatYouCanDo: [] });
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:106:189
+-     if (!t) throw refusal(404, { code: 'EBMR-LBL-004', kind: 'INVALID_INPUT', whatHappened: 'There is no label template with this id.', why: `Template ${id} does not exist.`, whatYouCanDo: ['Open the template from the list.'] });
++     if (!t) throw refusal(404, { code: 'EBMR-LBL-004', kind: 'INVALID_INPUT', whatHappened: 'There is no label template with this id.', why: `Template ${id} does not exist.`, whatYouCanDo: [""] });
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:116:7
+-     if (!lot || lot.material_kind !== 'PRINTED_PACKAGING') {
++     if (false) {
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:116:7
+-     if (!lot || lot.material_kind !== 'PRINTED_PACKAGING') {
++     if (!lot && lot.material_kind !== 'PRINTED_PACKAGING') {
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:116:15
+-     if (!lot || lot.material_kind !== 'PRINTED_PACKAGING') {
++     if (!lot || false) {
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/labels/index.ts:123:46
+-     const people = await peopleOf(db, rows.map((r) => r.performed_by_person));
++     const people = await peopleOf(db, rows.map(() => undefined));
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:125:86
+-       lotId, lotCode: lot.lot_code, material: lot.material_name, status: lot.status ?? 'UNKNOWN', balance: lot.balance,
++       lotId, lotCode: lot.lot_code, material: lot.material_name, status: lot.status ?? "", balance: lot.balance,
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/labels/index.ts:126:170
+-       transactions: rows.map((r) => ({ transactionId: r.id, kind: r.kind, lotId, lotCode: lot.lot_code, quantity: r.quantity, batchRef: r.batch_ref, reason: r.reason, by: people.get(r.performed_by_person)?.legalName ?? 'unknown person', at: r.at })),
++       transactions: rows.map((r) => ({ transactionId: r.id, kind: r.kind, lotId, lotCode: lot.lot_code, quantity: r.quantity, batchRef: r.batch_ref, reason: r.reason, by: people.get(r.performed_by_person)?.legalName && 'unknown person', at: r.at })),
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/labels/index.ts:126:170
+-       transactions: rows.map((r) => ({ transactionId: r.id, kind: r.kind, lotId, lotCode: lot.lot_code, quantity: r.quantity, batchRef: r.batch_ref, reason: r.reason, by: people.get(r.performed_by_person)?.legalName ?? 'unknown person', at: r.at })),
++       transactions: rows.map((r) => ({ transactionId: r.id, kind: r.kind, lotId, lotCode: lot.lot_code, quantity: r.quantity, batchRef: r.batch_ref, reason: r.reason, by: people.get(r.performed_by_person).legalName ?? 'unknown person', at: r.at })),
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/labels/index.ts:131:13
+-     const v = (await db.query<{ v: PackagingCompletionView | null }>('select tab.packaging_completion_view($1) as v', [batchId])).rows[0]?.v;
++     const v = (await db.query<{
++     v: PackagingCompletionView | null;
++   }>('select tab.packaging_completion_view($1) as v', [batchId])).rows[0].v;
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:131:68
+-     const v = (await db.query<{ v: PackagingCompletionView | null }>('select tab.packaging_completion_view($1) as v', [batchId])).rows[0]?.v;
++     const v = (await db.query<{ v: PackagingCompletionView | null }>("", [batchId])).rows[0]?.v;
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:132:7
+-     if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (true) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:132:131
+-     if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: ``, whatYouCanDo: ['Open the packaging order from its batch.'] });
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:132:182
+-     if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: [""] });
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:132:181
+-     if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: ['Open the packaging order from its batch.'] });
++     if (!v) throw refusal(404, { code: 'EBMR-LBL-030', kind: 'INVALID_INPUT', whatHappened: 'There is no batch with this id.', why: `Batch ${batchId} does not exist.`, whatYouCanDo: [] });
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:137:7
+-     if ((await db.query('select 1 from recipe.mbr_version where id = $1', [versionId])).rowCount === 0) {
++     if (true) {
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:138:131
+-       throw refusal(404, { code: 'EBMR-LBL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no MBR version with this id.', why: `Version ${versionId} does not exist.`, whatYouCanDo: ['Open the packaging master from the designer.'] });
++       throw refusal(404, { code: 'EBMR-LBL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no MBR version with this id.', why: ``, whatYouCanDo: ['Open the packaging master from the designer.'] });
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/labels/index.ts:138:185
+-       throw refusal(404, { code: 'EBMR-LBL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no MBR version with this id.', why: `Version ${versionId} does not exist.`, whatYouCanDo: ['Open the packaging master from the designer.'] });
++       throw refusal(404, { code: 'EBMR-LBL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no MBR version with this id.', why: `Version ${versionId} does not exist.`, whatYouCanDo: [] });
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/labels/index.ts:138:186
+-       throw refusal(404, { code: 'EBMR-LBL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no MBR version with this id.', why: `Version ${versionId} does not exist.`, whatYouCanDo: ['Open the packaging master from the designer.'] });
++       throw refusal(404, { code: 'EBMR-LBL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no MBR version with this id.', why: `Version ${versionId} does not exist.`, whatYouCanDo: [""] });
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/labels/index.ts:148:114
+-       (await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null)).result;
++       (await withIdempotentActorCommand(pool, ctx.actor(), ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{
++     r: JsonValue;
++   }>(sql, params)).rows[0].r ?? null)).result;
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/labels/index.ts:157:7
+-         requireSession();
++         ;
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/labels/index.ts:162:7
+-         requireSession();
++         ;
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/labels/index.ts:164:42
+-         return { templates: query.status ? all.filter((t) => t.status === query.status) : all };
++         return { templates: query.status ? all : all };
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/labels/index.ts:164:60
+-         return { templates: query.status ? all.filter((t) => t.status === query.status) : all };
++         return { templates: query.status ? all.filter((t) => true) : all };
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/labels/index.ts:167:7
+-         requireSession();
++         ;
+Tests ran:
+    labels routes (GMP) > [IN-31] the designer saves template versions through the route; an India-domestic template without its manufacturing date shows why it fails and is refused approval; a complete one is approved by QA, never by its designer
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/labels/index.ts:181:7
+-         requireSession();
++         ;
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/labels/index.ts:190:7
+-         requireSession();
++         ;
+Tests ran:
+    labels routes (GMP) > [PR-32] an unauthorised user cannot open a label-store transaction through the route; the label store receives and issues
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/labels/index.ts:200:7
+-         requireSession();
++         ;
+Tests ran:
+    labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version
+
+
+Ran 0.43 tests per mutant on average.
+----------|------------------|----------|-----------|------------|----------|----------|
+          | % Mutation score |          |           |            |          |          |
+File      |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+All files |  43.82 |   69.03 |       78 |         0 |         35 |       65 |        0 |
+ index.ts |  43.82 |   69.03 |       78 |         0 |         35 |       65 |        0 |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+[32m02:46:32 (797563) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-labels.json
+[32m02:46:32 (797563) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s2/.reports/stryker-phase6/server-labels.html
+[32m02:46:32 (797563) INFO MutationTestExecutor[39m Done in 7 minutes and 13 seconds.

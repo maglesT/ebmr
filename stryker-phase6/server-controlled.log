@@ -1,0 +1,793 @@
+[32m02:44:53 (819485) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-controlled.incremental.json, a full mutation testing run will be performed.
+[32m02:44:53 (819485) INFO ProjectReader[39m Found 2 of 3118 file(s) to be mutated.
+[32m02:44:53 (819485) INFO Instrumenter[39m Instrumented 2 source file(s) with 320 mutant(s)
+[32m02:44:56 (819485) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m02:44:57 (819485) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m02:44:58 (819485) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m02:45:26 (819485) INFO DryRunExecutor[39m Initial test run succeeded. Ran 3 tests in 27 seconds (net 965.3545829999966 ms, overhead 26602.645417000003 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~1h 22m) 64/256 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~54m) 68/256 tested (0 survived, 0 timed out)
+Mutation testing 4% (elapsed: <1m, remaining: ~10m) 73/256 tested (0 survived, 0 timed out)
+Mutation testing 10% (elapsed: <1m, remaining: ~5m) 79/256 tested (1 survived, 0 timed out)
+Mutation testing 14% (elapsed: <1m, remaining: ~4m) 84/256 tested (4 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~1m, remaining: ~3m) 90/256 tested (8 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~1m, remaining: ~3m) 96/256 tested (11 survived, 0 timed out)
+Mutation testing 31% (elapsed: ~1m, remaining: ~2m) 102/256 tested (17 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~1m, remaining: ~2m) 108/256 tested (22 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~1m, remaining: ~2m) 113/256 tested (25 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~1m, remaining: ~2m) 119/256 tested (28 survived, 0 timed out)
+Mutation testing 52% (elapsed: ~2m, remaining: ~1m) 127/256 tested (29 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~2m, remaining: ~1m) 135/256 tested (29 survived, 0 timed out)
+Mutation testing 65% (elapsed: ~2m, remaining: ~1m) 143/256 tested (31 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~2m, remaining: ~1m) 148/256 tested (32 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~2m, remaining: ~1m) 156/256 tested (32 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~2m, remaining: <1m) 162/256 tested (33 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~3m, remaining: <1m) 170/256 tested (33 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~3m, remaining: <1m) 177/256 tested (33 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~3m, remaining: <1m) 186/256 tested (33 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~3m, remaining: <1m) 194/256 tested (33 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~3m, remaining: <1m) 200/256 tested (34 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~3m, remaining: <1m) 208/256 tested (36 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~4m, remaining: <1m) 216/256 tested (36 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~4m, remaining: <1m) 223/256 tested (36 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~4m, remaining: <1m) 232/256 tested (36 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~4m, remaining: <1m) 240/256 tested (36 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~4m, remaining: <1m) 249/256 tested (36 survived, 0 timed out)
+
+All tests/controlled-routes.test.ts
+  ✓ controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot (killed 56)
+  ✓ controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice (killed 41)
+  ✓ controlled-substance mode over HTTP (IN-53, draft) > [IN-53] the register export is run, listed and still reproduces; an unknown batch has no account (killed 61)
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:86:60
+-           (ctx as Partial<EsigSignableContext>).tokenHash ?? '',
++           (ctx as Partial<EsigSignableContext>).tokenHash ?? "Stryker was here!",
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:102:89
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : ``}`,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:109:52
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? "", contentHash: c.contentHash ?? '', changed: false };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:109:87
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? "Stryker was here!", changed: false };
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/controlled/index.ts:113:61
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
+-         }
++         if (!c.exists || !c.contentHash || !c.contentVersion) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:114:36
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
++           return refusedOutcome(404, "", 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:114:58
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', "", `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:114:120
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', ``, ['IN-53'], ['Reload the page.']);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/controlled/index.ts:114:185
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, [], ['Reload the page.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:114:186
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, [""], ['Reload the page.']);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/controlled/index.ts:114:196
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], []);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:114:197
+-           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], ['Reload the page.']);
++           return refusedOutcome(404, 'EBMR-API-NO-RECORD', 'The record to be signed was not found. Nothing was signed.', `${TARGET[a.act].aggregateType} ${a.subjectId} does not exist.`, ['IN-53'], [""]);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:128:9
+-           case 'BALANCE_SIGN':
+-             await client.query('select recipe.sign_controlled_checkpoint($1, $2)', [a.subjectId, signature.signatureId]);
+-             return { act: a.act, checkpointId: a.subjectId };
++           case 'BALANCE_SIGN':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:128:14
+-           case 'BALANCE_SIGN':
++           case "":
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:129:30
+-             await client.query('select recipe.sign_controlled_checkpoint($1, $2)', [a.subjectId, signature.signatureId]);
++             await client.query("", [a.subjectId, signature.signatureId]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/controlled/index.ts:129:82
+-             await client.query('select recipe.sign_controlled_checkpoint($1, $2)', [a.subjectId, signature.signatureId]);
++             await client.query('select recipe.sign_controlled_checkpoint($1, $2)', []);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/controlled/index.ts:130:18
+-             return { act: a.act, checkpointId: a.subjectId };
++             return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:146:114
+-       const { result } = await withIdempotentActorCommand(pool, { ...ctx.actor(), ...over }, ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null);
++       const { result } = await withIdempotentActorCommand(pool, { ...ctx.actor(), ...over }, ctx.idempotencyKey ?? "Stryker was here!", ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:147:50
+-       return typeof result === 'string' ? result : '';
++       return typeof result === 'string' ? result : "Stryker was here!";
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:159:30
+-         if (!v) throw notFound(`product ${p.productCode}`);
++         if (!v) throw notFound(``);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:171:30
+-         if (!v) throw notFound('custody record');
++         if (!v) throw notFound("");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/controlled/index.ts:184:52
+-         const [v] = await checkpointViews(app, pool, { checkpointId: id });
++         const [v] = await checkpointViews(app, pool, {});
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/controlled/index.ts:185:11
+-         if (!v) throw notFound('checkpoint');
++         if (v) throw notFound('checkpoint');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:185:11
+-         if (!v) throw notFound('checkpoint');
++         if (true) throw notFound('checkpoint');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:185:11
+-         if (!v) throw notFound('checkpoint');
++         if (false) throw notFound('checkpoint');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:185:30
+-         if (!v) throw notFound('checkpoint');
++         if (!v) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:195:33
+-         if (!full) throw notFound('register export');
++         if (!full) throw notFound("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:201:33
+-         if (!full) throw notFound('register export');
++         if (!full) throw notFound("");
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/controlled/index.ts:77:52
+-       return contentOf(t.aggregateType, a.subjectId, rows[0]?.r ?? {});
++       return contentOf(t.aggregateType, a.subjectId, rows[0].r ?? {});
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/controlled/index.ts:91:67
+-         const c = contentOf(query.aggregateType, query.aggregateId, rows[0]?.r ?? {});
++         const c = contentOf(query.aggregateType, query.aggregateId, rows[0].r ?? {});
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:92:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (false) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:92:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if ((!c.exists || !c.canonical || !c.contentHash) && !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:92:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (false || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:92:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if ((!c.exists || !c.canonical) && !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:92:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (false || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:92:11
+-         if (!c.exists || !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
++         if (!c.exists && !c.canonical || !c.contentHash || !c.contentVersion) throw contentNotFound(query.aggregateType, query.aggregateId);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:93:20
+-         const body = (JSON.parse(c.canonical) as { content?: Record<string, unknown> }).content ?? {};
++         const body = (JSON.parse(c.canonical) as {
++     content?: Record<string, unknown>;
++   }).content && {};
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:102:16
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: ``,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:102:37
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${true ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:102:37
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${false ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/controlled/index.ts:102:37
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] !== 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:102:49
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body[""] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:102:62
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] === "" ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:102:78
+-           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body['title'] : `${query.aggregateType} ${query.aggregateId}`}`,
++           title: `${meaning.title}: ${typeof body['title'] === 'string' ? body[""] : `${query.aggregateType} ${query.aggregateId}`}`,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/controlled/index.ts:103:18
+-           preview: false,
++           preview: true,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/controlled/index.ts:104:28
+-           rendering: { kind: 'fallback', state: c.state ?? null, content: body },
++           rendering: { kind: "", state: c.state ?? null, content: body },
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:104:47
+-           rendering: { kind: 'fallback', state: c.state ?? null, content: body },
++           rendering: { kind: 'fallback', state: c.state && null, content: body },
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/controlled/index.ts:107:48
+-       async prepareForChallenge(client, _ctx, a) {
+-         const c = await content(client, a);
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
+-       },
++       async prepareForChallenge(client, _ctx, a) {},
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/controlled/index.ts:109:14
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return {};
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:109:32
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion && '0', contentHash: c.contentHash ?? '', changed: false };
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:109:70
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash && '', changed: false };
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] BooleanLiteral
+apps/tablets-server/src/features/controlled/index.ts:109:100
+-         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: false };
++         return { contentVersion: c.contentVersion ?? '0', contentHash: c.contentHash ?? '', changed: true };
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:113:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if (false) {
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:113:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if ((!c.exists || !c.contentHash) && !c.contentVersion) {
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:113:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if (false || !c.contentVersion) {
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/index.ts:113:11
+-         if (!c.exists || !c.contentHash || !c.contentVersion) {
++         if (!c.exists && !c.contentHash || !c.contentVersion) {
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/controlled/index.ts:122:18
+-             return { act: a.act, recordId: a.subjectId };
++             return {};
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/controlled/index.ts:146:148
+-       const { result } = await withIdempotentActorCommand(pool, { ...ctx.actor(), ...over }, ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{ r: JsonValue }>(sql, params)).rows[0]?.r ?? null);
++       const { result } = await withIdempotentActorCommand(pool, { ...ctx.actor(), ...over }, ctx.idempotencyKey ?? '', ctx.requestHash, async (c) => (await c.query<{
++     r: JsonValue;
++   }>(sql, params)).rows[0].r ?? null);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] the register export is run, listed and still reproduces; an unknown batch has no account
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:147:12
+-       return typeof result === 'string' ? result : '';
++       return true ? result : '';
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] a transfer of a controlled lot is signed by two different custodians: the proposer first, another person second, never the same person twice
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] the register export is run, listed and still reproduces; an unknown batch has no account
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/controlled/index.ts:151:7
+-         requireSession();
++         ;
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/controlled/index.ts:159:11
+-         if (!v) throw notFound(`product ${p.productCode}`);
++         if (false) throw notFound(`product ${p.productCode}`);
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/controlled/reads.ts:142:144
+-   export async function checkpointViews(app: AppContext, db: Db, filter: { batchId?: string; checkpointId?: string }): Promise<CheckpointView[]> {
+-     const { rows } = await db.query<CheckpointRow>(
+-       `select k.id, k.stage_key, k.material_code, k.unit, k.dispensed::text as dispensed, k.consumed::text as consumed, k.in_process::text as in_process,
+-               k.returned::text as returned, k.destroyed::text as destroyed, k.difference::text as difference, k.explanation, k.deviation_id,
+-               (select d.ref from site.deviation d where d.id = k.deviation_id) as deviation_ref, k.recorded_by_person, ${usOf('k.recorded_at')} as recorded_us,
+-               recipe.controlled_checkpoint_state(k.id) as state, recipe.controlled_checkpoint_current(k.id) as current
+-          from recipe.controlled_checkpoint k
+-         where ($1::uuid is null or k.batch_id = $1) and ($2::uuid is null or k.id = $2)
+-         order by k.recorded_at desc, k.id
+-         limit 500`,
+-       [filter.batchId ?? null, filter.checkpointId ?? null],
+-     );
+-     const people = await peopleOf(db, rows.map((r) => r.recorded_by_person));
+-     return rows.map((r) => ({
+-       checkpointId: r.id,
+-       stageKey: r.stage_key,
+-       materialCode: r.material_code,
+-       unit: r.unit,
+-       dispensed: r.dispensed,
+-       consumed: r.consumed,
+-       inProcess: r.in_process,
+-       returned: r.returned,
+-       destroyed: r.destroyed,
+-       difference: r.difference,
+-       explanation: r.explanation,
+-       deviationId: r.deviation_id,
+-       deviationRef: r.deviation_ref,
+-       recordedBy: personRef(people, r.recorded_by_person, 'SHIFT_SUPERVISOR'),
+-       recordedAt: app.formatInstant(r.recorded_us),
+-       state: r.state,
+-       current: r.current,
+-     }));
+-   }
++   export async function checkpointViews(app: AppContext, db: Db, filter: { batchId?: string; checkpointId?: string }): Promise<CheckpointView[]> {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:144:5
+-       `select k.id, k.stage_key, k.material_code, k.unit, k.dispensed::text as dispensed, k.consumed::text as consumed, k.in_process::text as in_process,
+-               k.returned::text as returned, k.destroyed::text as destroyed, k.difference::text as difference, k.explanation, k.deviation_id,
+-               (select d.ref from site.deviation d where d.id = k.deviation_id) as deviation_ref, k.recorded_by_person, ${usOf('k.recorded_at')} as recorded_us,
+-               recipe.controlled_checkpoint_state(k.id) as state, recipe.controlled_checkpoint_current(k.id) as current
+-          from recipe.controlled_checkpoint k
+-         where ($1::uuid is null or k.batch_id = $1) and ($2::uuid is null or k.id = $2)
+-         order by k.recorded_at desc, k.id
+-         limit 500`,
++       ``,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:146:125
+-               (select d.ref from site.deviation d where d.id = k.deviation_id) as deviation_ref, k.recorded_by_person, ${usOf('k.recorded_at')} as recorded_us,
++               (select d.ref from site.deviation d where d.id = k.deviation_id) as deviation_ref, k.recorded_by_person, ${usOf("")} as recorded_us,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/controlled/reads.ts:152:5
+-       [filter.batchId ?? null, filter.checkpointId ?? null],
++       [],
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/controlled/reads.ts:152:6
+-       [filter.batchId ?? null, filter.checkpointId ?? null],
++       [filter.batchId && null, filter.checkpointId ?? null],
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/controlled/reads.ts:152:30
+-       [filter.batchId ?? null, filter.checkpointId ?? null],
++       [filter.batchId ?? null, filter.checkpointId && null],
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/controlled/reads.ts:154:46
+-     const people = await peopleOf(db, rows.map((r) => r.recorded_by_person));
++     const people = await peopleOf(db, rows.map(() => undefined));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/controlled/reads.ts:155:19
+-     return rows.map((r) => ({
+-       checkpointId: r.id,
+-       stageKey: r.stage_key,
+-       materialCode: r.material_code,
+-       unit: r.unit,
+-       dispensed: r.dispensed,
+-       consumed: r.consumed,
+-       inProcess: r.in_process,
+-       returned: r.returned,
+-       destroyed: r.destroyed,
+-       difference: r.difference,
+-       explanation: r.explanation,
+-       deviationId: r.deviation_id,
+-       deviationRef: r.deviation_ref,
+-       recordedBy: personRef(people, r.recorded_by_person, 'SHIFT_SUPERVISOR'),
+-       recordedAt: app.formatInstant(r.recorded_us),
+-       state: r.state,
+-       current: r.current,
+-     }));
++     return rows.map(() => undefined);
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/controlled/reads.ts:155:27
+-     return rows.map((r) => ({
+-       checkpointId: r.id,
+-       stageKey: r.stage_key,
+-       materialCode: r.material_code,
+-       unit: r.unit,
+-       dispensed: r.dispensed,
+-       consumed: r.consumed,
+-       inProcess: r.in_process,
+-       returned: r.returned,
+-       destroyed: r.destroyed,
+-       difference: r.difference,
+-       explanation: r.explanation,
+-       deviationId: r.deviation_id,
+-       deviationRef: r.deviation_ref,
+-       recordedBy: personRef(people, r.recorded_by_person, 'SHIFT_SUPERVISOR'),
+-       recordedAt: app.formatInstant(r.recorded_us),
+-       state: r.state,
+-       current: r.current,
+-     }));
++     return rows.map((r) => ({}));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:169:57
+-       recordedBy: personRef(people, r.recorded_by_person, 'SHIFT_SUPERVISOR'),
++       recordedBy: personRef(people, r.recorded_by_person, ""),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/controlled/reads.ts:187:54
+-     const checkpoints = await checkpointViews(app, db, { batchId });
++     const checkpoints = await checkpointViews(app, db, {});
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/controlled/reads.ts:188:57
+-     const materials: ControlledBalanceView['materials'] = [];
++     const materials: ControlledBalanceView['materials'] = ["Stryker was here"];
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/controlled/reads.ts:189:32
+-     for (const m of b.materials) {
+-       const bal = (await db.query<{ r: { unit: string | null; dispensed: string; returned: string; destroyed: string } }>('select recipe.controlled_balance($1, $2) as r', [batchId, m])).rows[0]?.r;
+-       materials.push({
+-         materialCode: m,
+-         unit: bal?.unit ?? null,
+-         dispensed: bal?.dispensed ?? '0',
+-         returned: bal?.returned ?? '0',
+-         destroyed: bal?.destroyed ?? '0',
+-         checkpoints: checkpoints.filter((k) => k.materialCode === m),
+-       });
+-     }
++     for (const m of b.materials) {}
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/controlled/reads.ts:190:17
+-       const bal = (await db.query<{ r: { unit: string | null; dispensed: string; returned: string; destroyed: string } }>('select recipe.controlled_balance($1, $2) as r', [batchId, m])).rows[0]?.r;
++       const bal = (await db.query<{
++     r: {
++       unit: string | null;
++       dispensed: string;
++       returned: string;
++       destroyed: string;
++     };
++   }>('select recipe.controlled_balance($1, $2) as r', [batchId, m])).rows[0].r;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:190:121
+-       const bal = (await db.query<{ r: { unit: string | null; dispensed: string; returned: string; destroyed: string } }>('select recipe.controlled_balance($1, $2) as r', [batchId, m])).rows[0]?.r;
++       const bal = (await db.query<{ r: { unit: string | null; dispensed: string; returned: string; destroyed: string } }>("", [batchId, m])).rows[0]?.r;
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/controlled/reads.ts:190:170
+-       const bal = (await db.query<{ r: { unit: string | null; dispensed: string; returned: string; destroyed: string } }>('select recipe.controlled_balance($1, $2) as r', [batchId, m])).rows[0]?.r;
++       const bal = (await db.query<{ r: { unit: string | null; dispensed: string; returned: string; destroyed: string } }>('select recipe.controlled_balance($1, $2) as r', [])).rows[0]?.r;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/controlled/reads.ts:191:20
+-       materials.push({
+-         materialCode: m,
+-         unit: bal?.unit ?? null,
+-         dispensed: bal?.dispensed ?? '0',
+-         returned: bal?.returned ?? '0',
+-         destroyed: bal?.destroyed ?? '0',
+-         checkpoints: checkpoints.filter((k) => k.materialCode === m),
+-       });
++       materials.push({});
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/controlled/reads.ts:193:13
+-         unit: bal?.unit ?? null,
++         unit: bal?.unit && null,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/controlled/reads.ts:193:13
+-         unit: bal?.unit ?? null,
++         unit: bal.unit ?? null,
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/controlled/reads.ts:194:18
+-         dispensed: bal?.dispensed ?? '0',
++         dispensed: bal?.dispensed && '0',
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/controlled/reads.ts:194:18
+-         dispensed: bal?.dispensed ?? '0',
++         dispensed: bal.dispensed ?? '0',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:194:36
+-         dispensed: bal?.dispensed ?? '0',
++         dispensed: bal?.dispensed ?? "",
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/controlled/reads.ts:195:17
+-         returned: bal?.returned ?? '0',
++         returned: bal?.returned && '0',
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/controlled/reads.ts:195:17
+-         returned: bal?.returned ?? '0',
++         returned: bal.returned ?? '0',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:195:34
+-         returned: bal?.returned ?? '0',
++         returned: bal?.returned ?? "",
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/controlled/reads.ts:196:18
+-         destroyed: bal?.destroyed ?? '0',
++         destroyed: bal?.destroyed && '0',
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/controlled/reads.ts:196:18
+-         destroyed: bal?.destroyed ?? '0',
++         destroyed: bal.destroyed ?? '0',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:196:36
+-         destroyed: bal?.destroyed ?? '0',
++         destroyed: bal?.destroyed ?? "",
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/controlled/reads.ts:197:20
+-         checkpoints: checkpoints.filter((k) => k.materialCode === m),
++         checkpoints: checkpoints,
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/controlled/reads.ts:197:39
+-         checkpoints: checkpoints.filter((k) => k.materialCode === m),
++         checkpoints: checkpoints.filter(() => undefined),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/controlled/reads.ts:197:46
+-         checkpoints: checkpoints.filter((k) => k.materialCode === m),
++         checkpoints: checkpoints.filter((k) => true),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/controlled/reads.ts:197:46
+-         checkpoints: checkpoints.filter((k) => k.materialCode === m),
++         checkpoints: checkpoints.filter((k) => false),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/controlled/reads.ts:197:46
+-         checkpoints: checkpoints.filter((k) => k.materialCode === m),
++         checkpoints: checkpoints.filter((k) => k.materialCode !== m),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/controlled/reads.ts:200:10
+-     return { batchId, batchNumber: b.batch_number, productCode: b.product, banner: BANNER, materials };
++     return {};
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/controlled/reads.ts:45:6
+-       [product ?? null],
++       [product && null],
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:56:59
+-         recordedBy: personRef(people, r.recorded_by_person, 'QA_MBR_APPROVER'),
++         recordedBy: personRef(people, r.recorded_by_person, ""),
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/controlled/reads.ts:59:82
+-         approvedBy: r.approved_by_person ? personRef(people, r.approved_by_person, 'QA') : null,
++         approvedBy: r.approved_by_person ? personRef(people, r.approved_by_person, "") : null,
+Tests ran:
+    controlled-substance mode over HTTP (IN-53, draft) > [IN-53] QA records a flag under a change record and a second QA person approves it through the ceremony; the recorder cannot
+
+
+Ran 0.72 tests per mutant on average.
+----------|------------------|----------|-----------|------------|----------|----------|
+          | % Mutation score |          |           |            |          |          |
+File      |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+All files |  61.72 |   81.44 |      158 |         0 |         36 |       62 |        0 |
+ index.ts |  61.64 |   74.81 |       98 |         0 |         33 |       28 |        0 |
+ reads.ts |  61.86 |   95.24 |       60 |         0 |          3 |       34 |        0 |
+----------|--------|---------|----------|-----------|------------|----------|----------|
+[32m02:50:14 (819485) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-controlled.json
+[32m02:50:14 (819485) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/server-controlled.html
+[32m02:50:14 (819485) INFO MutationTestExecutor[39m Done in 5 minutes and 21 seconds.

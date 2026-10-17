@@ -1,0 +1,33 @@
+[32m02:38:50 (795445) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/server-designer-hazard.incremental.json, a full mutation testing run will be performed.
+[32m02:38:50 (795445) INFO ProjectReader[39m Found 1 of 3106 file(s) to be mutated.
+[32m02:38:50 (795445) INFO Instrumenter[39m Instrumented 1 source file(s) with 173 mutant(s)
+[32m02:38:53 (795445) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[91m02:38:54 (795445) ERROR Stryker[39m Unexpected error occurred while running Stryker Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
+    at async Object.copyFile (node:internal/fs/promises:621:10)
+    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
+    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
+  errno: -21,
+  code: 'EISDIR',
+  syscall: 'copyfile',
+  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
+  dest: '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
+}
+[32m02:38:54 (795445) INFO Stryker[39m This might be a known problem with a solution documented in our troubleshooting guide.
+[32m02:38:54 (795445) INFO Stryker[39m You can find it at https://stryker-mutator.io/docs/stryker-js/troubleshooting/
+[32m02:38:54 (795445) INFO Stryker[39m Still having trouble figuring out what went wrong? Try `npx stryker run --fileLogLevel trace --logLevel debug` to get some more info.
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+Error: EISDIR: illegal operation on a directory, copyfile '/root/wt/campaign-s2/.reports/stryker-phase6' -> '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
+    at async Object.copyFile (node:internal/fs/promises:621:10)
+    at async FileSystemAction.execute (file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:16:28)
+    at async file:///root/wt/campaign-s2/node_modules/.pnpm/@stryker-mutator+core@10.0.0_@types+node@22.20.4/node_modules/@stryker-mutator/core/dist/src/fs/file-system.js:33:9 {
+  errno: -21,
+  code: 'EISDIR',
+  syscall: 'copyfile',
+  path: '/root/wt/campaign-s2/.reports/stryker-phase6',
+  dest: '/root/wt/campaign-s2/.stryker-tmp-server-designer-hazard/sandbox-3Sb2Wr/.reports/stryker-phase6'
+}
+
+Node.js v22.23.3

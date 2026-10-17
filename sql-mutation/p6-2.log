@@ -169,3 +169,161 @@ genealogy-and-recall: baseline db 33 s (limit 240 s), server 8 s (limit 240 s)
   SURVIVED recipe.deviation_of_product#6 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:377 [=] -> [<>]
   SURVIVED recipe.deviation_recurrence#11 RELATIONAL packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:394 [>] -> [>=]
   genealogy-and-recall: 425/440
+genealogy-and-recall: score 66.1 % (291/440 detected, 0 invalid) in 7279 s
+# SQL mutation report
+
+| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| genealogy-and-recall | db 33, server 8 | db 240, server 240 | 440 | 0 | 0 | 291 | 149 | 66.1 % | 90 % |
+
+## Surviving mutants
+
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:70) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-960 returne` -> `null`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:78) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-SITE-962 returne` -> `null`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:84) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:85) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:85) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:85) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:85) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:86) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:86) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:87) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:88) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:89) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:90) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:91) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:91) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:91) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:91) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:95) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:95) LOGICAL: `and` -> `or`
+- genealogy-and-recall site.record_chemical_recovery (packages/site-services/sql/0960_chemical_recovery.sql:95) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall site.erp_shipment_distribution_fields (packages/site-services/sql/0961_distribution_records.sql:60) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:82) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:83) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:84) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:84) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:84) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:85) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:86) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:86) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:86) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:87) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:88) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:88) NOT_REMOVED: `not ` -> ``
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:89) LOGICAL: `or` -> `and`
+- genealogy-and-recall site.erp_apply_shipment (packages/site-services/sql/0961_distribution_records.sql:108) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:39) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:42) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:45) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:48) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:51) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:51) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:54) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:57) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:60) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:63) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:69) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:72) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:75) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:78) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:81) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:81) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:81) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:82) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:83) RELATIONAL: `<>` -> `=`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:83) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:88) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:91) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:94) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:97) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:97) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:100) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:100) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:103) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:106) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:109) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:112) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:112) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:118) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:121) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:124) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:124) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:127) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:130) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:130) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:130) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:131) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:132) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:132) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:132) RELATIONAL: `<>` -> `=`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:132) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:132) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_step (packages/recipe-core/sql/1090_genealogy_across_sites.sql:134) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-GEN-001 %s is no` -> `null`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:142) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:143) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:144) LOGICAL: `or` -> `and`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:144) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:145) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:145) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:145) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:146) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:146) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:147) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:147) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:147) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:147) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:148) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:148) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:149) BOOLEAN: `false` -> `true`
+- genealogy-and-recall recipe.genealogy_node_exists (packages/recipe-core/sql/1090_genealogy_across_sites.sql:148) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.genealogy (packages/recipe-core/sql/1090_genealogy_across_sites.sql:174) LOGICAL: `or` -> `and`
+- genealogy-and-recall recipe.genealogy (packages/recipe-core/sql/1090_genealogy_across_sites.sql:175) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-GEN-002 %s is no` -> `null`
+- genealogy-and-recall recipe.genealogy (packages/recipe-core/sql/1090_genealogy_across_sites.sql:177) LOGICAL: `or` -> `and`
+- genealogy-and-recall recipe.genealogy (packages/recipe-core/sql/1090_genealogy_across_sites.sql:178) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-GEN-001 %s is no` -> `null`
+- genealogy-and-recall recipe.genealogy (packages/recipe-core/sql/1090_genealogy_across_sites.sql:180) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall recipe.genealogy (packages/recipe-core/sql/1090_genealogy_across_sites.sql:209) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall recipe.genealogy (packages/recipe-core/sql/1090_genealogy_across_sites.sql:210) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-GEN-005 the gene` -> `null`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:233) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:233) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:234) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:234) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:234) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:238) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:238) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:238) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:239) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:239) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:239) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:243) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:243) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.genealogy_node_views (packages/recipe-core/sql/1090_genealogy_across_sites.sql:248) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.lot_dosage_form (packages/recipe-core/sql/1011_genealogy_recovery_and_dosage_form.sql:49) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.mock_recall_starts (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:126) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.mock_recall_result_v1 (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:153) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.mock_recall_result_v1 (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:154) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.mock_recall_result_v1 (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:154) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.mock_recall_run_query (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:127) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-RCL-005 mock rec` -> `null`
+- genealogy-and-recall recipe.run_mock_recall (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:145) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall recipe.run_mock_recall (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:149) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.run_mock_recall (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:151) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.run_mock_recall (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:151) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.mock_recall_content (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:187) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.sign_off_mock_recall (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:287) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-RCL-010 there is` -> `null`
+- genealogy-and-recall recipe.sign_off_mock_recall (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:290) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.sign_off_mock_recall (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:295) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-RCL-012 a re-run as of ` -> `null`
+- genealogy-and-recall recipe.sign_off_mock_recall (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:301) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-RCL-013 a mock r` -> `null`
+- genealogy-and-recall recipe.sign_off_mock_recall (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:306) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-RCL-014 the signed mock` -> `null`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:331) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:334) RELATIONAL: `>` -> `>=`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:335) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-RCL-002 the as-of point` -> `null`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:339) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:342) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:342) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:349) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:351) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.deviation_impact_batches (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:351) RELATIONAL: `<=` -> `<`
+- genealogy-and-recall recipe.deviation_of_product (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:377) NOT_REMOVED: `not ` -> ``
+- genealogy-and-recall recipe.deviation_of_product (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:377) LOGICAL: `and` -> `or`
+- genealogy-and-recall recipe.deviation_of_product (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:377) RELATIONAL: `=` -> `<>`
+- genealogy-and-recall recipe.deviation_recurrence (packages/recipe-core/sql/1012_mock_recall_impact_recurrence.sql:394) RELATIONAL: `>` -> `>=`

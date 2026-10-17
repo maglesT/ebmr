@@ -10,3 +10,18 @@ release-gate: baseline db 145 s (limit 434 s), server 31 s (limit 240 s)
   SURVIVED recipe.grel_evaluate#8 RELATIONAL packages/recipe-core/sql/0951_qms_status_at_release.sql:62 [=] -> [<>]
   SURVIVED recipe.grel_evaluate#9 LOGICAL packages/recipe-core/sql/0951_qms_status_at_release.sql:62 [and] -> [or]
   SURVIVED recipe.grel_evaluate#10 RELATIONAL packages/recipe-core/sql/0951_qms_status_at_release.sql:62 [=] -> [<>]
+  SURVIVED recipe.grel_evaluate#12 RELATIONAL packages/recipe-core/sql/0951_qms_status_at_release.sql:66 [=] -> [<>]
+  SURVIVED recipe.grel_core_items#7 LOGICAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:59 [and] -> [or]
+  SURVIVED recipe.grel_core_items#8 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:59 [=] -> [<>]
+  release-gate: 25/240
+  recipe.grel_core_items#13: its equivalent.json entry does not fit (cites 0783:106; the mutant is at 0932:60); run as an ordinary mutant
+  SURVIVED recipe.grel_core_items#9 LOGICAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:59 [and] -> [or]
+  SURVIVED recipe.grel_core_items#13 BOOLEAN packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:60 [false] -> [true]
+  SURVIVED recipe.grel_core_items#41 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:94 [>] -> [>=]
+  release-gate: 50/240
+  release-gate: 75/240
+  SURVIVED recipe.grel_core_items#78 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:138 [>] -> [>=]
+  SURVIVED recipe.grel_core_items#83 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:140 [>] -> [>=]
+  SURVIVED recipe.grel_core_items#85 LOGICAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:147 [and] -> [or]
+  SURVIVED recipe.grel_core_items#97 RELATIONAL packages/recipe-core/sql/0932_grel_validation_basis_lineage.sql:157 [>] -> [>=]
+  release-gate: 100/240
