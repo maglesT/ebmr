@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@stdlib/math-base-special-erfc": "0.2.5",
     "@stdlib/stats-base-dists-beta-quantile": "0.2.3",
     "@stdlib/stats-base-dists-chisquare-quantile": "0.2.3",
     "@stdlib/stats-base-dists-f-quantile": "0.2.3",

@@ -8,9 +8,11 @@
  * Phase 6 slice 6i: transfers (inter-site packages, peers, receipts, alarms); the explorer and mock recalls ask other sites.
  * Phase 6 slice 6g: dashboards (dashboards, change impact; GMP) and training (SANDBOX).
  * Phase 6A slice 6A-1: analytics (overview, methods, flags; GMP).
+ * Phase 6A slice 6A-2: analytics-spc (control charts, capability, deviation rates; GMP).
  */
 import * as access from '../features/access/index.tsx';
 import * as analytics from '../features/analytics/index.tsx';
+import * as analyticsSpc from '../features/analytics/spc/index.tsx';
 import * as archive from '../features/archive/index.tsx';
 import * as audit from '../features/audit/index.tsx';
 import * as designer from '../features/designer/index.tsx';
@@ -70,4 +72,5 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['dashboards', dashboards satisfies WebFeature],
   ['training', training satisfies WebFeature],
   ['analytics', analytics satisfies WebFeature],
+  ['analytics-spc', analyticsSpc satisfies WebFeature],
 ];

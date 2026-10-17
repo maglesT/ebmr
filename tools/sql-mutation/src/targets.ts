@@ -1382,6 +1382,12 @@ export const TARGETS: Target[] = [
     tests: [r('analytics/input-views.test.ts')],
     threshold: 90,
   },
+  {
+    group: 'analytics-rate-inputs',
+    functions: ['report.shift_boundaries_problem', 'report.check_shift_boundaries', 'report.shift_of', 'report.deviation_fact_rows_v1', 'report.step_shift_rows_v1'],
+    tests: [r('analytics/rate-inputs.test.ts')],
+    threshold: 90,
+  },
   // ---- 6A-6, golden batch profile inputs (recipe-core 1170): each GMP batch step's native series on its unit within
   //      its binding window, the window's samples exactly as received with their quality (DI-32), and the reference
   //      sets in force from the configuration store (DI-51, DI-52). ----

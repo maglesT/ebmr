@@ -188,6 +188,18 @@ modules:
       - 'apps/tablets-web/test/analytics/**'
       - 'tools/boundaries/test/number-ban.test.ts'
 
+  - id: analytics-spc
+    title: Advisory analytics SPC (Phase 6A slice 6A-2) - control charts, capability, drift alerts, deviation-rate comparisons
+    page: modules/analytics.md
+    package: packages/analytics
+    migrations:
+      packages/recipe-core/sql: ['^113[0-9]_']
+    src: [packages/analytics/src/methods/spc, packages/analytics/src/methods/capability, packages/analytics/src/methods/drift, packages/analytics/src/methods/rates, apps/tablets-server/src/analytics/spc.ts]
+    tests:
+      - 'packages/analytics/test/spc-methods.test.ts'
+      - 'packages/recipe-core/test/analytics/rate-inputs.test.ts'
+      - 'apps/tablets-server/test/analytics/spc.test.ts'
+      - 'apps/tablets-web/test/analytics/spc.test.tsx'
   - id: analytics-profile
     title: Golden batch profile (Phase 6A slice 6A-6) - method GBP.DTW_BAND on the native OPC UA series, series inputs, reference sets, band overlay
     page: modules/analytics.md

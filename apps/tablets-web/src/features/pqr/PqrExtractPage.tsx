@@ -33,6 +33,12 @@ export function PqrExtractPage() {
         <dd>
           {v.ranBy.legalName} ({words(v.ranBy.role)}) {v.ranAt.text}
         </dd>
+        <dt>Advisory annex</dt>
+        <dd data-testid="pqr-analytics-annex">
+          Not part of the extract or its signed content (D-6A-18): the{' '}
+          <a href={`/analytics/rates?product=${encodeURIComponent(v.productCode)}&from=${v.periodFrom}&to=${v.periodTo}`}>deviation rates</a> and the{' '}
+          <a href={`/analytics/spc?product=${encodeURIComponent(v.productCode)}`}>control charts</a> of this product (advisory analytics, not for GMP decisions).
+        </dd>
         <dt>Re-run now</dt>
         <dd data-testid="pqr-reproduces" data-reproduces={String(v.reproduces)}>
           <StatusChip tone={v.reproduces ? 'ok' : 'warning'} label={v.reproduces ? 'Gives the same hash' : 'The records changed: run the extract again'} />

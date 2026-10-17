@@ -7,10 +7,12 @@
  */
 import type { MethodImplementation } from './method-types.ts';
 import { GOLDEN_PROFILE } from './profile.ts';
+import { SPC_IMPLEMENTATIONS } from './spc.ts';
 
 export { implementation, type InputRow, type InputSpec, type MethodImplementation, type ReferenceRow } from './method-types.ts';
 
 /** The implementations of the running code. Slice 6A-1 has none (D-6A-1-10); each method slice adds its own line. */
 export const IMPLEMENTATIONS: readonly MethodImplementation[] = [
+  ...SPC_IMPLEMENTATIONS, // 6A-2 (spc.ts)
   GOLDEN_PROFILE, // 6A-6
 ];
