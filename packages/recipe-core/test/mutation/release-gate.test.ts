@@ -916,6 +916,17 @@ describe('G-REL: review signatures, the QMS item and container links (mutation t
                      [dev.deviationId, lot.batchId, randomUUID()]);
     });
     expect(await one<string[]>('select recipe.release_deviations($1) as r', [lot.lotId])).toContain(dev.deviationId);
+    // A deviation linked to the container only is the lot's too (release_deviations#6: a confirmation run showed the
+    // case above alone, where the lot link also names it, does not tell the two apart).
+    const only = await sqlAs<{ deviationId: string }>(operator, 'select site.raise_deviation($1::jsonb) as r', [
+      JSON.stringify({ kind: 'DEVIATION', title: 'Found on one container', classification: 'MAJOR', riskRationale: 'Investigated before any release of the lot' }),
+    ]);
+    await asFixture(async (fx) => {
+      await fx.query(`insert into site.deviation_link (deviation_id, subject_kind, subject_id, subject_ref, batch_id, batch_number, edition, linked_by_person, linked_by_account)
+                      select $1, 'CONTAINER', gen_random_uuid(), 'C-FX-0002', b.id, b.batch_number, 'TABLETS', $3, $3 from recipe.batch_execution b where b.id = $2`,
+                     [only.deviationId, lot.batchId, randomUUID()]);
+    });
+    expect(await one<string[]>('select recipe.release_deviations($1) as r', [lot.lotId])).toContain(only.deviationId);
     await impactOn(dev.deviationId, [{ kind: 'LOT', id: lot.lotId }]);
     expect(await one<string | null>("select recipe.investigation_unjustifiable_for($1, 'IN', $2) as r", [lot.lotId, dev.deviationId]))
       .toMatch(/its link to container C-FX-0001 is not assessed for IN/);

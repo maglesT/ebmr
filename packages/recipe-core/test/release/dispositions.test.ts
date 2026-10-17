@@ -850,6 +850,63 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
     expect(await of(randomUUID())).toBeNull();
   });
 
+  // recipe.market_add_evaluate#18 to #27, #29 to #32, #37 (MA.IDENTITY_ROUTE and the outcome): adding a market reads the
+  // identity basis of every lot the batch consumed for the widened set, and a test made after first use does not count.
+  it('[INV-43][IN-24] a market-add evaluation reads the identity route of each lot the batch consumed: no identity result, or one recorded after first use, is UNMET_FINAL for the US; one recorded before use is MET', async () => {
+    const tag = randomUUID().slice(0, 6).toUpperCase();
+    const firstUse = '2026-03-02T12:00:00Z';
+    const cases = [{ name: 'none', at: null }, { name: 'late', at: '2026-03-03T08:00:00Z' }, { name: 'early', at: '2026-03-01T08:00:00Z' }] as const;
+    const made: Record<string, { batchId: string; lotId: string; lotCode: string }> = {};
+    for (const c of cases) {
+      const batchId = await issuedBatch(all, ['IN']);
+      const lotId = randomUUID();
+      const lotCode = `L-T11${tag}-${c.name.toUpperCase()}`;
+      made[c.name] = { batchId, lotId, lotCode };
+      await fixture(`insert into site.material_lot (id, site_code, lot_code, material_code, material_name, material_kind, received_quantity, unit, expires_at, received_by_person, received_by_account, correlation_id)
+                     values ($1, 'SITE-1', $2, 'API-T11', 'Fixture API', 'API', 10, 'kg', '2030-01-01T00:00:00Z', $3, $3, $3)`, [lotId, lotCode, randomUUID()]);
+      if (c.at) {
+        await fixture(`insert into site.lot_identity_result (lot_id, result, method_reference, test_reference, recorded_by_person, recorded_by_account, recorded_at)
+                       values ($1, 'PASS', 'IR-METHOD-1', 'IR-TEST-1', $2, $2, $3)`, [lotId, randomUUID(), c.at]);
+      }
+      const resId = randomUUID();
+      await fixture(`insert into site.lot_reservation (id, lot_id, batch_id, batch_number, edition, quantity, unit, expires_at, lot_state_version, reserved_by_person, reserved_by_account)
+                     select $1, $2, b.id, b.batch_number, 'TABLETS', 1, 'kg', now() + interval '1 day', 2, $3, $3 from recipe.batch_execution b where b.id = $4`, [resId, lotId, randomUUID(), batchId]);
+      await fixture(`insert into site.lot_consumption (lot_id, reservation_id, batch_id, batch_number, edition, material_code, quantity, unit, quantity_before, quantity_after, market_set,
+                                                        identity_basis, consumed_by_person, consumed_by_account, xact_id, consumed_at)
+                     select $1, $2, b.id, b.batch_number, 'TABLETS', 'API-T11', 1, 'kg', 10, 9, b.market_set, 'VENDOR_HISTORY_INDIA_ONLY', $3, $3, txid_current(), $5
+                       from recipe.batch_execution b where b.id = $4`, [lotId, resId, randomUUID(), batchId, firstUse]);
+    }
+    const evaluate = async (batchId: string): Promise<{ outcome: string; items: { id: string; outcome: string; detail: string | null; evidence: { label: string }[] }[] }> =>
+      (await db.admin.query<{ e: never }>("select recipe.market_add_evaluate('BATCH', $1, 'US') as e", [batchId])).rows[0]!.e;
+    const route = async (name: string) => (await evaluate(made[name]!.batchId)).items.find((i) => i.id === 'MA.IDENTITY_ROUTE')!;
+    const none = await route('none');
+    expect(none).toMatchObject({ outcome: 'UNMET_FINAL', evidence: [{ label: `${made.none!.lotCode} (no valid basis)` }] });
+    expect(none.detail).toMatch(new RegExp(`^lot ${made.none!.lotCode} has no identity result: a batch for markets \\{IN, US\\}`));
+    const late = await evaluate(made.late!.batchId);
+    expect(late.outcome).toBe('UNMET_FINAL');
+    expect(late.items.find((i) => i.id === 'MA.IDENTITY_ROUTE')).toMatchObject({ outcome: 'UNMET_FINAL',
+      detail: `the identity result of lot ${made.late!.lotCode} was recorded after the lot was first used in batch ${(await db.admin.query<{ n: string }>('select batch_number as n from recipe.batch_execution where id = $1', [made.late!.batchId])).rows[0]!.n}; the test had to precede use (3.3.3; IN-24)`,
+      evidence: [{ label: `${made.late!.lotCode} (IDENTITY_RESULT)` }] });
+    const early = await evaluate(made.early!.batchId);
+    expect(early.items.find((i) => i.id === 'MA.IDENTITY_ROUTE')).toMatchObject({ outcome: 'MET', detail: null, evidence: [{ label: `${made.early!.lotCode} (IDENTITY_RESULT)` }] });
+    expect(early.outcome).toBe('MET');
+  });
+
+  // recipe.record_market_change#19 (a market already held is not added again) and recipe.market_failed#2, #4, #9, #10,
+  // #12, #15, #16 (a removal after an addition whose evaluation was not MET is a removal after failure).
+  it('[INV-43] a market already in the set is not added again (EBMR-DSP-014); removing a market added with an unmet evaluation is flagged "removed after failure"', async () => {
+    const parent = await issuedBatch(indiaOnly, ['IN']);
+    await marketChange(qaReviewer3, 'BATCH', parent, 'ADD', 'US', await changeRecord());
+    expect((await db.app.query<{ o: string }>("select evaluation ->> 'outcome' as o from recipe.market_change where subject_id = $1", [parent])).rows[0]!.o).toBe('UNMET_FINAL');
+    expect(await codeOf(marketChange(qaReviewer3, 'BATCH', parent, 'ADD', 'US', await changeRecord()))).toBe('EBMR-DSP-014');
+    const d = await sqlAs<{ deviationId: string }>(operator, 'select site.raise_deviation($1::jsonb) as r', [
+      JSON.stringify({ kind: 'DEVIATION', title: 'US no longer intended for this batch', classification: 'MINOR', riskRationale: 'Market scope corrected after issue' }),
+    ]);
+    await w.run(operator, (c) => c.query("select site.link_deviation($1, 'BATCH', $2)", [d.deviationId, parent]));
+    const id = await marketChange(qaReviewer3, 'BATCH', parent, 'REMOVE', 'US', d.deviationId);
+    expect((await db.app.query<{ f: boolean }>('select removed_after_failure as f from recipe.market_change where id = $1', [id])).rows[0]!.f).toBe(true);
+  });
+
   // recipe.record_release_with_us_disposition#16, #19: both rows of a two-row release are made in this ceremony; a
   // manufacturer release signature of an earlier command does not join a US signature made now.
   it('[D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)', async () => {
