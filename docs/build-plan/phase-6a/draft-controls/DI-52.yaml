@@ -1,0 +1,32 @@
+id: DI-52
+title: "Analytics methods: versioned, change-controlled, reproducible, with QA feedback and monitoring"
+part: A
+group: Controls (draft, analytics; decision 0023)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+  - CONFIGURABLE
+target_phase: 7
+target_phase_source: default
+requirement_rows:
+  - 80
+  - 180
+  - 196
+  - 680
+sources: "EU GMP Annex 22 draft (July 2025), row 180; FDA draft guidance on AI to support regulatory decisions (January 2025), row 680 (draft); FDA process validation guidance stage 3 (row 80) and EU GMP Annex 15 ongoing process verification (row 196) on statistical trending; all paraphrased, status U for the AI texts. Decisions 0015 (items 6 and 9) and 0023; ADR 0020; DI-09."
+behaviour: "Each analytics method (rule set, statistical method or model) is a versioned configuration item with its intended use, acceptance criteria, parameters and their hash, code identity and validation reference. A method version, or a reference set (the batches and the fitted model a method compares against), becomes effective only under an approved configuration change record (DI-09); a method never changes itself, and refitting or retuning gives a new version. Every run records the method version, the reference set, each input (view and version, filter, data time, row count and hash) and the runtime; every output and flag names its run; a re-run on the same inputs reproduces the flags, and the values within a stated tolerance. Every flag shows the reasons it was raised. QA marks each flag a true signal, a false alarm or not assessable, with the cause and an optional deviation reference; the disposition is attributable to the person, insert-only and audited, and a later one supersedes it only with a reason. Flag and false-alarm rates are monitored per method version."
+catalog_test: "write a method version without an approved change record; refused; write it with one; it becomes effective and the configuration as of that date shows it; a run's outputs name the run, the method version and the input references; re-run on the same inputs; the same flags and the values within the tolerance; a reference set whose model hash differs from its candidate is refused; QA disposes a flag as a false alarm; the disposition shows the person and is in the audit trail; a second disposition without a reason is refused; the monitor shows the false-alarm rate of the method version."
+implemented_by:
+  modules: []
+  invariants: []
+  guards: []
+  db_constraints: []
+  rule_keys: []
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: draft
+build_status: SPECIFIED
+notes: "status U: Annex 22 is a consultation draft and FDA's AI guidance a draft; neither verified against a final text. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it."

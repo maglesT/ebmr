@@ -166,8 +166,29 @@ Final run 2 (17 October, after the campaign): green in one run after its one re-
 register listing of the campaign's 220 new tagged tests, synced): static checks, 6,695 tests passed (0 failed), golden
 batches GB-T-01 to GB-T-03 41/41, browser suite 50/50, `pnpm trace` at phase 6 ok (146/242 controls), `handbook:check` ok.
 Decision 0020 (owner, 17 October): no demo at phase exits from Phase 7 on; one demo when the product is there (v1.0).
-Next: the Phase 6 PR, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
-after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
+**Phase 6A (analytics; decision 0023, owner, 17 October).**
+- **What it builds:** decision 0016's items 1, 2, 3, 8, 9 and 10, between Phase 6 and Phase 7, so that v1.0 ships with
+  them. Item 16, the scheduler, is dropped altogether.
+- **Plan:** `docs/build-plan/phase-6a/phase-6a-plan.md` (branch `phase-6a/plan`). The architecture is ADR 0020: the
+  pure package `@ebmr/analytics`, a runner reading as `ebmr_analytics` with no GMP privilege, and the non-GMP,
+  insert-only, audited `analytics` schema. Interfaces are in `slice-6A-0-interfaces.md`.
+- **Slices:**
+  - 6A-0: interfaces.
+  - 6A-1: foundation.
+  - 6A-2: SPC, capability and drift; deviation rates.
+  - 6A-3: PCA monitoring.
+  - 6A-4: audit-trail anomaly flags.
+  - 6A-5: review priority (orders the queue, never skips a review).
+  - 6A-6: golden batch profile.
+  - 6A-7: exit.
+- **Draft controls:** DI-51, DI-52, DI-53 and PR-61 (status U, PENDING; in `draft-controls/`). They enter the register
+  in 6A-0 at target phase 7.
+- **Defaults:** D-6A-1 to 23.
+- **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
+  go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
+  with the Phase 7 exit run on the pod (D-6A-15).
+
+Next: Phase 6A, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.
 
 ## How to work here

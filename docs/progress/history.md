@@ -2700,3 +2700,13 @@ one branch per triage agent) and `-demo`. `phase.yaml` is at 6. Raw mutation rep
   50/50, `pnpm trace` at phase 6 ok (146/242 controls with passing tests), `handbook:check` ok.
 - **Demo, final run:** after final run 2, 7 of 7 items PASS again (record updated). Owner decision 0020 (17 October):
   from Phase 7 on, a phase exit is proven by its tests alone; one demo is held when the product is there (Tablets v1.0).
+
+## 17 October 2026: Phase 6A planned (analytics)
+
+- **Decision 0023 (owner):**
+  - Decision 0016's items 1, 2, 3, 8, 9 and 10 are built now as Phase 6A, before Phase 7.
+  - Item 16, the scheduler, is dropped.
+  - Phase 7 follows 6A in this session, and the heavy testing runs on the pod.
+- **Plan:** `docs/build-plan/phase-6a/phase-6a-plan.md`, with the interfaces in `slice-6A-0-interfaces.md`, ADR 0020
+  for the architecture, and the draft controls DI-51, DI-52, DI-53 and PR-61 (status U, PENDING) in `draft-controls/`.
+- **Defaults:** D-6A-1 to 23. Under D-6A-15 the heavy final run is combined with the Phase 7 exit run on the pod.

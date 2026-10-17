@@ -1,0 +1,29 @@
+id: DI-51
+title: Analytics outputs are advisory and never change a GMP record
+part: A
+group: Controls (draft, analytics; decision 0023)
+editions:
+  - tablets
+  - injectables
+type:
+  - ENFORCED
+target_phase: 7
+target_phase_source: default
+requirement_rows:
+  - 180
+  - 680
+sources: "EU GMP Annex 22 draft (July 2025), row 180, and FDA draft guidance on AI to support regulatory decisions (January 2025), row 680 (draft); both paraphrased, status U. Decisions 0015 (items 1 and 2) and 0023; ADR 0020; PR-60."
+behaviour: "Analytics (control charts, capability, drift alerts, multivariate monitoring, deviation-rate comparisons, audit-trail anomaly flags, review priority and golden batch profiles) is advisory. It reads GMP data only through a dedicated database role that holds no privilege on any GMP table and runs no command; the segregation check reports any extra grant. Its outputs are stored only in a separate non-GMP schema, insert-only and audited. No GMP table refers to them and no GMP function, view or trigger reads them, so no output can release, block, reject or change a batch, a record, a review or a release. GMP values are read as exact decimals and converted to floating point only inside the analytics module; floating-point columns exist only in the analytics schema; no statistic is written back as a GMP value or shown as one, and every analytics screen and response is marked advisory, not for GMP decisions."
+catalog_test: "as the analytics role, insert, update and delete in a GMP table and run a command; all are refused; grant the role one extra privilege; the segregation check reports it; search the database for a GMP table, function, view or trigger that depends on the analytics schema; none; search for a floating-point column outside the analytics schema; none; run the golden batches with the analytics runner on; their outputs are unchanged; an analytics response echoes the GMP limits as the source's decimal text and marks itself advisory."
+implemented_by:
+  modules: []
+  invariants: []
+  guards: []
+  db_constraints: []
+  rule_keys: []
+tests: []
+expert_decision:
+  status: PENDING
+  pack_version: draft
+build_status: SPECIFIED
+notes: "status U: Annex 22 is a consultation draft and FDA's AI guidance a draft; neither verified against a final text. Draft control proposed in the Phase 6A plan (decision 0023); not part of the 0.9 review pack, so the expert has not seen it. Complements PR-60 (design choice) with database enforcement."
