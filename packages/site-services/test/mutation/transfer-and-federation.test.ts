@@ -21,7 +21,7 @@
  */
 import { generateKeyPairSync, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { signFor } from '../helpers.ts';
+import { signerActor, signFor } from '../helpers.ts';
 import { Installation, rawPublicKey, refusal, sealOf, TAG, unique } from '../transfer/world.ts';
 
 let pune: Installation;
@@ -239,6 +239,9 @@ describe('trust in a peer installation (kernel 1220)', () => {
     // The same key again changes nothing.
     expect(await setIdentity(goa.code, 'SITE-1', 'TABLETS', goa.publicKey)).toBe(version);
     expect(await goa.scalar<number>('select (platform.current_installation()).version as v')).toBe(version);
+    // A new key is a new version (key rotation); the original key back is the next one.
+    expect(await setIdentity(goa.code, 'SITE-1', 'TABLETS', keyPair().publicKey)).toBe(version + 1);
+    expect(await setIdentity(goa.code, 'SITE-1', 'TABLETS', goa.publicKey)).toBe(version + 2);
 
     const propose = (over: Json) => goa.run<string>(goa.admin, 'select platform.propose_peer_installation($1::jsonb) as r', [JSON.stringify({
       installationCode: unique('PEER-'), siteCode: 'SITE-1', edition: 'TABLETS', baseUrl: 'https://peer.example', publicKey: keyPair().publicKey, ...over })]);
@@ -341,5 +344,49 @@ describe('the federation request and answer (kernel 1220, recipe-core 1093)', ()
     }
     expect((await pune.recordExcerpt(issued.nonce, good.payload, sealOf(goa.key, 'federation-answer', good.payload))).ok).toBe(true);
     expect(await pune.scalar<number>('select count(*)::int as v from recipe.federated_excerpt where nonce = $1', [issued.nonce])).toBe(1);
+  });
+});
+
+describe('acts with no other test in the group (kernel 1220, 1221, site services 0980, recipe-core 1091)', () => {
+  it('[DI-18] [DI-31] an installation alarm is acknowledged once, with a note, by a person who holds ALARM.ACKNOWLEDGE and never by an administrator', async () => {
+    const alarm = await goa.scalar<string>('select id::text as v from platform.installation_alarm order by raised_at limit 1');
+    expect(alarm).toMatch(/^[0-9a-f-]{36}$/);
+    const ack = (who: typeof goa.admin, id: string, note: string | null) =>
+      goa.run(who, 'select platform.acknowledge_installation_alarm($1, $2)::text as r', [id, note]);
+    const operator = goa.cast.operator;
+    expect(await refusal(ack(goa.admin, alarm, 'seen by the administrator'))).toMatch(/EBMR-IAM-04[02]/);
+    expect(await refusal(ack(operator, randomUUID(), 'no such alarm'))).toMatch(/EBMR-FED-009 there is no installation alarm/);
+    expect(await refusal(ack(operator, alarm, '   '))).toMatch(/EBMR-FED-009 .* note/);
+    expect(await refusal(ack(operator, alarm, 'x'.repeat(1001)))).toMatch(/EBMR-FED-009 .* note/);
+    await ack(operator, alarm, 'origin informed; the package is resent');
+    expect(await goa.scalar<string>("select note || '/' || (acknowledged_by = $2::uuid)::text as v from platform.installation_alarm_ack where alarm_id = $1", [alarm, operator.personId]))
+      .toBe('origin informed; the package is resent/true');
+    expect(await refusal(ack(operator, alarm, 'a second time'))).toMatch(/EBMR-FED-009 .* acknowledged already/);
+  });
+
+  it('[DI-31] a package is sealed by the person who prepared it, and only a package that exists is sealed', async () => {
+    const other = await signerActor(pune.db, 'WAREHOUSE_LABELLING');
+    const p = await pune.run<{ packageId: string; payload: string }>(pune.stores, 'select site.prepare_transfer_package($1, $2::jsonb) as r', [lot.id, JSON.stringify({ destination: goa.code, quantity: '1' })]);
+    const seal = sealOf(pune.key, 'transfer-package', p.payload);
+    expect(await refusal(pune.run(other, 'select site.seal_transfer_package($1, $2)::text as r', [p.packageId, seal]))).toMatch(/EBMR-XFR-017 .* prepared it/);
+    expect(await refusal(pune.run(pune.stores, 'select site.seal_transfer_package($1, $2)::text as r', [randomUUID(), seal]))).toMatch(/EBMR-XFR-017 there is no transfer package/);
+    await pune.run(pune.stores, 'select site.seal_transfer_package($1, $2)::text as r', [p.packageId, seal]);
+  });
+
+  it('[IN-29] a mock recall records for a transfer only the destination\'s forward excerpt of that transfer, with a known status', async () => {
+    const second = await pune.ship(lot.id, goa, '5');
+    expect(await goa.receive(second.payload, second.seal)).toMatchObject({ outcome: 'RECEIVED' });
+    const ofSecond = await pune.ask(goa, second.packageId, 'FORWARD');
+    const backward = await pune.ask(goa, first.packageId, 'BACKWARD');
+    expect([ofSecond.ok, backward.ok]).toEqual([true, true]);
+    const id = await pune.run<string>(pune.qa, "select recipe.run_mock_recall('LOT', $1, null, false, null) as r", [lot.id]);
+    const record = (transfer: string, status: string, excerpt: string | null) =>
+      pune.run(pune.qa, 'select recipe.record_mock_recall_remote($1, $2, $3, $4, null)::text as r', [id, transfer, status, excerpt]);
+    expect(await refusal(record(randomUUID(), 'UNREACHABLE', null))).toMatch(/EBMR-RCL-021/);
+    expect(await refusal(record(first.packageId, 'LOST', null))).toMatch(/EBMR-RCL-022/);
+    for (const excerpt of [ofSecond.excerptId!, backward.excerptId!, randomUUID()]) {
+      expect(await refusal(record(first.packageId, 'UNREACHABLE', excerpt))).toMatch(/EBMR-RCL-023/);
+    }
+    await record(first.packageId, 'UNREACHABLE', null);
   });
 });
