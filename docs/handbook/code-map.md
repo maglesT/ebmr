@@ -42,7 +42,7 @@ of each database function.
 | [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 8 | 0 | 3 | 7 |
 | [ss-label-store](#ss-label-store) | The label store of printed-material lots and its permission (Phase 6 slice 6c) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 0 | 0 |
 | [ss-reagent-lots](#ss-reagent-lots) | Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 2 |
-| [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 7 | 2 |
+| [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 8 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 18 | 0 | 19 | 36 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
 | [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
@@ -94,7 +94,7 @@ of each database function.
 | [ts-labels](#ts-labels) | Packaging line completion (specimens, post-use inspection, vision line stops, reconciliation waiver, label templates and store) (Phase 6 slice 6c) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 17 | 2 | 7 |
 | [ts-serialisation](#ts-serialisation) | Serialisation L3/L4 (the L3 adapter, serial query, decommissioning tasks, L3 freshness at release) (Phase 6 slice 6c) | [modules/integrations.md](modules/integrations.md) | 1 | 3 | 0 | 0 |
 | [ts-genealogy](#ts-genealogy) | Genealogy, complaint lookup and mock recall routes and screens (Phase 6 slice 6d) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 6 |
-| [ts-transfers](#ts-transfers) | Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 11 | 2 | 4 |
+| [ts-transfers](#ts-transfers) | Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 11 | 3 | 4 |
 | [ts-dashboards](#ts-dashboards) | Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 5 | 2 | 3 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
@@ -687,7 +687,7 @@ of each database function.
 
 **Source** (1): [index.ts](../../packages/site-services/src/index.ts)
 
-**Tests** (7): [authorization.test.ts](../../packages/site-services/test/authorization.test.ts), [mutation/erp-wms-receipt-and-stock.test.ts](../../packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts), [mutation/genealogy-and-recall.test.ts](../../packages/site-services/test/mutation/genealogy-and-recall.test.ts), [mutation/packaging-labels-and-line-completion.test.ts](../../packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts), [mutation/plant-rules.test.ts](../../packages/site-services/test/mutation/plant-rules.test.ts), [mutation/qms-capa-lims-cmms.test.ts](../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts), [package.test.ts](../../packages/site-services/test/package.test.ts)
+**Tests** (8): [authorization.test.ts](../../packages/site-services/test/authorization.test.ts), [mutation/controlled-substance-mode.test.ts](../../packages/site-services/test/mutation/controlled-substance-mode.test.ts), [mutation/erp-wms-receipt-and-stock.test.ts](../../packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts), [mutation/genealogy-and-recall.test.ts](../../packages/site-services/test/mutation/genealogy-and-recall.test.ts), [mutation/packaging-labels-and-line-completion.test.ts](../../packages/site-services/test/mutation/packaging-labels-and-line-completion.test.ts), [mutation/plant-rules.test.ts](../../packages/site-services/test/mutation/plant-rules.test.ts), [mutation/qms-capa-lims-cmms.test.ts](../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts), [package.test.ts](../../packages/site-services/test/package.test.ts)
 
 **Controls** (2): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml)
 
@@ -1980,7 +1980,7 @@ of each database function.
 
 **Screens** (2): [TransfersPages.tsx](../../apps/tablets-web/src/features/transfers/TransfersPages.tsx), [index.tsx](../../apps/tablets-web/src/features/transfers/index.tsx)
 
-**Tests** (2): [tablets-server/test/transfers/transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts), [tablets-web/test/transfers/transfers.test.tsx](../../apps/tablets-web/test/transfers/transfers.test.tsx)
+**Tests** (3): [tablets-server/test/transfers/federation-https.test.ts](../../apps/tablets-server/test/transfers/federation-https.test.ts), [tablets-server/test/transfers/transfer-routes.test.ts](../../apps/tablets-server/test/transfers/transfer-routes.test.ts), [tablets-web/test/transfers/transfers.test.tsx](../../apps/tablets-web/test/transfers/transfers.test.tsx)
 
 **Controls** (4): [DI-31](../../compliance/controls/DI-31.yaml), [DI-39](../../compliance/controls/DI-39.yaml), [IN-29](../../compliance/controls/IN-29.yaml), [PR-57](../../compliance/controls/PR-57.yaml)
 

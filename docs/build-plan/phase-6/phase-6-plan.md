@@ -1016,6 +1016,15 @@ Groups, harness options, the Stryker feature table and the run plan: `docs/build
   counts as important (clean hold, beta-lactam, step alarm, reagent lot binding, the QA review gate); triage T1's 17
   kill tests (field validation and microsecond boundaries) are not re-run.
 
+- **D-P6j-T6-1 (triage of controlled-substance-mode and serialisation-l3):** the command's own check that the second
+  custodian is another person (EBMR-CSM-022) and that a flag's approver is not its recorder (EBMR-CSM-006) stay as
+  defence in depth and are recorded as a later layer, not as equivalent: the kernel refuses the signature itself
+  (CONTROLLED_CUSTODY_COUNTERSIGNED is independent of CONTROLLED_CUSTODY_RECORDED and excludes the proposer;
+  CONTROLLED_PRODUCT_APPROVED excludes the recorder), so no valid signature reaches the command while those minimum
+  meanings hold. The kill test asserts the kernel's refusal (EBMR-ESIG) so that the source of the P1 rule is explicit.
+  A guard that only ever records an OPEN decommissioning task (tab.record_pool_rejection) is fail-closed: a malformed
+  L3 answer can only add a release block, so its validation survivors are recorded, not chased.
+
 #### 6j-b golden batches
 
 The golden cluster runs under the golden clock library (`tools/dev-env/golden-clock`, 3cec207) in place of libfaketime:
