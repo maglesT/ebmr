@@ -1,0 +1,2432 @@
+[32m04:49:08 (1187385) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/p4-server-release.incremental.json, a full mutation testing run will be performed.
+[32m04:49:08 (1187385) INFO ProjectReader[39m Found 4 of 3162 file(s) to be mutated.
+[32m04:49:08 (1187385) INFO Instrumenter[39m Instrumented 4 source file(s) with 1038 mutant(s)
+[32m04:49:12 (1187385) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m04:49:14 (1187385) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m04:49:15 (1187385) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m04:50:19 (1187385) INFO DryRunExecutor[39m Initial test run succeeded. Ran 38 tests in 1 minute and 4 seconds (net 7697.812745999985 ms, overhead 56638.18725400002 ms).
+Mutation testing 0% (elapsed: <1m, remaining: ~6h 46m) 256/900 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~4h 30m) 258/900 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~5h 4m) 259/900 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~2h 0m) 261/900 tested (0 survived, 0 timed out)
+Mutation testing 0% (elapsed: <1m, remaining: ~1h 50m) 262/900 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: ~1m, remaining: ~1h 24m) 265/900 tested (0 survived, 0 timed out)
+Mutation testing 1% (elapsed: ~1m, remaining: ~1h 5m) 268/900 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: ~1m, remaining: ~55m) 271/900 tested (0 survived, 0 timed out)
+Mutation testing 2% (elapsed: ~1m, remaining: ~57m) 272/900 tested (1 survived, 0 timed out)
+Mutation testing 2% (elapsed: ~1m, remaining: ~54m) 275/900 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~1m, remaining: ~55m) 277/900 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~2m, remaining: ~58m) 280/900 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~2m, remaining: ~1h 2m) 281/900 tested (1 survived, 0 timed out)
+Mutation testing 3% (elapsed: ~2m, remaining: ~1h 5m) 283/900 tested (1 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~2m, remaining: ~59m) 286/900 tested (1 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~2m, remaining: ~1h 0m) 287/900 tested (1 survived, 0 timed out)
+Mutation testing 4% (elapsed: ~2m, remaining: ~56m) 290/900 tested (1 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~3m, remaining: ~54m) 292/900 tested (1 survived, 0 timed out)
+Mutation testing 5% (elapsed: ~3m, remaining: ~51m) 295/900 tested (2 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~3m, remaining: ~50m) 297/900 tested (2 survived, 0 timed out)
+Mutation testing 6% (elapsed: ~3m, remaining: ~48m) 300/900 tested (3 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~3m, remaining: ~45m) 304/900 tested (3 survived, 0 timed out)
+Mutation testing 7% (elapsed: ~3m, remaining: ~44m) 306/900 tested (3 survived, 0 timed out)
+Mutation testing 8% (elapsed: ~4m, remaining: ~43m) 309/900 tested (3 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~4m, remaining: ~42m) 313/900 tested (3 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~4m, remaining: ~41m) 315/900 tested (3 survived, 0 timed out)
+Mutation testing 9% (elapsed: ~4m, remaining: ~41m) 317/900 tested (3 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~4m, remaining: ~41m) 321/900 tested (3 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~4m, remaining: ~42m) 323/900 tested (3 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~5m, remaining: ~42m) 325/900 tested (3 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~5m, remaining: ~43m) 328/900 tested (3 survived, 0 timed out)
+Mutation testing 10% (elapsed: ~5m, remaining: ~43m) 331/900 tested (3 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~5m, remaining: ~43m) 334/900 tested (4 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~5m, remaining: ~44m) 337/900 tested (4 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~5m, remaining: ~46m) 339/900 tested (4 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~6m, remaining: ~46m) 343/900 tested (5 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~6m, remaining: ~47m) 345/900 tested (5 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~6m, remaining: ~48m) 349/900 tested (6 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~6m, remaining: ~49m) 353/900 tested (6 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~6m, remaining: ~50m) 357/900 tested (7 survived, 0 timed out)
+Mutation testing 11% (elapsed: ~6m, remaining: ~51m) 361/900 tested (8 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~7m, remaining: ~50m) 365/900 tested (9 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~7m, remaining: ~51m) 371/900 tested (12 survived, 0 timed out)
+Mutation testing 12% (elapsed: ~7m, remaining: ~49m) 374/900 tested (12 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~7m, remaining: ~48m) 376/900 tested (13 survived, 0 timed out)
+Mutation testing 13% (elapsed: ~7m, remaining: ~47m) 378/900 tested (14 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~7m, remaining: ~48m) 379/900 tested (15 survived, 0 timed out)
+Mutation testing 14% (elapsed: ~8m, remaining: ~45m) 383/900 tested (17 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~8m, remaining: ~45m) 385/900 tested (17 survived, 0 timed out)
+Mutation testing 15% (elapsed: ~8m, remaining: ~44m) 387/900 tested (19 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~8m, remaining: ~43m) 392/900 tested (20 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~8m, remaining: ~43m) 396/900 tested (20 survived, 0 timed out)
+Mutation testing 16% (elapsed: ~8m, remaining: ~44m) 400/900 tested (21 survived, 0 timed out)
+Mutation testing 17% (elapsed: ~9m, remaining: ~42m) 406/900 tested (21 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~9m, remaining: ~41m) 410/900 tested (23 survived, 0 timed out)
+Mutation testing 18% (elapsed: ~9m, remaining: ~40m) 414/900 tested (24 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~9m, remaining: ~39m) 418/900 tested (25 survived, 0 timed out)
+Mutation testing 19% (elapsed: ~9m, remaining: ~38m) 421/900 tested (28 survived, 0 timed out)
+Mutation testing 20% (elapsed: ~9m, remaining: ~37m) 426/900 tested (30 survived, 0 timed out)
+Mutation testing 21% (elapsed: ~10m, remaining: ~36m) 430/900 tested (32 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~10m, remaining: ~35m) 436/900 tested (32 survived, 0 timed out)
+Mutation testing 22% (elapsed: ~10m, remaining: ~34m) 441/900 tested (32 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~10m, remaining: ~34m) 446/900 tested (33 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~10m, remaining: ~34m) 452/900 tested (34 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~10m, remaining: ~34m) 458/900 tested (34 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~11m, remaining: ~35m) 462/900 tested (36 survived, 0 timed out)
+Mutation testing 23% (elapsed: ~11m, remaining: ~35m) 468/900 tested (42 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~11m, remaining: ~35m) 472/900 tested (43 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~11m, remaining: ~35m) 476/900 tested (43 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~11m, remaining: ~35m) 480/900 tested (44 survived, 0 timed out)
+Mutation testing 24% (elapsed: ~11m, remaining: ~35m) 486/900 tested (46 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~12m, remaining: ~35m) 490/900 tested (47 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~12m, remaining: ~35m) 494/900 tested (47 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~12m, remaining: ~35m) 498/900 tested (48 survived, 0 timed out)
+Mutation testing 25% (elapsed: ~12m, remaining: ~35m) 502/900 tested (48 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~12m, remaining: ~36m) 506/900 tested (50 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~12m, remaining: ~36m) 510/900 tested (53 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~13m, remaining: ~36m) 516/900 tested (57 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~13m, remaining: ~36m) 519/900 tested (60 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~13m, remaining: ~36m) 523/900 tested (63 survived, 0 timed out)
+Mutation testing 26% (elapsed: ~13m, remaining: ~36m) 526/900 tested (65 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~13m, remaining: ~36m) 530/900 tested (67 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~13m, remaining: ~36m) 534/900 tested (69 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~14m, remaining: ~37m) 538/900 tested (70 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~14m, remaining: ~37m) 542/900 tested (74 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~14m, remaining: ~37m) 546/900 tested (75 survived, 0 timed out)
+Mutation testing 27% (elapsed: ~14m, remaining: ~37m) 551/900 tested (75 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~14m, remaining: ~37m) 555/900 tested (75 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~14m, remaining: ~37m) 559/900 tested (75 survived, 0 timed out)
+Mutation testing 28% (elapsed: ~15m, remaining: ~36m) 563/900 tested (75 survived, 0 timed out)
+Mutation testing 29% (elapsed: ~15m, remaining: ~36m) 567/900 tested (75 survived, 0 timed out)
+Mutation testing 30% (elapsed: ~15m, remaining: ~35m) 571/900 tested (75 survived, 0 timed out)
+Mutation testing 31% (elapsed: ~15m, remaining: ~33m) 575/900 tested (75 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~15m, remaining: ~33m) 578/900 tested (75 survived, 0 timed out)
+Mutation testing 32% (elapsed: ~15m, remaining: ~32m) 582/900 tested (75 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~16m, remaining: ~32m) 584/900 tested (75 survived, 0 timed out)
+Mutation testing 33% (elapsed: ~16m, remaining: ~31m) 587/900 tested (75 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~16m, remaining: ~30m) 591/900 tested (78 survived, 0 timed out)
+Mutation testing 34% (elapsed: ~16m, remaining: ~30m) 593/900 tested (79 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~16m, remaining: ~30m) 597/900 tested (79 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~16m, remaining: ~30m) 603/900 tested (79 survived, 0 timed out)
+Mutation testing 35% (elapsed: ~17m, remaining: ~30m) 607/900 tested (79 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~17m, remaining: ~30m) 611/900 tested (79 survived, 0 timed out)
+Mutation testing 36% (elapsed: ~17m, remaining: ~29m) 614/900 tested (79 survived, 0 timed out)
+Mutation testing 37% (elapsed: ~17m, remaining: ~29m) 617/900 tested (79 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~17m, remaining: ~28m) 621/900 tested (80 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~17m, remaining: ~28m) 624/900 tested (82 survived, 0 timed out)
+Mutation testing 38% (elapsed: ~18m, remaining: ~28m) 628/900 tested (82 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~18m, remaining: ~28m) 632/900 tested (82 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~18m, remaining: ~28m) 636/900 tested (82 survived, 0 timed out)
+Mutation testing 39% (elapsed: ~18m, remaining: ~27m) 640/900 tested (82 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~18m, remaining: ~27m) 644/900 tested (82 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~18m, remaining: ~27m) 647/900 tested (82 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~19m, remaining: ~27m) 650/900 tested (82 survived, 0 timed out)
+Mutation testing 40% (elapsed: ~19m, remaining: ~27m) 654/900 tested (82 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~19m, remaining: ~27m) 658/900 tested (82 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~19m, remaining: ~27m) 661/900 tested (83 survived, 0 timed out)
+Mutation testing 41% (elapsed: ~19m, remaining: ~27m) 664/900 tested (83 survived, 0 timed out)
+Mutation testing 42% (elapsed: ~19m, remaining: ~26m) 668/900 tested (84 survived, 0 timed out)
+Mutation testing 43% (elapsed: ~20m, remaining: ~25m) 672/900 tested (84 survived, 0 timed out)
+Mutation testing 44% (elapsed: ~20m, remaining: ~25m) 674/900 tested (84 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~20m, remaining: ~24m) 677/900 tested (84 survived, 0 timed out)
+Mutation testing 45% (elapsed: ~20m, remaining: ~24m) 679/900 tested (84 survived, 0 timed out)
+Mutation testing 47% (elapsed: ~20m, remaining: ~23m) 683/900 tested (84 survived, 0 timed out)
+Mutation testing 48% (elapsed: ~20m, remaining: ~22m) 686/900 tested (84 survived, 0 timed out)
+Mutation testing 48% (elapsed: ~21m, remaining: ~21m) 688/900 tested (84 survived, 0 timed out)
+Mutation testing 49% (elapsed: ~21m, remaining: ~21m) 691/900 tested (84 survived, 0 timed out)
+Mutation testing 50% (elapsed: ~21m, remaining: ~20m) 694/900 tested (84 survived, 0 timed out)
+Mutation testing 51% (elapsed: ~21m, remaining: ~19m) 697/900 tested (84 survived, 0 timed out)
+Mutation testing 52% (elapsed: ~21m, remaining: ~19m) 699/900 tested (84 survived, 0 timed out)
+Mutation testing 53% (elapsed: ~21m, remaining: ~18m) 702/900 tested (84 survived, 0 timed out)
+Mutation testing 54% (elapsed: ~22m, remaining: ~18m) 704/900 tested (84 survived, 0 timed out)
+Mutation testing 55% (elapsed: ~22m, remaining: ~18m) 706/900 tested (84 survived, 0 timed out)
+Mutation testing 55% (elapsed: ~22m, remaining: ~17m) 708/900 tested (84 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~22m, remaining: ~16m) 712/900 tested (84 survived, 0 timed out)
+Mutation testing 57% (elapsed: ~22m, remaining: ~16m) 714/900 tested (84 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~22m, remaining: ~16m) 716/900 tested (84 survived, 0 timed out)
+Mutation testing 59% (elapsed: ~23m, remaining: ~15m) 718/900 tested (84 survived, 0 timed out)
+Mutation testing 60% (elapsed: ~23m, remaining: ~15m) 721/900 tested (84 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~23m, remaining: ~14m) 723/900 tested (84 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~23m, remaining: ~14m) 726/900 tested (84 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~23m, remaining: ~14m) 729/900 tested (84 survived, 0 timed out)
+Mutation testing 61% (elapsed: ~23m, remaining: ~14m) 732/900 tested (84 survived, 0 timed out)
+Mutation testing 62% (elapsed: ~24m, remaining: ~14m) 735/900 tested (84 survived, 0 timed out)
+Mutation testing 63% (elapsed: ~24m, remaining: ~13m) 737/900 tested (84 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~24m, remaining: ~13m) 739/900 tested (84 survived, 0 timed out)
+Mutation testing 64% (elapsed: ~24m, remaining: ~13m) 741/900 tested (84 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~24m, remaining: ~12m) 744/900 tested (84 survived, 0 timed out)
+Mutation testing 66% (elapsed: ~24m, remaining: ~12m) 746/900 tested (84 survived, 0 timed out)
+Mutation testing 67% (elapsed: ~25m, remaining: ~12m) 748/900 tested (84 survived, 0 timed out)
+Mutation testing 68% (elapsed: ~25m, remaining: ~11m) 751/900 tested (84 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~25m, remaining: ~11m) 753/900 tested (84 survived, 0 timed out)
+Mutation testing 69% (elapsed: ~25m, remaining: ~10m) 756/900 tested (84 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~25m, remaining: ~10m) 759/900 tested (84 survived, 0 timed out)
+Mutation testing 70% (elapsed: ~25m, remaining: ~10m) 762/900 tested (84 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~26m, remaining: ~10m) 764/900 tested (84 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~26m, remaining: ~10m) 766/900 tested (84 survived, 0 timed out)
+Mutation testing 72% (elapsed: ~26m, remaining: ~9m) 768/900 tested (84 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~26m, remaining: ~9m) 772/900 tested (84 survived, 0 timed out)
+Mutation testing 74% (elapsed: ~26m, remaining: ~8m) 774/900 tested (84 survived, 0 timed out)
+Mutation testing 75% (elapsed: ~26m, remaining: ~8m) 776/900 tested (84 survived, 0 timed out)
+Mutation testing 76% (elapsed: ~27m, remaining: ~8m) 780/900 tested (84 survived, 0 timed out)
+Mutation testing 77% (elapsed: ~27m, remaining: ~8m) 781/900 tested (84 survived, 0 timed out)
+Mutation testing 78% (elapsed: ~27m, remaining: ~7m) 785/900 tested (84 survived, 0 timed out)
+Mutation testing 79% (elapsed: ~27m, remaining: ~7m) 787/900 tested (84 survived, 0 timed out)
+Mutation testing 80% (elapsed: ~27m, remaining: ~6m) 790/900 tested (84 survived, 0 timed out)
+Mutation testing 81% (elapsed: ~27m, remaining: ~6m) 793/900 tested (84 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~28m, remaining: ~6m) 796/900 tested (84 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~28m, remaining: ~5m) 799/900 tested (84 survived, 0 timed out)
+Mutation testing 84% (elapsed: ~28m, remaining: ~5m) 802/900 tested (84 survived, 0 timed out)
+Mutation testing 85% (elapsed: ~28m, remaining: ~4m) 805/900 tested (84 survived, 0 timed out)
+Mutation testing 86% (elapsed: ~28m, remaining: ~4m) 809/900 tested (84 survived, 0 timed out)
+Mutation testing 87% (elapsed: ~28m, remaining: ~4m) 811/900 tested (84 survived, 0 timed out)
+Mutation testing 88% (elapsed: ~29m, remaining: ~3m) 815/900 tested (84 survived, 0 timed out)
+Mutation testing 89% (elapsed: ~29m, remaining: ~3m) 817/900 tested (84 survived, 0 timed out)
+Mutation testing 90% (elapsed: ~29m, remaining: ~3m) 821/900 tested (84 survived, 0 timed out)
+Mutation testing 91% (elapsed: ~29m, remaining: ~2m) 824/900 tested (84 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~29m, remaining: ~2m) 827/900 tested (85 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~29m, remaining: ~2m) 829/900 tested (85 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~30m, remaining: ~2m) 831/900 tested (86 survived, 0 timed out)
+Mutation testing 93% (elapsed: ~30m, remaining: ~2m) 833/900 tested (86 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~30m, remaining: ~1m) 837/900 tested (86 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~30m, remaining: ~1m) 839/900 tested (87 survived, 0 timed out)
+Mutation testing 94% (elapsed: ~30m, remaining: ~1m) 841/900 tested (87 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~30m, remaining: ~1m) 845/900 tested (87 survived, 0 timed out)
+Mutation testing 95% (elapsed: ~31m, remaining: ~1m) 847/900 tested (87 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~31m, remaining: ~1m) 851/900 tested (87 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~31m, remaining: ~1m) 855/900 tested (88 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~31m, remaining: ~1m) 857/900 tested (89 survived, 0 timed out)
+Mutation testing 96% (elapsed: ~31m, remaining: ~1m) 861/900 tested (89 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~31m, remaining: <1m) 863/900 tested (89 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~32m, remaining: <1m) 867/900 tested (89 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~32m, remaining: <1m) 871/900 tested (89 survived, 0 timed out)
+Mutation testing 97% (elapsed: ~32m, remaining: <1m) 875/900 tested (89 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~32m, remaining: <1m) 879/900 tested (89 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~32m, remaining: <1m) 883/900 tested (89 survived, 0 timed out)
+Mutation testing 98% (elapsed: ~32m, remaining: <1m) 886/900 tested (89 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~33m, remaining: <1m) 889/900 tested (89 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~33m, remaining: <1m) 893/900 tested (89 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~33m, remaining: <1m) 896/900 tested (89 survived, 0 timed out)
+Mutation testing 99% (elapsed: ~33m, remaining: <1m) 899/900 tested (89 survived, 0 timed out)
+
+All tests
+  after-release-acts.test.ts
+    ✓ after-release act records (L-19, PR-46) > [L-19][PR-46] a disposal's record is the lot and the SHA-256 of its details as entered, trimmed, one per line, in the order the database hashes them (killed 1)
+    ✓ after-release act records (L-19, PR-46) > [PR-46] the witness signs the recorded destruction's own record (its id as given), never a new disposal record (killed 1)
+    ✓ after-release act records (L-19, PR-46) > [L-19] a re-confirmation, recall or rejection after release names the lot, the market and the act; the sequence is the database's (killed 4)
+  after-release-routes.test.ts
+    ✓ after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-29] a deviation linked after the release suspends the lot at once; the views show the cause, the AP's task, the ERP block and the gates (killed 58)
+    ✓ after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-05] the AP recalls the suspended lot through the ceremony (with a reason); a recall without one signs nothing; the lot register moves with it (killed 190)
+    ✓ after release over HTTP (slice 5a; L-19, IN-29) > [PR-46][IN-05] QA disposes of the recalled lot through the ceremony (a witnessed destruction) and an independent witness completes it; the view shows the record awaiting its witness, then recorded (killed 103)
+  disposition-interfaces.test.ts
+    ✘ market disposition interfaces (slice 4-0) > [meta] an unknown lot has no market set, no export disposition and no importer; IN reads the manufacturer release (covered 0)
+    ✘ market disposition interfaces (slice 4-0) > [meta] the market-add evaluation answers its fixed shape; the suspension and the importer registry are not the application role's (covered 0)
+  grel-interfaces.test.ts
+    ✘ G-REL interfaces (slice 3-0) > [meta] G-REL answers the fixed item shape; a lot that is no finished lot gets one RED edition item; only IN, US and EU are evaluated (covered 0)
+    ✘ G-REL interfaces (slice 3-0) > [meta] the Tablets hook is registered and answers an array; the application role cannot register or replace a hook (covered 0)
+  grel-tablets-items.test.ts
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [INV-05][IN-05] "since review" of a Tablets item reads its own batches and evidence only: changes to other batches, lots, containers and deviations after the review do not count; its own do (tab.grel_changed_since) (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [INV-05][IN-05] the evidence set of a packaging order's lot is the order and its processing parent, in that order (recipe.release_batches) (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [meta] the Tablets hook answers well-formed items for groups 4, 9 and 10 through recipe.grel_evaluate; a lot that is no Tablets finished lot gets one red item (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-37] E.FINISHED_PACK_EXAMINATION: red without an end-of-run examination and while a failed one is unresolved; green once it passed or its failure is resolved (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][PR-37] E.RECONCILIATION_PACKS: red without the reconciliation entry and while a pack reconciliation outside its limit has no closed deviation (release is blocked); green once the deviation is closed (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39][INV-32] E.RECONCILIATION_PRINTED: red while the printed-materials step is open or a printed reconciliation outside its limits is unresolved; green once resolved (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-17][PR-39] E.RECONCILIATION_YIELD: a yield outside its limits in the processing batch blocks until its deviation is closed (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-42][IN-17] E.RECONCILIATION_SERIAL: an open serial reconciliation blocks until its deviation is closed (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-45][IN-05] E.POSTED_QUANTITY: the posted quantity must equal the packs put into shippers (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: NA when the processing batch prints nothing; red until the QC hold point after printing is approved under a valid signature; green then (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [L-30][TB-11] E.HELD_CONTAINERS: a held container of the processing batch keeps the lot red until QA rejects or releases it (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [L-30][INV-27] E.CONTAINER_RELEASE: red with no bulk issued and when a packed container is held after packing; green when every packed container is closed and vouched for or released by QA (covered 0)
+    ✘ the Tablets items of G-REL (slice 3b, tablets 1162) > [PR-47][INV-33] E.WHOLE_BATCH_PARENTS: NA without a whole-batch parent; red while the parent has a container that is not rejected; green once it is (covered 0)
+    ✘ QA verification of a compendial rule set (slice 3b, tablets 1161; tablets spec E.1) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: NA when no entry cites a rule set; red while a cited rule set has no signed QA verification; green once QA records and signs it (covered 0)
+    ✘ a packaging master completes only through its secondary packaging step (slice 3b, recipe-core 0800) > [PR-37][IN-16] TB-24 in a sequence, a parallel branch, every branch of an alternative or a loop body completes the master; in one branch of an alternative, a replicate that may run none or a hold point only, it does not (covered 0)
+    ✘ slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-34][DI-10] E.RULE_SETS_VERIFIED: an entry whose rule-set reference is malformed is red ("cannot determine"), never dropped to NA (covered 0)
+    ✘ slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-37][PR-45] E.PRINTED_TABLETS_QC: a library call whose element is not pinned is red ("cannot determine"); a printing step inlined from a pinned element needs the hold point after it in that element, under a valid signature (covered 0)
+    ✘ slice 3 quick review: the Tablets items fail closed (tablets 1163) > [IN-17][PR-39] E.RECONCILIATION_PRINTED: when the packaging master prints but the record holds no G-21 step instance it is red, never NA (covered 0)
+    ✘ slice 3 quick review: the Tablets items fail closed (tablets 1163) > [INV-05][DI-37] since_review: false before QA reviewed the packaging record and for facts older than the review; true on an item whose facts changed after it (an exception, a container state) (covered 0)
+  market-routes.test.ts
+    ✓ market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404 (killed 55)
+    ✓ market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot (killed 56)
+    ✓ market routes over HTTP (outline 3.3.3, 5.2.6) > the two-row release (D-P4-5): the server names the companion record; without its challenge nothing is signed, and an AP who does not hold the QCU permission cannot open the US challenge (killed 9)
+    ✓ the structured certification message (DI-39) > [DI-39] the database verifies the importer's signature and acknowledges every message: a forged one, an unknown importer and a lot not awaiting certification are refused with their reason; a resend gets its first acknowledgement (killed 8)
+  qp-shipping-routes.test.ts
+    ✘ the EU QP batch package over HTTP (DI-41, DI-14) > [DI-41][DI-14] QA assembles and signs the package of a released lot; the QP lists and downloads it, the copy verifies against the registered hash, and the QP account reaches nothing else (covered 0)
+    ✘ the QP role closes every other route, whatever role the session chose (review 4b-1) > [DI-14] an account holding EU_QP_READER and another read-only role reaches only the QP package routes in either role (covered 0)
+    ✘ the ERP shipping interlock over HTTP (INV-42) > [INV-42][IN-05] the ERP asks before it ships: India ships after the release; the EU waits for its disposition and the named importer; a refused shipment records nothing (covered 0)
+  release-routes.test.ts
+    ✓ release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market (killed 53)
+    ✓ release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED (killed 17)
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/after-release.ts:99:13
+-     const f = rows[0]?.f;
++     const f = rows[0].f;
+Tests ran:
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-29] a deviation linked after the release suspends the lot at once; the views show the cause, the AP's task, the ERP block and the gates
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-05] the AP recalls the suspended lot through the ceremony (with a reason); a recall without one signs nothing; the lot register moves with it
+    after release over HTTP (slice 5a; L-19, IN-29) > [PR-46][IN-05] QA disposes of the recalled lot through the ceremony (a witnessed destruction) and an independent witness completes it; the view shows the record awaiting its witness, then recorded
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/release/after-release.ts:113:14
+-       markets: f.markets.filter((m) => MARKETS.includes(m.market)).map((m) => ({
++       markets: f.markets.map((m) => ({
+Tests ran:
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-29] a deviation linked after the release suspends the lot at once; the views show the cause, the AP's task, the ERP block and the gates
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-05] the AP recalls the suspended lot through the ceremony (with a reason); a recall without one signs nothing; the lot register moves with it
+    after release over HTTP (slice 5a; L-19, IN-29) > [PR-46][IN-05] QA disposes of the recalled lot through the ceremony (a witnessed destruction) and an independent witness completes it; the view shows the record awaiting its witness, then recorded
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/after-release.ts:116:19
+-         priorState: m.state === 'RELEASE_SUSPENDED' ? m.prior : null,
++         priorState: true ? m.prior : null,
+Tests ran:
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-29] a deviation linked after the release suspends the lot at once; the views show the cause, the AP's task, the ERP block and the gates
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-05] the AP recalls the suspended lot through the ceremony (with a reason); a recall without one signs nothing; the lot register moves with it
+    after release over HTTP (slice 5a; L-19, IN-29) > [PR-46][IN-05] QA disposes of the recalled lot through the ceremony (a witnessed destruction) and an independent witness completes it; the view shows the record awaiting its witness, then recorded
+
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/index.ts:42:69
+-         await withIdempotentActorCommand(pool, who, idempotencyKey ?? '', requestHash, async (c) => {
++         await withIdempotentActorCommand(pool, who, idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/index.ts:64:85
+-         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
++         const out = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? "Stryker was here!", requestHash, async (c) => {
+
+[Survived] CallExpression
+apps/tablets-server/src/features/release/index.ts:29:7
+-         requireSession();
++         ;
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/release/index.ts:54:7
+-         requireSession();
++         ;
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/release/index.ts:58:7
+-         requireSession();
++         ;
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/release/index.ts:86:7
+-         requireSession();
++         ;
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/release/index.ts:91:7
+-         requireSession();
++         ;
+Tests ran:
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-29] a deviation linked after the release suspends the lot at once; the views show the cause, the AP's task, the ERP block and the gates
+
+
+[Survived] CallExpression
+apps/tablets-server/src/features/release/index.ts:95:7
+-         requireSession();
++         ;
+Tests ran:
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-29] a deviation linked after the release suspends the lot at once; the views show the cause, the AP's task, the ERP block and the gates
+    after release over HTTP (slice 5a; L-19, IN-29) > [L-19][IN-05] the AP recalls the suspended lot through the ceremony (with a reason); a recall without one signs nothing; the lot register moves with it
+    after release over HTTP (slice 5a; L-19, IN-29) > [PR-46][IN-05] QA disposes of the recalled lot through the ceremony (a witnessed destruction) and an independent witness completes it; the view shows the record awaiting its witness, then recorded
+
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/reads.ts:66:145
+-       (await db.query<{ a: string[] }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0]?.a ?? [],
++       (await db.query<{ a: string[] }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0]?.a ?? ["Stryker was here"],
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:127:60
+-             justifications: facts.justifications.map((j) => ({ deviationId: j.deviation_id, text: j.text, signatureId: j.signature_id })),
++             justifications: facts.justifications.map((j) => ({})),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:130:44
+-       incidents: facts.incidents.map((i) => ({ incidentId: i.incident_id, number: i.number, severity: i.severity, status: i.status, assessed: i.assessed })),
++       incidents: facts.incidents.map((i) => ({})),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:131:67
+-       registrationRelevant: facts.registration_relevant.map((r) => ({ batchId: r.batch_id, exceptionId: r.exception_id, title: r.title, deviationRef: r.deviation_ref })),
++       registrationRelevant: facts.registration_relevant.map((r) => ({})),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:133:61
+-       validationBatches: facts.validation_batches.map((b) => ({ batchId: b.batch_id, batchNumber: b.batch_number, purpose: b.purpose, outcome: b.outcome })),
++       validationBatches: facts.validation_batches.map((b) => ({})),
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:134:47
+-       postChange: facts.post_change.map((b) => ({ batchId: b.batch_id, batchNumber: b.batch_number, changeRecord: b.change_record, evaluated: b.evaluated })),
++       postChange: facts.post_change.map((b) => ({})),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:175:53
+-         whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
++         whatHappened: `There is no ${kind === 'LOT' ? "" : 'issued GMP batch'} with this id.`,
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/reads.ts:251:119
+-     const people = await peopleOf(db, [decision?.person_id, ...changes.map((c) => c.person_id), ...certs.flatMap((c) => [c.person_id, c.verified_by])]);
++     const people = await peopleOf(db, [decision?.person_id, ...changes.map((c) => c.person_id), ...certs.flatMap((c) => [])]);
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/release/reads.ts:262:126
+-       const added = (await db.query<{ a: boolean }>('select recipe.market_added($1, $2) as a', [lotId, market])).rows[0]?.a ?? false;
++       const added = (await db.query<{ a: boolean }>('select recipe.market_added($1, $2) as a', [lotId, market])).rows[0]?.a ?? true;
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:270:13
+-             ? {
+-                 decision: decision.decision,
+-                 by: personRef(people, decision.person_id, decision.role_code),
+-                 at: app.formatInstant(decision.us),
+-                 signatureId: decision.signature_id,
+-                 epoch: decision.epoch,
+-                 checklistHash: decision.checklist_hash,
+-                 reason: decision.reason,
+-                 deviationId: decision.deviation_id,
+-                 withManufacturerRelease: decision.with_mr,
+-               }
++             ? {}
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/release/reads.ts:284:23
+-             ? certs.map((c) => ({
+-                 certificationId: c.id,
+-                 source: c.source,
+-                 outcome: c.outcome,
+-                 certifier: c.certifier,
+-                 miaNumber: c.mia_number,
+-                 certifiedAt: app.formatInstant(c.certified_us),
+-                 importerCode: c.importer_code,
+-                 reference: c.reference,
+-                 verified: c.verified,
+-                 recordedBy: personRef(people, c.person_id, c.source_role),
+-                 verifiedBy: c.verified_by ? personRef(people, c.verified_by, '') : null,
+-                 reason: c.reason,
+-               }))
++             ? certs.map(() => undefined)
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:284:31
+-             ? certs.map((c) => ({
+-                 certificationId: c.id,
+-                 source: c.source,
+-                 outcome: c.outcome,
+-                 certifier: c.certifier,
+-                 miaNumber: c.mia_number,
+-                 certifiedAt: app.formatInstant(c.certified_us),
+-                 importerCode: c.importer_code,
+-                 reference: c.reference,
+-                 verified: c.verified,
+-                 recordedBy: personRef(people, c.person_id, c.source_role),
+-                 verifiedBy: c.verified_by ? personRef(people, c.verified_by, '') : null,
+-                 reason: c.reason,
+-               }))
++             ? certs.map((c) => ({}))
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:295:76
+-                 verifiedBy: c.verified_by ? personRef(people, c.verified_by, '') : null,
++                 verifiedBy: c.verified_by ? personRef(people, c.verified_by, "Stryker was here!") : null,
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/reads.ts:320:13
+-             : { release: gate(notHere), reject: gate(notHere), certify: gate(gates.certify) },
++             : {},
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:323:48
+-     return { lotId, manufacturerState: head.m ?? 'NOT_READY', markets: head.set, dispositions };
++     return { lotId, manufacturerState: head.m ?? "", markets: head.set, dispositions };
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:57:131
+-     return refusal(404, { code: 'EBMR-REL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no finished lot with this id.', why: `Lot ${lotId} is no finished lot of a packaging batch.`, whatYouCanDo: ['Open the release queue.'] });
++     return refusal(404, { code: 'EBMR-REL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no finished lot with this id.', why: ``, whatYouCanDo: ['Open the release queue.'] });
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/release/reads.ts:57:202
+-     return refusal(404, { code: 'EBMR-REL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no finished lot with this id.', why: `Lot ${lotId} is no finished lot of a packaging batch.`, whatYouCanDo: ['Open the release queue.'] });
++     return refusal(404, { code: 'EBMR-REL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no finished lot with this id.', why: `Lot ${lotId} is no finished lot of a packaging batch.`, whatYouCanDo: [] });
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:57:203
+-     return refusal(404, { code: 'EBMR-REL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no finished lot with this id.', why: `Lot ${lotId} is no finished lot of a packaging batch.`, whatYouCanDo: ['Open the release queue.'] });
++     return refusal(404, { code: 'EBMR-REL-010', kind: 'INVALID_INPUT', whatHappened: 'There is no finished lot with this id.', why: `Lot ${lotId} is no finished lot of a packaging batch.`, whatYouCanDo: [""] });
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/reads.ts:63:13
+-     const g = rows[0]?.g;
++     const g = rows[0].g;
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:64:7
+-     if (!g) throw noLot(lotId);
++     if (false) throw noLot(lotId);
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/release/reads.ts:66:5
+-       (await db.query<{ a: string[] }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0]?.a ?? [],
++       (await db.query<{
++     a: string[];
++   }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0]?.a && [],
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/reads.ts:66:5
+-       (await db.query<{ a: string[] }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0]?.a ?? [],
++       (await db.query<{
++     a: string[];
++   }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0].a ?? [],
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:66:38
+-       (await db.query<{ a: string[] }>('select recipe.grel_acknowledged($1, $2, $3, $4) as a', [lotId, market, g.epoch, personId])).rows[0]?.a ?? [],
++       (await db.query<{ a: string[] }>("", [lotId, market, g.epoch, personId])).rows[0]?.a ?? [],
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:81:21
+-         acknowledged: i.since_review && acked.has(i.id),
++         acknowledged: true,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:81:21
+-         acknowledged: i.since_review && acked.has(i.id),
++         acknowledged: false,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/release/reads.ts:81:21
+-         acknowledged: i.since_review && acked.has(i.id),
++         acknowledged: i.since_review || acked.has(i.id),
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:102:52
+-     return rows.filter((r) => state === undefined || r.state === state).map(summary);
++     return rows.filter((r) => state === undefined || false).map(summary);
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:108:7
+-     if (!row) throw noLot(lotId);
++     if (false) throw noLot(lotId);
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/reads.ts:109:17
+-     const facts = (await db.query<{ f: Facts }>('select recipe.release_lot_facts($1) as f', [lotId])).rows[0]?.f;
++     const facts = (await db.query<{
++     f: Facts;
++   }>('select recipe.release_lot_facts($1) as f', [lotId])).rows[0].f;
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:110:7
+-     if (!facts) throw noLot(lotId);
++     if (false) throw noLot(lotId);
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/release/reads.ts:113:37
+-     const people = await peopleOf(db, [d?.person_id]);
++     const people = await peopleOf(db, []);
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/release/reads.ts:127:52
+-             justifications: facts.justifications.map((j) => ({ deviationId: j.deviation_id, text: j.text, signatureId: j.signature_id })),
++             justifications: facts.justifications.map(() => undefined),
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/release/reads.ts:130:36
+-       incidents: facts.incidents.map((i) => ({ incidentId: i.incident_id, number: i.number, severity: i.severity, status: i.status, assessed: i.assessed })),
++       incidents: facts.incidents.map(() => undefined),
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/release/reads.ts:131:59
+-       registrationRelevant: facts.registration_relevant.map((r) => ({ batchId: r.batch_id, exceptionId: r.exception_id, title: r.title, deviationRef: r.deviation_ref })),
++       registrationRelevant: facts.registration_relevant.map(() => undefined),
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/release/reads.ts:133:53
+-       validationBatches: facts.validation_batches.map((b) => ({ batchId: b.batch_id, batchNumber: b.batch_number, purpose: b.purpose, outcome: b.outcome })),
++       validationBatches: facts.validation_batches.map(() => undefined),
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/release/reads.ts:134:39
+-       postChange: facts.post_change.map((b) => ({ batchId: b.batch_id, batchNumber: b.batch_number, changeRecord: b.change_record, evaluated: b.evaluated })),
++       postChange: facts.post_change.map(() => undefined),
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:136:25
+-         release: { ready: facts.gates.release.length === 0, problems: facts.gates.release },
++         release: { ready: false, problems: facts.gates.release },
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:137:24
+-         reject: { ready: facts.gates.reject.length === 0, problems: facts.gates.reject },
++         reject: { ready: true, problems: facts.gates.reject },
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [meta] the queue and the lot's checklist: NOT_READY with the reasons, the edition's groups 4 and 9 present, the PR-53 switch off, the gates; G-REL per market
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/reads.ts:170:13
+-     const e = rows[0]?.e;
++     const e = rows[0].e;
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/release/reads.ts:171:13
+-     if (!e || e.items.some((i) => i.id === 'MA.SUBJECT')) {
++     if (!e || e.items.every(i => i.id === 'MA.SUBJECT')) {
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:175:36
+-         whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
++         whatHappened: `There is no ${true ? 'finished lot' : 'issued GMP batch'} with this id.`,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:175:36
+-         whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
++         whatHappened: `There is no ${false ? 'finished lot' : 'issued GMP batch'} with this id.`,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/release/reads.ts:175:36
+-         whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
++         whatHappened: `There is no ${kind !== 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:175:45
+-         whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
++         whatHappened: `There is no ${kind === "" ? 'finished lot' : 'issued GMP batch'} with this id.`,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:175:70
+-         whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : 'issued GMP batch'} with this id.`,
++         whatHappened: `There is no ${kind === 'LOT' ? 'finished lot' : ""} with this id.`,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:176:12
+-         why: `${kind} ${id} is unknown.`,
++         why: ``,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/release/reads.ts:177:21
+-         whatYouCanDo: ['Open the release queue.'],
++         whatYouCanDo: [],
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:177:22
+-         whatYouCanDo: ['Open the release queue.'],
++         whatYouCanDo: [""],
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:227:81
+-   const gate = (p: string[]): { ready: boolean; problems: string[] } => ({ ready: p.length === 0, problems: p });
++   const gate = (p: string[]): { ready: boolean; problems: string[] } => ({ ready: false, problems: p });
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/reads.ts:236:8
+-     if (!head?.set) throw noLot(lotId);
++     if (!head.set) throw noLot(lotId);
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:242:7
+-         `select d.decision, d.person_id, d.role_code, ${micros('d.recorded_at')} as us, d.signature_id, d.epoch, d.checklist_hash, d.reason, d.deviation_id,
+-                 d.with_manufacturer_release as with_mr
+-            from recipe.us_disposition_decision d where d.lot_id = $1`,
++         ``,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:249:38
+-       await db.query<CertificationRow>('select * from recipe.lot_qp_certifications($1)', [lotId])
++       await db.query<CertificationRow>("", [lotId])
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ArrowFunction
+apps/tablets-server/src/features/release/reads.ts:251:112
+-     const people = await peopleOf(db, [decision?.person_id, ...changes.map((c) => c.person_id), ...certs.flatMap((c) => [c.person_id, c.verified_by])]);
++     const people = await peopleOf(db, [decision?.person_id, ...changes.map((c) => c.person_id), ...certs.flatMap(() => undefined)]);
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/reads.ts:260:16
+-       const st = (await db.query<{ s: MarketDispositionState | null }>('select recipe.disposition_state($1, $2) as s', [lotId, market])).rows[0]?.s ?? null;
++       const st = (await db.query<{
++     s: MarketDispositionState | null;
++   }>('select recipe.disposition_state($1, $2) as s', [lotId, market])).rows[0].s ?? null;
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/reads.ts:262:19
+-       const added = (await db.query<{ a: boolean }>('select recipe.market_added($1, $2) as a', [lotId, market])).rows[0]?.a ?? false;
++       const added = (await db.query<{
++     a: boolean;
++   }>('select recipe.market_added($1, $2) as a', [lotId, market])).rows[0].a ?? false;
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ArrayDeclaration
+apps/tablets-server/src/features/release/reads.ts:263:21
+-       const notHere = [`the ${market} disposition is not decided by this act`];
++       const notHere = [];
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:263:22
+-       const notHere = [`the ${market} disposition is not decided by this act`];
++       const notHere = [``];
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:267:13
+-         grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId),
++         grel: true ? null : await grelView(db, lotId, market, personId),
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:267:13
+-         grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId),
++         grel: false ? null : await grelView(db, lotId, market, personId),
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:267:20
+-         grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId),
++         grel: st === "" ? null : await grelView(db, lotId, market, personId),
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/release/reads.ts:267:13
+-         grel: st === 'REMOVED' ? null : await grelView(db, lotId, market, personId),
++         grel: st !== 'REMOVED' ? null : await grelView(db, lotId, market, personId),
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:269:9
+-           market === 'US' && decision
++           false
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:269:9
+-           market === 'US' && decision
++           true && decision
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/release/reads.ts:269:9
+-           market === 'US' && decision
++           market !== 'US' && decision
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:269:20
+-           market === 'US' && decision
++           market === "" && decision
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:283:9
+-           market === 'EU'
++           true
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:283:9
+-           market === 'EU'
++           false
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/release/reads.ts:283:9
+-           market === 'EU'
++           market !== 'EU'
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:283:20
+-           market === 'EU'
++           market === ""
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:299:18
+-         marketAdd: added && st !== 'REMOVED' ? await marketAddView(db, 'LOT', lotId, market) : null,
++         marketAdd: true ? await marketAddView(db, 'LOT', lotId, market) : null,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/release/reads.ts:299:18
+-         marketAdd: added && st !== 'REMOVED' ? await marketAddView(db, 'LOT', lotId, market) : null,
++         marketAdd: added || st !== 'REMOVED' ? await marketAddView(db, 'LOT', lotId, market) : null,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:299:27
+-         marketAdd: added && st !== 'REMOVED' ? await marketAddView(db, 'LOT', lotId, market) : null,
++         marketAdd: added && true ? await marketAddView(db, 'LOT', lotId, market) : null,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:299:34
+-         marketAdd: added && st !== 'REMOVED' ? await marketAddView(db, 'LOT', lotId, market) : null,
++         marketAdd: added && st !== "" ? await marketAddView(db, 'LOT', lotId, market) : null,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] MethodExpression
+apps/tablets-server/src/features/release/reads.ts:300:16
+-         changes: changes
+-           .filter((c) => c.market === market)
++         changes: changes
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:301:24
+-           .filter((c) => c.market === market)
++           .filter((c) => true)
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:308:46
+-             by: personRef(people, c.person_id, ''),
++             by: personRef(people, c.person_id, "Stryker was here!"),
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:318:9
+-           market === 'US'
++           false
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/reads.ts:318:9
+-           market === 'US'
++           true
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] EqualityOperator
+apps/tablets-server/src/features/release/reads.ts:318:9
+-           market === 'US'
++           market !== 'US'
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/reads.ts:318:20
+-           market === 'US'
++           market === ""
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/release/reads.ts:323:38
+-     return { lotId, manufacturerState: head.m ?? 'NOT_READY', markets: head.set, dispositions };
++     return { lotId, manufacturerState: head.m && 'NOT_READY', markets: head.set, dispositions };
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [meta] an India-only lot has no export disposition; the market-add evaluations of the lot and its batch answer; the importers are listed; an unknown lot is 404
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/release/signables.ts:79:61
+-   export function qpDetailsSha256(i: ReleaseActInput): string {
+-     const c = i.certification;
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+-   }
++   export function qpDetailsSha256(i: ReleaseActInput): string {}
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:81:17
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:81:18
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome && '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:81:33
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? "Stryker was here!", c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:81:37
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier && '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:81:37
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:81:53
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? "Stryker was here!", c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:81:57
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber && '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:81:57
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:81:73
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? "Stryker was here!", c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:81:77
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt && '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:81:77
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:81:95
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? "Stryker was here!", c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:81:99
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference && '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:81:99
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:81:115
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? "Stryker was here!", i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:81:119
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text && ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:81:119
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason.text ?? ''].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:81:137
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? "Stryker was here!"].map((x) => x.trim()).join('\n'));
+
+[NoCoverage] ArrowFunction
+apps/tablets-server/src/features/release/signables.ts:81:145
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map(() => undefined).join('\n'));
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/release/signables.ts:81:152
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x).join('\n'));
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:81:167
+-     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join('\n'));
++     return sha256([i.qpOutcome ?? '', c?.certifier ?? '', c?.miaNumber ?? '', c?.certifiedAt ?? '', c?.reference ?? '', i.reason?.text ?? ''].map((x) => x.trim()).join(""));
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:99:5
+-       case 'POST_CHANGE_EVALUATE':
+-         return `${i.batchId ?? ''}/${sha256((i.text ?? '').trim())}`;
++       case 'POST_CHANGE_EVALUATE':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:100:14
+-         return `${i.batchId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return ``;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:100:17
+-         return `${i.batchId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${i.batchId && ''}/${sha256((i.text ?? '').trim())}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:100:30
+-         return `${i.batchId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${i.batchId ?? "Stryker was here!"}/${sha256((i.text ?? '').trim())}`;
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/release/signables.ts:100:43
+-         return `${i.batchId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${i.batchId ?? ''}/${sha256(i.text ?? '')}`;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:100:44
+-         return `${i.batchId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${i.batchId ?? ''}/${sha256((i.text && '').trim())}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:100:54
+-         return `${i.batchId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${i.batchId ?? ''}/${sha256((i.text ?? "Stryker was here!").trim())}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:101:5
+-       case 'PPQ_OUTCOME':
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++       case 'PPQ_OUTCOME':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:102:14
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return ``;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:102:17
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId && ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:102:30
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? "Stryker was here!"}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:102:36
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome && ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:102:49
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? "Stryker was here!"}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:102:62
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(``)}`;
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/release/signables.ts:102:65
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${i.protocolRef ?? ''}\n${(i.text ?? '').trim()}`)}`;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:102:66
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef && '').trim()}\n${(i.text ?? '').trim()}`)}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:102:83
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? "Stryker was here!").trim()}\n${(i.text ?? '').trim()}`)}`;
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/release/signables.ts:102:98
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${i.text ?? ''}`)}`;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:102:99
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text && '').trim()}`)}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:102:109
+-         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? '').trim()}`)}`;
++         return `${i.batchId ?? ''}/${i.outcome ?? ''}/${sha256(`${(i.protocolRef ?? '').trim()}\n${(i.text ?? "Stryker was here!").trim()}`)}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:103:5
+-       case 'INVESTIGATION_JUSTIFY':
+-         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? '').trim())}`;
++       case 'INVESTIGATION_JUSTIFY':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:104:14
+-         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return ``;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:104:31
+-         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${a.lotId}/IN/${i.deviationId && ''}/${sha256((i.text ?? '').trim())}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:104:48
+-         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${a.lotId}/IN/${i.deviationId ?? "Stryker was here!"}/${sha256((i.text ?? '').trim())}`;
+
+[NoCoverage] MethodExpression
+apps/tablets-server/src/features/release/signables.ts:104:61
+-         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256(i.text ?? '')}`;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:104:62
+-         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text && '').trim())}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:104:72
+-         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? '').trim())}`;
++         return `${a.lotId}/IN/${i.deviationId ?? ''}/${sha256((i.text ?? "Stryker was here!").trim())}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:107:5
+-       case 'QP_INTAKE':
+-         return `${a.lotId}/${qpDetailsSha256(i)}`;
++       case 'QP_INTAKE':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:108:14
+-         return `${a.lotId}/${qpDetailsSha256(i)}`;
++         return ``;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:109:5
+-       case 'QP_INTAKE_VERIFY':
+-         return i.intakeId ?? '';
++       case 'QP_INTAKE_VERIFY':
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:110:14
+-         return i.intakeId ?? '';
++         return i.intakeId && '';
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:110:28
+-         return i.intakeId ?? '';
++         return i.intakeId ?? "Stryker was here!";
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:111:5
+-       case 'QP_CERTIFY':
+-         return `${a.lotId}/${i.qpOutcome ?? ''}`;
++       case 'QP_CERTIFY':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:112:14
+-         return `${a.lotId}/${i.qpOutcome ?? ''}`;
++         return ``;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:112:28
+-         return `${a.lotId}/${i.qpOutcome ?? ''}`;
++         return `${a.lotId}/${i.qpOutcome && ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:112:43
+-         return `${a.lotId}/${i.qpOutcome ?? ''}`;
++         return `${a.lotId}/${i.qpOutcome ?? "Stryker was here!"}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:114:5
+-       case 'MARKET_REMOVE':
+-         // The sequence is the database's (recipe.market_change_next_id); targetNow reads it.
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++       case 'MARKET_REMOVE':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:116:14
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return ``;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:116:32
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${true ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:116:32
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${false ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:116:32
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${a.act !== 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:116:42
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${a.act === "" ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:116:57
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? "" : 'REMOVE'}/${i.market ?? ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:116:65
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : ""}/${i.market ?? ''}`;
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:116:77
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market && ''}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:116:89
+-         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? ''}`;
++         return `LOT/${a.lotId}/${a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE'}/${i.market ?? "Stryker was here!"}`;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:124:46
+-         return isWitness(a) ? (i.disposalId ?? '') : `${a.lotId}/${disposalDetailsSha256(i)}`;
++         return isWitness(a) ? (i.disposalId ?? "Stryker was here!") : `${a.lotId}/${disposalDetailsSha256(i)}`;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:125:5
+-       default:
+-         return a.lotId;
++       default:
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:136:5
+-       case 'POST_CHANGE_EVALUATE':
+-         return { aggregateType: 'post_change_evaluation', aggregateId: id, meaning: 'POST_CHANGE_EVALUATED' };
++       case 'POST_CHANGE_EVALUATE':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:137:14
+-         return { aggregateType: 'post_change_evaluation', aggregateId: id, meaning: 'POST_CHANGE_EVALUATED' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:137:31
+-         return { aggregateType: 'post_change_evaluation', aggregateId: id, meaning: 'POST_CHANGE_EVALUATED' };
++         return { aggregateType: "", aggregateId: id, meaning: 'POST_CHANGE_EVALUATED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:137:83
+-         return { aggregateType: 'post_change_evaluation', aggregateId: id, meaning: 'POST_CHANGE_EVALUATED' };
++         return { aggregateType: 'post_change_evaluation', aggregateId: id, meaning: "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:138:5
+-       case 'PPQ_OUTCOME':
+-         return { aggregateType: 'ppq_outcome', aggregateId: id, meaning: 'VALIDATION_OUTCOME_RECORDED' };
++       case 'PPQ_OUTCOME':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:139:14
+-         return { aggregateType: 'ppq_outcome', aggregateId: id, meaning: 'VALIDATION_OUTCOME_RECORDED' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:139:31
+-         return { aggregateType: 'ppq_outcome', aggregateId: id, meaning: 'VALIDATION_OUTCOME_RECORDED' };
++         return { aggregateType: "", aggregateId: id, meaning: 'VALIDATION_OUTCOME_RECORDED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:139:72
+-         return { aggregateType: 'ppq_outcome', aggregateId: id, meaning: 'VALIDATION_OUTCOME_RECORDED' };
++         return { aggregateType: 'ppq_outcome', aggregateId: id, meaning: "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:140:5
+-       case 'INVESTIGATION_JUSTIFY':
+-         return { aggregateType: 'investigation_justification', aggregateId: id, meaning: 'OPEN_INVESTIGATION_JUSTIFIED' };
++       case 'INVESTIGATION_JUSTIFY':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:141:14
+-         return { aggregateType: 'investigation_justification', aggregateId: id, meaning: 'OPEN_INVESTIGATION_JUSTIFIED' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:141:31
+-         return { aggregateType: 'investigation_justification', aggregateId: id, meaning: 'OPEN_INVESTIGATION_JUSTIFIED' };
++         return { aggregateType: "", aggregateId: id, meaning: 'OPEN_INVESTIGATION_JUSTIFIED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:141:88
+-         return { aggregateType: 'investigation_justification', aggregateId: id, meaning: 'OPEN_INVESTIGATION_JUSTIFIED' };
++         return { aggregateType: 'investigation_justification', aggregateId: id, meaning: "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:144:5
+-       case 'QP_INTAKE':
+-         return { aggregateType: 'qp_transcription', aggregateId: id, meaning: 'QP_CERTIFICATION_RECORDED' };
++       case 'QP_INTAKE':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:145:14
+-         return { aggregateType: 'qp_transcription', aggregateId: id, meaning: 'QP_CERTIFICATION_RECORDED' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:145:31
+-         return { aggregateType: 'qp_transcription', aggregateId: id, meaning: 'QP_CERTIFICATION_RECORDED' };
++         return { aggregateType: "", aggregateId: id, meaning: 'QP_CERTIFICATION_RECORDED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:145:77
+-         return { aggregateType: 'qp_transcription', aggregateId: id, meaning: 'QP_CERTIFICATION_RECORDED' };
++         return { aggregateType: 'qp_transcription', aggregateId: id, meaning: "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:146:5
+-       case 'QP_INTAKE_VERIFY':
+-         return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: 'TRANSCRIBED' };
++       case 'QP_INTAKE_VERIFY':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:147:14
+-         return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: 'TRANSCRIBED' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:147:31
+-         return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: 'TRANSCRIBED' };
++         return { aggregateType: "", aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: 'TRANSCRIBED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:147:83
+-         return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: 'TRANSCRIBED' };
++         return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: "", expectedState: 'TRANSCRIBED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:147:127
+-         return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: 'TRANSCRIBED' };
++         return { aggregateType: 'qp_transcription_check', aggregateId: id, meaning: 'QP_CERTIFICATION_VERIFIED', expectedState: "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:148:5
+-       case 'QP_CERTIFY':
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++       case 'QP_CERTIFY':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:149:14
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:149:31
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return { aggregateType: "", aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:149:77
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return { aggregateType: 'qp_certification', aggregateId: id, meaning: true ? 'QP_REJECTED' : 'QP_CERTIFIED' };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:149:77
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return { aggregateType: 'qp_certification', aggregateId: id, meaning: false ? 'QP_REJECTED' : 'QP_CERTIFIED' };
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:149:77
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome !== 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:149:99
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === "" ? 'QP_REJECTED' : 'QP_CERTIFIED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:149:118
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? "" : 'QP_CERTIFIED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:149:134
+-         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : 'QP_CERTIFIED' };
++         return { aggregateType: 'qp_certification', aggregateId: id, meaning: a.input.qpOutcome === 'REJECTED_BY_QP' ? 'QP_REJECTED' : "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:151:5
+-       case 'MARKET_REMOVE':
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++       case 'MARKET_REMOVE':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:152:14
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:152:31
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return { aggregateType: "", aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:152:74
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return { aggregateType: 'market_change', aggregateId: id, meaning: true ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:152:74
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return { aggregateType: 'market_change', aggregateId: id, meaning: false ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:152:74
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act !== 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:152:84
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === "" ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:152:99
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? "" : 'MARKET_REMOVED' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:152:116
+-         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' };
++         return { aggregateType: 'market_change', aggregateId: id, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : "" };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:155:5
+-       case 'REJECT_AFTER_RELEASE':
+-         return { aggregateType: 'release_suspension', aggregateId: id, meaning: AFTER_RELEASE_MEANING[a.act] };
++       case 'REJECT_AFTER_RELEASE':
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:156:14
+-         return { aggregateType: 'release_suspension', aggregateId: id, meaning: AFTER_RELEASE_MEANING[a.act] };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:156:31
+-         return { aggregateType: 'release_suspension', aggregateId: id, meaning: AFTER_RELEASE_MEANING[a.act] };
++         return { aggregateType: "", aggregateId: id, meaning: AFTER_RELEASE_MEANING[a.act] };
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:159:11
+-           ? { aggregateType: 'disposal', aggregateId: id, meaning: 'DESTRUCTION_WITNESSED', expectedState: 'AWAITING_WITNESS' }
++           ? {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:159:28
+-           ? { aggregateType: 'disposal', aggregateId: id, meaning: 'DESTRUCTION_WITNESSED', expectedState: 'AWAITING_WITNESS' }
++           ? { aggregateType: "", aggregateId: id, meaning: 'DESTRUCTION_WITNESSED', expectedState: 'AWAITING_WITNESS' }
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:159:66
+-           ? { aggregateType: 'disposal', aggregateId: id, meaning: 'DESTRUCTION_WITNESSED', expectedState: 'AWAITING_WITNESS' }
++           ? { aggregateType: 'disposal', aggregateId: id, meaning: "", expectedState: 'AWAITING_WITNESS' }
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:159:106
+-           ? { aggregateType: 'disposal', aggregateId: id, meaning: 'DESTRUCTION_WITNESSED', expectedState: 'AWAITING_WITNESS' }
++           ? { aggregateType: 'disposal', aggregateId: id, meaning: 'DESTRUCTION_WITNESSED', expectedState: "" }
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:161:5
+-       default:
+-         return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${String(a.act)}`, meaning: '' };
++       default:
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:162:14
+-         return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${String(a.act)}`, meaning: '' };
++         return {};
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:162:31
+-         return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${String(a.act)}`, meaning: '' };
++         return { aggregateType: "", aggregateId: `${a.lotId}/${String(a.act)}`, meaning: '' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:162:68
+-         return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${String(a.act)}`, meaning: '' };
++         return { aggregateType: 'manufacturer_release', aggregateId: ``, meaning: '' };
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:162:108
+-         return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${String(a.act)}`, meaning: '' };
++         return { aggregateType: 'manufacturer_release', aggregateId: `${a.lotId}/${String(a.act)}`, meaning: "Stryker was here!" };
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/release/signables.ts:194:24
+-     if (!isBuilt(a.act)) {
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
+-     }
++     if (!isBuilt(a.act)) {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:195:32
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
++       return refusedOutcome(501, "", 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:195:51
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
++       return refusedOutcome(501, 'NOT_IMPLEMENTED', "", `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:195:113
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
++       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', ``, ['IN-05'], ['Use another path for now.']);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:195:155
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
++       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, [], ['Use another path for now.']);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:195:156
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
++       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, [""], ['Use another path for now.']);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:195:166
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
++       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], []);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:195:167
+-       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], ['Use another path for now.']);
++       return refusedOutcome(501, 'NOT_IMPLEMENTED', 'This release act is not available yet. Nothing was signed.', `${String(a.act)} is not a release act.`, ['IN-05'], [""]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:202:69
+-     const why = [missing.length > 0 ? `needs ${missing.join(', ')}` : '', extra.length > 0 ? `takes no ${extra.join(', ')}` : ''].filter((x) => x !== '').join(' and ');
++     const why = [missing.length > 0 ? `needs ${missing.join(', ')}` : "Stryker was here!", extra.length > 0 ? `takes no ${extra.join(', ')}` : ''].filter((x) => x !== '').join(' and ');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:202:92
+-     const why = [missing.length > 0 ? `needs ${missing.join(', ')}` : '', extra.length > 0 ? `takes no ${extra.join(', ')}` : ''].filter((x) => x !== '').join(' and ');
++     const why = [missing.length > 0 ? `needs ${missing.join(', ')}` : '', extra.length > 0 ? `` : ''].filter((x) => x !== '').join(' and ');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:202:115
+-     const why = [missing.length > 0 ? `needs ${missing.join(', ')}` : '', extra.length > 0 ? `takes no ${extra.join(', ')}` : ''].filter((x) => x !== '').join(' and ');
++     const why = [missing.length > 0 ? `needs ${missing.join(', ')}` : '', extra.length > 0 ? `takes no ${extra.join("")}` : ''].filter((x) => x !== '').join(' and ');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:213:171
+-         if (a.act === 'MARKET_ADD' || a.act === 'MARKET_REMOVE') return marketChangeTarget(db, 'LOT', a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', a.input.market ?? '');
++         if (a.act === 'MARKET_ADD' || a.act === 'MARKET_REMOVE') return marketChangeTarget(db, 'LOT', a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', a.input.market ?? "Stryker was here!");
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:234:99
+-         if (a.act === 'MANUFACTURER_RELEASE' || a.act === 'RECONFIRM' || (a.act === 'US_DISPOSE' && i.usDecision === 'RELEASE') ||
++         if (a.act === 'MANUFACTURER_RELEASE' || a.act === 'RECONFIRM' || (a.act === 'US_DISPOSE' && true) ||
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:234:99
+-         if (a.act === 'MANUFACTURER_RELEASE' || a.act === 'RECONFIRM' || (a.act === 'US_DISPOSE' && i.usDecision === 'RELEASE') ||
++         if (a.act === 'MANUFACTURER_RELEASE' || a.act === 'RECONFIRM' || (a.act === 'US_DISPOSE' && i.usDecision !== 'RELEASE') ||
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:234:116
+-         if (a.act === 'MANUFACTURER_RELEASE' || a.act === 'RECONFIRM' || (a.act === 'US_DISPOSE' && i.usDecision === 'RELEASE') ||
++         if (a.act === 'MANUFACTURER_RELEASE' || a.act === 'RECONFIRM' || (a.act === 'US_DISPOSE' && i.usDecision === "") ||
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:235:38
+-             (a.act === 'QP_CERTIFY' && i.qpOutcome !== 'REJECTED_BY_QP')) {
++             (a.act === 'QP_CERTIFY' && true)) {
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:235:38
+-             (a.act === 'QP_CERTIFY' && i.qpOutcome !== 'REJECTED_BY_QP')) {
++             (a.act === 'QP_CERTIFY' && i.qpOutcome === 'REJECTED_BY_QP')) {
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:235:54
+-             (a.act === 'QP_CERTIFY' && i.qpOutcome !== 'REJECTED_BY_QP')) {
++             (a.act === 'QP_CERTIFY' && i.qpOutcome !== "")) {
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/release/signables.ts:240:48
+-             if (i.usExpectedEpoch !== undefined) {
+-               if (!companionSignatureId) throw new Error('a two-row release needs its US_DISPOSITION signature');
+-               await client.query('select recipe.record_release_with_us_disposition($1, $2, $3, $4, $5)', [a.lotId, signatureId, companionSignatureId, i.expectedEpoch, i.usExpectedEpoch]);
+-               break;
+-             }
++             if (i.usExpectedEpoch !== undefined) {}
+
+[NoCoverage] BooleanLiteral
+apps/tablets-server/src/features/release/signables.ts:241:17
+-               if (!companionSignatureId) throw new Error('a two-row release needs its US_DISPOSITION signature');
++               if (companionSignatureId) throw new Error('a two-row release needs its US_DISPOSITION signature');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:241:17
+-               if (!companionSignatureId) throw new Error('a two-row release needs its US_DISPOSITION signature');
++               if (true) throw new Error('a two-row release needs its US_DISPOSITION signature');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:241:17
+-               if (!companionSignatureId) throw new Error('a two-row release needs its US_DISPOSITION signature');
++               if (false) throw new Error('a two-row release needs its US_DISPOSITION signature');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:241:56
+-               if (!companionSignatureId) throw new Error('a two-row release needs its US_DISPOSITION signature');
++               if (!companionSignatureId) throw new Error("");
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:242:32
+-               await client.query('select recipe.record_release_with_us_disposition($1, $2, $3, $4, $5)', [a.lotId, signatureId, companionSignatureId, i.expectedEpoch, i.usExpectedEpoch]);
++               await client.query("", [a.lotId, signatureId, companionSignatureId, i.expectedEpoch, i.usExpectedEpoch]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:242:104
+-               await client.query('select recipe.record_release_with_us_disposition($1, $2, $3, $4, $5)', [a.lotId, signatureId, companionSignatureId, i.expectedEpoch, i.usExpectedEpoch]);
++               await client.query('select recipe.record_release_with_us_disposition($1, $2, $3, $4, $5)', []);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:250:9
+-           case 'POST_CHANGE_EVALUATE':
+-             await client.query('select recipe.record_post_change_evaluation($1, $2, $3)', [i.batchId, i.text, signatureId]);
+-             break;
++           case 'POST_CHANGE_EVALUATE':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:251:30
+-             await client.query('select recipe.record_post_change_evaluation($1, $2, $3)', [i.batchId, i.text, signatureId]);
++             await client.query("", [i.batchId, i.text, signatureId]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:251:89
+-             await client.query('select recipe.record_post_change_evaluation($1, $2, $3)', [i.batchId, i.text, signatureId]);
++             await client.query('select recipe.record_post_change_evaluation($1, $2, $3)', []);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:253:9
+-           case 'PPQ_OUTCOME':
+-             await client.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [i.batchId, i.outcome, i.protocolRef, i.text, signatureId]);
+-             break;
++           case 'PPQ_OUTCOME':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:254:30
+-             await client.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [i.batchId, i.outcome, i.protocolRef, i.text, signatureId]);
++             await client.query("", [i.batchId, i.outcome, i.protocolRef, i.text, signatureId]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:254:86
+-             await client.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', [i.batchId, i.outcome, i.protocolRef, i.text, signatureId]);
++             await client.query('select recipe.record_ppq_outcome($1, $2, $3, $4, $5)', []);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:256:9
+-           case 'INVESTIGATION_JUSTIFY':
+-             await client.query("select recipe.justify_open_investigation($1, 'IN', $2, $3, $4)", [a.lotId, i.deviationId, i.text, signatureId]);
+-             break;
++           case 'INVESTIGATION_JUSTIFY':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:257:30
+-             await client.query("select recipe.justify_open_investigation($1, 'IN', $2, $3, $4)", [a.lotId, i.deviationId, i.text, signatureId]);
++             await client.query("", [a.lotId, i.deviationId, i.text, signatureId]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:257:96
+-             await client.query("select recipe.justify_open_investigation($1, 'IN', $2, $3, $4)", [a.lotId, i.deviationId, i.text, signatureId]);
++             await client.query("select recipe.justify_open_investigation($1, 'IN', $2, $3, $4)", []);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:259:9
+-           case 'US_DISPOSE':
+-             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId ?? null]);
+-             break;
++           case 'US_DISPOSE':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:260:30
+-             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId ?? null]);
++             await client.query("", [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId ?? null]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:260:93
+-             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId ?? null]);
++             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:260:147
+-             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId ?? null]);
++             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text && null, i.deviationId ?? null]);
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:260:147
+-             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId ?? null]);
++             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason.text ?? null, i.deviationId ?? null]);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:260:171
+-             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId ?? null]);
++             await client.query('select recipe.record_us_disposition($1, $2, $3, $4, $5, $6)', [a.lotId, i.usDecision, signatureId, i.expectedEpoch, i.reason?.text ?? null, i.deviationId && null]);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:262:9
+-           case 'QP_INTAKE': {
+-             const c = i.certification;
+-             const { rows } = await client.query<{ id: string }>('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
+-             ]);
+-             return { act: a.act, lotId: a.lotId, intakeId: rows[0]?.id ?? null };
+-           }
++           case 'QP_INTAKE':
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/release/signables.ts:262:27
+-           case 'QP_INTAKE': {
+-             const c = i.certification;
+-             const { rows } = await client.query<{ id: string }>('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
+-             ]);
+-             return { act: a.act, lotId: a.lotId, intakeId: rows[0]?.id ?? null };
+-           }
++           case 'QP_INTAKE': {}
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:264:63
+-             const { rows } = await client.query<{ id: string }>('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [
++             const { rows } = await client.query<{ id: string }>("", [
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:264:142
+-             const { rows } = await client.query<{ id: string }>('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', [
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
+-             ]);
++             const { rows } = await client.query<{ id: string }>('select recipe.record_qp_transcription($1, $2, $3, $4, $5, $6, $7, $8) as id', []);
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:265:35
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
++               a.lotId, i.qpOutcome, c.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:265:49
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
++               a.lotId, i.qpOutcome, c?.certifier, c.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:265:63
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
++               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:265:79
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
++               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c.reference, i.reason?.text ?? null, signatureId,
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:265:93
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
++               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text && null, signatureId,
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:265:93
+-               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason?.text ?? null, signatureId,
++               a.lotId, i.qpOutcome, c?.certifier, c?.miaNumber, c?.certifiedAt, c?.reference, i.reason.text ?? null, signatureId,
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:267:18
+-             return { act: a.act, lotId: a.lotId, intakeId: rows[0]?.id ?? null };
++             return {};
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:267:58
+-             return { act: a.act, lotId: a.lotId, intakeId: rows[0]?.id ?? null };
++             return { act: a.act, lotId: a.lotId, intakeId: rows[0]?.id && null };
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:267:58
+-             return { act: a.act, lotId: a.lotId, intakeId: rows[0]?.id ?? null };
++             return { act: a.act, lotId: a.lotId, intakeId: rows[0].id ?? null };
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:269:9
+-           case 'QP_INTAKE_VERIFY':
+-             await client.query('select recipe.verify_qp_transcription($1, $2)', [i.intakeId, signatureId]);
+-             break;
++           case 'QP_INTAKE_VERIFY':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:270:30
+-             await client.query('select recipe.verify_qp_transcription($1, $2)', [i.intakeId, signatureId]);
++             await client.query("", [i.intakeId, signatureId]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:270:79
+-             await client.query('select recipe.verify_qp_transcription($1, $2)', [i.intakeId, signatureId]);
++             await client.query('select recipe.verify_qp_transcription($1, $2)', []);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:272:9
+-           case 'QP_CERTIFY':
+-             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason?.text ?? null]);
+-             break;
++           case 'QP_CERTIFY':
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:273:30
+-             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason?.text ?? null]);
++             await client.query("", [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason?.text ?? null]);
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:273:91
+-             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason?.text ?? null]);
++             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', []);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:273:144
+-             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason?.text ?? null]);
++             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason?.text && null]);
+
+[NoCoverage] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:273:144
+-             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason?.text ?? null]);
++             await client.query('select recipe.record_qp_certification($1, $2, $3, $4, $5)', [a.lotId, i.qpOutcome, signatureId, i.expectedEpoch, i.reason.text ?? null]);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:278:55
+-               a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', i.market, a.act === 'MARKET_ADD' ? i.changeRecordId : i.deviationId, signatureId,
++               a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : "", i.market, a.act === 'MARKET_ADD' ? i.changeRecordId : i.deviationId, signatureId,
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:299:9
+-           default:
+-             throw new Error(`release act ${String(a.act)} is not built`);
++           default:
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:300:27
+-             throw new Error(`release act ${String(a.act)} is not built`);
++             throw new Error(``);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:311:60
+-     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE');
++     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (true ? 'ADD' : 'REMOVE');
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:311:60
+-     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE');
++     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (false ? 'ADD' : 'REMOVE');
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:311:60
+-     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE');
++     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act !== 'MARKET_ADD' ? 'ADD' : 'REMOVE');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:311:70
+-     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE');
++     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === "" ? 'ADD' : 'REMOVE');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:311:85
+-     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE');
++     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? "" : 'REMOVE');
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:311:93
+-     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE');
++     const change = (a: BatchMarketAct): 'ADD' | 'REMOVE' => (a.act === 'MARKET_ADD' ? 'ADD' : "");
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:315:21
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({}),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:315:38
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: "", aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:315:68
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: 'market_change', aggregateId: ``, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:315:130
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: true ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:315:130
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: false ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:315:130
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act !== 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:315:140
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === "" ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:315:155
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? "" : 'MARKET_REMOVED' }),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:315:172
+-       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED' }),
++       target: (a) => ({ aggregateType: 'market_change', aggregateId: `BATCH/${a.batchId}/${change(a)}/${a.input.market}`, meaning: a.act === 'MARKET_ADD' ? 'MARKET_ADDED' : "" }),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:316:50
+-       targetNow: (db, a) => marketChangeTarget(db, 'BATCH', a.batchId, change(a), a.input.market),
++       targetNow: (db, a) => marketChangeTarget(db, "", a.batchId, change(a), a.input.market),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/release/signables.ts:317:37
+-       precheck: (_client, _ctx, a) => {
+-         const ref = a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId;
+-         const other = a.act === 'MARKET_ADD' ? a.input.deviationId : a.input.changeRecordId;
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
+-         return Promise.resolve(
+-           refusedOutcome(422, 'EBMR-API-ACT-INPUT', 'The act does not carry what it needs. Nothing was signed.',
+-             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
+-             ['DI-37'], ['Reload the screen and sign again.']),
+-         );
+-       },
++       precheck: (_client, _ctx, a) => {},
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:318:19
+-         const ref = a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId;
++         const ref = true ? a.input.changeRecordId : a.input.deviationId;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:318:19
+-         const ref = a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId;
++         const ref = false ? a.input.changeRecordId : a.input.deviationId;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:318:19
+-         const ref = a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId;
++         const ref = a.act !== 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:318:29
+-         const ref = a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId;
++         const ref = a.act === "" ? a.input.changeRecordId : a.input.deviationId;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:319:21
+-         const other = a.act === 'MARKET_ADD' ? a.input.deviationId : a.input.changeRecordId;
++         const other = true ? a.input.deviationId : a.input.changeRecordId;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:319:21
+-         const other = a.act === 'MARKET_ADD' ? a.input.deviationId : a.input.changeRecordId;
++         const other = false ? a.input.deviationId : a.input.changeRecordId;
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:319:21
+-         const other = a.act === 'MARKET_ADD' ? a.input.deviationId : a.input.changeRecordId;
++         const other = a.act !== 'MARKET_ADD' ? a.input.deviationId : a.input.changeRecordId;
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:319:31
+-         const other = a.act === 'MARKET_ADD' ? a.input.deviationId : a.input.changeRecordId;
++         const other = a.act === "" ? a.input.deviationId : a.input.changeRecordId;
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:320:11
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
++         if (true) return Promise.resolve(null);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:320:11
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
++         if (false) return Promise.resolve(null);
+
+[NoCoverage] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:320:11
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
++         if (ref !== undefined || other === undefined) return Promise.resolve(null);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:320:11
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
++         if (true && other === undefined) return Promise.resolve(null);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:320:11
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
++         if (ref === undefined && other === undefined) return Promise.resolve(null);
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:320:32
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
++         if (ref !== undefined && true) return Promise.resolve(null);
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:320:32
+-         if (ref !== undefined && other === undefined) return Promise.resolve(null);
++         if (ref !== undefined && other !== undefined) return Promise.resolve(null);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:322:29
+-           refusedOutcome(422, 'EBMR-API-ACT-INPUT', 'The act does not carry what it needs. Nothing was signed.',
++           refusedOutcome(422, "", 'The act does not carry what it needs. Nothing was signed.',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:322:51
+-           refusedOutcome(422, 'EBMR-API-ACT-INPUT', 'The act does not carry what it needs. Nothing was signed.',
++           refusedOutcome(422, 'EBMR-API-ACT-INPUT', "",
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:323:11
+-             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
++             true ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:323:11
+-             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
++             false ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:323:11
+-             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
++             a.act !== 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:323:21
+-             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
++             a.act === "" ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:323:36
+-             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
++             a.act === 'MARKET_ADD' ? "" : 'A market is removed with a linked deviation (deviationId), never a change record.',
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:323:117
+-             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : 'A market is removed with a linked deviation (deviationId), never a change record.',
++             a.act === 'MARKET_ADD' ? 'A market is added under a change record (changeRecordId), never a deviation.' : "",
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:324:11
+-             ['DI-37'], ['Reload the screen and sign again.']),
++             [], ['Reload the screen and sign again.']),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:324:12
+-             ['DI-37'], ['Reload the screen and sign again.']),
++             [""], ['Reload the screen and sign again.']),
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:324:22
+-             ['DI-37'], ['Reload the screen and sign again.']),
++             ['DI-37'], []),
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:324:23
+-             ['DI-37'], ['Reload the screen and sign again.']),
++             ['DI-37'], [""]),
+
+[NoCoverage] BlockStatement
+apps/tablets-server/src/features/release/signables.ts:327:47
+-       async apply(client, _ctx, a, signatureId) {
+-         await client.query('select recipe.record_market_change($1, $2, $3, $4, $5, $6)', [
+-           'BATCH', a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
+-         ]);
+-         return { act: a.act, batchId: a.batchId };
+-       },
++       async apply(client, _ctx, a, signatureId) {},
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:328:26
+-         await client.query('select recipe.record_market_change($1, $2, $3, $4, $5, $6)', [
++         await client.query("", [
+
+[NoCoverage] ArrayDeclaration
+apps/tablets-server/src/features/release/signables.ts:328:88
+-         await client.query('select recipe.record_market_change($1, $2, $3, $4, $5, $6)', [
+-           'BATCH', a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
+-         ]);
++         await client.query('select recipe.record_market_change($1, $2, $3, $4, $5, $6)', []);
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:329:9
+-           'BATCH', a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
++           "", a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:329:56
+-           'BATCH', a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
++           'BATCH', a.batchId, change(a), a.input.market, true ? a.input.changeRecordId : a.input.deviationId, signatureId,
+
+[NoCoverage] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:329:56
+-           'BATCH', a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
++           'BATCH', a.batchId, change(a), a.input.market, false ? a.input.changeRecordId : a.input.deviationId, signatureId,
+
+[NoCoverage] EqualityOperator
+apps/tablets-server/src/features/release/signables.ts:329:56
+-           'BATCH', a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
++           'BATCH', a.batchId, change(a), a.input.market, a.act !== 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
+
+[NoCoverage] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:329:66
+-           'BATCH', a.batchId, change(a), a.input.market, a.act === 'MARKET_ADD' ? a.input.changeRecordId : a.input.deviationId, signatureId,
++           'BATCH', a.batchId, change(a), a.input.market, a.act === "" ? a.input.changeRecordId : a.input.deviationId, signatureId,
+
+[NoCoverage] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:331:14
+-         return { act: a.act, batchId: a.batchId };
++         return {};
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:105:5
+-       case 'US_DISPOSE':
+-         return `${a.lotId}/${i.usDecision ?? ''}`;
++       case 'US_DISPOSE':
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:106:14
+-         return `${a.lotId}/${i.usDecision ?? ''}`;
++         return ``;
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] LogicalOperator
+apps/tablets-server/src/features/release/signables.ts:106:28
+-         return `${a.lotId}/${i.usDecision ?? ''}`;
++         return `${a.lotId}/${i.usDecision && ''}`;
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:106:44
+-         return `${a.lotId}/${i.usDecision ?? ''}`;
++         return `${a.lotId}/${i.usDecision ?? "Stryker was here!"}`;
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:142:5
+-       case 'US_DISPOSE':
+-         return { aggregateType: 'us_disposition', aggregateId: id, meaning: 'US_DISPOSITION' };
++       case 'US_DISPOSE':
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:143:31
+-         return { aggregateType: 'us_disposition', aggregateId: id, meaning: 'US_DISPOSITION' };
++         return { aggregateType: "", aggregateId: id, meaning: 'US_DISPOSITION' };
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:143:75
+-         return { aggregateType: 'us_disposition', aggregateId: id, meaning: 'US_DISPOSITION' };
++         return { aggregateType: 'us_disposition', aggregateId: id, meaning: "" };
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:190:78
+-     return { aggregateType: 'market_change', aggregateId: rows[0]!.a, meaning: change === 'ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED', expectedState: rows[0]!.s };
++     return { aggregateType: 'market_change', aggregateId: rows[0]!.a, meaning: true ? 'MARKET_ADDED' : 'MARKET_REMOVED', expectedState: rows[0]!.s };
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] StringLiteral
+apps/tablets-server/src/features/release/signables.ts:190:114
+-     return { aggregateType: 'market_change', aggregateId: rows[0]!.a, meaning: change === 'ADD' ? 'MARKET_ADDED' : 'MARKET_REMOVED', expectedState: rows[0]!.s };
++     return { aggregateType: 'market_change', aggregateId: rows[0]!.a, meaning: change === 'ADD' ? 'MARKET_ADDED' : "", expectedState: rows[0]!.s };
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] BlockStatement
+apps/tablets-server/src/features/release/signables.ts:235:73
+-             (a.act === 'QP_CERTIFY' && i.qpOutcome !== 'REJECTED_BY_QP')) {
+-           await qmsReleaseFetch(client, qmsLinkFromEnv(), a.lotId);
+-         }
++             (a.act === 'QP_CERTIFY' && i.qpOutcome !== 'REJECTED_BY_QP')) {}
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:240:15
+-             if (i.usExpectedEpoch !== undefined) {
++             if (false) {
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] OptionalChaining
+apps/tablets-server/src/features/release/signables.ts:248:141
+-             await client.query("select recipe.record_manufacturer_release($1, 'REJECT', $2, $3, $4)", [a.lotId, signatureId, i.expectedEpoch, i.reason?.text ?? null]);
++             await client.query("select recipe.record_manufacturer_release($1, 'REJECT', $2, $3, $4)", [a.lotId, signatureId, i.expectedEpoch, i.reason.text ?? null]);
+Tests ran:
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:278:22
+-               a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', i.market, a.act === 'MARKET_ADD' ? i.changeRecordId : i.deviationId, signatureId,
++               a.lotId, true ? 'ADD' : 'REMOVE', i.market, a.act === 'MARKET_ADD' ? i.changeRecordId : i.deviationId, signatureId,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ConditionalExpression
+apps/tablets-server/src/features/release/signables.ts:278:75
+-               a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', i.market, a.act === 'MARKET_ADD' ? i.changeRecordId : i.deviationId, signatureId,
++               a.lotId, a.act === 'MARKET_ADD' ? 'ADD' : 'REMOVE', i.market, true ? i.changeRecordId : i.deviationId, signatureId,
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+
+
+[Survived] ObjectLiteral
+apps/tablets-server/src/features/release/signables.ts:302:14
+-         return { act: a.act, lotId: a.lotId };
++         return {};
+Tests ran:
+    market routes over HTTP (outline 3.3.3, 5.2.6) > [INV-43] QA adds the US to the lot under a change record through the ceremony: the server reads the change's sequence, the evaluation is stored and shown; the AP cannot
+    release over HTTP (outline 5.2.6, 5.2.7, 7.3 release cockpit) > [IN-05] the AP's release of a NOT_READY lot is refused and signs nothing; the act needs its epoch; the later acts are not built yet; the AP rejects with a reason and the lot leaves quarantine REJECTED
+
+
+Ran 0.68 tests per mutant on average.
+------------------|------------------|----------|-----------|------------|----------|----------|
+                  | % Mutation score |          |           |            |          |          |
+File              |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+------------------|--------|---------|----------|-----------|------------|----------|----------|
+All files         |  61.67 |   86.05 |      555 |         0 |         90 |      255 |        0 |
+ after-release.ts |  96.00 |   96.00 |       72 |         0 |          3 |        0 |        0 |
+ index.ts         |  77.14 |   81.82 |       27 |         0 |          6 |        2 |        0 |
+ reads.ts         |  59.70 |   64.52 |      120 |         0 |         66 |       15 |        0 |
+ signables.ts     |  57.05 |   95.73 |      336 |         0 |         15 |      238 |        0 |
+------------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m05:23:58 (1187385) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-release.json
+[32m05:23:58 (1187385) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign-s1/.reports/stryker-phase6/p4-server-release.html
+[32m05:23:58 (1187385) INFO MutationTestExecutor[39m Done in 34 minutes and 50 seconds.

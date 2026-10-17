@@ -125,3 +125,14 @@ market-changes: baseline db 82 s (limit 245 s), server 11 s (limit 240 s)
   SURVIVED recipe.market_failed#4 RELATIONAL packages/recipe-core/sql/0821_market_changes.sql:266 [=] -> [<>]
   SURVIVED recipe.market_failed#5 LOGICAL packages/recipe-core/sql/0821_market_changes.sql:267 [and] -> [or]
   market-changes: 75/153
+  SURVIVED recipe.market_failed#6 RELATIONAL packages/recipe-core/sql/0821_market_changes.sql:267 [=] -> [<>]
+  SURVIVED recipe.market_failed#7 LOGICAL packages/recipe-core/sql/0821_market_changes.sql:267 [and] -> [or]
+  SURVIVED recipe.market_failed#8 RELATIONAL packages/recipe-core/sql/0821_market_changes.sql:267 [=] -> [<>]
+  SURVIVED recipe.market_failed#9 LOGICAL packages/recipe-core/sql/0821_market_changes.sql:267 [or] -> [and]
+  SURVIVED recipe.market_failed#10 RELATIONAL packages/recipe-core/sql/0821_market_changes.sql:267 [=] -> [<>]
+  SURVIVED recipe.market_failed#11 LOGICAL packages/recipe-core/sql/0821_market_changes.sql:267 [and] -> [or]
+  SURVIVED recipe.market_failed#12 RELATIONAL packages/recipe-core/sql/0821_market_changes.sql:267 [=] -> [<>]
+  SURVIVED recipe.market_failed#13 LOGICAL packages/recipe-core/sql/0821_market_changes.sql:268 [and] -> [or]
+  SURVIVED recipe.market_failed#15 RELATIONAL packages/recipe-core/sql/0821_market_changes.sql:268 [<>] -> [=]
+  SURVIVED recipe.market_failed#16 BOOLEAN packages/recipe-core/sql/0821_market_changes.sql:269 [true] -> [false]
+SIGTERM: dropping the run's databases
