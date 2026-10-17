@@ -162,7 +162,10 @@ M6-D3 (the archive retention view called a function the app role may not execute
 128-character id truncation. Not run (time box, owner's instruction): bulk-and-bright-stock, execution-complete-forms and
 the whole SQL re-run (about 128 worker hours); residuals and owner items are listed in that file. Demo: `pnpm
 demo:phase6-exit` runs the seven items (record `docs/build-plan/phase-6/exit-demo.md`; all PASS in its run of 17 October).
-Final run 2: <RESULT-PLACEHOLDER>
+Final run 2 (17 October, after the campaign): green in one run after its one re-run (the first attempt failed only the
+register listing of the campaign's 220 new tagged tests, synced): static checks, 6,695 tests passed (0 failed), golden
+batches GB-T-01 to GB-T-03 41/41, browser suite 50/50, `pnpm trace` at phase 6 ok (146/242 controls), `handbook:check` ok.
+Decision 0020 (owner, 17 October): no demo at phase exits from Phase 7 on; one demo when the product is there (v1.0).
 Next: the Phase 6 PR, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

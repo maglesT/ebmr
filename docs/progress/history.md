@@ -2694,3 +2694,9 @@ one branch per triage agent) and `-demo`. `phase.yaml` is at 6. Raw mutation rep
   `docs/build-plan/phase-6/exit-demo.md` with screenshots; its run of 17 October (06:19 to 06:36 UTC, commit 5800f7dc):
   all seven PASS (fault exchange with a stale LMS mirror refusing a step signature, press excursion over OPC UA, serial
   query, mock recall, controlled dispensing under dual custody, English step screens, a lot transferred between two sites).
+- **Final run 2 (17 October, after the campaign):** green in one run after its one re-run. The first attempt failed only
+  the meta test and the trace on the register listing of the campaign's 220 new tagged tests (`pnpm register:sync-tests`
+  from that run's reports). Re-run: static checks, 6,695 tests passed (0 failed), golden batches 41/41, browser suite
+  50/50, `pnpm trace` at phase 6 ok (146/242 controls with passing tests), `handbook:check` ok.
+- **Demo, final run:** after final run 2, 7 of 7 items PASS again (record updated). Owner decision 0020 (17 October):
+  from Phase 7 on, a phase exit is proven by its tests alone; one demo is held when the product is there (Tablets v1.0).
