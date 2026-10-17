@@ -241,6 +241,22 @@ describe('the gateway signs its OPC UA feed and the database verifies it (6jc-R9
     expect(await chunkRows()).toBe(seriesBefore + 1);
   });
 
+  it('[DI-31] a gateway\'s feed is bound to one adapter, so a signed envelope cannot be replayed through another', async () => {
+    const e = event();
+    const env = signed(envelope('opcua.equipment_event', e), gw);
+    expect(await direct('select tab.accept_gateway_envelope($1::json) as r', env)).toMatchObject({ outcome: 'ACCEPTED' });
+    // A second OPCUA adapter (its own sequence space) cannot be bound to the gateway already bound to the first.
+    const second = await sandboxOpcuaAdapter(server, w.adm, 'SITE-1');
+    await expect(bindFeed(server, second.code, GW)).rejects.toThrow(/EBMR-DEV-179/);
+    await expect(db.admin.query(
+      "insert into tab.gateway_feed_binding (adapter_id, adapter_code, gateway_code, bound_by_person) select id, code, $2, gen_random_uuid() from iam.integration_adapter where code = $1",
+      [second.code, GW])).rejects.toThrow(/gateway_feed_binding_one_adapter/);
+    // The envelope accepted through the first adapter, replayed through the second: refused, nothing lands twice.
+    await expect(withCommand(db.app, ctxOf(second.actor), (c) => c.query('select tab.accept_gateway_envelope($1::json)', [JSON.stringify(env)]))).rejects.toThrow(/EBMR-INT-031/);
+    expect(await count(db, 'select count(*) as n from platform.inbound_message where adapter_code = $1', [second.code])).toBe(0);
+    expect(await events(e['eventId'])).toBe(1);
+  });
+
   it('[DI-31][DI-20] the SQL twin of the feed signature gives the SDK\'s bytes for every committed vector, and the database verifies the vectors\' signatures', async () => {
     const fixture = JSON.parse(readFileSync(join(import.meta.dirname, '../../../../packages/integration-sdk/fixtures/feed-signature-v1.json'), 'utf8')) as {
       key: { publicKeySpkiDerHex: string; keyId: string };
