@@ -222,8 +222,8 @@ describe('reconciliation (DI-31)', () => {
     const received = [m1.envelope, m2.envelope, r1, r5].map((e) => `${String(e['idempotencyKey'])}|${String(e['payloadHash'])}`)
       .sort((x, y) => Buffer.compare(Buffer.from(x), Buffer.from(y)));
     const checksum = sha256(received.join('\n'));
-    const row = async (id: string) =>
-      (await db.admin.query('select received_count::text as received, received_checksum as checksum, accepted_count::text as accepted, refused_count::text as refused, matched, alarm_id is not null as alarm from platform.reconciliation_report where id = $1', [id])).rows[0];
+    const row = async (id: string): Promise<Record<string, unknown> | undefined> =>
+      (await db.admin.query<Record<string, unknown>>('select received_count::text as received, received_checksum as checksum, accepted_count::text as accepted, refused_count::text as refused, matched, alarm_id is not null as alarm from platform.reconciliation_report where id = $1', [id])).rows[0];
     const period = { periodFrom: T0.toString(), periodTo: T1.toString() };
     expect(await row(await report(a, { ...period, sourceCount: '4', sourceChecksum: checksum })))
       .toEqual({ received: '4', checksum, accepted: '2', refused: '2', matched: true, alarm: false });
