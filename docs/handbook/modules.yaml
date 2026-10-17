@@ -288,7 +288,7 @@ modules:
     page: modules/site-services.md
     package: packages/site-services
     migrations:
-      packages/site-services/sql: ['^091\d_']
+      packages/site-services/sql: ['^091\d_', '^1002_']
     tests: ['packages/site-services/test/erp-wms/**']
 
   - id: ss-label-store

@@ -27,7 +27,8 @@ Finding names differ by phase, and the numbers overlap, so the phase is always g
 - **P2-F12** means finding F12 of the Phase 2 exit review (two digits, F01 to F67), with its follow-up rounds.
 - **P3-n** and **P4-n** are findings of the quick reviews of a slice (the number is the review's own, for example
   "slice 3b review 2"). **HIGH-n** is a finding of the Phase 3 exit review. **D-n** is a defect found by the Phase 2
-  SQL mutation run. **F-A1** is a defect found by the Phase 4 mutation run.
+  SQL mutation run. **F-A1** is a defect found by the Phase 4 mutation run. **M6-Dn** is a defect found during the Phase 6
+  mutation campaign.
 - "Control" means a line in `compliance/controls/` (for example DI-37). Tests that prove a control carry its ID in
   their name. See the [control register](../../compliance/controls/).
 - "Migration 0319" means the numbered SQL file of that package (for example recipe-core 0319).
@@ -1140,6 +1141,23 @@ role cannot write: ...` (kernel sandbox tests).
 **Symptom.** Starting an exercise from a shared terminal was refused (EBMR-IAM-120, INV-40). **Fix.** The training
 commands are FRESH_ON_SHARED with the attribution member, as other floor commands. **Tests.** the contract test of
 FRESH_ON_SHARED routes; `[DI-05] a training session's attempts are the person's own ...`.
+
+## Phase 6 mutation campaign (decision 0019)
+
+### M6-D1: a typed lot code stopped receiving for the rest of the day (medium, fails safe; site services 1002)
+
+**Symptom.** After stores received a delivery with a lot code typed on a batch that was not the last, every later
+receipt that day failed with a duplicate-key error on the lot code. **Why it matters.** Receiving stops until midnight;
+no wrong record is written (PR-17: each lot of each shipment has its own code). **Cause.** Site services 0910 numbered
+the generated codes (GR<yymmdd>-<nnnn>) from the count of the day's generated codes but advanced the counter for every
+batch, also for one with a typed code, so the count fell behind the highest number in use. **Fix.** Site services 1002:
+the next number follows the highest generated code of the day, advances only for a batch without a typed code, and
+skips a code the site already holds; codes are never reused and gaps are allowed. Found while writing the campaign's
+kill tests for erp-wms-receipt-and-stock (triage T2; D-P6j-T2-1). **Tests.** `[PR-17] a lot code typed by stores on
+any batch never makes a later receipt of the day reuse a generated code` (packages/site-services/test/erp-wms/receipt.test.ts).
+**Lesson.** A sequence derived from `count(*)` breaks as soon as anything else writes rows of the same shape, or the
+counter moves without writing one; derive the next value from the highest one in use, under the lock that is already
+held, and let the unique constraint stay the last guard.
 
 ## Open residuals for the owner
 

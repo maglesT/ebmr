@@ -39,10 +39,10 @@ of each database function.
 | [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
 | [ss-transfer](#ss-transfer) | Lot-transfer packages, QUARANTINE receipt, local QA acceptance, hold time and rule resolutions; two-installation DB tests (Phase 6 slice 6i) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 1 | 4 |
 | [ss-reporting](#ss-reporting) | Reporting views and change-impact DB tests (Phase 6 slice 6g) | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 2 | 2 |
-| [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 7 | 0 | 3 | 7 |
+| [ss-receipt-erp-wms](#ss-receipt-erp-wms) | Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A) | [modules/site-services.md](modules/site-services.md) | 8 | 0 | 3 | 7 |
 | [ss-label-store](#ss-label-store) | The label store of printed-material lots and its permission (Phase 6 slice 6c) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 0 | 0 |
 | [ss-reagent-lots](#ss-reagent-lots) | Reagent and buffer lots with their expiry (Phase 6 slice 6b, PR-29) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 2 |
-| [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 2 | 2 |
+| [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 4 | 2 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 18 | 0 | 19 | 36 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
 | [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 3 | 9 |
@@ -69,7 +69,7 @@ of each database function.
 | [rc-execution](#rc-execution) | Execution store and engine (steps, entries, exceptions, change paths, hand-over, approvals) | [modules/recipe-core.md](modules/recipe-core.md) | 85 | 0 | 55 | 59 |
 | [rc-flow](#rc-flow) | Flows, validator and limits | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 18 | 14 |
 | [rc-simulator](#rc-simulator) | Recipe simulator | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 3 | 3 |
-| [rc-core](#rc-core) | Recipe core package entry and tests not owned by one feature | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 1 | 0 |
+| [rc-core](#rc-core) | Recipe core package entry and tests not owned by one feature | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 2 | 0 |
 | [ts-session](#ts-session) | Sessions and sign-in | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 8 | 13 | 10 |
 | [ts-access](#ts-access) | Kiosk access, attribution and governance read doors | [modules/tablets-server.md](modules/tablets-server.md) | 7 | 4 | 8 | 12 |
 | [ts-audit](#ts-audit) | Audit trail reads | [modules/tablets-server.md](modules/tablets-server.md) | 6 | 3 | 10 | 6 |
@@ -636,9 +636,9 @@ of each database function.
 
 **Receipt record, approved manufacturers, stock locations, WMS lot-status mirror, ERP/WMS inbound and outbound, the issue gate (Phase 6 slice 6a, builder A).** Package `packages/site-services`. Handbook: [modules/site-services.md](modules/site-services.md).
 
-**Migrations** (7):
+**Migrations** (8):
 
-- `packages/site-services/sql`: [0910_receipt_record_and_approved_manufacturers.sql](../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql), [0911_stock_locations.sql](../../packages/site-services/sql/0911_stock_locations.sql), [0912_erp_lot_status_mirror_and_outbound.sql](../../packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql), [0913_erp_wms_inbound_and_issue_gate.sql](../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql), [0914_erp_wms_interface_role.sql](../../packages/site-services/sql/0914_erp_wms_interface_role.sql), [0915_wms_location_question.sql](../../packages/site-services/sql/0915_wms_location_question.sql), [0916_erp_wms_entry_authority.sql](../../packages/site-services/sql/0916_erp_wms_entry_authority.sql)
+- `packages/site-services/sql`: [0910_receipt_record_and_approved_manufacturers.sql](../../packages/site-services/sql/0910_receipt_record_and_approved_manufacturers.sql), [0911_stock_locations.sql](../../packages/site-services/sql/0911_stock_locations.sql), [0912_erp_lot_status_mirror_and_outbound.sql](../../packages/site-services/sql/0912_erp_lot_status_mirror_and_outbound.sql), [0913_erp_wms_inbound_and_issue_gate.sql](../../packages/site-services/sql/0913_erp_wms_inbound_and_issue_gate.sql), [0914_erp_wms_interface_role.sql](../../packages/site-services/sql/0914_erp_wms_interface_role.sql), [0915_wms_location_question.sql](../../packages/site-services/sql/0915_wms_location_question.sql), [0916_erp_wms_entry_authority.sql](../../packages/site-services/sql/0916_erp_wms_entry_authority.sql), [1002_receipt_code_numbering.sql](../../packages/site-services/sql/1002_receipt_code_numbering.sql)
 
 **Database objects** created in these migrations:
 
@@ -687,7 +687,7 @@ of each database function.
 
 **Source** (1): [index.ts](../../packages/site-services/src/index.ts)
 
-**Tests** (2): [authorization.test.ts](../../packages/site-services/test/authorization.test.ts), [package.test.ts](../../packages/site-services/test/package.test.ts)
+**Tests** (4): [authorization.test.ts](../../packages/site-services/test/authorization.test.ts), [mutation/erp-wms-receipt-and-stock.test.ts](../../packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts), [mutation/qms-capa-lims-cmms.test.ts](../../packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts), [package.test.ts](../../packages/site-services/test/package.test.ts)
 
 **Controls** (2): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml)
 
@@ -1128,7 +1128,7 @@ of each database function.
 
 **Source** (2): [index.ts](../../packages/recipe-core/src/index.ts), [pure.ts](../../packages/recipe-core/src/pure.ts)
 
-**Tests** (1): [package.test.ts](../../packages/recipe-core/test/package.test.ts)
+**Tests** (2): [mutation/qms-capa-lims-cmms.test.ts](../../packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts), [package.test.ts](../../packages/recipe-core/test/package.test.ts)
 
 ## ts-session
 
