@@ -199,6 +199,18 @@ modules:
     screens: [apps/tablets-web/src/features/analytics-audit]
     tests:
       - 'apps/tablets-web/test/analytics-audit/**'
+  - id: analytics-spc
+    title: Advisory analytics SPC (Phase 6A slice 6A-2) - control charts, capability, drift alerts, deviation-rate comparisons
+    page: modules/analytics.md
+    package: packages/analytics
+    migrations:
+      packages/recipe-core/sql: ['^113[0-9]_']
+    src: [packages/analytics/src/methods/spc, packages/analytics/src/methods/capability, packages/analytics/src/methods/drift, packages/analytics/src/methods/rates, apps/tablets-server/src/analytics/spc.ts]
+    tests:
+      - 'packages/analytics/test/spc-methods.test.ts'
+      - 'packages/recipe-core/test/analytics/rate-inputs.test.ts'
+      - 'apps/tablets-server/test/analytics/spc.test.ts'
+      - 'apps/tablets-web/test/analytics/spc.test.tsx'
 
   - id: kernel-integration
     title: Integration wiring between kernel modules

@@ -1,7 +1,7 @@
 # analytics: advisory analytics (Phase 6A)
 
 **Draft.** This page is still being written; facts on it were checked against the code on 17 October 2026 (slices
-6A-0, 6A-1 and 6A-4). Slices 6A-2, 6A-3, 6A-5 and 6A-6 add their methods here.
+6A-0, 6A-1, 6A-2 and 6A-4). Slices 6A-3, 6A-5 and 6A-6 add their methods here.
 
 This page explains the advisory analytics of the Tablets edition: the pure package `packages/analytics`, the runner in
 the tablets server, the analytics role and schema in the database, the input views it reads, the method versions under
@@ -27,6 +27,10 @@ the plan is [phase-6a-plan.md](../../build-plan/phase-6a/phase-6a-plan.md) and t
 | Schema, role, tables, record functions, read views (6A-0) | kernel [1240](../../../packages/kernel/sql/1240_analytics_schema_role.sql) to [1244](../../../packages/kernel/sql/1244_analytics_permissions.sql) |
 | Method change control, the screens' views (6A-1) | kernel [1245](../../../packages/kernel/sql/1245_analytics_method_change.sql) |
 | Input views v1 | recipe-core [1115](../../../packages/recipe-core/sql/1115_analytics_input_views.sql) |
+| SPC, capability, drift and rate methods (6A-2) | [methods/spc](../../../packages/analytics/src/methods/spc/index.ts#sym=runImr), [capability](../../../packages/analytics/src/methods/capability/index.ts#sym=runCapability), [drift](../../../packages/analytics/src/methods/drift/index.ts#sym=runDrift), [rates](../../../packages/analytics/src/methods/rates/index.ts#sym=runRates) |
+| Their runner wiring and version 1 definitions | [spc.ts](../../../apps/tablets-server/src/analytics/spc.ts#sym=SPC_IMPLEMENTATIONS) |
+| Their routes and screens `/analytics/spc`, `/analytics/rates` | [features/analytics/spc/](../../../apps/tablets-server/src/features/analytics/spc/), [ns/analytics-spc.ts](../../../packages/api-contract/src/ns/analytics-spc.ts), [tablets-web features/analytics/spc/](../../../apps/tablets-web/src/features/analytics/spc/) |
+| Rate inputs and the site shifts | recipe-core [1130](../../../packages/recipe-core/sql/1130_analytics_rate_inputs.sql) |
 | Audit-trail methods ATA.RULES, ATA.BASELINE (6A-4) | [methods/audit/](../../../packages/analytics/src/methods/audit/), runner [audit.ts](../../../apps/tablets-server/src/analytics/audit.ts#sym=auditInput) |
 | Audit-trail inputs and flag readers (6A-4) | kernel [1260](../../../packages/kernel/sql/1260_analytics_auth_facts.sql), [1261](../../../packages/kernel/sql/1261_analytics_audit_flag_groups.sql); recipe-core [1150](../../../packages/recipe-core/sql/1150_analytics_audit_inputs.sql), [1151](../../../packages/recipe-core/sql/1151_analytics_audit_flag_entries.sql) |
 | Audit-trail flag routes and screens `/analytics/audit-flags` (6A-4) | [features/analytics/audit/](../../../apps/tablets-server/src/features/analytics/audit/), [ns/analytics-audit.ts](../../../packages/api-contract/src/ns/analytics-audit.ts), [tablets-web features/analytics-audit/](../../../apps/tablets-web/src/features/analytics-audit/) |
@@ -175,6 +179,30 @@ for data-integrity review, never an accusation or a finding (draft [DI-53](../..
 | `ANALYTICS.DISPOSITION` | QA reviewer, CSV/DI lead | dispositions |
 | `ANALYTICS.DI_REVIEW` | CSV/DI lead | flags about a person |
 | `ANALYTICS.METHOD` | QA reviewer, process owner | method versions, reference sets |
+
+## SPC, capability, drift and deviation rates (slice 6A-2)
+
+Five methods, each a version 1 that QA puts in force on `/analytics/methods` under an approved change record (the
+definitions are `SPC_METHOD_DEFINITIONS`: the plan's parameters, intended use, acceptance criteria and validation
+reference). Charts, capability and drift are per product, MBR family and critical item (`report.cpp_value_v1`, the
+batch's last attempt, completed batches in completion order); the master's limits are echoed as its decimal text.
+
+| Method | What it gives | Flags |
+|---|---|---|
+| `SPC.IMR` | I-MR chart of one value per batch: centre and sigma (mean moving range / d2) of the first 20 batches (Phase I), or of an approved reference set when one is passed; limits centre +- 3 sigma | `NELSON_1`, `_2`, `_3`, `_5`, one flag per rule naming the batches of each hit |
+| `SPC.XBAR_S` | Mean and S chart of the readings of a SERIES item (two or more per batch); sigma the mean of s / c4(n) | as above |
+| `CAP.INDEX` | Cpk (within sigma) and Ppk (overall) with Bissell 95 % intervals and an Anderson-Darling note; NOT_SHOWN below 25 batches or without a limit | none |
+| `DRIFT.TREND` | Slope of the last 10 batches (t test) projected 5 batches ahead, and an EWMA (0.2, 2.7) from the master's target | `DRIFT_SLOPE`, `DRIFT_EWMA` (about the newest batch) |
+| `RATE.DEVIATION` | Per product and grouping (step, unit, room, lot, supplier, shift): share of batches with a deviation (Wilson), deviations per 100 batches (Garwood), one-sided Fisher against the rest, Benjamini-Hochberg q, funnel limits | `RATE_ABOVE` when q <= 10 % and the share is higher |
+
+The deviation inputs are `report.deviation_fact_v1` (a deviation linked to a GMP batch, attributed to the step of the
+exception it was linked or escalated to, with that step's unit, room and lots, and the shift it falls in; linked to the
+batch only it is unattributed but for its shift) and `report.step_shift_v1`. The shifts are the platform setting
+`site.shift_boundaries` (default `A=06:00,B=14:00,C=22:00` in site time), changed under a change record; a malformed
+value is refused (EBMR-ANA-020). The routes read the newest recorded output; nothing recorded answers 404
+(EBMR-ANA-021). The PQR extract screen links to the charts and rates as an advisory annex; the extract and its signed
+content do not change (D-6A-18). Known answers: `packages/analytics/test/reference/spc_reference.py` (SciPy) and the
+published examples in `spc-methods.test.ts`.
 
 ## Adding a method (slices 6A-2 to 6A-6)
 
