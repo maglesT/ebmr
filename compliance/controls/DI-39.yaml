@@ -52,6 +52,10 @@ tests:
   - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-39] the receipt shows the origin's status, CoA, rule resolutions and hold time; local QA accepts, or refuses with a reason, through the ceremony"
   - "apps/tablets-web/test/transfers/transfers.test.tsx > transfer packages (L-41) > [DI-39] the stores are not offered the decision on a received lot"
   - "packages/api-contract/test/contract.test.ts > route table > [DI-31][DI-39] the transfers and federation namespaces (Phase 6 slice 6i) are GMP only, each route with an example; stores and alarm acts are FRESH_ON_SHARED; the site-to-site endpoint needs no session and is read-only; TRANSFER_RECEIPT_DECIDE needs a reason to refuse"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [PR-55][INV-39][DI-39] after the manufacturer release, a certification of a lot whose G-REL for the EU is not ready is refused (EBMR-DSP-053)"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [DI-30][INV-39][DI-39] a transcription verified after the lot's release was suspended is refused, and the lot stays uncertified; QA never registers itself as QP"
+  - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the inbound package (site services 0981) > [DI-31] [DI-39] a package its trusted origin sealed is still refused when malformed, addressed to another site or not a released intermediate"
+  - "packages/site-services/test/mutation/transfer-and-federation.test.ts > the outbound package (site services 0980) > [DI-39] [INV-13] [PR-18] the origin packages an unexpired lot, up to what is left, on a well-formed request with a future stated hold"
 clauses:
   - clause: "A QA reviewer, a supervisor and an admin each try to certify. All fail."
     tests:

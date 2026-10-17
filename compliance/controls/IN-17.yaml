@@ -48,6 +48,8 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-02/gb-t-02.test.ts > GB-T-02, direct compression in HDPE bottles, and the US added after vendor history > [IN-17][PR-39][PR-37][PR-38] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [IN-17][PR-31] dispenses, blends and compresses the worksheet's quantities, with its yields"
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [IN-17][PR-39][PR-37] packs the worksheet's bottles: labels and cartons reconciled with nothing unexplained, the packaging yield, the shippers"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > mutation triage T11: container exclusions of the Tablets items read the container itself (tablets 1162; L-30, INV-27, PR-47, TB-11) > [IN-17][PR-39] E.RECONCILIATION_PACKS: red while no secondary packaging step is completed, however clean the rest"
+  - "apps/tablets-server/test/release/grel-tablets-items.test.ts > mutation triage T11: container exclusions of the Tablets items read the container itself (tablets 1162; L-30, INV-27, PR-47, TB-11) > [IN-17][PR-39] E.RECONCILIATION_PACKS: an exception linked to a closed deviation but not dispositioned keeps the lot red, whatever another batch dispositioned"
 clauses:
   - clause: "enter a carton reconciliation with a 2% unexplained loss above the configured limit; a deviation opens"
     tests:

@@ -88,6 +88,8 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] an instrument rests on its own passing daily check of today, or on its own unused passing per-use check for this batch"
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > what the readers compute > [IN-25][PR-23] a use that ends inside its clean-hold, calibration and plan crosses nothing"
   - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the CMMS mirror at equipment use (DI-31, IN-25, PR-23) > [DI-31][PR-23] CMMS calibrations reach the use guard: a FAIL blocks the unit, a PASS with a future due date frees it; manual entries are refused in MIRROR"
+  - "packages/recipe-core/test/integrations/cmms-qms-release.test.ts > the QMS status at release (DI-31; D-P6a-3, D-P6a-0-11) > [DI-31][PR-23] G-REL carries the QMS item for a finished lot in MIRROR mode only, and the market items of US and EU for a finished lot only (mutation triage, recipe.grel_evaluate)"
+  - "packages/recipe-core/test/mutation/qms-capa-lims-cmms.test.ts > the CMMS receiving commands (DI-31, IN-25, PR-23; recipe-core 0950) > [DI-31][PR-23] calibration: the message type, the mode, each malformed field, a unit without calibration and an equal timestamp are refused"
 clauses:
   - clause: "A Dirty unit is blocked."
     tests:

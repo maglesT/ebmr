@@ -46,6 +46,8 @@ tests:
   - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] bypass attempts as the application role: no direct writes, no approval without its signature"
   - "apps/tablets-web/test/governance/governance.test.tsx > vendor support grants > [DI-08] each grant shows its approvals and window; QA is offered its approval of a pending grant through the ceremony, never a second one"
   - "apps/tablets-web/test/governance/governance.test.tsx > vendor support grants > [DI-08] IT's administrator requests a grant for a named engineer, for the hours stated"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08] the time box is 1 to the configured maximum of hours, both ends included; IT's administrator may end a grant early"
+  - "packages/kernel/test/identity/support-grant.test.ts > vendor support grants (kernel 1202; DI-08) > [DI-08][INV-11] an approval is recorded by its own signer; the requester, an administrator, can never hold a role that approves"
 clauses:
   - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
     tests:

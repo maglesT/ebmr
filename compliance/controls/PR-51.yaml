@@ -29,6 +29,13 @@ tests:
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [PR-51] a CAPA needing a master change cannot close before the change is effective"
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [PR-51][IN-01] a CAPA closes only once implemented and proven effective, by QA other than its initiator"
   - "packages/site-services/test/integrations/capa-qms.test.ts > the QMS mirror (DI-31; D-P6a-5, D-P6a-6) > [DI-31][PR-51] with a QMS the CAPA rows are mirrors with a version token; the stand-in commands are refused"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [IN-01][PR-51] raise_capa refuses each missing or malformed part with its own message, and takes the limits inclusively"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [IN-01][PR-51] links, implementation, checks and results: each command refuses the wrong state and the missing part"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [PR-51][DI-22] a CAPA is cancelled by QA other than its initiator with a reason; nothing is linked or scheduled after"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [PR-51][DI-17] CAPA_CLOSED binds: a signature made stale by a later link, and another person's signature, do not close it"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [DI-17][PR-51] the signed content of a CAPA counts its own rows only and shows its own QMS history only"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [PR-51] a QMS-origin CAPA is not changed by the stand-in commands even when the site runs the stand-in"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA master-version resolver (PR-51; site services 0925, recipe-core 0952) > [PR-51] only a (uuid) returns jsonb function is registered; no resolver, or one with no answer, fails closed"
 clauses:
   - clause: "Closing a CAPA that needs a master change is blocked while the change is not yet effective."
     tests:

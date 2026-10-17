@@ -270,6 +270,7 @@ tests:
   - "packages/recipe-core/test/mutation/india-issue-gate.test.ts > the hazard classes of a product and the dedication of a line (recipe-core 0890, 0912) > [IN-27] [DI-35] an unknown record is not approved; a record is approved once and only while it is the latest; the approval is recorded by its signer"
   - "packages/site-services/test/mutation/india-licences.test.ts > recording, approving and suspending a licence: the refusals (site services 0885) > [IN-30] [DI-35] a person who recorded a licence does not approve it, even holding the approval right and another person's signature"
   - "packages/site-services/test/mutation/india-licences.test.ts > approving and suspending an export permission: the refusals (site services 0885) > [IN-30] [DI-35] the recorder of a permission does not approve it, even holding the approval right; the approval is recorded by the person who signed it"
+  - "packages/site-services/test/mutation/controlled-substance-mode.test.ts > controlled-substance mode, rule by rule (IN-53, draft; recipe-core 1031 to 1033) > [IN-53][DI-35] a checkpoint signature and a flag approval are recorded only by the person who gave them"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

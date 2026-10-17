@@ -37,6 +37,8 @@ tests:
   - "packages/recipe-core/test/mutation/plant-equipment-and-areas.test.ts > each refusal of the commands, on its own > [INV-15][PR-25] a plain room in use refuses another batch of its own product as in use, naming the batch in it, whatever other rooms hold"
   - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant displays and rooms > [PR-25][PR-27][PR-15] rooms show cleaning state, clean hold, controlled area and open spills; a room shows its conditions and records a spill"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-25] a room overdue for cleaning is blocked"
+  - "packages/recipe-core/test/mutation/plant-rules.test.ts > the clean hold of a room (PR-25) > [PR-25] a room with a clean hold that was never cleaned is refused"
+  - "packages/recipe-core/test/mutation/plant-rules.test.ts > the clean hold of a room (PR-25) > [PR-25] another batch's occupancy of the room does not carry this batch past an expired clean hold"
 clauses:
   - clause: "Starting product Y in a room occupied by product X is blocked."
     tests:

@@ -173,6 +173,8 @@ tests:
   - "tools/e2e/specs/master-data/composition.spec.ts > [DI-13] an operator cannot open the composition @office"
   - "packages/recipe-core/test/mutation/formulas.test.ts > what the library answers > [DI-13] the readers answer for the formula named: its own versions; an unknown formula is refused; the composition only when readable"
   - "packages/recipe-core/test/mutation/formulas.test.ts > what the library answers > [DI-13][INV-25] \"Choose a product\" takes the approved version, never a later draft"
+  - "apps/tablets-server/test/transfers/federation-https.test.ts > the federated genealogy calls another installation over https only in production (DI-13) > [DI-13] [DI-31] production refuses a peer registered with an http address before anything is sent, and the refusal is logged"
+  - "apps/tablets-server/test/transfers/federation-https.test.ts > the federated genealogy calls another installation over https only in production (DI-13) > [DI-13] production calls a peer registered with an https address, and development an http one"
 clauses:
   - clause: "A non-TLS connection is refused."
     tests:

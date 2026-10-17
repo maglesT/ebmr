@@ -52,6 +52,7 @@ tests:
   - "packages/recipe-core/test/lifecycle/execution-complete-forms.test.ts > EXECUTION_COMPLETE waits for the contingency forms (DI-43, PR-16) > [DI-43][PR-16] only the move into EXECUTION_COMPLETE is gated: another write of the status of a batch with a form still out passes"
   - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-16] removing one label specimen or one checker signature blocks completion and names the gap"
   - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [IN-16] the packaging page offers the next coding specimen in order and posts what the operator read off it; [PR-16] it lists every printed item without its label specimen"
+  - "apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts > packaging line completion, rule by rule (tablets 1230) > [PR-16] a label specimen's note is 1 to 500 characters, one item's specimen does not stand for another's, and each withdrawal is its own specimen's"
 clauses:
   - clause: "Removing one label specimen"
     tests:

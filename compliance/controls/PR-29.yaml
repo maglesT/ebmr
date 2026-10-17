@@ -274,6 +274,10 @@ tests:
   - "apps/tablets-server/test/blocks/coating/tb20-v2.test.ts > TB-20@2 NO_PLAN through a deviation (D-P4-11) > [PR-29][PR-49] the TB-20@2 golden fixture: a lot of one accepted tablet leaves through its deviation with AQL_NO_PLAN"
   - "apps/tablets-server/test/blocks/coating/blocks.test.ts > golden fixtures of the coating blocks > [DI-34][PR-29][PR-49][INV-41] TB-20 Inspection, sorting and AQL: TB-20@2, the NO_PLAN path (D-P4-11): a manual belt sort of 3 tablets (0.003 kg) leaves 1 accepted tablet and 2 chipped ones for destruction; the sampling scheme has no plan for a lot of 1, so the AQL result is NO_PLAN with its deviation DEV-SITE-1-2026-00042 and raises AQL_NO_PLAN for QA"
   - "packages/site-services/test/plant-rules/materials.test.ts > reagent and buffer lots at an in-process control (PR-29) > [PR-29] an expired pH buffer is blocked"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a lot is an object of the known fields, refused for each malformed field on its own, and expires after it was prepared"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a lot is withdrawn only when it exists and with a reason"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a lot may be used from the microsecond it was recorded, and not at the microsecond it expires or is withdrawn"
+  - "packages/site-services/test/mutation/plant-rules.test.ts > reagent and buffer lots (site services 0940) > [PR-29] a use at a step is recorded against the lot used, not another lot in store"
 clauses:
   - clause: "Taking fewer units than the plan requires creates a deviation."
     tests:

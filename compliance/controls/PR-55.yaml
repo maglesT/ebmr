@@ -39,6 +39,7 @@ tests:
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55][DI-39] in-system certification is off by default; switched on, only a registered QP certifies, never QA or the AP, and the register entry is written at signature"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55] an open OOS linked to the lot blocks the EU certification"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [PR-55] an in-system QP rejection is signed QP_REJECTED, never with the certification meaning; the QA fallback of an acknowledgement still works with the switch on"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [PR-55][INV-39][DI-39] after the manufacturer release, a certification of a lot whose G-REL for the EU is not ready is refused (EBMR-DSP-053)"
 clauses:
   - clause: "A non-QP attempt to certify is refused."
     tests:

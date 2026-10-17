@@ -79,6 +79,10 @@ tests:
   - "packages/site-services/test/erp-wms/receipt.test.ts > the approved-manufacturer register (PR-17 clause 3) > [PR-17] an unapproved manufacturer blocks the lot"
   - "packages/site-services/test/erp-wms/receipt.test.ts > the approved-manufacturer register (PR-17 clause 3) > [PR-17][DI-17] the register is QA's signed decision: proposed and approved by QA with its own signature, once, withdrawn with a reason"
   - "packages/site-services/test/erp-wms/receipt.test.ts > a complete receipt record before issue (PR-17 clause 4) > [PR-17] a lot without a complete receipt record cannot be issued"
+  - "packages/site-services/test/erp-wms/receipt.test.ts > internal receiving codes (PR-17 clause 2; defect M6-D1) > [PR-17] a lot code typed by stores on any batch never makes a later receipt of the day reuse a generated code"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][PR-18][INV-13] a delivery received by stores: each malformed part, an unknown or made-here material, a repeated delivery, a zero quantity and a retest after expiry are refused"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][DI-14] the receipt record of a lot received without one, and its examination: each refusal"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > the approved-manufacturer register (PR-17; site services 0910) > [PR-17][DI-17] proposal fields, the 10-character basis, unknown and unapproved rows, and the signer who records the approval"
 clauses:
   - clause: "One delivery containing three supplier batches creates three lots."
     tests:

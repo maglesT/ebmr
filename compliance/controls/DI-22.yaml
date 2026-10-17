@@ -195,6 +195,7 @@ tests:
   - "apps/tablets-server/test/mutation/device-readings.test.ts > the registry of gateway keys and instrument bindings > [DI-22] ending a binding or revoking a key needs a reason code and a reason text, both (EBMR-DEV-009)"
   - "packages/site-services/test/mutation/lots-and-lims.test.ts > lots: each refusal on its own (site services 0712) > [INV-13][DI-22] a reservation: unknown, already revoked, or cancelled without a reason"
   - "packages/site-services/test/quality/deviation-full.test.ts > evidence documents tied to their stored bytes (site services 0823) > [DI-24][DI-22] the database computes the hash and size from the bytes it stores; the bytes never change; a document without matching bytes is not evidence"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [PR-51][DI-22] a CAPA is cancelled by QA other than its initiator with a reason; nothing is linked or scheduled after"
 clauses:
   - clause: "As each role, create, modify and void a value. Every entry carries all fields."
     tests:

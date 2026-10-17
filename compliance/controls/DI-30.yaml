@@ -486,6 +486,8 @@ tests:
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39][INV-39] a transcribed certification counts only once a second QA person verifies it, never the transcriber, and only while the lot awaits certification"
   - "packages/recipe-core/test/release/dispositions.test.ts > the EU certification (outline 5.2.6 EU; DI-39, DI-30, PR-55) > [DI-30][DI-39] one outcome path at a time: while a transcription waits for its second person, a message and an in-system QP are refused"
   - "packages/kernel/test/mutation/records-contingency-forms.test.ts > the steps of a form (kernel 1170, records.record_contingency_form_event) > [DI-43] [DI-30] the transcription a verifier may not have made is the form's own latest transcription, not another form's nor another step of it"
+  - "packages/kernel/test/sandbox/reporting-and-training.test.ts > the reporting role (kernel 1210) > [DI-17][DI-30] the segregation check reports the reporting role missing, each elevated attribute alone and a membership either way (mutation triage, kernel 1210)"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [DI-30][INV-39][DI-39] a transcription verified after the lot's release was suspended is refused, and the lot stays uncertified; QA never registers itself as QP"
 clauses:
   - clause: "Configure a critical manual field and try to complete the step without verification. Blocked."
     tests:

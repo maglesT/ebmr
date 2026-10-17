@@ -262,6 +262,10 @@ tests:
   - "packages/kernel/test/inbound/overrides-and-lms-mirror.test.ts > overrides of interface-captured values (kernel 1181) > [DI-31][DI-14] an override is a person's, with a reason and a new value, of a value that came in a message"
   - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-20][DI-14] only the registered ERP_WMS adapter receives and delivers ERP/WMS messages, and it never issues stock"
   - "packages/site-services/test/erp-wms/inbound.test.ts > integration identities (DI-20, DI-14) > [DI-14][DI-20] the adapter's MATERIAL.HANDLE never reaches a person's material act: it cannot cancel a reservation, record a destruction, recover, return, post or move a lot between sites (review 6j-c R1)"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > authentication methods and purposes (DI-14, DI-38) > [DI-14][DI-38] a badge tap only attributes an entry; a service key only logs in; a signature needs two components; an unknown method or purpose is refused"
+  - "packages/kernel/test/identity/devices-sessions.test.ts > authentication methods and purposes (DI-14, DI-38) > [DI-14][DI-38] an account without an active credential of the method is refused before any secret is compared, whatever the secret"
+  - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][DI-14] the receipt record of a lot received without one, and its examination: each refusal"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

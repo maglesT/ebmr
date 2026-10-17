@@ -24,6 +24,10 @@ tests:
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [IN-08] the same batch for the EU, certified in March 2026, is kept to March 2031; before the certification it is open"
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [IN-08] the batch inputs always carry India, and only an EU batch carries its certification or final rejection"
   - "apps/tablets-server/test/records/archive-routes.test.ts > archive over HTTP (slice 6b) > [IN-08] the licence form of the retention is the batch's recorded licence basis: a Form 28 batch gets the Form 28 rules"
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [DI-47][IN-08] every market of the batch's market set reaches the retention inputs, an unknown market does not, and a batch without a market set is India's"
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [IN-08] the licence form is the recorded basis's: Form 25 or 25A, Form 28 or 28A, otherwise none"
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [DI-47][IN-08] the outcome is the batch's status: an aborted or cancelled batch carries its abort or cancellation date (its issue date when none is recorded); a completed or running one carries none"
+  - "apps/tablets-server/test/records/archive-retention-routes.test.ts > storing a batch's retention (archive syncRetention; T13) > [DI-47][IN-08] QA stores each batch's retention from its record, a second sync updates it, and the processing record follows the packaging record packed from it, whichever is stored first"
 clauses:
   - clause: "24-month tablet made Jan 2026, India only: retention not earlier than Jan 2031 (5 years) because expiry + 1 year is Jan 2029."
     tests:

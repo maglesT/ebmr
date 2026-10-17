@@ -55,6 +55,8 @@ tests:
   - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46] moving rejected stock to a released-stock location is blocked"
   - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46][DI-31] an inbound move that already happened against the rule raises an alarm and an exception linked to the lot; the lot stays blocked until QA closes it with a deviation"
   - "packages/site-services/test/erp-wms/locations.test.ts > the location rule (PR-46 clause 2) > [PR-46] an open location exception blocks the issue of a released lot (reservation and consumption)"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > the WMS mirrors at the lot (DI-31, PR-46, INV-26; site services 0911, 0912, 0916, 0970) > [PR-46] the WMS asks about a move: an unknown lot and an unknown location kind are answered, not raised; a known lot gets the rule"
+  - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > the WMS mirrors at the lot (DI-31, PR-46, INV-26; site services 0911, 0912, 0916, 0970) > [PR-46] a location exception closes only with a deviation linked to its own lot; an unknown exception is refused"
 clauses:
   - clause: "Dispensing a rejected lot is blocked."
     tests:

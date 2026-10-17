@@ -43,6 +43,7 @@ tests:
   - "apps/tablets-server/test/blocks/packaging/line-completion.test.ts > packaging line completion in the database (tablets 1230) > [PR-34] closing an order without the post-use inspection is blocked; a failed or unverified inspection blocks it too; the inspection is recorded after printing ended and verified by another person"
   - "apps/tablets-server/test/labels/labels-routes.test.ts > labels routes (GMP) > [PR-34] the packaging completion and master labelling views answer only for a known batch and version"
   - "apps/tablets-web/test/labels/labels.test.tsx > label and serialisation screens > [PR-34] the post-use inspection posts the four answers the person gave; [PR-36] an open line stop shows and QA resolves it with a reason"
+  - "apps/tablets-server/test/mutation/packaging-labels-and-line-completion.test.ts > packaging line completion, rule by rule (tablets 1230) > [PR-34] the post-use inspection: only of an order with a printed-materials step, each malformed answer or note alone refused, and verified only as the order's latest"
 clauses:
   - clause: "Starting packaging without a signed clearance is blocked."
     tests:

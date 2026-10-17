@@ -170,6 +170,7 @@ tests:
   - "apps/tablets-web/test/genealogy/genealogy.test.tsx > the recurrence warning on the certification screen (PR-49) > [PR-49] the third recurrence shows a warning on the certification screen"
   - "apps/tablets-web/test/genealogy/genealogy.test.tsx > the recurrence warning on the certification screen (PR-49) > [PR-49] below the third occurrence no warning is shown"
   - "packages/site-services/test/genealogy/recall.test.ts > deviation recurrence (recipe-core 1012; PR-49; D-P6d-5) > [PR-49] the recurrence count of a lot's deviation: the same root-cause category on the same product, a warning from the third occurrence"
+  - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-49][PR-52] each escalated exception stands on its own deviation: one escalated later to a linked deviation does not cover another whose deviation is cancelled (mutation kill)"
 clauses:
   - clause: "A failure of a registered limit creates a deviation with the MA flag."
     tests:

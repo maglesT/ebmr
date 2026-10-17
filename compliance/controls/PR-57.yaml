@@ -82,6 +82,9 @@ tests:
   - "apps/tablets-server/test/golden/gb-t-03/gb-t-03.test.ts > GB-T-03, connected: mirrors, an OPC UA press, serialisation and a mock recall > [IN-29][PR-57] the mock recall from the API lot reaches the batch, the order, the finished lot and both consignees of the ERP's shipments, reproduces, and is signed off by the AP"
   - "tools/e2e/specs/phase6/genealogy-recall.spec.ts > [PR-57][IN-07] the genealogy explorer traces an API lot forward to the batch, its finished lot and every shipment, as a tree and as a table, and a shipment backward to the API lot @office"
   - "tools/e2e/specs/phase6/genealogy-recall.spec.ts > [IN-29][PR-57] the head of QC runs a mock recall from the API lot to every consignee; it reproduces, reconciles delivered against returned, and the authorised person signs it off through the ceremony @office"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [PR-57][IN-29] every edge kind, from each node in both directions as of the instant it happened, and nothing else (no unsealed package, no charge into the own batch)"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [PR-57] a trace starts from a node of each kind that exists as of the instant it came to be, and from nothing else"
+  - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the as-of point is inclusive: every event at T is in a trace as of T (PR-57) > [IN-29][PR-57] a mock recall as of T holds every lot with its deliveries in the lot's unit and its own returns only, and the outbound transfer"
 clauses:
   - clause: "A seeded split/merge/rework scenario returns exactly the expected nodes."
     tests:

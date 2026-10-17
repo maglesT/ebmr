@@ -45,6 +45,8 @@ tests:
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [IN-01][PR-51] a CAPA from a deviation has a generated reference, its source, owner, due date and an effectiveness check, and links both ways"
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [IN-01] a 90-day effectiveness check is overdue on day 91"
   - "packages/site-services/test/integrations/capa-qms.test.ts > the CAPA register (IN-01 (d), PR-51) > [PR-51][IN-01] a CAPA closes only once implemented and proven effective, by QA other than its initiator"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [IN-01][PR-51] raise_capa refuses each missing or malformed part with its own message, and takes the limits inclusively"
+  - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [IN-01][PR-51] links, implementation, checks and results: each command refuses the wrong state and the missing part"
 clauses:
   - clause: "run the PQR extract for a product with domestic and export-only batches; all appear."
     tests:

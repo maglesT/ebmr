@@ -146,6 +146,12 @@ tests:
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [PR-59][DI-47] deleting a batch before its date is refused and logged; the request deletes nothing"
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [DI-47] an EU batch finally rejected is no longer open: kept for the later of expiry + 1 year and the disposition + 5 years"
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [DI-47][DI-46] an aborted batch is kept like a completed one, and the record a kept batch depends on inherits the longer period"
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [DI-47][IN-08] every market of the batch's market set reaches the retention inputs, an unknown market does not, and a batch without a market set is India's"
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [DI-47][IN-08] the outcome is the batch's status: an aborted or cancelled batch carries its abort or cancellation date (its issue date when none is recorded); a completed or running one carries none"
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [DI-47] an EU batch carries its QP certification date, else the date it was finally rejected, else stays pending (its retention open); a batch outside the EU carries no EU state"
+  - "apps/tablets-server/test/records/archive-retention-facts.test.ts > the retention facts of a batch (archive/facts.ts; T13) > [DI-47] the batch supports the packaging batches packed from it and depends on the processing batches it was packed from, never on itself"
+  - "apps/tablets-server/test/records/archive-retention-routes.test.ts > storing a batch's retention (archive syncRetention; T13) > [DI-47][IN-08] QA stores each batch's retention from its record, a second sync updates it, and the processing record follows the packaging record packed from it, whichever is stored first"
+  - "apps/tablets-server/test/records/archive-retention-routes.test.ts > storing a batch's retention (archive syncRetention; T13) > [DI-41][DI-47][DI-17] a batch whose retention is stored still opens in the archive and is exported with its stored retention, read without the investigation-revealing kernel reader"
 clauses:
   - clause: "Try to delete a batch record before its retention end. Blocked."
     tests:

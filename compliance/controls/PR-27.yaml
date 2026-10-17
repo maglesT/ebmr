@@ -62,6 +62,7 @@ tests:
   - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant displays and rooms > [PR-25][PR-27][PR-15] rooms show cleaning state, clean hold, controlled area and open spills; a room shows its conditions and records a spill"
   - "packages/site-services/test/plant-rules/materials.test.ts > the penicillin facility (PR-27) > [PR-27] a penicillin component in a non-penicillin facility is blocked"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-27] a spill event sets the room to cleaning required"
+  - "packages/recipe-core/test/mutation/plant-rules.test.ts > a beta-lactam product by its MBR predicate (PR-27) > [PR-27] the MBR's betaLactam predicate alone makes the batch beta-lactam and its start in a non-penicillin site is refused; a predicate of false does not"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:

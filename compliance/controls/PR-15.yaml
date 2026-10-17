@@ -32,6 +32,7 @@ tests:
   - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [PR-15][INV-26] an area authorisation counts from its recording, while valid and until withdrawn; a person never records their own"
   - "packages/kernel/test/identity/area-authorisation.test.ts > area authorisation (kernel 1190) > [PR-15][INV-26] an authorisation mirrored from the LMS counts only while the mirror is fresh"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > area authorisation at the step signature (PR-15, kernel 1190) > [PR-15] a user without area authorisation cannot sign a step in the controlled area"
+  - "packages/kernel/test/mutation/plant-rules.test.ts > an area authorisation at the edges of its window (kernel 1190) > [PR-15][INV-26] it counts from the microsecond it was recorded and the first microsecond of its validity, and not at the microsecond it ends or is withdrawn"
 clauses:
   - clause: "A user whose training has lapsed is refused on the step."
     tests:
