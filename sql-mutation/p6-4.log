@@ -381,3 +381,399 @@ transfer-and-federation: baseline db 34 s (limit 240 s), server 8 s (limit 240 s
   SURVIVED recipe.record_federation_failure#2 GUARD_REMOVED packages/recipe-core/sql/1093_federation_actor_and_audit.sql:144 [raise exception using errcode = 'P0001', message = format('EBMR-FED-015 no feder] -> [null]
   SURVIVED recipe.record_federation_failure#5 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:146 [or] -> [and]
   SURVIVED recipe.record_federation_failure#7 GUARD_REMOVED packages/recipe-core/sql/1093_federation_actor_and_audit.sql:147 [raise exception using errcode = 'P0001', message = 'EBMR-FED-015 a failed federa] -> [null]
+  SURVIVED recipe.record_federated_excerpt#2 GUARD_REMOVED packages/recipe-core/sql/1093_federation_actor_and_audit.sql:170 [raise exception using errcode = 'P0001', message = format('EBMR-FED-015 no feder] -> [null]
+  SURVIVED recipe.record_federated_excerpt#6 GUARD_REMOVED packages/recipe-core/sql/1093_federation_actor_and_audit.sql:173 [raise exception using errcode = 'P0001', message = 'EBMR-FED-016 this request wa] -> [null]
+  SURVIVED recipe.record_federated_excerpt#10 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:182 [or] -> [and]
+  SURVIVED recipe.record_federated_excerpt#12 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:183 [or] -> [and]
+  SURVIVED recipe.record_federated_excerpt#13 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:183 [or] -> [and]
+  SURVIVED recipe.record_federated_excerpt#15 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:185 [or] -> [and]
+  SURVIVED recipe.record_federated_excerpt#17 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:186 [or] -> [and]
+  SURVIVED recipe.record_federated_excerpt#19 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:186 [or] -> [and]
+  SURVIVED recipe.record_federated_excerpt#21 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:187 [or] -> [and]
+  SURVIVED recipe.record_federated_excerpt#23 LOGICAL packages/recipe-core/sql/1093_federation_actor_and_audit.sql:187 [or] -> [and]
+  transfer-and-federation: 350/393
+  SURVIVED recipe.record_federated_excerpt#26 BOOLEAN packages/recipe-core/sql/1093_federation_actor_and_audit.sql:191 [false] -> [true]
+  SURVIVED recipe.record_mock_recall_remote#2 GUARD_REMOVED packages/recipe-core/sql/1091_mock_recall_across_sites.sql:88 [raise exception using errcode = 'P0001', message = format('EBMR-RCL-010 there is] -> [null]
+  transfer-and-federation: 375/393
+  SURVIVED recipe.record_mock_recall_remote#11 GUARD_REMOVED packages/recipe-core/sql/1091_mock_recall_across_sites.sql:95 [raise exception using errcode = 'P0001', message = format('EBMR-RCL-021 transfer] -> [null]
+  SURVIVED recipe.record_mock_recall_remote#14 LOGICAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:97 [or] -> [and]
+  SURVIVED recipe.record_mock_recall_remote#16 GUARD_REMOVED packages/recipe-core/sql/1091_mock_recall_across_sites.sql:98 [raise exception using errcode = 'P0001', message = 'EBMR-RCL-022 a destination A] -> [null]
+  SURVIVED recipe.record_mock_recall_remote#21 LOGICAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:102 [or] -> [and]
+  SURVIVED recipe.record_mock_recall_remote#23 LOGICAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:102 [or] -> [and]
+  SURVIVED recipe.record_mock_recall_remote#25 LOGICAL packages/recipe-core/sql/1091_mock_recall_across_sites.sql:102 [or] -> [and]
+  SURVIVED recipe.record_mock_recall_remote#28 GUARD_REMOVED packages/recipe-core/sql/1091_mock_recall_across_sites.sql:103 [raise exception using errcode = 'P0001', message = 'EBMR-RCL-023 the excerpt is ] -> [null]
+  dropped 11 databases the tests left behind: ebmr_t_fe691d1521dd, ebmr_t_c8d710be1865, ebmr_t_70f3826e1511, ebmr_t_c1e25aa66bfd, ebmr_t_04163d26f341, ebmr_t_08fb32e41850, ebmr_t_a17b8748db28, ebmr_t_d89e027b3386, ebmr_t_9d794846869f, ebmr_t_ac6938a64a08, ebmr_t_6e711f2d6245
+transfer-and-federation: score 48.1 % (189/393 detected, 0 invalid) in 8814 s
+# SQL mutation report
+
+| Group | Baseline (s) | Limit (s) | Mutants | Invalid | Equivalent | Detected | Survived | Score | Target |
+|---|---|---|---|---|---|---|---|---|---|
+| qms-capa-lims-cmms | db 16, server 6 | db 240, server 240 | 401 | 2 | 0 | 239 | 160 | 59.9 % | 90 % |
+| transfer-and-federation | db 34, server 8 | db 240, server 240 | 393 | 0 | 0 | 189 | 204 | 48.1 % | 90 % |
+
+## Surviving mutants
+
+- qms-capa-lims-cmms site.register_capa_master_resolver (packages/site-services/sql/0925_capa_and_qms_mirror.sql:68) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.register_capa_master_resolver (packages/site-services/sql/0925_capa_and_qms_mirror.sql:68) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.register_capa_master_resolver (packages/site-services/sql/0925_capa_and_qms_mirror.sql:68) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.register_capa_master_resolver (packages/site-services/sql/0925_capa_and_qms_mirror.sql:68) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.register_capa_master_resolver (packages/site-services/sql/0925_capa_and_qms_mirror.sql:68) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.register_capa_master_resolver (packages/site-services/sql/0925_capa_and_qms_mirror.sql:68) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.register_capa_master_resolver (packages/site-services/sql/0925_capa_and_qms_mirror.sql:69) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-001 the CAP` -> `null`
+- qms-capa-lims-cmms site.capa_master_version_facts (packages/site-services/sql/0925_capa_and_qms_mirror.sql:86) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms site.capa_master_version_facts (packages/site-services/sql/0925_capa_and_qms_mirror.sql:86) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms site.capa_master_version_facts (packages/site-services/sql/0925_capa_and_qms_mirror.sql:90) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms site.capa_master_version_facts (packages/site-services/sql/0925_capa_and_qms_mirror.sql:90) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms site.capa_state (packages/site-services/sql/0925_capa_and_qms_mirror.sql:300) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_view (packages/site-services/sql/0925_capa_and_qms_mirror.sql:340) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_view (packages/site-services/sql/0925_capa_and_qms_mirror.sql:340) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.capa_view (packages/site-services/sql/0925_capa_and_qms_mirror.sql:340) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.capa_view (packages/site-services/sql/0925_capa_and_qms_mirror.sql:344) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms site.capa_view (packages/site-services/sql/0925_capa_and_qms_mirror.sql:358) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_content (packages/site-services/sql/0925_capa_and_qms_mirror.sql:381) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_content (packages/site-services/sql/0925_capa_and_qms_mirror.sql:382) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_content (packages/site-services/sql/0925_capa_and_qms_mirror.sql:383) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_content (packages/site-services/sql/0925_capa_and_qms_mirror.sql:384) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_content (packages/site-services/sql/0925_capa_and_qms_mirror.sql:384) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.capa_content (packages/site-services/sql/0925_capa_and_qms_mirror.sql:385) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.lock_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:456) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-003 unknown` -> `null`
+- qms-capa-lims-cmms site.lock_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:459) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-002 %s is a` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:485) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:486) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-004 the CAPA detai` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:491) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-004 a CAPA has a t` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:502) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:503) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-005 deviati` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:506) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-005 %s is a` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:511) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-004 only a DEVIATI` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:514) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:514) RELATIONAL: `>` -> `>=`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:515) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-004 a CAPA names i` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:519) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:519) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:519) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:519) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:523) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-004 a CAPA has a d` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:528) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-004 %s is n` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:530) RELATIONAL: `<` -> `<=`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:534) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-004 a CAPA states ` -> `null`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:536) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:538) RELATIONAL: `>` -> `>=`
+- qms-capa-lims-cmms site.raise_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:545) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.link_capa_deviation (packages/site-services/sql/0925_capa_and_qms_mirror.sql:574) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.link_capa_deviation (packages/site-services/sql/0925_capa_and_qms_mirror.sql:575) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-006 %s is %` -> `null`
+- qms-capa-lims-cmms site.link_capa_deviation (packages/site-services/sql/0925_capa_and_qms_mirror.sql:577) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.link_capa_deviation (packages/site-services/sql/0925_capa_and_qms_mirror.sql:578) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.link_capa_deviation (packages/site-services/sql/0925_capa_and_qms_mirror.sql:578) RELATIONAL: `<>` -> `=`
+- qms-capa-lims-cmms site.link_capa_deviation (packages/site-services/sql/0925_capa_and_qms_mirror.sql:579) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-005 deviati` -> `null`
+- qms-capa-lims-cmms site.link_capa_master_version (packages/site-services/sql/0925_capa_and_qms_mirror.sql:600) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-007 %s need` -> `null`
+- qms-capa-lims-cmms site.link_capa_master_version (packages/site-services/sql/0925_capa_and_qms_mirror.sql:603) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-006 %s is %` -> `null`
+- qms-capa-lims-cmms site.link_capa_master_version (packages/site-services/sql/0925_capa_and_qms_mirror.sql:606) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms site.record_capa_implemented (packages/site-services/sql/0925_capa_and_qms_mirror.sql:626) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-008 %s is %` -> `null`
+- qms-capa-lims-cmms site.record_capa_implemented (packages/site-services/sql/0925_capa_and_qms_mirror.sql:629) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-008 the implementa` -> `null`
+- qms-capa-lims-cmms site.schedule_capa_effectiveness_check (packages/site-services/sql/0925_capa_and_qms_mirror.sql:648) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.schedule_capa_effectiveness_check (packages/site-services/sql/0925_capa_and_qms_mirror.sql:649) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-006 %s is %` -> `null`
+- qms-capa-lims-cmms site.schedule_capa_effectiveness_check (packages/site-services/sql/0925_capa_and_qms_mirror.sql:651) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.schedule_capa_effectiveness_check (packages/site-services/sql/0925_capa_and_qms_mirror.sql:651) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.schedule_capa_effectiveness_check (packages/site-services/sql/0925_capa_and_qms_mirror.sql:651) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.schedule_capa_effectiveness_check (packages/site-services/sql/0925_capa_and_qms_mirror.sql:651) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.schedule_capa_effectiveness_check (packages/site-services/sql/0925_capa_and_qms_mirror.sql:652) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-004 an effectivene` -> `null`
+- qms-capa-lims-cmms site.record_capa_effectiveness (packages/site-services/sql/0925_capa_and_qms_mirror.sql:672) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-009 unknown` -> `null`
+- qms-capa-lims-cmms site.record_capa_effectiveness (packages/site-services/sql/0925_capa_and_qms_mirror.sql:677) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-009 %s is %` -> `null`
+- qms-capa-lims-cmms site.record_capa_effectiveness (packages/site-services/sql/0925_capa_and_qms_mirror.sql:680) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.record_capa_effectiveness (packages/site-services/sql/0925_capa_and_qms_mirror.sql:681) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-009 an effectivene` -> `null`
+- qms-capa-lims-cmms site.record_capa_effectiveness (packages/site-services/sql/0925_capa_and_qms_mirror.sql:684) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-009 this effective` -> `null`
+- qms-capa-lims-cmms site.capa_close_problem (packages/site-services/sql/0925_capa_and_qms_mirror.sql:725) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms site.close_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:753) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-011 ' || v_prob` -> `null`
+- qms-capa-lims-cmms site.close_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:756) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-011 CAPA_CLOSED is` -> `null`
+- qms-capa-lims-cmms site.cancel_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:776) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.close_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:759) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-012 %s was ` -> `null`
+- qms-capa-lims-cmms site.cancel_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:777) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-013 %s is %` -> `null`
+- qms-capa-lims-cmms site.cancel_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:779) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.cancel_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:780) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CAPA-013 a cancellation` -> `null`
+- qms-capa-lims-cmms site.cancel_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:782) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.cancel_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:783) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CAPA-012 %s was ` -> `null`
+- qms-capa-lims-cmms site.qms_accept (packages/site-services/sql/0925_capa_and_qms_mirror.sql:802) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-QMS-001 this com` -> `null`
+- qms-capa-lims-cmms site.qms_payload_problem (packages/site-services/sql/0925_capa_and_qms_mirror.sql:823) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.qms_payload_problem (packages/site-services/sql/0925_capa_and_qms_mirror.sql:837) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.qms_assert_newest (packages/site-services/sql/0925_capa_and_qms_mirror.sql:854) RELATIONAL: `>=` -> `>`
+- qms-capa-lims-cmms site.receive_qms_deviation_status (packages/site-services/sql/0925_capa_and_qms_mirror.sql:886) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_qms_deviation_status (packages/site-services/sql/0925_capa_and_qms_mirror.sql:886) RELATIONAL: `>` -> `>=`
+- qms-capa-lims-cmms site.receive_qms_deviation_status (packages/site-services/sql/0925_capa_and_qms_mirror.sql:887) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_qms_deviation_status (packages/site-services/sql/0925_capa_and_qms_mirror.sql:887) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_qms_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:930) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_qms_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:930) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_qms_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:930) RELATIONAL: `>` -> `>=`
+- qms-capa-lims-cmms site.receive_qms_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:939) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.receive_qms_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:942) GUARD_REMOVED: `raise exception 'not a date'` -> `null`
+- qms-capa-lims-cmms site.receive_qms_capa (packages/site-services/sql/0925_capa_and_qms_mirror.sql:950) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-QMS-003 malforme` -> `null`
+- qms-capa-lims-cmms site.receive_qms_change_control (packages/site-services/sql/0925_capa_and_qms_mirror.sql:983) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.receive_qms_change_control (packages/site-services/sql/0925_capa_and_qms_mirror.sql:983) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.receive_qms_change_control (packages/site-services/sql/0925_capa_and_qms_mirror.sql:986) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms site.receive_qms_change_control (packages/site-services/sql/0925_capa_and_qms_mirror.sql:987) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-QMS-003 malforme` -> `null`
+- qms-capa-lims-cmms site.record_qms_release_fetch (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:33) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-QMS-010 unknown ` -> `null`
+- qms-capa-lims-cmms site.record_qms_release_fetch (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:48) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-QMS-010 this site runs ` -> `null`
+- qms-capa-lims-cmms site.record_qms_release_fetch (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:52) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.record_qms_release_fetch (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:54) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.record_qms_release_fetch (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:55) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.record_qms_release_fetch (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:55) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.record_qms_release_fetch (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:56) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.qms_release_problem (packages/site-services/sql/0927_qms_release_mirror_fresh.sql:100) RELATIONAL: `>` -> `>=`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:61) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LIMS-101 this co` -> `null`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:71) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LIMS-101 malformed lims` -> `null`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:79) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:80) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-LIMS-101 malform` -> `null`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:84) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:85) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:86) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-LIMS-101 malformed lims` -> `null`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:94) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:94) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:105) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:106) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms site.receive_lims_sample_result (packages/site-services/sql/0926_lims_results_inbound.sql:106) RELATIONAL: `>=` -> `>`
+- qms-capa-lims-cmms plant.cmms_accept (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:71) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CMMS-002 this co` -> `null`
+- qms-capa-lims-cmms plant.cmms_accept (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:79) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CMMS-001 this si` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:118) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CMMS-002 malformed cmms` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:125) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:126) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:126) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:127) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:128) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CMMS-002 malformed cmms` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:134) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CMMS-002 malform` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:140) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:142) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CMMS-003 %s is o` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:150) RELATIONAL: `>=` -> `>`
+- qms-capa-lims-cmms plant.receive_cmms_calibration (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:156) RELATIONAL: `<=` -> `<`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:194) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CMMS-002 malformed cmms` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:198) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CMMS-002 malform` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:201) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:202) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:202) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:203) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:203) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:204) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-CMMS-002 malformed cmms` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:211) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CMMS-002 malform` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:219) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:219) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:219) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:220) NOT_REMOVED: `not ` -> ``
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:221) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-CMMS-004 the CMM` -> `null`
+- qms-capa-lims-cmms plant.receive_cmms_maintenance (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:220) RELATIONAL: `>=` -> `>`
+- qms-capa-lims-cmms plant.cmms_maintenance_problems (packages/recipe-core/sql/0950_cmms_mirror_at_equipment_use.sql:243) RELATIONAL: `<` -> `<=`
+- qms-capa-lims-cmms recipe.grel_qms_item (packages/recipe-core/sql/0951_qms_status_at_release.sql:33) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms recipe.grel_qms_item (packages/recipe-core/sql/0951_qms_status_at_release.sql:43) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:97) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:97) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:97) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:97) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:97) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:98) LOGICAL: `or` -> `and`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:98) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:98) LOGICAL: `and` -> `or`
+- qms-capa-lims-cmms recipe.qms_release_guard (packages/recipe-core/sql/0951_qms_status_at_release.sql:98) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms recipe.capa_master_version_facts (packages/recipe-core/sql/0952_capa_master_resolver.sql:23) BOOLEAN: `false` -> `true`
+- qms-capa-lims-cmms recipe.capa_master_version_facts (packages/recipe-core/sql/0952_capa_master_resolver.sql:25) RELATIONAL: `=` -> `<>`
+- qms-capa-lims-cmms recipe.capa_master_version_facts (packages/recipe-core/sql/0952_capa_master_resolver.sql:31) RELATIONAL: `>` -> `>=`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:312) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:312) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:312) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:312) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:313) BOOLEAN: `false` -> `true`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:316) RELATIONAL: `>=` -> `>`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:317) BOOLEAN: `false` -> `true`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:321) BOOLEAN: `false` -> `true`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:336) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:336) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.ed25519_verify (packages/kernel/sql/1220_installation_keys.sql:342) RELATIONAL: `<` -> `<=`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:65) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:65) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:66) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:65) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:67) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:68) BOOLEAN: `false` -> `true`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:71) BOOLEAN: `true` -> `false`
+- transfer-and-federation platform.seal_valid (packages/kernel/sql/1230_installation_key_large_order.sql:74) BOOLEAN: `false` -> `true`
+- transfer-and-federation platform.trusted_peer (packages/kernel/sql/1220_installation_keys.sql:393) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.own_seal_valid (packages/kernel/sql/1220_installation_keys.sql:399) BOOLEAN: `false` -> `true`
+- transfer-and-federation platform.peer_seal_valid (packages/kernel/sql/1220_installation_keys.sql:404) BOOLEAN: `false` -> `true`
+- transfer-and-federation platform.raw_public_key (packages/kernel/sql/1230_installation_key_large_order.sql:45) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:433) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:434) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:434) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:435) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-001 an installation` -> `null`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:439) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-002 the installatio` -> `null`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:443) NOT_REMOVED: `not ` -> ``
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:443) LOGICAL: `and` -> `or`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:443) RELATIONAL: `<>` -> `=`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:443) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:443) RELATIONAL: `<>` -> `=`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:443) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:443) RELATIONAL: `<>` -> `=`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:444) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-003 this ins` -> `null`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:448) NOT_REMOVED: `not ` -> ``
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:448) LOGICAL: `and` -> `or`
+- transfer-and-federation platform.set_installation_identity (packages/kernel/sql/1220_installation_keys.sql:448) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:465) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:466) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:466) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:467) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:468) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:468) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:468) RELATIONAL: `>` -> `>=`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:469) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-004 a peer installa` -> `null`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:476) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.propose_peer_installation (packages/kernel/sql/1220_installation_keys.sql:477) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-005 an installation` -> `null`
+- transfer-and-federation platform.peer_installation_state (packages/kernel/sql/1220_installation_keys.sql:489) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.approve_peer_installation (packages/kernel/sql/1220_installation_keys.sql:527) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-006 there is` -> `null`
+- transfer-and-federation platform.approve_peer_installation (packages/kernel/sql/1220_installation_keys.sql:530) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-006 peer ins` -> `null`
+- transfer-and-federation platform.approve_peer_installation (packages/kernel/sql/1220_installation_keys.sql:532) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.approve_peer_installation (packages/kernel/sql/1220_installation_keys.sql:534) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-007 installa` -> `null`
+- transfer-and-federation platform.approve_peer_installation (packages/kernel/sql/1220_installation_keys.sql:540) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-008 ' || v_prob` -> `null`
+- transfer-and-federation platform.approve_peer_installation (packages/kernel/sql/1220_installation_keys.sql:543) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-008 the peer instal` -> `null`
+- transfer-and-federation platform.revoke_peer_installation (packages/kernel/sql/1220_installation_keys.sql:557) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.revoke_peer_installation (packages/kernel/sql/1220_installation_keys.sql:558) RELATIONAL: `<>` -> `=`
+- transfer-and-federation platform.revoke_peer_installation (packages/kernel/sql/1220_installation_keys.sql:559) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-006 only an approve` -> `null`
+- transfer-and-federation platform.revoke_peer_installation (packages/kernel/sql/1220_installation_keys.sql:561) RELATIONAL: `<` -> `<=`
+- transfer-and-federation platform.revoke_peer_installation (packages/kernel/sql/1220_installation_keys.sql:562) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-009 a revocation st` -> `null`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:19) NOT_REMOVED: `not ` -> ``
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:19) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:20) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-FED-009 there is` -> `null`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:22) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:22) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:22) RELATIONAL: `>` -> `>=`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:23) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-FED-009 an acknowledgme` -> `null`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:25) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:26) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.acknowledge_installation_alarm (packages/kernel/sql/1221_installation_alarm_ack_admin.sql:27) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-FED-009 this alarm is a` -> `null`
+- transfer-and-federation platform.accept_federation_request (packages/kernel/sql/1220_installation_keys.sql:638) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.accept_federation_request (packages/kernel/sql/1220_installation_keys.sql:638) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.accept_federation_request (packages/kernel/sql/1220_installation_keys.sql:638) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.accept_federation_request (packages/kernel/sql/1220_installation_keys.sql:639) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.accept_federation_request (packages/kernel/sql/1220_installation_keys.sql:639) LOGICAL: `or` -> `and`
+- transfer-and-federation platform.accept_federation_request (packages/kernel/sql/1220_installation_keys.sql:649) RELATIONAL: `>` -> `>=`
+- transfer-and-federation platform.accept_federation_request (packages/kernel/sql/1220_installation_keys.sql:659) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.refuse_federation_query (packages/kernel/sql/1220_installation_keys.sql:677) RELATIONAL: `=` -> `<>`
+- transfer-and-federation platform.refuse_federation_query (packages/kernel/sql/1220_installation_keys.sql:681) BOOLEAN: `false` -> `true`
+- transfer-and-federation site.transfer_rule_resolutions (packages/site-services/sql/0980_transfer_packages.sql:116) LOGICAL: `or` -> `and`
+- transfer-and-federation site.transfer_rule_resolutions (packages/site-services/sql/0980_transfer_packages.sql:116) BOOLEAN: `false` -> `true`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:164) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-010 lot %s i` -> `null`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:166) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:170) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:167) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-010 this installati` -> `null`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:171) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:172) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:172) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:172) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:172) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:173) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:174) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:175) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-011 a transfer pack` -> `null`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:193) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:193) LOGICAL: `or` -> `and`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:193) NOT_REMOVED: `not ` -> ``
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:193) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:194) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-014 lot %s i` -> `null`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:198) RELATIONAL: `>` -> `>=`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:208) LOGICAL: `and` -> `or`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:208) RELATIONAL: `<` -> `<=`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:213) LOGICAL: `and` -> `or`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:213) RELATIONAL: `<` -> `<=`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:218) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:219) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-016 a stated hold l` -> `null`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:221) RELATIONAL: `<` -> `<=`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:226) LOGICAL: `and` -> `or`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:255) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:256) LOGICAL: `and` -> `or`
+- transfer-and-federation site.prepare_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:256) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.seal_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:279) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-017 there is` -> `null`
+- transfer-and-federation site.seal_transfer_package (packages/site-services/sql/0980_transfer_packages.sql:283) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-017 a package is se` -> `null`
+- transfer-and-federation site.transfer_receipt_content (packages/site-services/sql/0981_transfer_receipts.sql:164) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.transfer_receipt_content (packages/site-services/sql/0981_transfer_receipts.sql:173) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.resolve_carried_rules (packages/site-services/sql/0981_transfer_receipts.sql:201) LOGICAL: `or` -> `and`
+- transfer-and-federation site.resolve_carried_rules (packages/site-services/sql/0981_transfer_receipts.sql:201) LOGICAL: `or` -> `and`
+- transfer-and-federation site.resolve_carried_rules (packages/site-services/sql/0981_transfer_receipts.sql:213) LOGICAL: `and` -> `or`
+- transfer-and-federation site.resolve_carried_rules (packages/site-services/sql/0981_transfer_receipts.sql:213) BOOLEAN: `false` -> `true`
+- transfer-and-federation site.resolve_carried_rules (packages/site-services/sql/0981_transfer_receipts.sql:232) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:303) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:304) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:304) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:319) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:325) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:331) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:332) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:332) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:333) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:333) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:334) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:334) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:334) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:335) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:335) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:335) NOT_REMOVED: `not ` -> ``
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:336) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:337) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:337) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:337) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:338) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:338) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:339) LOGICAL: `or` -> `and`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:352) NOT_REMOVED: `not ` -> ``
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:352) LOGICAL: `and` -> `or`
+- transfer-and-federation site.import_transfer_package (packages/site-services/sql/0981_transfer_receipts.sql:352) RELATIONAL: `>` -> `>=`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:394) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-030 there is` -> `null`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:398) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:400) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-031 the rece` -> `null`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:402) LOGICAL: `or` -> `and`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:403) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-031 local QA ACCEPT` -> `null`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:405) RELATIONAL: `<` -> `<=`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:410) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-032 lot %s i` -> `null`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:412) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:418) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:418) LOGICAL: `or` -> `and`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:418) NOT_REMOVED: `not ` -> ``
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:418) RELATIONAL: `<=` -> `<`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:419) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-033 lot %s i` -> `null`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:421) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:422) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-XFR-034 the orig` -> `null`
+- transfer-and-federation site.decide_transfer_receipt (packages/site-services/sql/0981_transfer_receipts.sql:429) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-XFR-035 ' || v_prob` -> `null`
+- transfer-and-federation site.transfer_use_problem (packages/site-services/sql/0981_transfer_receipts.sql:450) RELATIONAL: `=` -> `<>`
+- transfer-and-federation site.transfer_use_problem (packages/site-services/sql/0981_transfer_receipts.sql:452) RELATIONAL: `<=` -> `<`
+- transfer-and-federation recipe.answer_federated_genealogy (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:59) BOOLEAN: `false` -> `true`
+- transfer-and-federation recipe.answer_federated_genealogy (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:60) BOOLEAN: `false` -> `true`
+- transfer-and-federation recipe.answer_federated_genealogy (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:64) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.answer_federated_genealogy (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:64) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.answer_federated_genealogy (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:68) RELATIONAL: `=` -> `<>`
+- transfer-and-federation recipe.answer_federated_genealogy (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:76) RELATIONAL: `>` -> `>=`
+- transfer-and-federation recipe.answer_federated_genealogy (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:79) RELATIONAL: `>` -> `>=`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:109) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-FED-014 this installati` -> `null`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:112) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-FED-014 installa` -> `null`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:114) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:115) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-GEN-001 %s is no` -> `null`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:117) RELATIONAL: `>` -> `>=`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:118) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-GEN-003 the as-of point` -> `null`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:120) LOGICAL: `and` -> `or`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:121) RELATIONAL: `=` -> `<>`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:121) LOGICAL: `and` -> `or`
+- transfer-and-federation recipe.issue_federated_request (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:122) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-FED-011 transfer` -> `null`
+- transfer-and-federation recipe.record_federation_failure (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:142) RELATIONAL: `=` -> `<>`
+- transfer-and-federation recipe.record_federation_failure (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:144) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-FED-015 no feder` -> `null`
+- transfer-and-federation recipe.record_federation_failure (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:146) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federation_failure (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:147) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-FED-015 a failed federa` -> `null`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:170) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-FED-015 no feder` -> `null`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:173) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-FED-016 this request wa` -> `null`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:182) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:183) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:183) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:185) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:186) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:186) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:187) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:187) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_federated_excerpt (packages/recipe-core/sql/1093_federation_actor_and_audit.sql:191) BOOLEAN: `false` -> `true`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:88) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-RCL-010 there is` -> `null`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:95) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = format('EBMR-RCL-021 transfer` -> `null`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:97) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:98) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-RCL-022 a destination A` -> `null`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:102) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:102) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:102) LOGICAL: `or` -> `and`
+- transfer-and-federation recipe.record_mock_recall_remote (packages/recipe-core/sql/1091_mock_recall_across_sites.sql:103) GUARD_REMOVED: `raise exception using errcode = 'P0001', message = 'EBMR-RCL-023 the excerpt is ` -> `null`

@@ -51,3 +51,13 @@ release-gate: baseline db 145 s (limit 434 s), server 31 s (limit 240 s)
   SURVIVED recipe.investigation_unjustifiable_for#10 RELATIONAL packages/recipe-core/sql/0783_justification_links.sql:43 [=] -> [<>]
   dropped 2 databases the tests left behind: ebmr_t_b845588c3bfc, ebmr_t_fc1874f616bb
 release-gate: score 87.9 % (211/240 detected, 0 invalid) in 4103 s
+release-gate-market-items: baseline db 83 s (limit 249 s)
+  SURVIVED recipe.grel_market_items#20 LOGICAL packages/recipe-core/sql/0822_market_dispositions.sql:214 [or] -> [and]
+  release-gate-market-items: 25/51
+  SURVIVED recipe.grel_market_items#32 RELATIONAL packages/recipe-core/sql/0822_market_dispositions.sql:226 [>=] -> [>]
+  release-gate-market-items: 50/51
+release-gate-market-items: score 96.1 % (49/51 detected, 0 invalid) in 867 s
+manufacturer-release: baseline db 175 s (limit 525 s)
+  SURVIVED recipe.record_manufacturer_release#40 GUARD_REMOVED packages/recipe-core/sql/0823_manufacturer_release_cascade.sql:91 [raise exception using errcode = 'P0001', message = 'EBMR-REL-016 a person involv] -> [null]
+  manufacturer-release: 25/165
+  SURVIVED recipe.record_manufacturer_release#53 GUARD_REMOVED packages/recipe-core/sql/0823_manufacturer_release_cascade.sql:105 [raise exception using errcode = 'P0001', message = 'EBMR-REL-018 the signed chec] -> [null]
