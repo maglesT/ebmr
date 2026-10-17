@@ -44,6 +44,32 @@ Colours sampled from that file, approximate until a brand guide gives the exact 
 - amber about #EF9E45
 - grey (wordmark) about #6C6C6C
 
+## The Batchwright logo (owner, 17 October 2026: concept A)
+
+Batchwright has its own logo in the style of Medhanta's other products (Learnova, eAACS, Remindora, DocuIQ, Momentum):
+- **Icon:** a batch-record clipboard and a capsule, in the Medhanta orange-to-red gradient, with the trail of dots the
+  family shares.
+- **Wordmark:** "Batch" in grey and "wright" in the gradient, set in Poppins Bold (SIL Open Font Licence).
+- **Edition badge:** TABLETS or INJECTABLES under the wordmark. The badge is the only part that changes between
+  editions.
+- **Tagline:** "Every batch, proven".
+
+The files are in `docs/brand/`:
+
+| File | What |
+|---|---|
+| `batchwright-logo.svg` | full logo, with the tagline |
+| `batchwright-tablets.svg` | the Tablets edition lockup |
+| `batchwright-injectables.svg` | the Injectables edition lockup |
+| `batchwright-icon.svg` | the icon alone: app icon, browser-tab icon |
+
+Each SVG has a PNG export beside it at 2x (the icon at 4x).
+
+The application shows Batchwright (with its edition) as the product and the Medhanta logo as the maker. Before
+print or launch:
+- A designer converts the wordmark text to outlines and polishes the shapes.
+- The logo goes into the trademark search with the name.
+
 ## Before launch (owner)
 
 - Search "Batchwright" in the trademark registers of India (IP India), the United States (USPTO) and the European
