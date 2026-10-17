@@ -172,6 +172,15 @@ describe('OPC UA readings checked in the database (tablets 1210)', () => {
       expect(await alarms()).toEqual([{ tag: 'force.main_kN', cleared: false }, { tag: 'turret.speed_rpm', cleared: false }]);
       expect(await ingest([r('force.main_kN', '12.48', 'kN', 'ALARM_CLEARED', us - 1_000_000n)])).toBe('ok');
       expect(await alarms()).toEqual([{ tag: 'force.main_kN', cleared: true }, { tag: 'turret.speed_rpm', cleared: false }]);
+      // The same tag alarms again, with a source time before the cleared one: the next ALARM_CLEARED clears this open
+      // occurrence, not the cleared one again.
+      expect(await ingest([r('force.main_kN', '14.30', 'kN', 'ALARM', us - 5_000_000n)])).toBe('ok');
+      expect(await ingest([r('force.main_kN', '12.40', 'kN', 'ALARM_CLEARED', us - 500_000n)])).toBe('ok');
+      const cleared = (await c.query<{ value: string; n: number }>(
+        `select a.value, (select count(*)::int from plant.alarm_transition t where t.alarm_id = a.id and t.transition = 'CLEARED') as n
+           from plant.alarm a where a.equipment_id = $1 and a.tag = 'force.main_kN' order by a.value`, [unit],
+      )).rows;
+      expect(cleared).toEqual([{ value: '14.10', n: 1 }, { value: '14.30', n: 1 }]);
     });
   });
 });

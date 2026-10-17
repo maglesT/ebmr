@@ -111,7 +111,7 @@ describe('alarm codes and step bindings (DI-49)', () => {
     await w.startUse(second.code, label, product);
     await bind(batchId, 's-1', second.code);
     await bind(batchId, 's-3', second.code);
-    expect((await db.app.query('select step from plant.step_equipment where batch_id = $1 order by step, equipment_id', [batchId])).rows.map((r) => r.step)).toEqual(['s-1', 's-1', 's-2', 's-3']);
+    expect((await db.app.query<{ step: string }>('select step from plant.step_equipment where batch_id = $1 order by step, equipment_id', [batchId])).rows.map((r) => r.step)).toEqual(['s-1', 's-1', 's-2', 's-3']);
   });
 });
 
@@ -437,5 +437,33 @@ describe('the OPC UA data guard on owner-level writes (DI-20)', () => {
     expect(await ownerSeries(press.id, randomUUID())).toMatch(/EBMR-EQD-002 DI-20: OPC UA data name a unit and the inbound message they came in/);
     // Data claiming the session's own message: no session precedes them.
     expect(await ownerSeries(press.id, session[0]!.m)).toMatch(/EBMR-EQD-002 DI-20: no session of endpoint .* precedes the data of unit/);
+  });
+
+  it('[DI-20] a unit of another room on an enrolment (an owner-level write past the enrolment check) makes the session RELOCATED and its data refused as relocated', async () => {
+    const room = await w.room();
+    const press = await w.press();
+    const ep = await enrolEndpoint(db, room, [press.code]);
+    const elsewhere = await w.room();
+    const cls = (await db.admin.query<{ c: string }>('select class_code as c from plant.equipment where id = $1', [press.id])).rows[0]!.c;
+    const placed = `EQ-${tag()}`;
+    const placedId = await w.run(w.cast.steward, (c) => plant.defineEquipment(c, { code: placed, name: placed, classCode: cls, areaCode: elsewhere.code }));
+    const { admin } = await seedAdministration(db);
+    const ctx = await cmd(db, admin);
+    const c = await db.admin.connect();
+    try {
+      await c.query('begin');
+      await c.query('select kernel.begin_command($1::jsonb)', [JSON.stringify(toDbContext(ctx))]);
+      await c.query('set local role ebmr_owner');
+      await c.query('insert into plant.opcua_endpoint_unit (endpoint_id, equipment_id) select id, $2 from plant.opcua_endpoint_current where device_code = $1', [ep.code, placedId]);
+      await c.query('commit');
+    } finally {
+      c.release();
+    }
+    expect(await reportSession(db, opcua, ep)).toMatchObject({ applied: 'SESSION_REFUSED', refusal: 'RELOCATED' });
+    const t0 = BigInt(nowUs()) - 600_000_000n;
+    const samples = [{ sourceTime: t0.toString(), serverTime: null, raw: '12.5', value: '12.50', status: '0x00000000' }];
+    const body = { subjectKind: 'EQUIPMENT', subjectCode: placed, tag: 'force.main_kN', unit: 'kN', chunkNo: '1', samples };
+    const hash = sha([['EQUIPMENT', placed, 'force.main_kN', 'kN', '1'].join('|'), [t0.toString(), '', '12.5', '12.50', '0x00000000'].join('|')].join('\n'));
+    await expectRefused(receive(db, opcua, 'plant.receive_series_chunk', envelopeFor(opcua, 'opcua.series_chunk', { ...body, chunkHash: hash })), 'EBMR-EQD-002', /was relocated after its enrolment/);
   });
 });
