@@ -1,0 +1,52 @@
+genealogy-and-recall: 440 mutants in 23 functions (db + server)
+total: 440 mutants in 1 groups
+templates built in 20 s: ebmr_mut_base_391b1220, ebmr_stpl_e19bb3d5a5b0, ebmr_sandbox_tpl2a5fba47aa38
+checked 23 functions: each re-applied unmutated leaves its pg_proc row unchanged; owners ebmr_owner (69); a copy of each template has the template's database privileges
+genealogy-and-recall: baseline db 33 s (limit 240 s), server 8 s (limit 240 s)
+  SURVIVED site.record_chemical_recovery#5 GUARD_REMOVED packages/site-services/sql/0960_chemical_recovery.sql:70 [raise exception using errcode = 'P0001', message = format('EBMR-SITE-960 returne] -> [null]
+  SURVIVED site.record_chemical_recovery#12 GUARD_REMOVED packages/site-services/sql/0960_chemical_recovery.sql:78 [raise exception using errcode = 'P0001', message = format('EBMR-SITE-962 returne] -> [null]
+  SURVIVED site.record_chemical_recovery#19 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:84 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#21 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:85 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#23 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:85 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#26 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:85 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#28 RELATIONAL packages/site-services/sql/0960_chemical_recovery.sql:85 [>] -> [>=]
+  SURVIVED site.record_chemical_recovery#34 RELATIONAL packages/site-services/sql/0960_chemical_recovery.sql:86 [<=] -> [<]
+  SURVIVED site.record_chemical_recovery#32 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:86 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#35 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:87 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#42 RELATIONAL packages/site-services/sql/0960_chemical_recovery.sql:88 [>] -> [>=]
+  SURVIVED site.record_chemical_recovery#43 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:89 [or] -> [and]
+  genealogy-and-recall: 25/440
+  SURVIVED site.record_chemical_recovery#45 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:90 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#48 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:91 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#50 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:91 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#52 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:91 [or] -> [and]
+  SURVIVED site.record_chemical_recovery#54 RELATIONAL packages/site-services/sql/0960_chemical_recovery.sql:91 [<=] -> [<]
+  SURVIVED site.record_chemical_recovery#59 RELATIONAL packages/site-services/sql/0960_chemical_recovery.sql:95 [<=] -> [<]
+  SURVIVED site.record_chemical_recovery#61 LOGICAL packages/site-services/sql/0960_chemical_recovery.sql:95 [and] -> [or]
+  SURVIVED site.record_chemical_recovery#63 RELATIONAL packages/site-services/sql/0960_chemical_recovery.sql:95 [>] -> [>=]
+  SURVIVED site.erp_shipment_distribution_fields#2 RELATIONAL packages/site-services/sql/0961_distribution_records.sql:60 [=] -> [<>]
+  SURVIVED site.erp_apply_shipment#2 LOGICAL packages/site-services/sql/0961_distribution_records.sql:82 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#4 LOGICAL packages/site-services/sql/0961_distribution_records.sql:83 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#6 LOGICAL packages/site-services/sql/0961_distribution_records.sql:84 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#9 LOGICAL packages/site-services/sql/0961_distribution_records.sql:84 [or] -> [and]
+  genealogy-and-recall: 50/440
+  SURVIVED site.erp_apply_shipment#11 RELATIONAL packages/site-services/sql/0961_distribution_records.sql:84 [>] -> [>=]
+  SURVIVED site.erp_apply_shipment#17 RELATIONAL packages/site-services/sql/0961_distribution_records.sql:85 [>] -> [>=]
+  SURVIVED site.erp_apply_shipment#18 LOGICAL packages/site-services/sql/0961_distribution_records.sql:86 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#20 LOGICAL packages/site-services/sql/0961_distribution_records.sql:86 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#22 RELATIONAL packages/site-services/sql/0961_distribution_records.sql:86 [<=] -> [<]
+  SURVIVED site.erp_apply_shipment#23 LOGICAL packages/site-services/sql/0961_distribution_records.sql:87 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#25 LOGICAL packages/site-services/sql/0961_distribution_records.sql:88 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#28 NOT_REMOVED packages/site-services/sql/0961_distribution_records.sql:88 [not ] -> []
+  SURVIVED site.erp_apply_shipment#29 LOGICAL packages/site-services/sql/0961_distribution_records.sql:89 [or] -> [and]
+  SURVIVED site.erp_apply_shipment#49 RELATIONAL packages/site-services/sql/0961_distribution_records.sql:108 [>] -> [>=]
+  genealogy-and-recall: 75/440
+  SURVIVED recipe.genealogy_step#5 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:39 [<=] -> [<]
+  SURVIVED recipe.genealogy_step#9 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:42 [<=] -> [<]
+  SURVIVED recipe.genealogy_step#13 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:45 [<=] -> [<]
+  SURVIVED recipe.genealogy_step#17 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:48 [<=] -> [<]
+  SURVIVED recipe.genealogy_step#21 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:51 [=] -> [<>]
+  SURVIVED recipe.genealogy_step#22 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:51 [<=] -> [<]
+  genealogy-and-recall: 100/440
+  SURVIVED recipe.genealogy_step#26 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:54 [<=] -> [<]
+  SURVIVED recipe.genealogy_step#30 RELATIONAL packages/recipe-core/sql/1090_genealogy_across_sites.sql:57 [<=] -> [<]

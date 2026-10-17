@@ -1,0 +1,3182 @@
+[32m00:27:37 (224020) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/sdk-adapter.incremental.json, a full mutation testing run will be performed.
+[32m00:27:37 (224020) INFO ProjectReader[39m Found 13 of 3116 file(s) to be mutated.
+[32m00:27:37 (224020) INFO Instrumenter[39m Instrumented 13 source file(s) with 626 mutant(s)
+[32m00:27:39 (224020) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m00:27:40 (224020) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m00:27:41 (224020) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m00:27:42 (224020) INFO DryRunExecutor[39m Initial test run succeeded. Ran 9 tests in 0 seconds (net 11.295867000000271 ms, overhead 493.70413299999973 ms).
+[33m00:27:42 (224020) WARN MutantTestPlanner[39m Detected 488 static mutants (78% of total) that are estimated to take 98% of the time running the tests!
+  You might want to enable "ignoreStatic" to ignore these static mutants for your next run. 
+  For more information about static mutants visit: https://stryker-mutator.io/docs/mutation-testing-elements/static-mutants
+  (disable "warnings.slow" to ignore this warning)
+Mutation testing 3% (elapsed: <1m, remaining: ~5m) 143/626 tested (18 survived, 0 timed out)
+Mutation testing 16% (elapsed: <1m, remaining: ~1m) 207/626 tested (60 survived, 0 timed out)
+Mutation testing 31% (elapsed: <1m, remaining: ~1m) 285/626 tested (117 survived, 0 timed out)
+Mutation testing 47% (elapsed: <1m, remaining: <1m) 364/626 tested (185 survived, 0 timed out)
+Mutation testing 67% (elapsed: <1m, remaining: <1m) 463/626 tested (269 survived, 0 timed out)
+Mutation testing 83% (elapsed: ~1m, remaining: <1m) 542/626 tested (342 survived, 0 timed out)
+
+All tests/adapter.test.ts
+  ✓ inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema (killed 50)
+  ~ inbound envelope > [DI-31] an envelope without a field, with a number for text or an extra field is malformed (covered 9)
+  ✘ inbound envelope > [DI-31] a payload value travels as decimal text with its unit, never as a JSON number (covered 0)
+  ~ inbound envelope > [meta] the raw payload hash is the SHA-256 of the bytes received (covered 3)
+  ✓ acknowledgment and retry rule > [DI-31] only TRANSPORT is retried; every other class is recorded and negatively acknowledged (killed 16)
+  ✓ acknowledgment and retry rule > [meta] back-off doubles from 1 s and stops growing at 5 minutes, without a limit on attempts (killed 12)
+  ✓ acknowledgment and retry rule > [meta] failures are classified by kernel code, system code or SQLSTATE; an unknown refusal is not guessed (killed 14)
+  ✓ reconciliation checksum > [DI-31] the checksum is over distinct keys in byte order, so order and resends do not change it (killed 15)
+  ✓ system contracts > [meta] every source system has a contract whose message types carry its prefix (killed 39)
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:10:49
+-   export const CmmsCalibrationV1 = z.strictObject({
+-     equipmentCode: SourceCode,
+-     calibrationRef: SourceCode,
+-     performedAt: EpochMicrosText,
+-     result: z.enum(['PASS', 'FAIL', 'ADJUSTED_PASS']),
+-     dueOn: CalendarDate,
+-   });
++   export const CmmsCalibrationV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/cmms.ts:14:18
+-     result: z.enum(['PASS', 'FAIL', 'ADJUSTED_PASS']),
++     result: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:14:19
+-     result: z.enum(['PASS', 'FAIL', 'ADJUSTED_PASS']),
++     result: z.enum(["", 'FAIL', 'ADJUSTED_PASS']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:14:27
+-     result: z.enum(['PASS', 'FAIL', 'ADJUSTED_PASS']),
++     result: z.enum(['PASS', "", 'ADJUSTED_PASS']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:14:35
+-     result: z.enum(['PASS', 'FAIL', 'ADJUSTED_PASS']),
++     result: z.enum(['PASS', 'FAIL', ""]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:17:49
+-   export const CmmsMaintenanceV1 = z.strictObject({
+-     equipmentCode: SourceCode,
+-     workOrder: SourceCode,
+-     kind: z.enum(['PREVENTIVE', 'CORRECTIVE']),
+-     status: z.enum(['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+-     dueOn: CalendarDate.nullable(),
+-   });
++   export const CmmsMaintenanceV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/cmms.ts:20:16
+-     kind: z.enum(['PREVENTIVE', 'CORRECTIVE']),
++     kind: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:20:17
+-     kind: z.enum(['PREVENTIVE', 'CORRECTIVE']),
++     kind: z.enum(["", 'CORRECTIVE']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:20:31
+-     kind: z.enum(['PREVENTIVE', 'CORRECTIVE']),
++     kind: z.enum(['PREVENTIVE', ""]),
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/cmms.ts:21:18
+-     status: z.enum(['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
++     status: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:21:19
+-     status: z.enum(['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
++     status: z.enum(["", 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:21:42
+-     status: z.enum(['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
++     status: z.enum(['OPEN', 'IN_PROGRESS', "", 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:21:27
+-     status: z.enum(['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
++     status: z.enum(['OPEN', "", 'COMPLETED', 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:21:55
+-     status: z.enum(['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
++     status: z.enum(['OPEN', 'IN_PROGRESS', 'COMPLETED', ""]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:27:12
+-     inbound: {
+-       'cmms.calibration': { summary: 'A calibration with its result and next due date', versions: { '1': CmmsCalibrationV1 } },
+-       'cmms.maintenance': { summary: 'A maintenance work order and its due date', versions: { '1': CmmsMaintenanceV1 } },
+-     },
++     inbound: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:28:36
+-       'cmms.calibration': { summary: 'A calibration with its result and next due date', versions: { '1': CmmsCalibrationV1 } },
++       'cmms.calibration': { summary: "", versions: { '1': CmmsCalibrationV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:28:97
+-       'cmms.calibration': { summary: 'A calibration with its result and next due date', versions: { '1': CmmsCalibrationV1 } },
++       'cmms.calibration': { summary: 'A calibration with its result and next due date', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:29:36
+-       'cmms.maintenance': { summary: 'A maintenance work order and its due date', versions: { '1': CmmsMaintenanceV1 } },
++       'cmms.maintenance': { summary: "", versions: { '1': CmmsMaintenanceV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:29:91
+-       'cmms.maintenance': { summary: 'A maintenance work order and its due date', versions: { '1': CmmsMaintenanceV1 } },
++       'cmms.maintenance': { summary: 'A maintenance work order and its due date', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/cmms.ts:31:13
+-     outbound: ['cmms.equipment_fault'],
++     outbound: [],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:31:14
+-     outbound: ['cmms.equipment_fault'],
++     outbound: [""],
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:32:17
+-     refusalCodes: {
+-       'EBMR-CMMS-001': 'WRONG_IDENTITY',
+-       'EBMR-CMMS-002': 'MALFORMED',
+-       'EBMR-CMMS-003': 'WRONG_IDENTITY',
+-       'EBMR-CMMS-004': 'STALE',
+-       'EBMR-CMMS-005': 'DUPLICATE',
+-       'EBMR-CMMS-006': 'OUT_OF_RANGE',
+-     },
++     refusalCodes: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:33:22
+-       'EBMR-CMMS-001': 'WRONG_IDENTITY',
++       'EBMR-CMMS-001': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:34:22
+-       'EBMR-CMMS-002': 'MALFORMED',
++       'EBMR-CMMS-002': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:35:22
+-       'EBMR-CMMS-003': 'WRONG_IDENTITY',
++       'EBMR-CMMS-003': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:36:22
+-       'EBMR-CMMS-004': 'STALE',
++       'EBMR-CMMS-004': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:37:22
+-       'EBMR-CMMS-005': 'DUPLICATE',
++       'EBMR-CMMS-005': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/cmms.ts:38:22
+-       'EBMR-CMMS-006': 'OUT_OF_RANGE',
++       'EBMR-CMMS-006': "",
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/ems.ts:23:12
+-     inbound: {
+-       'ems.series_chunk': { summary: 'Native temperature or humidity samples of one room sensor (subjectKind AREA)', versions: { '1': SeriesChunkV1 } },
+-       'ems.alarm': { summary: 'A room alarm raised, cleared or acknowledged at the EMS (limit excursion, feed gap)', versions: { '1': EquipmentAlarmV1 } },
+-     },
++     inbound: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/ems.ts:24:36
+-       'ems.series_chunk': { summary: 'Native temperature or humidity samples of one room sensor (subjectKind AREA)', versions: { '1': SeriesChunkV1 } },
++       'ems.series_chunk': { summary: "", versions: { '1': SeriesChunkV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/ems.ts:24:126
+-       'ems.series_chunk': { summary: 'Native temperature or humidity samples of one room sensor (subjectKind AREA)', versions: { '1': SeriesChunkV1 } },
++       'ems.series_chunk': { summary: 'Native temperature or humidity samples of one room sensor (subjectKind AREA)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/ems.ts:25:29
+-       'ems.alarm': { summary: 'A room alarm raised, cleared or acknowledged at the EMS (limit excursion, feed gap)', versions: { '1': EquipmentAlarmV1 } },
++       'ems.alarm': { summary: "", versions: { '1': EquipmentAlarmV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/ems.ts:25:126
+-       'ems.alarm': { summary: 'A room alarm raised, cleared or acknowledged at the EMS (limit excursion, feed gap)', versions: { '1': EquipmentAlarmV1 } },
++       'ems.alarm': { summary: 'A room alarm raised, cleared or acknowledged at the EMS (limit excursion, feed gap)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/ems.ts:27:13
+-     outbound: [],
++     outbound: ["Stryker was here"],
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:24:8
+-     bom: z.array(ErpBomLine).min(1).max(500),
++     bom: z.array(ErpBomLine).max(1).max(500),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:28:38
+-   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}$/, 'whole months as text');
++   const WholeMonths = z.string().regex(/[1-9][0-9]{0,2}$/, 'whole months as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:28:38
+-   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}$/, 'whole months as text');
++   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}/, 'whole months as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:28:38
+-   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}$/, 'whole months as text');
++   const WholeMonths = z.string().regex(/^[^1-9][0-9]{0,2}$/, 'whole months as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:28:38
+-   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}$/, 'whole months as text');
++   const WholeMonths = z.string().regex(/^[1-9][0-9]$/, 'whole months as text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:28:59
+-   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}$/, 'whole months as text');
++   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:28:38
+-   const WholeMonths = z.string().regex(/^[1-9][0-9]{0,2}$/, 'whole months as text');
++   const WholeMonths = z.string().regex(/^[1-9][^0-9]{0,2}$/, 'whole months as text');
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:29:51
+-   export const ErpMaterialMasterV1 = z.strictObject({
+-     materialCode: SourceCode,
+-     name: SourceText,
+-     baseUnit: SourceValue.shape.unit,
+-     /** Needed by the receiving command (QA confirms a new or changed kind, site services 0802). */
+-     materialKind: z.enum(MATERIAL_KINDS).optional(),
+-     maxRetestMonths: WholeMonths.optional(),
+-   });
++   export const ErpMaterialMasterV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:37:50
+-   export const ErpProductMasterV1 = z.strictObject({
+-     productCode: SourceCode,
+-     name: SourceText,
+-     strength: SourceText,
+-     /** Needed by the receiving command. */
+-     betaLactam: z.boolean().optional(),
+-     shelfLifeMonths: WholeMonths.optional(),
+-     reprocessingPermitted: z.boolean().optional(),
+-   });
++   export const ErpProductMasterV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:48:48
+-   export const WmsSupplierBatch = z.strictObject({
+-     supplierLot: SourceCode,
+-     manufacturerCode: SourceCode,
+-     containers: z.string().regex(/^[1-9][0-9]{0,5}$/),
+-     quantity: SourceValue,
+-     /** Required by the receiving command (a lot is received with its expiry, PR-18); null is refused as MALFORMED. */
+-     expiryDate: CalendarDate.nullable(),
+-     retestDate: CalendarDate.nullable().optional(),
+-   });
++   export const WmsSupplierBatch = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:51:32
+-     containers: z.string().regex(/^[1-9][0-9]{0,5}$/),
++     containers: z.string().regex(/[1-9][0-9]{0,5}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:51:32
+-     containers: z.string().regex(/^[1-9][0-9]{0,5}$/),
++     containers: z.string().regex(/^[1-9][0-9]{0,5}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:51:32
+-     containers: z.string().regex(/^[1-9][0-9]{0,5}$/),
++     containers: z.string().regex(/^[^1-9][0-9]{0,5}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:51:32
+-     containers: z.string().regex(/^[1-9][0-9]{0,5}$/),
++     containers: z.string().regex(/^[1-9][^0-9]{0,5}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:51:32
+-     containers: z.string().regex(/^[1-9][0-9]{0,5}$/),
++     containers: z.string().regex(/^[1-9][0-9]$/),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:57:49
+-   export const WmsGoodsReceiptV1 = z.strictObject({
+-     deliveryId: SourceCode,
+-     materialCode: SourceCode,
+-     supplierCode: SourceCode,
+-     supplierBatches: z.array(WmsSupplierBatch).min(1).max(100),
+-     receivedAt: EpochMicrosText,
+-     /** The name on the delivery note (part of the receipt record, PR-17). */
+-     deliveryNoteName: SourceText.optional(),
+-   });
++   export const WmsGoodsReceiptV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:61:20
+-     supplierBatches: z.array(WmsSupplierBatch).min(1).max(100),
++     supplierBatches: z.array(WmsSupplierBatch).min(1).min(100),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:61:20
+-     supplierBatches: z.array(WmsSupplierBatch).min(1).max(100),
++     supplierBatches: z.array(WmsSupplierBatch).max(1).max(100),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:67:46
+-   export const WmsStockMoveV1 = z.strictObject({
+-     lotNumber: SourceCode,
+-     fromLocation: SourceCode,
+-     toLocation: SourceCode,
+-     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
+-     quantity: SourceValue,
+-     movedAt: EpochMicrosText,
+-   });
++   export const WmsStockMoveV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:71:26
+-     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
++     toLocationKind: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:71:27
+-     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
++     toLocationKind: z.enum(["", 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:71:41
+-     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
++     toLocationKind: z.enum(['QUARANTINE', "", 'REJECTED', 'PRODUCTION', 'RETURNS']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:71:53
+-     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
++     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', "", 'PRODUCTION', 'RETURNS']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:71:65
+-     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
++     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', "", 'RETURNS']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:71:79
+-     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', 'RETURNS']),
++     toLocationKind: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'PRODUCTION', ""]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:75:46
+-   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'BLOCKED']) });
++   export const WmsLotStatusV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:75:86
+-   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'BLOCKED']) });
++   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum([]) });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:75:87
+-   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'BLOCKED']) });
++   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(["", 'RELEASED', 'REJECTED', 'BLOCKED']) });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:75:101
+-   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'BLOCKED']) });
++   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', "", 'REJECTED', 'BLOCKED']) });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:75:113
+-   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'BLOCKED']) });
++   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', "", 'BLOCKED']) });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:75:125
+-   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', 'BLOCKED']) });
++   export const WmsLotStatusV1 = z.strictObject({ lotNumber: SourceCode, status: z.enum(['QUARANTINE', 'RELEASED', 'REJECTED', ""]) });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:76:45
+-   export const ErpShipmentV1 = z.strictObject({
+-     shipmentId: SourceCode,
+-     lotNumber: SourceCode,
+-     consigneeCode: SourceCode,
+-     consigneeName: SourceText,
+-     consigneeAddress: SourceText,
+-     quantity: SourceValue,
+-     shippedAt: EpochMicrosText,
+-     /** Slice 6d (additive): the market shipped to; required when the finished lot is made for more than one market. */
+-     market: z.enum(['IN', 'US', 'EU']).optional(),
+-     /** Slice 6d (additive): shipped in quarantine to a contract partner (INV-42); false when left out. */
+-     quarantine: z.boolean().optional(),
+-   });
++   export const ErpShipmentV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:85:18
+-     market: z.enum(['IN', 'US', 'EU']).optional(),
++     market: z.enum([]).optional(),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:85:19
+-     market: z.enum(['IN', 'US', 'EU']).optional(),
++     market: z.enum(["", 'US', 'EU']).optional(),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:85:25
+-     market: z.enum(['IN', 'US', 'EU']).optional(),
++     market: z.enum(['IN', "", 'EU']).optional(),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:85:31
+-     market: z.enum(['IN', 'US', 'EU']).optional(),
++     market: z.enum(['IN', 'US', ""]).optional(),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:94:76
+-   export const ERP_WMS_REFUSAL_CODES: Readonly<Record<string, ErrorClass>> = {
+-     'EBMR-ERP-001': 'MALFORMED',
+-     // Distribution records (site services 0961, slice 6d) and the shipping interlock (0870) the shipment goes through.
+-     'EBMR-ERP-020': 'MALFORMED',
+-     'EBMR-ERP-021': 'WRONG_IDENTITY',
+-     'EBMR-ERP-022': 'OUT_OF_RANGE',
+-     'EBMR-SHP-002': 'OUT_OF_RANGE',
+-     'EBMR-SHP-003': 'DUPLICATE',
+-     'EBMR-SHP-004': 'OUT_OF_RANGE',
+-     'EBMR-ERP-002': 'WRONG_IDENTITY',
+-     'EBMR-ERP-003': 'OUT_OF_RANGE',
+-     'EBMR-ERP-004': 'STALE',
+-     'EBMR-ERP-010': 'WRONG_IDENTITY',
+-     // Receipt (site services 0750, 0910) and the location rule (0911).
+-     'EBMR-SITE-104': 'OUT_OF_RANGE',
+-     'EBMR-SITE-105': 'WRONG_IDENTITY',
+-     'EBMR-SITE-171': 'WRONG_IDENTITY',
+-     'EBMR-SITE-172': 'WRONG_IDENTITY',
+-     'EBMR-SITE-914': 'MALFORMED',
+-     'EBMR-SITE-915': 'OUT_OF_RANGE',
+-     'EBMR-SITE-919': 'MALFORMED',
+-     // Masters and orders (site services 0802).
+-     'EBMR-SITE-170': 'MALFORMED',
+-     'EBMR-SITE-175': 'MALFORMED',
+-     'EBMR-SITE-176': 'MALFORMED',
+-     'EBMR-SITE-340': 'MALFORMED',
+-   };
++   export const ERP_WMS_REFUSAL_CODES: Readonly<Record<string, ErrorClass>> = {};
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:95:19
+-     'EBMR-ERP-001': 'MALFORMED',
++     'EBMR-ERP-001': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:97:19
+-     'EBMR-ERP-020': 'MALFORMED',
++     'EBMR-ERP-020': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:98:19
+-     'EBMR-ERP-021': 'WRONG_IDENTITY',
++     'EBMR-ERP-021': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:99:19
+-     'EBMR-ERP-022': 'OUT_OF_RANGE',
++     'EBMR-ERP-022': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:100:19
+-     'EBMR-SHP-002': 'OUT_OF_RANGE',
++     'EBMR-SHP-002': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:101:19
+-     'EBMR-SHP-003': 'DUPLICATE',
++     'EBMR-SHP-003': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:102:19
+-     'EBMR-SHP-004': 'OUT_OF_RANGE',
++     'EBMR-SHP-004': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:103:19
+-     'EBMR-ERP-002': 'WRONG_IDENTITY',
++     'EBMR-ERP-002': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:104:19
+-     'EBMR-ERP-003': 'OUT_OF_RANGE',
++     'EBMR-ERP-003': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:105:19
+-     'EBMR-ERP-004': 'STALE',
++     'EBMR-ERP-004': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:106:19
+-     'EBMR-ERP-010': 'WRONG_IDENTITY',
++     'EBMR-ERP-010': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:108:20
+-     'EBMR-SITE-104': 'OUT_OF_RANGE',
++     'EBMR-SITE-104': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:109:20
+-     'EBMR-SITE-105': 'WRONG_IDENTITY',
++     'EBMR-SITE-105': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:110:20
+-     'EBMR-SITE-171': 'WRONG_IDENTITY',
++     'EBMR-SITE-171': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:111:20
+-     'EBMR-SITE-172': 'WRONG_IDENTITY',
++     'EBMR-SITE-172': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:112:20
+-     'EBMR-SITE-914': 'MALFORMED',
++     'EBMR-SITE-914': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:113:20
+-     'EBMR-SITE-915': 'OUT_OF_RANGE',
++     'EBMR-SITE-915': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:114:20
+-     'EBMR-SITE-919': 'MALFORMED',
++     'EBMR-SITE-919': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:116:20
+-     'EBMR-SITE-170': 'MALFORMED',
++     'EBMR-SITE-170': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:117:20
+-     'EBMR-SITE-175': 'MALFORMED',
++     'EBMR-SITE-175': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:118:20
+-     'EBMR-SITE-176': 'MALFORMED',
++     'EBMR-SITE-176': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:119:20
+-     'EBMR-SITE-340': 'MALFORMED',
++     'EBMR-SITE-340': "",
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:123:50
+-   export const ErpOutboundMessage = z.strictObject({
+-     messageId: z.uuid(),
+-     topic: z.enum(['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block']),
+-     lotId: z.uuid(),
+-     payload: z.record(z.string(), z.unknown()),
+-     attempts: z.string().regex(/^(0|[1-9][0-9]*)$/),
+-     createdAtUs: EpochMicrosText,
+-   });
++   export const ErpOutboundMessage = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:125:17
+-     topic: z.enum(['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block']),
++     topic: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:125:18
+-     topic: z.enum(['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block']),
++     topic: z.enum(["", 'erp.yield', 'erp.lot_status', 'erp.stock_block']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:125:37
+-     topic: z.enum(['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block']),
++     topic: z.enum(['erp.goods_issue', "", 'erp.lot_status', 'erp.stock_block']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:125:50
+-     topic: z.enum(['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block']),
++     topic: z.enum(['erp.goods_issue', 'erp.yield', "", 'erp.stock_block']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:125:68
+-     topic: z.enum(['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block']),
++     topic: z.enum(['erp.goods_issue', 'erp.yield', 'erp.lot_status', ""]),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:128:30
+-     attempts: z.string().regex(/^(0|[1-9][0-9]*)$/),
++     attempts: z.string().regex(/(0|[1-9][0-9]*)$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:128:30
+-     attempts: z.string().regex(/^(0|[1-9][0-9]*)$/),
++     attempts: z.string().regex(/^(0|[1-9][0-9]*)/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:128:30
+-     attempts: z.string().regex(/^(0|[1-9][0-9]*)$/),
++     attempts: z.string().regex(/^(0|[^1-9][0-9]*)$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:128:30
+-     attempts: z.string().regex(/^(0|[1-9][0-9]*)$/),
++     attempts: z.string().regex(/^(0|[1-9][0-9])$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:128:30
+-     attempts: z.string().regex(/^(0|[1-9][0-9]*)$/),
++     attempts: z.string().regex(/^(0|[1-9][^0-9]*)$/),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:136:40
+-       'erp.production_order': { summary: 'A production order with its BOM (compared with the MBR BOM at issue)', versions: { '1': ErpProductionOrderV1 } },
++       'erp.production_order': { summary: "", versions: { '1': ErpProductionOrderV1 } },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:137:39
+-       'erp.material_master': { summary: 'A material master (QA confirms before use)', versions: { '1': ErpMaterialMasterV1 } },
++       'erp.material_master': { summary: "", versions: { '1': ErpMaterialMasterV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:137:95
+-       'erp.material_master': { summary: 'A material master (QA confirms before use)', versions: { '1': ErpMaterialMasterV1 } },
++       'erp.material_master': { summary: 'A material master (QA confirms before use)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:138:38
+-       'erp.product_master': { summary: 'A product master (QA confirms before use)', versions: { '1': ErpProductMasterV1 } },
++       'erp.product_master': { summary: "", versions: { '1': ErpProductMasterV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:138:93
+-       'erp.product_master': { summary: 'A product master (QA confirms before use)', versions: { '1': ErpProductMasterV1 } },
++       'erp.product_master': { summary: 'A product master (QA confirms before use)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:139:37
+-       'wms.goods_receipt': { summary: 'A delivery with its supplier batches (one lot each, PR-17)', versions: { '1': WmsGoodsReceiptV1 } },
++       'wms.goods_receipt': { summary: "", versions: { '1': WmsGoodsReceiptV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:139:109
+-       'wms.goods_receipt': { summary: 'A delivery with its supplier batches (one lot each, PR-17)', versions: { '1': WmsGoodsReceiptV1 } },
++       'wms.goods_receipt': { summary: 'A delivery with its supplier batches (one lot each, PR-17)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:140:34
+-       'wms.stock_move': { summary: 'A stock move between locations (PR-46)', versions: { '1': WmsStockMoveV1 } },
++       'wms.stock_move': { summary: "", versions: { '1': WmsStockMoveV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:140:86
+-       'wms.stock_move': { summary: 'A stock move between locations (PR-46)', versions: { '1': WmsStockMoveV1 } },
++       'wms.stock_move': { summary: 'A stock move between locations (PR-46)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:141:34
+-       'wms.lot_status': { summary: 'The WMS status of a lot (mirror data class ERP_LOT_STATUS)', versions: { '1': WmsLotStatusV1 } },
++       'wms.lot_status': { summary: "", versions: { '1': WmsLotStatusV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:141:106
+-       'wms.lot_status': { summary: 'The WMS status of a lot (mirror data class ERP_LOT_STATUS)', versions: { '1': WmsLotStatusV1 } },
++       'wms.lot_status': { summary: 'The WMS status of a lot (mirror data class ERP_LOT_STATUS)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:142:32
+-       'erp.shipment': { summary: 'A shipment of a finished lot to a consignee (distribution record, 6d)', versions: { '1': ErpShipmentV1 } },
++       'erp.shipment': { summary: "", versions: { '1': ErpShipmentV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:142:115
+-       'erp.shipment': { summary: 'A shipment of a finished lot to a consignee (distribution record, 6d)', versions: { '1': ErpShipmentV1 } },
++       'erp.shipment': { summary: 'A shipment of a finished lot to a consignee (distribution record, 6d)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:144:13
+-     outbound: ['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block'],
++     outbound: [],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:144:14
+-     outbound: ['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block'],
++     outbound: ["", 'erp.yield', 'erp.lot_status', 'erp.stock_block'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:144:33
+-     outbound: ['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block'],
++     outbound: ['erp.goods_issue', "", 'erp.lot_status', 'erp.stock_block'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:144:46
+-     outbound: ['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block'],
++     outbound: ['erp.goods_issue', 'erp.yield', "", 'erp.stock_block'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/erp-wms.ts:144:64
+-     outbound: ['erp.goods_issue', 'erp.yield', 'erp.lot_status', 'erp.stock_block'],
++     outbound: ['erp.goods_issue', 'erp.yield', 'erp.lot_status', ""],
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:24:36
+-   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole count as text');
++   const CountText = z.string().regex(/(0|[1-9][0-9]{0,17})$/, 'a whole count as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:24:36
+-   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole count as text');
++   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})/, 'a whole count as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:24:36
+-   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole count as text');
++   const CountText = z.string().regex(/^(0|[^1-9][0-9]{0,17})$/, 'a whole count as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:24:36
+-   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole count as text');
++   const CountText = z.string().regex(/^(0|[1-9][0-9])$/, 'a whole count as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:24:36
+-   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole count as text');
++   const CountText = z.string().regex(/^(0|[1-9][^0-9]{0,17})$/, 'a whole count as text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:24:62
+-   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole count as text');
++   const CountText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:26:38
+-   export const Sscc = z.string().regex(/^[0-9]{18}$/, 'an SSCC of 18 digits');
++   export const Sscc = z.string().regex(/[0-9]{18}$/, 'an SSCC of 18 digits');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:26:38
+-   export const Sscc = z.string().regex(/^[0-9]{18}$/, 'an SSCC of 18 digits');
++   export const Sscc = z.string().regex(/^[0-9]{18}/, 'an SSCC of 18 digits');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:26:38
+-   export const Sscc = z.string().regex(/^[0-9]{18}$/, 'an SSCC of 18 digits');
++   export const Sscc = z.string().regex(/^[0-9]$/, 'an SSCC of 18 digits');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/l3.ts:26:38
+-   export const Sscc = z.string().regex(/^[0-9]{18}$/, 'an SSCC of 18 digits');
++   export const Sscc = z.string().regex(/^[^0-9]{18}$/, 'an SSCC of 18 digits');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:26:53
+-   export const Sscc = z.string().regex(/^[0-9]{18}$/, 'an SSCC of 18 digits');
++   export const Sscc = z.string().regex(/^[0-9]{18}$/, "");
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:28:47
+-   export const L3AggregationV1 = z.strictObject({
+-     eventId: SourceCode,
+-     action: z.enum(['ADD', 'DELETE']),
+-     poolId: SourceCode,
+-     parentId: Sscc,
+-     childCount: CountText,
+-     eventTime: EpochMicrosText,
+-   });
++   export const L3AggregationV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/l3.ts:30:18
+-     action: z.enum(['ADD', 'DELETE']),
++     action: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:30:19
+-     action: z.enum(['ADD', 'DELETE']),
++     action: z.enum(["", 'DELETE']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:30:26
+-     action: z.enum(['ADD', 'DELETE']),
++     action: z.enum(['ADD', ""]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:38:52
+-   export const L3DecommissionTaskV1 = z.strictObject({
+-     taskId: SourceCode,
+-     poolId: SourceCode,
+-     packagingOrder: SourceCode,
+-     serialCount: CountText,
+-     reason: SourceText,
+-     state: z.enum(['OPEN', 'DONE']),
+-     changedAt: EpochMicrosText,
+-   });
++   export const L3DecommissionTaskV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/l3.ts:44:17
+-     state: z.enum(['OPEN', 'DONE']),
++     state: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:44:18
+-     state: z.enum(['OPEN', 'DONE']),
++     state: z.enum(["", 'DONE']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:44:26
+-     state: z.enum(['OPEN', 'DONE']),
++     state: z.enum(['OPEN', ""]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:50:32
+-   export const L3_MIRROR_CLASS = 'L3_SERIAL_STATUS';
++   export const L3_MIRROR_CLASS = "";
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:54:12
+-     inbound: {
+-       'l3.aggregation': { summary: 'An EPCIS-style aggregation of serialised packs into a shipper (SSCC)', versions: { '1': L3AggregationV1 } },
+-       'l3.decommission_task': { summary: 'A decommissioning task opened on a rejection, or closed', versions: { '1': L3DecommissionTaskV1 } },
+-     },
++     inbound: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:55:34
+-       'l3.aggregation': { summary: 'An EPCIS-style aggregation of serialised packs into a shipper (SSCC)', versions: { '1': L3AggregationV1 } },
++       'l3.aggregation': { summary: "", versions: { '1': L3AggregationV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:55:116
+-       'l3.aggregation': { summary: 'An EPCIS-style aggregation of serialised packs into a shipper (SSCC)', versions: { '1': L3AggregationV1 } },
++       'l3.aggregation': { summary: 'An EPCIS-style aggregation of serialised packs into a shipper (SSCC)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:56:40
+-       'l3.decommission_task': { summary: 'A decommissioning task opened on a rejection, or closed', versions: { '1': L3DecommissionTaskV1 } },
++       'l3.decommission_task': { summary: "", versions: { '1': L3DecommissionTaskV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:56:109
+-       'l3.decommission_task': { summary: 'A decommissioning task opened on a rejection, or closed', versions: { '1': L3DecommissionTaskV1 } },
++       'l3.decommission_task': { summary: 'A decommissioning task opened on a rejection, or closed', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/l3.ts:58:13
+-     outbound: ['l3.pool_request', 'l3.serial_events', 'l3.pool_rejected'],
++     outbound: [],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:58:14
+-     outbound: ['l3.pool_request', 'l3.serial_events', 'l3.pool_rejected'],
++     outbound: ["", 'l3.serial_events', 'l3.pool_rejected'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:58:33
+-     outbound: ['l3.pool_request', 'l3.serial_events', 'l3.pool_rejected'],
++     outbound: ['l3.pool_request', "", 'l3.pool_rejected'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:58:53
+-     outbound: ['l3.pool_request', 'l3.serial_events', 'l3.pool_rejected'],
++     outbound: ['l3.pool_request', 'l3.serial_events', ""],
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:59:17
+-     refusalCodes: {
+-       'EBMR-L3-101': 'MALFORMED',
+-       'EBMR-L3-103': 'WRONG_IDENTITY',
+-       'EBMR-L3-105': 'OUT_OF_RANGE',
+-       'EBMR-L3-104': 'STALE',
+-     },
++     refusalCodes: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:60:20
+-       'EBMR-L3-101': 'MALFORMED',
++       'EBMR-L3-101': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:61:20
+-       'EBMR-L3-103': 'WRONG_IDENTITY',
++       'EBMR-L3-103': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:62:20
+-       'EBMR-L3-105': 'OUT_OF_RANGE',
++       'EBMR-L3-105': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/l3.ts:63:20
+-       'EBMR-L3-104': 'STALE',
++       'EBMR-L3-104': "",
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:10:50
+-   export const LimsSampleResultV1 = z.strictObject({
+-     sampleId: SourceCode,
+-     lotNumber: SourceCode,
+-     testCode: SourceCode,
+-     specificationRef: SourceCode,
+-     result: z.union([SourceValue, z.strictObject({ text: SourceText })]),
+-     conformance: z.enum(['CONFORMS', 'DOES_NOT_CONFORM', 'NOT_APPLICABLE']),
+-     state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', 'INVALIDATED']),
+-     recordedAt: EpochMicrosText,
+-   });
++   export const LimsSampleResultV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/lims.ts:15:19
+-     result: z.union([SourceValue, z.strictObject({ text: SourceText })]),
++     result: z.union([]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:15:48
+-     result: z.union([SourceValue, z.strictObject({ text: SourceText })]),
++     result: z.union([SourceValue, z.strictObject({})]),
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/lims.ts:16:23
+-     conformance: z.enum(['CONFORMS', 'DOES_NOT_CONFORM', 'NOT_APPLICABLE']),
++     conformance: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:16:24
+-     conformance: z.enum(['CONFORMS', 'DOES_NOT_CONFORM', 'NOT_APPLICABLE']),
++     conformance: z.enum(["", 'DOES_NOT_CONFORM', 'NOT_APPLICABLE']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:16:36
+-     conformance: z.enum(['CONFORMS', 'DOES_NOT_CONFORM', 'NOT_APPLICABLE']),
++     conformance: z.enum(['CONFORMS', "", 'NOT_APPLICABLE']),
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/lims.ts:17:17
+-     state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', 'INVALIDATED']),
++     state: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:16:56
+-     conformance: z.enum(['CONFORMS', 'DOES_NOT_CONFORM', 'NOT_APPLICABLE']),
++     conformance: z.enum(['CONFORMS', 'DOES_NOT_CONFORM', ""]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:17:29
+-     state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', 'INVALIDATED']),
++     state: z.enum(['ENTERED', "", 'APPROVED', 'INVALIDATED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:17:18
+-     state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', 'INVALIDATED']),
++     state: z.enum(["", 'REVIEWED', 'APPROVED', 'INVALIDATED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:17:53
+-     state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', 'INVALIDATED']),
++     state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', ""]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:17:41
+-     state: z.enum(['ENTERED', 'REVIEWED', 'APPROVED', 'INVALIDATED']),
++     state: z.enum(['ENTERED', 'REVIEWED', "", 'INVALIDATED']),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:23:12
+-     inbound: { 'lims.sample_result': { summary: 'A sample result with its raw value and unit', versions: { '1': LimsSampleResultV1 } } },
++     inbound: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:23:47
+-     inbound: { 'lims.sample_result': { summary: 'A sample result with its raw value and unit', versions: { '1': LimsSampleResultV1 } } },
++     inbound: { 'lims.sample_result': { summary: "", versions: { '1': LimsSampleResultV1 } } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:23:104
+-     inbound: { 'lims.sample_result': { summary: 'A sample result with its raw value and unit', versions: { '1': LimsSampleResultV1 } } },
++     inbound: { 'lims.sample_result': { summary: 'A sample result with its raw value and unit', versions: {} } },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/lims.ts:24:13
+-     outbound: ['lims.sample_requested'],
++     outbound: [],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:24:14
+-     outbound: ['lims.sample_requested'],
++     outbound: [""],
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:25:17
+-     refusalCodes: {
+-       'EBMR-LIMS-101': 'MALFORMED',
+-       'EBMR-LIMS-103': 'WRONG_IDENTITY',
+-       'EBMR-LIMS-104': 'STALE',
+-     },
++     refusalCodes: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:26:22
+-       'EBMR-LIMS-101': 'MALFORMED',
++       'EBMR-LIMS-101': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:27:22
+-       'EBMR-LIMS-103': 'WRONG_IDENTITY',
++       'EBMR-LIMS-103': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lims.ts:28:22
+-       'EBMR-LIMS-104': 'STALE',
++       'EBMR-LIMS-104': "",
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:10:50
+-   export const LmsQualificationV1 = z.strictObject({
+-     personNumber: SourceCode,
+-     qualificationCode: SourceCode,
+-     status: z.enum(['QUALIFIED', 'REVOKED', 'EXPIRED']),
+-     validFrom: EpochMicrosText,
+-     validTo: EpochMicrosText.nullable(),
+-   });
++   export const LmsQualificationV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/lms.ts:13:18
+-     status: z.enum(['QUALIFIED', 'REVOKED', 'EXPIRED']),
++     status: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:13:19
+-     status: z.enum(['QUALIFIED', 'REVOKED', 'EXPIRED']),
++     status: z.enum(["", 'REVOKED', 'EXPIRED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:13:32
+-     status: z.enum(['QUALIFIED', 'REVOKED', 'EXPIRED']),
++     status: z.enum(['QUALIFIED', "", 'EXPIRED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:13:43
+-     status: z.enum(['QUALIFIED', 'REVOKED', 'EXPIRED']),
++     status: z.enum(['QUALIFIED', 'REVOKED', ""]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:20:12
+-     inbound: { 'lms.qualification': { summary: 'A person\'s qualification (curriculum completed, revoked or expired)', versions: { '1': LmsQualificationV1 } } },
++     inbound: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:20:46
+-     inbound: { 'lms.qualification': { summary: 'A person\'s qualification (curriculum completed, revoked or expired)', versions: { '1': LmsQualificationV1 } } },
++     inbound: { 'lms.qualification': { summary: "", versions: { '1': LmsQualificationV1 } } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:20:128
+-     inbound: { 'lms.qualification': { summary: 'A person\'s qualification (curriculum completed, revoked or expired)', versions: { '1': LmsQualificationV1 } } },
++     inbound: { 'lms.qualification': { summary: 'A person\'s qualification (curriculum completed, revoked or expired)', versions: {} } },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/lms.ts:21:13
+-     outbound: [],
++     outbound: ["Stryker was here"],
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:22:17
+-     refusalCodes: {
+-       'EBMR-LMS-001': 'WRONG_IDENTITY',
+-       'EBMR-LMS-002': 'MALFORMED',
+-       'EBMR-LMS-003': 'WRONG_IDENTITY',
+-       'EBMR-LMS-004': 'STALE',
+-     },
++     refusalCodes: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:23:21
+-       'EBMR-LMS-001': 'WRONG_IDENTITY',
++       'EBMR-LMS-001': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:24:21
+-       'EBMR-LMS-002': 'MALFORMED',
++       'EBMR-LMS-002': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:25:21
+-       'EBMR-LMS-003': 'WRONG_IDENTITY',
++       'EBMR-LMS-003': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/lms.ts:26:21
+-       'EBMR-LMS-004': 'STALE',
++       'EBMR-LMS-004': "",
+Ran all tests for this mutant.
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/systems/opcua.ts:32:73
+-   export function opcuaNodeId(equipmentCode: string, tag: string): string {
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
+-     return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/${tag}`;
+-   }
++   export function opcuaNodeId(equipmentCode: string, tag: string): string {}
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:33:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:33:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (true) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:33:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (false) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:33:60
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(``);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:34:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
++     if (true) throw new Error(`${tag} is not a released process tag`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:34:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
++     if (false) throw new Error(`${tag} is not a released process tag`);
+
+[NoCoverage] LogicalOperator
+packages/integration-sdk/src/adapter/systems/opcua.ts:34:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
++     if (!tagSpec(tag) || tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:34:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
++     if (tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:34:24
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
++     if (!tagSpec(tag) && true) throw new Error(`${tag} is not a released process tag`);
+
+[NoCoverage] EqualityOperator
+packages/integration-sdk/src/adapter/systems/opcua.ts:34:24
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
++     if (!tagSpec(tag) && tag === RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:34:68
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(`${tag} is not a released process tag`);
++     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) throw new Error(``);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:35:10
+-     return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/${tag}`;
++     return ``;
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/systems/opcua.ts:39:97
+-   export function parseOpcuaNodeId(nodeId: string): { equipmentCode: string; tag: string } | null {
+-     const prefix = `nsu=${OPCUA_NAMESPACE_URI};s=`;
+-     if (!nodeId.startsWith(prefix)) return null;
+-     const rest = nodeId.slice(prefix.length);
+-     const slash = rest.indexOf('/');
+-     if (slash <= 0) return null;
+-     const equipmentCode = rest.slice(0, slash);
+-     const tag = rest.slice(slash + 1);
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) return null;
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
+-     return { equipmentCode, tag };
+-   }
++   export function parseOpcuaNodeId(nodeId: string): { equipmentCode: string; tag: string } | null {}
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:40:18
+-     const prefix = `nsu=${OPCUA_NAMESPACE_URI};s=`;
++     const prefix = ``;
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:41:7
+-     if (!nodeId.startsWith(prefix)) return null;
++     if (nodeId.startsWith(prefix)) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:41:7
+-     if (!nodeId.startsWith(prefix)) return null;
++     if (true) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:41:7
+-     if (!nodeId.startsWith(prefix)) return null;
++     if (false) return null;
+
+[NoCoverage] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:41:8
+-     if (!nodeId.startsWith(prefix)) return null;
++     if (!nodeId.endsWith(prefix)) return null;
+
+[NoCoverage] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:42:16
+-     const rest = nodeId.slice(prefix.length);
++     const rest = nodeId;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:43:30
+-     const slash = rest.indexOf('/');
++     const slash = rest.indexOf("");
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:44:7
+-     if (slash <= 0) return null;
++     if (true) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:44:7
+-     if (slash <= 0) return null;
++     if (false) return null;
+
+[NoCoverage] EqualityOperator
+packages/integration-sdk/src/adapter/systems/opcua.ts:44:7
+-     if (slash <= 0) return null;
++     if (slash < 0) return null;
+
+[NoCoverage] EqualityOperator
+packages/integration-sdk/src/adapter/systems/opcua.ts:44:7
+-     if (slash <= 0) return null;
++     if (slash > 0) return null;
+
+[NoCoverage] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:45:25
+-     const equipmentCode = rest.slice(0, slash);
++     const equipmentCode = rest;
+
+[NoCoverage] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:46:15
+-     const tag = rest.slice(slash + 1);
++     const tag = rest;
+
+[NoCoverage] ArithmeticOperator
+packages/integration-sdk/src/adapter/systems/opcua.ts:46:26
+-     const tag = rest.slice(slash + 1);
++     const tag = rest.slice(slash - 1);
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:47:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) return null;
++     if (EQUIPMENT_CODE.test(equipmentCode)) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:47:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) return null;
++     if (true) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:47:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) return null;
++     if (false) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:48:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
++     if (true) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:48:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
++     if (false) return null;
+
+[NoCoverage] LogicalOperator
+packages/integration-sdk/src/adapter/systems/opcua.ts:48:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
++     if (!tagSpec(tag) || tag !== RECIPE_VERSION_TAG) return null;
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:48:7
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
++     if (tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:48:24
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
++     if (!tagSpec(tag) && true) return null;
+
+[NoCoverage] EqualityOperator
+packages/integration-sdk/src/adapter/systems/opcua.ts:48:24
+-     if (!tagSpec(tag) && tag !== RECIPE_VERSION_TAG) return null;
++     if (!tagSpec(tag) && tag === RECIPE_VERSION_TAG) return null;
+
+[NoCoverage] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:49:10
+-     return { equipmentCode, tag };
++     return {};
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/systems/opcua.ts:89:81
+-   export function opcuaSetpointNodeId(equipmentCode: string, tag: string): string {
+-     if (!tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
+-     return `${opcuaNodeId(equipmentCode, tag)}/setpoint`;
+-   }
++   export function opcuaSetpointNodeId(equipmentCode: string, tag: string): string {}
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:90:7
+-     if (!tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
++     if (tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:90:7
+-     if (!tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
++     if (true) throw new Error(`${tag} is not a released setpoint tag`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:90:7
+-     if (!tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
++     if (false) throw new Error(`${tag} is not a released setpoint tag`);
+
+[NoCoverage] OptionalChaining
+packages/integration-sdk/src/adapter/systems/opcua.ts:90:8
+-     if (!tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
++     if (!tagSpec(tag).setpoint) throw new Error(`${tag} is not a released setpoint tag`);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:90:48
+-     if (!tagSpec(tag)?.setpoint) throw new Error(`${tag} is not a released setpoint tag`);
++     if (!tagSpec(tag)?.setpoint) throw new Error(``);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:91:10
+-     return `${opcuaNodeId(equipmentCode, tag)}/setpoint`;
++     return ``;
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/systems/opcua.ts:95:72
+-   export function opcuaActiveAlarmsNodeId(equipmentCode: string): string {
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+-     return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/_alarms/active`;
+-   }
++   export function opcuaActiveAlarmsNodeId(equipmentCode: string): string {}
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:96:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:96:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (true) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:96:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (false) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:96:60
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(``);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:97:10
+-     return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/_alarms/active`;
++     return ``;
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/systems/opcua.ts:105:66
+-   export function opcuaEventsNodeId(equipmentCode: string): string {
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+-     return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/_events`;
+-   }
++   export function opcuaEventsNodeId(equipmentCode: string): string {}
+
+[NoCoverage] BooleanLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:106:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:106:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (true) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:106:7
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (false) throw new Error(`${equipmentCode} is not an equipment code`);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:106:60
+-     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(`${equipmentCode} is not an equipment code`);
++     if (!EQUIPMENT_CODE.test(equipmentCode)) throw new Error(``);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:107:10
+-     return `nsu=${OPCUA_NAMESPACE_URI};s=${equipmentCode}/_events`;
++     return ``;
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:24:36
+-   export const OPCUA_NAMESPACE_URI = 'urn:ebmr:process:tags:v1';
++   export const OPCUA_NAMESPACE_URI = "";
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:27:35
+-   export const RECIPE_VERSION_TAG = 'recipe.version';
++   export const RECIPE_VERSION_TAG = "";
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:29:24
+-   const EQUIPMENT_CODE = /^[A-Z0-9][A-Z0-9_-]{0,63}$/;
++   const EQUIPMENT_CODE = /[A-Z0-9][A-Z0-9_-]{0,63}$/;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:29:24
+-   const EQUIPMENT_CODE = /^[A-Z0-9][A-Z0-9_-]{0,63}$/;
++   const EQUIPMENT_CODE = /^[^A-Z0-9][A-Z0-9_-]{0,63}$/;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:29:24
+-   const EQUIPMENT_CODE = /^[A-Z0-9][A-Z0-9_-]{0,63}$/;
++   const EQUIPMENT_CODE = /^[A-Z0-9][A-Z0-9_-]{0,63}/;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:29:24
+-   const EQUIPMENT_CODE = /^[A-Z0-9][A-Z0-9_-]{0,63}$/;
++   const EQUIPMENT_CODE = /^[A-Z0-9][A-Z0-9_-]$/;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:29:24
+-   const EQUIPMENT_CODE = /^[A-Z0-9][A-Z0-9_-]{0,63}$/;
++   const EQUIPMENT_CODE = /^[A-Z0-9][^A-Z0-9_-]{0,63}$/;
+Ran all tests for this mutant.
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/adapter/systems/opcua.ts:58:20
+-     PROCESS_TAGS.map((t) => [t.tag, { browseName: t.tag, equipment: t.equipment, unit: t.unit, scale: t.scale, setpoint: t.setpoint, counter: t.counter }]),
++     PROCESS_TAGS.map(() => undefined),
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/opcua.ts:58:27
+-     PROCESS_TAGS.map((t) => [t.tag, { browseName: t.tag, equipment: t.equipment, unit: t.unit, scale: t.scale, setpoint: t.setpoint, counter: t.counter }]),
++     PROCESS_TAGS.map((t) => []),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:58:35
+-     PROCESS_TAGS.map((t) => [t.tag, { browseName: t.tag, equipment: t.equipment, unit: t.unit, scale: t.scale, setpoint: t.setpoint, counter: t.counter }]),
++     PROCESS_TAGS.map((t) => [t.tag, {}]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:65:45
+-   export const OpcuaEndpoint = z.strictObject({
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
+-     securityMode: z.literal('SignAndEncrypt'),
+-     securityPolicy: z.enum(OPCUA_SECURITY_POLICIES),
+-     /** SHA-256 (lower-case hex) of the server certificate's DER bytes; a changed certificate is refused with an alarm. */
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
+-     /** The units this endpoint serves (plant.equipment codes). */
+-     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).max(64),
+-     /** The room or line it is installed in (plant.area code); a relocated endpoint is refused (DI-20). */
+-     areaCode: z.string().regex(EQUIPMENT_CODE),
+-   });
++   export const OpcuaEndpoint = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:66:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:66:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:66:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]$/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:66:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[^\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:66:70
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, ""),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:67:27
+-     securityMode: z.literal('SignAndEncrypt'),
++     securityMode: z.literal(""),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:70:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:70:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/[0-9a-f]{64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:70:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/^[0-9a-f]$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:70:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/^[^0-9a-f]{64}$/),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:72:19
+-     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).max(64),
++     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).min(64),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:72:19
+-     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).max(64),
++     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).max(1).max(64),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:111:46
+-   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
++   export const EndpointCode = z.string().regex(/[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:83:39
+-   export const ENDPOINT_LOCATION_NODE = `nsu=${OPCUA_NAMESPACE_URI};s=_endpoint/location`;
++   export const ENDPOINT_LOCATION_NODE = ``;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:111:46
+-   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
++   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}/, 'a device code of the device registry');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:111:46
+-   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
++   export const EndpointCode = z.string().regex(/^[^A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:111:46
+-   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
++   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]$/, 'a device code of the device registry');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:111:46
+-   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
++   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][^A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:111:83
+-   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'a device code of the device registry');
++   export const EndpointCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, "");
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:121:54
+-   export const OpcuaEndpointSessionV1 = z.strictObject({
+-     endpointCode: EndpointCode,
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
+-     securityMode: z.enum(['None', 'Sign', 'SignAndEncrypt']),
+-     securityPolicy: z.string().regex(/^[A-Za-z0-9_]{1,64}$/),
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
+-     /** The room or line the server reports on ENDPOINT_LOCATION_NODE, or null when it reports none. */
+-     reportedLocation: z.string().regex(EQUIPMENT_CODE).nullable(),
+-     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).max(64),
+-     openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})$/),
+-   });
++   export const OpcuaEndpointSessionV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:123:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:123:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:123:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]$/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:123:33
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[^\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/opcua.ts:124:24
+-     securityMode: z.enum(['None', 'Sign', 'SignAndEncrypt']),
++     securityMode: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:123:70
+-     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, 'opc.tcp://host:port/path'),
++     endpointUrl: z.string().regex(/^opc\.tcp:\/\/[\x21-\x7E]{1,200}$/, ""),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:124:33
+-     securityMode: z.enum(['None', 'Sign', 'SignAndEncrypt']),
++     securityMode: z.enum(['None', "", 'SignAndEncrypt']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:124:25
+-     securityMode: z.enum(['None', 'Sign', 'SignAndEncrypt']),
++     securityMode: z.enum(["", 'Sign', 'SignAndEncrypt']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:124:41
+-     securityMode: z.enum(['None', 'Sign', 'SignAndEncrypt']),
++     securityMode: z.enum(['None', 'Sign', ""]),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:125:36
+-     securityPolicy: z.string().regex(/^[A-Za-z0-9_]{1,64}$/),
++     securityPolicy: z.string().regex(/[A-Za-z0-9_]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:125:36
+-     securityPolicy: z.string().regex(/^[A-Za-z0-9_]{1,64}$/),
++     securityPolicy: z.string().regex(/^[A-Za-z0-9_]{1,64}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:125:36
+-     securityPolicy: z.string().regex(/^[A-Za-z0-9_]{1,64}$/),
++     securityPolicy: z.string().regex(/^[A-Za-z0-9_]$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:125:36
+-     securityPolicy: z.string().regex(/^[A-Za-z0-9_]{1,64}$/),
++     securityPolicy: z.string().regex(/^[^A-Za-z0-9_]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:126:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/[0-9a-f]{64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:126:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:126:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/^[0-9a-f]$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:126:43
+-     certificateThumbprint: z.string().regex(/^[0-9a-f]{64}$/),
++     certificateThumbprint: z.string().regex(/^[^0-9a-f]{64}$/),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:129:19
+-     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).max(64),
++     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).min(64),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/opcua.ts:129:19
+-     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).min(1).max(64),
++     equipmentCodes: z.array(z.string().regex(EQUIPMENT_CODE)).max(1).max(64),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:130:30
+-     openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})$/),
++     openedAt: z.string().regex(/(0|[1-9][0-9]{0,15})$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:130:30
+-     openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})$/),
++     openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:130:30
+-     openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})$/),
++     openedAt: z.string().regex(/^(0|[^1-9][0-9]{0,15})$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:130:30
+-     openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})$/),
++     openedAt: z.string().regex(/^(0|[1-9][0-9])$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/opcua.ts:130:30
+-     openedAt: z.string().regex(/^(0|[1-9][0-9]{0,15})$/),
++     openedAt: z.string().regex(/^(0|[1-9][^0-9]{0,15})$/),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:152:12
+-     inbound: {
+-       'opcua.series_chunk': { summary: 'Native samples of one tag of one unit, with source timestamps, raw values and status codes (DI-32)', versions: { '1': SeriesChunkV1 } },
+-       'opcua.alarm': { summary: 'An alarm occurrence of a unit raised, cleared or acknowledged at the source (DI-49)', versions: { '1': EquipmentAlarmV1 } },
+-       'opcua.equipment_event': { summary: 'An equipment event: state change, recipe loaded or mismatched, phase, operator action, fault', versions: { '1': EquipmentEventV1 } },
+-       'opcua.endpoint_session': { summary: 'A session the gateway opened to an enrolled endpoint: security, certificate, location, units (DI-20)', versions: { '1': OpcuaEndpointSessionV1 } },
+-     },
++     inbound: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:153:38
+-       'opcua.series_chunk': { summary: 'Native samples of one tag of one unit, with source timestamps, raw values and status codes (DI-32)', versions: { '1': SeriesChunkV1 } },
++       'opcua.series_chunk': { summary: "", versions: { '1': SeriesChunkV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:153:150
+-       'opcua.series_chunk': { summary: 'Native samples of one tag of one unit, with source timestamps, raw values and status codes (DI-32)', versions: { '1': SeriesChunkV1 } },
++       'opcua.series_chunk': { summary: 'Native samples of one tag of one unit, with source timestamps, raw values and status codes (DI-32)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:154:31
+-       'opcua.alarm': { summary: 'An alarm occurrence of a unit raised, cleared or acknowledged at the source (DI-49)', versions: { '1': EquipmentAlarmV1 } },
++       'opcua.alarm': { summary: "", versions: { '1': EquipmentAlarmV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:154:128
+-       'opcua.alarm': { summary: 'An alarm occurrence of a unit raised, cleared or acknowledged at the source (DI-49)', versions: { '1': EquipmentAlarmV1 } },
++       'opcua.alarm': { summary: 'An alarm occurrence of a unit raised, cleared or acknowledged at the source (DI-49)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:155:41
+-       'opcua.equipment_event': { summary: 'An equipment event: state change, recipe loaded or mismatched, phase, operator action, fault', versions: { '1': EquipmentEventV1 } },
++       'opcua.equipment_event': { summary: "", versions: { '1': EquipmentEventV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:155:147
+-       'opcua.equipment_event': { summary: 'An equipment event: state change, recipe loaded or mismatched, phase, operator action, fault', versions: { '1': EquipmentEventV1 } },
++       'opcua.equipment_event': { summary: 'An equipment event: state change, recipe loaded or mismatched, phase, operator action, fault', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:156:42
+-       'opcua.endpoint_session': { summary: 'A session the gateway opened to an enrolled endpoint: security, certificate, location, units (DI-20)', versions: { '1': OpcuaEndpointSessionV1 } },
++       'opcua.endpoint_session': { summary: "", versions: { '1': OpcuaEndpointSessionV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/opcua.ts:156:156
+-       'opcua.endpoint_session': { summary: 'A session the gateway opened to an enrolled endpoint: security, certificate, location, units (DI-20)', versions: { '1': OpcuaEndpointSessionV1 } },
++       'opcua.endpoint_session': { summary: 'A session the gateway opened to an enrolled endpoint: security, certificate, location, units (DI-20)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/opcua.ts:158:13
+-     outbound: [],
++     outbound: ["Stryker was here"],
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/qms.ts:10:46
+-   export const VersionToken = z.string().regex(/^[\x21-\x7E]{1,64}$/);
++   export const VersionToken = z.string().regex(/[\x21-\x7E]{1,64}$/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/qms.ts:10:46
+-   export const VersionToken = z.string().regex(/^[\x21-\x7E]{1,64}$/);
++   export const VersionToken = z.string().regex(/^[\x21-\x7E]{1,64}/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/qms.ts:10:46
+-   export const VersionToken = z.string().regex(/^[\x21-\x7E]{1,64}$/);
++   export const VersionToken = z.string().regex(/^[\x21-\x7E]$/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/systems/qms.ts:10:46
+-   export const VersionToken = z.string().regex(/^[\x21-\x7E]{1,64}$/);
++   export const VersionToken = z.string().regex(/^[^\x21-\x7E]{1,64}$/);
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:11:52
+-   export const QmsDeviationStatusV1 = z.strictObject({
+-     deviationRef: SourceCode,
+-     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CLOSED', 'CANCELLED']),
+-     lotNumbers: z.array(SourceCode).max(200),
+-     versionToken: VersionToken,
+-   });
++   export const QmsDeviationStatusV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/qms.ts:13:18
+-     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CLOSED', 'CANCELLED']),
++     status: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:13:19
+-     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CLOSED', 'CANCELLED']),
++     status: z.enum(["", 'UNDER_INVESTIGATION', 'CLOSED', 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:13:27
+-     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CLOSED', 'CANCELLED']),
++     status: z.enum(['OPEN', "", 'CLOSED', 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:13:50
+-     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CLOSED', 'CANCELLED']),
++     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', "", 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:13:60
+-     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CLOSED', 'CANCELLED']),
++     status: z.enum(['OPEN', 'UNDER_INVESTIGATION', 'CLOSED', ""]),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/systems/qms.ts:14:15
+-     lotNumbers: z.array(SourceCode).max(200),
++     lotNumbers: z.array(SourceCode).min(200),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:17:41
+-   export const QmsCapaV1 = z.strictObject({
+-     capaRef: SourceCode,
+-     title: SourceText,
+-     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
+-     needsMasterChange: z.boolean(),
+-     effectivenessDueDate: CalendarDate.nullable(),
+-     versionToken: VersionToken,
+-   });
++   export const QmsCapaV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/qms.ts:20:18
+-     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
++     status: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:20:19
+-     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
++     status: z.enum(["", 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:20:27
+-     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
++     status: z.enum(['OPEN', "", 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:20:42
+-     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
++     status: z.enum(['OPEN', 'IMPLEMENTED', "", 'CLOSED', 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:20:65
+-     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
++     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', "", 'CANCELLED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:20:75
+-     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', 'CANCELLED']),
++     status: z.enum(['OPEN', 'IMPLEMENTED', 'EFFECTIVENESS_CHECK', 'CLOSED', ""]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:25:50
+-   export const QmsChangeControlV1 = z.strictObject({
+-     changeRef: SourceCode,
+-     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
+-     versionToken: VersionToken,
+-   });
++   export const QmsChangeControlV1 = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/qms.ts:27:18
+-     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
++     status: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:27:19
+-     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
++     status: z.enum(["", 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:27:27
+-     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
++     status: z.enum(['OPEN', "", 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:27:39
+-     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
++     status: z.enum(['OPEN', 'APPROVED', "", 'CLOSED', 'REJECTED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:27:54
+-     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
++     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', "", 'REJECTED']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:27:64
+-     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', 'REJECTED']),
++     status: z.enum(['OPEN', 'APPROVED', 'IMPLEMENTED', 'CLOSED', ""]),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:33:12
+-     inbound: {
+-       'qms.deviation_status': { summary: 'The QMS status of a deviation and the lots it names', versions: { '1': QmsDeviationStatusV1 } },
+-       'qms.capa': { summary: 'A CAPA and its effectiveness-check due date (IN-01, PR-51)', versions: { '1': QmsCapaV1 } },
+-       'qms.change_control': { summary: 'The status of a change control', versions: { '1': QmsChangeControlV1 } },
+-     },
++     inbound: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:34:40
+-       'qms.deviation_status': { summary: 'The QMS status of a deviation and the lots it names', versions: { '1': QmsDeviationStatusV1 } },
++       'qms.deviation_status': { summary: "", versions: { '1': QmsDeviationStatusV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:34:105
+-       'qms.deviation_status': { summary: 'The QMS status of a deviation and the lots it names', versions: { '1': QmsDeviationStatusV1 } },
++       'qms.deviation_status': { summary: 'The QMS status of a deviation and the lots it names', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:35:28
+-       'qms.capa': { summary: 'A CAPA and its effectiveness-check due date (IN-01, PR-51)', versions: { '1': QmsCapaV1 } },
++       'qms.capa': { summary: "", versions: { '1': QmsCapaV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:35:100
+-       'qms.capa': { summary: 'A CAPA and its effectiveness-check due date (IN-01, PR-51)', versions: { '1': QmsCapaV1 } },
++       'qms.capa': { summary: 'A CAPA and its effectiveness-check due date (IN-01, PR-51)', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:36:38
+-       'qms.change_control': { summary: 'The status of a change control', versions: { '1': QmsChangeControlV1 } },
++       'qms.change_control': { summary: "", versions: { '1': QmsChangeControlV1 } },
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:36:82
+-       'qms.change_control': { summary: 'The status of a change control', versions: { '1': QmsChangeControlV1 } },
++       'qms.change_control': { summary: 'The status of a change control', versions: {} },
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/systems/qms.ts:38:13
+-     outbound: ['qms.deviation_raised', 'qms.capa_requested'],
++     outbound: [],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:38:14
+-     outbound: ['qms.deviation_raised', 'qms.capa_requested'],
++     outbound: ["", 'qms.capa_requested'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:38:38
+-     outbound: ['qms.deviation_raised', 'qms.capa_requested'],
++     outbound: ['qms.deviation_raised', ""],
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:39:17
+-     refusalCodes: {
+-       'EBMR-QMS-001': 'MALFORMED',
+-       'EBMR-QMS-002': 'WRONG_IDENTITY',
+-       'EBMR-QMS-003': 'MALFORMED',
+-       'EBMR-QMS-004': 'STALE',
+-       'EBMR-QMS-005': 'WRONG_IDENTITY',
+-     },
++     refusalCodes: {},
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:40:21
+-       'EBMR-QMS-001': 'MALFORMED',
++       'EBMR-QMS-001': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:41:21
+-       'EBMR-QMS-002': 'WRONG_IDENTITY',
++       'EBMR-QMS-002': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:42:21
+-       'EBMR-QMS-003': 'MALFORMED',
++       'EBMR-QMS-003': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:43:21
+-       'EBMR-QMS-004': 'STALE',
++       'EBMR-QMS-004': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/systems/qms.ts:44:21
+-       'EBMR-QMS-005': 'WRONG_IDENTITY',
++       'EBMR-QMS-005': "",
+Ran all tests for this mutant.
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/contract.ts:42:7
+-     if (envelope.sourceSystem !== contract.system) return undefined;
++     if (false) return undefined;
+Tests ran:
+    inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema
+
+
+[Survived] OptionalChaining
+packages/integration-sdk/src/adapter/contract.ts:43:10
+-     return contract.inbound[envelope.messageType]?.versions[envelope.schemaVersion];
++     return contract.inbound[envelope.messageType].versions[envelope.schemaVersion];
+Tests ran:
+    inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:13:27
+-     value: z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.503'),
++     value: z.string().regex(/-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.503'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:13:27
+-     value: z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.503'),
++     value: z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?/, 'decimal text such as 12.503'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:13:27
+-     value: z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.503'),
++     value: z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9])?$/, 'decimal text such as 12.503'),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/contract.ts:13:61
+-     value: z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.503'),
++     value: z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, ""),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:14:26
+-     unit: z.string().regex(/^[\x21-\x7E]{1,16}$/, 'the unit as the source writes it'),
++     unit: z.string().regex(/[\x21-\x7E]{1,16}$/, 'the unit as the source writes it'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:14:26
+-     unit: z.string().regex(/^[\x21-\x7E]{1,16}$/, 'the unit as the source writes it'),
++     unit: z.string().regex(/^[\x21-\x7E]{1,16}/, 'the unit as the source writes it'),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/contract.ts:14:49
+-     unit: z.string().regex(/^[\x21-\x7E]{1,16}$/, 'the unit as the source writes it'),
++     unit: z.string().regex(/^[\x21-\x7E]{1,16}$/, ""),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\D{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[^1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[^0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[^12]\d|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[^1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\D|3[01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:19:46
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[^01])$/, 'a date YYYY-MM-DD');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/contract.ts:19:95
+-   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'a date YYYY-MM-DD');
++   export const CalendarDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:21:44
+-   export const SourceCode = z.string().regex(/^[\x21-\x7E]{1,64}$/, 'printable ASCII without spaces, at most 64');
++   export const SourceCode = z.string().regex(/[\x21-\x7E]{1,64}$/, 'printable ASCII without spaces, at most 64');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/contract.ts:21:44
+-   export const SourceCode = z.string().regex(/^[\x21-\x7E]{1,64}$/, 'printable ASCII without spaces, at most 64');
++   export const SourceCode = z.string().regex(/^[\x21-\x7E]{1,64}/, 'printable ASCII without spaces, at most 64');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/contract.ts:21:67
+-   export const SourceCode = z.string().regex(/^[\x21-\x7E]{1,64}$/, 'printable ASCII without spaces, at most 64');
++   export const SourceCode = z.string().regex(/^[\x21-\x7E]{1,64}$/, "");
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/contract.ts:22:27
+-   export const SourceText = z.string().min(1).max(500);
++   export const SourceText = z.string().min(1).min(500);
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/contract.ts:22:27
+-   export const SourceText = z.string().min(1).max(500);
++   export const SourceText = z.string().max(1).max(500);
+Ran all tests for this mutant.
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/envelope.ts:39:118
+-   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
++   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => true, 'no leading or trailing blanks');
+Tests ran:
+    inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema
+    inbound envelope > [DI-31] an envelope without a field, with a number for text or an extra field is malformed
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/envelope.ts:57:18
+-     .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), 'utf8') <= PAYLOAD_MAX_BYTES, {
++     .refine((e) => true, {
+Tests ran:
+    inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema
+    inbound envelope > [DI-31] an envelope without a field, with a number for text or an extra field is malformed
+
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/envelope.ts:39:118
+-   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
++   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s === s, 'no leading or trailing blanks');
+Tests ran:
+    inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema
+    inbound envelope > [DI-31] an envelope without a field, with a number for text or an extra field is malformed
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/adapter/envelope.ts:57:18
+-     .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), 'utf8') <= PAYLOAD_MAX_BYTES, {
++     .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), 'utf8') < PAYLOAD_MAX_BYTES, {
+Tests ran:
+    inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema
+    inbound envelope > [DI-31] an envelope without a field, with a number for text or an extra field is malformed
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:57:63
+-     .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), 'utf8') <= PAYLOAD_MAX_BYTES, {
++     .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), "") <= PAYLOAD_MAX_BYTES, {
+Tests ran:
+    inbound envelope > [DI-31] a complete envelope parses and its payload matches the ERP order schema
+    inbound envelope > [DI-31] an envelope without a field, with a number for text or an extra field is malformed
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:32:49
+-   export const EpochMicrosText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
++   export const EpochMicrosText = z.string().regex(/^(0|[1-9][0-9]{0,17})/, 'UTC epoch microseconds as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:32:49
+-   export const EpochMicrosText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
++   export const EpochMicrosText = z.string().regex(/(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:32:75
+-   export const EpochMicrosText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
++   export const EpochMicrosText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:34:48
+-   export const SequenceNoText = z.string().regex(/^[1-9][0-9]{0,17}$/, 'a sequence number 1, 2, 3, ... as text');
++   export const SequenceNoText = z.string().regex(/[1-9][0-9]{0,17}$/, 'a sequence number 1, 2, 3, ... as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:34:48
+-   export const SequenceNoText = z.string().regex(/^[1-9][0-9]{0,17}$/, 'a sequence number 1, 2, 3, ... as text');
++   export const SequenceNoText = z.string().regex(/^[1-9][0-9]{0,17}/, 'a sequence number 1, 2, 3, ... as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:34:48
+-   export const SequenceNoText = z.string().regex(/^[1-9][0-9]{0,17}$/, 'a sequence number 1, 2, 3, ... as text');
++   export const SequenceNoText = z.string().regex(/^[1-9][^0-9]{0,17}$/, 'a sequence number 1, 2, 3, ... as text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:34:70
+-   export const SequenceNoText = z.string().regex(/^[1-9][0-9]{0,17}$/, 'a sequence number 1, 2, 3, ... as text');
++   export const SequenceNoText = z.string().regex(/^[1-9][0-9]{0,17}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:35:51
+-   export const SchemaVersionText = z.string().regex(/^[1-9][0-9]{0,3}$/, 'a schema version 1 to 9999 as text');
++   export const SchemaVersionText = z.string().regex(/[1-9][0-9]{0,3}$/, 'a schema version 1 to 9999 as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:35:51
+-   export const SchemaVersionText = z.string().regex(/^[1-9][0-9]{0,3}$/, 'a schema version 1 to 9999 as text');
++   export const SchemaVersionText = z.string().regex(/^[1-9][0-9]{0,3}/, 'a schema version 1 to 9999 as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:35:51
+-   export const SchemaVersionText = z.string().regex(/^[1-9][0-9]{0,3}$/, 'a schema version 1 to 9999 as text');
++   export const SchemaVersionText = z.string().regex(/^[1-9][^0-9]{0,3}$/, 'a schema version 1 to 9999 as text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:35:72
+-   export const SchemaVersionText = z.string().regex(/^[1-9][0-9]{0,3}$/, 'a schema version 1 to 9999 as text');
++   export const SchemaVersionText = z.string().regex(/^[1-9][0-9]{0,3}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:36:43
+-   export const Sha256Hex = z.string().regex(/^[0-9a-f]{64}$/, 'SHA-256 as 64 lower-case hex digits');
++   export const Sha256Hex = z.string().regex(/[0-9a-f]{64}$/, 'SHA-256 as 64 lower-case hex digits');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:36:43
+-   export const Sha256Hex = z.string().regex(/^[0-9a-f]{64}$/, 'SHA-256 as 64 lower-case hex digits');
++   export const Sha256Hex = z.string().regex(/^[0-9a-f]{64}/, 'SHA-256 as 64 lower-case hex digits');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:36:61
+-   export const Sha256Hex = z.string().regex(/^[0-9a-f]{64}$/, 'SHA-256 as 64 lower-case hex digits');
++   export const Sha256Hex = z.string().regex(/^[0-9a-f]{64}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:38:48
+-   export const IdempotencyKey = z.string().regex(/^[\x21-\x7E]{1,128}$/, 'printable ASCII without spaces, at most 128');
++   export const IdempotencyKey = z.string().regex(/[\x21-\x7E]{1,128}$/, 'printable ASCII without spaces, at most 128');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:38:48
+-   export const IdempotencyKey = z.string().regex(/^[\x21-\x7E]{1,128}$/, 'printable ASCII without spaces, at most 128');
++   export const IdempotencyKey = z.string().regex(/^[\x21-\x7E]{1,128}/, 'printable ASCII without spaces, at most 128');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:38:72
+-   export const IdempotencyKey = z.string().regex(/^[\x21-\x7E]{1,128}$/, 'printable ASCII without spaces, at most 128');
++   export const IdempotencyKey = z.string().regex(/^[\x21-\x7E]{1,128}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:39:48
+-   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
++   export const SourceRecordId = z.string().regex(/[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:39:48
+-   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
++   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:39:72
+-   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
++   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, "").refine((s) => s.trim() === s, 'no leading or trailing blanks');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:39:134
+-   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, 'no leading or trailing blanks');
++   export const SourceRecordId = z.string().regex(/^[\x20-\x7E]{1,128}$/, 'printable ASCII, at most 128').refine((s) => s.trim() === s, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:40:45
+-   export const MessageType = z.string().regex(/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*$/, 'a message type such as erp.production_order');
++   export const MessageType = z.string().regex(/[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*$/, 'a message type such as erp.production_order');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/envelope.ts:40:45
+-   export const MessageType = z.string().regex(/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*$/, 'a message type such as erp.production_order');
++   export const MessageType = z.string().regex(/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*/, 'a message type such as erp.production_order');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:40:84
+-   export const MessageType = z.string().regex(/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*$/, 'a message type such as erp.production_order');
++   export const MessageType = z.string().regex(/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_.]*$/, "");
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:58:14
+-       message: `the payload exceeds ${PAYLOAD_MAX_BYTES.toString()} bytes`,
++       message: ``,
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/envelope.ts:57:93
+-     .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), 'utf8') <= PAYLOAD_MAX_BYTES, {
+-       message: `the payload exceeds ${PAYLOAD_MAX_BYTES.toString()} bytes`,
+-       path: ['payload'],
+-     });
++     .refine((e) => Buffer.byteLength(JSON.stringify(e.payload), 'utf8') <= PAYLOAD_MAX_BYTES, {});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/envelope.ts:59:11
+-       path: ['payload'],
++       path: [],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:59:12
+-       path: ['payload'],
++       path: [""],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:65:21
+-     return createHash('sha256').update(raw).digest('hex');
++     return createHash("").update(raw).digest('hex');
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/envelope.ts:69:38
+-   export const SequenceStatus = z.enum(['FIRST', 'IN_ORDER', 'GAP', 'LATE']);
++   export const SequenceStatus = z.enum([]);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:69:39
+-   export const SequenceStatus = z.enum(['FIRST', 'IN_ORDER', 'GAP', 'LATE']);
++   export const SequenceStatus = z.enum(["", 'IN_ORDER', 'GAP', 'LATE']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:69:48
+-   export const SequenceStatus = z.enum(['FIRST', 'IN_ORDER', 'GAP', 'LATE']);
++   export const SequenceStatus = z.enum(['FIRST', "", 'GAP', 'LATE']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:69:60
+-   export const SequenceStatus = z.enum(['FIRST', 'IN_ORDER', 'GAP', 'LATE']);
++   export const SequenceStatus = z.enum(['FIRST', 'IN_ORDER', "", 'LATE']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:69:67
+-   export const SequenceStatus = z.enum(['FIRST', 'IN_ORDER', 'GAP', 'LATE']);
++   export const SequenceStatus = z.enum(['FIRST', 'IN_ORDER', 'GAP', ""]);
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/envelope.ts:77:45
+-   export const AcceptOutcome = z.strictObject({
+-     messageId: z.uuid(),
+-     outcome: z.enum(['ACCEPTED', 'DUPLICATE']),
+-     sequenceStatus: SequenceStatus,
+-     /** The alarm raised for a gap or a late message, else null. */
+-     alarmId: z.uuid().nullable(),
+-   });
++   export const AcceptOutcome = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/envelope.ts:79:19
+-     outcome: z.enum(['ACCEPTED', 'DUPLICATE']),
++     outcome: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:79:20
+-     outcome: z.enum(['ACCEPTED', 'DUPLICATE']),
++     outcome: z.enum(["", 'DUPLICATE']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/envelope.ts:79:32
+-     outcome: z.enum(['ACCEPTED', 'DUPLICATE']),
++     outcome: z.enum(['ACCEPTED', ""]),
+Ran all tests for this mutant.
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/errors.ts:104:75
+-     constructor(errorClass: ErrorClass, message: string, ebmrCode?: string) {
+-       super(message);
+-       this.name = 'InboundError';
+-       this.errorClass = errorClass;
+-       this.ebmrCode = ebmrCode;
+-     }
++     constructor(errorClass: ErrorClass, message: string, ebmrCode?: string) {}
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:106:17
+-       this.name = 'InboundError';
++       this.name = "";
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/errors.ts:110:28
+-     get retryable(): boolean {
+-       return RETRYABLE[this.errorClass];
+-     }
++     get retryable(): boolean {}
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:57:71
+-     if (!Number.isInteger(attempt) || attempt < 1) throw new RangeError('attempt counts from 1');
++     if (!Number.isInteger(attempt) || attempt < 1) throw new RangeError("");
+Tests ran:
+    acknowledgment and retry rule > [meta] back-off doubles from 1 s and stops growing at 5 minutes, without a limit on attempts
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/errors.ts:92:7
+-     if (failure.ebmrCode) {
++     if (true) {
+Tests ran:
+    acknowledgment and retry rule > [meta] failures are classified by kernel code, system code or SQLSTATE; an unknown refusal is not guessed
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/errors.ts:94:9
+-       if (c) return c;
++       if (true) return c;
+Tests ran:
+    acknowledgment and retry rule > [meta] failures are classified by kernel code, system code or SQLSTATE; an unknown refusal is not guessed
+
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/adapter/errors.ts:40:53
+-   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c !== 'TRANSPORT');
++   export const REFUSAL_CLASSES = ERROR_CLASSES.filter(() => undefined);
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/errors.ts:40:32
+-   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c !== 'TRANSPORT');
++   export const REFUSAL_CLASSES = ERROR_CLASSES;
+Ran all tests for this mutant.
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/errors.ts:40:99
+-   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c !== 'TRANSPORT');
++   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => true);
+Ran all tests for this mutant.
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/errors.ts:40:99
+-   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c !== 'TRANSPORT');
++   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => false);
+Ran all tests for this mutant.
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/adapter/errors.ts:40:99
+-   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c !== 'TRANSPORT');
++   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c === 'TRANSPORT');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:40:105
+-   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c !== 'TRANSPORT');
++   export const REFUSAL_CLASSES = ERROR_CLASSES.filter((c): c is Exclude<ErrorClass, 'TRANSPORT'> => c !== "");
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:71:19
+-     'EBMR-INT-001': 'MALFORMED',
++     'EBMR-INT-001': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:72:19
+-     'EBMR-INT-003': 'WRONG_IDENTITY',
++     'EBMR-INT-003': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:73:19
+-     'EBMR-INT-004': 'MALFORMED',
++     'EBMR-INT-004': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:75:19
+-     'EBMR-INT-006': 'OUT_OF_ORDER',
++     'EBMR-INT-006': "",
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:76:19
+-     'EBMR-INT-010': 'STALE',
++     'EBMR-INT-010': "",
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/errors.ts:80:28
+-   const TRANSPORT_SQLSTATE = /^(08...|40001|40P01|57P0[1-3]|53...)$/;
++   const TRANSPORT_SQLSTATE = /(08...|40001|40P01|57P0[1-3]|53...)$/;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/errors.ts:80:28
+-   const TRANSPORT_SQLSTATE = /^(08...|40001|40P01|57P0[1-3]|53...)$/;
++   const TRANSPORT_SQLSTATE = /^(08...|40001|40P01|57P0[1-3]|53...)/;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/errors.ts:80:28
+-   const TRANSPORT_SQLSTATE = /^(08...|40001|40P01|57P0[1-3]|53...)$/;
++   const TRANSPORT_SQLSTATE = /^(08...|40001|40P01|57P0[^1-3]|53...)$/;
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/errors.ts:119:37
+-   export const AlarmSeverity = z.enum(['MINOR', 'MAJOR', 'CRITICAL']);
++   export const AlarmSeverity = z.enum([]);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:119:38
+-   export const AlarmSeverity = z.enum(['MINOR', 'MAJOR', 'CRITICAL']);
++   export const AlarmSeverity = z.enum(["", 'MAJOR', 'CRITICAL']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:119:47
+-   export const AlarmSeverity = z.enum(['MINOR', 'MAJOR', 'CRITICAL']);
++   export const AlarmSeverity = z.enum(['MINOR', "", 'CRITICAL']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/errors.ts:119:56
+-   export const AlarmSeverity = z.enum(['MINOR', 'MAJOR', 'CRITICAL']);
++   export const AlarmSeverity = z.enum(['MINOR', 'MAJOR', ""]);
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/mirror.ts:30:34
+-   export const MirrorMode = z.enum(['STAND_IN', 'MIRROR']);
++   export const MirrorMode = z.enum([]);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/mirror.ts:30:35
+-   export const MirrorMode = z.enum(['STAND_IN', 'MIRROR']);
++   export const MirrorMode = z.enum(["", 'MIRROR']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/mirror.ts:30:47
+-   export const MirrorMode = z.enum(['STAND_IN', 'MIRROR']);
++   export const MirrorMode = z.enum(['STAND_IN', ""]);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/mirror.ts:33:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/);
++   const WholeText = z.string().regex(/(0|[1-9][0-9]{0,17})$/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/mirror.ts:33:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/);
++   const WholeText = z.string().regex(/^(0|[^1-9][0-9]{0,17})$/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/mirror.ts:33:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/);
++   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/mirror.ts:33:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/);
++   const WholeText = z.string().regex(/^(0|[1-9][0-9])$/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/mirror.ts:33:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/);
++   const WholeText = z.string().regex(/^(0|[1-9][^0-9]{0,17})$/);
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/mirror.ts:35:47
+-   export const MirrorFreshness = z.strictObject({
+-     dataClass: MirrorDataClass,
+-     sourceSystem: SourceSystem,
+-     mode: MirrorMode,
+-     /** A stale blocking class refuses; a stale non-blocking class is flagged. */
+-     blocking: z.boolean(),
+-     /** Last successful synchronisation (UTC epoch microseconds); null in STAND_IN or before the first one. */
+-     asOfUs: EpochMicrosText.nullable(),
+-     /** Whole seconds since asOfUs; null when asOfUs is null. */
+-     ageSeconds: WholeText.nullable(),
+-     /** The bound in whole seconds; null in STAND_IN. */
+-     boundSeconds: WholeText.nullable(),
+-     stale: z.boolean(),
+-   });
++   export const MirrorFreshness = z.strictObject({});
+Ran all tests for this mutant.
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/reconciliation.ts:27:18
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => true, { message: 'the period ends after it starts', path: ['periodTo'] });
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/reconciliation.ts:27:18
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => false, { message: 'the period ends after it starts', path: ['periodTo'] });
+
+[NoCoverage] EqualityOperator
+packages/integration-sdk/src/adapter/reconciliation.ts:27:18
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => BigInt(r.periodFrom) <= BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
+
+[NoCoverage] EqualityOperator
+packages/integration-sdk/src/adapter/reconciliation.ts:27:18
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => BigInt(r.periodFrom) >= BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:61:56
+-     const text = keys.map((k) => `${k}|${byKey.get(k) ?? ''}`).join('\n');
++     const text = keys.map((k) => `${k}|${byKey.get(k) ?? "Stryker was here!"}`).join('\n');
+
+[Survived] CallExpression
+packages/integration-sdk/src/adapter/reconciliation.ts:56:5
+-       IdempotencyKey.parse(e.idempotencyKey);
++       ;
+Tests ran:
+    reconciliation checksum > [DI-31] the checksum is over distinct keys in byte order, so order and resends do not change it
+
+
+[Survived] CallExpression
+packages/integration-sdk/src/adapter/reconciliation.ts:57:5
+-       Sha256Hex.parse(e.payloadHash);
++       ;
+Tests ran:
+    reconciliation checksum > [DI-31] the checksum is over distinct keys in byte order, so order and resends do not change it
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/reconciliation.ts:58:9
+-       if (!byKey.has(e.idempotencyKey)) byKey.set(e.idempotencyKey, e.payloadHash);
++       if (true) byKey.set(e.idempotencyKey, e.payloadHash);
+Tests ran:
+    reconciliation checksum > [DI-31] the checksum is over distinct keys in byte order, so order and resends do not change it
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:60:79
+-     const keys = [...byKey.keys()].sort((a, b) => Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8')));
++     const keys = [...byKey.keys()].sort((a, b) => Buffer.compare(Buffer.from(a, ""), Buffer.from(b, 'utf8')));
+Tests ran:
+    reconciliation checksum > [DI-31] the checksum is over distinct keys in byte order, so order and resends do not change it
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:60:103
+-     const keys = [...byKey.keys()].sort((a, b) => Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8')));
++     const keys = [...byKey.keys()].sort((a, b) => Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, "")));
+Tests ran:
+    reconciliation checksum > [DI-31] the checksum is over distinct keys in byte order, so order and resends do not change it
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:62:86
+-     return { count: byKey.size.toString(), checksum: createHash('sha256').update(text, 'utf8').digest('hex') };
++     return { count: byKey.size.toString(), checksum: createHash('sha256').update(text, "").digest('hex') };
+Tests ran:
+    reconciliation checksum > [DI-31] the checksum is over distinct keys in byte order, so order and resends do not change it
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/reconciliation.ts:17:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/reconciliation.ts:17:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})/, 'a whole number as decimal text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/reconciliation.ts:17:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/^(0|[^1-9][0-9]{0,17})$/, 'a whole number as decimal text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/reconciliation.ts:17:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/^(0|[1-9][0-9])$/, 'a whole number as decimal text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/reconciliation.ts:17:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/^(0|[1-9][^0-9]{0,17})$/, 'a whole number as decimal text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:17:62
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, "");
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:21:17
+-     .strictObject({
+-       periodFrom: EpochMicrosText,
+-       periodTo: EpochMicrosText,
+-       sourceCount: WholeText,
+-       sourceChecksum: Sha256Hex,
+-     })
++     .strictObject({})
+Ran all tests for this mutant.
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/adapter/reconciliation.ts:27:11
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine(() => undefined, { message: 'the period ends after it starts', path: ['periodTo'] });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:27:61
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), {});
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:27:72
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: "", path: ['periodTo'] });
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/reconciliation.ts:27:113
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: [] });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:27:114
+-     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: ['periodTo'] });
++     .refine((r) => BigInt(r.periodFrom) < BigInt(r.periodTo), { message: 'the period ends after it starts', path: [""] });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/reconciliation.ts:31:52
+-   export const ReconciliationReport = z.strictObject({
+-     reportId: z.uuid(),
+-     adapterCode: z.string().min(1),
+-     periodFrom: EpochMicrosText,
+-     periodTo: EpochMicrosText,
+-     sourceCount: WholeText,
+-     sourceChecksum: Sha256Hex,
+-     receivedCount: WholeText,
+-     receivedChecksum: Sha256Hex,
+-     acceptedCount: WholeText,
+-     refusedCount: WholeText,
+-     matched: z.boolean(),
+-     alarmId: z.uuid().nullable(),
+-   });
++   export const ReconciliationReport = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/reconciliation.ts:33:16
+-     adapterCode: z.string().min(1),
++     adapterCode: z.string().max(1),
+Ran all tests for this mutant.
+
+Ran 6.50 tests per mutant on average.
+-------------------|------------------|----------|-----------|------------|----------|----------|
+                   | % Mutation score |          |           |            |          |          |
+File               |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+-------------------|--------|---------|----------|-----------|------------|----------|----------|
+All files          |  23.32 |   26.02 |      146 |         0 |        415 |       65 |        0 |
+ systems           |  10.83 |   12.65 |       43 |         0 |        297 |       57 |        0 |
+  cmms.ts          |  12.50 |   12.50 |        4 |         0 |         28 |        0 |        0 |
+  ems.ts           |  40.00 |   40.00 |        4 |         0 |          6 |        0 |        0 |
+  erp-wms.ts       |  13.73 |   13.73 |       14 |         0 |         88 |        0 |        0 |
+  l3.ts            |  10.53 |   10.53 |        4 |         0 |         34 |        0 |        0 |
+  lims.ts          |  12.50 |   12.50 |        3 |         0 |         21 |        0 |        0 |
+  lms.ts           |  17.65 |   17.65 |        3 |         0 |         14 |        0 |        0 |
+  opcua.ts         |   4.69 |    8.45 |        6 |         0 |         65 |       57 |        0 |
+  qms.ts           |  10.87 |   10.87 |        5 |         0 |         41 |        0 |        0 |
+ contract.ts       |  41.86 |   41.86 |       18 |         0 |         25 |        0 |        0 |
+ envelope.ts       |  39.44 |   39.44 |       28 |         0 |         43 |        0 |        0 |
+ errors.ts         |  63.64 |   66.67 |       42 |         0 |         21 |        3 |        0 |
+ mirror.ts         |   0.00 |    0.00 |        0 |         0 |          9 |        0 |        0 |
+ reconciliation.ts |  37.50 |   42.86 |       15 |         0 |         20 |        5 |        0 |
+-------------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m00:28:50 (224020) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/sdk-adapter.json
+[32m00:28:50 (224020) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/sdk-adapter.html
+[32m00:28:50 (224020) INFO MutationTestExecutor[39m Done in 1 minute and 14 seconds.

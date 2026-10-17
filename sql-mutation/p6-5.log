@@ -1,0 +1,141 @@
+inbound-adapters-and-mirrors: 310 mutants in 21 functions (db)
+packaging-labels-and-line-completion: 352 mutants in 34 functions (db + server)
+serialisation-l3: 112 mutants in 7 functions (server)
+controlled-substance-mode: 311 mutants in 34 functions (db + server)
+governance-change-control: 117 mutants in 19 functions (db + server)
+governance-support-and-contract-giver: 228 mutants in 21 functions (db + server)
+reporting-and-training: 149 mutants in 14 functions (db + server)
+total: 1579 mutants in 7 groups
+templates built in 20 s: ebmr_mut_base_a5b4559a, ebmr_stpl_42914ca9af60, ebmr_sandbox_tpl8feb184018eb
+checked 150 functions: each re-applied unmutated leaves its pg_proc row unchanged; owners ebmr_owner (376); a copy of each template has the template's database privileges
+inbound-adapters-and-mirrors: baseline db 20 s (limit 240 s)
+  SURVIVED iam.integration_adapter_guard#3 GUARD_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:65 [raise exception using errcode = 'P0001', message = 'EBMR-INT-016 an integration ] -> [null]
+  SURVIVED iam.integration_adapter_guard#7 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:70 [or] -> [and]
+  SURVIVED iam.integration_adapter_guard#13 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:71 [or] -> [and]
+  SURVIVED iam.integration_adapter_guard#15 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:71 [or] -> [and]
+  SURVIVED iam.integration_adapter_guard#17 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:71 [or] -> [and]
+  SURVIVED iam.integration_adapter_guard#19 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:72 [or] -> [and]
+  SURVIVED iam.integration_adapter_guard#25 GUARD_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:77 [raise exception using errcode = 'P0001', message = 'EBMR-INT-016 a decommissione] -> [null]
+  inbound-adapters-and-mirrors: 25/310
+  SURVIVED iam.set_integration_adapter_status#2 GUARD_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:119 [raise exception using errcode = 'P0001', message = 'EBMR-IAM-004 a reason is req] -> [null]
+  SURVIVED iam.set_integration_adapter_status#9 GUARD_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:123 [raise exception using errcode = 'P0001', message = format('EBMR-INT-016 unknown ] -> [null]
+  SURVIVED iam.current_integration_adapter#2 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:136 [and] -> [or]
+  inbound-adapters-and-mirrors: 50/310
+  SURVIVED platform.inbound_envelope_problem#10 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:321 [>] -> [>=]
+  SURVIVED platform.inbound_envelope_problem#12 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:327 [>] -> [>=]
+  inbound-adapters-and-mirrors: 75/310
+  SURVIVED platform.accept_inbound_detail#47 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:412 [>] -> [>=]
+  SURVIVED platform.record_inbound_refusal#7 GUARD_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:457 [raise exception using errcode = 'P0001', message = 'EBMR-INT-014 a refusal is re] -> [null]
+  SURVIVED platform.record_inbound_refusal#18 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:464 [and] -> [or]
+  SURVIVED platform.record_inbound_refusal#20 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:464 [<=] -> [<]
+  inbound-adapters-and-mirrors: 100/310
+  SURVIVED platform.acknowledge_integration_alarm#3 GUARD_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:488 [raise exception using errcode = 'P0001', message = format('EBMR-INT-007 unknown ] -> [null]
+  SURVIVED platform.record_reconciliation#2 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:522 [or] -> [and]
+  SURVIVED platform.record_reconciliation#3 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:523 [or] -> [and]
+  SURVIVED platform.record_reconciliation#5 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:523 [or] -> [and]
+  SURVIVED platform.record_reconciliation#7 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:524 [or] -> [and]
+  SURVIVED platform.record_reconciliation#9 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:524 [or] -> [and]
+  SURVIVED platform.record_reconciliation#11 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:525 [or] -> [and]
+  SURVIVED platform.record_reconciliation#13 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:525 [>=] -> [>]
+  SURVIVED platform.record_reconciliation#15 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:526 [or] -> [and]
+  SURVIVED platform.record_reconciliation#17 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:526 [>] -> [>=]
+  SURVIVED platform.record_reconciliation#18 GUARD_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:527 [raise exception using errcode = 'P0001', message = 'EBMR-INT-015 a reconciliatio] -> [null]
+  SURVIVED platform.record_reconciliation#25 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:535 [>=] -> [>]
+  SURVIVED platform.record_reconciliation#27 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:535 [<] -> [<=]
+  SURVIVED platform.record_reconciliation#28 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:539 [=] -> [<>]
+  inbound-adapters-and-mirrors: 125/310
+  SURVIVED platform.record_reconciliation#30 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:539 [=] -> [<>]
+  SURVIVED platform.record_reconciliation#32 NOT_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:539 [not ] -> []
+  SURVIVED platform.record_reconciliation#34 NOT_REMOVED packages/kernel/sql/1180_inbound_adapter_framework.sql:539 [not ] -> []
+  SURVIVED platform.record_reconciliation#36 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:540 [>=] -> [>]
+  SURVIVED platform.record_reconciliation#38 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:540 [<] -> [<=]
+  SURVIVED platform.record_reconciliation#39 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:546 [=] -> [<>]
+  SURVIVED platform.record_reconciliation#40 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:546 [and] -> [or]
+  SURVIVED platform.record_reconciliation#41 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:546 [>=] -> [>]
+  SURVIVED platform.record_reconciliation#42 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:546 [and] -> [or]
+  SURVIVED platform.record_reconciliation#43 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:546 [<] -> [<=]
+  SURVIVED platform.record_reconciliation#45 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:548 [and] -> [or]
+  SURVIVED platform.record_reconciliation#44 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:548 [=] -> [<>]
+  SURVIVED platform.record_reconciliation#46 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:548 [=] -> [<>]
+  SURVIVED platform.record_reconciliation#47 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:548 [and] -> [or]
+  SURVIVED platform.record_reconciliation#48 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:548 [>=] -> [>]
+  SURVIVED platform.record_reconciliation#49 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:548 [and] -> [or]
+  SURVIVED platform.record_reconciliation#50 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:548 [<] -> [<=]
+  SURVIVED platform.record_reconciliation#53 LOGICAL packages/kernel/sql/1180_inbound_adapter_framework.sql:549 [or] -> [and]
+  SURVIVED platform.record_mirror_sync#3 GUARD_REMOVED packages/kernel/sql/1182_mirror_sync_caught_up.sql:53 [raise exception using errcode = 'P0001', message = format('EBMR-INT-011 unknown ] -> [null]
+  inbound-adapters-and-mirrors: 150/310
+  SURVIVED platform.record_mirror_sync#19 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:68 [>] -> [>=]
+  SURVIVED platform.record_mirror_sync#25 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:73 [>] -> [>=]
+  SURVIVED platform.record_mirror_sync#26 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:74 [=] -> [<>]
+  SURVIVED platform.record_mirror_sync#27 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:76 [=] -> [<>]
+  SURVIVED platform.record_mirror_sync#28 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:76 [and] -> [or]
+  SURVIVED platform.record_mirror_sync#29 NOT_REMOVED packages/kernel/sql/1182_mirror_sync_caught_up.sql:76 [not ] -> []
+  SURVIVED platform.record_mirror_sync#30 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:76 [and] -> [or]
+  SURVIVED platform.record_mirror_sync#31 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:76 [<=] -> [<]
+  SURVIVED platform.record_mirror_sync#33 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:78 [=] -> [<>]
+  SURVIVED platform.record_mirror_sync#34 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:78 [and] -> [or]
+  SURVIVED platform.record_mirror_sync#35 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:78 [=] -> [<>]
+  SURVIVED platform.record_mirror_sync#36 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:78 [and] -> [or]
+  inbound-adapters-and-mirrors: 175/310
+  SURVIVED platform.record_mirror_sync#37 NOT_REMOVED packages/kernel/sql/1182_mirror_sync_caught_up.sql:78 [not ] -> []
+  SURVIVED platform.record_mirror_sync#38 RELATIONAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:80 [<=] -> [<]
+  SURVIVED platform.record_mirror_sync#42 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:87 [and] -> [or]
+  SURVIVED platform.record_mirror_sync#44 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:87 [and] -> [or]
+  SURVIVED platform.record_mirror_sync#49 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:100 [and] -> [or]
+  SURVIVED platform.record_mirror_sync#51 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:101 [and] -> [or]
+  SURVIVED platform.record_mirror_sync#54 LOGICAL packages/kernel/sql/1182_mirror_sync_caught_up.sql:101 [and] -> [or]
+  inbound-adapters-and-mirrors: 200/310
+  SURVIVED platform.mirror_freshness#10 RELATIONAL packages/kernel/sql/1180_inbound_adapter_framework.sql:611 [>] -> [>=]
+  inbound-adapters-and-mirrors: 225/310
+  SURVIVED iam.qualification_source_fresh#4 LOGICAL packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:100 [and] -> [or]
+  SURVIVED iam.qualification_source_fresh#6 RELATIONAL packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:101 [>=] -> [>]
+  SURVIVED iam.qualification_source_fresh#10 RELATIONAL packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:103 [>=] -> [>]
+  SURVIVED iam.qualification_source_fresh#12 RELATIONAL packages/kernel/sql/1181_inbound_overrides_and_lms_mirror.sql:104 [=] -> [<>]
+  SURVIVED iam.lms_qualification_payload_problem#1 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:41 [or] -> [and]
+  SURVIVED iam.lms_qualification_payload_problem#4 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:49 [or] -> [and]
+  SURVIVED iam.lms_qualification_payload_problem#6 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:52 [or] -> [and]
+  SURVIVED iam.lms_qualification_payload_problem#10 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:58 [or] -> [and]
+  SURVIVED iam.lms_qualification_payload_problem#12 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:59 [or] -> [and]
+  SURVIVED iam.lms_qualification_payload_problem#14 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:59 [>] -> [>=]
+  SURVIVED iam.lms_qualification_payload_problem#19 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:65 [or] -> [and]
+  SURVIVED iam.lms_qualification_payload_problem#21 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:66 [or] -> [and]
+  SURVIVED iam.lms_qualification_payload_problem#23 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:66 [>] -> [>=]
+  inbound-adapters-and-mirrors: 250/310
+  SURVIVED iam.lms_qualification_payload_problem#25 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:69 [and] -> [or]
+  SURVIVED iam.lms_qualification_payload_problem#27 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:69 [<=] -> [<]
+  SURVIVED iam.receive_lms_qualification#2 GUARD_REMOVED packages/kernel/sql/1186_lms_qualification_inbound.sql:96 [raise exception using errcode = 'P0001', message = format('EBMR-LMS-002 this com] -> [null]
+  inbound-adapters-and-mirrors: 275/310
+  SURVIVED iam.receive_lms_qualification#49 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:125 [>=] -> [>]
+  SURVIVED iam.receive_lms_qualification#56 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:131 [=] -> [<>]
+  SURVIVED iam.receive_lms_qualification#61 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:134 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#64 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:134 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#66 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:135 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#67 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:135 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#69 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:135 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#75 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:141 [=] -> [<>]
+  SURVIVED iam.receive_lms_qualification#76 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:141 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#77 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:141 [=] -> [<>]
+  SURVIVED iam.receive_lms_qualification#79 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:141 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#80 RELATIONAL packages/kernel/sql/1186_lms_qualification_inbound.sql:141 [=] -> [<>]
+  inbound-adapters-and-mirrors: 300/310
+  SURVIVED iam.receive_lms_qualification#81 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:141 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#91 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:150 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#94 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:150 [and] -> [or]
+  SURVIVED iam.receive_lms_qualification#96 LOGICAL packages/kernel/sql/1186_lms_qualification_inbound.sql:150 [and] -> [or]
+inbound-adapters-and-mirrors: score 66.2 % (198/299 detected, 11 invalid) in 1273 s
+packaging-labels-and-line-completion: baseline db 7 s (limit 240 s), server 25 s (limit 240 s)
+  SURVIVED site.open_label_store_transaction#2 LOGICAL packages/site-services/sql/0950_label_store.sql:73 [or] -> [and]
+  SURVIVED site.open_label_store_transaction#4 LOGICAL packages/site-services/sql/0950_label_store.sql:74 [or] -> [and]
+  SURVIVED site.open_label_store_transaction#5 LOGICAL packages/site-services/sql/0950_label_store.sql:74 [or] -> [and]
+  SURVIVED site.open_label_store_transaction#7 LOGICAL packages/site-services/sql/0950_label_store.sql:75 [or] -> [and]
+  SURVIVED site.open_label_store_transaction#14 LOGICAL packages/site-services/sql/0950_label_store.sql:78 [or] -> [and]
+  packaging-labels-and-line-completion: 25/352
+  SURVIVED site.open_label_store_transaction#52 RELATIONAL packages/site-services/sql/0950_label_store.sql:97 [<] -> [<=]
+  SURVIVED site.open_label_store_transaction#63 RELATIONAL packages/site-services/sql/0950_label_store.sql:101 [<] -> [<=]
+  SURVIVED recipe.label_template_status#1 RELATIONAL packages/recipe-core/sql/0990_label_templates.sql:125 [=] -> [<>]
+  packaging-labels-and-line-completion: 50/352
+  SURVIVED recipe.label_layout_fields#1 LOGICAL packages/recipe-core/sql/0990_label_templates.sql:145 [or] -> [and]
+  SURVIVED recipe.label_layout_fields#3 LOGICAL packages/recipe-core/sql/0990_label_templates.sql:146 [or] -> [and]
+  SURVIVED recipe.label_layout_fields#5 LOGICAL packages/recipe-core/sql/0990_label_templates.sql:146 [or] -> [and]
+  SURVIVED recipe.label_layout_fields#7 LOGICAL packages/recipe-core/sql/0990_label_templates.sql:147 [or] -> [and]
+  SURVIVED recipe.label_layout_fields#8 LOGICAL packages/recipe-core/sql/0990_label_templates.sql:147 [or] -> [and]

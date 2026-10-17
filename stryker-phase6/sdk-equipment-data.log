@@ -1,0 +1,1972 @@
+[32m00:28:54 (230938) INFO ProjectReader[39m No incremental result file found at .reports/stryker-phase6/sdk-equipment-data.incremental.json, a full mutation testing run will be performed.
+[32m00:28:54 (230938) INFO ProjectReader[39m Found 3 of 6240 file(s) to be mutated.
+[32m00:28:54 (230938) INFO Instrumenter[39m Instrumented 3 source file(s) with 667 mutant(s)
+[32m00:29:03 (230938) INFO ConcurrencyTokenProvider[39m Creating 2 test runner process(es).
+[32m00:29:05 (230938) INFO BroadcastReporter[39m Detected that current console does not support the "progress" reporter, downgrading to "progress-append-only" reporter
+[32m00:29:06 (230938) INFO DryRunExecutor[39m Starting initial test run (vitest test runner with "perTest" coverage analysis). This may take a while.
+[32m00:29:07 (230938) INFO DryRunExecutor[39m Initial test run succeeded. Ran 23 tests in 0 seconds (net 39.935540000000515 ms, overhead 627.0644599999995 ms).
+[33m00:29:07 (230938) WARN MutantTestPlanner[39m Detected 289 static mutants (43% of total) that are estimated to take 89% of the time running the tests!
+  You might want to enable "ignoreStatic" to ignore these static mutants for your next run. 
+  For more information about static mutants visit: https://stryker-mutator.io/docs/mutation-testing-elements/static-mutants
+  (disable "warnings.slow" to ignore this warning)
+Mutation testing 4% (elapsed: <1m, remaining: ~3m) 127/667 tested (14 survived, 0 timed out)
+Mutation testing 7% (elapsed: <1m, remaining: ~4m) 222/667 tested (40 survived, 0 timed out)
+Mutation testing 9% (elapsed: <1m, remaining: ~4m) 326/667 tested (63 survived, 0 timed out)
+Mutation testing 17% (elapsed: <1m, remaining: ~3m) 398/667 tested (76 survived, 0 timed out)
+Mutation testing 33% (elapsed: <1m, remaining: ~1m) 450/667 tested (96 survived, 0 timed out)
+Mutation testing 46% (elapsed: ~1m, remaining: ~1m) 495/667 tested (129 survived, 0 timed out)
+Mutation testing 58% (elapsed: ~1m, remaining: <1m) 533/667 tested (158 survived, 0 timed out)
+Mutation testing 71% (elapsed: ~1m, remaining: <1m) 574/667 tested (183 survived, 0 timed out)
+Mutation testing 82% (elapsed: ~1m, remaining: <1m) 609/667 tested (206 survived, 0 timed out)
+Mutation testing 92% (elapsed: ~1m, remaining: <1m) 643/667 tested (233 survived, 0 timed out)
+
+All tests
+  adapter/equipment-data.test.ts
+    ✓ equipment data (6b-0) > [DI-32] a status code reads GOOD, UNCERTAIN or BAD from its severity bits (killed 11)
+    ✓ equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused (killed 86)
+    ✓ equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample (killed 52)
+    ✘ equipment data (6b-0) > [meta] OPC UA node ids derive from the released tag names, both ways, for every tag (covered 0)
+    ✘ equipment data (6b-0) > [DI-20] an endpoint is SignAndEncrypt with an enrolled certificate thumbprint and its room; None mode is refused (covered 0)
+    ✓ equipment data (6b-0) > [DI-49] an alarm occurrence states its transition, code, limit and source time; an equipment event its kind and state (killed 47)
+    ✘ equipment data (6b-0) > [meta] the OPCUA and EMS contracts list their message types with version 1 schemas (covered 0)
+  process/wire.test.ts
+    ✘ process tags > names the press and coater tags of the 3a interface, with units and decimals (covered 0)
+    ✓ process-readings wire validator > accepts the wire shape of the 3a interface (killed 50)
+    ✓ process-readings wire validator > refuses a value as a JavaScript number, an exponent, an unknown member, a missing member or an empty batch (killed 5)
+    ✓ process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag (killed 22)
+    ✓ process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart (killed 7)
+    ✓ process-readings wire validator > setpoint downloads and their acknowledgement (killed 13)
+    ✘ ebmr.sim-process.v1 codec > parses requests and answers, refusing another id, a wrong shape and bytes outside printable ASCII (covered 0)
+    ✘ ebmr.sim-process.v1 codec > frames LF-ended lines across chunks and sets an over-long line aside (covered 0)
+  serialisation/serialisation.test.ts
+    ✘ market code content (D-S4-1) > holds EU FMD and US DSCSA as unit-level serialised markets and India Schedule H2 as a batch-level QR without serials (covered 0)
+    ✘ market code content (D-S4-1) > builds the EU unit identifier from the record values as GS1 element strings, fixed-length first, GS after a variable one (covered 0)
+    ✘ market code content (D-S4-1) > builds the US product identifier only from a GTIN that carries the NDC (covered 0)
+    ✘ market code content (D-S4-1) > [PR-42] refuses a code whose encoded lot or expiry differs from the record, and accepts one that carries them (covered 0)
+    ✓ L3 contract: pools, serial states and the hashed report > takes a pool request with the quantity as whole decimal text, never a number or zero (killed 14)
+    ✓ L3 contract: pools, serial states and the hashed report > allows only the serial state changes of the contract (killed 8)
+    ✓ L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up (killed 39)
+    ✓ L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs (killed 24)
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:58:29
+-     if (!m || (m[2] === '' && (m[3] ?? '') === '')) return null;
++     if (!m || (m[2] === '' && true)) return null;
+
+[NoCoverage] EqualityOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:58:29
+-     if (!m || (m[2] === '' && (m[3] ?? '') === '')) return null;
++     if (!m || (m[2] === '' && (m[3] ?? '') !== '')) return null;
+
+[NoCoverage] LogicalOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:58:30
+-     if (!m || (m[2] === '' && (m[3] ?? '') === '')) return null;
++     if (!m || (m[2] === '' && (m[3] && '') === '')) return null;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:58:38
+-     if (!m || (m[2] === '' && (m[3] ?? '') === '')) return null;
++     if (!m || (m[2] === '' && (m[3] ?? "Stryker was here!") === '')) return null;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:58:46
+-     if (!m || (m[2] === '' && (m[3] ?? '') === '')) return null;
++     if (!m || (m[2] === '' && (m[3] ?? '') === "Stryker was here!")) return null;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:60:27
+-     let digits = `${m[2] ?? ''}${m[3] ?? ''}`;
++     let digits = `${m[2] ?? "Stryker was here!"}${m[3] ?? ''}`;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:61:24
+-     let point = (m[2] ?? '').length + Number.parseInt(m[4] ?? '0', 10);
++     let point = (m[2] ?? "Stryker was here!").length + Number.parseInt(m[4] ?? '0', 10);
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/adapter/equipment-data.ts:63:18
+-     if (point < 0) {
+-       digits = '0'.repeat(-point) + digits;
+-       point = 0;
+-     }
++     if (point < 0) {}
+
+[NoCoverage] ArithmeticOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:64:14
+-       digits = '0'.repeat(-point) + digits;
++       digits = '0'.repeat(-point) - digits;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:64:14
+-       digits = '0'.repeat(-point) + digits;
++       digits = "".repeat(-point) + digits;
+
+[NoCoverage] UnaryOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:64:25
+-       digits = '0'.repeat(-point) + digits;
++       digits = '0'.repeat(+point) + digits;
+
+[NoCoverage] ArithmeticOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:67:39
+-     if (point > digits.length) digits = digits + '0'.repeat(point - digits.length);
++     if (point > digits.length) digits = digits - '0'.repeat(point - digits.length);
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:67:48
+-     if (point > digits.length) digits = digits + '0'.repeat(point - digits.length);
++     if (point > digits.length) digits = digits + "".repeat(point - digits.length);
+
+[NoCoverage] ArithmeticOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:67:59
+-     if (point > digits.length) digits = digits + '0'.repeat(point - digits.length);
++     if (point > digits.length) digits = digits + '0'.repeat(point + digits.length);
+
+[NoCoverage] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:130:81
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({});
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:130:89
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: "", path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
+
+[NoCoverage] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:130:105
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: [], message: 'a sample with a BAD status shows no value' });
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:130:106
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ["", i, 'value'], message: 'a sample with a BAD status shows no value' });
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:130:120
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, ""], message: 'a sample with a BAD status shows no value' });
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:130:139
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: "" });
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:57:13
+-     const m = /^([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]{1,3}))?$/.exec(text);
++     const m = /([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]{1,3}))?$/.exec(text);
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:57:13
+-     const m = /^([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]{1,3}))?$/.exec(text);
++     const m = /^([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]{1,3}))?/.exec(text);
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:57:13
+-     const m = /^([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]{1,3}))?$/.exec(text);
++     const m = /^([+-]?)([0-9]*)(?:\.([0-9]*))?(?:[eE]([+-]?[0-9]))?$/.exec(text);
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:58:14
+-     if (!m || (m[2] === '' && (m[3] ?? '') === '')) return null;
++     if (!m || (false)) return null;
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:58:23
+-     if (!m || (m[2] === '' && (m[3] ?? '') === '')) return null;
++     if (!m || (m[2] === "Stryker was here!" && (m[3] ?? '') === '')) return null;
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:59:16
+-     const sign = m[1] === '-' ? '-' : '';
++     const sign = false ? '-' : '';
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:59:31
+-     const sign = m[1] === '-' ? '-' : '';
++     const sign = m[1] === '-' ? "" : '';
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:63:7
+-     if (point < 0) {
++     if (false) {
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:63:7
+-     if (point < 0) {
++     if (point <= 0) {
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:67:7
+-     if (point > digits.length) digits = digits + '0'.repeat(point - digits.length);
++     if (false) digits = digits + '0'.repeat(point - digits.length);
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:67:7
+-     if (point > digits.length) digits = digits + '0'.repeat(point - digits.length);
++     if (point >= digits.length) digits = digits + '0'.repeat(point - digits.length);
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:68:50
+-     const intPart = digits.slice(0, point).replace(/^0+/, '') || '0';
++     const intPart = digits.slice(0, point).replace(/0+/, '') || '0';
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:69:48
+-     const fracPart = digits.slice(point).replace(/0+$/, '');
++     const fracPart = digits.slice(point).replace(/0+/, '');
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:69:48
+-     const fracPart = digits.slice(point).replace(/0+$/, '');
++     const fracPart = digits.slice(point).replace(/0$/, '');
+Tests ran:
+    equipment data (6b-0) > [DI-32] the shown value must be exactly the raw value the device sent: exponent forms are equal, a rounding is refused
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:128:11
+-         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
++         if (t < prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:128:35
+-         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
++         if (t <= prev) ctx.addIssue({});
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:128:59
+-         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
++         if (t <= prev) ctx.addIssue({ code: 'custom', path: [], message: 'source times increase within a chunk' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:128:43
+-         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
++         if (t <= prev) ctx.addIssue({ code: "", path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:128:60
+-         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
++         if (t <= prev) ctx.addIssue({ code: 'custom', path: ["", i, 'sourceTime'], message: 'source times increase within a chunk' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:128:74
+-         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
++         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, ""], message: 'source times increase within a chunk' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:128:98
+-         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: 'source times increase within a chunk' });
++         if (t <= prev) ctx.addIssue({ code: 'custom', path: ['samples', i, 'sourceTime'], message: "" });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:130:11
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (false) ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:130:61
+-         if (s.value !== null && qualityOfStatus(s.status) === 'BAD') ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
++         if (s.value !== null && qualityOfStatus(s.status) === "") ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: 'a sample with a BAD status shows no value' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:133:35
+-           if (problem) ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: problem });
++           if (problem) ctx.addIssue({});
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:133:43
+-           if (problem) ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: problem });
++           if (problem) ctx.addIssue({ code: "", path: ['samples', i, 'value'], message: problem });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:133:59
+-           if (problem) ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: problem });
++           if (problem) ctx.addIssue({ code: 'custom', path: [], message: problem });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:133:60
+-           if (problem) ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: problem });
++           if (problem) ctx.addIssue({ code: 'custom', path: ["", i, 'value'], message: problem });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:133:74
+-           if (problem) ctx.addIssue({ code: 'custom', path: ['samples', i, 'value'], message: problem });
++           if (problem) ctx.addIssue({ code: 'custom', path: ['samples', i, ""], message: problem });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:136:58
+-       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: ['chunkHash'], message: 'the chunk hash does not match its samples' });
++       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({});
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:136:66
+-       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: ['chunkHash'], message: 'the chunk hash does not match its samples' });
++       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: "", path: ['chunkHash'], message: 'the chunk hash does not match its samples' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:136:82
+-       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: ['chunkHash'], message: 'the chunk hash does not match its samples' });
++       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: [], message: 'the chunk hash does not match its samples' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:136:83
+-       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: ['chunkHash'], message: 'the chunk hash does not match its samples' });
++       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: [""], message: 'the chunk hash does not match its samples' });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:136:106
+-       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: ['chunkHash'], message: 'the chunk hash does not match its samples' });
++       if (c.chunkHash !== seriesChunkHash(c)) ctx.addIssue({ code: 'custom', path: ['chunkHash'], message: "" });
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:151:58
+-     return createHash('sha256').update(seriesChunkText(c), 'utf8').digest('hex');
++     return createHash('sha256').update(seriesChunkText(c), "").digest('hex');
+Tests ran:
+    equipment data (6b-0) > [DI-32] a series chunk keeps raw values, source timestamps and status codes; its hash covers every sample
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:191:42
+-     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: ['limit'] });
++     .refine((a) => (a.limit === null) === (false || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: ['limit'] });
+Tests ran:
+    equipment data (6b-0) > [DI-49] an alarm occurrence states its transition, code, limit and source time; an equipment event its kind and state
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:218:19
+-     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: ['state'] })
++     .refine((e) => (true) === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: ['state'] })
+Tests ran:
+    equipment data (6b-0) > [DI-49] an alarm occurrence states its transition, code, limit and source time; an equipment event its kind and state
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:219:76
+-     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
++     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || false, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
+Tests ran:
+    equipment data (6b-0) > [DI-49] an alarm occurrence states its transition, code, limit and source time; an equipment event its kind and state
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:219:37
+-     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
++     .refine((e) => !['RECIPE_LOADED', ""].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
+Tests ran:
+    equipment data (6b-0) > [DI-49] an alarm occurrence states its transition, code, limit and source time; an equipment event its kind and state
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:242:18
+-     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
++     .refine((r) => false, { message: 'from is before to', path: ['toUs'] });
+Tests ran:
+    equipment data (6b-0) > [DI-49] an alarm occurrence states its transition, code, limit and source time; an equipment event its kind and state
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/adapter/equipment-data.ts:242:18
+-     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
++     .refine((r) => BigInt(r.fromUs) <= BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
+Tests ran:
+    equipment data (6b-0) > [DI-49] an alarm occurrence states its transition, code, limit and source time; an equipment event its kind and state
+
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:27:48
+-   export const StatusCodeText = z.string().regex(/^0x[0-9A-F]{8}$/, 'a status code such as 0x00000000');
++   export const StatusCodeText = z.string().regex(/0x[0-9A-F]{8}$/, 'a status code such as 0x00000000');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:27:48
+-   export const StatusCodeText = z.string().regex(/^0x[0-9A-F]{8}$/, 'a status code such as 0x00000000');
++   export const StatusCodeText = z.string().regex(/^0x[0-9A-F]{8}/, 'a status code such as 0x00000000');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:27:67
+-   export const StatusCodeText = z.string().regex(/^0x[0-9A-F]{8}$/, 'a status code such as 0x00000000');
++   export const StatusCodeText = z.string().regex(/^0x[0-9A-F]{8}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[^+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9])([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[^0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][^+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:47:47
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9])?$/, 'a number as the source wrote it').max(40);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:47:108
+-   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40);
++   export const RawNumberText = z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, "").max(40);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:49:46
+-   export const ShownDecimal = z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.50');
++   export const ShownDecimal = z.string().regex(/^-?(0|[1-9][0-9])(\.[0-9]+)?$/, 'decimal text such as 12.50');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:49:46
+-   export const ShownDecimal = z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.50');
++   export const ShownDecimal = z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)$/, 'decimal text such as 12.50');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:49:80
+-   export const ShownDecimal = z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, 'decimal text such as 12.50');
++   export const ShownDecimal = z.string().regex(/^-?(0|[1-9][0-9]*)(\.[0-9]+)?$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:108:41
+-   export const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/, 'a tag such as force.main_kN').max(64);
++   export const TagName = z.string().regex(/[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/, 'a tag such as force.main_kN').max(64);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:108:41
+-   export const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/, 'a tag such as force.main_kN').max(64);
++   export const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+/, 'a tag such as force.main_kN').max(64);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:108:41
+-   export const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/, 'a tag such as force.main_kN').max(64);
++   export const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)$/, 'a tag such as force.main_kN').max(64);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:108:80
+-   export const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/, 'a tag such as force.main_kN').max(64);
++   export const TagName = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-zA-Z0-9_]+)+$/, "").max(64);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:120:31
+-       chunkNo: z.string().regex(/^[1-9][0-9]{0,17}$/),
++       chunkNo: z.string().regex(/[1-9][0-9]{0,17}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:120:31
+-       chunkNo: z.string().regex(/^[1-9][0-9]{0,17}$/),
++       chunkNo: z.string().regex(/^[1-9][0-9]{0,17}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:120:31
+-       chunkNo: z.string().regex(/^[1-9][0-9]{0,17}$/),
++       chunkNo: z.string().regex(/^[1-9][^0-9]{0,17}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:172:43
+-   export const AlarmCode = z.string().regex(/^[A-Z][A-Z0-9_.-]{0,63}$/, 'an alarm code such as FORCE_MAIN_HIGH');
++   export const AlarmCode = z.string().regex(/[A-Z][A-Z0-9_.-]{0,63}$/, 'an alarm code such as FORCE_MAIN_HIGH');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:172:43
+-   export const AlarmCode = z.string().regex(/^[A-Z][A-Z0-9_.-]{0,63}$/, 'an alarm code such as FORCE_MAIN_HIGH');
++   export const AlarmCode = z.string().regex(/^[A-Z][A-Z0-9_.-]{0,63}/, 'an alarm code such as FORCE_MAIN_HIGH');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:172:71
+-   export const AlarmCode = z.string().regex(/^[A-Z][A-Z0-9_.-]{0,63}$/, 'an alarm code such as FORCE_MAIN_HIGH');
++   export const AlarmCode = z.string().regex(/^[A-Z][A-Z0-9_.-]{0,63}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:179:36
+-       occurrenceId: z.string().regex(/^[\x21-\x7E]{1,128}$/),
++       occurrenceId: z.string().regex(/[\x21-\x7E]{1,128}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:179:36
+-       occurrenceId: z.string().regex(/^[\x21-\x7E]{1,128}$/),
++       occurrenceId: z.string().regex(/^[\x21-\x7E]{1,128}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:183:32
+-       severity: z.string().regex(/^([1-9][0-9]{0,2}|1000)$/),
++       severity: z.string().regex(/([1-9][0-9]{0,2}|1000)$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:183:32
+-       severity: z.string().regex(/^([1-9][0-9]{0,2}|1000)$/),
++       severity: z.string().regex(/^([1-9][0-9]{0,2}|1000)/),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:191:92
+-     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: ['limit'] });
++     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), {});
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:191:103
+-     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: ['limit'] });
++     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: "", path: ['limit'] });
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:191:179
+-     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: ['limit'] });
++     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: [] });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:191:180
+-     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: ['limit'] });
++     .refine((a) => (a.limit === null) === (a.limitKind === null || a.limitKind === 'STATE'), { message: 'a limit is given exactly when a limit other than STATE was crossed', path: [""] });
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:211:31
+-       eventId: z.string().regex(/^[\x21-\x7E]{1,128}$/),
++       eventId: z.string().regex(/[\x21-\x7E]{1,128}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:211:31
+-       eventId: z.string().regex(/^[\x21-\x7E]{1,128}$/),
++       eventId: z.string().regex(/^[\x21-\x7E]{1,128}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:214:37
+-       recipeVersion: z.string().regex(/^[\x21-\x7E]{1,64}$/).nullable(),
++       recipeVersion: z.string().regex(/[\x21-\x7E]{1,64}$/).nullable(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:214:37
+-       recipeVersion: z.string().regex(/^[\x21-\x7E]{1,64}$/).nullable(),
++       recipeVersion: z.string().regex(/^[\x21-\x7E]{1,64}/).nullable(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:214:37
+-       recipeVersion: z.string().regex(/^[\x21-\x7E]{1,64}$/).nullable(),
++       recipeVersion: z.string().regex(/^[\x21-\x7E]$/).nullable(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/adapter/equipment-data.ts:214:37
+-       recipeVersion: z.string().regex(/^[\x21-\x7E]{1,64}$/).nullable(),
++       recipeVersion: z.string().regex(/^[^\x21-\x7E]{1,64}$/).nullable(),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:218:71
+-     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: ['state'] })
++     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), {})
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:218:82
+-     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: ['state'] })
++     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: "", path: ['state'] })
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:218:135
+-     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: ['state'] })
++     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: [] })
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:218:136
+-     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: ['state'] })
++     .refine((e) => (e.kind === 'STATE_CHANGED') === (e.state !== null), { message: 'a state is given exactly with STATE_CHANGED', path: [""] })
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:219:102
+-     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
++     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, {});
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:219:113
+-     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
++     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: "", path: ['recipeVersion'] });
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:219:162
+-     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
++     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: [] });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:219:163
+-     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: ['recipeVersion'] });
++     .refine((e) => !['RECIPE_LOADED', 'RECIPE_MISMATCH'].includes(e.kind) || e.recipeVersion !== null, { message: 'a recipe event names the recipe version', path: [""] });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:233:21
+-       kind: z.literal('SERIES'),
++       kind: z.literal(""),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:240:11
+-       step: z.string().min(1).max(200).nullable(),
++       step: z.string().min(1).min(200).nullable(),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/adapter/equipment-data.ts:240:11
+-       step: z.string().min(1).max(200).nullable(),
++       step: z.string().max(1).max(200).nullable(),
+Ran all tests for this mutant.
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/adapter/equipment-data.ts:242:11
+-     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
++     .refine(() => undefined, { message: 'from is before to', path: ['toUs'] });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:242:53
+-     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
++     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), {});
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:242:64
+-     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
++     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: "", path: ['toUs'] });
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/adapter/equipment-data.ts:242:91
+-     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
++     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: [] });
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/adapter/equipment-data.ts:242:92
+-     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: ['toUs'] });
++     .refine((r) => BigInt(r.fromUs) < BigInt(r.toUs), { message: 'from is before to', path: [""] });
+Ran all tests for this mutant.
+
+[NoCoverage] ObjectLiteral
+packages/integration-sdk/src/process/wire.ts:127:45
+-     if (!DECIMAL_TEXT.test(r.value)) out.push({ field: 'value', message: `${r.value} is not plain decimal text` });
++     if (!DECIMAL_TEXT.test(r.value)) out.push({});
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/process/wire.ts:127:54
+-     if (!DECIMAL_TEXT.test(r.value)) out.push({ field: 'value', message: `${r.value} is not plain decimal text` });
++     if (!DECIMAL_TEXT.test(r.value)) out.push({ field: "", message: `${r.value} is not plain decimal text` });
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/process/wire.ts:127:72
+-     if (!DECIMAL_TEXT.test(r.value)) out.push({ field: 'value', message: `${r.value} is not plain decimal text` });
++     if (!DECIMAL_TEXT.test(r.value)) out.push({ field: 'value', message: `` });
+
+[NoCoverage] BlockStatement
+packages/integration-sdk/src/process/wire.ts:153:19
+-       if (r.native) {
+-         // DI-32: the value shown is the raw value the device sent, exactly (never a rounding of it).
+-         const problem = shownValueProblem(r.native.raw, r.value);
+-         if (problem) problems.push({ path: `readings.${i}.native.raw`, message: problem });
+-       }
++       if (r.native) {}
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:156:11
+-         if (problem) problems.push({ path: `readings.${i}.native.raw`, message: problem });
++         if (true) problems.push({ path: `readings.${i}.native.raw`, message: problem });
+
+[NoCoverage] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:156:11
+-         if (problem) problems.push({ path: `readings.${i}.native.raw`, message: problem });
++         if (false) problems.push({ path: `readings.${i}.native.raw`, message: problem });
+
+[NoCoverage] ObjectLiteral
+packages/integration-sdk/src/process/wire.ts:156:34
+-         if (problem) problems.push({ path: `readings.${i}.native.raw`, message: problem });
++         if (problem) problems.push({});
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/process/wire.ts:156:42
+-         if (problem) problems.push({ path: `readings.${i}.native.raw`, message: problem });
++         if (problem) problems.push({ path: ``, message: problem });
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:124:47
+-     if (!spec) return [{ field: 'tag', message: `${r.tag} is not a process tag` }];
++     if (!spec) return [{ field: 'tag', message: `` }];
+Tests ran:
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:126:64
+-     if (r.unit !== spec.unit) out.push({ field: 'unit', message: `${r.tag} is in ${spec.unit}, not ${r.unit}` });
++     if (r.unit !== spec.unit) out.push({ field: 'unit', message: `` });
+Tests ran:
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:127:7
+-     if (!DECIMAL_TEXT.test(r.value)) out.push({ field: 'value', message: `${r.value} is not plain decimal text` });
++     if (false) out.push({ field: 'value', message: `${r.value} is not plain decimal text` });
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:128:79
+-     else if (scaleOf(r.value) > spec.scale) out.push({ field: 'value', message: `${r.tag} carries at most ${spec.scale} decimals` });
++     else if (scaleOf(r.value) > spec.scale) out.push({ field: 'value', message: `` });
+Tests ran:
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:129:84
+-     if (spec.counter && r.value.startsWith('-')) out.push({ field: 'value', message: `${r.tag} is a count and never negative` });
++     if (spec.counter && r.value.startsWith('-')) out.push({ field: 'value', message: `` });
+Tests ran:
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:130:92
+-     if (r.kind === 'SETPOINT_READBACK' && !spec.setpoint) out.push({ field: 'kind', message: `${r.tag} takes no setpoint` });
++     if (r.kind === 'SETPOINT_READBACK' && !spec.setpoint) out.push({ field: 'kind', message: `` });
+Tests ran:
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:153:9
+-       if (r.native) {
++       if (false) {
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:160:9
+-       if (prev !== undefined && seq <= prev) {
++       if (true && seq <= prev) {
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:161:64
+-         problems.push({ path: `readings.${i}.sequence`, message: `sequence ${r.sequence} of ${r.deviceSerial} does not follow ${prev.toString()} in this batch` });
++         problems.push({ path: `readings.${i}.sequence`, message: `` });
+Tests ran:
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:163:33
+-       lastSeq.set(r.deviceSerial, prev !== undefined && prev > seq ? prev : seq);
++       lastSeq.set(r.deviceSerial, false ? prev : seq);
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] LogicalOperator
+packages/integration-sdk/src/process/wire.ts:163:33
+-       lastSeq.set(r.deviceSerial, prev !== undefined && prev > seq ? prev : seq);
++       lastSeq.set(r.deviceSerial, prev !== undefined || prev > seq ? prev : seq);
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:163:33
+-       lastSeq.set(r.deviceSerial, prev !== undefined && prev > seq ? prev : seq);
++       lastSeq.set(r.deviceSerial, true && prev > seq ? prev : seq);
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/process/wire.ts:163:33
+-       lastSeq.set(r.deviceSerial, prev !== undefined && prev > seq ? prev : seq);
++       lastSeq.set(r.deviceSerial, prev === undefined && prev > seq ? prev : seq);
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/process/wire.ts:163:55
+-       lastSeq.set(r.deviceSerial, prev !== undefined && prev > seq ? prev : seq);
++       lastSeq.set(r.deviceSerial, prev !== undefined && true ? prev : seq);
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/process/wire.ts:163:55
+-       lastSeq.set(r.deviceSerial, prev !== undefined && prev > seq ? prev : seq);
++       lastSeq.set(r.deviceSerial, prev !== undefined && prev <= seq ? prev : seq);
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/process/wire.ts:163:55
+-       lastSeq.set(r.deviceSerial, prev !== undefined && prev > seq ? prev : seq);
++       lastSeq.set(r.deviceSerial, prev !== undefined && prev >= seq ? prev : seq);
+Tests ran:
+    process-readings wire validator > accepts the wire shape of the 3a interface
+    process-readings wire validator > refuses an unknown tag, another unit, more decimals than the tag carries, a negative count and a read-back of a measured tag
+    process-readings wire validator > refuses a repeated or reordered sequence number of one device within a batch; devices count apart
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:26:38
+-   export const PROCESS_READINGS_PATH = '/gw/v1/process-readings';
++   export const PROCESS_READINGS_PATH = "";
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/process/wire.ts:31:38
+-   export const ProcessQuality = z.enum(['GOOD', 'UNCERTAIN', 'BAD', 'STALE']);
++   export const ProcessQuality = z.enum([]);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:31:47
+-   export const ProcessQuality = z.enum(['GOOD', 'UNCERTAIN', 'BAD', 'STALE']);
++   export const ProcessQuality = z.enum(['GOOD', "", 'BAD', 'STALE']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:31:60
+-   export const ProcessQuality = z.enum(['GOOD', 'UNCERTAIN', 'BAD', 'STALE']);
++   export const ProcessQuality = z.enum(['GOOD', 'UNCERTAIN', "", 'STALE']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:31:67
+-   export const ProcessQuality = z.enum(['GOOD', 'UNCERTAIN', 'BAD', 'STALE']);
++   export const ProcessQuality = z.enum(['GOOD', 'UNCERTAIN', 'BAD', ""]);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:35:74
+-   export const ProcessReadingKind = z.enum(['ACTUAL', 'SETPOINT_READBACK', 'ALARM', 'ALARM_CLEARED']);
++   export const ProcessReadingKind = z.enum(['ACTUAL', 'SETPOINT_READBACK', "", 'ALARM_CLEARED']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:35:83
+-   export const ProcessReadingKind = z.enum(['ACTUAL', 'SETPOINT_READBACK', 'ALARM', 'ALARM_CLEARED']);
++   export const ProcessReadingKind = z.enum(['ACTUAL', 'SETPOINT_READBACK', 'ALARM', ""]);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:38:62
+-   export const ProcessDecimal = z.string().regex(DECIMAL_TEXT, 'a decimal travels as plain decimal text');
++   export const ProcessDecimal = z.string().regex(DECIMAL_TEXT, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:39:49
+-   export const ProcessSequence = z.string().regex(/^[1-9][0-9]{0,18}$/, 'a sequence number from 1, as text');
++   export const ProcessSequence = z.string().regex(/[1-9][0-9]{0,18}$/, 'a sequence number from 1, as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:39:49
+-   export const ProcessSequence = z.string().regex(/^[1-9][0-9]{0,18}$/, 'a sequence number from 1, as text');
++   export const ProcessSequence = z.string().regex(/^[1-9][0-9]{0,18}/, 'a sequence number from 1, as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:39:49
+-   export const ProcessSequence = z.string().regex(/^[1-9][0-9]{0,18}$/, 'a sequence number from 1, as text');
++   export const ProcessSequence = z.string().regex(/^[1-9][^0-9]{0,18}$/, 'a sequence number from 1, as text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:39:71
+-   export const ProcessSequence = z.string().regex(/^[1-9][0-9]{0,18}$/, 'a sequence number from 1, as text');
++   export const ProcessSequence = z.string().regex(/^[1-9][0-9]{0,18}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:40:52
+-   export const ProcessEpochMicros = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
++   export const ProcessEpochMicros = z.string().regex(/(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:40:52
+-   export const ProcessEpochMicros = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
++   export const ProcessEpochMicros = z.string().regex(/^(0|[1-9][0-9]{0,17})/, 'UTC epoch microseconds as text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:41:46
+-   export const DeviceSerial = z.string().regex(/^[\x21\x23-\x7E]{1,32}$/, 'a device serial number (printable, no quote)');
++   export const DeviceSerial = z.string().regex(/[\x21\x23-\x7E]{1,32}$/, 'a device serial number (printable, no quote)');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:40:78
+-   export const ProcessEpochMicros = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'UTC epoch microseconds as text');
++   export const ProcessEpochMicros = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:41:46
+-   export const DeviceSerial = z.string().regex(/^[\x21\x23-\x7E]{1,32}$/, 'a device serial number (printable, no quote)');
++   export const DeviceSerial = z.string().regex(/^[\x21\x23-\x7E]{1,32}/, 'a device serial number (printable, no quote)');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:41:73
+-   export const DeviceSerial = z.string().regex(/^[\x21\x23-\x7E]{1,32}$/, 'a device serial number (printable, no quote)');
++   export const DeviceSerial = z.string().regex(/^[\x21\x23-\x7E]{1,32}$/, "");
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/process/wire.ts:50:52
+-   export const ProcessReadingNative = z.strictObject({
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+-     status: z.string().regex(/^0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
+-     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
+-     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
+-   });
++   export const ProcessReadingNative = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/process/wire.ts:51:8
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').min(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[^+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9](\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([^0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9])?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[^0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9])([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[^0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([^eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-][0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][^+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9])?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:51:25
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[^0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:51:86
+-     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, 'a number as the source wrote it').max(40),
++     raw: z.string().regex(/^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/, "").max(40),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:52:28
+-     status: z.string().regex(/^0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
++     status: z.string().regex(/0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:52:28
+-     status: z.string().regex(/^0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
++     status: z.string().regex(/^0x[0-9A-F]{8}/, 'an OPC UA status code such as 0x00000000'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:52:28
+-     status: z.string().regex(/^0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
++     status: z.string().regex(/^0x[0-9A-F]$/, 'an OPC UA status code such as 0x00000000'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:52:28
+-     status: z.string().regex(/^0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
++     status: z.string().regex(/^0x[^0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:52:47
+-     status: z.string().regex(/^0x[0-9A-F]{8}$/, 'an OPC UA status code such as 0x00000000'),
++     status: z.string().regex(/^0x[0-9A-F]{8}$/, ""),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:53:32
+-     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
++     deviceTime: z.string().regex(/(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:53:32
+-     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
++     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})/, 'the source timestamp, UTC epoch microseconds as text'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:53:32
+-     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
++     deviceTime: z.string().regex(/^(0|[^1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:53:32
+-     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
++     deviceTime: z.string().regex(/^(0|[1-9][0-9])$/, 'the source timestamp, UTC epoch microseconds as text'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:53:32
+-     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
++     deviceTime: z.string().regex(/^(0|[1-9][^0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:53:58
+-     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'the source timestamp, UTC epoch microseconds as text'),
++     deviceTime: z.string().regex(/^(0|[1-9][0-9]{0,17})$/, ""),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:54:34
+-     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
++     endpointCode: z.string().regex(/[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:54:34
+-     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
++     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}/, 'the endpoint\'s device code'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:54:34
+-     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
++     endpointCode: z.string().regex(/^[^A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:54:34
+-     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
++     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]$/, 'the endpoint\'s device code'),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/process/wire.ts:54:34
+-     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
++     endpointCode: z.string().regex(/^[A-Za-z0-9][^A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:54:71
+-     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, 'the endpoint\'s device code'),
++     endpointCode: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/, ""),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:104:51
+-   export const SetpointOutcome = z.enum(['APPLIED', 'MISMATCH', 'FAILED']);
++   export const SetpointOutcome = z.enum(['APPLIED', "", 'FAILED']);
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/process/wire.ts:104:63
+-   export const SetpointOutcome = z.enum(['APPLIED', 'MISMATCH', 'FAILED']);
++   export const SetpointOutcome = z.enum(['APPLIED', 'MISMATCH', ""]);
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/process/wire.ts:114:12
+-     message: z.string().min(1).max(500).nullable(),
++     message: z.string().min(1).min(500).nullable(),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/process/wire.ts:114:12
+-     message: z.string().min(1).max(500).nullable(),
++     message: z.string().max(1).max(500).nullable(),
+Ran all tests for this mutant.
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:23:61
+-   export const l3PoolEventsPath = (poolId: string): string => `${L3_POOLS_PATH}/${encodeURIComponent(poolId)}/events`;
++   export const l3PoolEventsPath = (poolId: string): string => ``;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:24:61
+-   export const l3PoolReportPath = (poolId: string): string => `${L3_POOLS_PATH}/${encodeURIComponent(poolId)}/report`;
++   export const l3PoolReportPath = (poolId: string): string => ``;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:168:57
+-   export const l3SerialPath = (serial: string): string => `/l3/v1/serials/${encodeURIComponent(serial)}`;
++   export const l3SerialPath = (serial: string): string => ``;
+
+[NoCoverage] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:169:61
+-   export const l3PoolRejectPath = (poolId: string): string => `${L3_POOLS_PATH}/${encodeURIComponent(poolId)}/reject`;
++   export const l3PoolRejectPath = (poolId: string): string => ``;
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/serialisation/wire.ts:38:50
+-     quantity: WholeText.refine((q) => q !== '0' && BigInt(q) <= POOL_MAX, `1 to ${POOL_MAX.toString()} serials`),
++     quantity: WholeText.refine((q) => q !== '0' && true, `1 to ${POOL_MAX.toString()} serials`),
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > takes a pool request with the quantity as whole decimal text, never a number or zero
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/serialisation/wire.ts:38:50
+-     quantity: WholeText.refine((q) => q !== '0' && BigInt(q) <= POOL_MAX, `1 to ${POOL_MAX.toString()} serials`),
++     quantity: WholeText.refine((q) => q !== '0' && BigInt(q) < POOL_MAX, `1 to ${POOL_MAX.toString()} serials`),
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > takes a pool request with the quantity as whole decimal text, never a number or zero
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/serialisation/wire.ts:109:10
+-     return a < b ? -1 : a > b ? 1 : 0;
++     return a <= b ? -1 : a > b ? 1 : 0;
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+    L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/serialisation/wire.ts:109:23
+-     return a < b ? -1 : a > b ? 1 : 0;
++     return a < b ? -1 : true ? 1 : 0;
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+    L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/serialisation/wire.ts:109:23
+-     return a < b ? -1 : a > b ? 1 : 0;
++     return a < b ? -1 : false ? 1 : 0;
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+    L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/serialisation/wire.ts:109:23
+-     return a < b ? -1 : a > b ? 1 : 0;
++     return a < b ? -1 : a >= b ? 1 : 0;
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+    L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs
+
+
+[Survived] EqualityOperator
+packages/integration-sdk/src/serialisation/wire.ts:109:23
+-     return a < b ? -1 : a > b ? 1 : 0;
++     return a < b ? -1 : a <= b ? 1 : 0;
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+    L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:128:107
+-       ...[...pool.serials].sort((a, b) => compare(a.serial, b.serial)).map((s) => `${s.serial} ${s.state ?? 'NONE'}`),
++       ...[...pool.serials].sort((a, b) => compare(a.serial, b.serial)).map((s) => `${s.serial} ${s.state ?? ""}`),
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:134:53
+-     return createHash('sha256').update(canonicalText, 'utf8').digest('hex');
++     return createHash('sha256').update(canonicalText, "").digest('hex');
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+    L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:139:111
+-     return { issued: BigInt(pool.serials.length).toString(), COMMISSIONED: n('COMMISSIONED'), DECOMMISSIONED: n('DECOMMISSIONED'), DESTROYED: n('DESTROYED'), SAMPLE: n('SAMPLE'), UNUSED_RETURNED: n('UNUSED_RETURNED') };
++     return { issued: BigInt(pool.serials.length).toString(), COMMISSIONED: n('COMMISSIONED'), DECOMMISSIONED: n(""), DESTROYED: n('DESTROYED'), SAMPLE: n('SAMPLE'), UNUSED_RETURNED: n('UNUSED_RETURNED') };
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+    L3 contract: pools, serial states and the hashed report > hashes the canonical report text: stable for the same pool in any serial order, different when a state differs
+
+
+[Survived] ConditionalExpression
+packages/integration-sdk/src/serialisation/wire.ts:154:10
+-     return report.unexplained === '0' && sum === BigInt(report.counts.issued);
++     return true && sum === BigInt(report.counts.issued);
+Tests ran:
+    L3 contract: pools, serial states and the hashed report > [PR-42] reports zero unexplained only when every serial has a state, with counts that add up
+
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:22:30
+-   export const L3_POOLS_PATH = '/l3/v1/pools';
++   export const L3_POOLS_PATH = "";
+Ran all tests for this mutant.
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/serialisation/wire.ts:23:33
+-   export const l3PoolEventsPath = (poolId: string): string => `${L3_POOLS_PATH}/${encodeURIComponent(poolId)}/events`;
++   export const l3PoolEventsPath = () => undefined;
+Ran all tests for this mutant.
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/serialisation/wire.ts:24:33
+-   export const l3PoolReportPath = (poolId: string): string => `${L3_POOLS_PATH}/${encodeURIComponent(poolId)}/report`;
++   export const l3PoolReportPath = () => undefined;
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:30:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:30:36
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})/, 'a whole number as decimal text');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:30:62
+-   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as decimal text');
++   const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:31:40
+-   export const PoolId = z.string().regex(/^[\x21-\x7E]{1,64}$/);
++   export const PoolId = z.string().regex(/[\x21-\x7E]{1,64}$/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:31:40
+-   export const PoolId = z.string().regex(/^[\x21-\x7E]{1,64}$/);
++   export const PoolId = z.string().regex(/^[\x21-\x7E]{1,64}/);
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:32:40
+-   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]{1,20}$/, 'a serial (GS1 AI 21 subset, at most 20)');
++   export const Serial = z.string().regex(/[A-Za-z0-9/.-]{1,20}$/, 'a serial (GS1 AI 21 subset, at most 20)');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:32:40
+-   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]{1,20}$/, 'a serial (GS1 AI 21 subset, at most 20)');
++   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]{1,20}/, 'a serial (GS1 AI 21 subset, at most 20)');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:32:40
+-   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]{1,20}$/, 'a serial (GS1 AI 21 subset, at most 20)');
++   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]$/, 'a serial (GS1 AI 21 subset, at most 20)');
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:32:40
+-   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]{1,20}$/, 'a serial (GS1 AI 21 subset, at most 20)');
++   export const Serial = z.string().regex(/^[^A-Za-z0-9/.-]{1,20}$/, 'a serial (GS1 AI 21 subset, at most 20)');
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:32:66
+-   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]{1,20}$/, 'a serial (GS1 AI 21 subset, at most 20)');
++   export const Serial = z.string().regex(/^[A-Za-z0-9/.-]{1,20}$/, "");
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:35:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/[\x20-\x7E]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:35:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}/),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:38:73
+-     quantity: WholeText.refine((q) => q !== '0' && BigInt(q) <= POOL_MAX, `1 to ${POOL_MAX.toString()} serials`),
++     quantity: WholeText.refine((q) => q !== '0' && BigInt(q) <= POOL_MAX, ``),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:42:44
+-   export const PoolResponse = z.strictObject({ poolId: PoolId, serials: z.array(Serial).min(1), issuedAt: ProcessEpochMicros });
++   export const PoolResponse = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/serialisation/wire.ts:42:71
+-   export const PoolResponse = z.strictObject({ poolId: PoolId, serials: z.array(Serial).min(1), issuedAt: ProcessEpochMicros });
++   export const PoolResponse = z.strictObject({ poolId: PoolId, serials: z.array(Serial).max(1), issuedAt: ProcessEpochMicros });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:49:43
+-   export const SerialEvent = z.strictObject({ serial: Serial, state: SerialState, at: ProcessEpochMicros });
++   export const SerialEvent = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:51:51
+-   export const SerialEventsRequest = z.strictObject({ events: z.array(SerialEvent).min(1).max(SERIAL_EVENTS_MAX) });
++   export const SerialEventsRequest = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/serialisation/wire.ts:51:61
+-   export const SerialEventsRequest = z.strictObject({ events: z.array(SerialEvent).min(1).max(SERIAL_EVENTS_MAX) });
++   export const SerialEventsRequest = z.strictObject({ events: z.array(SerialEvent).min(1).min(SERIAL_EVENTS_MAX) });
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/serialisation/wire.ts:51:61
+-   export const SerialEventsRequest = z.strictObject({ events: z.array(SerialEvent).min(1).max(SERIAL_EVENTS_MAX) });
++   export const SerialEventsRequest = z.strictObject({ events: z.array(SerialEvent).max(1).max(SERIAL_EVENTS_MAX) });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:54:51
+-   export const SerialEventsResponse = z.looseObject({ accepted: WholeText });
++   export const SerialEventsResponse = z.looseObject({});
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:63:28
+-     ISSUED: ['COMMISSIONED', 'UNUSED_RETURNED', 'DESTROYED'],
++     ISSUED: ['COMMISSIONED', "", 'DESTROYED'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:63:47
+-     ISSUED: ['COMMISSIONED', 'UNUSED_RETURNED', 'DESTROYED'],
++     ISSUED: ['COMMISSIONED', 'UNUSED_RETURNED', ""],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:64:36
+-     COMMISSIONED: ['DECOMMISSIONED', 'DESTROYED', 'SAMPLE'],
++     COMMISSIONED: ['DECOMMISSIONED', "", 'SAMPLE'],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:64:49
+-     COMMISSIONED: ['DECOMMISSIONED', 'DESTROYED', 'SAMPLE'],
++     COMMISSIONED: ['DECOMMISSIONED', 'DESTROYED', ""],
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/serialisation/wire.ts:65:19
+-     DECOMMISSIONED: ['DESTROYED'],
++     DECOMMISSIONED: [],
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:65:20
+-     DECOMMISSIONED: ['DESTROYED'],
++     DECOMMISSIONED: [""],
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/serialisation/wire.ts:66:14
+-     DESTROYED: [],
++     DESTROYED: ["Stryker was here"],
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/serialisation/wire.ts:67:11
+-     SAMPLE: [],
++     SAMPLE: ["Stryker was here"],
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/serialisation/wire.ts:68:20
+-     UNUSED_RETURNED: [],
++     UNUSED_RETURNED: ["Stryker was here"],
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:90:32
+-     reportHash: z.string().regex(/^[0-9a-f]{64}$/),
++     reportHash: z.string().regex(/[0-9a-f]{64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:90:32
+-     reportHash: z.string().regex(/^[0-9a-f]{64}$/),
++     reportHash: z.string().regex(/^[0-9a-f]{64}/),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:95:39
+-   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().max(500) }) });
++   export const L3Error = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:95:88
+-   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().max(500) }) });
++   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/[A-Z_]{2,40}$/), message: z.string().max(500) }) });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:95:63
+-   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().max(500) }) });
++   export const L3Error = z.strictObject({ error: z.strictObject({}) });
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:95:88
+-   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().max(500) }) });
++   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]$/), message: z.string().max(500) }) });
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:95:88
+-   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().max(500) }) });
++   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}/), message: z.string().max(500) }) });
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:95:88
+-   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().max(500) }) });
++   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[^A-Z_]{2,40}$/), message: z.string().max(500) }) });
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/serialisation/wire.ts:95:116
+-   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().max(500) }) });
++   export const L3Error = z.strictObject({ error: z.strictObject({ code: z.string().regex(/^[A-Z_]{2,40}$/), message: z.string().min(500) }) });
+Ran all tests for this mutant.
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/serialisation/wire.ts:168:29
+-   export const l3SerialPath = (serial: string): string => `/l3/v1/serials/${encodeURIComponent(serial)}`;
++   export const l3SerialPath = () => undefined;
+Ran all tests for this mutant.
+
+[Survived] ArrowFunction
+packages/integration-sdk/src/serialisation/wire.ts:169:33
+-   export const l3PoolRejectPath = (poolId: string): string => `${L3_POOLS_PATH}/${encodeURIComponent(poolId)}/reject`;
++   export const l3PoolRejectPath = () => undefined;
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:171:49
+-   export const SerialQueryAnswer = z.strictObject({
+-     serial: Serial,
+-     poolId: PoolId,
+-     gtin: Gtin,
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
+-     /** null: issued, no state yet. */
+-     state: SerialState.nullable(),
+-     /** The lot (batch number) and expiry (YYYY-MM) the L3 profile carries, when it does. */
+-     lot: z.string().regex(/^[\x20-\x7E]{1,64}$/).optional(),
+-     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
+-   });
++   export const SerialQueryAnswer = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:175:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/[\x20-\x7E]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:175:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:175:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/^[^\x20-\x7E]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:175:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/^[\x20-\x7E]$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:179:25
+-     lot: z.string().regex(/^[\x20-\x7E]{1,64}$/).optional(),
++     lot: z.string().regex(/^[\x20-\x7E]{1,64}/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:179:25
+-     lot: z.string().regex(/^[\x20-\x7E]{1,64}$/).optional(),
++     lot: z.string().regex(/[\x20-\x7E]{1,64}$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:179:25
+-     lot: z.string().regex(/^[\x20-\x7E]{1,64}$/).optional(),
++     lot: z.string().regex(/^[^\x20-\x7E]{1,64}$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:179:25
+-     lot: z.string().regex(/^[\x20-\x7E]{1,64}$/).optional(),
++     lot: z.string().regex(/^[\x20-\x7E]$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:180:28
+-     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
++     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:180:28
+-     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
++     expiry: z.string().regex(/\d{4}-(0[1-9]|1[0-2])$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:180:28
+-     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
++     expiry: z.string().regex(/^\d-(0[1-9]|1[0-2])$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:180:28
+-     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
++     expiry: z.string().regex(/^\D{4}-(0[1-9]|1[0-2])$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:180:28
+-     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
++     expiry: z.string().regex(/^\d{4}-(0[^1-9]|1[0-2])$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:180:28
+-     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
++     expiry: z.string().regex(/^\d{4}-(0[1-9]|1[^0-2])$/).optional(),
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:184:45
+-   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]{1,500}$/) });
++   export const PoolRejection = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:184:72
+-   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]{1,500}$/) });
++   export const PoolRejection = z.strictObject({ reason: z.string().regex(/[\x20-\x7E]{1,500}$/) });
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:184:72
+-   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]{1,500}$/) });
++   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]$/) });
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:184:72
+-   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]{1,500}$/) });
++   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]{1,500}/) });
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:184:72
+-   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[\x20-\x7E]{1,500}$/) });
++   export const PoolRejection = z.strictObject({ reason: z.string().regex(/^[^\x20-\x7E]{1,500}$/) });
+Ran all tests for this mutant.
+
+[Survived] ObjectLiteral
+packages/integration-sdk/src/serialisation/wire.ts:187:48
+-   export const DecommissionTask = z.strictObject({
+-     taskId: z.string().regex(/^[\x21-\x7E]{1,64}$/),
+-     poolId: PoolId,
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
+-     reason: z.string().max(500),
+-     createdAt: ProcessEpochMicros,
+-     state: z.enum(['OPEN', 'DONE']),
+-     serials: z.array(Serial),
+-   });
++   export const DecommissionTask = z.strictObject({});
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:188:28
+-     taskId: z.string().regex(/^[\x21-\x7E]{1,64}$/),
++     taskId: z.string().regex(/^[\x21-\x7E]{1,64}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:188:28
+-     taskId: z.string().regex(/^[\x21-\x7E]{1,64}$/),
++     taskId: z.string().regex(/[\x21-\x7E]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:188:28
+-     taskId: z.string().regex(/^[\x21-\x7E]{1,64}$/),
++     taskId: z.string().regex(/^[\x21-\x7E]$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:188:28
+-     taskId: z.string().regex(/^[\x21-\x7E]{1,64}$/),
++     taskId: z.string().regex(/^[^\x21-\x7E]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:190:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:190:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/[\x20-\x7E]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:190:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/^[\x20-\x7E]$/),
+Ran all tests for this mutant.
+
+[Survived] Regex
+packages/integration-sdk/src/serialisation/wire.ts:190:36
+-     packagingOrder: z.string().regex(/^[\x20-\x7E]{1,64}$/),
++     packagingOrder: z.string().regex(/^[^\x20-\x7E]{1,64}$/),
+Ran all tests for this mutant.
+
+[Survived] MethodExpression
+packages/integration-sdk/src/serialisation/wire.ts:191:11
+-     reason: z.string().max(500),
++     reason: z.string().min(500),
+Ran all tests for this mutant.
+
+[Survived] ArrayDeclaration
+packages/integration-sdk/src/serialisation/wire.ts:193:17
+-     state: z.enum(['OPEN', 'DONE']),
++     state: z.enum([]),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:193:18
+-     state: z.enum(['OPEN', 'DONE']),
++     state: z.enum(["", 'DONE']),
+Ran all tests for this mutant.
+
+[Survived] StringLiteral
+packages/integration-sdk/src/serialisation/wire.ts:193:26
+-     state: z.enum(['OPEN', 'DONE']),
++     state: z.enum(['OPEN', ""]),
+Ran all tests for this mutant.
+
+Ran 8.28 tests per mutant on average.
+--------------------|------------------|----------|-----------|------------|----------|----------|
+                    | % Mutation score |          |           |            |          |          |
+File                |  total | covered | # killed | # timeout | # survived | # no cov | # errors |
+--------------------|--------|---------|----------|-----------|------------|----------|----------|
+All files           |  56.67 |   59.53 |      378 |         0 |        257 |       32 |        0 |
+ adapter            |  63.02 |   67.35 |      196 |         0 |         95 |       20 |        0 |
+  equipment-data.ts |  63.02 |   67.35 |      196 |         0 |         95 |       20 |        0 |
+ process            |  53.89 |   56.40 |       97 |         0 |         75 |        8 |        0 |
+  wire.ts           |  53.89 |   56.40 |       97 |         0 |         75 |        8 |        0 |
+ serialisation      |  48.30 |   49.42 |       85 |         0 |         87 |        4 |        0 |
+  wire.ts           |  48.30 |   49.42 |       85 |         0 |         87 |        4 |        0 |
+--------------------|--------|---------|----------|-----------|------------|----------|----------|
+[32m00:30:54 (230938) INFO JsonReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/sdk-equipment-data.json
+[32m00:30:54 (230938) INFO HtmlReporter[39m Your report can be found at: file:///root/wt/campaign/.reports/stryker-phase6/sdk-equipment-data.html
+[32m00:30:54 (230938) INFO MutationTestExecutor[39m Done in 2 minutes and 1 second.
