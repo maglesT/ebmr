@@ -294,10 +294,11 @@ describe('the analytics role (kernel 1240, 1242)', () => {
       select k.conname from pg_constraint k join pg_class c on c.oid = k.conrelid join pg_class f on f.oid = k.confrelid
        where k.contype = 'f' and c.relnamespace <> 'analytics'::regnamespace and f.relnamespace = 'analytics'::regnamespace`);
     expect(fks).toEqual([]);
-    // The scan sees dependencies: inside the schema, the views depend on the tables.
+    // The scan sees dependencies: inside the schema, the views depend on the tables (since kernel 1280 the flag views
+    // read the flags through analytics.flag_grouped).
     const { rows: inside } = await gmp.admin.query<{ n: number }>(`
       select count(*)::int as n from pg_depend d join pg_rewrite w on d.classid = 'pg_rewrite'::regclass and d.objid = w.oid
-       where w.ev_class = 'analytics.open_flag_v1'::regclass and d.refobjid = 'analytics.flag'::regclass`);
+       where w.ev_class = 'analytics.flag_grouped'::regclass and d.refobjid = 'analytics.flag'::regclass`);
     expect(inside[0]!.n).toBeGreaterThan(0);
   });
 
@@ -579,6 +580,8 @@ describe('the runner functions (kernel 1242) and the read views (kernel 1243)', 
       // Slice 6A-1 (kernel 1245): method versions and reference sets under change control.
       'analytics.set_method_version(jsonb)',
       'analytics.set_reference_set(jsonb)',
+      // Slice 6A-7 (kernel 1281): whether the reader may see the review priority's audit-trail term (DI-53).
+      'analytics.viewer_holds_di_review()',
     ]);
     const { rows: perms } = await gmp.admin.query<{ code: string }>("select code from iam.permission where code like 'ANALYTICS.%'");
     const known = new Set(perms.map((p) => p.code));

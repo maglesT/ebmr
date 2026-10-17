@@ -136,6 +136,28 @@ describe('REVIEW.PRIORITY v1 known answers (D-6A-13)', () => {
     expect(r.outputs.find((o) => o.subjectRef === 'b')!.values['score']).toBe(0);
   });
 
+  it('[DI-52] a hit whose audit-trail flag key QA found to be a false alarm no longer counts; a true signal or one not assessable still does (P6A5-2)', () => {
+    const t = (min: number): string => new Date(Date.UTC(2026, 5, 3, 4, 30) + min * 60_000).toISOString();
+    const entry = (id: string, batch: string): AuditEvent => ({
+      eventId: id, chainKey: `batch:${batch}`, recordedAt: t(47), recordedLocal: t(47).slice(0, 19), claimedAt: t(0), personId: 'p-1', accountId: 'acc-1',
+      role: 'OPERATOR', terminal: 'T-1', action: 'INSERT', tableName: 'recipe.execution_command', field: 'item.a', isCorrection: false, reasonCode: null, batchId: batch,
+      step: 's1', attempt: 1, failed: false, deviationLinked: false, configArea: null,
+    });
+    // Three records, each with one late entry (a LATE_ENTRY hit keyed by its entry, as kernel 1261 keys the flag).
+    const audit = [entry('1', 'a'), entry('2', 'b'), entry('3', 'c')];
+    const key = (id: string, batch: string): string => `ATA.RULES|LATE_ENTRY|PERSON|p-1|AUDIT_EVENT:batch:${batch}#${id}`;
+    const r = only(input({
+      records: [record('a'), record('b'), record('c')], audit,
+      auditVerdicts: [{ key: key('1', 'a'), verdict: 'FALSE_ALARM' }, { key: key('2', 'b'), verdict: 'TRUE_SIGNAL' }, { key: key('3', 'c'), verdict: 'NOT_ASSESSABLE' }],
+    }));
+    const points = (b: string) => r.outputs.find((o) => o.subjectRef === b)!.values['OPEN_AUDIT_FLAG.count'];
+    expect([points('a'), points('b'), points('c')]).toEqual([0, 1, 1]);
+    expect(r.outputs.find((o) => o.subjectRef === 'a')!.values['score']).toBe(0);
+    // Without verdicts every hit counts, as before.
+    const before = only(input({ records: [record('a')], audit: [entry('1', 'a')] }));
+    expect(before.outputs[0]!.values['OPEN_AUDIT_FLAG.count']).toBe(1);
+  });
+
   it('every output keeps the review outcome so far and the state; a re-run on the same input gives the same outputs and hash', () => {
     const i = input({ records: [record('a', { exceptionsMajor: 1, reviewFindings: 2, reviewReopenings: 1 }), record('b', { deviations: 1 })] });
     const first = only(i);

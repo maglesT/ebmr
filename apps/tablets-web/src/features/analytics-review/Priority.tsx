@@ -8,12 +8,12 @@ import { Link } from '@tanstack/react-router';
 import type { ReviewPriority, ReviewQueueOrdering } from '@ebmr/api-contract';
 import { Banner } from '@ebmr/ui-kit';
 
-/** The score and its top reasons; "not scored yet" for a record without a score (it is listed first, D-6A-14). */
+/** The score and its top reasons; "not scored yet" for a record without a score (a record still awaiting QA review is then listed first, D-6A-14). */
 export function PriorityNote({ batchId, priority }: { batchId: string; priority: ReviewPriority | null }) {
   if (priority === null) {
     return (
       <span data-testid={`review-priority-${batchId}`} data-scored="false">
-        Priority: not scored yet (listed first; review in full as every record).
+        Priority: not scored yet (review in full, as every record).
       </span>
     );
   }

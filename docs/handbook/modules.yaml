@@ -154,7 +154,7 @@ modules:
     page: modules/analytics.md
     package: packages/analytics
     migrations:
-      packages/kernel/sql: ['^124[0-4]_']
+      packages/kernel/sql: ['^124[0-4]_', '^128[0-9]_']
       packages/recipe-core/sql: ['^111[0-4]_']
       apps/tablets-server/sql: ['^133[0-4]_']
     contract:

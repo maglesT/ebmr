@@ -356,6 +356,49 @@ Security documents beside them: [docs/security/](../security/) (threat model, AS
    replica) and read `report.catalog_v1`, then the views it lists; `select * from sandbox.segregation_problems()` must stay
    empty after any grant change.
 
+## Analytics: method versions and reference sets (Phase 6A)
+
+The analytics runner runs only the method versions QA put in force, and scores only against reference sets QA approved.
+Both are configuration under change control (DI-09, draft DI-52): the database refuses the row unless the command
+names a change record that QA approved for the area (`ANALYTICS_METHOD` or `ANALYTICS_REFERENCE`). Nothing here changes
+a GMP record; see the [analytics module guide](modules/analytics.md).
+
+**Put a method version in force**
+
+1. Validate the version on the build that will run it: the package's known-answer tests and the method's acceptance
+   criteria. The version records the code identity `@ebmr/analytics <version> (commit <EBMR_COMMIT>)` and the SHA-256 of
+   its parameters; the runner refuses a version whose identity or parameters are not the running code's (a FAILED run
+   with the reason).
+2. On **Configuration change records**, raise a change record that names the area `ANALYTICS_METHOD`, and have QA
+   approve it with a signature.
+3. As a holder of `ANALYTICS.METHOD` (QA reviewer or process owner), open **Analytics**, then **Methods, versions and
+   monitoring**, and fill in **Make a method version effective, or retire it**: the method, the version (a new number
+   for any change of parameters or code), status Effective, the parameters as a JSON object (the catalogue on the same
+   page lists each method's defaults; version 1 of each is in the runner's `*_METHOD_DEFINITIONS`), the acceptance
+   criteria, the validation reference, the change-record number and the reason.
+4. Check: the version is listed as in force with its change record, and **Configuration history** shows it as of today.
+   The next run (nightly at 02:00 site time, or after a batch completes) uses it, and the monitor on the methods page
+   counts its runs and failures.
+5. To retire a version, use the same form with status Retired. The retirement keeps what the version recorded
+   (D-6A-1-23). A retired version stays retired; a changed method is a new version.
+
+**Approve a reference set**
+
+1. A run without a reference set fits a model candidate and lists the batches it used and the ones it left out, with
+   why: per chart for `SPC.IMR` and `SPC.XBAR_S`, per product and family for `MSPC.PCA`, per product, family, unit type,
+   step and tag for `GBP.DTW_BAND`.
+2. Raise a change record that names the area `ANALYTICS_REFERENCE`, and have QA approve it.
+3. As a holder of `ANALYTICS.METHOD`, make the candidate the reference set with the change-record number and the reason:
+   on **Control charts and deviation rates** ("Make these limits the reference set"), on **Multivariate monitoring** or
+   on **Golden batch profiles** ("Make it the reference set"). The database checks that the set carries its candidate's
+   own model, hash and batches (EBMR-ANA-010, EBMR-ANA-030).
+4. The next run scores against the set and the screens name it. A set never changes (EBMR-ANA-014): a new selection is
+   a new candidate and a new set. A set is retired by a later row of the same id with status RETIRED through the
+   reference-sets route (no screen in v1).
+
+**After any change**: `select * from sandbox.segregation_problems()` stays empty, and the methods page's monitor shows
+the new version's runs without failures.
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

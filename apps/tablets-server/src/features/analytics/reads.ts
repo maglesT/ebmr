@@ -150,21 +150,25 @@ export async function restrictedFlags(c: Db, q: { from: string | null; to: strin
   return rows;
 }
 
-/** The dispositions of unrestricted flags (one query), or of one restricted flag (ANALYTICS.DI_REVIEW). */
+/**
+ * The dispositions covering flags: those of each flag's group, the same hit raised by other runs included (kernel 1280,
+ * D-6A-7-R1), as one query for unrestricted flags or one restricted flag at a time (ANALYTICS.DI_REVIEW). Each row is
+ * given under the flag asked about, whichever raise it was recorded on.
+ */
 export async function dispositionsOf(db: Db, flags: readonly FlagRow[]): Promise<DispositionRow[]> {
   const open = flags.filter((f) => !f.restricted).map((f) => f.flag_id);
   const out: DispositionRow[] = [];
   if (open.length > 0) {
     const { rows } = await db.query<DispositionRow>(
       `select disposition_id::text, flag_id::text, verdict, cause, deviation_ref, supersedes::text, reason, person_id::text, ${usOf('recorded_at')} as recorded_us, current
-         from analytics.flag_disposition_v1 where flag_id = any($1::uuid[]) order by recorded_at, disposition_id`,
+         from analytics.flag_group_disposition_v1 where flag_id = any($1::uuid[]) order by recorded_at, disposition_id`,
       [open],
     );
     out.push(...rows);
   }
   for (const f of flags.filter((x) => x.restricted)) {
     const { rows } = await db.query<DispositionRow>(
-      `select d.id::text as disposition_id, d.flag::text as flag_id, d.verdict, d.cause, d.deviation_ref, d.supersedes::text, d.reason, d.person_id::text,
+      `select d.id::text as disposition_id, $1::uuid::text as flag_id, d.verdict, d.cause, d.deviation_ref, d.supersedes::text, d.reason, d.person_id::text,
               ${usOf('d.recorded_at')} as recorded_us, not exists (select 1 from analytics.person_flag_dispositions($1) s where s.supersedes = d.id) as current
          from analytics.person_flag_dispositions($1) d order by d.recorded_at, d.id`,
       [f.flag_id],

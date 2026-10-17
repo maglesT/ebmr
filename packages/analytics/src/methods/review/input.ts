@@ -9,7 +9,9 @@
  *   steps    report.step_use_v1 with report.batch_fact_v1: when each step of each GMP record started and ended, with the
  *            record's product and MBR family, for the duration baselines;
  *   audit    report.audit_fact_v1: the audit entries ATA.RULES reads, so the audit-trail flags on a record's entries are
- *            counted from the same snapshot (D-6A-5-4). No value of an entry is in them (DI-53).
+ *            counted from the same snapshot (D-6A-5-4). No value of an entry is in them (DI-53);
+ *   auditVerdicts  analytics.audit_key_verdict_v1 (slice 6A-7, P6A5-2): QA's current verdict on each audit-trail flag
+ *            key, so a hit QA found to be a false alarm no longer counts (D-6A-7-R4). Absent: none recorded.
  */
 import type { DecimalText } from '../../numeric/from-decimal.ts';
 import type { AuditEvent } from '../audit/input.ts';
@@ -61,4 +63,12 @@ export interface ReviewInput {
   readonly values: readonly ReviewValue[];
   readonly steps: readonly ReviewStep[];
   readonly audit: readonly AuditEvent[];
+  /** QA's current verdict per audit-trail flag key (kernel 1261 analytics.flag_key), from the same snapshot. */
+  readonly auditVerdicts?: readonly AuditKeyVerdict[];
+}
+
+/** QA's current verdict on an audit-trail flag key (kernel 1282 analytics.audit_key_verdict_v1). */
+export interface AuditKeyVerdict {
+  readonly key: string;
+  readonly verdict: 'TRUE_SIGNAL' | 'FALSE_ALARM' | 'NOT_ASSESSABLE';
 }

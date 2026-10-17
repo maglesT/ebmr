@@ -175,6 +175,8 @@ cluster-wide, so every migration creates them only if they are missing.
 | `ebmr_authn` | [0100_iam_foundation.sql](../../packages/kernel/sql/0100_iam_foundation.sql) | yes, `noinherit` | The authentication service: the only role that can read secret verifiers (password hashes) and create authentication events. |
 | `ebmr_sandbox` | [0800_sandbox_installation.sql](../../packages/kernel/sql/0800_sandbox_installation.sql) | yes | The application inside a sandbox (training and test) database. It holds there exactly the privileges of `ebmr_app` and `ebmr_authn`, copied by `sandbox.mirror_application_privileges`, never a membership. It cannot connect to a GMP database (INV-18). |
 | `ebmr_listener`, `ebmr_sandbox_listener` | [0980_listener_login_roles.sql](../../packages/kernel/sql/0980_listener_login_roles.sql) | yes, `noinherit`, member of nothing | The gateway listener that records what the site gateway sends. Limited to the listener's share of connections (8 per listener); the application roles get the rest. |
+| `ebmr_report` | [1210_reporting_role.sql](../../packages/kernel/sql/1210_reporting_role.sql) | yes, `noinherit`, member of nothing, 4 connections | The reporting path (Phase 6 slice 6g): SELECT on the `report` views only, on GMP databases only. It can write nothing, and the segregation check reports any extra grant. |
+| `ebmr_analytics` | [1240_analytics_schema_role.sql](../../packages/kernel/sql/1240_analytics_schema_role.sql) | yes, `noinherit`, member of nothing, 4 connections | The analytics runner (Phase 6A, [ADR 0020](../adr/0020-analytics-module-read-only-advisory.md)): CONNECT to GMP databases only; SELECT on the inputs of its allow-list and EXECUTE on the analytics record functions; no GMP table, no command, no default privilege. See [The analytics schema](#the-analytics-schema-phase-6a). |
 
 Development passwords equal the role name (see [db.ts](../../packages/test-kit/src/db.ts#sym=APP_LOGIN)); production
 keeps them in a vault. The tests and tools connect as a superuser, `ebmr_dev`, through `EBMR_PG_ADMIN_URL`.
@@ -184,11 +186,14 @@ copied by `CREATE DATABASE ... TEMPLATE`):
 
 - `revoke temporary on database ... from public`: nobody but a superuser can create temporary tables. A temporary table
   could shadow a table name inside a function whose `search_path` looked in `pg_temp` first.
-- `sandbox.apply_connect_policy()`: CONNECT only for the roles of the database's kind (GMP or SANDBOX), and since kernel
-  0970 no `pg_cancel_backend` or `pg_terminate_backend` for anyone but superusers.
+- `sandbox.apply_connect_policy()`: CONNECT only for the roles of the database's kind (GMP or SANDBOX; `ebmr_report`
+  and `ebmr_analytics` on GMP databases only), and since kernel 0970 no `pg_cancel_backend` or `pg_terminate_backend`
+  for anyone but superusers (version in force:
+  [1240_analytics_schema_role.sql](../../packages/kernel/sql/1240_analytics_schema_role.sql#sym=sandbox.apply_connect_policy)).
   [copyDatabase](../../packages/test-kit/src/db.ts#sym=copyDatabase) re-applies both.
-- `sandbox.segregation_problems()` reports a role membership that would let one role act as another (version in force:
-  [1100_segregation_problems_missing_roles.sql](../../packages/kernel/sql/1100_segregation_problems_missing_roles.sql#sym=sandbox.segregation_problems)).
+- `sandbox.segregation_problems()` reports a role membership that would let one role act as another, and any grant of
+  the reporting or analytics role beyond its allow-list (version in force:
+  [1242_analytics_record_functions.sql](../../packages/kernel/sql/1242_analytics_record_functions.sql#sym=sandbox.segregation_problems)).
 
 ### SECURITY DEFINER functions with a fixed search_path
 
@@ -279,6 +284,45 @@ least visible afterwards.
 Other tables that are not insert-only still refuse changes in some states (a signed record, a closed step, a locked
 batch). Those guards are triggers or checks inside the writing functions, specific to their module; the module guides
 (for example [recipe-core](modules/recipe-core.md) and [tablets-server](modules/tablets-server.md)) list them.
+
+### The analytics schema (Phase 6A)
+
+The advisory analytics ([module guide](modules/analytics.md)) has its own schema and role in the edition database. The
+schema `analytics` (kernel 1240 to 1245, 1260, 1261, 1270, 1271; recipe-core 1151 adds two restricted readers) is
+**non-GMP**: what it holds points QA at records and is never a GMP value.
+
+- **Tables** (kernel 1241): `input_registry`, `method_version`, `reference_set`, `run`, `run_end`, `output`, `flag` and
+  `flag_disposition`. Each is owned by `ebmr_owner`, insert-only and registered with the audit trail, so UPDATE, DELETE
+  and TRUNCATE are refused (`EBMR-AUDIT-004`) and every row is in the hash chain. No role but the owner reads or writes
+  them directly.
+- **Writes** go through definer functions (kernel 1242): the runner, as `ebmr_analytics`, calls `analytics.begin_run`,
+  `record_output`, `record_flag`, `finish_run` and `fail_run`; a person, as `ebmr_app` inside a command, calls
+  `analytics.record_disposition`, `set_method_version` and `set_reference_set`. The last two are configuration areas
+  `ANALYTICS_METHOD` and `ANALYTICS_REFERENCE` and need an approved change record (kernel 1195 guard, DI-09).
+- **Reads** for the screens are the `analytics.*_v1` views (SELECT to `ebmr_app`). Flags about a person or an account
+  are left out of them and read only through definers that need `ANALYTICS.DI_REVIEW` and refuse administrators
+  (`analytics.person_flags`, `analytics.audit_flags`, `analytics.audit_flag_entries`, `analytics.audit_flagged_entries`).
+- **Inputs** the role may read are registered in `analytics.input_registry` by migrations
+  ([`analytics.register_input`](../../packages/kernel/sql/1242_analytics_record_functions.sql#sym=analytics.register_input)):
+  `report` views and parameterised `report` row functions, each STABLE and reading no volatile function.
+- **Numbers**: statistics are `double precision`, and only here: a test proves no floating-point column exists outside
+  the schema. GMP values reach the runner as decimal text.
+- **Separation**: no GMP table has a foreign key into `analytics`, and no function, view or trigger outside it depends
+  on it (a test reads `pg_depend` and scans function bodies). The review queue reads `analytics.review_priority_v1` in
+  the review feature's own SQL to order its records; no review, register or release function reads it.
+
+> **Why this exists**
+> - **Pharma reason:** a statistic must never become, change or block a GMP record by the back door; then the analytics
+>   code would need the validation of the record system itself (decision 0015).
+> - **Control:** draft [DI-51](../../compliance/controls/DI-51.yaml) (advisory, never changes a GMP record) and
+>   [DI-52](../../compliance/controls/DI-52.yaml) (versions and change control).
+> - **Code:** [`analytics.role_problems`](../../packages/kernel/sql/1242_analytics_record_functions.sql#sym=analytics.role_problems),
+>   [`analytics.begin_run`](../../packages/kernel/sql/1242_analytics_record_functions.sql#sym=analytics.begin_run),
+>   [`analytics.set_method_version`](../../packages/kernel/sql/1245_analytics_method_change.sql#sym=analytics.set_method_version).
+> - **Tests:** [analytics.test.ts](../../packages/kernel/test/analytics/analytics.test.ts) and
+>   [method-change.test.ts](../../packages/kernel/test/analytics/method-change.test.ts), named `[DI-51]` and `[DI-52]`.
+> - **Error:** `EBMR-ANA-001` to `-015` (the record functions and the change control), `EBMR-AUDIT-004` (a change to an
+>   analytics row).
 
 ## The audit trail
 

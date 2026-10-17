@@ -53,6 +53,11 @@ export interface MethodImplementation<I = unknown, P extends Parameters = Parame
   inputsFor?(ref: ReferenceRow): readonly InputSpec[];
   /** Why reference set `ref` cannot be scored by this code (empty: it can); a non-empty list fails that run. */
   referenceProblems?(ref: ReferenceRow): readonly string[];
+  /**
+   * False for a method whose inputs a completed batch does not change (slice 6A-7, D-6A-7-R3: the audit-trail methods):
+   * it runs nightly and on demand, not on every completed batch. Absent: true.
+   */
+  readonly onBatchComplete?: boolean;
 }
 
 /** An implementation as the runner holds it (each is typed by its own input and parameters where it is written). */

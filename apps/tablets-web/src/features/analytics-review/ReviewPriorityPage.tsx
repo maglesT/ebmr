@@ -21,7 +21,7 @@ export function ReviewPriorityPage() {
       {q.data ? <AdvisoryBand v={q.data} /> : null}
       {q.error ? <RefusalMessage error={q.error.error} /> : null}
       <Section title="Score" testId="review-priority-detail">
-        {q.data && p === null ? <p>This record is not scored yet. Unscored records head the review queue.</p> : null}
+        {q.data && p === null ? <p>This record is not scored yet. Unscored records that still await QA review head the review queue.</p> : null}
         {p ? (
           <>
             <p>

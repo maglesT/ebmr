@@ -72,6 +72,8 @@ export const ATA_RULES_IMPLEMENTATION = {
   inputs: [AUDIT_FACTS, AUTH_FACTS, MANUAL_DIGITS],
   assemble: (rows: Readonly<Record<string, readonly Row[]>>): AuditInput => auditInput(rows),
   method: ATA_RULES,
+  // The audit trail changes all day, not with a completed batch: the nightly run assesses it (D-6A-7-R3).
+  onBatchComplete: false,
 } as const;
 
 /** ATA.BASELINE v1 in the runner. */
@@ -81,4 +83,6 @@ export const ATA_BASELINE_IMPLEMENTATION = {
   inputs: [AUDIT_FACTS, AUTH_FACTS],
   assemble: (rows: Readonly<Record<string, readonly Row[]>>): AuditInput => auditInput(rows),
   method: ATA_BASELINE,
+  // The audit trail changes all day, not with a completed batch: the nightly run assesses it (D-6A-7-R3).
+  onBatchComplete: false,
 } as const;

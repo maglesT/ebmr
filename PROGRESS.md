@@ -1,7 +1,7 @@
 # eBMR: current state
 
 Keep this page short (under 150 lines): the current state, the rules in force and the next steps. Append history to
-`docs/progress/history.md` (search it; do not read it whole). Last updated: 17 October 2026 (Phase 6 exit, slice 6j).
+`docs/progress/history.md` (search it; do not read it whole). Last updated: 17 October 2026 (Phase 6A exit, slice 6A-7).
 
 ## What this is
 
@@ -39,222 +39,57 @@ plan), as changed by the owner decisions in `docs/decisions/` (0001 to 0010).
   details in `docs/progress/history.md` and the phase plans. Phase 3 exit per decision 0009 (Opus review and mutation
   runs; residuals in `docs/build-plan/phase-3/review-backlog.md`).
 - Decision 0010: Tablets reaches v1.0 first (Phases 3, 4, 6, 7), then Injectables.
-- Phase 4 (review, release and India specifics), plan `docs/build-plan/phase-4/phase-4-plan.md`, seven slices:
-  - Merged: slice 1 record review and evidence epochs (PR #20); slice 2 quality records, deviations, specifications,
-    lots, packaging planning (PR #21); slice 3 G-REL, manufacturer release, cockpit, notifications (PR #22); GB-T-01
-    date fix (PR #19); slice 4 market dispositions, two-row release, EU QP package, shipping interlock, market screens
-    (PR #23).
-  - Slice 5 (after release) on `phase-4/slice-5`: 5a suspension of released lots and their downstream lots on a cause
-    linked after release, with the ERP stock block and the AP's recall-assessment task in the same transaction;
-    RECONFIRM, RECALL, REJECT_AFTER_RELEASE, DISPOSAL (recipe-core 0840, 0841; site-services 0880, 0881; L-19, IN-29,
-    PR-46). 5b record locking and appending amendment that suspends the record's released lots; bulk across orders and
-    the bright-stock maximum hold (recipe-core 0870 to 0875, tablets 1190, 1199; INV-21, R-04, PR-38). 5c screens.
-    Quick review: one high (amendment cause refused by the suspension) and one core medium (a cause linked again after
-    a re-confirmation did not suspend again) fixed with tests. Defaults D-5-1 to D-5-8, D-5a-*, D-5b-* in the plan.
-  - Slice 6 on `phase-4/slice-6`: 6a India fields (licences Form 25/28 and loan licences, export permissions, both
-    checked at issue and in G-REL item 6; expiry computed in the database and used by the finished lot and the G-21
-    print data; shelf-life changes need a stability basis; hazard classes and line dedications, changes signed by a
-    second QA person; allocation register export; India label particulars and the H2 payload stub). 6b records
-    (contingency paper forms reconciled before EXECUTION_COMPLETE; PDF/A-3 true copy, reproducible bytes; certified
-    evidence export checked in the database; retention computed and shown only; read-only inspection workspace). 6c
-    PQR extract (reproducible, reconciled to the registers, AP sign-off). Migrations: site-services 0885, 0886;
-    recipe-core 0890 to 0895, 0910 to 0913; kernel 1170 to 1174; tablets 1200, 1201, 1209. Quick review: no high;
-    core mediums (export certifiable without the database's own check, an unsigned hazard downgrade) fixed with tests.
-  - Slice 7 (Phase 4 exit) on `phase-4/slice-7`: 7a clause mappings for every phase-4 control, the `editions`
-    filter (decision 0010) and docs/build-plan/phase-4/trace-deferrals.md; 7b GB-T-01 continued to release (two blister
-    orders from one bulk) and GB-T-02 (direct compression, bottles, US added after vendor history INELIGIBLE), exact
-    outputs, the release path in the set-up through real signed acts (demo H-PACK shortcut gone), the browser flows for
-    release, US disposition, EU QP package and certification intake, suspension then recall; 7c SQL kill tests for the
-    "not twins" (recipe-core 0930 drops reprocessing_start_problem); 7d and 7e tests and mappings for the remaining
-    clauses. Decision 0011 (owner): a control whose every clause is deferred with a reason shows DEFERRED; clauses that
-    need missing features are deferred to Phase 6 or 7 (listed in trace-deferrals.md). Exit review (one pass): no
-    critical or high. `phase.yaml` is at 4; the trace passes at phase 4 with the golden and browser results (143/241
-    controls with passing tests). Final run: 5,916 + 31 golden + 42 browser tests passed.
-  - Phase 4 focused mutation work (decision 0012) on `phase-4/mutation-final` (scopes A, B, C merged): results in
-    `docs/build-plan/phase-4/mutation-results.md`. Two real defects fixed with tests: G6.VALIDATION_BASIS walks back to
-    the last process-impacting version (recipe-core 0932, PR-06) and the export permission reason text (site services
-    0903). Scope C groups all 100 % after the re-run; scope A 232 survivors and scope B 118 survivors aimed at by new
-    tests but not re-confirmed. Final run: typecheck and lint clean; 6,070 tests passed and 2 [meta] failed (both from merging the
-    scopes: a function in two SQL mutation groups, and 41 tagged tests not yet in the control lists; fixed, re-run passes);
-    31 golden and 42 browser tests passed; trace ok at phase 4 (143/241).
-    Deferred to deployment validation: kill confirmation of the A and B survivors, us-disposition, qp-certification and
-    market-changes groups, Stryker survivor triage (server release, records, India, archive and PQR features), a whole
-    SQL re-run under the decision 0009 organisation.
-  - Owner (13 October): the defaults stand for all open questions: D-7b-1 (GB-T-01's two orders India-only), PR-30
-    (a breach raises the exception that needs a deviation and blocks release; no deviation record by itself), IN-18
-    read as the register export with each number's use (D-6a-7), D-2a-9, D-P4-6, D-3a-10, D-5b-2, the drying-loop
-    correction and India subdivision questions. The web demo kit is deferred until the owner asks.
+- Phase 4 (review, release and India specifics; PRs #19 to #28): seven slices, the exit review (no critical or high),
+  the trace at phase 4 and the focused mutation work (decision 0012; `docs/build-plan/phase-4/mutation-results.md`).
+  The owner's defaults of 13 October stand (D-7b-1, PR-30, IN-18 as D-6a-7, D-2a-9, D-P4-6, D-3a-10, D-5b-2, the
+  drying-loop correction and India subdivision). Details: history, "Phase 4" and "PROGRESS.md condensed".
+- Phase 6 (integrations and extras; PRs #30 to #42): slices 6a to 6g, 6i and the exit 6j (6h dropped, decision 0018).
+  Final run 2 (17 October): 6,695 tests passed, golden GB-T-01 to GB-T-03 41/41, browser suite 50/50, `pnpm trace` at
+  phase 6 ok (146/242 controls), `handbook:check` ok; mutation campaign results in
+  `docs/build-plan/phase-6/mutation-results.md`. `phase.yaml` is at 6. Owner decisions 0020 (product name Batchwright),
+  0021 (no demo at phase exits from Phase 7 on), 0022 (the Phase 6 owner items; R9, R10, R2 and the rest of R16 are
+  fixed early in Phase 7; IN-53 stays a draft).
 - Developer handbook and code map for Phases 1 to 4 (decisions 0013, 0014) on `docs/handbook-phase-1-4`:
   `docs/handbook/` (primer, glossary, architecture, life of a batch, database, testing, adding a feature, defect log,
   removed and replaced, runbooks, eleven module guides; Draft) and the generated code map and reference pages
   (`pnpm handbook`; `pnpm handbook:check` and a [meta] test keep them current and the links valid). Default D-HB-1:
   existing migrations stay byte-identical; only new ones carry a `-- Handbook:` line. Code/doc disagreements found
   while writing are in history (14 October) for the owner.
-- CI runs the tests in four shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;
+- CI runs the tests in six shards; see REPO-GUIDE.md. The chained `pnpm run ci` can hit the lint heap limit locally;
   lint now runs with an 8 GB heap.
 
 ## Next
 
-Phase 4 is closed (PRs #26, #27, #28). Phase 6 (decision 0010): integrations and extras for Tablets and the 41 clauses
-decision 0011 deferred to it; plan `docs/build-plan/phase-6/phase-6-plan.md` (branch `phase-6/plan`): slices 6a
-adapters and stale mirrors, 6b equipment data and alarms, 6c packaging and serialisation, 6d genealogy and mock recall,
-6e controlled-substance mode (adds draft IN-53), 6f governance and India DSC (test CA), 6g dashboards, change impact,
-training mode, (6h languages dropped: English only, decision 0018), 6i inter-site transfer, 6j exit; owner questions listed there (defaults stand).
-Slice 6a (merged): adapter framework (`@ebmr/integration-sdk/adapter`, kernel 1180 to 1182: inbound messages whole or
-not at all, de-duplicated, gaps alarmed; integration identities never sign; mirrors fail closed, EBMR-INT-010), one
-worker framework started with the server in MIRROR mode; ERP/WMS, QMS with CAPA, LIMS, LMS, CMMS; simulators and soak
-tests. Defaults D-P6a-*; residuals and defect P6a-I1 in the plan and history.
-Slice 6f (merged to main, PR #33, 16 October): configuration change control with versions and a diff
-as of any date (kernel 1195, 1196; roles, permission sets, retention rules included), RBE rules under change records and
-RBE on a step only with a validation reference, support grants (two customer signatures, time-boxed), the contract
-giver's read-only reviewer, excursion notifications, designer PPE and containment, MBR edition review, typed CPP values in
-the PQR, the India DSC with a test CA (kernel 1203, 1205) and, from the review, enrolment of the signer's own certificate
-(kernel 1206; a high fixed). The eleven 6f clauses now name their tests. Defaults D-P6f-A-*, D-P6f-B-*; residuals in the plan.
-Slice 6b (merged to main, PR #34, 16 October): OPC UA driver, simulator, gateway feed and the server's
-adapter worker; endpoint identity (DI-20), native series and original records (DI-32), the plant alarm log in batch
-context and in review (DI-49), the EMS feed; plant rules PR-15, PR-22, PR-25, PR-27, PR-29, PR-35; screens including the
-trend viewer and the area authorisations. Quick review: Q-6b-1 (alarm acknowledgment scope, recipe-core 0976) fixed.
-Defaults and residuals in the plan's slice 6b section.
-Slice 6e (branch `phase-6/slice-6e`, 16 October, ready for PR): controlled-substance mode, the draft control IN-53 (status
-U, NDPS not verified; register 242 controls, 679 rows): product flag under change control with a second QA signature,
-dual custody of dispensing, transfers, returns and destruction (database guards), the controlled account closed at every
-stage sign-off and at batch completion, the reproducible register export; screens with the draft banner. Quick review: one
-core medium fixed (recipe-core 1035). Defaults D-P6e-1 to 10 and residuals in the plan; tablets 1290 added after 6f's and 6d's ranges.
-Slice 6d (branch `phase-6/slice-6d`, 16 October, ready for PR): `recipe.genealogy` both ways at any depth as of an
-instant over the insert-only event rows (no genealogy table), chemical recovery of returned goods (site services 0960,
-route `samples.recoverReturn`), distribution records from the ERP adapter (0961), mock recall stored with its hash and
-signed off by the AP, deviation impact query, recurrence warning on the release screen (PR-49), explorer, complaint
-lookup and mock-recall screens (recipe-core 1010 to 1013, tablets 1280). IN-07, IN-29, PR-57 x2, PR-49, PR-50 clauses
-name their tests. Defaults D-P6d-0-*, D-P6d-4 to 10; review fixes and residuals in the plan.
-Slice 6i (branch `phase-6/slice-6i`, 16 October, ready for PR): installation keys and seals verified in the database
-(kernel 1220), sealed lot-transfer packages built by the database, import refused with an alarm when tampered,
-misaddressed, untrusted or repeated, a QUARANTINE lot usable only after local QA's signed acceptance and before the
-carried hold limit, rule resolutions re-resolved with the stricter winning (site services 0980, 0981), the TRANSFER node
-and the federated genealogy with as-of, the mock recall across sites marked incomplete when a site does not answer
-(recipe-core 1090 to 1092, tablets 1300, 1301), `transfers` and `federation` routes and screens. Two installations in one
-test run (two databases; two servers over HTTP). Defaults D-P6i-0-1 to 12; review P6i-R1 to R3 fixed; residuals in the plan.
-Slice 6g (branch `phase-6/slice-6g`, 16 October, ready for its PR): read-only reporting path (role `ebmr_report`,
-Slice 6c (branch `phase-6/slice-6c`, 16 October, ready for PR): label templates approved by a second person (an India
-template needs every India particular), the master's 211.122(g) cut-label option gating its approval, the label store
-(recipe-core 0990, site services 0950); start, middle and end coding specimens equal to the record's coding, label
-specimens, the post-use inspection gating EXECUTION_COMPLETE, vision line stops, the reconciliation waiver (tablets
-1230); the L3 adapter, serial query, decommissioning tasks and the L3 mirror failing closed at release (tablets 1231);
-stateful L3/L4 simulator, screens. The ten 6c clauses name their tests. Defaults D-P6c-1 to 22; residuals R-6c-1 to 5.
-Slice 6g (merged to main, PR #39, 16 October): read-only reporting path (role `ebmr_report`,
-SELECT on the versioned `report` views only, data age on every row; kernel 1210, 1211; recipe-core 1070, 1071), eight
-dashboards (never for GMP decisions; PR-05 overdue reviews, DI-49 alarm trend), the change-impact explorer with export,
-and training mode on the sandbox (watermark, TEST- personas, scripted exercises, attempts kept in the sandbox only;
-DI-05). PR-05's dashboard clause names its tests. Quick review: no critical or high; residuals R-6g-1 to 4 in the plan.
-Defaults D-P6g-0-1 to 10.
-Slice 6j (Phase 6 exit, 16 and 17 October; branch `phase-6/slice-6j`): the trace runs at 6 (`phase.yaml`); DI-31, DI-32
-and DI-49 map their clauses, no clause stays deferred to Phase 6 and IN-53 stays PENDING (draft). Golden batches GB-T-01
-and GB-T-02 unchanged and GB-T-03 "connected" new, all under the golden clock library (replaces libfaketime); browser flows
-for the stale mirror, alarms, trends, genealogy and recall, controlled dispensing and the English step screen. The one
-review pass found three highs, all fixed with tests: 6jc-R1 (the ERP/WMS adapter reaching a person's material acts; site
-services 0990), 6jc-R8 (a small-order installation or peer key made every seal verify; kernel 1230) and 6jc-R16 (a
-product-limited training requirement stopped other products' step work; recipe-core 1100, tablets 1320); residuals R2 to
-R7 and R9 to R15 (medium: R2, R9, R10) in the plan. Mutation campaign (decision 0019; `docs/build-plan/phase-6/mutation-results.md`):
-no Priority 1 defect; first-run SQL 64.9 % over 3,967 mutants in 14 groups, 87.7 % in the 13 that state an after-triage
-score (five at 90 % or more); the Phase 4 leftovers triaged (scope A 83.8 %, scope B 98.4 % in four of six groups);
-Stryker first runs 48.2 % in the high-risk zone, triaged for Priority 1 rules only; defects fixed: M6-D1 (lot-code
-numbering stopped receiving, site services 1002), M6-D2 (an intact resend after a tampered copy was dropped; DI-31) and
-M6-D3 (the archive retention view called a function the app role may not execute; DI-41, DI-47), plus the gateway's
-128-character id truncation. Not run (time box, owner's instruction): bulk-and-bright-stock, execution-complete-forms and
-the whole SQL re-run (about 128 worker hours); residuals and owner items are listed in that file. Demo: `pnpm
-demo:phase6-exit` runs the seven items (record `docs/build-plan/phase-6/exit-demo.md`; all PASS in its run of 17 October).
-Final run 2 (17 October, after the campaign): green in one run after its one re-run (the first attempt failed only the
-register listing of the campaign's 220 new tagged tests, synced): static checks, 6,695 tests passed (0 failed), golden
-batches GB-T-01 to GB-T-03 41/41, browser suite 50/50, `pnpm trace` at phase 6 ok (146/242 controls), `handbook:check` ok.
-Decision 0021 (owner, 17 October; first numbered 0020, which is the product name): no demo at phase exits from Phase 7
-on; one demo when the product is there (v1.0). Decision 0020 (owner, 17 October): the product is Batchwright by
-Medhanta (editions Batchwright Tablets and Injectables), logo concept A; files in `docs/brand/`, branding in Phase 7.
-Decision 0022 (owner, 17 October): the Phase 6 owner items. R9, R10, R2 and the rest of R16 are fixed early in Phase 7;
-IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 starts only when the owner says so.
-**Phase 6A (analytics; decision 0023, owner, 17 October).**
-- **What it builds:** decision 0016's items 1, 2, 3, 8, 9 and 10, between Phase 6 and Phase 7, so that v1.0 ships with
-  them. Item 16, the scheduler, is dropped altogether.
-- **Plan:** `docs/build-plan/phase-6a/phase-6a-plan.md` (branch `phase-6a/plan`). The architecture is ADR 0020: the
-  pure package `@ebmr/analytics`, a runner reading as `ebmr_analytics` with no GMP privilege, and the non-GMP,
-  insert-only, audited `analytics` schema. Interfaces are in `slice-6A-0-interfaces.md`.
-- **Slices:**
-  - 6A-0: interfaces.
-  - 6A-1: foundation.
-  - 6A-2: SPC, capability and drift; deviation rates.
-  - 6A-3: PCA monitoring.
-  - 6A-4: audit-trail anomaly flags.
-  - 6A-5: review priority (orders the queue, never skips a review).
-  - 6A-6: golden batch profile.
-  - 6A-7: exit.
-- **Draft controls:** DI-51, DI-52, DI-53 and PR-61 (status U, PENDING). They entered the register in
-  6A-0 at target phase 7 (246 controls, 680 requirement rows).
-- **Defaults:** D-6A-1 to 23; the interface defaults D-6A-0-1 to 9.
-- **6A-0 done (17 October, branch `phase-6a/plan`):** kernel 1240 to 1244 (schema `analytics`, role `ebmr_analytics`,
-  the insert-only audited tables, the runner and disposition functions, the read views, `ANALYTICS.*`, the areas
-  `ANALYTICS_METHOD` and `ANALYTICS_REFERENCE`), recipe-core 1110 (the draft names), tablets 1330 (role grants); the
-  package `@ebmr/analytics` (`statOf`, registry, canonical hashing), the five ADR 0020 boundary rules with fixtures, the
-  contract namespaces `ns/analytics*.ts` with examples (joining `routes.ts` when bound, D-6A-0-4), `analyticsHistory`
-  (test-kit), and DI-51 to DI-53 and PR-61 in the register (246 controls, 680 rows) with their first tests.
-- **6A-1 (17 October, PR #44, merged):** the runner in the tablets server (GMP only, as
-  `ebmr_analytics`, one REPEATABLE READ READ ONLY snapshot, nightly at 02:00 and on newly completed batches, a failed
-  run leaves no output), recipe-core 1115 (input views `batch_fact_v1`, `cpp_value_v1`, `step_use_v1` on the role's
-  allow-list), kernel 1245 (method versions and reference sets by `ANALYTICS.METHOD` under an approved change record,
-  never changed once in force; the screens' views; restricted dispositions), the routes (`analytics` bound,
-  `analyticsConfig` new), the screens `/analytics`, `/analytics/methods`, `/analytics/flags`, the libraries pinned
-  (ml-matrix, @stdlib quantiles), the runner's number lint ban, and the golden batches with the runner on. Defaults
-  D-6A-1-1 to 23 in the plan. Quick review: one medium fixed (a version validated with an earlier build could not
-  be retired after an upgrade; D-6A-1-23); golden GB-T-01 to GB-T-03 passed with the runner on.
-- **6A-1 merged (PR #44).** **6A-4 (17 October, branch `phase-6a/slice-4`, pushed, no PR yet):** audit-trail anomaly
-  detection. `ATA.RULES` v1 (late, back-dated, corrections above the site percentile, two terminals, terminal digits,
-  repeat until pass, off-hours configuration) and `ATA.BASELINE` v1 (robust z against the person's own 13 weeks, 6 weeks
-  of history) in `packages/analytics/src/methods/audit/`, wired in the runner. Inputs kernel 1260 (`auth_fact_v1`) and
-  recipe-core 1150 (`audit_fact_v1`, `manual_digit_v1`; no values), on the analytics role's allow-list only. Flag keys
-  and the restricted readers (DI_REVIEW) in kernel 1261 and recipe-core 1151. Routes `analyticsAudit` (bound), screens
-  `/analytics/audit-flags`, and the review panel lists flagged entries first for the DI lead (DI-25). Defaults
-  D-6A-4-1 to 11 in the plan. Own review: one medium fixed (open keys cut by the list limit).
-- **6A-2 (17 October, branch `phase-6a/slice-2`; merged as PR #45):** SPC.IMR, SPC.XBAR_S (Phase I limits, Nelson 1, 2,
-  3, 5), CAP.INDEX (Cpk, Ppk, Bissell intervals, Anderson-Darling, from 25 batches), DRIFT.TREND (slope projection,
-  EWMA) and RATE.DEVIATION (Wilson, Garwood, one-sided Fisher, Benjamini-Hochberg, funnel) in `packages/analytics`,
-  checked against SciPy reference values and published examples; runner wiring `analytics/spc.ts`; recipe-core 1130
-  (`report.deviation_fact_v1`, `report.step_shift_v1`, setting `site.shift_boundaries`); routes `analyticsSpc` and the
-  screens `/analytics/spc`, `/analytics/rates`; the PQR screen links to them as an advisory annex. Defaults D-6A-2-1 to
-  15 in the plan; residuals for the lead there (reference sets not yet passed to runs; flags repeat on every run).
-- **6A-5 (17 October, branch `phase-6a/slice-5`, on 6A-4 with 6A-2 merged in, pushed, no PR yet):** review priority.
-  `REVIEW.PRIORITY` v1 in `packages/analytics/src/methods/review/` (the D-6A-13 weights and caps, exact near-limit
-  comparison, robust step durations, ATA.RULES hits on the record's entries counted), runner wiring `analytics/review.ts`;
-  recipe-core 1160 (`report.review_fact_v1`: exceptions by severity, corrections, deviations, new operators and units,
-  the review outcome); the review queue lists the same records ordered by priority (unscored first, then by score) with
-  the reasons for holders of ANALYTICS.VIEW, as before otherwise; route `analyticsReview.priority`, screens. Nothing in
-  review, the register or release reads the score (PR-61). Defaults D-6A-5-1 to 11 in the plan. Own review: one high
-  fixed (the audit-trail term shown outside data-integrity review; DI-53).
-- **6A-6 (17 October, branch `phase-6a/slice-6`, pushed, no PR yet):** the golden batch profile.
-  - Method `GBP.DTW_BAND` on the native OPC UA series: 200 points, DTW with a 10 % Sakoe-Chiba band, a 5 % to 95 %
-    band. It flags a curve with more than 10 % of its points out of band, or one beyond the distance limit.
-  - Recipe-core 1170: `series_ref_v1`, `series_samples_v1`, and `analytics_reference_v1` over the configuration store;
-    no kernel range was needed (D-6A-6-7).
-  - Runner: row function inputs, and one run per reference set in force.
-  - Candidates are fitted on the released batches without a deviation or a step alarm; QA makes one a reference set
-    under a change record.
-  - Screens: `/analytics/profiles` and the trend viewer's overlay. The routes are `analyticsProfile`.
-  - Defaults D-6A-6-1 to 12 are in the plan. Quick review: one high fixed with tests (unbounded reads and outputs;
-    each run now takes the latest 50 curves of each scope, D-6A-6-12). Two of them correct literal readings of D-6A-16 that would flag normal
-    curves (D-6A-6-3, D-6A-6-4).
-- **6A-3 (17 October, branch `phase-6a/slice-3`, pushed, no PR yet; merges `phase-6a/slice-6`):** multivariate
-  monitoring.
-  - Method `MSPC.PCA`: autoscaled PCA by SVD (90 %, at most 5 components), T-squared (beta and F limits), Q
-    (Jackson-Mudholkar), contributions; checked against NumPy and SciPy. The synthetic history's batch 27 is caught by Q
-    with hardness and thickness named, every value within its limits.
-  - Reference sets in runs (lead item a): SPC and PCA read the sets in force as 6A-6 does; SPC charts give their Phase I
-    limits as a candidate QA can approve. Kernel 1270 checks a set's model and batches are its candidate's.
-  - Repeated flags (lead item b): kernel 1271 lists an open hit once with its count; a disposition covers its repeats.
-  - Screens `/analytics/mspc` and `/analytics/mspc/batches/:batchId`; routes `analyticsMspc`. Defaults D-6A-3-1 to 11 in
-    the plan.
-- **Order (owner, 17 October):** 6A is built in this session, then Phase 7 follows here without waiting for another
-  go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
-  with the Phase 7 exit run on the pod (D-6A-15).
+**Phase 6A (analytics; decision 0023, owner, 17 October).** Plan `docs/build-plan/phase-6a/phase-6a-plan.md`; ADR
+0020 (the pure package `@ebmr/analytics`, a runner reading as `ebmr_analytics` with no GMP privilege, the non-GMP,
+insert-only, audited `analytics` schema); interfaces in `slice-6A-0-interfaces.md`. Draft controls DI-51, DI-52, DI-53
+and PR-61 (status U, PENDING, target phase 7; 246 controls, 680 rows). Defaults D-6A-1 to 23 and each slice's
+D-6A-n-* in the plan. On main at ddf3dfe (PRs #43 to #49):
+- 6A-0 interfaces (kernel 1240 to 1244, recipe-core 1110, tablets 1330); 6A-1 foundation (runner, input views
+  recipe-core 1115, method change control kernel 1245, screens; golden batches unchanged with the runner on);
+- 6A-2 SPC, capability, drift and deviation rates (recipe-core 1130); 6A-3 multivariate monitoring (kernel 1270, 1271:
+  a set carries its candidate's model, a repeated flag listed once); 6A-4 audit-trail flags (kernel 1260, 1261,
+  recipe-core 1150, 1151); 6A-5 review priority (recipe-core 1160; one high fixed in its review, P6A5-1); 6A-6 golden
+  batch profile (recipe-core 1170; one high fixed, D-6A-6-12). Per-slice details: the plan's "as built" sections and
+  history ("PROGRESS.md condensed").
 
-Next: Phase 6A, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
-after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
-scripts) on a cloud server the owner provides.
+**Phase 6A exit (slice 6A-7, 17 October; branch `phase-6a/slice-7`, trace half and review half merged).** Phase 6A is
+built and merged (PRs #43 to #49): the six analytics features, all advisory.
+- **Exit review:** 0 critical. 3 high, fixed: P6A7-1 (flag grouping made one design, kernel 1280), P6A7-2 (the
+  audit-trail term of the review score restricted in the database, kernel 1281), P6A7-3 (bounded runs). P6A5-2 fixed
+  too (kernel 1282: a QA false alarm no longer counts in the review score). Residuals P6A7-4 to 9 are in
+  `docs/build-plan/phase-6a/review-backlog.md`; defaults D-6A-7-R1 to R5 and D-6A-7-b-1 to 7 are in the plan.
+- **Trace:** the 4 drafts DI-51, DI-52, DI-53 and PR-61 have all 23 clauses proven at a phase-7 dry run, still PENDING
+  the owner (target phase 7 kept, `phase.yaml` at 6). `pnpm trace` at 6 is ok (151/246).
+- **Local runs:** 6,882 tests, golden 44/44 with the runner on, E2E 4 new flows (`tools/e2e/specs/phase6a/`). The
+  handbook module `modules/analytics.md` is complete.
+- **Open:** the 6A exit closes on GitHub CI; its heavy final run is combined with the Phase 7 exit run on the pod
+  (D-6A-15).
+
+Next: Phase 7 (validation pack and hardening), built here without waiting for another go (decision 0023), starting
+with the decision 0022 items (R9, R10, R2 and the rest of R16), then the heavy test run on the pod; then Tablets v1.0.
+Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo
+mode, install and reset scripts) on a cloud server the owner provides.
 
 ## How to work here
 

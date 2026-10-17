@@ -3,7 +3,9 @@
  * REVIEW.PRIORITY version 1 reads report.review_fact_v1 (the records in the review queue it scores), report.cpp_value_v1
  * (their critical values with the master's limits, as decimal text), report.step_use_v1 with report.batch_fact_v1 (the
  * step durations of every GMP record, per product and MBR family) and report.audit_fact_v1 (the entries the
- * audit-trail rules read; no value of an entry is in it, DI-53). Their rows become the method's input here, field by
+ * audit-trail rules read; no value of an entry is in it, DI-53) with analytics.audit_key_verdict_v1 (QA's current
+ * verdict on each audit-trail flag key, so a false alarm no longer counts; slice 6A-7, P6A5-2). Their rows become the
+ * method's input here, field by
  * field; GMP values stay decimal text (the method compares them exactly) and instants stay the database's text.
  *
  * The score is recorded as an advisory output about the batch (analytics.review_priority_v1 shows the latest). Nothing
@@ -19,6 +21,7 @@ import {
   decimalText,
   defaultParameters,
   isDecimalText,
+  type AuditKeyVerdict,
   type DecimalText,
   type ReviewInput,
   type ReviewRecord,
@@ -35,6 +38,9 @@ export const REVIEW_FACTS = { view: 'report.review_fact_v1', version: 1, filter:
 const CPP_VALUES = { view: 'report.cpp_value_v1', version: 1, filter: null } as const;
 const STEP_USE = { view: 'report.step_use_v1', version: 1, filter: null } as const;
 const BATCH_FACTS = { view: 'report.batch_fact_v1', version: 1, filter: null } as const;
+/** QA's current verdict on each audit-trail flag key (kernel 1282; slice 6A-7, P6A5-2). */
+export const AUDIT_KEY_VERDICTS = { view: 'analytics.audit_key_verdict_v1', version: 1, filter: null } as const;
+const VERDICTS = new Set(['TRUE_SIGNAL', 'FALSE_ALARM', 'NOT_ASSESSABLE']);
 
 class ReviewRowError extends Error {}
 
@@ -117,18 +123,30 @@ function steps(rows: Rows, scored: readonly ReviewRecord[]): ReviewStep[] {
   return out;
 }
 
+/** QA's current verdicts on the audit-trail flag keys. */
+function auditVerdicts(rows: Rows): AuditKeyVerdict[] {
+  return (rows[AUDIT_KEY_VERDICTS.view] ?? []).map((r) => {
+    const verdict = text(r, 'verdict');
+    if (!VERDICTS.has(verdict)) throw new ReviewRowError(`${verdict} is not a disposition verdict`);
+    return { key: text(r, 'flag_key'), verdict: verdict as AuditKeyVerdict['verdict'] };
+  });
+}
+
 /** The method's input from the rows of its inputs. */
 export function reviewInput(rows: Rows): ReviewInput {
   const recs = records(rows);
   const scored = new Set(recs.map((r) => r.batchId));
-  return { records: recs, values: values(rows, scored), steps: steps(rows, recs), audit: auditInput({ [AUDIT_FACTS.view]: rows[AUDIT_FACTS.view] ?? [] }).events };
+  return {
+    records: recs, values: values(rows, scored), steps: steps(rows, recs), audit: auditInput({ [AUDIT_FACTS.view]: rows[AUDIT_FACTS.view] ?? [] }).events,
+    auditVerdicts: auditVerdicts(rows),
+  };
 }
 
 /** REVIEW.PRIORITY v1 in the runner. */
 export const REVIEW_PRIORITY_IMPLEMENTATION = {
   id: 'REVIEW.PRIORITY',
   versions: [1],
-  inputs: [REVIEW_FACTS, CPP_VALUES, STEP_USE, BATCH_FACTS, AUDIT_FACTS],
+  inputs: [REVIEW_FACTS, CPP_VALUES, STEP_USE, BATCH_FACTS, AUDIT_FACTS, AUDIT_KEY_VERDICTS],
   assemble: (rows: Rows): ReviewInput => reviewInput(rows),
   method: REVIEW_PRIORITY,
 } as const;
