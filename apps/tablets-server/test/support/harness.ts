@@ -39,7 +39,7 @@ import {
   type DeviceKey,
   type SiteSeed,
 } from '@ebmr/test-kit';
-import { buildApp, type BuiltApp } from '../../src/app.ts';
+import { buildApp, type AppDeps, type BuiltApp } from '../../src/app.ts';
 import { DEVICE_NONCE_RATE_LIMIT } from '../../src/features/session/index.ts';
 import { parseConfig, type ServerConfig } from '../../src/config.ts';
 import { newSessionToken, tokenHash } from '../../src/platform/auth/session.ts';
@@ -70,6 +70,8 @@ export interface ServerOptions {
    * a fast runner would ask for more nonces in a minute than a person at the terminal could. The limit is unchanged.
    */
   paceDeviceNonces?: boolean;
+  /** Phase 6A slice 6A-1: the analytics runner's implementations and poll interval (with env EBMR_ANALYTICS: 'on'). */
+  analytics?: AppDeps['analytics'];
 }
 
 /** Wall-clock pacing of device-nonce requests (ServerOptions.paceDeviceNonces): a rolling window under each limit. */
@@ -160,6 +162,9 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
       EBMR_PUBLIC_ORIGIN: ORIGINS[kind],
       EBMR_ENV: 'test',
       EBMR_LOG_LEVEL: opts.logStream ? 'debug' : 'silent',
+      // Phase 6A slice 6A-1: the analytics runner is off in server tests (its role has 4 connections on the whole
+      // cluster); the runner's tests and the golden batches turn it on.
+      EBMR_ANALYTICS: 'off',
       ...opts.env,
     },
     randomKey,
@@ -167,7 +172,11 @@ export async function startServer(kind: 'GMP' | 'SANDBOX', opts: ServerOptions =
   let built: BuiltApp;
   try {
     await opts.beforeStart?.(db, t.seed);
-    built = await buildApp(env, { pools: { app: db.app, authn: db.authn, close: () => Promise.resolve() }, ...(opts.logStream ? { logStream: opts.logStream } : {}) });
+    built = await buildApp(env, {
+      pools: { app: db.app, authn: db.authn, close: () => Promise.resolve() },
+      ...(opts.logStream ? { logStream: opts.logStream } : {}),
+      ...(opts.analytics ? { analytics: opts.analytics } : {}),
+    });
   } catch (error) {
     await db.close();
     await dropDatabase(database);

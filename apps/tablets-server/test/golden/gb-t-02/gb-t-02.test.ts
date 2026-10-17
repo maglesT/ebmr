@@ -10,6 +10,8 @@
  *
  * Set EBMR_GOLDEN_DUMP to a file path to write the run's outputs there (for a review of a changed run).
  */
+import type { RunReport } from '../../../src/analytics/runner.ts';
+import { expectRunnerBeside } from '../analytics-check.ts';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { Dec } from '@ebmr/expr';
@@ -28,7 +30,7 @@ const expected = JSON.parse(readFileSync(new URL('./expected.json', import.meta.
 
 describe.runIf(goldenClockAvailable)('GB-T-02, direct compression in HDPE bottles, and the US added after vendor history', () => {
   let w: GoldenWorld;
-  const run: { batch?: BatchResults; order?: BatchResults; orderFacts?: OrderFacts; lot?: LotFacts; rel?: Gbt02Release } = {};
+  const run: { batch?: BatchResults; order?: BatchResults; orderFacts?: OrderFacts; lot?: LotFacts; rel?: Gbt02Release ; analytics?: RunReport[]; analyticsBatches?: string[] } = {};
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ['performance'] });
     w = await startGoldenWorld();
@@ -49,6 +51,9 @@ describe.runIf(goldenClockAvailable)('GB-T-02, direct compression in HDPE bottle
     const { batch, bulk } = await runBatch(w, masters);
     const rel = await packAndRelease(w, masters, batch, bulk);
     const numbers = [batch.batchNumber, rel.order.batchNumber];
+    // The analytics runner, on all along, runs once more over the completed batches before their outputs are read.
+    run.analytics = await w.analytics();
+    run.analyticsBatches = [batch.batchId, rel.order.batchId];
     run.batch = await resultsOf(w, batch.batchId, numbers, start * 1_000_000n);
     run.order = await resultsOf(w, rel.order.batchId, numbers, start * 1_000_000n);
     run.orderFacts = await orderFacts(w, rel.order.batchId);
@@ -59,6 +64,12 @@ describe.runIf(goldenClockAvailable)('GB-T-02, direct compression in HDPE bottle
     expect(run.batch.states.batch).toBe('EXECUTION_COMPLETE');
     expect(run.order.states.batch).toBe('EXECUTION_COMPLETE');
   }, 3_600_000);
+
+  it('[DI-51] the golden batches keep their exact outputs with the analytics runner on', async () => {
+    // The exact outputs are this file's own assertions on this run; here, the runner ran over these very batches.
+    if (!run.batch) throw new Error('the scenario did not run');
+    await expectRunnerBeside(w, run.analytics, run.analyticsBatches ?? []);
+  });
 
   const r = (k: 'batch' | 'order'): BatchResults => {
     const x = run[k];

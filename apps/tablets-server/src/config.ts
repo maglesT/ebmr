@@ -77,6 +77,15 @@ export const EnvSchema = z.object({
   EBMR_SITE_ZONE: z.string().min(1).optional(),
   EBMR_LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   EBMR_LOG_PRETTY: bool.default(false),
+  /**
+   * Phase 6A slice 6A-1: the analytics runner (ADR 0020; D-6A-6), on the GMP installation only (a sandbox never starts
+   * it, whatever this says). Default on.
+   */
+  EBMR_ANALYTICS: z.enum(['on', 'off']).default('on'),
+  /** The analytics runner's own login (ebmr_analytics); the development credentials when unset (production needs it). */
+  EBMR_DB_ANALYTICS_URL: z.string().optional(),
+  /** The build's commit, recorded with every analytics run and method version (code identity). */
+  EBMR_COMMIT: z.string().regex(/^[0-9A-Za-z._-]{1,64}$/).default('development'),
 });
 
 /** What the environment configures (parseConfig). */
@@ -112,6 +121,8 @@ export interface EnvConfig {
   siteCode: string;
   /** EBMR_SITE_ZONE: the zone the site policy must hold for the server to start (null: not checked). */
   expectedSiteZone: string | null;
+  /** Phase 6A slice 6A-1: the analytics runner (GMP only), its login and the build's commit. */
+  analytics: { enabled: boolean; url: string; commit: string };
   logLevel: z.infer<typeof EnvSchema>['EBMR_LOG_LEVEL'];
   logPretty: boolean;
   cookies: { session: string; csrf: string };
@@ -167,6 +178,9 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   if (production && e.EBMR_GATEWAY_LISTEN && !e.EBMR_DB_LISTENER_URL) {
     throw new ConfigError('EBMR_ENV=production with EBMR_GATEWAY_LISTEN needs EBMR_DB_LISTENER_URL, the gateway listener\'s own login (no development credentials)');
   }
+  if (production && e.EBMR_INSTALLATION === 'GMP' && e.EBMR_ANALYTICS === 'on' && !e.EBMR_DB_ANALYTICS_URL) {
+    throw new ConfigError('EBMR_ENV=production with EBMR_ANALYTICS=on needs EBMR_DB_ANALYTICS_URL, the analytics runner\'s own login (no development credentials)');
+  }
   const role =
     e.EBMR_INSTALLATION === 'GMP'
       ? { app: 'ebmr_app', authn: 'ebmr_authn', listener: 'ebmr_listener' }
@@ -210,6 +224,11 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     l3Url: l3UrlOf(e.EBMR_L3_URL, production),
     siteCode: e.EBMR_SITE_CODE,
     expectedSiteZone: e.EBMR_SITE_ZONE ?? null,
+    analytics: {
+      enabled: e.EBMR_INSTALLATION === 'GMP' && e.EBMR_ANALYTICS === 'on',
+      url: e.EBMR_DB_ANALYTICS_URL ?? devUrl(e.EBMR_PG_HOST, e.EBMR_PG_PORT, e.EBMR_DATABASE, 'ebmr_analytics'),
+      commit: e.EBMR_COMMIT,
+    },
     logLevel: e.EBMR_LOG_LEVEL,
     logPretty: e.EBMR_LOG_PRETTY,
     cookies: cookieNames(e.EBMR_INSTALLATION, https),

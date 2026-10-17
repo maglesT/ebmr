@@ -30,6 +30,8 @@ implemented_by:
 tests:
   - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-53] a person flag is unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
   - "apps/tablets-server/test/analytics/role-permissions.test.ts > the analytics permissions of the Tablets roles (tablets 1330) > [DI-52][DI-53] each analytics permission is held by exactly its Tablets roles, ANALYTICS.DI_REVIEW by the data-integrity reviewer alone, none by an administration role"
+  - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-53] a person flag is unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
+  - "packages/kernel/test/analytics/method-change.test.ts > the flags views (kernel 1245) > [DI-53] a person flag and its dispositions are unreadable without ANALYTICS.DI_REVIEW, also through the app role directly"
 expert_decision:
   status: PENDING
   pack_version: draft

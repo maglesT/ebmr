@@ -16,6 +16,8 @@ import { advanceMinutes, FAKETIME_FILE, freezeAt, goldenClockAvailable } from '.
 import { masterNegatives, type MasterNegatives } from './negatives.ts';
 import { setUpPlant } from './plant.ts';
 import { resultsOf, type BatchResults } from './results.ts';
+import type { RunReport } from '../../../src/analytics/runner.ts';
+import { expectRunnerBeside } from '../analytics-check.ts';
 import { planAll, runSource, runVariant, SOURCE_AGE_MINUTES } from './scenario.ts';
 import { startGoldenWorld, type GoldenWorld } from './world.ts';
 import { DRUMS, ORDER_PLAN, PRODUCT_TESTS, RESERVE_PACKS, runContinuation, TIMINGS, type Continuation } from './release.ts';
@@ -77,7 +79,7 @@ function laterDays(): number {
 describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => {
   let w: GoldenWorld;
   let negatives: MasterNegatives;
-  const run: { happy?: BatchResults; exception?: BatchResults; notes?: { happy: Json; exception: Json }; happyBatch?: GoldenBatch; numbers?: string[]; start?: bigint } = {};
+  const run: { happy?: BatchResults; exception?: BatchResults; notes?: { happy: Json; exception: Json }; happyBatch?: GoldenBatch; numbers?: string[]; start?: bigint; analytics?: RunReport[]; analyticsBatches?: string[] } = {};
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ['performance'] });
     w = await startGoldenWorld();
@@ -126,6 +128,9 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
     await runVariant(w, p.happy, 'HAPPY', residue);
     await runVariant(w, p.exception, 'EXCEPTION_RICH', residue);
     const numbers = [p.happy.batchNumber, p.exception.batchNumber, p.source.batchNumber];
+    // The analytics runner, on all along, runs once more over the completed batches before their outputs are read.
+    run.analytics = await w.analytics();
+    run.analyticsBatches = [p.happy.batchId, p.exception.batchId, p.source.batchId];
     run.happy = await resultsOf(w, p.happy.batchId, numbers, start * 1_000_000n);
     run.exception = await resultsOf(w, p.exception.batchId, numbers, start * 1_000_000n);
     run.notes = { happy: p.happy.notes, exception: p.exception.notes };
@@ -137,6 +142,12 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
     expect(run.happy.states.batch).toBe('EXECUTION_COMPLETE');
     expect(run.exception.states.batch).toBe('EXECUTION_COMPLETE');
   }, 3_600_000);
+
+  it('[DI-51] the golden batches keep their exact outputs with the analytics runner on', async () => {
+    // The exact outputs are this file's own assertions on this run; here, the runner ran over these very batches.
+    if (!run.happy || !run.exception) throw new Error('the scenario did not run');
+    await expectRunnerBeside(w, run.analytics, run.analyticsBatches ?? []);
+  });
 
   describe.each([
     ['happy', () => run.happy, () => expected.fromTheRun.happy, () => run.notes?.happy],

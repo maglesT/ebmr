@@ -148,6 +148,77 @@ data age.
 - **Migrations:** kernel 1245 to 1259, site-services 1010 to 1019 (reserved), recipe-core 1115 to 1129, tablets 1335 to
   1339.
 
+#### 6A-1 as built (17 October)
+
+- **Migrations:** kernel 1245 (method change control, the screens' views, restricted dispositions); recipe-core 1115
+  (input views v1, registered with `report.batch_outcome_v1`). Tablets 1335-1339 and site-services 1010-1019 are not
+  used.
+- **Server:** the runner `apps/tablets-server/src/analytics/` (started in `buildApp` on GMP with `EBMR_ANALYTICS=on`),
+  the feature `features/analytics/` binding `analytics` (joined to `routes.ts` and `NAMESPACE_OWNERS` as `P6A`, per
+  D-6A-0-4) and the new namespace `analyticsConfig` (D-6A-1-1). Screens in `tablets-web/src/features/analytics/`.
+- **Tests:** kernel `test/analytics/method-change.test.ts`; recipe-core `test/analytics/input-views.test.ts`; server
+  `test/analytics/runner.test.ts` and `routes.test.ts`; web `test/analytics/analytics.test.tsx`; the `[meta]` lint
+  proof `tools/boundaries/test/number-ban.test.ts`; the golden test `[DI-51] the golden batches keep their exact
+  outputs with the analytics runner on` in GB-T-01 to GB-T-03. The 6A-0 tests that listed exact sets (readable tables,
+  app-callable functions, FRESH_ON_SHARED routes, route uniqueness) now include 6A-1's objects.
+- **Mutation groups:** `analytics-method-change` and `analytics-inputs` (90 %), jobs in `mutation.yml`.
+
+Defaults of 6A-1 (taken without asking, as the owner's rule says; each is the decision until the owner changes it):
+
+- **D-6A-1-1** Method versions and reference sets are written through a new namespace `analyticsConfig`
+  (`ns/analytics-config.ts`: POST `/api/analytics/method-versions` and `/api/analytics/reference-sets`). The config
+  namespace has no generic write route; its areas, history and differences list the analytics areas unchanged. These are
+  configuration writes, so they carry no advisory envelope and are not in `ANALYTICS_NAMESPACES`.
+- **D-6A-1-2** `cpp_value_v1` gives the limits of the outermost tier the master states, in the order REGISTERED,
+  VALIDATED, INTERNAL_ACTION, ALERT, and names that tier (`limit_tier`, an added column).
+- **D-6A-1-3** Only DECIMAL, COUNT and SERIES values appear; a SERIES gives one row per reading (`reading`, added); a
+  calculation's role is null.
+- **D-6A-1-4** `step_use_v1` has one row per executed step and bound unit (a step without a binding: one row, no unit).
+  The room is the unit's room, else the room the batch occupied when the step started, else the batch's own room. The
+  persons are the performers, data enterers and correctors. The lots come from the consumptions the step's entries
+  name. Added columns: `batch_number`, `step_id`.
+- **D-6A-1-5** The input views hold GMP batches only. They are report views like the 6g ones: in the report catalogue,
+  readable by the reporting role and the dashboards' documented export, and on the analytics role's allow-list.
+- **D-6A-1-6** A method version or reference set never changes. A later row of the same version (or set id) may only
+  retire it, and a retired one stays retired. Table triggers enforce this for every writer, the release included
+  (EBMR-ANA-013, -014).
+- **D-6A-1-7** The server computes the parameters' SHA-256 and the code identity `@ebmr/analytics <version> (commit
+  <EBMR_COMMIT>)`. Before each run the runner checks the hash, the parameter schema and the package version again. A
+  mismatch is a FAILED run with the reason.
+- **D-6A-1-8** `analytics.run_v1` shows a run unended an hour after its start as FAILED, as the monitor counts it.
+- **D-6A-1-9** The dispositions of a restricted flag are read through the definer `analytics.person_flag_dispositions`
+  (ANALYTICS.DI_REVIEW).
+- **D-6A-1-10** `IMPLEMENTATIONS` is empty in 6A-1. A version in force that no implementation covers is skipped and
+  logged, not recorded as a failed run.
+- **D-6A-1-11** The input hash covers each row without `read_at` and `data_as_of`, with the rows sorted by canonical
+  text. The method gets the rows in that order.
+- **D-6A-1-12** The runner holds one connection. Times, dates and numbers come back as text. When the role's
+  connection limit (4) is reached, the runner waits up to 10 seconds.
+- **D-6A-1-13** The catalogue route lists the package registry through the runner folder's `catalog.ts`. The feature
+  never imports `@ebmr/analytics` itself.
+- **D-6A-1-14** The poll's baseline is kept in memory and set by the first poll. A batch completed while the server was
+  down is covered by the next nightly run. A start after 02:00 waits for the next day's run.
+- **D-6A-1-15** Configuration: `EBMR_ANALYTICS` (on or off, default on, GMP only), `EBMR_DB_ANALYTICS_URL` (required in
+  production) and `EBMR_COMMIT` (default `development`). Server tests run with it off because the role has 4
+  connections on the whole cluster. The runner tests and the golden batches turn it on.
+- **D-6A-1-16** A flag is linked to the run's first output about the same subject, if there is one.
+- **D-6A-1-17** The flags list shows flags about a person or an account only when asked for by kind. Without a period,
+  the list shows the open flags, those without a disposition.
+- **D-6A-1-18** A method version's parameters and acceptance criteria travel as JSON text. The request hash is canonical
+  JSON, and it refuses fractional numbers.
+- **D-6A-1-19** Libraries (D-6A-23): `ml-matrix` 6.15.0 and the @stdlib quantile packages (beta, chi-square, F and t
+  0.2.3, normal 0.3.1, all published by February 2026). They are pinned exactly, recorded with every run
+  (`RUNTIME_LIBRARIES`, equal to package.json by a test) and wrapped in `numeric/quantiles.ts` and `numeric/linalg.ts`.
+- **D-6A-1-20** Every analytics read needs ANALYTICS.VIEW. The database checks it in a command
+  (`iam.require_permission`); the refusal is EBMR-IAM-040, answered 422 as everywhere.
+- **D-6A-1-21** In the golden batches the runner is on all along (it polls every minute) and runs once more on demand
+  before the outputs are read. The run uses the test's probe method, because no production method exists yet.
+- **D-6A-1-22** A flag the person may not see answers 404 (EBMR-ANA-016), which does not reveal that a restricted flag
+  exists.
+- **D-6A-1-23** A retirement through the route keeps what the version in force recorded: its parameters, their hash,
+  its intended use and its code identity. A version validated with an earlier build can then still be retired after
+  an upgrade (found in the slice's own review).
+
 ### Slice 6A-2: SPC, capability, drift alerts and deviation-rate comparisons (items 1 and 3)
 
 - **Control charts** per product, MBR family and critical item (`report.cpp_value_v1`):

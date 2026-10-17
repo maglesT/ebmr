@@ -7,6 +7,9 @@ export { AnalyticsInputError } from './errors.ts';
 export { decimalText, isDecimalText, statOf, type DecimalText } from './numeric/from-decimal.ts';
 export { canonicalNumber, canonicalText, outputHash } from './numeric/canonical.ts';
 export { sha256Hex, sha256HexOfBytes } from './numeric/sha256.ts';
+export { betaQuantile, chiSquareQuantile, fQuantile, normalQuantile, tQuantile } from './numeric/quantiles.ts';
+export { EigenvalueDecomposition, Matrix, SingularValueDecomposition } from './numeric/linalg.ts';
+export { ANALYTICS_PACKAGE_VERSION, RUNTIME_LIBRARIES } from './runtime.ts';
 export {
   METHOD_IDS,
   type Method,

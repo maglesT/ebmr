@@ -206,7 +206,7 @@ describe('route table', () => {
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
-      'alarms.acknowledge', 'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
+      'alarms.acknowledge', 'analytics.dispose', 'analyticsConfig.setMethodVersion', 'analyticsConfig.setReferenceSet', 'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
       'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise', 'capa.recordEffectiveness', 'capa.scheduleCheck', 'config.closeChangeRecord', 'config.raiseChangeRecord', 'config.setRbeRule', 'config.setSetting', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'contractGiver.grantAccess', 'contractGiver.revokeAccess', 'controlled.proposeCustody', 'controlled.recordCheckpoint', 'controlled.recordProduct', 'controlled.runRegister', 'esig.createChallenge', 'esig.endDscEnrolment', 'esig.enrolDsc', 'esig.registerDscAnchor', 'esig.setDscMeaning', 'esig.setDscMode', 'execution.command', 'execution.importPackage',
       'execution.issue', 'execution.planBatch', 'india.issueH2', 'integrations.acknowledgeAlarm',
       'labels.approveTemplate', 'labels.createTemplate', 'labels.declareLabelling', 'labels.enableWaiver', 'labels.openStoreTransaction', 'labels.recordCodingSpecimen',

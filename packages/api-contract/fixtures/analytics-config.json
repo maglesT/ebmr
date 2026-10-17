@@ -1,0 +1,32 @@
+{
+  "methodVersion": {
+    "version": {
+      "method": "SPC.IMR",
+      "version": 1,
+      "status": "EFFECTIVE",
+      "title": "Individuals and moving-range chart",
+      "intendedUse": "Trend one critical value per batch against control limits (advisory)",
+      "acceptance": { "referenceValues": "packages/analytics/test/reference/spc.json within 1e-9 relative", "falseAlarmRateMax": 0.05 },
+      "parametersSha256": "3f1c2b9a8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a3928170605f4e3",
+      "codeIdentity": "@ebmr/analytics 0.1.0 (commit 0a1b2c3)",
+      "validationRef": "VAL-ANA-001",
+      "validFrom": { "us": "1791612000000000", "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)" },
+      "validTo": null,
+      "changeRecord": "CR-2026-031"
+    }
+  },
+  "referenceSet": {
+    "referenceSet": {
+      "referenceSetId": "c6000000-0000-4000-8000-000000000001",
+      "method": "MSPC.PCA",
+      "scope": { "product": "PCM-500", "family": "PCM500-GRAN" },
+      "batchIds": ["b6000000-0000-4000-8000-000000000001", "b6000000-0000-4000-8000-000000000002"],
+      "candidateOutput": "d6000000-0000-4000-8000-000000000001",
+      "modelSha256": "9a1c2b9a8e7d6c5b4a39281706f5e4d3c2b1a09f8e7d6c5b4a3928170605f4e3",
+      "status": "EFFECTIVE",
+      "validFrom": { "us": "1791612000000000", "text": "12-OCT-2026 10:10:00 +05:30 (Asia/Kolkata)" },
+      "validTo": null,
+      "changeRecord": "CR-2026-032"
+    }
+  }
+}

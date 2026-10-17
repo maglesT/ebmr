@@ -26,8 +26,7 @@ migration_header_from:
 
 # Handbook pages linked from the README that are still being written. A link to one of these may point at a file that
 # does not exist yet; remove a page from this list as soon as it lands.
-pending:
-  - modules/analytics.md
+pending: []
 
 modules:
   # ---------------------------------------------------------------- kernel
@@ -172,6 +171,22 @@ modules:
       - 'packages/api-contract/test/analytics.test.ts'
       - 'packages/test-kit/test/analytics-history.test.ts'
       - 'apps/tablets-server/test/analytics/**'
+
+  - id: analytics-foundation
+    title: Advisory analytics foundation (Phase 6A slice 6A-1) - runner, input views, method change control, dispositions, monitoring, screens
+    page: modules/analytics.md
+    package: apps/tablets-server
+    migrations:
+      packages/kernel/sql: ['^124[5-9]_']
+      packages/recipe-core/sql: ['^111[5-9]_']
+    src: [apps/tablets-server/src/analytics]
+    server: [apps/tablets-server/src/features/analytics]
+    contract: [packages/api-contract/src/ns/analytics-config.ts]
+    screens: [apps/tablets-web/src/features/analytics]
+    tests:
+      - 'packages/recipe-core/test/analytics/**'
+      - 'apps/tablets-web/test/analytics/**'
+      - 'tools/boundaries/test/number-ban.test.ts'
 
   - id: kernel-integration
     title: Integration wiring between kernel modules

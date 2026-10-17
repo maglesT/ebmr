@@ -9,6 +9,8 @@
  *
  * Set EBMR_GOLDEN_DUMP to a file path to write the run's outputs there (for a review of a changed run).
  */
+import type { RunReport } from '../../../src/analytics/runner.ts';
+import { expectRunnerBeside } from '../analytics-check.ts';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { Dec, sha256Hex } from '@ebmr/expr';
@@ -106,7 +108,7 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
   let w: GoldenWorld;
   let cx: Connected;
   let press: PressRig | undefined;
-  const run: { batch?: BatchResults; order?: BatchResults; orderFacts?: OrderFacts; lot?: LotFacts; rel?: Gbt03Release; connected?: ConnectedFacts; press?: PressFacts; recall?: Json } = {};
+  const run: { batch?: BatchResults; order?: BatchResults; orderFacts?: OrderFacts; lot?: LotFacts; rel?: Gbt03Release; connected?: ConnectedFacts; press?: PressFacts; recall?: Json ; analytics?: RunReport[]; analyticsBatches?: string[] } = {};
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ['performance'] });
     w = await startGoldenWorld();
@@ -132,6 +134,9 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
     run.press = await press.facts(batch.batchId);
     const rel = await packReleaseAndRecall(w, cx, masters, batch, bulk);
     const numbers = [batch.batchNumber, rel.order.batchNumber];
+    // The analytics runner, on all along, runs once more over the completed batches before their outputs are read.
+    run.analytics = await w.analytics();
+    run.analyticsBatches = [batch.batchId, rel.order.batchId];
     run.batch = await resultsOf(w, batch.batchId, numbers, start * 1_000_000n);
     run.order = await resultsOf(w, rel.order.batchId, numbers, start * 1_000_000n);
     run.orderFacts = await orderFacts(w, rel.order.batchId);
@@ -149,6 +154,12 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
     expect(run.batch.states.batch).toBe('EXECUTION_COMPLETE');
     expect(run.order.states.batch).toBe('EXECUTION_COMPLETE');
   }, 3_600_000);
+
+  it('[DI-51] the golden batches keep their exact outputs with the analytics runner on', async () => {
+    // The exact outputs are this file's own assertions on this run; here, the runner ran over these very batches.
+    if (!run.batch) throw new Error('the scenario did not run');
+    await expectRunnerBeside(w, run.analytics, run.analyticsBatches ?? []);
+  });
 
   const r = (k: 'batch' | 'order'): BatchResults => {
     const x = run[k];
