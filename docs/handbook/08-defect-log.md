@@ -1159,6 +1159,22 @@ any batch never makes a later receipt of the day reuse a generated code` (packag
 counter moves without writing one; derive the next value from the highest one in use, under the lock that is already
 held, and let the unique constraint stay the last guard.
 
+### M6-D2: an intact message after a tampered copy was lost at the interface (high, DI-31; adapter worker)
+
+**Symptom.** An inbound message whose payload did not match its stated hash was refused with a MALFORMED alarm, as it
+should be. When the source then sent the intact message under the same idempotency key and hash, the worker answered it
+DUPLICATE and it never reached the database. **Why it matters.** A record from the ERP, QMS, LIMS, OPC UA or another
+feed was silently lost after the first alarm: the cursor moved on and the reconciliation (key and hash) matched the
+recorded refusal. **Cause.** The worker's memory of refused messages (`refusedKeys` in
+`apps/tablets-server/src/features/integrations/adapters/framework.ts`) held the hash the message *stated*, which for a
+hash mismatch is not the hash of what arrived. **Fix.** The memory holds the SHA-256 of the whole item as received; only
+the very same item repeated is a duplicate. No migration: the database looks for a key among accepted messages only, so
+a refusal does not reserve it. Found while writing the Phase 6 mutation campaign's tests (triage T12; D-P6j-T12-3).
+**Tests.** `[DI-31] M6-D2: after a message refused because its payload is not the one its hash states, the intact message
+under the same key lands, exactly once; ...` and `[DI-31] M6-D2: a page that repeats a refused item unchanged is handled
+once; ...` (apps/tablets-server/test/equipment-data/opcua-adapter.test.ts). **Lesson.** De-duplicate on what you
+received, never on what the sender claims about it; a claim that failed its check identifies nothing.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

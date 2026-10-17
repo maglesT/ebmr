@@ -292,11 +292,12 @@ decisions were listed and checked by hand (D-P6j-T12-1): (a) the database enforc
 TypeScript does: the mutation applied by hand in the worktree, the narrowest test file run, then reverted. Mutant labels
 below are those of the hand check.
 
-**Verdict: no Priority 1 defect in the unmeasured code; there was a Priority 1 test gap, now closed.** 30 mutants were
+**Verdict: no Priority 1 defect among the mutated decisions; there was a Priority 1 test gap, now closed. Writing its tests
+found one high DI-31 defect next to them (M6-D2), fixed.** 30 mutants were
 hand-applied against the features' whole test lists: 4 killed, 3 survivors are database-enforced (a), and 23 survivors of
 TypeScript-only rules (17 gateway, 6 server) had no test. Nine new tests in the packages' own test files kill those 23
 and 6 further variants applied afterwards; each passes on the original code. One P2 defect fixed (OPC UA ids cut before
-keying, below); one P2 residual (R-T12-1) and two owner observations.
+keying, below); one high defect fixed on the lead's decision (M6-D2, DI-31, below) and two owner observations.
 
 #### gateway-opcua (`drivers/opcua.ts`, `opcua-feed.ts`)
 
@@ -381,10 +382,20 @@ keying, below); one P2 residual (R-T12-1) and two owner observations.
   while one waits; only a 200 answer naming the ERP's reference acknowledges a message`.
 - P3, no test: refusal texts, counters of the cycle report, the `exchange` and page-shape checks (each failure ends as a
   TransportError, the cursor stays), `qmsLinkFromEnv` defaults.
-- **P2 residual R-T12-1 (not fixed, D-P6j-T12-2):** the worker remembers a refused message by its *stated* hash. When a
-  payload was refused because it did not match its hash, an intact resend under the same key and hash is answered DUPLICATE
-  in memory and never reaches the database (the first refusal's MALFORMED alarm is the only trace; the worker forgets at
-  restart). Seen while writing the S6 test. A fix would key the memory on the hash of the payload as received.
+- **Defect M6-D2 (high, DI-31; fixed in the worker, no migration; D-P6j-T12-3):** data loss on an interface, alarmed only at
+  the first refusal. The worker remembered a refused message by the hash it *stated*. After a refusal because the payload
+  did not match its hash, the intact message under the same key and hash was answered DUPLICATE in memory and never reached
+  the database; the cursor moved on, reconciliation by (key, hash) matched the refusal, and only the first MALFORMED alarm
+  was left. Found while writing the S6 test. Fix (`framework.ts`): the memory holds the SHA-256 of the whole item as
+  received, checked before the envelope; only the very same item repeated is handled, anything else is checked and
+  received anew (a tampered copy under a new sequence number is refused again and recorded). The database does not block
+  the intact copy: `platform.accept_inbound_detail` (kernel 1180) looks for the key among accepted messages only, so a
+  refusal does not reserve the key, and "same key, other content" stays EBMR-INT-005 for accepted messages (unchanged).
+  Tests in `opcua-adapter.test.ts`: `[DI-31] M6-D2: after a message refused because its payload is not the one its hash
+  states, the intact message under the same key lands, exactly once; the tampered payload sent again is refused again`
+  (failed before the fix) and `[DI-31] M6-D2: a page that repeats a refused item unchanged is handled once; the refusal is
+  not recorded twice` (keeps the de-duplication); both hand-mutated against the fix (the short-cut removed, the memory on
+  the stated hash): each fails.
 - **Owner observation O-T12-1:** `AdapterWorker.reconcile` (count and checksum per period, DI-31 "no silent loss") has no
   caller in the server: nothing submits a reconciliation on a period. Gaps, late messages and the mirror's caught-up check
   are enforced (above), so a loss inside the sequence is alarmed; a source that stops publishing its last messages is seen

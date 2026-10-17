@@ -1168,6 +1168,10 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
 - **D-P6j-T12-2** A P2 finding outside the P1 question (the worker's refused-key memory keyed on the stated hash, R-T12-1) is
   recorded for the owner rather than fixed in a triage commit; a P2 defect whose fix is a TypeScript change of a few tokens
   and whose test is already written (the OPC UA ids cut before keying) is fixed.
+- **D-P6j-T12-3** (lead) R-T12-1 is fixed now as defect M6-D2 (high, DI-31: an intact resend after a hash-mismatch
+  refusal must land). The worker remembers a refused item by the SHA-256 of the whole item as received, so only the same
+  item repeated is a duplicate; no migration, since a refusal does not reserve the key in the database (kernel 1180
+  checks the key among accepted messages only, EBMR-INT-005 unchanged). Supersedes D-P6j-T12-2 for this finding.
 
 ## Interfaces fixed up front (in each x-0 commit; changed only through the lead)
 

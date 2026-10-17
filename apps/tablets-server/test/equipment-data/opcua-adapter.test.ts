@@ -14,7 +14,7 @@ import { count, ctxOf, nowUs } from '../../../../packages/kernel/test/integratio
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { OPCUA_ADAPTER } from '../../src/features/integrations/adapters/opcua/index.ts';
 import { ADAPTER_SLOTS } from '../../src/features/integrations/adapters/start.ts';
-import { feedWorker, type AdapterWorker, type CycleReport } from '../../src/features/integrations/adapters/framework.ts';
+import { AdapterWorker, feedAdapterDefinition, feedWorker, type CycleReport } from '../../src/features/integrations/adapters/framework.ts';
 import { enrol } from '../devices/support.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { opcuaWorld, type OpcuaWorld } from './opcua-support.ts';
@@ -184,5 +184,54 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     const rs2 = await settle();
     expect(total(rs2, 'accepted')).toBe(1);
     expect(await events()).toBe(1);
+  });
+
+  // Defect M6-D2 (Phase 6 slice 6j, triage T12; D-P6j-T12-3): the worker remembered a refused message by the hash it
+  // stated, so after a refusal for a payload that did not match its hash, the intact message under the same key and
+  // hash was taken for the refused one and never reached the database (alarmed only at the first refusal).
+  it('[DI-31] M6-D2: after a message refused because its payload is not the one its hash states, the intact message under the same key lands, exactly once; the tampered payload sent again is refused again', async () => {
+    feed.publish('opcua.endpoint_session', session());
+    const ev = `EV-${randomBytes(3).toString('hex')}`;
+    const event: Json = { equipmentCode: w.unit.code, eventId: ev, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'press running', occurredAt: nowUs() };
+    const tampered: Json = { ...event, state: 'STOPPED' };
+    const key = `opcua.equipment_event:${randomBytes(6).toString('hex')}`;
+    const refusals = () => count(db, "select count(*) as n from platform.inbound_exception where adapter_code = $1 and kind = 'REFUSED' and idempotency_key = $2", [w.adapter.code, key]);
+    const events = () => count(db, 'select count(*) as n from plant.equipment_state_event where event_id = $1', [ev]);
+    feed.publish('opcua.equipment_event', event, { key, sent: tampered });
+    expect(refusedOf(await settle(), 'MALFORMED')).toBe(1);
+    // The same tampered payload again, under the same key and stated hash: refused again, never landed.
+    feed.publish('opcua.equipment_event', event, { key, sent: tampered });
+    expect(refusedOf(await settle(), 'MALFORMED')).toBe(1);
+    expect(await refusals()).toBe(2);
+    expect(await events()).toBe(0);
+    // The intact message, same key, the hash it states: it lands.
+    feed.publish('opcua.equipment_event', event, { key });
+    const rs = await settle();
+    expect(total(rs, 'accepted')).toBe(1);
+    expect(await events()).toBe(1);
+    // Sent again unchanged: de-duplicated by the database, still exactly once.
+    feed.publish('opcua.equipment_event', event, { key });
+    expect(total(await settle(), 'accepted')).toBe(0);
+    expect(await events()).toBe(1);
+  });
+
+  it('[DI-31] M6-D2: a page that repeats a refused item unchanged is handled once; the refusal is not recorded twice', async () => {
+    const key = `opcua.equipment_event:${randomBytes(6).toString('hex')}`;
+    const event: Json = { equipmentCode: w.unit.code, eventId: `EV-${randomBytes(3).toString('hex')}`, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'press running', occurredAt: nowUs() };
+    const seq = ((await worker.databaseCursor()) + 1n).toString();
+    const item = {
+      sourceSystem: 'OPCUA', messageType: 'opcua.equipment_event', sourceRecordId: `GW-${seq}`, sourceTimestamp: nowUs(), sequenceNo: seq, idempotencyKey: key, schemaVersion: '1',
+      payloadHash: createHash('sha256').update(JSON.stringify(event), 'utf8').digest('hex'), payload: { ...event, state: 'STOPPED' },
+    };
+    // A source that never saw the cursor move: every page repeats the same item.
+    const repeating = new AdapterWorker(db.app, feedAdapterDefinition(w.adapter.code, OPCUA_ADAPTER), {
+      page: () => Promise.resolve({ messages: [item], head: seq }),
+      heartbeat: () => Promise.resolve(true),
+      reconciliation: () => Promise.reject(new Error('not used')),
+    }, () => Promise.resolve(ctxOf(w.adapter.actor)));
+    expect((await repeating.cycle()).outcomes.map((o) => o.result)).toEqual(['REFUSED']);
+    expect((await repeating.cycle()).outcomes.map((o) => o.result)).toEqual(['DUPLICATE']);
+    expect(await count(db, "select count(*) as n from platform.inbound_exception where adapter_code = $1 and kind = 'REFUSED' and idempotency_key = $2", [w.adapter.code, key])).toBe(1);
+    await repeating.stop();
   });
 });
