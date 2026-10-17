@@ -200,6 +200,10 @@ The commands (permissions in brackets) are listed in the header of
 - [`site.record_lot_destruction`](../../../packages/site-services/sql/0712_material_lot_commands.sql#sym=site.record_lot_destruction) and [`site.destroy_lot`](../../../packages/site-services/sql/0712_material_lot_commands.sql#sym=site.destroy_lot) (DESTROY with the witness's signature).
 - [`site.reserve_lot`](../../../packages/site-services/sql/0752_lot_retest.sql#sym=site.reserve_lot), [`site.cancel_reservation`](../../../packages/site-services/sql/0712_material_lot_commands.sql#sym=site.cancel_reservation); [`site.consume_reservation`](../../../packages/site-services/sql/0712_material_lot_commands.sql#sym=site.consume_reservation) is not callable by `ebmr_app`: the
   batch side's definer (`recipe.consume_lot`, recipe-core 0430) calls it with the batch's own number and markets.
+  It checks DISPENSE.EXECUTE again in the lot's site with the batch's product as the register knows the batch
+  (`site.subject_identity`; site services [1103](../../../packages/site-services/sql/1103_consumption_batch_product_scope.sql),
+  6jc-R16), so a training requirement limited to another product does not refuse the consumption; a test run, which the
+  register does not know, keeps the lot's site only.
 - [`site.revoke_batch_reservations`](../../../packages/site-services/sql/0801_batch_end_reservations.sql#sym=site.revoke_batch_reservations) (0801): a batch that completes, aborts or is cancelled gives back its open
   reservations.
 - [`site.record_signed_lot_retest`](../../../packages/site-services/sql/0762_lot_retest_signed_content.sql#sym=site.record_signed_lot_retest) (QC.RESULT_APPROVE, with QC's own `LOT_RETEST_APPROVED` signature on the aggregate

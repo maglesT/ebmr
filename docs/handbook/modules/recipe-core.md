@@ -1890,6 +1890,49 @@ pattern (view over a `report.*_rows_vN()` row function). A change of a view's co
 (`_v2`) registered in `report.view_registry`; the old one stays until the analytics module has moved. Tests:
 `packages/site-services/test/reporting/` (fixture world on top of the genealogy world).
 
+## Batch scope of a batch act (6jc-R16; recipe-core 1100, 1217, 1218)
+
+A permission is checked in a scope: the site, area and product the work is on. A grant limited to a product covers
+only requests that name that product. A training (qualification) requirement limited to a product applies to every
+request that does not name another product: a request without a product may be work on that product, so the kernel
+fails closed (`iam.requirement_applies`, kernel 0100). So every act on a batch must name the batch's product, or a
+requirement for product A stops the people of every other product, and a person whose grant is limited to product A
+cannot act on A's batches at all.
+
+How a batch act names it:
+
+- Step work and step signatures (1100): the command's permission through
+  [`recipe.require_command_permission(type, meaning, batch)`](../../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql#sym=recipe.require_command_permission),
+  the actor's location with
+  [`recipe.batch_scope_members`](../../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql#sym=recipe.batch_scope_members)
+  ({product}, or {} for a batch without one); the content providers add the same member through
+  `recipe.with_batch_scope`, so `esig.sign` evaluates the signer there.
+- The rest (1217): the alarm acknowledgment checks ALARM.ACKNOWLEDGE in each bound batch's `plant.batch_scope`
+  ({site, product}) and only there; an alarm bound to no batch is checked unscoped. The disposition proposal, the
+  hold-point decision proposal and the proposal of an act for approval use the batch form above; the exception review
+  act and the dispensing consumption check at the actor's location with the batch's product, and the site side of the
+  consumption (`site.consume_reservation`, site services 1103) in the lot's site with the batch's product.
+- The GMP batch issue (1218): no batch record exists yet, so the issue command's permission is checked with the order's
+  product, the product of the MBR family the batch is planned from
+  ([`recipe.require_issue_permission`](../../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql#sym=recipe.require_issue_permission)).
+  A test run's issue has no order and keeps the location-only check.
+
+A requirement limited to this batch's product, or to none, still applies, and a qualification held only from a stale
+mirror is still refused (STALE_QUALIFICATION_SOURCE). The 2-argument `recipe.check_engine_roles` (location only) was
+dropped in 1224 once nothing called it.
+
+> **Why this exists**
+> - **Pharma reason:** a person does GMP work only with the training the work needs (Schedule M, 21 CFR 211.25, EU GMP
+>   chapter 2); training tied to one product must not stop, or allow, work on another product.
+> - **Control:** [IN-04](../../../compliance/controls/IN-04.yaml), [DI-21](../../../compliance/controls/DI-21.yaml), [DI-17](../../../compliance/controls/DI-17.yaml).
+> - **Code:** [1217_batch_scope_remaining_acts.sql](../../../packages/recipe-core/sql/1217_batch_scope_remaining_acts.sql), [1218_batch_issue_order_product_scope.sql](../../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql), [site services 1103](../../../packages/site-services/sql/1103_consumption_batch_product_scope.sql).
+> - **Tests:** [alarm-ack-batch-scope.test.ts](../../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts), [batch-scope.test.ts](../../../packages/recipe-core/test/review/batch-scope.test.ts), [consumption-batch-scope.test.ts](../../../packages/site-services/test/lots/consumption-batch-scope.test.ts), tests named `[IN-04]`.
+> - **Error:** `EBMR-IAM-040` (with MISSING_QUALIFICATION or STALE_QUALIFICATION_SOURCE).
+
+**Pitfall.** When you write a new act on a batch, name the batch's product in its permission check (use the batch form
+of `recipe.require_command_permission`, or add `recipe.batch_scope_members(batch)` to the scope). A check at the
+actor's location only looks safe because it fails closed, but it refuses correct work.
+
 ## How to test recipe-core
 
 - Everything in the package: `pnpm vitest run --project db packages/recipe-core/test` (long; on a 4-CPU pod run only

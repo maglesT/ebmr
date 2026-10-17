@@ -1055,6 +1055,8 @@ step's content holds (an operator's exception, a QA disposition, a deviation lin
   block values recomputed at the PERFORMED signature) passes `kept_records_problem`, and every sweep of those states
   passes `sweep_state_problem`; each rule refuses the row that rewrites a record or makes the engine's change in
   the wrong row, and a sweep that changes anything else or moves a counter otherwise.
+- `test/execution/dead-overload.test.ts` (Phase 7 slice 7a; sql 1224): no SQL function body and no TypeScript calls
+  the 2-argument form of `recipe.check_engine_roles`, which sql 1224 drops; the batch form of sql 1100 is its one form.
 - `test/execution/readme.test.ts`: this README cites only migrations, SQL and TypeScript names, error codes and
   test files that exist, has a row of its code table for every code the store raises, and lists every test file
   of the store's two test directories.

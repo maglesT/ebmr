@@ -1014,6 +1014,27 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 - **Lesson:** a fail-closed rule for a missing scope member is right only if every caller passes the members it knows.
   When a scope dimension is added to grants or requirements, check that each authority call on a record names it.
 
+### 6jc-R16, the rest: the other batch acts still checked their permission without the batch's product (Phase 7 slice 7a)
+- **What went wrong.** After 1100 the step work named the batch's product, but the other batch acts did not: the alarm
+  acknowledgment checked ALARM.ACKNOWLEDGE unscoped before the bound batches' scopes, and the disposition and hold-point
+  proposals, the proposal of an act for approval, the exception review act, the dispensing consumption (both its batch
+  and its site side) and the GMP batch issue checked at the actor's location only.
+- **Why it matters.** The same as 6jc-R16: a requirement limited to product A refused these acts on every product, and
+  a person scoped to product A could not acknowledge an alarm of A's own batch (open question O-T1-1).
+- **Fix.** Recipe-core [1217](../../packages/recipe-core/sql/1217_batch_scope_remaining_acts.sql) and
+  [1218](../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql), site services
+  [1103](../../packages/site-services/sql/1103_consumption_batch_product_scope.sql): each act's check names the batch's
+  product (the order's product at the issue); an alarm bound to no batch is still checked unscoped. Recipe-core
+  [1224](../../packages/recipe-core/sql/1224_drop_check_engine_roles_two_argument.sql) drops the location-only
+  `recipe.check_engine_roles(jsonb, jsonb)` that nothing called any more.
+- **Test.** The `[IN-04]` tests of [alarm-ack-batch-scope.test.ts](../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts),
+  [batch-scope.test.ts](../../packages/recipe-core/test/review/batch-scope.test.ts) and
+  [consumption-batch-scope.test.ts](../../packages/site-services/test/lots/consumption-batch-scope.test.ts): per act,
+  another product's requirement no longer refuses it, this product's and an unlimited one still do, and a stale source
+  is still refused; the `[meta]` test of [dead-overload.test.ts](../../packages/recipe-core/test/execution/dead-overload.test.ts).
+- **Lesson:** fixing a scope bug in one caller is half the fix. Search every permission check on the same record for
+  the same missing member (`iam.actor_location_scope()` alone, or `'{}'`, on a batch act).
+
 ## Controlled substances (Phase 6 slice 6e, draft IN-53)
 
 ### P6e-R1: a batch could complete after its last controlled checkpoint (slice 6e, review)
