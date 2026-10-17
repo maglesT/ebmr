@@ -34,8 +34,15 @@ The branding goes into a later slice, after the Phase 6 exit (Phase 7 hardening)
 - the handbook cover
 - the web app's title and icon
 
-It needs the official logo files from the owner: SVG preferred, PNG at 512 px or more, plus colour codes if a brand
-guide exists. The logo is not taken from the website.
+The owner supplied the logo on 17 October 2026: `docs/brand/medhanta-logo-278x148.png` (PNG, 278 x 148 px, with the
+tagline "Where Expertise Meets Intelligence"). That size is enough for the header and the sign-in screen. The handbook
+cover and printed product documents need a larger file: an SVG, or a PNG of 1000 px or more, still to come from the
+owner. The logo is not taken from the website.
+
+Colours sampled from that file, approximate until a brand guide gives the exact codes:
+- red-orange about #D4553A
+- amber about #EF9E45
+- grey (wordmark) about #6C6C6C
 
 ## Before launch (owner)
 
