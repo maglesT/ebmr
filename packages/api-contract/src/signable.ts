@@ -76,6 +76,9 @@
  *              EXPORT_PERMISSION_APPROVE  export_permission <permission id>      EXPORT_PERMISSION_APPROVED (QA, never the recorder)
  *              HAZARD_APPROVE             hazard_classification <record id>      HAZARD_CLASSIFICATION_APPROVED (QA, never the recorder)
  *              DEDICATION_APPROVE         area_dedication <record id>            AREA_DEDICATION_APPROVED (QA, never the recorder)
+ *              FACILITY_RULE_APPROVE      facility_rule <proposal id>            QA_APPROVED (QA, never the proposer), state PROPOSED
+ *              BETA_LACTAM_APPROVE        beta_lactam_class <proposal id>        QA_APPROVED (QA, never the proposer), state PROPOSED
+ *              (Phase 7 slice 7a, recipe-core 1210; PR-27: the penicillin facility rule and the beta-lactam classification)
  * Phase 6 slice 6f (kernel 1202; ns/support.ts):
  *  - SUPPORT_ACT QA_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_QA_APPROVED (QA), state PENDING
  *                IT_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_IT_APPROVED (system or process owner), state PENDING
@@ -355,9 +358,13 @@ export const SignableAction = z.discriminatedUnion('kind', [
   z.strictObject({
     /** Phase 4 slice 6a (ns/india.ts): QA's approval of a recorded licence or export permission. */
     kind: z.literal('INDIA_ACT'),
-    /** Slice 6 quick review (recipe-core 0912): a second QA person approves a hazard classification or an area dedication. */
-    act: z.enum(['LICENCE_APPROVE', 'EXPORT_PERMISSION_APPROVE', 'HAZARD_APPROVE', 'DEDICATION_APPROVE']),
-    /** The licence, the export permission, or the hazard or dedication record. */
+    /**
+     * Slice 6 quick review (recipe-core 0912): a second QA person approves a hazard classification or an area dedication.
+     * Phase 7 slice 7a (recipe-core 1210, PR-27): QA, never the proposer, approves a penicillin facility rule or a
+     * beta-lactam classification proposed by the master-data steward.
+     */
+    act: z.enum(['LICENCE_APPROVE', 'EXPORT_PERMISSION_APPROVE', 'HAZARD_APPROVE', 'DEDICATION_APPROVE', 'FACILITY_RULE_APPROVE', 'BETA_LACTAM_APPROVE']),
+    /** The licence, the export permission, the hazard or dedication record, or the facility rule or classification proposal. */
     subjectId: Uuid,
   }),
   z.strictObject({

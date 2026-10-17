@@ -233,12 +233,16 @@ const ACTS: Readonly<Record<IndiaAct['act'], { aggregateType: string; meaning: s
   // Slice 6 quick review (recipe-core 0912, IN-27): a second QA person approves a hazard classification or an area dedication.
   HAZARD_APPROVE: { aggregateType: 'hazard_classification', meaning: 'HAZARD_CLASSIFICATION_APPROVED', sql: 'select plant.approve_product_hazard($1, $2)', state: 'RECORDED' },
   DEDICATION_APPROVE: { aggregateType: 'area_dedication', meaning: 'AREA_DEDICATION_APPROVED', sql: 'select plant.approve_area_dedication($1, $2)', state: 'RECORDED' },
+  // Phase 7 slice 7a (recipe-core 1210, PR-27): QA, never the proposer, approves a penicillin facility rule or a
+  // beta-lactam classification proposed by the master-data steward (routes plantRules.setFacilityRule, classifyBetaLactam).
+  FACILITY_RULE_APPROVE: { aggregateType: 'facility_rule', meaning: 'QA_APPROVED', sql: 'select plant.approve_facility_rule($1, $2)', state: 'PROPOSED' },
+  BETA_LACTAM_APPROVE: { aggregateType: 'beta_lactam_class', meaning: 'QA_APPROVED', sql: 'select plant.approve_beta_lactam_class($1, $2)', state: 'PROPOSED' },
 };
 
 export function indiaActHandler(app: AppContext): SignableActionHandler<IndiaAct> {
   return dbActHandler<IndiaAct>(app, {
     kind: 'INDIA_ACT',
-    aggregateTypes: ['manufacturing_licence', 'export_permission', 'hazard_classification', 'area_dedication'],
+    aggregateTypes: ['manufacturing_licence', 'export_permission', 'hazard_classification', 'area_dedication', 'facility_rule', 'beta_lactam_class'],
     target: (a) => ({ aggregateType: ACTS[a.act].aggregateType, aggregateId: a.subjectId, meaning: ACTS[a.act].meaning, expectedState: ACTS[a.act].state }),
     async apply(client, _ctx, a, signatureId) {
       await client.query(ACTS[a.act].sql, [a.subjectId, signatureId]);
