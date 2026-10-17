@@ -41,12 +41,12 @@ test('[DI-49][DI-31][INV-40] a press excursion over OPC UA (the press\'s REJECT_
     const session = await until('the OPC UA endpoint session', () => one<string | null>(db, 
       `select concat_ws(' ', s.endpoint_code, s.security_mode, s.security_policy, s.reported_location, array_to_string(s.equipment_codes, ','),
               case when s.certificate_thumbprint = d.key_fingerprint then 'enrolled-certificate' else 'other-certificate' end) as r
-         from plant.opcua_endpoint_session s join iam.device d on d.id = s.device_id where s.adapter_id = $1 and s.verdict = 'VALID' limit 1`, [aid]), (v) => v !== null, 120_000);
+         from plant.opcua_endpoint_session s join iam.device d on d.id = s.device_id where s.adapter_id = $1 and s.verdict = 'VALID' limit 1`, [aid]), (v) => v !== null && v !== undefined, 120_000);
     const burst = (): Promise<{ id: string; cleared: boolean } | null> => one<{ id: string; cleared: boolean } | null>(db, 
       `select jsonb_build_object('id', a.id::text, 'cleared', a.cleared_source_us is not null) as r from plant.alarm_status a join plant.equipment e on e.id = a.equipment_id
         where a.source = 'OPCUA' and a.alarm_code = 'REJECT_BURST' and e.code = $1 order by a.raised_source_us desc limit 1`, [d.opcua.press]);
     await fault(d.opcua.simConsole, 'REJECT_BURST', true);
-    const a = await until('the reject-burst occurrence', burst, (v) => v !== null, 120_000);
+    const a = await until('the reject-burst occurrence', burst, (v) => v !== null && v !== undefined, 120_000);
     await fault(d.opcua.simConsole, 'REJECT_BURST', false);
     await until('the reject burst cleared', burst, (v) => v?.cleared === true, 120_000);
     const alarmId = a?.id ?? '';

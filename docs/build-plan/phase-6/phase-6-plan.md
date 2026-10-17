@@ -1173,14 +1173,15 @@ different custodians, the second at the kiosk), `english-step` (decision 0018; n
   vitest file outside the suite's projects (`vitest.demo.config.ts`, `apps/tablets-server/test/demo/transfer.demo.ts`):
   two GMP servers on HTTP as the 6i route tests run them (the E2E stack has one GMP and one sandbox installation).
 - **D-P6j-D-2** The connected stack (`tools/e2e/demo/global-setup.ts`) is the E2E stack plus every simulator as its own
-  process and the adapters started by the servers themselves (service-keys entries with the feed endpoint, MIRROR modes
-  under the E2E change record, before the servers start). The ERP, QMS, LMS and CMMS adapters run on the sandbox
-  installation, because the stale-mirror step signature is on a TEST- batch at the sandbox kiosk; the integration health
-  page and its routes are GMP-only, so item 1's evidence is the database's record of messages, refusals, de-duplications
-  and alarms.
+  process and the adapters started by the GMP server itself (service-keys entries with the feed endpoint, MIRROR modes
+  under the E2E change record, before the server starts). The integrations feature, and so every adapter worker and the
+  integration health page, is GMP's (features/index.ts), so the fault exchange runs on GMP. The stale-mirror step
+  signature is on a TEST- batch at the sandbox kiosk (as in 6j-b): there the LMS data arrives through the adapter's
+  receiving command called as the registered adapter identity, since no adapter worker runs on the sandbox.
 - **D-P6j-D-3** The stale LMS mirror is shown in real time: the LMS mirror bound is set to its minimum (60 s, the
-  change-controlled `integration.mirror_max_age_s.lms_qualification`) and the LMS simulator's STALE_MIRROR fault stops
-  the adapter's synchronisation; the 6j-b flow moves the last synchronisation into the past instead.
+  change-controlled `integration.mirror_max_age_s.lms_qualification`) and no synchronisation follows until the bound
+  has passed; the 6j-b flow moves the last synchronisation into the past instead. The bound goes back to 3600 s before
+  the next synchronisation, so the accepted signature does not race the 60 s.
 - **D-P6j-D-4** Item 2 uses the press's REJECT_BURST on the OPC UA feed (OPC UA simulator, a GMP site gateway holding the
   enrolled endpoint, the GMP server's OPCUA adapter), as GB-T-03 does (D-P6j-b-3). A tag-limit excursion over the
   gateway's process uplink is not shown: the GMP server of the demo stack runs no gateway listener (only the sandbox

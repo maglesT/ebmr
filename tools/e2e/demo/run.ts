@@ -10,6 +10,7 @@
  *     measured facts and screenshot.
  *  3. The dated record: docs/build-plan/phase-6/exit-demo.md and its screenshots in docs/build-plan/phase-6/exit-demo/.
  *
+ * `--record-only` writes the record again from the last run's outputs in .reports/ without running anything.
  * Every step runs even when an earlier one fails; an item without a passing run is recorded as FAIL with its error.
  * The exit code is non-zero when any item failed.
  */
@@ -21,6 +22,7 @@ import { REPO_ROOT } from '@ebmr/demo';
 const REPORTS = join(REPO_ROOT, '.reports');
 const TRANSFER_OUT = join(REPORTS, 'demo-transfer.json');
 const EVIDENCE = join(REPORTS, 'demo-evidence.json');
+const EXITS = join(REPORTS, 'demo-exits.json');
 const RECORD = join(REPO_ROOT, 'docs/build-plan/phase-6/exit-demo.md');
 const SHOTS = join(REPO_ROOT, 'docs/build-plan/phase-6/exit-demo');
 
@@ -39,7 +41,7 @@ const ITEMS: { n: number; title: string; files: string[] }[] = [
 
 /** Notes per item: how it was shown and what is arranged rather than done through a screen. */
 const NOTES: Record<number, string> = {
-  1: 'Each system is its simulator process; each adapter is started by the sandbox server itself from its service-keys file (MIRROR mode) and pulls on its own 5 s timer. The demo only publishes on the simulators and switches their faults (POST /api/fault). The stale mirror is real time: the LMS mirror bound is set to its minimum (60 s, a change-controlled setting) and the LMS stops confirming its feed (STALE_MIRROR), so the adapter records no synchronisation. Arranged in the database as the 6j-b flows do: the training coordinator\'s product requirement, the employee numbers, the change record.',
+  1: 'Faults: each system is its simulator process; each adapter is started by the GMP server itself from its service-keys file (MIRROR mode; the integrations feature and its adapter workers are GMP\'s) and pulls on its own 5 s timer. The demo only publishes on the simulators and switches their faults (POST /api/fault). Stale mirror: the step signature is on a TEST- batch at the sandbox kiosk (as in 6j-b); no adapter worker runs on the sandbox, so its LMS training arrives through the adapter\'s receiving command, called as the registered adapter identity. The staleness is real time: the LMS mirror bound is set to its minimum (60 s, a change-controlled setting) and no synchronisation follows until it has passed. Arranged in the database as the 6j-b flows do: the training coordinator\'s product requirement, the employee numbers, the change record.',
   2: 'Path used: the press\'s Alarms-and-Conditions REJECT_BURST on the OPC UA feed (OPC UA simulator -> GMP site gateway, its own process, holding the enrolled endpoint -> the GMP server\'s OPCUA adapter). Not shown: a tag-limit excursion over the gateway\'s process uplink: the GMP installation has no gateway uplink listener (only the sandbox server has one) and GB-T-03 does not start that path either (D-P6j-b-3); the alarm log and the acknowledgment are the same for both. Arranged: the press in use for the DEMO-ONLY review batch (an open equipment use after its verified cleaning), so the alarm binds to that batch.',
   3: 'The L3/L4 simulator is the GMP server\'s L3 system (EBMR_L3_URL); the server asks it live. Arranged as the L3 server test arranges it: the pool row of the review batch (tab.serial_pool).',
   4: 'The suite\'s 6j-b flow as it is: the lot chain (receipt, consumption, finished lot, two ERP distribution records) is arranged as the genealogy server tests arrange it; the explorer, the mock recall and the AP sign-off are the real screens. GB-T-03 shows the same recall with the shipments landed by the ERP adapter (golden job).',
@@ -58,13 +60,22 @@ const clean = (s: string): string => s.replace(ANSI, '');
 const cell = (v: unknown): string => (typeof v === 'string' ? v : JSON.stringify(v)).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
 function main(): number {
-  const startedAt = new Date().toISOString();
+  let startedAt = new Date().toISOString();
   const commit = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' }).stdout.trim();
-  for (const f of [TRANSFER_OUT, EVIDENCE]) rmSync(f, { force: true });
-
-  const transferExit = run('pnpm', ['vitest', 'run', '-c', 'vitest.demo.config.ts', '--reporter=dot'], { EBMR_DEMO_OUT: TRANSFER_OUT });
-  const browserExit = run('pnpm', ['--filter', '@ebmr/e2e', 'exec', 'playwright', 'test', '-c', 'playwright.demo.config.ts'], { EBMR_E2E_EVIDENCE_JPEG: '1', PLAYWRIGHT_BROWSERS_PATH: process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '/opt/pw-browsers' });
-  const finishedAt = new Date().toISOString();
+  // --record-only: write the record again from the last run's outputs (no run).
+  const recordOnly = process.argv.includes('--record-only');
+  let transferExit: number;
+  let browserExit: number;
+  let finishedAt: string;
+  if (recordOnly) {
+    ({ startedAt, finishedAt, transferExit, browserExit } = JSON.parse(readFileSync(EXITS, 'utf8')) as { startedAt: string; finishedAt: string; transferExit: number; browserExit: number });
+  } else {
+    for (const f of [TRANSFER_OUT, EVIDENCE, EXITS]) rmSync(f, { force: true });
+    transferExit = run('pnpm', ['vitest', 'run', '-c', 'vitest.demo.config.ts', '--reporter=dot'], { EBMR_DEMO_OUT: TRANSFER_OUT });
+    browserExit = run('pnpm', ['--filter', '@ebmr/e2e', 'exec', 'playwright', 'test', '-c', 'playwright.demo.config.ts'], { EBMR_E2E_EVIDENCE_JPEG: '1', PLAYWRIGHT_BROWSERS_PATH: process.env['PLAYWRIGHT_BROWSERS_PATH'] ?? '/opt/pw-browsers' });
+    finishedAt = new Date().toISOString();
+    writeFileSync(EXITS, JSON.stringify({ startedAt, finishedAt, transferExit, browserExit }));
+  }
 
   const tests: EvTest[] = existsSync(EVIDENCE) ? (JSON.parse(readFileSync(EVIDENCE, 'utf8')) as { tests: EvTest[] }).tests : [];
   const transfer = existsSync(TRANSFER_OUT) ? (JSON.parse(readFileSync(TRANSFER_OUT, 'utf8')) as { steps: { title: string; at: string; observed: Record<string, unknown> }[] }) : { steps: [] };
