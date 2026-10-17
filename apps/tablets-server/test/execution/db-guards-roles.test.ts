@@ -327,6 +327,54 @@ describe('P22: engine roles only from the declared kernel role, at the actor\'s 
     });
   }, 300_000);
 
+  it('[INV-26][DI-17][D4] both forms of the evaluation check (location only, and on a batch) refuse another account of the same person, an evaluation of an earlier instant and one made in no role (6jc-R16; mutation triage)', async () => {
+    // recipe.role_evaluation_problem(actor, permission, evaluation) still serves the batch issue; the 4-argument form of
+    // recipe-core 1100 serves the step commands. Both are private to the owner and called here by the superuser.
+    const { runId, op } = await newRun();
+    const me = personaIn(sbx, 'operator1');
+    vi.advanceTimersByTime(7_000);
+    const made = await withCommand(sbx.db.app, await actorOfBrowser(sbx, op, 'operator1'), async (c) => {
+      const real = await engineRoles(c);
+      const actor = (await c.query<{ a: Record<string, unknown> }>('select kernel.current_actor() as a')).rows[0]?.a;
+      return { evaluationId: real[0]?.evaluationId ?? '', actor };
+    });
+    if (!made.actor || !made.evaluationId) throw new Error(`SETUP: no evaluation or actor: ${JSON.stringify(made)}`);
+    const both = async (q: (text: string, args: unknown[]) => Promise<{ rows: { p: string | null }[] }>, actor: Record<string, unknown>, evaluationId: string) => ({
+      location: (await q('select recipe.role_evaluation_problem($1::jsonb, $2, $3::uuid) as p', [JSON.stringify(actor), 'STEP.EXECUTE', evaluationId])).rows[0]?.p ?? null,
+      batch: (await q('select recipe.role_evaluation_problem($1::jsonb, $2, $3::uuid, $4::uuid) as p', [JSON.stringify(actor), 'STEP.EXECUTE', evaluationId, runId])).rows[0]?.p ?? null,
+    });
+    const asSuperuser = (text: string, args: unknown[]) => sbx.db.admin.query<{ p: string | null }>(text, args);
+    const id = made.evaluationId;
+    // Another account of the same person (the person matches, only the account differs).
+    const otherAccount = `evaluation ${id} was made for another person or account`;
+    expect(await both(asSuperuser, { ...made.actor, account_id: randomUUID() }, id)).toEqual({ location: otherAccount, batch: otherAccount });
+    // The command that made it has ended: asked in a later transaction, its instant is before this one's start.
+    const earlier = await both(asSuperuser, made.actor, id);
+    expect(earlier.location).toMatch(new RegExp(`^evaluation ${id} was made for .*, not for the time of this command$`));
+    expect(earlier.batch).toMatch(new RegExp(`^evaluation ${id} was made for .*, not for the time of this command$`));
+    // An allowed evaluation made now, in this transaction, for the same person and account but in no role: refused for
+    // the role, whatever role it matched (its role code is the declared role).
+    const c = await sbx.db.admin.connect();
+    try {
+      await c.query('begin');
+      const { rows } = await c.query<{ e: { allowed: boolean; evaluation_id: string } }>(
+        'select iam.evaluate_authority($1::uuid, $2::uuid, $3, (select scope from iam.authority_evaluation where id = $4), clock_timestamp(), null) as e',
+        [me.personId, me.accountId, 'STEP.EXECUTE', id],
+      );
+      const e = rows[0]?.e;
+      if (!e?.allowed) throw new Error(`SETUP: the evaluation in no role was not allowed: ${JSON.stringify(e)}`);
+      const ev = (await c.query<{ role_filter: string | null; role_code: string | null; correlation_id: string | null }>(
+        'select role_filter, role_code, correlation_id::text from iam.authority_evaluation where id = $1', [e.evaluation_id])).rows[0];
+      if (ev?.role_filter !== null || ev.role_code !== made.actor['role_code']) throw new Error(`SETUP: expected no role filter and the declared role: ${JSON.stringify(ev)}`);
+      const noRole = `evaluation ${e.evaluation_id} was made in role any role, not in the declared role ${String(made.actor['role_code'])}`;
+      expect(await both((text, args) => c.query<{ p: string | null }>(text, args), { ...made.actor, correlation_id: ev.correlation_id }, e.evaluation_id))
+        .toEqual({ location: noRole, batch: noRole });
+    } finally {
+      await c.query('rollback');
+      c.release();
+    }
+  }, 300_000);
+
   it('[INV-26][D4] role evidence that names one engine role twice, with the same evaluation or with a second one, is refused (EBMR-EXE-035)', async () => {
     const { runId, op, run } = await newRun();
     const me = personaIn(sbx, 'operator1');
