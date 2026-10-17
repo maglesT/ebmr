@@ -21,6 +21,7 @@
 import { z } from 'zod';
 import { Instant, IntegerString, PersonRef, Uuid } from '../common.ts';
 import { defineRoute } from '../route.ts';
+import { ReviewPriority } from './analytics-review.ts';
 
 /** The record's place in its life (recipe.batch_review_state): the execution states, then the review states. */
 export const ReviewState = z.enum(['ISSUED', 'IN_PROGRESS', 'ON_HOLD', 'CANCELLED', 'EXECUTION_COMPLETE', 'ABORTED', 'PRODUCTION_APPROVED', 'QA_REVIEWED']);
@@ -43,8 +44,28 @@ export const ReviewSummaryView = z.strictObject({
   /** The review cycle: 1, and one more after each reopen. */
   cycle: z.number().int().min(1),
   markets: z.array(z.string()),
+  /**
+   * Phase 6A slice 6A-5 (additive; PR-61): the advisory review priority, shown to holders of ANALYTICS.VIEW. Null for a
+   * record not scored yet (listed first, D-6A-14); absent when the priority is not shown. It orders the queue only: it
+   * never removes a record, marks anything reviewed or changes what the review needs.
+   */
+  priority: ReviewPriority.nullable().optional(),
 });
 export type ReviewSummaryView = z.infer<typeof ReviewSummaryView>;
+
+/**
+ * How the queue is ordered (Phase 6A slice 6A-5, additive): BATCH_NUMBER as before, or REVIEW_PRIORITY (records awaiting
+ * QA review first: unscored ones, then by score, ties by completion time; then the QA-reviewed ones; D-6A-14, D-6A-5-7),
+ * with the advisory band and the age of the newest score.
+ */
+export const ReviewQueueOrdering = z.strictObject({
+  by: z.enum(['BATCH_NUMBER', 'REVIEW_PRIORITY']),
+  advisory: z.boolean(),
+  notForGmpDecisions: z.boolean(),
+  /** Seconds between the newest score's data and the read; null when no record is scored. */
+  dataAgeSeconds: z.number().int().min(0).nullable(),
+});
+export type ReviewQueueOrdering = z.infer<typeof ReviewQueueOrdering>;
 
 /** Whether a signed act may be given now, and why not (the database's own reasons, in its words). */
 export const ReviewGate = z.strictObject({ ready: z.boolean(), problems: z.array(z.string()) });
@@ -188,7 +209,7 @@ export const review = {
     mutating: false,
     summary: 'GMP batch records at or after EXECUTION_COMPLETE (or ABORTED), with their review state',
     query: z.strictObject({ state: ReviewState.optional() }),
-    response: z.strictObject({ batches: z.array(ReviewSummaryView) }),
+    response: z.strictObject({ batches: z.array(ReviewSummaryView), ordering: ReviewQueueOrdering.optional() }),
   }),
   batch: defineRoute({
     id: 'review.batch',

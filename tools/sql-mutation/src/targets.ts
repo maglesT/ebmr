@@ -1400,6 +1400,14 @@ export const TARGETS: Target[] = [
     tests: [r('analytics/rate-inputs.test.ts')],
     threshold: 90,
   },
+  // ---- 6A-5, review priority (recipe-core 1160; decision 0016 item 9): the review facts the score is computed from,
+  //      over the records in the review queue (PR-61, DI-51). ----
+  {
+    group: 'analytics-review-inputs',
+    functions: ['report.review_ended_at', 'report.review_fact_batches', 'report.review_novelty', 'report.review_fact_rows_v1'],
+    tests: [r('analytics/review-inputs.test.ts')],
+    threshold: 90,
+  },
   // ---- 6A-6, golden batch profile inputs (recipe-core 1170): each GMP batch step's native series on its unit within
   //      its binding window, the window's samples exactly as received with their quality (DI-32), and the reference
   //      sets in force from the configuration store (DI-51, DI-52). ----
