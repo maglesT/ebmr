@@ -252,6 +252,15 @@ IN-53 stays a draft; the dead check_engine_roles overload is dropped. Phase 7 st
   go, then the heavy testing runs on the pod. The 6A exit closes on GitHub CI, and its heavy final run is combined
   with the Phase 7 exit run on the pod (D-6A-15).
 
+**Phase 7 (validation pack and hardening, to Batchwright Tablets v1.0-rc), planned 17 October** (branch `phase-7/plan`):
+plan `docs/build-plan/phase-7/phase-7-plan.md`, interfaces `slice-7-0-interfaces.md`, decision 0024 (scope and the
+reconciled exit criteria; the lead's default, the owner may change it). Slices 7-0 interfaces, 7a decision 0022 fixes
+(R9, R10, R2, rest of R16, overload drop), 7b-1 hardening and residuals, 7b-2 viewer and periodic evaluation pack, 7c
+validation pack generators and interlocks, 7d load, soak, drills, security and accessibility, 7e branding and guides,
+7f exit with the combined pod run (D-6A-15). All 246 controls PENDING, none VERIFIED; at v1.0-rc 147 of the 155
+Tablets-gate controls reach VERIFIED, the 5 drafts IMPLEMENTED, 3 stay SPECIFIED (Injectables parts); 12 clauses in 11
+controls deferred to Phase 7. Migrations from kernel 1300, site-services 1100, recipe-core 1200, tablets 1400.
+
 Next: Phase 6A, then Phase 7 (validation pack and hardening) and Tablets v1.0; Injectables (Phase 5)
 after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo mode, install and reset
 scripts) on a cloud server the owner provides.

@@ -2710,3 +2710,7 @@ one branch per triage agent) and `-demo`. `phase.yaml` is at 6. Raw mutation rep
 - **Plan:** `docs/build-plan/phase-6a/phase-6a-plan.md`, with the interfaces in `slice-6A-0-interfaces.md`, ADR 0020
   for the architecture, and the draft controls DI-51, DI-52, DI-53 and PR-61 (status U, PENDING) in `draft-controls/`.
 - **Defaults:** D-6A-1 to 23. Under D-6A-15 the heavy final run is combined with the Phase 7 exit run on the pod.
+
+## 17 October 2026: Phase 7 planned (validation pack and hardening)
+
+- Plan `docs/build-plan/phase-7/phase-7-plan.md` (slices 7-0 to 7f, defaults D-P7-1 to 16), interfaces `slice-7-0-interfaces.md`, decision 0024 (scope and reconciled exit criteria, the lead's default): at v1.0-rc 147 of 155 Tablets-gate controls VERIFIED, 5 drafts IMPLEMENTED, 3 SPECIFIED for their Injectables parts; mutation focused and boxed (6 + 4 pod hours); targets, IQ/OQ/PQ, the expert's decisions and the external penetration test at deployment.
