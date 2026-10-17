@@ -1009,6 +1009,9 @@ that product's batches); the final run after the merge checks it.
   before the run's first weight check (every 25 minutes). Only what does not depend on the machine's speed is compared
   (the accepted sessions, the alarm log, the tags with native chunks in the batch's context, raw values kept, refusals).
   Why: the true copies keep one hash, and a slow runner fails loudly (the clock never moves back) instead of drifting.
+  The driver also waits until every press tag that moves while the turret turns (all but the mechanical fill depth) has
+  a chunk in the batch's context: reject.count first moves after 400 strokes (about 22 s), so whether it was in context
+  depended on how long the window lasted (seen on a loaded pod).
 - **D-P6j-b-3** The gateway runs as its own process (`apps/site-gateway/src/main.ts`) with one endpoint, its scale
   unplugged and its uplink unreachable; only its OPC UA feed is used. The press alarm is the press's Alarms-and-Conditions
   occurrence (REJECT_BURST) on that feed; a tag-limit excursion travels the gateway's process path (its uplink session to
@@ -1028,7 +1031,10 @@ that product's batches); the final run after the merge checks it.
 - **D-P6j-b-7** The stale L3 mirror is shown on the US G-REL item E.RECONCILIATION_SERIAL before QA's review (RED with
   the mirror named, GREEN after the next synchronisation); after the India release the US signer acknowledges the items
   marked "since review" (finding F-6jb-g1). The recall's `resultSha256` (a digest over run-specific identifiers) is left
-  out of its normalised hash ("reproduces" checks it), and a lot code's batch number is replaced by its ordinal.
+  out of its normalised hash ("reproduces" checks it), and a lot code's batch number is replaced by its ordinal. The
+  calendar date in each instant's site-time text is replaced by its day from the run's start day (time, offset and zone
+  kept): the start is the next UTC midnight, so the date moved with the day of the run and a final run after midnight UTC
+  hashed differently (the same content with only that date changed gives the old hash).
 - **D-P6j-b-8** CI's golden job timeout is 60 minutes (GB-T-03 adds about 6 minutes locally, more on the runner).
 
 Finding for the 6j-c review and the owner:

@@ -67,13 +67,30 @@ async function connectedFacts(w: GoldenWorld, cx: Connected): Promise<ConnectedF
 /** `text` with each of the scenario's batch numbers replaced by its ordinal (results.ts normalise does the same). */
 const numbered = (text: string, numbers: readonly string[]): string => numbers.reduce((t, b, i) => t.split(b).join(`<batch-${String(i + 1)}>`), text);
 
+const SHOWN_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const SHOWN_DATE = /\b(\d{2})-(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)-(\d{4})\b/g;
+
+/**
+ * `v` with the calendar date of each instant as shown at the site ("18-OCT-2026 08:15:13 +05:30 (Asia/Kolkata)") replaced
+ * by its day from the run's start day (`startUs`, a UTC midnight): the start is the next midnight on the day the run
+ * happens (D-S6-6), so the shown date is new on every day; the time, offset and zone are kept (D-P6j-b-7).
+ */
+const startDayShown = (v: unknown, startUs: bigint): unknown => {
+  const startDay = startUs / 86_400_000_000n;
+  const day = (_: string, d: string, m: string, y: string): string =>
+    `<day+${String(BigInt(Date.UTC(Number(y), SHOWN_MONTHS.indexOf(m), Number(d)) / 86_400_000) - startDay)}>`;
+  const walk = (x: unknown): unknown =>
+    typeof x === 'string' ? x.replace(SHOWN_DATE, day) : Array.isArray(x) ? x.map(walk) : x && typeof x === 'object' ? Object.fromEntries(Object.entries(x as Json).map(([k, y]) => [k, walk(y)])) : x;
+  return walk(v);
+};
+
 /** The mock recall as compared: its facts, and the SHA-256 of the whole view normalised as a true copy is. */
 function recallFacts(recall: Json, start: bigint, numbers: readonly string[]): Json {
   const lots = (recall['lots'] as Json[] | undefined) ?? [];
   const consignees = (recall['consignees'] as Json[] | undefined) ?? [];
   // resultSha256 is the digest of the stored result with its identifiers, new on every run ("reproduces" checks it): left out.
   const view = Object.fromEntries(Object.entries(recall).filter(([k]) => k !== 'resultSha256'));
-  const normalised = normalise(view, start, numbers, start);
+  const normalised = normalise(startDayShown(view, start), start, numbers, start);
   return {
     subjectRef: recall['subjectRef'], queryVersion: recall['queryVersion'], reproduces: recall['reproduces'], counts: recall['counts'],
     federation: recall['federation'], authorityInformed: recall['authorityInformed'],

@@ -12,9 +12,10 @@
  * real speed from where it stood (runFromFrozen) while the gateway runs; the simulator and the gateway preload the
  * golden clock library on the same file, so the times they stamp are the database's and fall in the batch's use of the
  * press. The adapter's worker is cycled by the driver (as connected.ts does for the feeds) until the endpoint's session
- * is accepted, the press's REJECT_BURST occurrence (the simulator's fault) is raised and cleared, and a native chunk of
- * every press tag has landed; the gateway then stops and the clock is frozen again at a fixed instant after the one it
- * stood at (RUN_WINDOW_S), so every later act happens at the same instant on each run. operator1 acknowledges the
+ * is accepted, the press's REJECT_BURST occurrence (the simulator's fault) is raised and cleared, a native chunk of
+ * every press tag has landed and one of every tag that moves while the turret turns lies in the batch's context; the
+ * gateway then stops and the clock is frozen again at a fixed instant after the one it stood at (RUN_WINDOW_S), so
+ * every later act happens at the same instant on each run. operator1 acknowledges the
  * occurrence in the batch's alarm log with the action taken and a comment (DI-49), as the step's signature requires.
  *
  * What the run compares (PressFacts) leaves out what depends on the machine's speed (sample and chunk counts, source
@@ -230,6 +231,15 @@ export async function connectPress(w: GoldenWorld): Promise<PressRig> {
       const tags = tagsOf('PRESS').map((t) => t.tag);
       await until('a native chunk of every press tag', cycle, async () => (await one<number>(
         'select count(distinct s.tag)::int as r from plant.series s join plant.equipment e on e.id = s.equipment_id where e.code = $1 and s.tag = any ($2)', [PRESS, tags])) === tags.length);
+      // The simulator publishes a tag when its value changes, at that instant; reject.count first moves after 400 strokes
+      // (about 22 s at 30 rpm), so in a short window its only sample is the 0 from before the batch held the press and
+      // which tags are in the batch's context would depend on the machine's speed. Wait for every tag that moves while
+      // the turret turns (all but the mechanical fill depth) in the batch's context, as PressFacts compares them.
+      const moving = tags.filter((t) => t !== 'fill.depth_mm');
+      await until('a native chunk in the batch\'s context of every press tag that moves', cycle, async () => (await one<number>(
+        `select count(distinct s.tag)::int as r from plant.series s join plant.equipment e on e.id = s.equipment_id
+          where e.code = $1 and s.tag = any ($2) and s.source = 'OPCUA' and exists (select 1 from plant.series_in_context($3, null, s.tag) c where c.id = s.id)`,
+        [PRESS, moving, g.batchId])) === moving.length);
       await gateway.stop();
       gateway = null;
       freezeAt(stood + RUN_WINDOW_S);

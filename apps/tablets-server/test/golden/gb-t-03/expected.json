@@ -358,6 +358,7 @@
       "seriesTags": [
         "force.main_kN",
         "force.pre_kN",
+        "reject.count",
         "stroke.count",
         "tablet.count",
         "turret.speed_rpm"
@@ -392,7 +393,7 @@
         "CUST-US-NJ [\"US\"]"
       ],
       "signedOffBy": "AUTHORISED_PERSON",
-      "normalisedSha256": "0e481a505a4023bf6cdda9be5211faa2411f54bbfe23a0cdeb78a802a8d1a732"
+      "normalisedSha256": "4c1e62ef09e74092c57e8efda81ead9e56337a186290109560ffcc27269b060d"
     }
   }
 }
