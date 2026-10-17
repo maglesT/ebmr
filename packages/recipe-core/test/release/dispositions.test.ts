@@ -823,6 +823,7 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
       await fixture(ack, [lot.lotId, 'US', id, '0'.repeat(64), qcu.personId]); // another epoch
       await fixture(ack, [randomUUID(), 'US', id, g.epoch, qcu.personId]); // another lot
     }
+    await fixture(ack, [lot.lotId, 'US', 'E.NOT_AN_ITEM', g.epoch, qcu.personId]); // another item (check_us_disposition#45)
     expect(await codeOf(usAct(qcu, lot.lotId, 'RELEASE', g.epoch))).toBe('EBMR-DSP-038');
     expect(await state(lot.lotId, 'US')).toBe('READY');
     await acknowledgeAll(qcu, lot.lotId, 'US', g);
@@ -925,7 +926,19 @@ describe('the US disposition and the EU importer (mutation triage T11; PR-54, IN
     expect(await message(cancelled)).toMatch(/EBMR-DSP-018 the deviation record named for the removal is CANCELLED/);
     const elsewhere = await deviationOnLot(other.lotId);
     expect(await message(elsewhere)).toMatch(/EBMR-DSP-018 the deviation record is not linked to lot /);
+    // record_market_change#57 to #59 (added after the confirmation run): a deviation of another lot's batch does not
+    // name the removal; one of the lot's own batch does.
+    const raise = async (batchId: string): Promise<string> => {
+      const d = await sqlAs<{ deviationId: string }>(operator, 'select site.raise_deviation($1::jsonb) as r', [
+        JSON.stringify({ kind: 'DEVIATION', title: 'EU scope corrected', classification: 'MINOR', riskRationale: 'Market scope corrected after issue' }),
+      ]);
+      await w.run(operator, (c) => c.query("select site.link_deviation($1, 'BATCH', $2)", [d.deviationId, batchId]));
+      return d.deviationId;
+    };
+    expect(await message(await raise(other.batchId))).toMatch(/EBMR-DSP-018 the deviation record is not linked to lot /);
     expect(await state(lot.lotId, 'EU')).not.toBe('REMOVED');
+    expect(await message(await raise(lot.batchId))).toBe('ok');
+    expect(await state(lot.lotId, 'EU')).toBe('REMOVED');
   });
 
   // recipe.eu_outcome_problem#7 (qp-certification): a certification is taken only while the lot awaits it, that is
