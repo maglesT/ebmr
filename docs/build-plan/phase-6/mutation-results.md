@@ -434,7 +434,9 @@ Survivors, one line each:
   and flag signatures recorded only by their signer and only in the state they were given in; the kernel's refusal of
   the first custodian as the second; a pending flag over an approved one; custody quantities against the lot and the
   batch's holding; a stage sign-off reads its own stage, batch and controlled API; IN-53, DI-35, INV-03).
-- Confirmation run (`--only` on the 27 survivors the tests aim at): CSM_CONFIRMATION.
+- Confirmation run (`--only` on the 27 survivors the tests aim at): **27 / 27 killed**.
+- After triage: 234 killed, 2 equivalent, 75 left: **75.7 %** (234 / 309; below the 90 % target, the rest recorded or
+  residual within the owner's scope).
 - Defects (P1): none. Checked: a second custodian who is the first or the proposer is refused by the kernel at signing
   (D-P6j-T6-1), with the command's EBMR-CSM-022 behind it; a dispensing, transfer, return or destruction without the
   countersignature is not counted or covered (the CONFIRMED checks of the consumption guard, the transfer cover and the
@@ -498,7 +500,9 @@ Survivors, one line each:
 - Kill tests: three more steps in `apps/tablets-server/test/integrations/l3-adapter.test.ts` (the malformed and stale
   messages test): staleness is per task, an older state of the same task is refused, a repeat at the same change time
   lands (PR-42, DI-31).
-- Confirmation run (`--only` on the 3 survivors the tests aim at): L3_CONFIRMATION.
+- Confirmation run (`--only` on the 3 survivors the tests aim at): **3 / 3 killed**.
+- After triage: 71 killed, 41 left: **63.4 %** (71 / 112; below the 90 % target; the rest is fail-closed, a later
+  layer or display, recorded below).
 - Defects (P1): none.
 
 Survivors, one line each:
