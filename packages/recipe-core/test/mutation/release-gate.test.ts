@@ -17,6 +17,7 @@ import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { registerAdapter, setMirrorMode, syncMirror } from '../../../kernel/test/integrations/support.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
@@ -881,5 +882,72 @@ describe('G-REL: the gate functions read only the lot\'s own evidence (decision 
       await fx.query("update platform.aggregate_state set state = 'ON_HOLD' where aggregate_type = 'material_lot' and aggregate_id = $1", [held.lotId]);
     });
     expect(await messageOf(record(ap, held.lotId, 'RELEASE', heldSig, g.epoch))).toMatch(/EBMR-REL-019 lot .* is ON_HOLD/);
+  });
+});
+
+// Phase 6 exit, mutation triage T11 (decision 0019, part 2): the release gate's survivors of the whole re-run that a
+// changed gate could let through. Each case names the mutants it aims at.
+describe('G-REL: review signatures, the QMS item and container links (mutation triage T11; INV-05, DI-37, DI-31, PR-53)', () => {
+  // recipe.grel_core_items#7, #8, #9: the review signature read is the lot's own batch's QA_REVIEWED act of the cycle.
+  it('[INV-05][DI-37] a QA review signature that no longer stands keeps G1.REVIEW RED, even when a later review of another batch stands', async () => {
+    const lot = await readyLot();
+    expect(item(await grel(lot.lotId), 'G1.REVIEW_1').status).toBe('GREEN');
+    // TEST FIXTURE: the reviewed content changed under the QA review signature (its hash no longer matches the record).
+    await asFixture(async (fx) => {
+      await fx.query(`update esig.signature set content_hash = repeat('0', 64)
+                       where id = (select a.signature_id from recipe.batch_review_act a where a.batch_id = $1 and a.act = 'QA_REVIEWED')`, [lot.batchId]);
+    });
+    const later = await readyLot();
+    const g = await grel(lot.lotId);
+    expect(item(g, 'G1.REVIEW_1').status).toBe('RED');
+    expect(item(g, 'G1.REVIEW_1').problem).toMatch(/its QA review signature no longer stands .*review it again \(DI-37\)/);
+    expect(item(await grel(later.lotId), 'G1.REVIEW_1').status).toBe('GREEN');
+  });
+
+  // recipe.release_deviations#6 and recipe.investigation_unjustifiable_for#9: a deviation linked to a container of the
+  // lot's batch is the lot's (its epoch is in G-REL's), and that container link is assessed before any justification.
+  it('[PR-53][INV-05] a deviation linked to a container of the lot\'s batch is the lot\'s; its unassessed container link refuses a justification', async () => {
+    const lot = await readyLot();
+    const dev = await deviationOn('DEVIATION', 'LOT', lot.lotId);
+    // TEST FIXTURE: a link to a container of the batch, as site.link_deviation records it for a CONTAINER subject.
+    await asFixture(async (fx) => {
+      await fx.query(`insert into site.deviation_link (deviation_id, subject_kind, subject_id, subject_ref, batch_id, batch_number, edition, linked_by_person, linked_by_account)
+                      select $1, 'CONTAINER', gen_random_uuid(), 'C-FX-0001', b.id, b.batch_number, 'TABLETS', $3, $3 from recipe.batch_execution b where b.id = $2`,
+                     [dev.deviationId, lot.batchId, randomUUID()]);
+    });
+    expect(await one<string[]>('select recipe.release_deviations($1) as r', [lot.lotId])).toContain(dev.deviationId);
+    // A deviation linked to the container only is the lot's too (release_deviations#6: a confirmation run showed the
+    // case above alone, where the lot link also names it, does not tell the two apart).
+    const only = await sqlAs<{ deviationId: string }>(operator, 'select site.raise_deviation($1::jsonb) as r', [
+      JSON.stringify({ kind: 'DEVIATION', title: 'Found on one container', classification: 'MAJOR', riskRationale: 'Investigated before any release of the lot' }),
+    ]);
+    await asFixture(async (fx) => {
+      await fx.query(`insert into site.deviation_link (deviation_id, subject_kind, subject_id, subject_ref, batch_id, batch_number, edition, linked_by_person, linked_by_account)
+                      select $1, 'CONTAINER', gen_random_uuid(), 'C-FX-0002', b.id, b.batch_number, 'TABLETS', $3, $3 from recipe.batch_execution b where b.id = $2`,
+                     [only.deviationId, lot.batchId, randomUUID()]);
+    });
+    expect(await one<string[]>('select recipe.release_deviations($1) as r', [lot.lotId])).toContain(only.deviationId);
+    await impactOn(dev.deviationId, [{ kind: 'LOT', id: lot.lotId }]);
+    expect(await one<string | null>("select recipe.investigation_unjustifiable_for($1, 'IN', $2) as r", [lot.lotId, dev.deviationId]))
+      .toMatch(/its link to container C-FX-0001 is not assessed for IN/);
+  });
+
+  // recipe.grel_evaluate#8, #9, #10 (the QMS item, 0951) and #12 (the market items of a lot that is no finished lot,
+  // read while other finished lots exist).
+  it('[DI-31][INV-26][IN-05] with a QMS (MIRROR) G-REL carries the QMS item for a finished lot only; with the stand-in it carries none; a lot that is no finished lot gets no market items', async () => {
+    const lot = await readyLot();
+    const api = await apiLot();
+    const ids = async (lotId: string, market = 'IN'): Promise<string[]> => (await grel(lotId, market)).items.map((i) => i.id);
+    expect(await ids(lot.lotId)).not.toContain('G2.QMS_STATUS');
+    expect(await ids(api, 'US')).toEqual(['G1.LOT', 'G4.RECONCILIATION', 'G9.PACK_EXAMINATION', 'E.EDITION']);
+    const qms = await registerAdapter(db, 'QMS');
+    await setMirrorMode(db, 'QMS_STATUS', 'MIRROR');
+    try {
+      await syncMirror(db, qms, 'QMS_STATUS');
+      expect(item(await grel(lot.lotId), 'G2.QMS_STATUS')).toMatchObject({ status: 'GREEN', evidence: [] });
+      expect(await ids(api)).toEqual(['G1.LOT', 'G4.RECONCILIATION', 'G9.PACK_EXAMINATION', 'E.EDITION']);
+    } finally {
+      await setMirrorMode(db, 'QMS_STATUS', 'STAND_IN');
+    }
   });
 });

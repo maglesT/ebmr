@@ -420,6 +420,13 @@ keying, below); one high defect fixed on the lead's decision (M6-D2, DI-31, belo
 | qp-certification | first full run | pending |
 | market-changes | first full run | pending |
 | Stryker survivor triage | server release, records, India, archive and PQR features | triaged (T13, below): no Priority 1 rule left unenforced; 3 TypeScript-only clusters now tested; defect M6-D3 fixed |
+
+| Scope A kill confirmation (232) | the four scope A groups run whole (D-P6j-M-7): the whole run is the kill confirmation and the new first run | release-gate 211 / 240 (**87.9 %**, Phase 4 47.2 %); release-gate-market-items 49 / 51 (**96.1 %**, 74.5 %); manufacturer-release 158 / 163 (**96.9 %**, 63.6 %); tablets-release-items 175 / 254 (**68.9 %**, 59.3 %). Phase 4's survivor list was lost, so the whole run stands for the confirmation: 115 survivors left in the four groups (Phase 4: 298), triaged in "Part 2 triage (T11)" |
+| Scope B kill confirmation (118) | the six scope B groups run whole (streams p4-c, p4-d) | after-release-suspension 132 / 134 (**98.5 %**, Phase 4 74.7 %; both survivors killed by T10); after-release-decisions 187 / 192 (**97.4 %**, 76.6 %); shipping-interlock 75 / 75 (**100 %**, 85.5 %); record-lock-and-amendment 161 / 163 (**98.8 %**, 85.3 %); bulk-and-bright-stock and execution-complete-forms still running at the close of the T11 triage (not triaged, time box) |
+| us-disposition | first full run (146 mutants) | 83 / 146 (**56.8 %**, first score); 12 survivors aimed at by new tests (confirmation 11 / 12, the twelfth's near miss added after it), 2 equivalent, 49 P3: about 94 / 146 after triage |
+| qp-certification | first full run | 106 / 182 (**58.2 %**, first score); 17 survivors aimed at by new tests, 2 equivalent, 57 P3 |
+| market-changes | first full run | 62 / 153 (**40.5 %**, first score); 30 survivors aimed at by new tests (confirmation 26 / 30, 3 more tests added after it), 1 equivalent, 60 P3 |
+| Stryker survivor triage | server release, records, India, archive and PQR features | pending |
 | Whole SQL re-run | every group of `targets.ts`, under the decision 0009 organisation | pending |
 
 Note on renumbering: a mutant id is `<function>#<n>`, numbered in the function's current definition. Phase 4's
@@ -432,6 +439,189 @@ of `equivalent.json` that no longer fit their mutant (the place they cite is not
 mutant number no longer exists), all from Phase 2 to 4 re-creations (recipe-core 0471, 0501, 0502, 0844, 0932; tablets
 0702, 0715). A run applies only fitting entries and runs the others as ordinary mutants (D-P6j-M-4); each is moved to
 its current number with its place updated, or dropped, by the part 2 triage.
+
+### Part 2 triage (T11): scope A, us-disposition, qp-certification, market-changes, scope B
+
+Owner's scope (17 October): possible P1 defects in release gating (a batch released, certified or shipped when a gate
+should refuse; a release signature by the wrong role or person; an after-release decision that skips its check) and
+untested high-risk checks. Everything else is one line. Reports: `/root/wt/campaign/.reports/sql-mutation/p4-a` to
+`p4-d`. Kill tests carry `mutation triage T11` in their describe or comment.
+
+**Real defects (P1): none.** Every survivor that could let a lot through was a check the original enforces and no test
+exercised, or a refusal that a later layer repeats (named below).
+
+#### release-gate: 211 / 240 (87.9 %), Phase 4 47.2 %
+
+- Kill tests (`recipe-core/test/mutation/release-gate.test.ts`, describe "G-REL: review signatures, the QMS item and
+  container links"): a QA review signature that no longer stands keeps G1.REVIEW RED even when a later review of
+  another batch stands (`recipe.grel_core_items#7, #8, #9`; INV-05, DI-37); the QMS item in MIRROR for a finished lot
+  only and a lot that is no finished lot gets no market items while other finished lots exist (`recipe.grel_evaluate#8,
+  #9, #10, #12`; T10 killed the same four in `cmms-qms-release.test.ts`); a deviation linked to a container of the lot's
+  batch is the lot's and its unassessed container link refuses a justification (`recipe.release_deviations#6`,
+  `recipe.investigation_unjustifiable_for#9`; PR-53).
+- Confirmation run (`--only`, 9 mutants): **8 / 9**. `release_deviations#6` survived: the case also linked the deviation
+  to the lot, which names it either way; a container-only deviation was added to the test afterwards (killed by
+  reading, not re-run: one confirmation per group).
+- Equivalent (6): `recipe.grel_core_items#13, #132, #141` (`coalesce(signature_state ->> 'valid', false)`: valid is
+  never NULL), `#152` (since_review of the G6.LICENCE placeholder, which grel_evaluate replaces), `release_deviations#7`,
+  `investigation_unjustifiable_for#10` (the BATCH term is implied by the batch_id term). The stale 0783 entries
+  `grel_core_items#125, #134, #145` were moved to #132, #141, #152 and #13's place updated to 0932:60.
+- P3 (14): `grel_core_items#41, #78, #83, #97, #107, #114, #158` (`>` to `>=` on "since review" instants: clock
+  microsecond boundary); `#85` (message prefix); `#118, #121` (fail-closed defaults of the validation-basis lineage for
+  NULLs no approved version has: 0130:421 needs a change record, process_impact always answers);
+  `recipe.release_gate_problems#5 to #8` (the gate read's line for material lots of machine version 1, which no current
+  lot is; the act refuses on its own).
+
+#### release-gate-market-items: 49 / 51 (96.1 %), Phase 4 74.5 %
+
+- Equivalent: `recipe.grel_market_items#20` (a NULL stub or version also makes `not exists (valid_cells ...)` true).
+- P3: `#32` (`>=` to `>` on a deviation linked at the instant of the rejection: microsecond boundary).
+
+#### manufacturer-release: 158 / 163 (96.9 %), Phase 4 63.6 %
+
+- Kill test (`recipe-core/test/release/release.test.ts`, PR-53): a justification counts for its own deviation only; a
+  second open record of the lot stays RED (`recipe.investigation_justification_of#2, #4, #6`). Confirmation run: **3 / 3** (a first attempt stopped at its baseline: an
+  existing release-gate case timed out at 30 s while another test file ran on the cluster; no mutant had run).
+- Equivalent: `recipe.record_manufacturer_release#53` (EBMR-REL-018 "signed checklist not current" is unreachable:
+  `esig.signature_problem` on the line before already refused a signature whose content hash differs).
+- P3: `#40` (the act's own copy of INV-35): the kernel refuses an involved person at signing (EBMR-ESIG-044/045,
+  release.test.ts "[INV-35]"), and an involvement act after signing moves the epoch, refused first by EBMR-REL-018.
+
+#### tablets-release-items: 175 / 254 (68.9 %), Phase 4 59.3 %
+
+- Kill tests (`tablets-server/test/release/grel-tablets-items.test.ts`, describe "mutation triage T11", last in the
+  file): E.HELD_CONTAINERS and E.WHOLE_BATCH_PARENTS exclude a container only for its own charge into its batch or a
+  child, or its own merge, never for another container's (`tab.grel_held_containers#8 to #11`,
+  `tab.grel_whole_batch_parents#5, #6, #7, #10, #15 to #18`; L-30, PR-47, TB-11); the bracketing check of a CLOSED
+  container packed into the order (`tab.grel_container_release#5`; INV-27); E.RECONCILIATION_PACKS red with no completed
+  secondary packaging step (`tab.grel_recon_packs#1`; IN-17); an exception linked to a closed deviation but not
+  dispositioned, or dispositioned only by another batch under the same id, keeps the lot red (`tab.grel_unresolved#6,
+  #20`). Confirmation run: **16 / 16**.
+- Added after the confirmation run (the group was still running when it was made; not re-run): "since review" read
+  directly against a review instant later than every real row, each kind of fact of a container, lot, deviation and
+  rule set counting and another subject's never (`tab.grel_changed_since`: the 23 survivors on 1163:107-120 that are
+  not `>` to `>=`; INV-05, DI-37).
+- Equivalent: `tab.grel_printed_tablets#28` (valid never NULL).
+- P3 (39): `tab.grel_changed_since#13, #17, #21, #25, #37, #43, #47, #51, #55, #63, #69, #77, #83, #88, #94` (`>` to
+  `>=`: microsecond boundary) and `#23` (batch-level widening: more items flagged, fail closed);
+  `tab.grel_held_containers#1`, `tab.grel_whole_batch_parents#1`, `tab.grel_rule_sets#2, #5`,
+  `tab.grel_recon_printed#13` (wider reads: more RED, fail closed); `tab.grel_held_containers#13 to #15` (the GREEN
+  evidence list); `tab.grel_recon_printed#15, #17, #18, #19, #21, #22, #23` and `tab.grel_item_of#1` (NA against GREEN,
+  both non-blocking, or since_review on an NA item); `tab.grel_posted_quantity#1, #6` (another message, still RED);
+  `tab.grel_printed_tablets#1` and `tab.grel_next_hold#3, #7, #10` (malformed-structure guards that end in NULL, which
+  the item reads as RED, either way); `tab.grel_unresolved#1` (batch-number label).
+
+#### us-disposition: 83 / 146 (56.8 %), first score
+
+- Kill tests (`recipe-core/test/release/dispositions.test.ts`, describe "the US disposition and the EU importer
+  (mutation triage T11)"): a US release needs the signer's own acknowledgement of each since-review item for this lot,
+  the US and this epoch, each near miss refused with EBMR-DSP-038 (`recipe.check_us_disposition#42, #44, #45, #47, #50,
+  #53`: the acknowledgement refusal had no test; PR-54, INV-05); a US act on a lot not made for the US is refused
+  EBMR-DSP-031 (`recipe.market_act_problem#3`); the EU importer of a lot is the one of its own product and no lot has
+  none (`recipe.eu_importer_of#1 to #3`: the shipping interlock's consignee check reads it; INV-42); a two-row release
+  with the manufacturer release signed in an earlier command is refused EBMR-DSP-042
+  (`recipe.record_release_with_us_disposition#16, #19`; D-P4-5, DI-14). Confirmation run: **11 / 12**; `#45`
+  (`a.item_id = ...` to `<>`) survived, as no near miss acknowledged another item; that near miss was added afterwards
+  (not re-run).
+- Equivalent: `recipe.check_us_disposition#26` (EBMR-DSP-036 "signed US checklist not current" is unreachable after
+  `assert_release_signature`), `recipe.insert_us_disposition#7` (both callers pass a constant).
+- P3 (49): `recipe.check_us_disposition#2, #4` (a decision other than RELEASE takes the rejection branch: reason and
+  linked deviation, recorded REJECTED, never a release); `#12, #15` and `recipe.insert_us_disposition#3` (the market
+  checks are repeated by `record_us_disposition` before and by the insert after); `#57, #61, #64, #66, #68` (the
+  rejection's reason and linked-deviation disjuncts: a rejection path, no release follows);
+  `recipe.record_release_with_us_disposition#1, #2, #4, #9, #10, #13` (null or shared signatures and another signer are
+  refused by the meaning and signer checks of both acts); `recipe.us_disposition_gate_problems#1 to #5, #7` (the
+  cockpit's read; the acts raise their own refusals); `recipe.disposition_state#2, #8 to #13` (an unknown market's answer
+  and the REMOVED label of a market outside the set); `recipe.market_added#2, #3, #5 to #17` (overlapping disjuncts: an
+  addition is caught by its base set and by its ADD row); `recipe.market_ineligible_by#12 to #14` (a batch-level
+  UNMET_FINAL addition still keeps G8.MARKET_ADD RED, so no release); `recipe.lock_release_evidence#1, #2` (lock only).
+
+#### qp-certification: 106 / 182 (58.2 %), first run
+
+- Kill tests: after the manufacturer release, a certification of a lot whose G-REL for the EU is not ready is refused
+  EBMR-DSP-053 (`recipe.eu_outcome_problem#7`: every earlier case met EBMR-DSP-033 first; PR-55, INV-39); a transcription
+  verified after the lot's release was suspended is refused, the lot stays uncertified (`recipe.verify_qp_transcription#18`:
+  the outcome's checks at the instant it takes effect); QA never registers itself as QP (`recipe.register_qp#13`; S14);
+  one transcription waits for its second person at a time (`recipe.record_qp_transcription#18, #20, #22 to #24`; DI-30);
+  the in-system QP's own acknowledgement of each since-review item, near misses refused EBMR-DSP-076
+  (`recipe.record_qp_certification#33, #35, #36, #38, #41, #46`) (all in `recipe-core/test/release/dispositions.test.ts`);
+  a message whose signature is missing or not 64 bytes is refused EBMR-DSP-082 also when the application role calls the
+  database function directly (`tab.take_qp_certification_message#1, #6, #8`: the default verdict `false` had no case;
+  `tablets-server/test/release/market-routes.test.ts`; DI-39). Confirmation run: **14 / 17**. Survived: `tab.take_qp_certification_message#6, #8`
+  (the guard before the verifier widened: `tab.ed25519_verify` itself answers false or NULL for a missing key or a
+  signature of the wrong length, coalesced to false, so the message is still refused; P3) and
+  `recipe.record_qp_transcription#23` (`k.certification_id = c.id` to `<>`: told apart only while another
+  transcription's check exists, which the case lacks; P3: a second pending transcription could then be recorded, but
+  whichever is verified first decides the lot and the other meets EBMR-DSP-051 at its verification).
+- Equivalent: `recipe.take_qp_message#19` (its only caller passes a non-NULL verdict), `recipe.record_qp_certification#21`
+  (EBMR-DSP-075 unreachable after `assert_release_signature`).
+- P3 (57): `recipe.eu_certification_gate_problems#1 to #4, #6` (the cockpit's read); `recipe.eu_importer_canonical#6`,
+  `recipe.eu_importer_content#2`, `recipe.qp_certification_content#1 to #6`, `recipe.qp_register_content#1, #4`,
+  `recipe.qp_transcription_content#1, #3` (signed content: a wrong row gives another hash or "exists false", so a
+  signature is refused, never accepted); `recipe.eu_outcome_problem#5` (an outcome outside the two is refused by the
+  table's check), `#10, #12` (microsecond boundaries of the certification time); `recipe.register_eu_importer#1, #3, #6,
+  #9, #12, #13, #15, #19, #21, #24, #26, #39` (the importer table's own checks, unique code and product key refuse the
+  same definitions with a database error); `recipe.register_qp#1, #3, #7, #8, #17` (the action check, the MIA of the
+  registration, which a certification must match to the importer's anyway (EBMR-DSP-055), a repeated registration);
+  `recipe.take_qp_message#6, #8, #9, #32, #38` (malformed messages and the importer of another product meet the next
+  refusal: unknown importer, no lot, or the importer's MIA, EBMR-DSP-055), `#26, #29` (the lot looked up by code or by
+  batch number: one finished lot per batch, so the same lot), `#44`, `#52` and `recipe.record_qp_certification#49, #50`,
+  `recipe.record_qp_transcription#2, #10, #11` (completeness of a rejection's reason and of a transcription's names: no
+  certification follows), `recipe.record_qp_transcription#19` (wider: another lot's pending transcription also blocks),
+  `recipe.verify_qp_transcription#4, #7, #9` (no such transcription fails at its scope; lock only; a second verification
+  meets EBMR-DSP-051), `recipe.eu_pending_transcription_problem#2` (wider, fail closed),
+  `tab.take_qp_certification_message#10` (`coalesce(ed25519_verify(...), false)` to `true`: the verifier gets a 32-byte
+  key, a 64-byte signature and the message bytes, never NULL; not proven, so not marked equivalent).
+
+#### market-changes: 62 / 153 (40.5 %), first run
+
+- Kill tests (`recipe-core/test/release/dispositions.test.ts`, same describe): the market-add evaluation reads the
+  identity route of every lot the batch consumed for the widened set: no identity result, or one recorded after first
+  use, is UNMET_FINAL for the US, one recorded before use MET, and the outcome is MET only then
+  (`recipe.market_add_evaluate#18 to #27, #29 to #32, #37`: MA.IDENTITY_ROUTE had no test with a consumed lot; INV-43,
+  IN-24); a market already held is not added again, and removing a market added with an unmet evaluation is flagged
+  "removed after failure" (`recipe.record_market_change#19`, `recipe.market_failed#2, #4, #9, #10, #12, #15, #16`); a
+  removal naming a cancelled deviation of the lot, or one linked only to another lot, is refused EBMR-DSP-018
+  (`recipe.record_market_change#47, #52, #54, #57 to #60`; PR-56). Confirmation run: **26 / 30**. Survived:
+  `record_market_change#57 to #59` (the case had no deviation linked to a batch; one of another lot's batch, refused,
+  and one of the lot's own batch, accepted, were added afterwards, not re-run) and `market_failed#12` (P3: with other
+  batches' ADD rows in the database the widened read still finds one, and the evaluation it then needs is the
+  subject's own, unmet either way).
+- Equivalent: `recipe.record_market_change#76` (EBMR-DSP-021 unreachable after `assert_release_signature`).
+- P3 (60), none a release path: `recipe.market_add_evaluate#1, #3, #4, #6, #10` (input guards behind the callers'
+  own: record_market_change checks the change, market and subject first), `#11, #12` (another batch's stub or issue
+  instant: the version id still has to match a cell of the batch's own master, so only UNMET can follow), `#13, #14`
+  (NULL checks the `not exists` subsumes), `#28` (identity result at the exact microsecond of first use);
+  `recipe.market_change_content#1, #5, #7, #9, #10, #11, #15` and `recipe.market_change_next_id#1, #5` (the signed
+  content and sequence of a change: a wrong row gives another hash or "exists false", so the signature is refused,
+  never accepted); `recipe.market_change_scope#3, #4, #8` and `recipe.record_market_change#2, #4, #13, #14, #42, #43`
+  (refusals repeated by EBMR-DSP-011 or EBMR-DSP-018 a few lines later, the table's change check, or lock only);
+  `recipe.market_failed#1, #3, #5 to #8, #11, #13, #18, #19, #21 to #24` (the INELIGIBLE path is also flagged by the ADD
+  path; the others widen the flag, or vary the deviation-impact path test 551 covers); `recipe.lots_of_batch#1` (wider:
+  more lots checked, fail closed); `recipe.record_market_change#28, #31 to #33, #36, #38, #39, #67 to #70, #73` and
+  `recipe.packaging_order_markets_check#1 to #5` (a packaging order holding a market its processing batch lacks, either
+  way round: G11.MARKET_IN_SET still keeps every such lot RED for that market; residual, as this file has no packaging
+  order to test them with).
+
+
+#### Scope B (streams p4-c, p4-d)
+
+- after-release-suspension: 132 / 134 (**98.5 %**, Phase 4 74.7 %); `recipe.genealogy_downstream_lots#10, #11` killed
+  by T10 (the same assertion was written here and merged as T10's).
+- after-release-decisions: 187 / 192 (**97.4 %**; 5 equivalent marked by the harness, 1 invalid; Phase 4 76.6 %). P3:
+  `recipe.record_after_release_decision#37` (the act's own copy of INV-35: the release-suspension content lists the
+  lot's involved persons, so the kernel refuses an involved signer at signing), `#60, #61` (the lot's version token for
+  its transition read from another row: a wrong token is refused by the lot transition), `recipe.witness_disposal#16`
+  (EBMR-ARL-043 the witness is not the recorder: the kernel's signature segregation refuses the recorder first,
+  EBMR-ESIG-043/044, after-release.test.ts), `recipe.release_suspension_content#1` (the existence check of a finished
+  lot reads another row: content for a lot id that is no finished lot, which the act refuses).
+- shipping-interlock: 75 / 75 (**100 %**; 14 equivalent marked by the harness; Phase 4 85.5 %).
+- record-lock-and-amendment: 161 / 163 (**98.8 %**; 3 equivalent marked by the harness; Phase 4 85.3 %). P3:
+  `recipe.lock_at_first_disposition#9` (`e.event = 'LOCKED'` to `<>`: differs only for a batch already holding a lock
+  event at a lot's first disposition, which then gets a second LOCKED event or a refusal, never an unlocked record),
+  `recipe.append_amendment_entry#8` (lock only).
+- bulk-and-bright-stock, execution-complete-forms: **not triaged, time box** (stream p4-d was still on
+  bulk-and-bright-stock, the last but one group, when this triage closed).
 
 ### equipment-data-and-alarms (triage T1)
 

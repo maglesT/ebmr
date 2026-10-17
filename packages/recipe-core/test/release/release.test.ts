@@ -689,6 +689,29 @@ describe('the PR-53 justification after the slice 3 quick review (recipe-core 07
     }
   });
 
+  // Phase 6 exit, mutation triage T11 (recipe.investigation_justification_of#2, #4, #6): a justification is bound to its
+  // own lot, market and deviation; one signed for another open record of the same lot justifies nothing else.
+  it('[PR-53][INV-05] a justification counts for its own deviation only: a second open record of the lot stays RED on G-REL', async () => {
+    const lot = await readyLot();
+    const justified = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
+    const other = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
+    await underInvestigation(justified.deviationId, { BATCH: 'POTENTIAL' });
+    await underInvestigation(other.deviationId, { BATCH: 'POTENTIAL' });
+    await setOpenInvestigationPath('ON');
+    try {
+      await justify(lot, justified.deviationId, 'Advanced enough: the impact on this batch is only potential');
+      if (red(await grel(lot.lotId)).includes('G1.REVIEW_1')) await deltaReview(lot.batchId);
+      const g = await grel(lot.lotId);
+      expect(red(g)).toEqual(['G2.DEVIATIONS']);
+      expect(item(g, 'G2.DEVIATIONS').problem).toContain(`deviation ${other.ref} linked to batch`);
+      const labels = item(g, 'G2.DEVIATIONS').evidence.map((e) => e.label);
+      expect(labels.find((l) => l.startsWith(`${justified.ref} `))).toMatch(/\(open, released under a signed justification\)$/);
+      expect(labels.find((l) => l.startsWith(`${other.ref} `))).not.toMatch(/justification/);
+    } finally {
+      await setOpenInvestigationPath('OFF');
+    }
+  });
+
   it('[PR-53][PR-08] an exception escalated to the record in QA review counts like a linked one: a yield discrepancy is never released under a justification', async () => {
     const lot = await readyLot();
     const dev = await deviationOn('DEVIATION', 'BATCH', lot.batchId);
