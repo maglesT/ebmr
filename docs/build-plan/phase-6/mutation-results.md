@@ -146,6 +146,46 @@ its current number with its place updated, or dropped, by the part 2 triage.
 
 pending
 
+### inbound-adapters-and-mirrors (triage T3)
+
+- First run (stream p6-5): 198 detected / 299 valid, **66.2 %** (101 survivors, 11 invalid).
+- Kill tests: `packages/kernel/test/mutation/inbound-adapters-and-mirrors.test.ts` (19 tests, DI-20, DI-31, INV-26).
+- Confirmation run (`--only` on the 97 survivors the tests aim at): **96 / 97 killed**. The one left,
+  `iam.lms_qualification_payload_problem#19`, is killed by one more assertion (a numeric `validTo`), checked against
+  the mutant on the real server (original and mutant side by side in a scratch schema: the original refuses, the
+  mutant returns NULL); no third run.
+- After triage: 295 killed, 3 equivalent, 1 residual: **99.7 %** of the non-equivalent mutants (98.7 % counting the
+  equivalents as survivors).
+- Defects (P1): none. Every survivor showed a rule that holds but that no test took to its deciding input.
+
+Survivors, one line each:
+- P2 killed: `iam.integration_adapter_guard#3, #25` (registered ACTIVE; decommissioned is final), `#7, #13, #15, #17,
+  #19` (each identifying column alone; `registered_at` is a database time kernel 0500 keeps on update, so its own
+  clause cannot fire, and its neighbours' mutants are killed through the other columns).
+- P2 killed: `iam.set_integration_adapter_status#2, #9` (reason; unknown adapter); `iam.current_integration_adapter#2`
+  (an integration account acting with source SYSTEM is not an adapter).
+- P2 killed: `platform.inbound_envelope_problem#10, #12` (the year-9999 timestamp and the 1 MiB payload at their
+  limits); `platform.record_inbound_refusal#7, #18, #20` (refusal text; source time at and past the limit);
+  `platform.acknowledge_integration_alarm#3` (unknown alarm).
+- P2 killed: `platform.record_reconciliation#2, #3, #5, #7, #9, #11, #13, #15, #17, #18` (each malformed report alone,
+  the period ending at the limit), `#25, #27, #28, #30, #32, #34, #36, #38` (the [from, to) period and what counts as
+  received), `#39 to #50` (accepted and refused counts), `#53` (same count, other checksum).
+- P2 killed (stale mirrors): `platform.record_mirror_sync#3` (unknown class), `#26, #27, #29` (the check starts after
+  the same adapter's proof at head 0), `#28, #30` (another adapter's head does not shorten it), `#31` (D-P6j-T3-2),
+  `#33 to #37` (the first held number is the adapter's own, refusals included, resends not), `#38` (the head alone),
+  `#42, #44` (another adapter's refusals fill no hole), `#49, #51, #54` (only the adapter's own gap alarm over the
+  whole hole covers it).
+- P2 killed: `iam.qualification_source_fresh#4, #6, #10, #12` (the STAND_IN heartbeat and the MIRROR bound, each fresh
+  up to and including its bound).
+- P2 killed: `iam.lms_qualification_payload_problem#1 to #27` (11 survivors, each rule alone at its limits);
+  `iam.receive_lms_qualification#2` (message type), `#49` (a state as old as the applied one), `#56, #61 to #69`
+  (supersession by a new end date), `#75 to #81, #91 to #96` (withdrawal touches one person's row only).
+- Equivalent (`tools/sql-mutation/equivalent.json`): `platform.accept_inbound_detail#47` (v_seq = v_max is refused as
+  a taken number before), `platform.record_mirror_sync#19, #25` (every held sequence number is at least 1).
+- Residual: `platform.mirror_freshness#10`, the one microsecond of the database clock where the age equals the bound
+  (D-P6j-T3-3).
+- Finding for the lead (not P1): `platform.epoch_us_to_timestamptz` goes through double precision (D-P6j-T3-4).
+
 ## Equivalent mutants
 
 pending (`tools/sql-mutation/equivalent.json`; Stryker equivalents listed here with the reason)
