@@ -10,6 +10,7 @@ import { toDbContext, withCommand, type ActorContext } from '../../src/db/comman
 import { heldHead } from '../integrations/support.ts';
 import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { describeTestInterfaces, testInterface } from '../support/validation.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
 
@@ -30,6 +31,8 @@ beforeAll(async () => {
   await ensureFixtureChangeRecord(db);
   ({ admin, owner } = await seedAdministration(db));
   lms = await seedServiceActor(db, { kind: 'INTEGRATION', name: 'LMS adapter' });
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  await describeTestInterfaces(db, [testInterface(LMS, 'LMS')]);
   await withCommand(db.app, withReason(admin), (c) =>
     c.query('select iam.register_integration_adapter($1, $2, $3, $4, $5)', [LMS, 'LMS', lms.accountId, lms.deviceId, 'LMS adapter for 1181']));
 }, 120_000);

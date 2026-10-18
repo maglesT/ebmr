@@ -25,6 +25,7 @@ import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { approveTestRelease } from '../../../kernel/test/support/validation.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import type * as lc from '../../src/lifecycle/index.ts';
@@ -244,6 +245,8 @@ async function productAndSpecification(content: MbrContent, extraTests: { testCo
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  // Slice 7c (DI-03, recipe-core 1250): a GMP batch is issued only on a release with an approved validation summary.
+  await approveTestRelease(db);
   await ensureFixtureChangeRecord(db);
   w = new World(db, await seedCast(db));
   ({ admin, owner } = await seedAdministration(db));

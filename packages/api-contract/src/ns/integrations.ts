@@ -19,7 +19,7 @@ import { defineRoute } from '../route.ts';
 export const IntegrationSourceSystem = z.enum(['ERP_WMS', 'QMS', 'LIMS', 'LMS', 'CMMS', 'EMS', 'OPCUA', 'L3']);
 export type IntegrationSourceSystem = z.infer<typeof IntegrationSourceSystem>;
 export const MirrorDataClassName = z.enum(['LMS_QUALIFICATION', 'CMMS_CALIBRATION', 'CMMS_MAINTENANCE', 'QMS_STATUS', 'ERP_LOT_STATUS', 'ERP_ITEM_MASTER', 'WMS_STOCK', 'L3_SERIAL_STATUS']);
-export const IntegrationAlarmKind = z.enum(['SEQUENCE_GAP', 'OUT_OF_ORDER', 'MALFORMED', 'DUPLICATE', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT', 'RECONCILIATION_MISMATCH']);
+export const IntegrationAlarmKind = z.enum(['SEQUENCE_GAP', 'OUT_OF_ORDER', 'MALFORMED', 'DUPLICATE', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT', 'RECONCILIATION_MISMATCH', 'INTERFACE_DRIFT']);
 export const InboundErrorClass = z.enum(['MALFORMED', 'DUPLICATE', 'OUT_OF_ORDER', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT']);
 
 const WholeText = z.string().regex(/^(0|[1-9][0-9]{0,17})$/, 'a whole number as text');

@@ -12,6 +12,7 @@ import { requestRoleGrant } from '../../src/identity/admin.ts';
 import { heldHead } from '../integrations/support.ts';
 import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { describeTestInterfaces, testInterface } from '../support/validation.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedAuthn, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
 
@@ -30,6 +31,8 @@ const ctxOf = (a: SeededActor, extra: Partial<ActorContext> = {}): ActorContext 
 };
 
 async function register(actor: SeededActor, code: string, system: string): Promise<string> {
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  await describeTestInterfaces(db, [testInterface(code, system as Parameters<typeof testInterface>[1])]);
   return withCommand(db.app, withReason(admin), async (c) => {
     const { rows } = await c.query<{ id: string }>('select iam.register_integration_adapter($1, $2, $3, $4, $5) as id', [
       code, system, actor.accountId, actor.deviceId, `test adapter ${code}`,

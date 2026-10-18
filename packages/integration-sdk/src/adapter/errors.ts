@@ -76,6 +76,9 @@ export const KERNEL_INBOUND_CODES: Readonly<Record<string, ErrorClass>> = {
   'EBMR-INT-010': 'STALE',
   // Slice 7a (kernel 1305): an envelope of a signing source reached a receiving command without its verification.
   'EBMR-INT-030': 'WRONG_IDENTITY',
+  // Slice 7c (kernel 1350, DI-06): the adapter's interface is not in the approved system description of a GMP
+  // installation. Recorded as a refusal like any other; the database raises its alarm as INTERFACE_DRIFT.
+  'EBMR-INT-035': 'WRONG_IDENTITY',
 };
 
 /** SQLSTATE classes that mean "try again": connection exceptions, serialisation failures, deadlocks, shutdown. */
@@ -115,7 +118,7 @@ export class InboundError extends Error {
 }
 
 /** Integration alarm kinds (`platform.integration_alarm.kind`): the refusal classes plus what the database detects. */
-export const ALARM_KINDS = ['SEQUENCE_GAP', 'OUT_OF_ORDER', 'MALFORMED', 'DUPLICATE', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT', 'RECONCILIATION_MISMATCH'] as const;
+export const ALARM_KINDS = ['SEQUENCE_GAP', 'OUT_OF_ORDER', 'MALFORMED', 'DUPLICATE', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT', 'RECONCILIATION_MISMATCH', 'INTERFACE_DRIFT'] as const;
 export const AlarmKind = z.enum(ALARM_KINDS);
 export type AlarmKind = z.infer<typeof AlarmKind>;
 export const AlarmSeverity = z.enum(['MINOR', 'MAJOR', 'CRITICAL']);
