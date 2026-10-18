@@ -109,6 +109,7 @@ tests:
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > acts with no other test in the group (kernel 1220, 1221, site services 0980, recipe-core 1091) > [DI-18] [DI-31] an installation alarm is acknowledged once, with a note, by a person who holds ALARM.ACKNOWLEDGE and never by an administrator"
   - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-17][DI-18] every analytics function the application may call refuses administrators, then checks a catalogued permission; the runner functions are the analytics role's alone"
   - "apps/tablets-server/test/validation/role-permissions.test.ts > the Phase 7 permissions of the Tablets roles (tablets 1400) > [DI-18] no administration role holds a Phase 7 permission, and the grants are the release's"
+  - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27][DI-18] an administrator never approves, a role without PLANT_RULE.APPROVE is refused, and nobody writes a rule, a proposal or an approval directly"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

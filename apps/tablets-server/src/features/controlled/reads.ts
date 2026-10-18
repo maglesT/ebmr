@@ -1,6 +1,11 @@
 /**
  * The reads of feature `controlled` (Phase 6 slice 6e; draft IN-53): the flags, custody records, batch accounts and
  * register exports as the database holds them (recipe-core 1031 to 1034). Quantities stay decimal text throughout.
+ *
+ * Phase 7 slice 7a (6jc-R2): every read goes through the gated definers of tablets 1413 for the session behind the
+ * request (its token hash), which need CONTROLLED.READ in the record's {site, product} scope; no route reads the tables
+ * directly (the application role keeps SELECT only for true copies and archives, recipe-core 1215). A refusal is the
+ * database's (EBMR-CSM-060 or 061, 403).
  */
 import {
   CONTROLLED_DRAFT_BANNER,
@@ -12,11 +17,16 @@ import {
 } from '@ebmr/api-contract';
 import type pg from 'pg';
 import type { AppContext } from '../../platform/context.ts';
-import { peopleOf, personRef, usOf } from '../common/people.ts';
+import { peopleOf, personRef } from '../common/people.ts';
 
 type Db = Pick<pg.Pool, 'query'>;
 
 export const BANNER = CONTROLLED_DRAFT_BANNER;
+
+/** The rows a gated definer of tablets 1413 answers (a JSON array) for the session of `tokenHash`. */
+async function gated<T>(db: Db, sql: string, params: unknown[]): Promise<T[]> {
+  return (await db.query<{ r: T[] | null }>(sql, params)).rows[0]?.r ?? [];
+}
 
 interface ProductRow {
   id: string;
@@ -32,18 +42,8 @@ interface ProductRow {
   in_effect: string[];
 }
 
-export async function productViews(app: AppContext, db: Db, product?: string): Promise<ControlledProductView[]> {
-  const { rows } = await db.query<ProductRow>(
-    `select r.id, r.product_code, r.controlled, r.material_codes, r.basis_ref, r.recorded_by_person, ${usOf('r.recorded_at')} as recorded_us,
-            plant.controlled_record_state(r.id) as state, a.approved_by_person,
-            case when a.record_id is null then null else ${usOf('a.approved_at')} end as approved_us,
-            plant.controlled_materials(r.product_code) as in_effect
-       from plant.controlled_product r left join plant.controlled_product_approval a on a.record_id = r.id
-      where ($1::text is null or r.product_code = $1)
-      order by r.product_code, r.recorded_at desc, r.id desc
-      limit 2000`,
-    [product ?? null],
-  );
+export async function productViews(app: AppContext, db: Db, tokenHash: string, product?: string): Promise<ControlledProductView[]> {
+  const rows = await gated<ProductRow>(db, 'select tab.controlled_products($1, $2) as r', [tokenHash, product ?? null]);
   const people = await peopleOf(db, rows.flatMap((r) => [r.recorded_by_person, r.approved_by_person]));
   const out = new Map<string, ControlledProductView>();
   for (const r of rows) {
@@ -84,19 +84,8 @@ interface CustodyRow {
   used: boolean;
 }
 
-export async function custodyViews(app: AppContext, db: Db, filter: { lotId?: string | undefined; batchId?: string | undefined; custodyId?: string }): Promise<CustodyView[]> {
-  const { rows } = await db.query<CustodyRow>(
-    `select c.id, c.kind, c.lot_id, l.lot_code, c.material_code, c.quantity::text as quantity, c.unit, c.batch_id, b.batch_number, c.from_location, c.to_location,
-            c.note, c.proposed_by_person, ${usOf('c.recorded_at')} as proposed_us, recipe.controlled_custody_state(c.id) as state,
-            coalesce((select jsonb_agg(jsonb_build_object('position', s.position, 'person', s.person_id, 'us', ${usOf('s.recorded_at')}) order by s.position)
-                        from recipe.controlled_custody_signature s where s.custody_id = c.id), '[]'::jsonb) as signatures,
-            exists (select 1 from recipe.controlled_custody_use u where u.custody_id = c.id) as used
-       from recipe.controlled_custody c join site.material_lot l on l.id = c.lot_id left join recipe.batch_execution b on b.id = c.batch_id
-      where ($1::uuid is null or c.lot_id = $1) and ($2::uuid is null or c.batch_id = $2) and ($3::uuid is null or c.id = $3)
-      order by c.recorded_at desc, c.id
-      limit 500`,
-    [filter.lotId ?? null, filter.batchId ?? null, filter.custodyId ?? null],
-  );
+export async function custodyViews(app: AppContext, db: Db, tokenHash: string, filter: { lotId?: string | undefined; batchId?: string | undefined; custodyId?: string }): Promise<CustodyView[]> {
+  const rows = await gated<CustodyRow>(db, 'select tab.controlled_custody($1, $2, $3, $4) as r', [tokenHash, filter.lotId ?? null, filter.batchId ?? null, filter.custodyId ?? null]);
   const people = await peopleOf(db, rows.flatMap((r) => [r.proposed_by_person, ...r.signatures.map((s) => s.person)]));
   return rows.map((r) => ({
     custodyId: r.id,
@@ -139,18 +128,11 @@ interface CheckpointRow {
   current: boolean;
 }
 
-export async function checkpointViews(app: AppContext, db: Db, filter: { batchId?: string; checkpointId?: string }): Promise<CheckpointView[]> {
-  const { rows } = await db.query<CheckpointRow>(
-    `select k.id, k.stage_key, k.material_code, k.unit, k.dispensed::text as dispensed, k.consumed::text as consumed, k.in_process::text as in_process,
-            k.returned::text as returned, k.destroyed::text as destroyed, k.difference::text as difference, k.explanation, k.deviation_id,
-            (select d.ref from site.deviation d where d.id = k.deviation_id) as deviation_ref, k.recorded_by_person, ${usOf('k.recorded_at')} as recorded_us,
-            recipe.controlled_checkpoint_state(k.id) as state, recipe.controlled_checkpoint_current(k.id) as current
-       from recipe.controlled_checkpoint k
-      where ($1::uuid is null or k.batch_id = $1) and ($2::uuid is null or k.id = $2)
-      order by k.recorded_at desc, k.id
-      limit 500`,
-    [filter.batchId ?? null, filter.checkpointId ?? null],
-  );
+export async function checkpointViews(app: AppContext, db: Db, tokenHash: string, filter: { batchId?: string; checkpointId?: string }): Promise<CheckpointView[]> {
+  return checkpointsOf(app, db, await gated<CheckpointRow>(db, 'select tab.controlled_checkpoints($1, $2, $3) as r', [tokenHash, filter.batchId ?? null, filter.checkpointId ?? null]));
+}
+
+async function checkpointsOf(app: AppContext, db: Db, rows: CheckpointRow[]): Promise<CheckpointView[]> {
   const people = await peopleOf(db, rows.map((r) => r.recorded_by_person));
   return rows.map((r) => ({
     checkpointId: r.id,
@@ -173,30 +155,25 @@ export async function checkpointViews(app: AppContext, db: Db, filter: { batchId
   }));
 }
 
-export async function balanceView(app: AppContext, db: Db, batchId: string): Promise<ControlledBalanceView | null> {
-  const { rows } = await db.query<{ batch_number: string; product: string | null; materials: string[] }>(
-    `select b.batch_number, recipe.batch_product(b.id) ->> 'code' as product,
-            (select coalesce(array_agg(distinct m order by m), '{}') from (
-               select unnest(recipe.batch_controlled_materials(b.id)) as m
-               union select k.material_code from recipe.controlled_checkpoint k where k.batch_id = b.id) x) as materials
-       from recipe.batch_execution b where b.id = $1`,
-    [batchId],
-  );
-  const b = rows[0];
+interface BalanceRow {
+  batch_number: string;
+  product: string | null;
+  materials: { material_code: string; balance: { unit: string | null; dispensed: string; returned: string; destroyed: string } | null }[];
+  checkpoints: CheckpointRow[];
+}
+
+export async function balanceView(app: AppContext, db: Db, tokenHash: string, batchId: string): Promise<ControlledBalanceView | null> {
+  const b = (await db.query<{ r: BalanceRow | null }>('select tab.controlled_balance($1, $2) as r', [tokenHash, batchId])).rows[0]?.r;
   if (!b) return null;
-  const checkpoints = await checkpointViews(app, db, { batchId });
-  const materials: ControlledBalanceView['materials'] = [];
-  for (const m of b.materials) {
-    const bal = (await db.query<{ r: { unit: string | null; dispensed: string; returned: string; destroyed: string } }>('select recipe.controlled_balance($1, $2) as r', [batchId, m])).rows[0]?.r;
-    materials.push({
-      materialCode: m,
-      unit: bal?.unit ?? null,
-      dispensed: bal?.dispensed ?? '0',
-      returned: bal?.returned ?? '0',
-      destroyed: bal?.destroyed ?? '0',
-      checkpoints: checkpoints.filter((k) => k.materialCode === m),
-    });
-  }
+  const checkpoints = await checkpointsOf(app, db, b.checkpoints);
+  const materials: ControlledBalanceView['materials'] = b.materials.map(({ material_code: m, balance: bal }) => ({
+    materialCode: m,
+    unit: bal?.unit ?? null,
+    dispensed: bal?.dispensed ?? '0',
+    returned: bal?.returned ?? '0',
+    destroyed: bal?.destroyed ?? '0',
+    checkpoints: checkpoints.filter((k) => k.materialCode === m),
+  }));
   return { batchId, batchNumber: b.batch_number, productCode: b.product, banner: BANNER, materials };
 }
 
@@ -214,17 +191,8 @@ interface ExtractRow {
   reproduces?: boolean;
 }
 
-export async function extractViews(app: AppContext, db: Db, extractId?: string): Promise<{ summaries: Omit<RegisterExtractView, 'banner' | 'reproduces' | 'result'>[]; full: RegisterExtractView | null }> {
-  const { rows } = await db.query<ExtractRow>(
-    `select x.id, x.material_code, x.period_from::text as period_from, x.period_to::text as period_to, x.result_sha256, x.run_by_person, x.role_code,
-            ${usOf('x.recorded_at')} as run_us, jsonb_array_length(x.result -> 'rows') as rows
-            ${extractId ? ', x.result, recipe.controlled_register_reproduces(x.id) as reproduces' : ''}
-       from recipe.controlled_register_extract x
-      where ($1::uuid is null or x.id = $1)
-      order by x.recorded_at desc, x.id
-      limit 200`,
-    [extractId ?? null],
-  );
+export async function extractViews(app: AppContext, db: Db, tokenHash: string, extractId?: string): Promise<{ summaries: Omit<RegisterExtractView, 'banner' | 'reproduces' | 'result'>[]; full: RegisterExtractView | null }> {
+  const rows = await gated<ExtractRow>(db, 'select tab.controlled_register_extracts($1, $2) as r', [tokenHash, extractId ?? null]);
   const people = await peopleOf(db, rows.map((r) => r.run_by_person));
   const summaries = rows.map((r) => ({
     extractId: r.id,

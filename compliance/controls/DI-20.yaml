@@ -237,6 +237,10 @@ tests:
   - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > OPC UA endpoint identity (DI-20) > [DI-20][DI-31] a session report is refused for each malformed field on its own, another message type or an unknown field; RELOCATED names where it is enrolled"
   - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > the OPC UA data guard on owner-level writes (DI-20) > [DI-20] OPC UA data name the inbound message they came in, and only a session received before that message counts"
   - "packages/recipe-core/test/mutation/equipment-data-and-alarms.test.ts > the OPC UA data guard on owner-level writes (DI-20) > [DI-20] a unit of another room on an enrolment (an owner-level write past the enrolment check) makes the session RELOCATED and its data refused as relocated"
+  - "apps/site-gateway/test/opcua-driver.test.ts > the OPC UA client driver > [DI-31][DI-20] every feed envelope is signed with the gateway key when journalled, and a gateway restart serves the same signed bytes"
+  - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > the gateway signs its OPC UA feed and the database verifies it (6jc-R9) > [DI-31][DI-20] a good envelope signed by the bound gateway's key is accepted with its verification; an exact resend is de-duplicated"
+  - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > the gateway signs its OPC UA feed and the database verifies it (6jc-R9) > [DI-31][DI-20] the SQL twin of the feed signature gives the SDK's bytes for every committed vector, and the database verifies the vectors' signatures"
+  - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > a revoked gateway key and an unbound adapter (6jc-R9) > [DI-31][DI-20] after the bound gateway's key is revoked its signature no longer counts, and an adapter bound to no gateway takes nothing"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

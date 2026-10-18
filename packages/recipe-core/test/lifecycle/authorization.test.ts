@@ -35,7 +35,7 @@ const READ_ONLY: Record<string, string> = {
  * requires the command's catalogued permission (recipe.execution_command_permission).
  */
 const ADMIN_GATES = ['iam.assert_not_administrator()', 'recipe.execution_actor('];
-const PERMISSION_GATES = ['iam.require_permission(', 'recipe.require_command_permission('];
+const PERMISSION_GATES = ['iam.require_permission(', 'recipe.require_command_permission(', 'recipe.require_issue_permission('];
 const firstOf = (src: string, gates: readonly string[]): number => Math.min(...gates.map((g) => src.indexOf(g)).filter((i) => i >= 0), Number.MAX_SAFE_INTEGER);
 
 /** App-callable writers with no permission of their own, and why. */
@@ -71,6 +71,10 @@ describe('authority on every writer (DI-17, DI-18)', () => {
     expect(commandPermission.length).toBe(2);
     for (const src of executionActor) expect(src).toContain('iam.assert_not_administrator()');
     for (const src of commandPermission) expect(src).toContain('iam.require_permission(');
+    // The GMP batch issue's form with the order's product (recipe-core 1218, 6jc-R16).
+    const issuePermission = await helper('recipe.require_issue_permission');
+    expect(issuePermission.length).toBe(1);
+    for (const src of issuePermission) expect(src).toContain('iam.require_permission(');
     const known = new Set((await db.admin.query<{ code: string }>('select code from iam.permission')).rows.map((r) => r.code));
     const cited = writers.flatMap((r) => [...r.src.matchAll(/'([A-Z][A-Z0-9_]*\.[A-Z][A-Z0-9_]*)'/g)].map((m) => m[1] ?? ''));
     const commandPermissions = (await db.admin.query<{ p: string }>('select distinct unnest(permissions) as p from recipe.execution_command_permission')).rows.map((r) => r.p);

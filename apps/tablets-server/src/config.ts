@@ -61,6 +61,11 @@ export const EnvSchema = z.object({
   EBMR_GATEWAY_URL: z.string().default('http://127.0.0.1:3021'),
   /** DEMO-ONLY service secrets: the sandbox's sweeper, gateway and monitor; the GMP server's sweeper (D-P4-9). */
   EBMR_SERVICE_KEYS_FILE: z.string().optional(),
+  /**
+   * Phase 7 slice 7a (6jc-R9, DI-31): the adapters' mutual TLS material, `<adapter code>.ca.pem`, `.cert.pem` and
+   * `.key.pem` per adapter (the CA pinned for the adapter's peer, the server's client certificate and its key).
+   */
+  EBMR_ADAPTER_TLS_DIR: z.string().optional(),
   EBMR_OTHER_INSTALLATION_URL: z.string().optional(),
   /**
    * DEMO-ONLY as a file (a KMS or HSM in production): this installation's Ed25519 private key ({installationCode,
@@ -111,6 +116,8 @@ export interface EnvConfig {
   gatewayListen: { host: string; port: number } | null;
   gatewayUrl: string;
   serviceKeysFile: string | null;
+  /** EBMR_ADAPTER_TLS_DIR (slice 7a); null: no adapter has mutual TLS (only loopback base URLs start on a GMP installation). */
+  adapterTlsDir: string | null;
   otherInstallationUrl: string | null;
   /** EBMR_INSTALLATION_KEY_FILE (Phase 6 slice 6i); null: the server seals no transfer package or federation answer. */
   installationKeyFile: string | null;
@@ -218,6 +225,7 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     gatewayListen,
     gatewayUrl: e.EBMR_GATEWAY_URL,
     serviceKeysFile: e.EBMR_SERVICE_KEYS_FILE ?? null,
+    adapterTlsDir: e.EBMR_ADAPTER_TLS_DIR ?? null,
     otherInstallationUrl: e.EBMR_OTHER_INSTALLATION_URL ?? null,
     installationKeyFile: e.EBMR_INSTALLATION_KEY_FILE ?? null,
     federationTimeoutS: e.EBMR_FEDERATION_TIMEOUT_S,

@@ -5,7 +5,9 @@
  * application cannot write (a plant room, a press with its qualification and cleaning) are written as the superuser with
  * triggers off for that transaction only; every control is proven as the application role.
  */
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes, randomUUID, type KeyObject } from 'node:crypto';
+import { feedKeyId, signFeedEnvelope, type FeedSignedFields, type GatewaySignature } from '@ebmr/integration-sdk/adapter';
+import { ed25519PrivateKey } from '@ebmr/integration-sdk/scale';
 import { identity, withCommand } from '@ebmr/kernel';
 import { passwordActor } from '@ebmr/test-kit';
 import { activateAccount, createAccount, createPerson, decideRoleGrant, issueInitialSecret, registerDevice, requestRoleGrant } from '../../../../packages/kernel/src/identity/admin.ts';
@@ -15,7 +17,8 @@ import { withReason } from '../../../../packages/kernel/test/identity/seed.ts';
 import { envelopeFor, nowUs, receive, type Administration, type TestAdapter } from '../../../../packages/kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { asSetup } from '../blocks/compression/plant-support.ts';
-import { adminActor } from '../devices/support.ts';
+import { DEMO_GATEWAY } from '../../src/features/devices/enrol.ts';
+import { adminActor, gatewayKey, GW } from '../devices/support.ts';
 import type { TestServer } from '../support/harness.ts';
 
 export interface OpcuaWorld {
@@ -105,3 +108,46 @@ export function reportSession(server: TestServer, w: OpcuaWorld, over: Record<st
   return receive(server.db as unknown as TestDatabase, w.adapter, 'plant.receive_opcua_endpoint_session', envelopeFor(w.adapter, 'opcua.endpoint_session', payload));
 }
 
+
+/** A gateway that signs its OPC UA feed (slice 7a): its code, key id (SHA-256 of its SPKI DER) and private key. */
+export interface FeedSigner {
+  gatewayCode: string;
+  keyId: string;
+  privateKey: KeyObject;
+  /** Base64 SPKI DER of the public key, as tab.gateway_key holds it. */
+  spki: string;
+}
+
+/** The seeded gateway's signer (TEST-GW-01, the key `enrol` enrols). */
+export function seededGatewaySigner(server: TestServer): FeedSigner {
+  const k = gatewayKey(server);
+  return { gatewayCode: GW, keyId: feedKeyId(Buffer.from(k.publicKeySpki, 'base64')), privateKey: ed25519PrivateKey(k.privateKeyPkcs8), spki: k.publicKeySpki };
+}
+
+/**
+ * Another gateway with its own key, made at run time: a SERVER device in the registry whose fingerprint is the key's
+ * SHA-256, and the key enrolled for the seeded gateway's service account (tab.enrol_gateway_key).
+ */
+export async function otherGateway(server: TestServer): Promise<FeedSigner> {
+  const pair = generateKeyPairSync('ed25519');
+  const der = pair.publicKey.export({ type: 'spki', format: 'der' });
+  const signer: FeedSigner = { gatewayCode: `TEST-GW-${randomBytes(3).toString('hex').toUpperCase()}`, keyId: feedKeyId(der), privateKey: pair.privateKey, spki: der.toString('base64') };
+  const site = (await server.db.admin.query<{ s: string }>("select site_code as s from iam.device where code = $1", [GW])).rows[0]?.s ?? 'SITE-1';
+  await identity.withGuardedCommand(server.db.app, await adminActor(server), async (c) => {
+    await c.query("select iam.register_device($1, 'SERVER', $2, null, null, $3, 'TEST second site gateway')", [signer.gatewayCode, site, signer.keyId]);
+    await c.query('select tab.enrol_gateway_key($1, $2, $3)', [signer.gatewayCode, signer.spki, DEMO_GATEWAY.loginName]);
+  });
+  return signer;
+}
+
+/** The device administrator binds the OPCUA adapter `adapterCode` to the feed of gateway `gatewayCode` (tablets 1405). */
+export async function bindFeed(server: TestServer, adapterCode: string, gatewayCode: string): Promise<string> {
+  return identity.withGuardedCommand(server.db.app, await adminActor(server), async (c) =>
+    (await c.query<{ id: string }>("select tab.bind_gateway_feed($1, $2, 'TEST_SETUP', 'the OPC UA adapter pulls this gateway''s feed (test)') as id", [adapterCode, gatewayCode])).rows[0]!.id);
+}
+
+/** The envelope signed as gateway `s` (SDK signFeedEnvelope); `as` overrides the code and key id it names. */
+export function signed<T extends Record<string, unknown>>(env: T, s: FeedSigner, as: { gatewayCode?: string; keyId?: string } = {}): T & { gatewaySignature: GatewaySignature } {
+  const sig = signFeedEnvelope(env as unknown as FeedSignedFields, as.gatewayCode ?? s.gatewayCode, as.keyId ?? s.keyId, s.privateKey);
+  return { ...env, gatewaySignature: sig };
+}

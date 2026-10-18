@@ -281,7 +281,7 @@ export const TARGETS: Target[] = [
             s('execution/db-guards-proposal-race.test.ts'), s('execution/signed-content-hold-point.test.ts'),
             s('execution/db-guards-corrections.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
-            s('execution/gmp-batch.test.ts')],
+            s('execution/gmp-batch.test.ts'), r('review/batch-scope.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: recipe-core, limit verdicts and the limit exceptions they raise (sql 0305) --------------------------
@@ -403,7 +403,7 @@ export const TARGETS: Target[] = [
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
             s('master-data/formula.test.ts'),
             // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
-            s('controlled/controlled-routes.test.ts'), s('governance/governance-routes.test.ts')],
+            s('controlled/controlled-routes.test.ts'), s('governance/governance-routes.test.ts'), s('controlled/controlled-read.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: tablets, sessions, roles bound to them and attribution (sql 0001, 0100, 0400, 0480) ------------------
@@ -598,7 +598,7 @@ export const TARGETS: Target[] = [
                 'recipe.hand_over_persons', 'recipe.person_engine_roles', 'recipe.hand_over_involvement',
                 'recipe.hand_over_problem', 'recipe.review_exception', 'recipe.execution_change_path_check'],
     tests: [s('execution/db-guards-change-paths.test.ts'), s('execution/db-guards-exception-register.test.ts'), s('execution/db-guards-hand-over.test.ts'), r('lifecycle/gmp-references.test.ts'), s('blocks/compression/db-guards.test.ts'),
-            s('mutation/exception-register-sync.test.ts')],
+            s('mutation/exception-register-sync.test.ts'), r('review/batch-scope.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: GMP batch issue and its record: allocation, ERP order link, packaging parent, product scope,
@@ -618,7 +618,7 @@ export const TARGETS: Target[] = [
                 'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check'],
     tests: [r('lifecycle/record-lock.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
             // The row checks 0502 replaced (recipe-core 0338, 0339, 0345): their Phase 2 tests.
-            s('execution/db-guards-row-context.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-row-shape.test.ts'), s('execution/signed-content-hold-point.test.ts')],
+            s('execution/db-guards-row-context.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-row-shape.test.ts'), s('execution/signed-content-hold-point.test.ts'), r('review/batch-scope.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: material lots and LIMS: status, release route, reservation and consumption, identity, destruction,
@@ -648,7 +648,7 @@ export const TARGETS: Target[] = [
             // Phase 4 slice 7c: the G-07 pairing and the lot-material entry check (not twins of an engine check).
             s('mutation/lots-and-lims-g07.test.ts'),
             // Phase 6 exit: the files that test this group's functions as Phase 6 re-created them.
-            site('transfer/transfer.test.ts')],
+            site('transfer/transfer.test.ts'), site('lots/consumption-batch-scope.test.ts')],
     threshold: 90,
   },
   // ---- Phase 3: deviations: raise, link, investigate, conclude, close; QA signature; evidence documents;
@@ -1119,7 +1119,7 @@ export const TARGETS: Target[] = [
                 'platform.mirror_fresh_or_raise', 'platform.record_inbound_override', 'iam.qualification_source_fresh',
                 'iam.lms_mirror_problem', 'iam.lms_qualification_payload_problem', 'iam.receive_lms_qualification'],
     tests: [k('inbound/inbound.test.ts'), k('inbound/overrides-and-lms-mirror.test.ts'), k('integrations/lms-inbound.test.ts'),
-            k('integration/authorization.test.ts')],
+            k('integration/authorization.test.ts'), k('inbound/source-verification.test.ts'), s('equipment-data/feed-signature.test.ts')],
     threshold: 90,
   },
   // ---- 6a, adapters and mirrors: receipt, approved manufacturers, stock locations, the ERP lot status mirror and
@@ -1182,7 +1182,7 @@ export const TARGETS: Target[] = [
                 'tab.bridge_device_alarm', 'tab.bridge_step_device'],
     tests: [r('integrations/plant-alarms-series.test.ts'), r('equipment-data/opcua-endpoint-identity.test.ts'),
             r('plant/equipment.test.ts'), s('equipment-data/opcua-readings.test.ts'), s('equipment-data/opcua-adapter.test.ts'),
-            s('alarms/alarm-bridge.test.ts')],
+            s('alarms/alarm-bridge.test.ts'), r('plant-rules/alarm-ack-batch-scope.test.ts')],
     threshold: 90,
   },
   // ---- 6b, equipment, alarms and plant rules: area authorisation, reagent lots, room, adjacency and beta-lactam rules,
@@ -1199,7 +1199,7 @@ export const TARGETS: Target[] = [
                 'recipe.review_gate_problems'],
     tests: [k('identity/area-authorisation.test.ts'), r('plant-rules/room-rules.test.ts'), site('plant-rules/materials.test.ts'),
             r('review/review.test.ts'), s('alarms/area-authorisation-matrix.test.ts'), s('alarms/area-authorisation-signature.test.ts'),
-            s('alarms/alarm-bridge.test.ts')],
+            s('alarms/alarm-bridge.test.ts'), r('plant-rules/rule-approval.test.ts')],
     threshold: 90,
   },
   // ---- 6c, packaging and serialisation: the label store, label templates and the labelling a packaging master
@@ -1264,7 +1264,7 @@ export const TARGETS: Target[] = [
                 'recipe.run_controlled_register', 'recipe.controlled_register_reproduces', 'recipe.controlled_batch_end_problem',
                 'recipe.controlled_batch_end_guard', 'tab.controlled_pair_ok', 'tab.controlled_preview',
                 'tab.controlled_signing_content'],
-    tests: [site('controlled/controlled.test.ts'), s('controlled/controlled-routes.test.ts')],
+    tests: [site('controlled/controlled.test.ts'), s('controlled/controlled-routes.test.ts'), s('controlled/controlled-read.test.ts')],
     threshold: 90,
   },
   // ---- 6f, governance: configuration change control, review-by-exception rules, excursion notifications and the PQR
@@ -1445,6 +1445,50 @@ export const TARGETS: Target[] = [
       'platform.validation_summary_problem', 'platform.describe_interface', 'platform.system_description', 'platform.interface_described',
     ],
     tests: [k('config/release-identity.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7a (decision 0022): the gateway feed signature checked in the database (6jc-R9, DI-31, DI-20; kernel
+  // 1305, tablets 1405). The re-created platform.accept_inbound_detail and inbound_envelope_problem stay in their group.
+  {
+    group: 'gateway-feed-signature',
+    functions: [
+      'platform.source_requires_signature', 'platform.inbound_envelope_key', 'platform.record_source_verification',
+      'tab.accept_gateway_envelope', 'tab.feed_signature_message', 'tab.bind_gateway_feed', 'tab.gateway_feed_binding_guard',
+    ],
+    tests: [k('inbound/source-verification.test.ts'), s('equipment-data/feed-signature.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7a (decision 0022): QA approval of the plant rules (6jc-R10, PR-27; recipe-core 1210).
+  {
+    group: 'plant-rule-approval',
+    functions: [
+      'plant.approve_facility_rule', 'plant.approve_beta_lactam_class', 'plant.assert_plant_rule_approval',
+      'plant.facility_rule_state', 'plant.beta_lactam_class_state', 'plant.facility_rule_content',
+      'plant.beta_lactam_class_content', 'plant.penicillin_facility', 'plant.facility_rule_approved',
+      'plant.beta_lactam_class_approved',
+    ],
+    tests: [r('plant-rules/rule-approval.test.ts'), s('alarms/plant-rule-approval.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7a: the controlled-substance reads gated by CONTROLLED.READ in scope (6jc-R2, draft IN-53; tablets
+  // 1413, 1414).
+  {
+    group: 'controlled-reads',
+    functions: [
+      'tab.controlled_reader_problem', 'tab.controlled_reader_refusal', 'tab.reader_site', 'tab.controlled_batch_scope',
+      'tab.controlled_products', 'tab.controlled_custody', 'tab.controlled_checkpoint_rows', 'tab.controlled_checkpoints',
+      'tab.controlled_balance', 'tab.controlled_register_extracts', 'tab.controlled_record_scope',
+      'tab.controlled_aggregate_problem', 'tab.controlled_entry_hidden',
+    ],
+    tests: [s('controlled/controlled-read.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7a: the batch issue's permission in the order's product scope (rest of 6jc-R16, IN-04; recipe-core
+  // 1218). The acts re-created in 1217, 1218 and site-services 1103 stay in their groups, which gain the new tests.
+  {
+    group: 'batch-scope-remaining',
+    functions: ['recipe.require_issue_permission'],
+    tests: [r('review/batch-scope.test.ts')],
     threshold: 90,
   },
 ];

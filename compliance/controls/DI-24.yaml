@@ -138,6 +138,10 @@ tests:
   - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
   - "apps/tablets-server/test/review/review-routes.test.ts > the CORRECT_ENTRY route (outline 5.2.3 path (a); S25) > [DI-25][DI-24][DI-07] a value changed after entry, on a field classed non-critical, shows with its original in the checker's step view, in the exception register with both values and the reason, and in the audit-trail review list"
   - "packages/recipe-core/test/engine/corrections.test.ts > path (a): entry-error correction (DI-24) > [PR-12][DI-24] a signed weight is corrected only with a reason: the original stays in the record, the step's signatures no longer stand until it is signed again, and the exception report lists the correction"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][DI-24] a product-limited requirement no longer refuses the proposal of an act for approval on another product's batch"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][DI-24] the proposal of an act for approval: this product's requirement still applies, and once qualified the operator proposes"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][DI-24] the proposal of an act for approval: a requirement without a product limit still applies"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-31][DI-24] the proposal of an act for approval: a stale qualification source is still refused"
 clauses:
   - clause: "Try to delete an entry through the UI and the API. Only void-with-reason is offered."
     tests:

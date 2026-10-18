@@ -171,6 +171,10 @@ tests:
   - "apps/tablets-web/test/genealogy/genealogy.test.tsx > the recurrence warning on the certification screen (PR-49) > [PR-49] below the third occurrence no warning is shown"
   - "packages/site-services/test/genealogy/recall.test.ts > deviation recurrence (recipe-core 1012; PR-49; D-P6d-5) > [PR-49] the recurrence count of a lot's deviation: the same root-cause category on the same product, a warning from the third occurrence"
   - "packages/recipe-core/test/review/review.test.ts > slice 1 quick review regressions (recipe-core 0719 to 0721) > [PR-49][PR-52] each escalated exception stands on its own deviation: one escalated later to a linked deviation does not cover another whose deviation is cancelled (mutation kill)"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][PR-49] a product-limited requirement no longer refuses the disposition proposal on another product's batch"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][PR-49] the disposition proposal: this product's requirement still applies, and once qualified QA proposes"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-21][PR-49] the disposition proposal: a requirement without a product limit still applies"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the disposition proposals and the act proposal in the batch's product scope (6jc-R16) > [IN-04][DI-31][PR-49] the disposition proposal: a stale qualification source is still refused"
 clauses:
   - clause: "A failure of a registered limit creates a deviation with the MA flag."
     tests:

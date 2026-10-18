@@ -1014,6 +1014,27 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 - **Lesson:** a fail-closed rule for a missing scope member is right only if every caller passes the members it knows.
   When a scope dimension is added to grants or requirements, check that each authority call on a record names it.
 
+### 6jc-R16, the rest: the other batch acts still checked their permission without the batch's product (Phase 7 slice 7a)
+- **What went wrong.** After 1100 the step work named the batch's product, but the other batch acts did not: the alarm
+  acknowledgment checked ALARM.ACKNOWLEDGE unscoped before the bound batches' scopes, and the disposition and hold-point
+  proposals, the proposal of an act for approval, the exception review act, the dispensing consumption (both its batch
+  and its site side) and the GMP batch issue checked at the actor's location only.
+- **Why it matters.** The same as 6jc-R16: a requirement limited to product A refused these acts on every product, and
+  a person scoped to product A could not acknowledge an alarm of A's own batch (open question O-T1-1).
+- **Fix.** Recipe-core [1217](../../packages/recipe-core/sql/1217_batch_scope_remaining_acts.sql) and
+  [1218](../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql), site services
+  [1103](../../packages/site-services/sql/1103_consumption_batch_product_scope.sql): each act's check names the batch's
+  product (the order's product at the issue); an alarm bound to no batch is still checked unscoped. Recipe-core
+  [1224](../../packages/recipe-core/sql/1224_drop_check_engine_roles_two_argument.sql) drops the location-only
+  `recipe.check_engine_roles(jsonb, jsonb)` that nothing called any more.
+- **Test.** The `[IN-04]` tests of [alarm-ack-batch-scope.test.ts](../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts),
+  [batch-scope.test.ts](../../packages/recipe-core/test/review/batch-scope.test.ts) and
+  [consumption-batch-scope.test.ts](../../packages/site-services/test/lots/consumption-batch-scope.test.ts): per act,
+  another product's requirement no longer refuses it, this product's and an unlimited one still do, and a stale source
+  is still refused; the `[meta]` test of [dead-overload.test.ts](../../packages/recipe-core/test/execution/dead-overload.test.ts).
+- **Lesson:** fixing a scope bug in one caller is half the fix. Search every permission check on the same record for
+  the same missing member (`iam.actor_location_scope()` alone, or `'{}'`, on a batch act).
+
 ## Controlled substances (Phase 6 slice 6e, draft IN-53)
 
 ### P6e-R1: a batch could complete after its last controlled checkpoint (slice 6e, review)
@@ -1051,6 +1072,35 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
   [controlled-routes.test.ts](../../apps/tablets-server/test/controlled/controlled-routes.test.ts).
 - **Lesson:** a function re-created in full belongs to the highest migration that touches it; check the numbers after
   your range, not only inside it.
+
+### 6jc-R2: any session read the controlled register and balance (Phase 6 exit review, decision 0022)
+- **What went wrong.** The controlled-substance routes checked only that a session existed, and read the tables of
+  recipe-core 1031 to 1034 with the application role, which could SELECT them all and run their read functions. An
+  operator on a kiosk, a system administrator, or anyone holding the application's database credentials read every
+  flag, custody record (who held which lot), batch account and register export.
+- **Why it matters.** Draft IN-53 limits these records to the people who hold them in custody and to QA. The register
+  and the balance show where a narcotic or psychotropic API is and how much of it, which is what a diversion needs.
+- **Fix.** Recipe-core [1214](../../packages/recipe-core/sql/1214_controlled_reads_closed.sql) revokes the application
+  role's EXECUTE on the fourteen old read functions (the writers keep their grants). It also revoked SELECT on the
+  eight tables, which broke the kernel's true copy of any batch or lot (finding P7A-7). Recipe-core
+  [1215](../../packages/recipe-core/sql/1215_controlled_tables_app_select.sql) grants SELECT back: the application role is
+  the server's own identity, and true copies and archives must be complete. Every person-facing path stays gated. Tablets
+  [1413](../../apps/tablets-server/sql/1413_controlled_reads_gated.sql) adds gated definers for the session behind the
+  request: CONTROLLED.READ (tablets 1400), no administrator, and a grant whose scope covers the record's {site, product};
+  lists are filtered row by row, a named batch or record out of scope is refused (EBMR-CSM-060, 061: 403). Tablets
+  [1414](../../apps/tablets-server/sql/1414_controlled_record_read.sql) asks the same rule of the signing preview and of
+  `tab.record_read_problem` (signatures and their audit chains), keeping every rule of 1290. Review round 1, tablets
+  [1415](../../apps/tablets-server/sql/1415_controlled_audit_read.sql): the audit viewer had still read the controlled
+  records' chains by role. It also showed the custody and checkpoint entries filed on the lot's and the batch's chains.
+  Both now need CONTROLLED.READ in scope. A register export (no site, every site's lots) is read only in the scope {}.
+  The write routes read their record back before the commit.
+- **Test.** `[IN-53] the controlled register and balance reads need CONTROLLED.READ` and the other tests of
+  [controlled-read.test.ts](../../apps/tablets-server/test/controlled/controlled-read.test.ts) (HTTP 403, the bypass,
+  product and site scope, the preview, `[IN-53] the audit trail shows controlled-substance entries only to a reader
+  holding CONTROLLED.READ`); the bypass of 1214 again in the package database in
+  [controlled.test.ts](../../packages/site-services/test/controlled/controlled.test.ts).
+- **Lesson:** a read route that checks only "a session exists" is no control. Gate every path a person reads through.
+  Before revoking a table from the application role, find the generic readers that run as it (true copy, exports).
 
 ## Floor screens (web)
 
@@ -1380,6 +1430,52 @@ The DI-51 dependency proof is unchanged: nothing outside the schema reads it.
 
 **Tests.** Package and server `review-priority.test.ts`; kernel `exit-review.test.ts`; the key spelling against
 `analytics.flag_key` in server `audit.test.ts`.
+
+## Slice 7a: the decision 0022 security and scope fixes (Phase 7)
+
+### 6jc-R9: the gateway's OPC UA feed and the adapters did not authenticate the sender (DI-31, DI-20; kernel 1305, tablets 1405)
+
+**Symptom.** Anyone holding the OPCUA adapter's credentials, or the application role's, could hand the database series,
+alarms, events and endpoint sessions as if from the gateway. Every adapter spoke plain HTTP.
+
+**Why it matters.** Equipment data and alarms enter the batch record. A record that cannot show where its data came
+from fails the interface control (DI-31) and the device identity it rests on (DI-20).
+
+**Cause.** The 6a framework authenticated the adapter, not the source. The gateway's feed carried no proof of origin.
+
+**Fix.** The gateway signs each feed envelope with its enrolled key and journals the signature. The database verifies
+it (`tab.accept_gateway_envelope`, bound gateway, ACTIVE key, payload text hash). `platform.accept_inbound_detail`
+refuses an OPCUA envelope that has no verification in its transaction, so a direct `plant.receive_*` call is refused.
+On a GMP installation, adapters off loopback need mutual TLS (EBMR-INT-034). The peer certificate's fingerprint is kept
+with each message.
+
+**Tests.** Server `test/equipment-data/feed-signature.test.ts` (the fixed DI-31 titles), kernel
+`test/inbound/source-verification.test.ts`, server `test/integrations/adapter-startup.test.ts` (EBMR-INT-034), and the
+gateway's `test/opcua-driver.test.ts` (restart serves the same signed bytes).
+
+**Lesson.** A signature over a hash proves nothing about the payload unless the payload is checked against that hash
+where the signature is checked. Here that is the database, on the payload text as sent (`json`, not `jsonb`).
+
+### 6jc-R10: one steward set the penicillin facility rule and the beta-lactam classification (PR-27; recipe-core 1210)
+
+**Symptom.** A master-data steward alone could declare a site a penicillin facility, or declassify a penicillin material,
+and the latest version counted at once. **Fix.** Recipe-core 1210 makes each version a proposal: it is in force once a
+QA person other than the proposer signs it `QA_APPROVED` (`plant.approve_facility_rule`, `plant.approve_beta_lactam_class`).
+The stricter rule wins: a loosening (declassified, a penicillin facility) is in force only once approved; a tightening is
+in force at once and until an approved loosening (tablets 1410 maps the ceremony). **Tests.** Recipe-core
+`test/plant-rules/rule-approval.test.ts` ("[PR-27] a facility rule or beta-lactam classification takes effect only with a
+QA signature by someone other than the proposer"), site services `test/plant-rules/materials.test.ts`, server
+`test/alarms/plant-rule-approval.test.ts`.
+
+### GB-T-01's investigation due date came from the machine's calendar (test defect; found in slice 7a, 18 October 2026)
+
+**Symptom.** From about the 18th of each month, GB-T-01 stopped at the investigation: "EBMR-SITE-822 the due date
+... is in the past", and every later step of the golden batch failed with it, on every branch. **Cause.** The scenario
+set the due date to the 28th of the month after the machine's date, while the golden cluster's clock runs weeks ahead
+of the machine (the 41 days of the source batch and more); the database checks the due date against its own clock in
+the site's zone (site services 0821). **Fix.** The scenario reads the 28th of the next month from the database's clock
+in the site's zone. No product code changed; the database's check was right. **Lesson.** A golden scenario takes every
+date from the database's clock, never from the machine's.
 
 ## Open residuals for the owner
 

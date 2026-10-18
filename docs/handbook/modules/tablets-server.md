@@ -1372,7 +1372,9 @@ action `ARCHIVE_ACT`: certifying an export, signing a form reconciliation),
 feature keeps the Indian regulatory records: manufacturing and loan **licences**, **export permissions** (a product
 made only for export needs one), the allocation register, the India label particulars and the Schedule H2 payload,
 the stability basis of a shelf life, and product hazard classes with area dedication. Each approval is by a second
-QA person (signable action `INDIA_ACT`).
+QA person (signable action `INDIA_ACT`). The same action carries QA's approval of a penicillin facility rule or a
+beta-lactam classification proposed by the master-data steward (`FACILITY_RULE_APPROVE`, `BETA_LACTAM_APPROVE`, meaning
+`QA_APPROVED`; recipe-core 1210, tablets 1410, PR-27); the plant-rules routes return the proposal's id to sign.
 
 **Routes** (contract [india.ts](../../../packages/api-contract/src/ns/india.ts)):
 
@@ -1516,6 +1518,46 @@ preview them is [tablets 1290](../../../apps/tablets-server/sql/1290_controlled_
 6f's 1276, which re-creates `tab.record_read_problem`; D-P6e-10). Every response carries the draft banner. Guidance for EBMR-CSM-*
 (EBMR-CSM-020 tells the dispenser to have the custody record countersigned). Tests:
 [controlled-routes.test.ts](../../../apps/tablets-server/test/controlled/controlled-routes.test.ts).
+
+**Who reads the records (Phase 7 slice 7a, 6jc-R2; draft IN-53; decision 0022).** Each read, including the views read
+back after a write, is the session's own: the route passes the session's token hash to a gated definer of
+[tablets 1413](../../../apps/tablets-server/sql/1413_controlled_reads_gated.sql) (`tab.controlled_products`,
+`tab.controlled_custody`, `tab.controlled_checkpoints`, `tab.controlled_balance`, `tab.controlled_register_extracts`).
+No person-facing path reads the tables directly (the application role keeps SELECT for true copies and archives,
+recipe-core 1215). `tab.controlled_reader_problem` lets a session read
+only when its role holds CONTROLLED.READ now (tablets 1400 grants it to every role holding a CONTROLLED.* permission and
+to QA_REVIEWER), the role is not an administration role, the account is not a break-glass account, and the account
+holds the role through a grant whose scope covers the record's {site, product}:
+
+| Record | Scope |
+|---|---|
+| A flag | the session's site and the product |
+| A custody record | the lot's site, and the batch's product when the record names a batch |
+| A checkpoint or a batch's account | the batch's site and product |
+| A register export | no site and no product limit (tablets 1415: the register covers every site and product of the material) |
+
+A list (flags, custody records of a lot, register exports) needs CONTROLLED.READ at the session's site. It then shows
+only the rows in scope. A batch, a custody record or a checkpoint asked for by its id, and out of scope, is refused. A
+grant limited to a product never covers a record that has no product, such as a transfer or the register. The codes are
+EBMR-CSM-060 (no CONTROLLED.READ, or an administrator) and EBMR-CSM-061 (not in this scope); both answer 403 with
+guidance. [Tablets 1414](../../../apps/tablets-server/sql/1414_controlled_record_read.sql) asks the same rule in two more
+places: `tab.controlled_preview`, after the meaning's permission, and `tab.record_read_problem` for the three
+controlled types, after the rule of 1290. So a governance reader without CONTROLLED.READ (the CSV/DI lead, an auditor)
+no longer previews a controlled record or reads its signatures and their chains. A later migration that re-creates
+either function starts from 1414. [Tablets 1415](../../../apps/tablets-server/sql/1415_controlled_audit_read.sql) (review
+round 1) does the same for the audit viewer. A chain of a controlled record (`controlled_product`, `controlled_custody`,
+`controlled_checkpoint`, `controlled_register_extract`) is read, listed, counted and verified only with CONTROLLED.READ
+in the record's scope (`tab.chain_read_problem`, `tab.audit_chains`, `tab.audit_headless_chains`). On every other chain,
+`tab.audit_events` leaves out the entries of the eight controlled tables for a reader who may not read them
+(`tab.controlled_entry_hidden`). This matters for the lot's chain, where recipe-core 1032 files the custody rows, and the
+batch's chain, where 1033 files the checkpoints. Known limit: the length and verification of a lot or batch chain
+still count those entries; they show that entries exist, not what they say. A register export carries no site and
+covers the material at every site, so 1415 reads it only in the scope {} it is run in. A site-limited or
+product-limited holder is refused (EBMR-CSM-061). A write route reads its record back in the write's own transaction,
+so a writer who may not read it is refused and nothing is committed. Later migrations that re-create
+`tab.chain_read_problem`, `tab.audit_events`, `tab.audit_chains`, `tab.audit_headless_chains` or
+`tab.controlled_register_extracts` start from 1415. The product flag and the draft banner are unchanged. Tests:
+[controlled-read.test.ts](../../../apps/tablets-server/test/controlled/controlled-read.test.ts).
 ## ts-genealogy: genealogy, complaint lookup and mock recall
 
 Phase 6 slice 6d. [features/genealogy](../../../apps/tablets-server/src/features/genealogy/index.ts) serves the `genealogy`

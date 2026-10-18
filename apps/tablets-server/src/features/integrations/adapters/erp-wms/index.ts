@@ -12,10 +12,11 @@
  * Both receive through site.erp_wms_receive (site services 0913): platform.accept_inbound_detail and the domain command
  * in one transaction. The adapter's account holds ERP_WMS_INTERFACE (0914).
  */
-import { ERP_WMS, type InboundEnvelope } from '@ebmr/integration-sdk/adapter';
+import { ERP_WMS, type AdapterTransportOptions, type InboundEnvelope } from '@ebmr/integration-sdk/adapter';
 import type { ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
 import { AdapterWorker, httpFeedClient, type AdapterDefinition, type FetchFn, type ReceiveResult } from '../framework.ts';
+import { mtlsFetch } from '../transport.ts';
 import { answerMoveQuestions } from './moves.ts';
 import { OutboundDelivery } from './outbound.ts';
 
@@ -37,7 +38,7 @@ async function receive(client: pg.PoolClient, envelope: InboundEnvelope): Promis
   return r;
 }
 
-export interface ErpWmsOptions {
+export interface ErpWmsOptions extends AdapterTransportOptions {
   /** The feed's base URL (the simulator: http://host:port/erp/v1 or /wms/v1). */
   endpoint: string;
   timeoutMs?: number;
@@ -47,7 +48,9 @@ export interface ErpWmsOptions {
 
 /** The worker of one ERP/WMS feed, registered as adapter `code`. */
 export function erpWmsWorker(pool: pg.Pool, code: string, feed: ErpWmsFeed, openActor: () => Promise<ActorContext>, opts: ErpWmsOptions): AdapterWorker {
-  const fetchOpts = { ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}), ...(opts.fetchFn ? { fetchFn: opts.fetchFn } : {}) };
+  // Slice 7a: mutual TLS when the adapter has its TLS files (./transport.ts).
+  const fetchFn = opts.fetchFn ?? (opts.tls ? mtlsFetch(opts.tls) : undefined);
+  const fetchOpts = { ...(opts.timeoutMs ? { timeoutMs: opts.timeoutMs } : {}), ...(fetchFn ? { fetchFn } : {}) };
   const outbound = feed === 'ERP' ? new OutboundDelivery(opts.endpoint, fetchOpts) : null;
   const def: AdapterDefinition = {
     code,

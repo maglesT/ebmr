@@ -1,6 +1,7 @@
 /**
- * Guidance for the plant rule codes of slice 6b (recipe-core 0973 to 0975, kernel 1190, site services 0940): what a
- * person sees when the database refuses a step start, a signature, a receipt or a reagent, and what to do next.
+ * Guidance for the plant rule codes of slice 6b (recipe-core 0973 to 0975, kernel 1190, site services 0940; QA's approval
+ * of a facility rule or beta-lactam classification, recipe-core 1210): what a person sees when the database refuses a
+ * step start, a signature, a receipt or a reagent, and what to do next.
  */
 import type { GuidanceEntry } from '../../platform/http/guidance.ts';
 
@@ -15,9 +16,14 @@ export const PLANT_RULES_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
   'EBMR-PLANT-153': entry('The rules of a room need the controlled-area flag, the clean-hold time (or none) and the reason.', ['Complete the form and save again.'], ['The master data steward'], ['PR-15', 'PR-25'], 'INVALID_INPUT'),
   'EBMR-PLANT-160': entry('An adjacency names two different rooms or lines; a segregation states its justification.', ['Complete the form and save again.'], ['The master data steward'], ['PR-35'], 'INVALID_INPUT'),
   'EBMR-PLANT-161': entry('Another product runs on the adjacent line and the two lines are not segregated.', ['Wait until the adjacent line has finished, or run this product on a segregated line.'], ['The shift supervisor', 'QA'], ['PR-35']),
-  'EBMR-PLANT-170': entry('This is a beta-lactam (penicillin) material or product and the site is not a penicillin facility.', ['Do not receive or process it here; quarantine the delivery and inform QA.'], ['QA'], ['PR-27']),
+  'EBMR-PLANT-170': entry('This is a beta-lactam (penicillin) material or product and the site is not a penicillin facility (no facility rule approved by QA says it is).', ['Do not receive or process it here; quarantine the delivery and inform QA.'], ['QA'], ['PR-27']),
   'EBMR-PLANT-171': entry('A facility rule names the site, whether it is a penicillin facility, and the justification.', ['Complete the form and save again.'], ['The master data steward'], ['PR-27'], 'INVALID_INPUT'),
   'EBMR-PLANT-172': entry('A classification names MATERIAL or PRODUCT, the code, whether it is beta-lactam, and the reason.', ['Complete the form and save again.'], ['The master data steward'], ['PR-27'], 'INVALID_INPUT'),
+  // Phase 7 slice 7a (recipe-core 1210): QA's approval of a proposed facility rule or beta-lactam classification.
+  'EBMR-PLANT-173': entry('There is no such facility rule or beta-lactam classification proposal.', ['Open the list again and approve the proposal shown.'], ['The master data steward'], ['PR-27'], 'INVALID_INPUT'),
+  'EBMR-PLANT-174': entry('Only the latest proposal of a site, material or product is approved, and only once: this one is approved already or a later proposal replaced it.', ['Approve the latest proposal instead.'], ['The master data steward', 'QA'], ['PR-27']),
+  'EBMR-PLANT-175': entry('The person who proposed a facility rule or a beta-lactam classification does not approve it.', ['Ask another QA person to approve it.'], ['QA'], ['PR-27']),
+  'EBMR-PLANT-176': entry('The approval needs your own QA_APPROVED signature of this proposal in its current state.', ['Sign the proposal again and approve it.'], ['QA'], ['PR-27']),
   'EBMR-PLANT-180': entry('This is a controlled area: you hold no current authorisation to work in it.', ['Ask an authorised colleague to do the step, or have your area authorisation recorded by the training coordinator.'], ['The training coordinator', 'The shift supervisor'], ['PR-15']),
   'EBMR-PLANT-190': entry('The reagent use names a step of this batch and its purpose, and is recorded by a person.', ['Check the step and the purpose and record again.'], ['The shift supervisor'], ['PR-29'], 'INVALID_INPUT'),
   'EBMR-PLANT-191': entry('This reagent or buffer lot may not be used: it is expired, withdrawn or unknown.', ['Use an in-date lot of the reagent or buffer, and discard the expired one.'], ['The QC laboratory'], ['PR-29']),

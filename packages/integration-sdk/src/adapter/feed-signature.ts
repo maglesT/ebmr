@@ -19,10 +19,10 @@
  * Every field is checked against its envelope rule first; none of those rules admits a line feed, so a field cannot
  * forge a line. The sequence number is handled as text or bigint throughout, never as a JavaScript number.
  */
-import { createHash } from 'node:crypto';
+import { createHash, sign, type KeyObject } from 'node:crypto';
 import type { z } from 'zod';
 import { InboundError } from './errors.ts';
-import { GatewayCode, IdempotencyKey, MessageType, SchemaVersionText, SequenceNoText, Sha256Hex, SourceSystem, type InboundEnvelope } from './envelope.ts';
+import { GatewayCode, type GatewaySignature, IdempotencyKey, MessageType, SchemaVersionText, SequenceNoText, Sha256Hex, SourceSystem, type InboundEnvelope } from './envelope.ts';
 
 /** The first line of every signed feed message (v1). */
 export const FEED_SIGNATURE_DOMAIN = 'ebmr-gateway-feed-v1';
@@ -69,6 +69,26 @@ export function feedSignatureMessage(envelope: FeedSignedFields, gatewayCode: st
     checked('keyId', Sha256Hex, keyId),
   ];
   return new TextEncoder().encode(lines.join('\n'));
+}
+
+/**
+ * The database's refusals of a feed envelope's signature (tablets 1405, tab.accept_gateway_envelope) and their class:
+ * the sender's identity is not proved, so each is WRONG_IDENTITY. EBMR-INT-030 (no signature, or no verification in
+ * the transaction) is the kernel's (KERNEL_INBOUND_CODES).
+ *   EBMR-INT-031  unknown, inactive or untrusted gateway key, or the adapter is bound to no gateway
+ *   EBMR-INT-032  the payload is not the signed one, or the signature does not verify
+ *   EBMR-INT-033  gatewayCode or keyId disagree with the gateway bound to the adapter
+ */
+export const FEED_SIGNATURE_REFUSALS = {
+  'EBMR-INT-031': 'WRONG_IDENTITY',
+  'EBMR-INT-032': 'WRONG_IDENTITY',
+  'EBMR-INT-033': 'WRONG_IDENTITY',
+} as const;
+
+/** The gateway's signature of one feed envelope with its Ed25519 key (`privateKey` a node:crypto KeyObject). */
+export function signFeedEnvelope(envelope: FeedSignedFields, gatewayCode: string, keyId: string, privateKey: KeyObject): GatewaySignature {
+  const sig = sign(null, feedSignatureMessage(envelope, gatewayCode, keyId), privateKey).toString('base64');
+  return { alg: 'Ed25519', gatewayCode, keyId, sig };
 }
 
 /** The key id of a gateway key: lowercase hex SHA-256 of its SPKI DER bytes. */

@@ -24,6 +24,7 @@ import {
   type ScaleReading,
   type UplinkItem,
 } from '@ebmr/integration-sdk/scale';
+import { feedKeyId } from '@ebmr/integration-sdk/adapter';
 import { parseGatewayConfig, type GatewayConfig } from '../src/config.ts';
 
 const REPO = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
@@ -340,3 +341,13 @@ export async function until(predicate: () => boolean | Promise<boolean>, timeout
     await new Promise((r) => setTimeout(r, 50));
   }
 }
+
+/**
+ * Slice 7a: a key the OPC UA feed tests sign with (made at run time for the tests only; enrolled nowhere) and its key id
+ * (the SHA-256 of its SPKI DER, SDK feedKeyId).
+ */
+export const TEST_FEED_KEY = (() => {
+  const pair = generateKeyPairSync('ed25519');
+  const spkiDer = pair.publicKey.export({ type: 'spki', format: 'der' });
+  return { privateKey: pair.privateKey, publicKey: pair.publicKey, keyId: feedKeyId(spkiDer) };
+})();

@@ -42,6 +42,7 @@ import {
 import { systemClock, type GatewayClock } from './clock.ts';
 import type { DeviceConfig, GatewayConfig, OpcuaEndpointConfig } from './config.ts';
 import type { EquipmentKind } from '@ebmr/integration-sdk/process';
+import { feedKeyId } from '@ebmr/integration-sdk/adapter';
 import { MtSicsDriver, type CommandResult } from './drivers/mt-sics.ts';
 import { Journal } from './journal.ts';
 import { PrinterGateway } from './printer-uplink.ts';
@@ -213,7 +214,12 @@ export class SiteGateway {
   private startOpcua(): { config: { code: string; equipment: EquipmentKind; expectedSerial: string }; driver: OpcuaUnit }[] {
     const endpoints = this.config.opcuaEndpoints;
     if (endpoints.length === 0) return [];
-    const feed = OpcuaFeed.open({ dir: join(this.config.journalDir, 'opcua'), gatewayCode: this.config.gatewayCode, clock: this.clock, onAlarm: (a) => this.alarm('opcua', a.kind, null, a.message, a.details) });
+    const feed = OpcuaFeed.open({
+      dir: join(this.config.journalDir, 'opcua'), gatewayCode: this.config.gatewayCode, clock: this.clock,
+      // Slice 7a (6jc-R9): the feed is signed with the gateway's own key (the one enrolled in tab.gateway_key).
+      signingKey: { privateKey: this.config.privateKey, keyId: feedKeyId(Buffer.from(this.config.publicKeySpki, 'base64')) },
+      onAlarm: (a) => this.alarm('opcua', a.kind, null, a.message, a.details),
+    });
     this.opcuaFeed = feed;
     const out: { config: { code: string; equipment: EquipmentKind; expectedSerial: string }; driver: OpcuaUnit }[] = [];
     for (const e of endpoints) {

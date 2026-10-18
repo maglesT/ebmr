@@ -18,6 +18,13 @@ import { adjacencies, areaAuthorisationRecord, areaAuthorisations, lineStation, 
 
 export const guidance = PLANT_RULES_GUIDANCE;
 
+/** The id of a proposed plant rule version (recipe-core 1210): the subject QA signs; PROPOSED as returned. */
+async function proposal(pool: AppContext['pools']['app'], sql: string, params: unknown[]): Promise<{ proposalId: string; state: 'PROPOSED' }> {
+  const id = (await pool.query<{ id: string }>(sql, params)).rows[0]?.id;
+  if (!id) throw new Error('the proposed version was not found after it was recorded');
+  return { proposalId: id, state: 'PROPOSED' };
+}
+
 export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
   // Every command here returns a scalar (a version, an id, a code) as its single column r.
@@ -61,15 +68,17 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         one(c, 'select plant.define_area_adjacency($1, $2, $3, $4, $5) as r', [body.one, body.two, body.adjacent, body.segregated, body.justification ?? null]));
       return { version };
     },
+    // PR-27 (recipe-core 1210): the steward's rule or classification is a proposal, approved by a QA person other than the
+    // proposer (INDIA_ACT FACILITY_RULE_APPROVE or BETA_LACTAM_APPROVE on the proposal id); a loosening counts only then.
     setFacilityRule: async ({ params, body, actor, idempotencyKey, requestHash }) => {
       const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
         one(c, 'select plant.set_facility_rule($1, $2, $3) as r', [params.site, body.penicillinFacility, body.justification]));
-      return { version };
+      return { version, ...(await proposal(pool, 'select id from plant.facility_rule where site_code = $1 and version = $2::integer', [params.site, version])) };
     },
     classifyBetaLactam: async ({ body, actor, idempotencyKey, requestHash }) => {
       const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
         one(c, 'select plant.classify_beta_lactam($1, $2, $3, $4) as r', [body.kind, body.code, body.betaLactam, body.reason]));
-      return { version };
+      return { version, ...(await proposal(pool, 'select id from plant.beta_lactam_class where subject_kind = $1 and code = $2 and version = $3::integer', [body.kind, body.code, version])) };
     },
     createAreaAuthorisation: async ({ body, actor, idempotencyKey, requestHash }) => {
       const { result: qualificationCode } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>

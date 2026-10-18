@@ -120,9 +120,44 @@ export function inboundReason(envelope: unknown): { reasonCode: string; reasonTe
   return { reasonCode: 'INBOUND_MESSAGE', reasonText: `${String(e['messageType'])} ${String(e['sourceRecordId'])} from the ${String(e['sourceSystem'])}` };
 }
 
-/** Runs the adapter's receiving command; on a refusal the worker records it in its own command (kernel 1180). */
+/** The sources whose envelopes must carry their source's verified signature (kernel 1305 platform.signing_source). */
+export const SIGNING_SOURCES: readonly SourceSystem[] = ['OPCUA'];
+
+const testVerifierIn = new Set<string>();
+/**
+ * TEST-ONLY stand-in for an edition's verifier (slice 7a, kernel 1305): a function owned by the database owner that marks
+ * one envelope verified in the current transaction, as tab.accept_gateway_envelope does after checking the gateway's
+ * signature. It is created in the test's own database only (by the superuser) and lets the tests of a receiving command
+ * deliver an OPCUA envelope without a gateway key; the signature itself and the refusal of a direct call are proven by
+ * apps/tablets-server/test/equipment-data/feed-signature.test.ts.
+ */
+export async function ensureTestVerifier(db: Pick<TestDatabase, 'admin' | 'app' | 'name'>): Promise<void> {
+  if (testVerifierIn.has(db.name)) return;
+  await db.admin.query(`
+    create schema if not exists ebmr_test_only;
+    create or replace function ebmr_test_only.mark_source_verified(p_envelope jsonb) returns void
+    language sql volatile security definer set search_path = pg_catalog, pg_temp as $$
+      select platform.record_source_verification(platform.inbound_envelope_key(p_envelope), 'TEST-ONLY direct delivery of a receiving command test')
+    $$;
+    alter function ebmr_test_only.mark_source_verified(jsonb) owner to ebmr_owner;
+    revoke all on function ebmr_test_only.mark_source_verified(jsonb) from public;`);
+  // Granted to the database's own application role only (ebmr_app, or ebmr_sandbox in a sandbox).
+  const role = (await db.app.query<{ r: string }>('select current_user as r')).rows[0]!.r;
+  await db.admin.query(`grant usage on schema ebmr_test_only to ${role}; grant execute on function ebmr_test_only.mark_source_verified(jsonb) to ${role}`);
+  testVerifierIn.add(db.name);
+}
+
+/**
+ * Runs the adapter's receiving command; on a refusal the worker records it in its own command (kernel 1180). An envelope
+ * of a signing source is marked verified first, in the same transaction, by the TEST-ONLY verifier above.
+ */
 export async function receive(db: TestDatabase, a: TestAdapter, fn: string, envelope: unknown): Promise<Record<string, unknown>> {
-  return withCommand(db.app, ctxOf(a.actor, inboundReason(envelope)), async (c) => (await c.query<{ r: Record<string, unknown> }>(`select ${fn}($1::jsonb) as r`, [JSON.stringify(envelope)])).rows[0]!.r);
+  const signing = SIGNING_SOURCES.includes((envelope as { sourceSystem?: SourceSystem } | null)?.sourceSystem as SourceSystem);
+  if (signing) await ensureTestVerifier(db);
+  return withCommand(db.app, ctxOf(a.actor, inboundReason(envelope)), async (c) => {
+    if (signing) await c.query('select ebmr_test_only.mark_source_verified($1::jsonb)', [JSON.stringify(envelope)]);
+    return (await c.query<{ r: Record<string, unknown> }>(`select ${fn}($1::jsonb) as r`, [JSON.stringify(envelope)])).rows[0]!.r;
+  });
 }
 
 export async function recordRefusal(db: TestDatabase, a: TestAdapter, envelope: unknown, errorClass: string, detail: string): Promise<string> {

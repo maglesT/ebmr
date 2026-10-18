@@ -63,6 +63,10 @@ tests:
   - "packages/site-services/test/plant-rules/materials.test.ts > the penicillin facility (PR-27) > [PR-27] a penicillin component in a non-penicillin facility is blocked"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-27] a spill event sets the room to cleaning required"
   - "packages/recipe-core/test/mutation/plant-rules.test.ts > a beta-lactam product by its MBR predicate (PR-27) > [PR-27] the MBR's betaLactam predicate alone makes the batch beta-lactam and its start in a non-penicillin site is refused; a predicate of false does not"
+  - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27] a facility rule or beta-lactam classification takes effect only with a QA signature by someone other than the proposer"
+  - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27] a steward alone loosens nothing: a loosening waits for QA, a tightening counts at once and stays until an approved loosening"
+  - "packages/recipe-core/test/plant-rules/rule-approval.test.ts > the penicillin facility rule and the beta-lactam classification need QA approval (PR-27, 6jc-R10) > [PR-27][DI-18] an administrator never approves, a role without PLANT_RULE.APPROVE is refused, and nobody writes a rule, a proposal or an approval directly"
+  - "apps/tablets-server/test/alarms/plant-rule-approval.test.ts > plant rule proposals and their QA approval over HTTP (PR-27) > [PR-27] a facility rule that loosens is in force only after another QA person signs QA_APPROVED in the ceremony; a beta-lactam classification is in force at once and is approved the same way"
 clauses:
   - clause: "A potent product on non-dedicated equipment outside its allowed list is blocked."
     tests:

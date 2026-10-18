@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { PROCESS_TAGS, tagSpec, type TagSpec } from '../../process/tags.ts';
 import type { SystemContract } from '../contract.ts';
 import { EquipmentAlarmV1, EquipmentEventV1, SeriesChunkV1 } from '../equipment-data.ts';
+import { FEED_SIGNATURE_REFUSALS } from '../feed-signature.ts';
 
 /** The namespace of the eBMR's tag map on an equipment OPC UA server. */
 export const OPCUA_NAMESPACE_URI = 'urn:ebmr:process:tags:v1';
@@ -156,5 +157,6 @@ export const OPCUA: SystemContract = {
     'opcua.endpoint_session': { summary: 'A session the gateway opened to an enrolled endpoint: security, certificate, location, units (DI-20)', versions: { '1': OpcuaEndpointSessionV1 } },
   },
   outbound: [],
-  refusalCodes: EQUIPMENT_DATA_REFUSALS,
+  // Slice 7a (tablets 1405): the gateway feed signature's refusals (EBMR-INT-031 to -033) besides the data's own.
+  refusalCodes: { ...EQUIPMENT_DATA_REFUSALS, ...FEED_SIGNATURE_REFUSALS },
 };

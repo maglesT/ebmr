@@ -187,6 +187,11 @@
   "version": {
     "version": "1"
   },
+  "proposal": {
+    "version": "2",
+    "proposalId": "7b0e4c1a-5d3f-4b8e-9a21-3c6f0d9e8b47",
+    "state": "PROPOSED"
+  },
   "areaAuthorisation": {
     "qualificationCode": "AREA.RM-POT-1"
   },

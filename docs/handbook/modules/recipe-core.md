@@ -803,6 +803,39 @@ stateDiagram-v2
 > - **Tests:** [india.test.ts](../../../packages/recipe-core/test/release/india.test.ts), [india-issue-gate.test.ts](../../../packages/recipe-core/test/mutation/india-issue-gate.test.ts).
 > - **Error:** `EBMR-IND-035`, `EBMR-IND-036`, `EBMR-IND-060` to `EBMR-IND-063`.
 
+**The penicillin facility rule and the beta-lactam classification (1210).** The plant rules of 0973 keep a beta-lactam
+(penicillin) material out of the receipt and a beta-lactam product out of a room start at a site that is not a
+penicillin facility (`EBMR-PLANT-170`). Since 1210 (Phase 7 slice 7a, 6jc-R10) the master-data steward only proposes
+the rule: [plant.set_facility_rule](../../../packages/recipe-core/sql/0973_plant_room_rules.sql#sym=plant.set_facility_rule)
+and [plant.classify_beta_lactam](../../../packages/recipe-core/sql/0973_plant_room_rules.sql#sym=plant.classify_beta_lactam)
+write a new version (state PROPOSED, with its `id`). It is APPROVED when a QA person (QA MBR approver or QA reviewer,
+permission `PLANT_RULE.APPROVE`) who is not the proposer signs it with meaning `QA_APPROVED` and calls
+[plant.approve_facility_rule](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.approve_facility_rule)
+or [plant.approve_beta_lactam_class](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.approve_beta_lactam_class)
+(server: signable action `INDIA_ACT` `FACILITY_RULE_APPROVE` or `BETA_LACTAM_APPROVE` on the proposal id). Only the latest
+proposal of a site, material or product is approved, and only once; an older one is SUPERSEDED. The stricter rule wins,
+as in 0912. The rule refuses a beta-lactam at a site that is not a penicillin facility, so "beta-lactam" and "not a
+penicillin facility" tighten, and "not beta-lactam" and "a penicillin facility" loosen. A tightening is in force at once
+(still PROPOSED until QA approves it) and stays in force, approved or not, until an approved loosening replaces it; a
+loosening is in force only once QA approves it. The readers
+[plant.classified_beta_lactam](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.classified_beta_lactam)
+(and through it `plant.batch_beta_lactam` and the receipt guard),
+[plant.penicillin_facility](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.penicillin_facility)
+and [plant.penicillin_problem](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.penicillin_problem)
+apply this; the views `plant.facility_rule_in_force` and `plant.beta_lactam_class_in_force` show per subject the value
+in force, the approved version and whether a proposal waits for QA (the ERP flag and the MBR predicate still add to
+`plant.batch_beta_lactam`). What QA signs names the proposed value, the value approved before it and whether it tightens
+or loosens. On an upgrade every version recorded before 1210 counts as an unapproved proposal: each restriction stays in
+force, and a declassification or a penicillin facility declared waits for QA's approval of the latest version.
+
+> **Why this exists**
+> - **Pharma reason:** declaring a site a penicillin facility, or declassifying a penicillin material, lets a
+>   sensitising product into a building that is not segregated for it; that is a quality decision, not one steward's.
+> - **Control:** [PR-27](../../../compliance/controls/PR-27.yaml), decision 0022 (6jc-R10).
+> - **Code:** [plant.assert_plant_rule_approval](../../../packages/recipe-core/sql/1210_plant_rule_qa_approval.sql#sym=plant.assert_plant_rule_approval), the approval tables `plant.facility_rule_approval` and `plant.beta_lactam_class_approval` (insert-only, audited, never written by the application), and the two readers above (1210); the ceremony mapping is tablets 1410.
+> - **Tests:** [rule-approval.test.ts](../../../packages/recipe-core/test/plant-rules/rule-approval.test.ts), [materials.test.ts](../../../packages/site-services/test/plant-rules/materials.test.ts), [plant-rule-approval.test.ts](../../../apps/tablets-server/test/alarms/plant-rule-approval.test.ts).
+> - **Error:** `EBMR-PLANT-170`, `EBMR-PLANT-173` to `EBMR-PLANT-176`.
+
 **How to test it.** `pnpm vitest run --project db packages/recipe-core/test/plant`; the machine seeds are checked by
 `machine.test.ts` against [plant/write-seeds.ts](../../../packages/recipe-core/src/plant/write-seeds.ts).
 
@@ -1761,6 +1794,17 @@ of the registers are not verified, so the export layout is generic.
 >   tests because it needs real lots and consumptions).
 > - **Error:** `EBMR-CSM-001` to `EBMR-CSM-059`.
 
+**Who reads the records (Phase 7 slice 7a, 6jc-R2; decision 0022).** A person reads these records only through the
+edition's gated definers. They decide CONTROLLED.READ (kernel 1300) for the session behind the request, in the
+record's {site, product} scope (Tablets: tablets 1413 to 1415). [1214](../../../packages/recipe-core/sql/1214_controlled_reads_closed.sql)
+revokes the application role's EXECUTE on the old read functions: the controlled list, the states, the custodians,
+the balance, the checkpoint problem, the batch-end problem and the register reproduction. Only the definers call them,
+as the owner. 1214 also revoked SELECT on the eight tables, and
+[1215](../../../packages/recipe-core/sql/1215_controlled_tables_app_select.sql) grants it back (finding P7A-7, lead
+decision). The application role is the server's own identity, and its generic readers of registered tables (a true
+copy of a batch, lot or flag, evidence exports, archives) must see the whole record. The writers keep their grants
+and their own permission checks.
+
 **Pitfalls.** The stage key of a checkpoint is the frame key the sign-off names (`<stage>@<context>`); a checkpoint
 recorded under another key does not close the stage. A return or destruction confirmed after a checkpoint moves the
 account: the checkpoint stops being current and the next sign-off (or the batch's completion) is refused until it is
@@ -1848,6 +1892,49 @@ owner's: a view that called `recipe.overdue_reviews` directly would need that fu
 pattern (view over a `report.*_rows_vN()` row function). A change of a view's columns or meaning is a new version
 (`_v2`) registered in `report.view_registry`; the old one stays until the analytics module has moved. Tests:
 `packages/site-services/test/reporting/` (fixture world on top of the genealogy world).
+
+## Batch scope of a batch act (6jc-R16; recipe-core 1100, 1217, 1218)
+
+A permission is checked in a scope: the site, area and product the work is on. A grant limited to a product covers
+only requests that name that product. A training (qualification) requirement limited to a product applies to every
+request that does not name another product: a request without a product may be work on that product, so the kernel
+fails closed (`iam.requirement_applies`, kernel 0100). So every act on a batch must name the batch's product, or a
+requirement for product A stops the people of every other product, and a person whose grant is limited to product A
+cannot act on A's batches at all.
+
+How a batch act names it:
+
+- Step work and step signatures (1100): the command's permission through
+  [`recipe.require_command_permission(type, meaning, batch)`](../../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql#sym=recipe.require_command_permission),
+  the actor's location with
+  [`recipe.batch_scope_members`](../../../packages/recipe-core/sql/1100_batch_product_in_step_authority.sql#sym=recipe.batch_scope_members)
+  ({product}, or {} for a batch without one); the content providers add the same member through
+  `recipe.with_batch_scope`, so `esig.sign` evaluates the signer there.
+- The rest (1217): the alarm acknowledgment checks ALARM.ACKNOWLEDGE in each bound batch's `plant.batch_scope`
+  ({site, product}) and only there; an alarm bound to no batch is checked unscoped. The disposition proposal, the
+  hold-point decision proposal and the proposal of an act for approval use the batch form above; the exception review
+  act and the dispensing consumption check at the actor's location with the batch's product, and the site side of the
+  consumption (`site.consume_reservation`, site services 1103) in the lot's site with the batch's product.
+- The GMP batch issue (1218): no batch record exists yet, so the issue command's permission is checked with the order's
+  product, the product of the MBR family the batch is planned from
+  ([`recipe.require_issue_permission`](../../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql#sym=recipe.require_issue_permission)).
+  A test run's issue has no order and keeps the location-only check.
+
+A requirement limited to this batch's product, or to none, still applies, and a qualification held only from a stale
+mirror is still refused (STALE_QUALIFICATION_SOURCE). The 2-argument `recipe.check_engine_roles` (location only) was
+dropped in 1224 once nothing called it.
+
+> **Why this exists**
+> - **Pharma reason:** a person does GMP work only with the training the work needs (Schedule M, 21 CFR 211.25, EU GMP
+>   chapter 2); training tied to one product must not stop, or allow, work on another product.
+> - **Control:** [IN-04](../../../compliance/controls/IN-04.yaml), [DI-21](../../../compliance/controls/DI-21.yaml), [DI-17](../../../compliance/controls/DI-17.yaml).
+> - **Code:** [1217_batch_scope_remaining_acts.sql](../../../packages/recipe-core/sql/1217_batch_scope_remaining_acts.sql), [1218_batch_issue_order_product_scope.sql](../../../packages/recipe-core/sql/1218_batch_issue_order_product_scope.sql), [site services 1103](../../../packages/site-services/sql/1103_consumption_batch_product_scope.sql).
+> - **Tests:** [alarm-ack-batch-scope.test.ts](../../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts), [batch-scope.test.ts](../../../packages/recipe-core/test/review/batch-scope.test.ts), [consumption-batch-scope.test.ts](../../../packages/site-services/test/lots/consumption-batch-scope.test.ts), tests named `[IN-04]`.
+> - **Error:** `EBMR-IAM-040` (with MISSING_QUALIFICATION or STALE_QUALIFICATION_SOURCE).
+
+**Pitfall.** When you write a new act on a batch, name the batch's product in its permission check (use the batch form
+of `recipe.require_command_permission`, or add `recipe.batch_scope_members(batch)` to the scope). A check at the
+actor's location only looks safe because it fails closed, but it refuses correct work.
 
 ## How to test recipe-core
 

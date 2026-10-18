@@ -97,7 +97,7 @@ jobs:
                 transfer-and-federation, analytics-foundation,
                 analytics-method-change, analytics-inputs, analytics-audit,
                 analytics-rate-inputs, analytics-review-inputs, analytics-profile-inputs, analytics-mspc-reference, analytics-exit,
-                release-identity]
+                release-identity, gateway-feed-signature, plant-rule-approval, controlled-reads, batch-scope-remaining]
     services:
       postgres:
         image: postgres:16

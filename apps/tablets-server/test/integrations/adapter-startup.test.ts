@@ -2,6 +2,8 @@
  * The adapters start with the server (Phase 6 slice 6a; DI-31; D-P6a-5; adapters/start.ts): an adapter configured in
  * the service-keys file runs only when the site runs its system in MIRROR mode, stops when the server closes, and its
  * worker's health shows on the integrations routes. A STAND_IN site starts none, even with an adapter configured.
+ * Slice 7a (6jc-R9): a GMP installation does not start an adapter whose base URL is off loopback without mutual TLS
+ * (EBMR-INT-034), and the health page says why.
  */
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -22,7 +24,7 @@ afterAll(async () => {
 });
 
 /** A GMP server whose service-keys file configures an LMS adapter at a running LMS simulator, in `mode`. */
-async function serverWithLmsAdapter(mode: 'MIRROR' | 'STAND_IN'): Promise<{ server: TestServer; adapter: TestAdapter; sim: FeedSimProcess }> {
+async function serverWithLmsAdapter(mode: 'MIRROR' | 'STAND_IN', endpoint?: string): Promise<{ server: TestServer; adapter: TestAdapter; sim: FeedSimProcess }> {
   const sim = await spawnFeedSimulator('LMS');
   sims.push(sim);
   const file = join(mkdtempSync(join(tmpdir(), 'ebmr-adapters-')), 'service-keys.json');
@@ -40,7 +42,7 @@ async function serverWithLmsAdapter(mode: 'MIRROR' | 'STAND_IN'): Promise<{ serv
       if (mode === 'MIRROR') await setMirrorMode(db, 'LMS_QUALIFICATION', 'MIRROR', adm);
       const s = adapter.actor.seed;
       writeFileSync(file, JSON.stringify({
-        services: [{ terminal: 'SRV-LMS-ADAPTER-01', loginName: s.loginName, serviceKey: s.password, fingerprint: s.deviceFingerprint, endpoint: `${sim.base}/lms/v1` }],
+        services: [{ terminal: 'SRV-LMS-ADAPTER-01', loginName: s.loginName, serviceKey: s.password, fingerprint: s.deviceFingerprint, endpoint: endpoint ?? `${sim.base}/lms/v1` }],
       }));
     },
   });
@@ -83,6 +85,18 @@ describe('the integration adapters start with the server (DI-31)', () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     const r = await qa.call(routes.integrations.adapter, { params: { adapterCode: adapter.code } });
     expect(r.ok && r.value.health.worker).toBeNull();
+    expect(await openSessions(server, adapter)).toBe(0);
+  });
+
+  it('[DI-31] a GMP installation refuses an adapter base URL off loopback without mutual TLS: the adapter does not start and its health says why (EBMR-INT-034)', async () => {
+    // A plain-HTTP base URL off loopback (never contacted: the adapter is refused before its first exchange).
+    const { server, adapter } = await serverWithLmsAdapter('MIRROR', 'http://lms.plant.example:4100/lms/v1');
+    expect(server.kind).toBe('GMP');
+    const qa = await server.asPersona('qaInvestigator');
+    const r = await qa.call(routes.integrations.adapter, { params: { adapterCode: adapter.code } });
+    if (!r.ok) throw new Error(JSON.stringify(r.error));
+    expect(r.value.health.worker).toMatchObject({ state: 'BLOCKED', cycles: '0' });
+    expect(r.value.health.worker?.lastError).toMatch(/^EBMR-INT-034 a GMP installation does not start an adapter whose base URL http:\/\/lms\.plant\.example:4100\/lms\/v1 is off loopback without mutual TLS/);
     expect(await openSessions(server, adapter)).toBe(0);
   });
 });

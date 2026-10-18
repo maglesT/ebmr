@@ -10,7 +10,7 @@
  *    server's L3 system (EBMR_L3_URL) for the serial query.
  * The returned teardown stops every process and drops the databases. State: EBMR_E2E_STATE, with a `demo` section.
  */
-import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { createServer } from 'node:net';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -80,6 +80,10 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
     // gateway's OPC UA feed as its endpoint.
     const gmpKeys = join(keysDir, 'gmp-service-keys.json');
     const feedPort = await freePort();
+    // Slice 7a (6jc-R9): the GMP gateway signs its OPC UA feed with this DEMO-ONLY key, enrolled below, and the OPCUA
+    // adapter is bound to that gateway's feed.
+    const gatewayPair = generateKeyPairSync('ed25519');
+    const gatewaySpki = gatewayPair.publicKey.export({ type: 'spki', format: 'der' });
     let opcuaAdapter = '';
     const adapters = {} as DemoState['adapters'];
     {
@@ -93,6 +97,12 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
         });
         const a = await adapterIdentity(db, seed, adm, 'OPCUA', 'OPCUA', 'SERVICE_ACCOUNT');
         addServiceEntry(gmpKeys, 'SRV-OPCUA-ADAPTER-01', a, `http://127.0.0.1:${String(feedPort)}/opcua/v1`);
+        await identity.withGuardedCommand(db.app, because(adm.admin, 'Demo set-up: the GMP site gateway and its signed OPC UA feed'), async (c) => {
+          await c.query("select iam.register_device('GW-DEMO-GMP-01', 'SERVER', $1, null, null, $2, 'DEMO-ONLY site gateway of the GMP installation (OPC UA press)')",
+            [seed.siteCode, createHash('sha256').update(gatewaySpki).digest('hex')]);
+          await c.query("select tab.enrol_gateway_key('GW-DEMO-GMP-01', $1, $2)", [gatewaySpki.toString('base64'), a.loginName]);
+          await c.query("select tab.bind_gateway_feed($1, 'GW-DEMO-GMP-01', 'DEMO_SETUP', 'the OPC UA adapter pulls the GMP gateway''s feed (demo)')", [a.code]);
+        });
         opcuaAdapter = a.code;
         const slots = [
           { name: 'ERP', system: 'ERP_WMS', role: 'ERP_WMS_INTERFACE', terminal: 'SRV-ERP-ADAPTER-01', endpoint: `${sims.ERP}/erp/v1` },
@@ -115,8 +125,7 @@ export default async function globalSetup(config: FullConfig): Promise<() => Pro
     {
       const dir = join(root, 'gateway-gmp');
       mkdirSync(dir, { recursive: true });
-      const pair = generateKeyPairSync('ed25519');
-      writeFileSync(join(dir, 'key.json'), JSON.stringify({ privateKeyPkcs8: pair.privateKey.export({ type: 'pkcs8', format: 'der' }).toString('base64'), publicKeySpki: pair.publicKey.export({ type: 'spki', format: 'der' }).toString('base64') }));
+      writeFileSync(join(dir, 'key.json'), JSON.stringify({ privateKeyPkcs8: gatewayPair.privateKey.export({ type: 'pkcs8', format: 'der' }).toString('base64'), publicKeySpki: gatewaySpki.toString('base64') }));
       writeFileSync(join(dir, 'service-keys.json'), JSON.stringify({ services: [{ terminal: 'GW-DEMO-GMP-01', loginName: 'gateway.demo.unused', serviceKey: 'never-used-no-uplink-in-the-demo' }] }));
       const cfg = {
         label: 'DEMO-ONLY site gateway of the GMP installation (OPC UA press)',

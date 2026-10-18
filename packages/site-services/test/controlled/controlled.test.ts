@@ -68,7 +68,7 @@ const propose = (who: SeededActor, p: Json): Promise<string> => one<string>(who,
 
 /** `who` signs custody record `id` in the place its state asks for; returns the state after. */
 async function signCustody(who: SeededActor, id: string): Promise<string> {
-  const state = (await db.app.query<{ s: string }>('select recipe.controlled_custody_state($1) as s', [id])).rows[0]?.s ?? '';
+  const state = (await db.admin.query<{ s: string }>('select recipe.controlled_custody_state($1) as s', [id])).rows[0]?.s ?? '';
   const meaning = state === 'PROPOSED' ? 'CONTROLLED_CUSTODY_RECORDED' : 'CONTROLLED_CUSTODY_COUNTERSIGNED';
   const sig = await signFor(db, who, { type: 'controlled_custody', id }, meaning, state);
   return one<string>(who, 'select recipe.sign_controlled_custody($1, $2) as r', [id, sig]);
@@ -165,7 +165,7 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     expect(await refusal(flag(product, [exc.materialCode], false))).toMatch(/EBMR-CSM-003/);
     const id = await flag(product, [lot.materialCode], false);
     // Pending: it restricts at once (fail-safe).
-    expect((await db.app.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([lot.materialCode]);
+    expect((await db.admin.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([lot.materialCode]);
     // The recorder cannot approve it, and the approval needs the signature on this record.
     expect(await refusal(signFor(db, w.cast.qaMaster, { type: 'controlled_product', id }, 'CONTROLLED_PRODUCT_APPROVED', 'RECORDED'))).not.toBe('');
     const sig = await signFor(db, qaApprover, { type: 'controlled_product', id }, 'CONTROLLED_PRODUCT_APPROVED', 'RECORDED');
@@ -173,11 +173,11 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     expect(await refusal(w.run(qaApprover, (c) => c.query('select plant.approve_controlled_product($1, $2)', [id, sig])))).toMatch(/EBMR-CSM-005/);
     // An unflagging recorded but not approved does not lift the flag.
     const off = await flag(product, [], false);
-    expect((await db.app.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([lot.materialCode]);
-    expect((await db.app.query<{ c: boolean }>('select plant.material_is_controlled($1) as c', [lot.materialCode])).rows[0]?.c).toBe(true);
+    expect((await db.admin.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([lot.materialCode]);
+    expect((await db.admin.query<{ c: boolean }>('select plant.material_is_controlled($1) as c', [lot.materialCode])).rows[0]?.c).toBe(true);
     const offSig = await signFor(db, qaApprover, { type: 'controlled_product', id: off }, 'CONTROLLED_PRODUCT_APPROVED', 'RECORDED');
     await w.run(qaApprover, (c) => c.query('select plant.approve_controlled_product($1, $2)', [off, offSig]));
-    expect((await db.app.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([]);
+    expect((await db.admin.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([]);
     // The history is a configuration read (DI-09), and the application role writes nothing directly.
     expect(Number((await db.admin.query<{ n: string }>("select count(*)::text as n from platform.config_version where area = 'CONTROLLED_PRODUCT' and item_key = $1", [product])).rows[0]?.n)).toBe(2);
     expect(await refusal(db.app.query("insert into plant.controlled_product (product_code, controlled, material_codes, basis_ref, recorded_by_person, recorded_by_account, correlation_id) values ('X', false, '{}', 'x', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())"))).toMatch(/permission denied/);
@@ -224,7 +224,7 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     const m2 = (qty: string, n: string) => ({ ...move(qty, n), lotNumber: lot2.lotCode });
     const ok = (await w.inbound(w.envelope('wms.stock_move', m2('2.000', '02')))).applied as { problem: string | null; moveId: string };
     expect(ok.problem).toBeNull();
-    expect((await db.app.query('select move_id from recipe.controlled_custody_use where custody_id = $1', [t])).rows).toEqual([{ move_id: ok.moveId }]);
+    expect((await db.admin.query('select move_id from recipe.controlled_custody_use where custody_id = $1', [t])).rows).toEqual([{ move_id: ok.moveId }]);
     const again = (await w.inbound(w.envelope('wms.stock_move', m2('2.000', '03')))).applied as { problem: string | null };
     expect(again.problem).toMatch(/IN-53/);
     // A transfer names two different locations and is only for a controlled material.
@@ -263,7 +263,7 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     const explained = await recordCheckpoint({ ...base, consumed: '1.900', inProcess: '0', explanation: 'Weighing uncertainty of the dispensing balance', deviationId: dev });
     await signCheckpoint(explained);
     expect(await signOffRow(batch, 'S-BLEND')).not.toMatch(/EBMR-CSM/);
-    const row = (await db.app.query<Json>('select difference::text as d, returned::text as r from recipe.controlled_checkpoint where id = $1', [explained])).rows[0];
+    const row = (await db.admin.query<Json>('select difference::text as d, returned::text as r from recipe.controlled_checkpoint where id = $1', [explained])).rows[0];
     expect(row).toMatchObject({ d: '0.050', r: '0.050' });
     // The batch completes only with the account closed: a return confirmed after the last checkpoint holds it (quick review).
     expect(await completeRow(batch)).not.toMatch(/EBMR-CSM/);
@@ -285,9 +285,9 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     await signCustody(w.cast.dispenser, d);
     // The performer cannot witness it; until a witness countersigns, nothing is destroyed in the account.
     expect(await refusal(signCustody(w.cast.dispenser, d))).not.toBe('');
-    expect((await db.app.query<{ b: Json }>("select recipe.controlled_balance($1, $2) as b", [batch.id, lot.materialCode])).rows[0]?.b).toMatchObject({ destroyed: '0' });
+    expect((await db.admin.query<{ b: Json }>("select recipe.controlled_balance($1, $2) as b", [batch.id, lot.materialCode])).rows[0]?.b).toMatchObject({ destroyed: '0' });
     expect(await signCustody(w.cast.witness, d)).toBe('CONFIRMED');
-    expect((await db.app.query<{ b: Json }>("select recipe.controlled_balance($1, $2) as b", [batch.id, lot.materialCode])).rows[0]?.b).toMatchObject({ dispensed: '1', destroyed: '0.1' });
+    expect((await db.admin.query<{ b: Json }>("select recipe.controlled_balance($1, $2) as b", [batch.id, lot.materialCode])).rows[0]?.b).toMatchObject({ dispensed: '1', destroyed: '0.1' });
     // A whole lot is destroyed in the lot register only with a witness's signature (site services 0712).
     expect(await refusal(w.run(w.cast.warehouse, async (c) => c.query('select site.destroy_lot($1, $2, $3)', [lot.lotId, await w.version(lot.lotId), randomUUID()])))).toMatch(/EBMR-SITE-15/);
   });
@@ -301,18 +301,18 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     const run = (): Promise<string> => one<string>(w.cast.qa, 'select recipe.run_controlled_register($1, $2::date, $3::date) as r', [lot.materialCode, '2026-01-01', today]);
     const a = await run();
     const b = await run();
-    const rows = (await db.app.query<{ id: string; h: string; r: { rows: { movement: string; persons: string[] }[] } }>(
+    const rows = (await db.admin.query<{ id: string; h: string; r: { rows: { movement: string; persons: string[] }[] } }>(
       'select id, result_sha256 as h, result as r from recipe.controlled_register_extract where id = any ($1::uuid[]) order by recorded_at', [[a, b]])).rows;
     expect(rows[0]?.h).toMatch(/^[0-9a-f]{64}$/);
     expect(rows[1]?.h).toBe(rows[0]?.h);
-    expect((await db.app.query<{ ok: boolean }>('select recipe.controlled_register_reproduces($1) as ok', [a])).rows[0]?.ok).toBe(true);
+    expect((await db.admin.query<{ ok: boolean }>('select recipe.controlled_register_reproduces($1) as ok', [a])).rows[0]?.ok).toBe(true);
     expect(rows[0]?.r.rows.map((r) => r.movement)).toEqual(expect.arrayContaining(['RECEIPT', 'TRANSFER', 'DISPENSE']));
     expect(rows[0]?.r.rows.find((r) => r.movement === 'DISPENSE')?.persons).toEqual([w.cast.dispenser.personId, w.cast.witness.personId]);
     // New data changes the hash of a new run, and the stored extract no longer reproduces.
     await custody({ kind: 'RETURN', lotId: lot.lotId, batchId: batch.id, quantity: '0.5' });
     const c = await run();
-    expect((await db.app.query<{ h: string }>('select result_sha256 as h from recipe.controlled_register_extract where id = $1', [c])).rows[0]?.h).not.toBe(rows[0]?.h);
-    expect((await db.app.query<{ ok: boolean }>('select recipe.controlled_register_reproduces($1) as ok', [a])).rows[0]?.ok).toBe(false);
+    expect((await db.admin.query<{ h: string }>('select result_sha256 as h from recipe.controlled_register_extract where id = $1', [c])).rows[0]?.h).not.toBe(rows[0]?.h);
+    expect((await db.admin.query<{ ok: boolean }>('select recipe.controlled_register_reproduces($1) as ok', [a])).rows[0]?.ok).toBe(false);
     // Only for a flagged material; not by a dispenser; the extract is insert-only.
     expect(await refusal(one(w.cast.qa, 'select recipe.run_controlled_register($1, $2::date, $3::date) as r', ['NOPE', '2026-01-01', today]))).toMatch(/EBMR-CSM-051/);
     expect(await refusal(one(w.cast.dispenser, 'select recipe.run_controlled_register($1, $2::date, $3::date) as r', [lot.materialCode, '2026-01-01', today]))).toMatch(/EBMR-IAM/);
@@ -329,9 +329,32 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     expect(await signOffRow(batch, 'S-BLEND')).not.toMatch(/EBMR-CSM/);
     expect(await completeRow(batch)).not.toMatch(/EBMR-CSM/);
     expect(await refusal(propose(w.cast.dispenser, { kind: 'DISPENSE', lotId: lot.lotId, batchId: batch.id, quantity: '1' }))).toMatch(/EBMR-CSM-014/);
-    expect((await db.app.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([]);
+    expect((await db.admin.query<{ m: string[] }>('select plant.controlled_materials($1) as m', [product])).rows[0]?.m).toEqual([]);
     // The same API flagged for another product does not reach this product's batches.
     await flag(unique('P'), [lot.materialCode]);
     expect(await w.consume(batch, reservation, lot.materialCode, '1')).toMatchObject({ batch_id: batch.id });
+  });
+
+  it('[IN-53] the old controlled read functions are closed to the application role, which keeps table SELECT for true copies; the writers stay granted (recipe-core 1214, 1215)', async () => {
+    // Phase 7 slice 7a (6jc-R2, P7A-7): the edition's people read through its gated definers (CONTROLLED.READ in scope);
+    // the application role, the server's own identity, reads the tables for true copies, evidence exports and archives.
+    const tables = ['plant.controlled_product', 'plant.controlled_product_approval', 'recipe.controlled_custody', 'recipe.controlled_custody_signature',
+      'recipe.controlled_custody_use', 'recipe.controlled_checkpoint', 'recipe.controlled_checkpoint_signature', 'recipe.controlled_register_extract'];
+    for (const t of tables) expect(await refusal(db.app.query(`select count(*) from ${t}`)), t).toBe('');
+    const id = randomUUID();
+    const reads = ['plant.controlled_materials(text)', 'plant.material_is_controlled(text)', 'plant.controlled_product_state(text)', 'plant.controlled_record_state(uuid)',
+      'recipe.batch_controlled_materials(uuid)', 'recipe.controlled_moved_materials(uuid)', 'recipe.controlled_custody_state(uuid)', 'recipe.controlled_custodians(uuid)',
+      'recipe.controlled_balance(uuid, text)', 'recipe.controlled_checkpoint_state(uuid)', 'recipe.controlled_checkpoint_current(uuid)',
+      'recipe.controlled_checkpoint_problem(uuid, text)', 'recipe.controlled_batch_end_problem(uuid)', 'recipe.controlled_register_reproduces(uuid)'];
+    const may = (await db.admin.query<{ f: string; app: boolean }>(
+      "select f, has_function_privilege('ebmr_app', f, 'execute') as app from unnest($1::text[]) f order by f", [reads])).rows;
+    expect(may.filter((r) => r.app).map((r) => r.f)).toEqual([]);
+    expect(await refusal(db.app.query('select recipe.controlled_balance($1, $2)', [id, 'API-X']))).toMatch(/permission denied/);
+    const writers = ['plant.record_controlled_product(jsonb)', 'plant.approve_controlled_product(uuid, uuid)', 'recipe.propose_controlled_custody(jsonb)',
+      'recipe.sign_controlled_custody(uuid, uuid)', 'recipe.record_controlled_checkpoint(jsonb)', 'recipe.sign_controlled_checkpoint(uuid, uuid)',
+      'recipe.run_controlled_register(text, date, date)'];
+    const granted = (await db.admin.query<{ f: string; app: boolean }>(
+      "select f, has_function_privilege('ebmr_app', f, 'execute') as app from unnest($1::text[]) f order by f", [writers])).rows;
+    expect(granted.filter((r) => !r.app).map((r) => r.f)).toEqual([]);
   });
 });
