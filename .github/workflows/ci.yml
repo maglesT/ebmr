@@ -33,6 +33,46 @@ jobs:
       # A node built-in in the browser bundle fails the build (plan section 3).
       - run: pnpm build:web
 
+  # Phase 7 slice 7d (ASVS V10.3, V14.2; docs/security/pentest-checklist.md): the dependency audit of what ships (a
+  # known high or critical advisory in a production dependency fails the job; the development tools' advisories are
+  # reported), the licence and secret scans, and the SBOM and release manifest signed with the release key. Without the
+  # EBMR_RELEASE_SIGNING_KEY secret (a KMS-held key at deployment) the run signs with a DEMO-ONLY key made for it, and the
+  # manifest says so; the signatures are verified before they are kept.
+  supply-chain:
+    name: Supply chain (dependency audit, licences, secrets, SBOM, signed manifest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Dependency audit (production dependencies; high and critical fail)
+        run: pnpm audit --prod --audit-level=high
+      - name: Dependency audit of the development tools (reported, not shipped)
+        run: pnpm audit --json > .reports-audit-dev.json || true
+      - run: pnpm security:licences --out .reports/security
+      - run: pnpm security:secrets --out .reports/security
+      - name: SBOM and release manifest, signed
+        env:
+          EBMR_RELEASE_SIGNING_KEY: ${{ secrets.EBMR_RELEASE_SIGNING_KEY }}
+        run: pnpm security:release --out .reports/release
+      - run: pnpm security:verify --dir .reports/release
+      - name: Keep the SBOM, the signed manifest and the scan reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain
+          path: |
+            .reports/release
+            .reports/security
+            .reports-audit-dev.json
+          include-hidden-files: true
+          if-no-files-found: warn
+
   tests:
     name: Tests (shard ${{ matrix.shard }} of 6)
     runs-on: ubuntu-latest

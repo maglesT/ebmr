@@ -169,6 +169,19 @@ describe('exception register', () => {
     expect(ui.posts(`/api/review/batches/${B}/items/EX-1/open`)).toHaveLength(before);
   });
 
+  it('the single-key shortcuts can be turned off (WCAG 2.1.4; slice 7d finding A11Y-3)', async () => {
+    const ui = renderOffice(path, { role: 'QA_REVIEWER' });
+    await screen.findByTestId('register-summary');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Single-key shortcuts (N, P)' }));
+    expect(screen.getByText(/The single-key shortcuts are off\./)).toBeTruthy();
+    fireEvent.keyDown(window, { key: 'n' });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(ui.posts(`/api/review/batches/${B}/items/EX-1/open`)).toHaveLength(0);
+    // The button still moves.
+    await userEvent.click(screen.getByRole('button', { name: 'Next item (N)' }));
+    await waitFor(() => expect(ui.posts(`/api/review/batches/${B}/items/EX-1/open`)).toHaveLength(1));
+  });
+
   it('dispositions one item through the ceremony (escalation names its deviation)', async () => {
     const ui = renderOffice(path, { role: 'QA_REVIEWER' });
     await screen.findByTestId('register-summary');

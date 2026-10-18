@@ -8,7 +8,8 @@
  * GMP: creates the database, migrates kernel, site services, recipe-core and tablets SQL, bootstraps and seeds.
  * SANDBOX: provisions the sandbox through the kernel with every migration, bootstraps it (TEST- labels, kernel 1000; see test-kit sandbox.ts), then seeds.
  * Both: marks demo and E2E databases (names *_demo, *_e2e_*) with tab.demo_installation, registers the DEMO-ONLY
- * seal key, runs each feature's seed, and writes into the keys directory:
+ * seal key, runs each feature's seed, and writes into the keys directory (GMP also: QA's approval of a DEMO-ONLY
+ * validation summary of the release before the feature seeds, slice 7c, DI-03):
  *   <kind>-seed.json          personas, terminals, service identities with DEMO-ONLY credentials
  *   <kind>-demo-devices.json  the device picker's terminals and keys (EBMR_DEMO_KEYS_FILE)
  *   <kind>-seal-key.json      DEMO-ONLY HMAC seal key (EBMR_SEAL_KEY_FILE), kept when present
@@ -25,6 +26,7 @@ import { parseArgs } from 'node:util';
 import { esig, identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import type { DemoDeviceView } from '@ebmr/api-contract';
 import {
+  approveValidationSummary,
   asAdmin,
   bootstrapInstallation,
   createGmpDatabase,
@@ -195,6 +197,22 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
     };
     // The vendor rule tables (kernel and tablets) on both installations, before any feature seed needs them.
     await publishRuleTables(ctx, await ctx.actorFor('steward'));
+    if (kind === 'GMP') {
+      // Slice 7c (DI-03, D-P7-12): a GMP batch is issued only on a release with an approved validation summary. The
+      // demo or E2E installation's QA person approves a DEMO-ONLY summary of its release through the real signed act,
+      // before any feature seed issues a batch. A production installation gets its summary from the customer's QA
+      // (handbook 10-runbooks.md); this CLI refuses production (main).
+      log('approving the DEMO-ONLY validation summary of the release (QA persona qaInvestigator)');
+      await approveValidationSummary(
+        {
+          app: db.app,
+          qa: async () => ({ ...(await openPersonaSession(db, seed, 'qaInvestigator')), reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
+          qaSign: (aggregate, meaning, expectedState) => ctx.signAs('qaInvestigator', aggregate, meaning, expectedState),
+          systemOwner: () => passwordActor(db, seed.bootstrap.owner, seed.bootstrap.owner.fingerprint, { reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
+        },
+        { title: 'DEMO-ONLY validation summary of the demo or E2E installation' },
+      );
+    }
     for (const f of FEATURES.filter((x) => x.installations.includes(kind))) {
       if (f.module.seed) {
         log(`seeding feature ${f.name}`);

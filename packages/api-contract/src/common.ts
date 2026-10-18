@@ -42,6 +42,22 @@ export const EpochMicros = z.string().regex(/^-?(0|[1-9][0-9]*)$/, 'UTC epoch mi
 
 export const Uuid = z.uuid();
 
+/** True when `text` (YYYY-MM-DD) names a day of the proleptic Gregorian calendar (no 2026-02-30, no month 00). */
+export function isCalendarDate(text: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (y < 1 || mo < 1 || mo > 12 || d < 1) return false;
+  const days = [31, y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1] ?? 0;
+  return d <= days;
+}
+
+/**
+ * A calendar date as text, YYYY-MM-DD, that names a real day (slice 7d, P7D-1): the shape alone let 9177-00-56 through
+ * to the database's date cast, which answered 500 instead of the 400 a malformed request gets.
+ */
+export const CalendarDate = (message = 'a calendar date (YYYY-MM-DD)') => z.string().regex(/^\d{4}-\d{2}-\d{2}$/, message).refine(isCalendarDate, message);
+
 /** Base64url (or base64) text without line breaks: device keys, nonces, signatures. */
 export const Base64Text = z.string().regex(/^[A-Za-z0-9_+/-]+={0,2}$/, 'base64 text');
 

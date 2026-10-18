@@ -53,6 +53,15 @@ describe('the GMP floor uses the batches routes (D-S6-1)', () => {
     });
   });
 
+  it('lists the GMP batches from /api/batches on the runs page (its answer is { batches }, not { runs }; A11Y-4)', async () => {
+    const ui = renderFloor('/runs', { installation: 'GMP' });
+    const run = await screen.findByTestId('run-B26-0001');
+    expect(run.textContent).toContain('In progress');
+    expect(within(run).getByRole('link', { name: 'Open run B26-0001' })).toBeTruthy();
+    expect(ui.requests.some((r) => r.method === 'GET' && r.path === '/api/batches')).toBe(true);
+    expect(ui.requests.some((r) => r.path.startsWith('/api/test-runs'))).toBe(false);
+  });
+
   it('the sandbox keeps /api/test-runs', async () => {
     const ui = renderFloor(stepPath('p-blend@'));
     await screen.findByTestId('step-card');

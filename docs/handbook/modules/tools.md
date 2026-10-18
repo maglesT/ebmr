@@ -21,6 +21,9 @@ the tool you touch. Testing in general is in [Testing and debugging](../06-testi
 | Regulatory register scripts | [tools/regulatory/](../../../tools/regulatory/) | Python, run by hand (history) |
 | Development pod set-up | [tools/dev-env/runpod-setup.sh](../../../tools/dev-env/runpod-setup.sh) | `bash tools/dev-env/runpod-setup.sh` |
 | Handbook generator and link checker | [tools/handbook/src/](../../../tools/handbook/src/) | `pnpm handbook`, `pnpm handbook:check` |
+| Load and soak driver (slice 7d) | [tools/load/src/](../../../tools/load/src/) | `pnpm load smoke`, `pnpm load reference`, `pnpm load soak` |
+| Restore and upgrade drills, migration dry run (slice 7d) | [tools/drills/](../../../tools/drills/) | `pnpm drills restore`, `pnpm drills upgrade`, `bash tools/drills/build-release-db.sh` |
+| Security sweeps (slice 7d) | [tools/security/src/](../../../tools/security/src/) | `pnpm security:hardening`, `pnpm security:licences`, `pnpm security:secrets`, `pnpm security:release`, `pnpm security:verify` |
 | User and administrator guides | [tools/guides/src/](../../../tools/guides/src/) | `pnpm guides:lists`, `pnpm guides:build` |
 
 All of them are wired into `pnpm run ci` ([package.json](../../../package.json)):
@@ -276,6 +279,42 @@ Test: [handbook.test.ts](../../../tools/handbook/test/handbook.test.ts) runs the
 each one on a fixture (an unclaimed migration, a missing symbol, a symbol named only in a comment, a wrong anchor,
 links inside code ignored, a pending page, GitHub slugs).
 
+## tools-load: the load and soak driver (slice 7d)
+
+[tools/load](../../../tools/load/src/) measures the outline's service levels on a generated site (D-P7-4, D-P7-5): it
+builds its own GMP database, issues a year of history through the server's routes (the issuers spread over extra
+server processes), runs shop-floor sessions at their kiosks (each from its own loopback address, with device proofs and
+badge taps), office reviewers, the 6a feeds against their simulators and the signed batch issue, then the nightly
+analytics run, and writes a JSON record (`.reports/load/`) and its summary section
+([load-and-soak.md](../../validation/v1.0-rc/load-and-soak.md)). The SLOs (SLO-1 to SLO-6) and the soak checks
+(SOAK-1 to SOAK-4) are evaluated in [report.ts](../../../tools/load/src/report.ts#sym=evaluateSlos); the profiles
+(smoke, reference, soak) and their options in [options.ts](../../../tools/load/src/options.ts). The run itself is a
+`[meta]` Vitest test ([reference-site.load.ts](../../../tools/load/src/reference-site.load.ts)) started by the CLI with
+its own config; it is never part of `pnpm test`. The pod commands are in
+[10-runbooks.md](../10-runbooks.md#release-drills-load-and-security-verification-phase-7-slice-7d).
+
+## tools-drills: the restore and upgrade drills (slice 7d)
+
+[tools/drills](../../../tools/drills/src/) runs the release drills on any database URL. `restore` wraps the kernel's
+restore drill (an encrypted backup restored to an isolated copy, chains verified, the external anchor compared, a
+restore event recorded and approved with a QA signature, an evidence export restored in a process of its own) and
+fills the report template (DI-02 clause 1, IN-09 clause 3). `upgrade` copies a database made by an earlier release
+([build-release-db.sh](../../../tools/drills/build-release-db.sh); the Phase 6A exit, bc46d55, whose 558 migrations
+are pinned in [release-6a-migrations.json](../../../tools/drills/fixtures/release-6a-migrations.json)), upgrades the
+copy, and compares every table's rows by hash, every chain and the renderings of the records (DI-46 clause 2, DI-48
+clause 1). Tests: [drills.test.ts](../../../tools/drills/test/drills.test.ts).
+
+## tools-security: the security sweeps (slice 7d)
+
+[tools/security](../../../tools/security/src/) holds what the CI's supply-chain job and the installation's IQ run:
+the hardening check of an installation (PostgreSQL settings, pg_hba, roles, demo keys and persons, open ports;
+[hardening.ts](../../../tools/security/src/hardening.ts#sym=runHardeningCheck)), the licence policy and the secret
+scan, the CycloneDX SBOM and the release manifest signed with Ed25519
+([supply-chain.ts](../../../tools/security/src/supply-chain.ts)). Without `EBMR_RELEASE_SIGNING_KEY` the key is made
+for the run and marked DEMO-ONLY. The checklist these serve is
+[pentest-checklist.md](../../security/pentest-checklist.md). Tests:
+[security-tools.test.ts](../../../tools/security/test/security-tools.test.ts).
+
 ## tools-guides: the user and administrator guides (slice 7e)
 
 [tools/guides](../../../tools/guides/) keeps the product's guides ([docs/guides](../../guides/README.md)) honest; its
@@ -315,7 +354,7 @@ its catalog test to `clauses` once its tests exist. `pnpm register:import` keeps
 ## How to test the tools
 
 The tools' own tests are `[meta]` tests in the Vitest `db` project:
-`pnpm vitest run --project db tools/register tools/boundaries tools/sql-mutation tools/demo tools/handbook`. The e2e
+`pnpm vitest run --project db tools/register tools/boundaries tools/sql-mutation tools/demo tools/handbook tools/drills tools/security`. The e2e
 tool tests run with the e2e package (`tools/e2e/test/`).
 
 ## Pitfalls

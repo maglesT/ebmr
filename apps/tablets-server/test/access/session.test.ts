@@ -102,6 +102,32 @@ describe('keep-alive', () => {
     const office = await gmp.asPersona('regulatory');
     expect(outcome(await office.call(routes.access.keepAlive, { body: {} }))).toBe('ok');
   });
+
+  it('[DI-14][DI-38] the session view names the seconds until the idle lock and the absolute end by the database clock; a keep-alive restarts the idle time; a locked session names no idle lock (A11Y-1)', async () => {
+    const b = await sbx.asPersona('operator1');
+    const me = personaIn(sbx, 'operator1');
+    const s = await sessionOfBrowser(sbx, b);
+    const fresh = valueOf(await b.call(routes.session.get));
+    expect(fresh.idleLockInSeconds).toBeGreaterThan(fresh.idleTimeoutSeconds - 30);
+    expect(fresh.idleLockInSeconds).toBeLessThanOrEqual(fresh.idleTimeoutSeconds);
+    expect(fresh.endsInSeconds).toBeGreaterThan(0);
+    // The person stopped working: 25 s are left before the lock (moved back on the activity row; the test's own update).
+    await sbx.db.admin.query("update iam.session_activity set last_activity_at = clock_timestamp() - make_interval(secs => $2::int - 25) where session_id = $1", [s.sessionId, fresh.idleTimeoutSeconds]);
+    const near = valueOf(await b.call(routes.session.get));
+    expect(near.locked).toBe(false);
+    expect(near.idleLockInSeconds).toBeGreaterThanOrEqual(23);
+    expect(near.idleLockInSeconds).toBeLessThanOrEqual(25);
+    expect(near.endsInSeconds).toBeLessThanOrEqual(fresh.endsInSeconds ?? 0);
+    // The badge tap of the warning keeps it open: the idle time starts again; the absolute end does not move.
+    const kept = valueOf(await b.call(routes.access.keepAlive, { body: await keepAliveBody(b, me.badgeUid ?? '') }));
+    expect(kept.idleLockInSeconds).toBeGreaterThan(fresh.idleTimeoutSeconds - 30);
+    expect(kept.endsInSeconds).toBeLessThanOrEqual(fresh.endsInSeconds ?? 0);
+    // Past the idle time: locked, and the view names no idle lock (the end still stands).
+    await sbx.db.admin.query("update iam.session_activity set last_activity_at = clock_timestamp() - make_interval(secs => $2::int + 1) where session_id = $1", [s.sessionId, fresh.idleTimeoutSeconds]);
+    const resolved = await resolveSession(sbx.db.app, tokenHash(b.cookies.get(sbx.config.cookies.session) ?? ''));
+    expect(resolved).toMatchObject({ state: 'IDLE_LOCKED', idleLockInSeconds: null });
+    expect(resolved?.endsInSeconds).toBeGreaterThan(0);
+  });
 });
 
 describe('switch user', () => {

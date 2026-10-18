@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type ReviewSummaryView, type SignableAction } from '@ebmr/api-contract';
-import type { AnalyticsRunner } from '../../src/analytics/runner.ts';
+import type { AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { REVIEW_METHOD_DEFINITIONS } from '../../src/analytics/review.ts';
 import { setupInstallation } from '../../src/cli/setup.ts';
 import type { ReviewBatchSeed } from '../../src/cli/review-batch.ts';
@@ -37,7 +37,7 @@ let qa: TestBrowser;
 let issuer: TestBrowser;
 const copies: { id: string; number: string }[] = [];
 
-const runner = (): AnalyticsRunner => {
+const runner = (): AnalyticsRunnerApi => {
   const r = server.built.analytics;
   if (!r) throw new Error('the GMP server started without its analytics runner');
   return r;

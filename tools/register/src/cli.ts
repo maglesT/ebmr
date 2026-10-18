@@ -10,14 +10,19 @@
  *              due control tested or deferred to a later phase
  *   sync-tests adds to each control's tests list the passing tests of the same reports tagged with it that the
  *              list does not name yet (review F15, round 2)
+ *   status     --bundle <file>: sets each control's build_status by D-P7-2 from an evidence bundle (only that field;
+ *              the only writer of VERIFIED; Phase 7 slice 7c). validate refuses a VERIFIED the rule does not allow
+ *              (with --bundle <file>, the whole rule; without, the part the files show).
  */
 import { importCatalogs } from './import.ts';
 import { checkPins, readManifests } from './pins.ts';
 import { currentPhase, gateEditions, loadControls } from './register.ts';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { appendListedTests, testsToAdd } from './sync.ts';
 import { buildTrace, readPlaywrightResults, readVitestResults, writeMatrix, type TestResult } from './trace.ts';
 import { validateRegister } from './validate.ts';
+import { parseBundle } from '../../../packages/validation-kit/src/index.ts';
+import { applyStatuses, statusContext, verifiedProblems } from './build-status.ts';
 import { validationFileErrors } from './validation-files.ts';
 
 function fail(title: string, errors: string[]): never {
@@ -61,8 +66,21 @@ switch (command) {
   case 'validate': {
     const controls = loadControls();
     const errors = [...validateRegister(controls), ...validationFileErrors(undefined, controls)];
+    const bundleFile = option('--bundle');
+    if (errors.length === 0) errors.push(...verifiedProblems(controls, statusContext(), bundleFile ? parseBundle(JSON.parse(readFileSync(bundleFile, 'utf8'))) : undefined));
     if (errors.length) fail('register invalid', errors);
     console.log(`register valid: ${controls.length} controls and the compliance/validation files`);
+    break;
+  }
+  case 'status': {
+    const bundleFile = option('--bundle');
+    if (!bundleFile) fail('status', ['--bundle <file> is required']);
+    const controls = loadControls();
+    const errors = [...validateRegister(controls), ...validationFileErrors(undefined, controls)];
+    if (errors.length) fail('register invalid; no status written', errors);
+    const changes = applyStatuses(controls, parseBundle(JSON.parse(readFileSync(bundleFile, 'utf8'))), statusContext());
+    for (const ch of changes) console.log(`${ch.id}: ${ch.from} -> ${ch.to}${ch.reasons.length ? ` (${ch.reasons[0] ?? ''}${ch.reasons.length > 1 ? `; and ${String(ch.reasons.length - 1)} more` : ''})` : ''}`);
+    console.log(`build status set from ${bundleFile}: ${String(changes.length)} control(s) changed`);
     break;
   }
   case 'pins': {

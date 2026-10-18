@@ -236,6 +236,11 @@ tests:
   - "packages/kernel/test/identity/devices-sessions.test.ts > authentication methods and purposes (DI-14, DI-38) > [DI-14][DI-38] a badge tap only attributes an entry; a service key only logs in; a signature needs two components; an unknown method or purpose is refused"
   - "packages/kernel/test/identity/devices-sessions.test.ts > authentication methods and purposes (DI-14, DI-38) > [DI-14][DI-38] an account without an active credential of the method is refused before any secret is compared, whatever the secret"
   - "packages/kernel/test/mutation/india-dsc.test.ts > the database refuses what the server should have refused (kernel 1206) > [IN-10][DI-38] a signing DSC that claims the signer's enrolled certificate while its chain carries another certificate is refused"
+  - "apps/tablets-web/test/access/idle-warning.test.tsx > the warning before the inactivity lock (A11Y-1) > [DI-14][DI-38] office: the warning opens when the lock is near; \"Keep working\" sends the keep-alive and closes it"
+  - "apps/tablets-web/test/access/idle-warning.test.tsx > the warning before the inactivity lock (A11Y-1) > [DI-14][DI-38] the absolute end is announced once, with nothing to extend it; with time to spare there is no warning"
+  - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] no session fixation: a session cookie planted before sign-in is served as nobody, and the sign-in sets a new one"
+  - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] the API ends a session at its absolute timeout and locks a kiosk session at its idle timeout"
+  - "apps/tablets-server/test/access/session.test.ts > keep-alive > [DI-14][DI-38] the session view names the seconds until the idle lock and the absolute end by the database clock; a keep-alive restarts the idle time; a locked session names no idle lock (A11Y-1)"
 clauses:
   - clause: "Sign twice in one session. The second signing needs at least the password."
     tests:
