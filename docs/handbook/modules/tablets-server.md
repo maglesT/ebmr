@@ -1533,7 +1533,7 @@ holds the role through a grant whose scope covers the record's {site, product}:
 | A flag | the session's site and the product |
 | A custody record | the lot's site, and the batch's product when the record names a batch |
 | A checkpoint or a batch's account | the batch's site and product |
-| A register export | the session's site, with no product (the register covers every product of the material) |
+| A register export | no site and no product limit (tablets 1415: the register covers every site and product of the material) |
 
 A list (flags, custody records of a lot, register exports) needs CONTROLLED.READ at the session's site. It then shows
 only the rows in scope. A batch, a custody record or a checkpoint asked for by its id, and out of scope, is refused. A
@@ -1543,9 +1543,19 @@ guidance. [Tablets 1414](../../../apps/tablets-server/sql/1414_controlled_record
 places: `tab.controlled_preview`, after the meaning's permission, and `tab.record_read_problem` for the three
 controlled types, after the rule of 1290. So a governance reader without CONTROLLED.READ (the CSV/DI lead, an auditor)
 no longer previews a controlled record or reads its signatures and their chains. A later migration that re-creates
-either function starts from 1414. Not yet covered: the audit viewer reads the chains of the controlled records by role
-(the GOVERNANCE class of tablets 0420) and shows the custody and checkpoint entries on the lot's and the batch's chains
-(RECORD.READ), because recipe-core 1032 and 1033 file them there. The product flag and the draft banner are unchanged. Tests:
+either function starts from 1414. [Tablets 1415](../../../apps/tablets-server/sql/1415_controlled_audit_read.sql) (review
+round 1) does the same for the audit viewer. A chain of a controlled record (`controlled_product`, `controlled_custody`,
+`controlled_checkpoint`, `controlled_register_extract`) is read, listed, counted and verified only with CONTROLLED.READ
+in the record's scope (`tab.chain_read_problem`, `tab.audit_chains`, `tab.audit_headless_chains`). On every other chain,
+`tab.audit_events` leaves out the entries of the eight controlled tables for a reader who may not read them
+(`tab.controlled_entry_hidden`). This matters for the lot's chain, where recipe-core 1032 files the custody rows, and the
+batch's chain, where 1033 files the checkpoints. Known limit: the length and verification of a lot or batch chain
+still count those entries; they show that entries exist, not what they say. A register export carries no site and
+covers the material at every site, so 1415 reads it only in the scope {} it is run in. A site-limited or
+product-limited holder is refused (EBMR-CSM-061). A write route reads its record back in the write's own transaction,
+so a writer who may not read it is refused and nothing is committed. Later migrations that re-create
+`tab.chain_read_problem`, `tab.audit_events`, `tab.audit_chains`, `tab.audit_headless_chains` or
+`tab.controlled_register_extracts` start from 1415. The product flag and the draft banner are unchanged. Tests:
 [controlled-read.test.ts](../../../apps/tablets-server/test/controlled/controlled-read.test.ts).
 ## ts-genealogy: genealogy, complaint lookup and mock recall
 

@@ -9,9 +9,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, type Result } from '@ebmr/api-contract';
+import { withCommand, type ActorContext } from '@ebmr/kernel';
+import { passwordActor, terminalOf } from '@ebmr/test-kit';
+import { ensureFixtureChangeRecord } from '../../../../packages/kernel/test/support/change-record.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { tokenHash } from '../../src/platform/auth/session.ts';
-import { startSigningServer, valueOf } from '../esig/support.ts';
+import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 
@@ -24,6 +27,9 @@ let qa: TestBrowser;
 let otherProduct: TestBrowser;
 let ownProduct: TestBrowser;
 let otherSite: TestBrowser;
+let siteOne: TestBrowser;
+let lead: TestBrowser;
+let writer: ActorContext;
 
 const tag = (): string => randomUUID().slice(0, 6).toUpperCase();
 const material = `API-CTR-${tag()}`;
@@ -56,6 +62,9 @@ beforeAll(async () => {
   otherProduct = await loginOf(server, await grantedPerson(server, 'QA_REVIEWER', 'Leela Iyer', undefined, { product: `POTHER-${tag()}` }));
   ownProduct = await loginOf(server, await grantedPerson(server, 'QA_REVIEWER', 'Farah Khan', undefined, { product }));
   otherSite = await loginOf(server, await grantedPerson(server, 'QA_REVIEWER', 'Vikram Rao', undefined, { site: 'SITE-9' }));
+  siteOne = await loginOf(server, await grantedPerson(server, 'QA_REVIEWER', 'Meera Joshi', undefined, { site: 'SITE-1' }));
+  lead = await loginOf(server, await grantedPerson(server, 'CSV_DI_LEAD', 'Rohan Mehta'));
+  writer = await passwordActor(server.db, await grantedPerson(server, 'QA_REVIEWER', 'Asha Kulkarni'), terminalOf(server.seed, 'PC-QA-01').fingerprint);
   const who = randomUUID();
   const hash = createHash('sha256').update(batchId).digest('hex');
   const cr = randomUUID();
@@ -247,5 +256,107 @@ describe('controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2)
     await expect(preview(otherProduct)).rejects.toThrow(/EBMR-CSM-061/);
     await expect(preview(qa)).resolves.toBeDefined();
     await expect(preview(operator)).rejects.toThrow(/EBMR-TAB-020/);
+  });
+  it('[IN-53] the register exports are read only with a grant without a site or product limit: an export covers every site (tablets 1415)', async () => {
+    // recipe.controlled_register_v1 reads the material's lots at every site and an export carries no site; it is run in
+    // the scope {} (recipe-core 1034), and read in it.
+    expect((await dbReads(siteOne)).register, 'QA limited to the session\'s own site').toBe('EBMR-CSM-061');
+    expect(outcome(await siteOne.call(routes.controlled.registerExtracts))).toBe('403:EBMR-CSM-061');
+    // The same holder reads the site's batch account and custody records.
+    expect(await dbReads(siteOne)).toMatchObject({ list: 'ok:1', custody: 'ok:2', checkpoints: 'ok:1', balance: 'ok:1' });
+    expect((await dbReads(qa)).register).toBe('ok:1');
+  });
+
+  it('[IN-53] the audit trail shows controlled-substance entries only to a reader holding CONTROLLED.READ', async () => {
+    // Audited rows of every controlled kind, written in a command (the kernel files them on their chains).
+    const ids = { product: randomUUID(), custody: randomUUID(), checkpoint: randomUUID(), extract: randomUUID() };
+    const correlationId = randomUUID();
+    const who = writer.personId;
+    await ensureFixtureChangeRecord(db);
+    await withCommand(db.admin, { ...writer, reasonCode: 'TEST_SETUP', reasonText: 'audit read test set-up', correlationId, changeRecord: 'CR-TEST-FIXTURE' }, async (c) => {
+      await c.query(`insert into plant.controlled_product (id, product_code, controlled, material_codes, basis_ref, recorded_by_person, recorded_by_account, correlation_id)
+                     values ($1, $2, true, array[$3], 'NDPS licence ML-17 (draft)', $4, $4, $4)`, [ids.product, product, material, who]);
+      await c.query(`insert into recipe.controlled_custody (id, kind, lot_id, material_code, quantity, unit, from_location, to_location, proposed_by_person, proposed_by_account, correlation_id)
+                     values ($1, 'TRANSFER', $2, $3, 1, 'kg', 'WH-A-01', 'DISP-02', $4, $4, $4)`, [ids.custody, lotId, material, who]);
+      await c.query(`insert into recipe.controlled_custody_signature (custody_id, position, signature_id, person_id, account_id) values ($1, 'FIRST', gen_random_uuid(), $2, $2)`, [ids.custody, who]);
+      await c.query(`insert into recipe.controlled_checkpoint (id, batch_id, stage_key, material_code, unit, dispensed, consumed, in_process, returned, destroyed, difference,
+                                                               recorded_by_person, recorded_by_account, correlation_id)
+                     values ($1, $2, 'S2', $3, 'kg', 0, 0, 0, 0, 0, 0, $4, $4, $4)`, [ids.checkpoint, batchId, material, who]);
+      await c.query(`insert into recipe.controlled_checkpoint_signature (checkpoint_id, signature_id, person_id, account_id) values ($1, gen_random_uuid(), $2, $2)`, [ids.checkpoint, who]);
+      await c.query(`insert into recipe.controlled_register_extract (id, material_code, period_from, period_to, query_version, result, result_sha256, run_by_person, run_by_account, role_code, correlation_id)
+                     values ($1, $2, '2026-01-01', '2026-02-01', 1, '{"rows": []}', $3, $4, $4, 'QA_REVIEWER', $4)`, [ids.extract, material, 'b'.repeat(64), who]);
+    });
+    const may = (await db.admin.query<{ op: boolean; lead: boolean }>(
+      "select tab.role_may('OPERATOR', array['RECORD.READ']) and not tab.role_may('OPERATOR', array['CONTROLLED.READ']) as op, tab.role_may('CSV_DI_LEAD', tab.governance_read_permissions()) and not tab.role_may('CSV_DI_LEAD', array['CONTROLLED.READ']) as lead",
+    )).rows[0];
+    expect(may, 'SETUP: the operator reads RECORD chains and the CSV/DI lead GOVERNANCE chains, neither with CONTROLLED.READ').toEqual({ op: true, lead: true });
+    type Ev = { table_name: string | null; record_id: string | null };
+    const events = async (b: TestBrowser, chain: string | null, correlation: string | null = null): Promise<Ev[]> =>
+      (await db.app.query<Ev>('select table_name, record_id from tab.audit_events($1, $2, $3, null, null, null, null, null, 1000)', [hashOf(b), chain, correlation])).rows;
+    const tables = (rows: Ev[]): string[] => [...new Set(rows.map((r) => r.table_name ?? ''))].sort();
+    const chains = {
+      [`controlled_product:${ids.product}`]: ['plant.controlled_product'],
+      [`controlled_custody:${ids.custody}`]: ['recipe.controlled_custody_signature'],
+      [`controlled_checkpoint:${ids.checkpoint}`]: ['recipe.controlled_checkpoint_signature'],
+      [`controlled_register_extract:${ids.extract}`]: ['recipe.controlled_register_extract'],
+    };
+    // A controlled record's own chain: QA reads it; a governance reader, a RECORD.READ holder and a QA reviewer limited
+    // to another product do not (bypass, each chain kind), nor its length, its registry chains or its verification.
+    for (const [chain, expected] of Object.entries(chains)) {
+      expect(tables(await events(qa, chain)), `${chain} by QA`).toEqual(expected);
+      for (const [who, b] of [['the CSV/DI lead', lead], ['an operator', operator], ['QA limited to another product', otherProduct]] as const) {
+        await expect(events(b, chain), `${chain} by ${who}`).rejects.toThrow(/EBMR-TAB-020/);
+        await expect(db.app.query('select tab.audit_chain_length($1, $2)', [hashOf(b), chain]), `${chain} length by ${who}`).rejects.toThrow(/EBMR-TAB-020/);
+        await expect(db.app.query('select * from tab.audit_verify_chain($1, $2)', [hashOf(b), chain]), `${chain} verified by ${who}`).rejects.toThrow(/EBMR-TAB-020/);
+        await expect(db.app.query('select * from tab.audit_registry_chains($1, $2)', [hashOf(b), chain]), `${chain} registry by ${who}`).rejects.toThrow(/EBMR-TAB-020/);
+      }
+    }
+    // The chain lists name no controlled chain to the CSV/DI lead; QA's names all four.
+    const listed = async (b: TestBrowser): Promise<string[]> =>
+      (await db.app.query<{ chain_key: string }>("select chain_key from tab.audit_chains($1, 'controlled_', 100000)", [hashOf(b)])).rows.map((r) => r.chain_key);
+    expect(await listed(lead)).toEqual([]);
+    expect(await listed(qa)).toEqual(expect.arrayContaining(Object.keys(chains)));
+    expect((await db.app.query("select chain_key from tab.audit_headless_chains($1, 'controlled_')", [hashOf(lead)])).rows).toEqual([]);
+    // The lot's chain (GOVERNANCE class) and the batch's (RECORD class): the custody and checkpoint entries are left out
+    // for the CSV/DI lead, the operator and QA limited to another product; QA sees them.
+    const lotChain = `material_lot:${lotId}`;
+    const batchChain = `batch:${batchId}`;
+    expect((await events(qa, lotChain)).filter((r) => r.table_name === 'recipe.controlled_custody').map((r) => r.record_id)).toEqual([ids.custody]);
+    expect((await events(qa, batchChain)).filter((r) => r.table_name === 'recipe.controlled_checkpoint').map((r) => r.record_id)).toEqual([ids.checkpoint]);
+    for (const [who, b] of [['an operator', operator], ['QA limited to another product', otherProduct]] as const) {
+      expect((await events(b, batchChain)).filter((r) => r.table_name?.includes('controlled')), `${batchChain} by ${who}`).toEqual([]);
+    }
+    // The lot and the batch are owner fixtures written without audit: on their chains the controlled entries are all there
+    // is, so a reader who may read the chain but not them is shown an empty chain, not a refusal.
+    expect(await events(lead, lotChain), 'the lot\'s chain by the CSV/DI lead').toEqual([]);
+    expect(await events(operator, batchChain), 'the batch\'s chain by the operator').toEqual([]);
+    // The transfer names no batch, so QA limited to another product reads the lot's chain without it as well.
+    expect((await events(otherProduct, lotChain)).filter((r) => r.table_name?.includes('controlled'))).toEqual([]);
+    // Across chains (by the command's correlation id): the CSV/DI lead sees none of the entries; QA sees all six.
+    // (The command also writes the configuration change it was made under, which is not a controlled entry.)
+    const controlledOnly = (rows: Ev[]): Ev[] => rows.filter((r) => r.table_name?.includes('.controlled_'));
+    expect(controlledOnly(await events(lead, null, correlationId))).toEqual([]);
+    expect(tables(controlledOnly(await events(qa, null, correlationId)))).toEqual(['plant.controlled_product', 'recipe.controlled_checkpoint', 'recipe.controlled_checkpoint_signature',
+      'recipe.controlled_custody', 'recipe.controlled_custody_signature', 'recipe.controlled_register_extract']);
+  });
+
+  it('[IN-53] a write whose record the writer may not read back is refused and leaves nothing (6jc-R2 review)', async () => {
+    // The custodian's role loses CONTROLLED.READ for this test only (an owner fixture; restored after).
+    const toggle = (removed: boolean) => setup(
+      `update iam.role_permission set removed_at = case when $1 then clock_timestamp() else null end where role_code = 'WAREHOUSE_LABELLING' and permission_code = 'CONTROLLED.READ'`,
+      [removed],
+    );
+    const before = (await db.admin.query<{ n: string }>('select count(*)::text as n from recipe.controlled_custody where lot_id = $1', [lotId])).rows[0]?.n;
+    await toggle(true);
+    try {
+      const r = await custodian.call(routes.controlled.proposeCustody, { body: { kind: 'TRANSFER', lotId, quantity: '0.500', fromLocation: 'WH-A-01', toLocation: 'DISP-03' } });
+      expect(refusalOf(r)).toMatchObject({ status: 403, code: 'EBMR-CSM-060' });
+    } finally {
+      await toggle(false);
+    }
+    expect((await db.admin.query<{ n: string }>('select count(*)::text as n from recipe.controlled_custody where lot_id = $1', [lotId])).rows[0]?.n).toBe(before);
+    // With CONTROLLED.READ back the same write is recorded and shown.
+    const ok = valueOf(await custodian.call(routes.controlled.proposeCustody, { body: { kind: 'TRANSFER', lotId, quantity: '0.500', fromLocation: 'WH-A-01', toLocation: 'DISP-03' } }));
+    expect(ok).toMatchObject({ state: 'PROPOSED', quantity: '0.500' });
   });
 });
