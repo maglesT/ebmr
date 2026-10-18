@@ -103,7 +103,15 @@ controls deferred to Phase 7. Migrations from kernel 1300, site-services 1100, r
   class, critical limits, reviews, open findings) checked by `register:validate`; the `[meta]` migration-order check
   (6jc-R4). As-built notes in section 9 of `slice-7-0-interfaces.md` (D-P7-0-7: 7c wires the helpers into the set-ups).
 
-Next: the Phase 7 slices after 7-0 (7a first: the decision 0022 items R9, R10, R2 and the rest of R16), built here
+- **7a decision 0022 fixes (branch `phase-7/slice-7a`, built as four parts):** R9 the gateway signs its OPC UA feed and
+  the database verifies it (kernel 1305-1306, tablets 1405-1406), adapters off loopback need mutual TLS; R10 a
+  loosening plant rule takes effect only with a second QA person's QA_APPROVED, a tightening at once (recipe-core 1210,
+  tablets 1410); R2 controlled reads need CONTROLLED.READ in scope, also in the audit viewer (recipe-core 1214-1215,
+  tablets 1413-1415); R16 the remaining batch acts in the batch's {site, product} scope and the dead 2-argument
+  `check_engine_roles` dropped (recipe-core 1217-1218, 1224, site-services 1103). Review findings P7A-1 to -7 in
+  `docs/build-plan/phase-7/review-backlog.md` (P7A-6 a residual). GB-T-01's due-date time bomb fixed (test only).
+
+Next: the Phase 7 slices after 7a (7b-1, 7b-2, 7c and 7e in parallel, then 7d, then the 7f exit), built here
 (decision 0023), then the heavy test run on the pod; then Tablets v1.0.
 Injectables (Phase 5) after that. Optional, when the owner asks: a web demo kit (trusted-proxy setting, HTTPS demo
 mode, install and reset scripts) on a cloud server the owner provides.
