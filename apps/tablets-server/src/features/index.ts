@@ -36,6 +36,7 @@ import * as qpPackage from './qp-package/index.ts';
 import * as quality from './quality/index.ts';
 import * as lims from './quality/lims.ts';
 import * as notifications from './notifications/index.ts';
+import * as operations from './operations/index.ts';
 import * as records from './records/index.ts';
 import * as pqr from './pqr/index.ts';
 import * as release from './release/index.ts';
@@ -95,6 +96,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'analytics-spc', installations: ['GMP'], module: analyticsSpc satisfies FeatureModule },
   { name: 'analytics-mspc', installations: ['GMP'], module: analyticsMspc satisfies FeatureModule },
   { name: 'analytics-review', installations: ['GMP'], module: analyticsReview satisfies FeatureModule },
+  // Phase 7 slice 7g-4 (decision 0025): the operations screens' routes (set-up, demo data, backups, workers, simulators).
+  { name: 'operations', installations: ['GMP', 'SANDBOX'], module: operations satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

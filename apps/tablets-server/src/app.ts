@@ -29,6 +29,7 @@ import { answerFrameworkError, installSecurity, isApiRequest } from './platform/
 import { installSpa } from './platform/http/static.ts';
 import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
+import { MAINTENANCE_OPEN_PATHS, maintenanceRefusal, newOperationsRuntime } from './platform/operations.ts';
 import { SiteZoneGuard, SITE_ZONE_CHECK_INTERVAL_MS } from './platform/site-zone.ts';
 
 export interface AppDeps {
@@ -116,6 +117,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
       siteZone,
       formatInstant: (us) => formatInstant(us, siteZone.current()),
       boundRoutes: new Map(),
+      operations: newOperationsRuntime(),
     };
     let port: DeviceReadingPort | undefined;
     for (const f of features) {
@@ -135,7 +137,11 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     // the bare prefix, a query or a fragment on it is refused too, and the check does not rest on the security hook
     // answering every other spelling first (review P8).
     app.addHook('onRequest', async (request) => {
-      if (isApiRequest(request)) await siteZone.check();
+      if (!isApiRequest(request)) return;
+      // Phase 7 slice 7g-4: while a demo load or reset recreates the database, only what shows that it runs is answered.
+      const maintenance = ctx.operations.maintenance;
+      if (maintenance !== null && !MAINTENANCE_OPEN_PATHS.includes(request.url.split('?')[0] ?? '')) throw maintenanceRefusal(maintenance);
+      if (maintenance === null) await siteZone.check();
     });
     for (const f of features) {
       await app.register(async (scope) => f.module.plugin(scope, ctx), { prefix: '' });
@@ -144,9 +150,10 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     await app.ready();
     const siteZoneWatch = siteZone.watch(deps.siteZoneCheckIntervalMs ?? SITE_ZONE_CHECK_INTERVAL_MS);
     // Phase 6A slice 6A-1: the analytics runner, on the GMP installation only (D-6A-6), on its own login (ADR 0020 point 3).
-    const analytics = config.analytics.enabled
+    const analyticsPool = config.analytics.enabled ? createAnalyticsPool(config.analytics.url) : null;
+    const analytics = analyticsPool
       ? new AnalyticsRunner({
-          pool: createAnalyticsPool(config.analytics.url),
+          pool: analyticsPool,
           log: app.log,
           siteZone: () => siteZone.current(),
           commit: config.analytics.commit,
@@ -155,6 +162,9 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
         })
       : null;
     analytics?.start();
+    if (analytics && analyticsPool) {
+      ctx.operations.analytics = { running: () => analytics.isRunning(), start: () => analytics.resume(), stop: () => analytics.pause(), pool: analyticsPool };
+    }
     return {
       app,
       ctx,

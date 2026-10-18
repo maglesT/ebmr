@@ -7,7 +7,7 @@
  *  - SealKeyProvider: the DEMO-ONLY HMAC seal key from EBMR_SEAL_KEY_FILE (a KMS or HSM in production).
  *  - formatInstant: the {us, text} wire form of a GMP instant, formatted with the kernel's site time.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import type pg from 'pg';
 import { z } from 'zod';
 import { esig, time, type ActorContext } from '@ebmr/kernel';
@@ -198,9 +198,13 @@ const SealKeyFile = z.object({
   label: z.string().optional(),
 });
 
-/** Reads the DEMO-ONLY HMAC seal key; null when no file is configured. */
+/**
+ * Reads the DEMO-ONLY HMAC seal key; null when no file is configured, or (Phase 7 slice 7g-4) when the configured file
+ * does not exist yet: the first-run set-up generates it there (features/operations/setup.ts), and signatures are refused
+ * until then (the esig feature answers that no seal key is configured).
+ */
 export function sealKeyFromFile(file: string | null): esig.SealKeyProvider | null {
-  if (!file) return null;
+  if (!file || !existsSync(file)) return null;
   const parsed = SealKeyFile.parse(JSON.parse(readFileSync(file, 'utf8')));
   return esig.hmacSealKey(parsed.keyId, Buffer.from(parsed.secret, 'base64'));
 }

@@ -11,6 +11,7 @@
  * Phase 6A slice 6A-2: analytics-spc (control charts, capability, deviation rates; GMP).
  * Phase 6A slice 6A-3: analytics-mspc (multivariate monitoring; GMP).
  * Phase 6A slice 6A-5: analytics-review (one record's review priority; the queue's priority note; GMP).
+ * Phase 7 slice 7g-4: operations (the first-run set-up, demo data, backups, workers, simulators, API reference).
  */
 import * as access from '../features/access/index.tsx';
 import * as analytics from '../features/analytics/index.tsx';
@@ -30,6 +31,7 @@ import * as planning from '../features/planning/index.tsx';
 import * as plant from '../features/plant/index.tsx';
 import * as plantStatus from '../features/plant-status/index.tsx';
 import * as notifications from '../features/notifications/index.tsx';
+import * as operations from '../features/operations/index.tsx';
 import * as quality from '../features/quality/index.tsx';
 import * as records from '../features/records/index.tsx';
 import * as pqr from '../features/pqr/index.tsx';
@@ -81,4 +83,6 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['analytics-spc', analyticsSpc satisfies WebFeature],
   ['analytics-mspc', analyticsMspc satisfies WebFeature],
   ['analytics-review', analyticsReview satisfies WebFeature],
+  // Phase 7 slice 7g-4 (decision 0025): operations without a terminal (set-up, demo data, backups, workers, simulators, API reference).
+  ['operations', operations satisfies WebFeature],
 ];

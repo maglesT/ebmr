@@ -18,6 +18,7 @@ import { planning } from './ns/planning.ts';
 import { plant } from './ns/plant.ts';
 import { quality } from './ns/quality.ts';
 import { notifications } from './ns/notifications.ts';
+import { operations } from './ns/operations.ts';
 import { erpShipping, qpPackage } from './ns/qp-shipping.ts';
 import { india } from './ns/india.ts';
 import { integrations } from './ns/integrations.ts';
@@ -49,14 +50,14 @@ import { session } from './ns/session.ts';
 import { specifications } from './ns/specifications.ts';
 import { contractGiver, support } from './ns/support.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsMspc, analyticsReview, analyticsProfile } as const;export type Routes = typeof routes;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsMspc, analyticsReview, analyticsProfile, operations } as const;export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
 /** Which module owns each namespace's handlers (the stub feature files pass to these owners). */
 /** Phase 3 slice 6 (S6): batches over the execution handlers, planning, master data (formulas) and plant. Phase 4 (P4): review. Phase 6 (P6): integrations, capa, alarms, equipmentData, equipmentDisplays (the status displays of
  * slice 6b, appended to ns/equipment-data.ts as their own namespace so each builder's feature binds its own routes), plantRules; labels and serialisation (slice 6c); genealogy, recall, transfers, federation; slice 6g: dashboards, changeImpact, training. Phase 6A (P6A): analytics, bound by slice 6A-1 (D-6A-0-4), and its
  * configuration writes analyticsConfig (D-6A-1-1); the other analytics namespaces join with the slices that bind them (analyticsAudit: 6A-4; analyticsSpc: 6A-2; analyticsReview: 6A-5; analyticsProfile: 6A-6). */
-export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2' | 'C3' | 'C5' | 'S6' | 'P4' | 'P6' | 'P6A'>> = {
+export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2' | 'C3' | 'C5' | 'S6' | 'P4' | 'P6' | 'P6A' | 'P7'>> = {
   meta: 'C0',
   session: 'C0',
   access: 'C1',
@@ -108,4 +109,5 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   analyticsMspc: 'P6A',
   analyticsReview: 'P6A',
   analyticsProfile: 'P6A',
+  operations: 'P7',
 };

@@ -33,7 +33,11 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     scope.log.warn({ err: e instanceof Error ? e.message : String(e) }, 'the integration adapters could not start');
     return null;
   });
-  if (adapters && adapters.workers.length > 0) scope.addHook('onClose', () => adapters.stop());
+  // Workers may start later from the operations screen (slice 7g-4), so the hook is added whatever runs now.
+  if (adapters) {
+    scope.addHook('onClose', () => adapters.stop());
+    app.operations.adapters = adapters.control;
+  }
   const live = (code: string) => adapters?.health(code) ?? null;
   bindRoutes(scope, app, routes.integrations, {
     adapters: async ({ requireSession }) => {
