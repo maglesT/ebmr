@@ -461,7 +461,8 @@ most once a minute). A period is one hour of source time aligned to the hour; it
 the last period the database holds a report for, or at the hour the adapter was registered, and submits the closed
 periods in order, at most 24 a run, through `platform.record_reconciliation` (kernel 1180), which raises
 RECONCILIATION_MISMATCH when the source's count or checksum differs from what the eBMR accepted or recorded as refused.
-A period the source cannot report is asked again next run. The worker does not reconcile while it is working off a
+A period the source cannot report is asked again next run; after any failure the next run starts from the database's
+latest report, so a report that committed while its answer was lost is not submitted twice. The worker does not reconcile while it is working off a
 backlog of messages (not caught up but receiving), because those periods would mismatch only because their messages are
 still queued; a source whose head stays ahead without delivering is reconciled, so what it never sends is a mismatch.
 The health page shows the last report (period, counts, matched). Test: `feed-adapters.test.ts` "O-T12-1".
@@ -482,7 +483,11 @@ unit, the tag and the interval (`plant.receive_series_gap`, recipe-core
 [1432](../../../apps/tablets-server/sql/1432_gateway_feed_series_gap.sql), so the gap message is signature-checked like
 every other). A torn last spool line is a sample that was never written and lies inside the gap; a damaged earlier line
 stops the gateway from opening, as for the journal. The spool is started afresh after recovery and rewritten with only the
-open chunks' samples when it passes 4 MiB. Tests: the gateway's
+open chunks' samples and a `seen` line per series spooled since the start when it passes 4 MiB. Review round 1: a
+series with no open chunk at the crash (a chunk had just closed, or a quiet tag's chunk was flushed) is a gap from the end
+of its last journalled chunk; a spooled chunk that is not a valid chunk is a gap up to the next completed chunk; and when
+a recovery message cannot be journalled (a signing or journal failure) the spool is kept, not truncated nor marked
+closed, so the next start tries again. Tests: the gateway's
 [opcua-spool.test.ts](../../../apps/site-gateway/test/opcua-spool.test.ts) and the server's
 `opcua-adapter.test.ts` "a series gap".
 
@@ -498,7 +503,15 @@ the endpoint session it stands on is refused (`plant.source_time_or_raise(text, 
 EBMR-ALM-003, OUT_OF_RANGE). So that a working gateway never meets that refusal, the driver keeps a sample older than its
 session's start minus the skew (typically the current value of a tag unchanged since before the session) as the tag's
 current value but out of the series, with a BEFORE_SESSION alarm. Tests: `opcua-spool.test.ts` (6jc-R13) and
-`opcua-adapter.test.ts` "6jc-R13". Test fixtures now date OPC UA data within five minutes of their session.
+`opcua-adapter.test.ts` "6jc-R13". Test fixtures now date OPC UA data within five minutes of their session. Review
+round 1 (recipe-core [1234](../../../packages/recipe-core/sql/1234_opcua_alarm_event_offline_bound.sql), kernel
+[1330](../../../packages/kernel/sql/1330_opcua_offline_buffer_setting.sql)): the five minutes apply to series only. An
+alarm or equipment event that happened while the gateway was down arrives at the reconnect under the new session, so it
+may be as old as the gateway's offline buffer before that session (setting `integration.opcua_offline_buffer_s`,
+default 7 days, changed under a change record); a time of 1970 still fails. A session itself is refused when its start
+is more than that buffer before the database's clock (`plant.opcua_session_start_guard`), which catches a gateway clock
+at 1970 while a session pulled after a server outage still lands. (The plain five-minute skew would refuse that late
+session, and with it every message after it.)
 
 **The stale-mirror refusal says whom to call (F-6jb-2).** A signature or act refused because a qualification comes from a
 stale mirror said only `STALE_QUALIFICATION_SOURCE:<qualification>`. Kernel

@@ -276,4 +276,56 @@ describe('the feed adapters against their simulators (DI-31)', () => {
     expect(health?.lastReconciliation).toMatchObject({ matched: true, sourceCount: '0', receivedCount: '0' });
     expect(health?.lastReconciliation?.periodTo.us).toBe((hourEnd + HOUR).toString());
   });
+
+  // Review round 1 of 7b-1b, finding 4.
+  it('[DI-31] O-T12-1: a report that committed while its answer was lost is not submitted again; the next run goes on from the database\'s latest report', async () => {
+    const HOUR = 3_600_000_000n;
+    const GRACE = 600_000_000n;
+    const sim = await spawnFeedSimulator('LIMS');
+    sims.push(sim);
+    const adapter = await registerAdapter(db, 'LIMS', adm);
+    let now = BigInt((await db.app.query<{ us: string }>('select tab.now_micros() as us')).rows[0]?.us ?? '0');
+    // A pool whose connection fails once just after a COMMIT went through (the answer lost on the wire).
+    let cutAfterCommit = false;
+    const pool = {
+      query: db.app.query.bind(db.app),
+      connect: async () => {
+        const c = await db.app.connect();
+        const query = c.query.bind(c) as (...a: unknown[]) => Promise<unknown>;
+        const release = c.release.bind(c);
+        (c as unknown as { query: unknown }).query = async (...a: unknown[]) => {
+          const out = await query(...a);
+          if (cutAfterCommit && a[0] === 'commit') {
+            cutAfterCommit = false;
+            throw new Error('Connection terminated unexpectedly');
+          }
+          return out;
+        };
+        (c as unknown as { release: unknown }).release = (...a: unknown[]) => {
+          (c as unknown as { query: unknown }).query = query;
+          (c as unknown as { release: unknown }).release = release;
+          return (release as (...b: unknown[]) => void)(...a);
+        };
+        return c;
+      },
+    } as unknown as typeof db.app;
+    const worker = feedWorker(pool, adapter.code, LIMS_ADAPTER, () => Promise.resolve(ctxOf(adapter.actor)), {
+      endpoint: `${sim.base}/lims/v1`, timeoutMs: 400, nowUs: () => Promise.resolve(now), reconcile: { everyMs: 0, maxPeriods: 1 },
+    });
+    const hourEnd = (now / HOUR) * HOUR + HOUR;
+    const reports = () => count(db, 'select count(*) as n from platform.reconciliation_report where adapter_code = $1', [adapter.code]);
+    now = hourEnd + 2n * HOUR + GRACE;
+    expect((await worker.reconcileDue()).periods).toHaveLength(1);
+    // The next period's report commits, but the answer is lost: the run fails.
+    cutAfterCommit = true;
+    const lost = await worker.reconcileDue();
+    expect(lost.error).toMatch(/Connection terminated/);
+    expect(await reports()).toBe(2);
+    // The next run starts after the committed report: the third period, not the second again.
+    const next = await worker.reconcileDue();
+    expect(next.periods.map((p) => p.to)).toEqual([(hourEnd + 2n * HOUR).toString()]);
+    expect(await reports()).toBe(3);
+    expect(await count(db, 'select count(*) as n from (select period_to from platform.reconciliation_report where adapter_code = $1 group by period_to having count(*) > 1) d', [adapter.code])).toBe(0);
+    await worker.stop();
+  });
 });

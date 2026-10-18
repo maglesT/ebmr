@@ -480,7 +480,9 @@ the interval from the last sample spooled to the restart (epoch microseconds), a
 value with no OPC UA timestamp (kept BAD, dated when received) and BEFORE_SESSION when a value is dated more than five
 minutes before the session opened (kept as the current value, not in the series). Repeated alarms mean the endpoint's
 clock or its timestamp settings are wrong: check its time synchronisation and that it returns source timestamps. The
-database refuses such data from any other path (EBMR-EQD-003, EBMR-ALM-003).
+database refuses series from any other path dated more than five minutes before their session (EBMR-EQD-003), and
+alarms, events and sessions older than the gateway's offline buffer (`integration.opcua_offline_buffer_s`, default 7 days;
+raise it under a change record before a planned longer outage).
 
 ## Related pages
 
