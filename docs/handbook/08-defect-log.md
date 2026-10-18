@@ -1477,6 +1477,60 @@ the site's zone (site services 0821). **Fix.** The scenario reads the 28th of th
 in the site's zone. No product code changed; the database's check was right. **Lesson.** A golden scenario takes every
 date from the database's clock, never from the machine's.
 
+## Slice 7d: performance, restore, security verification and accessibility (Phase 7)
+
+### P7D-1: a date that is no calendar day answered 500 (DI-13; found by the route fuzzing, 18 October 2026)
+
+**Symptom.** `controlled.runRegister` and `pqr.run` answered 500 to a body with a date such as 9177-00-56 or 2026-02-30.
+**Cause.** Their contract took any `NNNN-NN-NN` text as a date; the database's date cast then failed inside the command
+(it rolled back; nothing was written, no internals were shown). **Fix.** The contract's `CalendarDate` (a real day of
+the calendar) in both namespaces (`packages/api-contract/src/common.ts`). **Tests.** Server
+`test/security/route-fuzz.test.ts` ("[DI-13] a date that is no calendar day ... (P7D-1)"; it failed before the fix).
+**Lesson.** A date in a contract is checked as a date, not as a pattern.
+
+### P7D-6: the production start did not apply the database security baseline (DI-13, 18 October 2026)
+
+**Symptom.** With `EBMR_ENV=production` the server accepted database URLs without `sslmode` or with
+`sslmode=disable`, and never asked the database whether its sessions were encrypted, although
+`docs/security/security-baseline.md` says it does. **Cause.** The kernel's checks (`continuity.checkDatabaseUrl`,
+`assertEncryptedDatabaseSession`) existed but the server's configuration and start never called them. **Fix.** The
+configuration refuses such URLs in production (a local socket only with `EBMR_DB_ALLOW_LOCAL_SOCKET`), and the start
+refuses to open on unencrypted sessions (EBMR-SEC-015). **Tests.** Server `test/security/production-baseline.test.ts`
+(both tests failed before the fix). **Lesson.** A control in a library is not in force until the product calls it; the
+security sweep checks the call, not the library.
+
+### A11Y-1: no warning before the inactivity lock (outline 7.4; WCAG 2.2.1; DI-14, DI-38; tablets 1460)
+
+**Symptom.** A kiosk or office session locked after its idle time without a warning, so a person reading a long screen
+lost the moment and had to unlock; the server's keep-alive existed but no screen offered it. **Cause.** The page learnt
+of the lock only from its 15-second session poll, and the session view did not say when the lock would fall. **Fix.**
+Tablets 1460 re-creates `tab.resolve_session` to answer the seconds until the idle lock and the absolute end by the
+database's clock; the session view carries them (`idleLockInSeconds`, `endsInSeconds`); the session control opens
+`IdleWarning` 60 s before the lock ("Keep working" on an office PC, a badge tap on a kiosk, or "Lock now") and says once,
+five minutes ahead, that the session ends. **Tests.** Server `test/access/session.test.ts` ("[DI-14][DI-38] the session
+view names the seconds until the idle lock ..."), web `test/access/idle-warning.test.tsx` (3 tests). **Lesson.** A time
+limit the person cannot see is a time limit they cannot meet: the server says how long is left.
+
+### P6A7-4 measured: the nightly analytics run blocked the server's event loop (SLO-5; ADR 0020)
+
+**Symptom.** In the load smoke (2 % of the reference site's year of history: 730 batches, 18,000 audit facts) the
+nightly run blocked the server's event loop for up to 0.88 s (SLO-5: no block over 200 ms); at the full year it would
+be far longer. Per method, the canonical sort and hash of whole inputs took up to 0.72 s at once and the audit-trail
+methods up to 0.54 s. **Cause.** The runner read, sorted, hashed and computed in the server's own thread (the Phase 6A
+residual P6A7-4). **Fix.** The server runs the unchanged runner in a worker thread with its own connection
+(`apps/tablets-server/src/analytics/threaded.ts`, `worker-entry.ts`); only requests and run reports cross the threads.
+Tests that give the runner their own method implementations keep an in-process runner. **Tests.** Server
+`test/analytics/spc.test.ts` ("[DI-51][DI-52] the server runs the analytics in a worker thread ..."), and every other
+analytics test now runs through the worker; the load record's SLO-5. **Lesson.** Work whose size grows with the site's
+history never runs on the thread that answers the shop floor.
+
+### The load driver (test defects, 18 October 2026)
+
+A kiosk of the driver asked for more device nonces than the server allows (120 a minute per terminal and address)
+while it made the review batch's entries, and the run stopped with RATE_LIMITED: the driver now paces itself at 110 a
+minute. A keep-alive socket the server had closed while idle failed at its next use (NETWORK): the driver sends such a
+request once more on a fresh socket. A run that stops now says so in its summary instead of "no SLO failed".
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

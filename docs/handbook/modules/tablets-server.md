@@ -123,7 +123,7 @@ to database is in [Architecture, how a request travels](../03-architecture.md#6-
 The session cookie is a random 256-bit token made at login. It is never the kernel's session id (that id appears in
 audit payloads). The database keeps only the token's SHA-256 hash
 ([tab.bind_session](../../../apps/tablets-server/sql/0480_bind_session_needs_live_role.sql#sym=tab.bind_session),
-[tab.resolve_session](../../../apps/tablets-server/sql/0550_session_terminal_key.sql#sym=tab.resolve_session),
+[tab.resolve_session](../../../apps/tablets-server/sql/1460_session_idle_lock_in.sql#sym=tab.resolve_session),
 [tab.unbind_session](../../../apps/tablets-server/sql/0001_tab_foundation.sql#sym=tab.unbind_session)). There is one
 cookie name per installation (`ebmr_gmp_sid`, `ebmr_sbx_sid`, with the `__Host-` prefix on https; see
 [cookieNames](../../../apps/tablets-server/src/config.ts#sym=cookieNames)), so a GMP and a sandbox session in the
@@ -414,6 +414,18 @@ The audit and e-signature features call those doors.
 > - **Tests:** [access/session.test.ts](../../../apps/tablets-server/test/access/session.test.ts),
 >   [access/attribution.test.ts](../../../apps/tablets-server/test/access/attribution.test.ts).
 > - **Error:** `UNLOCK_OTHER_PERSON`, `SWITCH_USER`, `SWITCH_NOT_ON_OFFICE`, `TAP_REQUIRED`, `EBMR-TAB-014`, `EBMR-TAB-017`.
+
+**The warning before the inactivity lock** (slice 7d, finding A11Y-1; outline 7.4; WCAG 2.2 success criterion 2.2.1).
+The session view names `idleLockInSeconds` and `endsInSeconds`, counted by the database's clock
+([tab.resolve_session](../../../apps/tablets-server/sql/1460_session_idle_lock_in.sql#sym=tab.resolve_session), tablets
+1460; the lock and the end are still decided by `iam.session_state` alone). The web app's session control
+([controller.tsx](../../../apps/tablets-web/src/features/access/controller.tsx)) keeps the two deadlines from every
+session answer, moves the idle one on after each command the server took, and opens
+[IdleWarning](../../../packages/ui-kit/src/identity/IdleWarning.tsx#sym=IdleWarning) 60 s before the lock: "Keep
+working" on an office PC, a badge tap of the session's own person on a kiosk (the keep-alive takes a tap there), or
+"Lock now". Five minutes before the absolute end it says so once; nothing extends the end. Tests:
+[access/session.test.ts](../../../apps/tablets-server/test/access/session.test.ts) and
+[access/idle-warning.test.tsx](../../../apps/tablets-web/test/access/idle-warning.test.tsx).
 
 ## ts-audit: audit trail reads
 

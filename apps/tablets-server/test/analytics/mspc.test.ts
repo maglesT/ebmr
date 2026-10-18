@@ -17,7 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MspcBatchView, MspcChartView, routes } from '@ebmr/api-contract';
 import { analyticsHistory, analyticsHistorySql, HISTORY_ITEMS, HISTORY_PRODUCT, HISTORY_SEEDS, type AnalyticsHistory } from '@ebmr/test-kit';
 import { MSPC_METHOD_DEFINITION } from '../../src/analytics/mspc.ts';
-import type { AnalyticsRunner } from '../../src/analytics/runner.ts';
+import type { AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { SPC_METHOD_DEFINITIONS, type MethodDefinition } from '../../src/analytics/spc.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
@@ -66,7 +66,7 @@ async function approvedChangeRecord(areas: string[]): Promise<string> {
   return number;
 }
 
-const runner = (): AnalyticsRunner => {
+const runner = (): AnalyticsRunnerApi => {
   const r = gmp.built.analytics;
   if (!r) throw new Error('the GMP server started without its analytics runner');
   return r;

@@ -15,6 +15,7 @@ import { readSnapshot } from '../../src/analytics/inputs.ts';
 import { createAnalyticsPool } from '../../src/analytics/pool.ts';
 import { IMPLEMENTATIONS } from '../../src/analytics/implementation.ts';
 import { AnalyticsRunner, type EffectiveVersion } from '../../src/analytics/runner.ts';
+import type { AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { fixtureBatch, probe, releaseMethodVersion } from './support.ts';
 
@@ -34,7 +35,7 @@ afterAll(async () => {
   await gmp?.close();
 });
 
-const runner = (): AnalyticsRunner => {
+const runner = (): AnalyticsRunnerApi => {
   const r = gmp.built.analytics;
   if (!r) throw new Error('the GMP server started without its analytics runner');
   return r;

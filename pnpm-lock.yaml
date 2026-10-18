@@ -540,6 +540,9 @@ importers:
       '@ebmr/kernel':
         specifier: workspace:0.1.0
         version: link:../../packages/kernel
+      '@ebmr/recipe-core':
+        specifier: workspace:0.1.0
+        version: link:../../packages/recipe-core
       '@ebmr/test-kit':
         specifier: workspace:0.1.0
         version: link:../../packages/test-kit

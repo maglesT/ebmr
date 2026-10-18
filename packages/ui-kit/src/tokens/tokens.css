@@ -60,6 +60,15 @@ html {
   background: var(--ebmr-background);
 }
 
+/*
+ * The floor's run header (sticky at the top) and its action bar (sticky at the bottom) never cover the element that has
+ * the focus: the browser scrolls a focused element clear of both (WCAG 2.4.11; slice 7d accessibility audit).
+ */
+:root[data-density='floor'] {
+  scroll-padding-top: calc(var(--ebmr-primary-bar) + 4 * var(--ebmr-gap));
+  scroll-padding-bottom: calc(var(--ebmr-primary-bar) + 2 * var(--ebmr-gap));
+}
+
 body {
   margin: 0;
 }

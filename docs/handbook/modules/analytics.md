@@ -16,6 +16,7 @@ the plan is [phase-6a-plan.md](../../build-plan/phase-6a/phase-6a-plan.md) and t
 |---|---|
 | Pure statistics, method registry, canonical hashing, quantiles, linear algebra | [packages/analytics/src/](../../../packages/analytics/src/) |
 | The runner (schedule, poll, one snapshot, recording) | [runner.ts](../../../apps/tablets-server/src/analytics/runner.ts#sym=AnalyticsRunner) |
+| The runner in its own worker thread (slice 7d, P6A7-4: no event-loop block in the server) | [threaded.ts](../../../apps/tablets-server/src/analytics/threaded.ts#sym=ThreadedAnalyticsRunner), [worker-entry.ts](../../../apps/tablets-server/src/analytics/worker-entry.ts) |
 | The runner's reads and its row hash | [inputs.ts](../../../apps/tablets-server/src/analytics/inputs.ts#sym=readSnapshot) |
 | The runner's own connection (ebmr_analytics) | [pool.ts](../../../apps/tablets-server/src/analytics/pool.ts#sym=createAnalyticsPool) |
 | What a method slice adds to the runner | [implementation.ts](../../../apps/tablets-server/src/analytics/implementation.ts#sym=IMPLEMENTATIONS) |

@@ -11,8 +11,10 @@
 import { randomUUID } from 'node:crypto';
 import type { Writable } from 'node:stream';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { continuity } from '@ebmr/kernel';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { AnalyticsRunner } from './analytics/runner.ts';
+import { ThreadedAnalyticsRunner, type AnalyticsRunnerApi } from './analytics/threaded.ts';
 import type { MethodImplementation } from './analytics/implementation.ts';
 import { createAnalyticsPool } from './analytics/pool.ts';
 import type { EnvConfig, ServerConfig } from './config.ts';
@@ -58,7 +60,7 @@ export interface BuiltApp {
   app: FastifyInstance;
   ctx: AppContext;
   /** The analytics runner (GMP with EBMR_ANALYTICS on; ADR 0020), or null. */
-  analytics: AnalyticsRunner | null;
+  analytics: AnalyticsRunnerApi | null;
   /** Closes the server and, when buildApp opened them, the pools. */
   close(): Promise<void>;
 }
@@ -71,6 +73,12 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
   refuseUnstorableParameters(pools.authn.pool);
   try {
     await assertInstallation(pools.app, env);
+    // Slice 7d (P7D-6; DI-13): in production the database itself must say the sessions are encrypted (pg_stat_ssl, TLS
+    // 1.2 or later), for the application and the authentication logins, before the server opens.
+    if (env.env === 'production') {
+      await continuity.assertEncryptedDatabaseSession(pools.app);
+      await continuity.assertEncryptedDatabaseSession(pools.authn.pool);
+    }
     // Every actor context this server builds declares this zone (EBMR-IAM-118): never a configured constant.
     const config: ServerConfig = { ...env, siteZone: await siteZoneFromPolicy(pools.app, env) };
     const demo = await demoState(pools.app, config);
@@ -144,16 +152,26 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     await app.ready();
     const siteZoneWatch = siteZone.watch(deps.siteZoneCheckIntervalMs ?? SITE_ZONE_CHECK_INTERVAL_MS);
     // Phase 6A slice 6A-1: the analytics runner, on the GMP installation only (D-6A-6), on its own login (ADR 0020 point 3).
-    const analytics = config.analytics.enabled
-      ? new AnalyticsRunner({
-          pool: createAnalyticsPool(config.analytics.url),
-          log: app.log,
-          siteZone: () => siteZone.current(),
-          commit: config.analytics.commit,
-          ...(deps.analytics?.implementations ? { implementations: deps.analytics.implementations } : {}),
-          ...(deps.analytics?.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
-        })
-      : null;
+    // Slice 7d (P6A7-4, SLO-5): in its own worker thread, so its reads, hashes and methods never block the server's
+    // event loop; in process only for tests that give it their own method implementations (functions stay in process).
+    const analytics: AnalyticsRunnerApi | null = !config.analytics.enabled
+      ? null
+      : deps.analytics?.implementations
+        ? new AnalyticsRunner({
+            pool: createAnalyticsPool(config.analytics.url),
+            log: app.log,
+            siteZone: () => siteZone.current(),
+            commit: config.analytics.commit,
+            implementations: deps.analytics.implementations,
+            ...(deps.analytics.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
+          })
+        : new ThreadedAnalyticsRunner({
+            url: config.analytics.url,
+            log: app.log,
+            siteZone: () => siteZone.current(),
+            commit: config.analytics.commit,
+            ...(deps.analytics?.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
+          });
     analytics?.start();
     return {
       app,

@@ -40,6 +40,13 @@ export const SessionView = z.strictObject({
   installation: InstallationKind,
   locked: z.boolean(),
   idleTimeoutSeconds: z.number().int().positive(),
+  /**
+   * Seconds until the inactivity lock, by the database's clock when the view was made (WCAG 2.2.1; outline 7.4: the page
+   * warns before it, and a keep-alive extends it); null when the session is not active (locked, or its role withdrawn).
+   */
+  idleLockInSeconds: z.number().int().nonnegative().nullable(),
+  /** Seconds until the absolute timeout ends the session (no keep-alive extends it); null once it has ended. */
+  endsInSeconds: z.number().int().nonnegative().nullable(),
   csrfToken: z.string().min(1),
   /** Per-entry attribution on this device (decision D8): NONE on office devices, TAP (default) or TAP_PIN on kiosks. */
   attribution: z.enum(['NONE', 'TAP', 'TAP_PIN']),
