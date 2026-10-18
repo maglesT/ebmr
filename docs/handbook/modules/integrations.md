@@ -511,7 +511,12 @@ may be as old as the gateway's offline buffer before that session (setting `inte
 default 7 days, changed under a change record); a time of 1970 still fails. A session itself is refused when its start
 is more than that buffer before the database's clock (`plant.opcua_session_start_guard`), which catches a gateway clock
 at 1970 while a session pulled after a server outage still lands. (The plain five-minute skew would refuse that late
-session, and with it every message after it.)
+session, and with it every message after it.) Fix round 2 (recipe-core
+[1235](../../../packages/recipe-core/sql/1235_opcua_series_offline_bound.sql), the GB-T-03 regression): a series sample
+may be as old as the offline buffer before its session too. An OPC UA server sends each monitored value at subscription
+with the source time of its last change, so a tag unchanged since before the session (GB-T-03's fill depth) comes hours
+old and is genuine; the five-minute bound kept it out of the series. The gateway's BEFORE_SESSION threshold is the same
+buffer (`OPCUA_OFFLINE_BUFFER_US`, driver option `offlineBufferUs`).
 
 **The stale-mirror refusal says whom to call (F-6jb-2).** A signature or act refused because a qualification comes from a
 stale mirror said only `STALE_QUALIFICATION_SOURCE:<qualification>`. Kernel

@@ -112,6 +112,14 @@ export const MISSING_TIMESTAMP_STATUS = '0x80230000';
  */
 export const SOURCE_TIME_SKEW_US = 300_000_000n;
 
+/**
+ * The default of the gateway's offline buffer (kernel 1330, setting integration.opcua_offline_buffer_s, 7 days): the
+ * oldest an OPC UA record may be before the endpoint session it stands on (recipe-core 1235). A value unchanged since
+ * before the session (the current value sent at subscription) or held while the gateway was down is genuine data within
+ * it; a time from a clock at 1970 is not.
+ */
+export const OPCUA_OFFLINE_BUFFER_US = 604_800_000_000n;
+
 /** Whose data a series, an alarm or an event is: a unit of plant.equipment or a room or line of plant.area. */
 export const SUBJECT_KINDS = ['EQUIPMENT', 'AREA'] as const;
 export const SubjectKind = z.enum(SUBJECT_KINDS);

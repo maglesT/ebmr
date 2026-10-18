@@ -1507,6 +1507,11 @@ date from the database's clock, never from the machine's.
   while its answer was lost was submitted again (now the next run reads the database). Tests: `opcua-adapter.test.ts`,
   `opcua-spool.test.ts` "review round 1", `feed-adapters.test.ts` "answer was lost". Lesson: a bound must fit what each
   record is: a sample, an alarm and a session reach the database at different delays.
+- **Fix round 2 (GB-T-03 regression).** The press's fill depth, unchanged since the simulator started, came at
+  subscription with its old source time; the five-minute series bound (gateway and recipe-core 1233) kept it out of the
+  series and GB-T-03 waited for it in vain. A value unchanged since before the session is genuine: series now have the
+  offline buffer too (recipe-core 1235). Lesson: an OPC UA source time is the time of the last change, not of the
+  delivery.
 
 ## Open residuals for the owner
 

@@ -242,7 +242,7 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     expect(await count(db, "select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'SERIES_GAP'", [w.adapter.code])).toBe(1);
   });
 
-  it('[DI-32] 6jc-R13: a chunk dated more than the allowed skew before its endpoint session started is refused with an alarm and lands nowhere; one within it lands', async () => {
+  it('[DI-32] 6jc-R13: a chunk dated more than the offline buffer before its endpoint session started (a 1970 clock) is refused with an alarm and lands nowhere; a value unchanged for a day before the session lands', async () => {
     const before = await seriesRows();
     const opened = BigInt(nowUs());
     feed.publish('opcua.endpoint_session', session({ openedAt: opened.toString() }));
@@ -252,9 +252,10 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     feed.publish('opcua.series_chunk', { ...old, chunkHash: seriesChunkHash(old) });
     const rs = await settle();
     expect(refusedOf(rs, 'OUT_OF_RANGE')).toBe(1);
-    expect(rs.flatMap((r) => r.outcomes).find((o) => o.result === 'REFUSED')?.detail).toMatch(/EBMR-EQD-003 source time 0 is more than five minutes before the start of the endpoint session/);
+    expect(rs.flatMap((r) => r.outcomes).find((o) => o.result === 'REFUSED')?.detail).toMatch(/EBMR-EQD-003 source time 0 is more than 604800 s before the start of the endpoint session/);
     expect(await seriesRows()).toBe(before);
-    const within = { ...old, samples: [{ sourceTime: (opened - 60_000_000n).toString(), serverTime: null, raw: '12.5', value: '12.5', status: '0x00000000' }] };
+    // The current value of a tag unchanged since the day before, sent at subscription: genuine (golden regression, round 2).
+    const within = { ...old, samples: [{ sourceTime: (opened - 86_400_000_000n).toString(), serverTime: null, raw: '12.5', value: '12.5', status: '0x00000000' }] };
     feed.publish('opcua.series_chunk', { ...within, chunkHash: seriesChunkHash(within) });
     expect(total(await settle(), 'accepted')).toBe(1);
     expect(await seriesRows()).toBe(before + 1);

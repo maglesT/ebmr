@@ -279,7 +279,7 @@ describe('the dating of OPC UA samples (6jc-R13)', () => {
     expect(sampleOf(dv({ sourceTimestamp: new Date(1_790_000_000_001), serverTimestamp: new Date(1_790_000_000_002) }), 7_000_000n).sample.sourceTime).toBe('1790000000001000');
   });
 
-  it('[DI-32] 6jc-R13: the driver alarms a sample without a timestamp and keeps it BAD; a sample dated more than the allowed skew before its session stays out of the series with an alarm', async () => {
+  it('[DI-32] 6jc-R13: the driver alarms a sample without a timestamp and keeps it BAD; a sample dated more than the offline buffer before its session stays out of the series with an alarm; a value unchanged for hours before it is taken', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'opcua-spool-'));
     const clock = new TestClock(1_790_000_000_000_000n);
     const feed = openFeed(dir, clock);
@@ -289,10 +289,12 @@ describe('the dating of OPC UA samples (6jc-R13)', () => {
     const d = driverOn(feed.sink(), feed, clock, t, alarms);
     drivers.push(d);
     await until(() => d.state === 'ONLINE', 2000, 'online');
-    // Six minutes before the session opened: the current value of a tag unchanged since then.
-    t.push('force.main_kN', clock.wall - 360_000_000n, '12.4');
+    // Eight days before the session opened: more than the offline buffer (7 days).
+    t.push('force.main_kN', clock.wall - 8n * 86_400_000_000n, '12.3');
     expect(alarms.map((a) => a.kind)).toEqual(['BEFORE_SESSION']);
-    // Within the skew, and a value without a timestamp (dated at receipt by the transport, BAD).
+    // A day before it: the current value of a tag unchanged since then (genuine; golden regression of round 2).
+    t.push('force.main_kN', clock.wall - 86_400_000_000n, '12.4');
+    // A minute before it, and a value without a timestamp (dated at receipt by the transport, BAD).
     t.push('force.main_kN', clock.wall - 60_000_000n, '12.5');
     t.onChange?.({
       nodeId: opcuaNodeId('PRESS-01', 'force.main_kN'), sample: { sourceTime: clock.wall.toString(), serverTime: null, raw: '12.6', value: null, status: MISSING_TIMESTAMP_STATUS },
@@ -303,6 +305,8 @@ describe('the dating of OPC UA samples (6jc-R13)', () => {
     drivers.splice(0);
     await d.stop();
     const samples = feed.published().filter((m) => m.messageType === 'opcua.series_chunk').flatMap((m) => SeriesChunkV1.parse(m.payload).samples);
-    expect(samples.map((s) => [s.sourceTime, s.status])).toEqual([[(clock.wall - 60_000_000n).toString(), '0x00000000'], [clock.wall.toString(), MISSING_TIMESTAMP_STATUS]]);
+    expect(samples.map((s) => [s.sourceTime, s.status])).toEqual([
+      [(clock.wall - 86_400_000_000n).toString(), '0x00000000'], [(clock.wall - 60_000_000n).toString(), '0x00000000'], [clock.wall.toString(), MISSING_TIMESTAMP_STATUS],
+    ]);
   });
 });
