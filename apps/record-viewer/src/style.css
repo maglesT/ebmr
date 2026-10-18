@@ -1,0 +1,31 @@
+:root { color-scheme: light dark; --fg: #1b1f24; --bg: #ffffff; --muted: #57606a; --line: #d0d7de; --ok: #116329; --okbg: #dafbe1; --bad: #82071e; --badbg: #ffebe9; --warn: #7d4e00; --warnbg: #fff8c5; }
+@media (prefers-color-scheme: dark) { :root { --fg: #e6edf3; --bg: #0d1117; --muted: #9da7b3; --line: #30363d; --ok: #7ee2a8; --okbg: #12261a; --bad: #ffa198; --badbg: #2d1215; --warn: #e3b341; --warnbg: #2b2111; } }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); }
+.top, main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 0 0 4px; }
+h3 { font-size: 1rem; margin: 16px 0 4px; }
+.readonly, .meta, .note { color: var(--muted); }
+.open { display: grid; gap: 6px; max-width: 640px; margin-bottom: 16px; }
+input[type=text] { font: 13px ui-monospace, monospace; padding: 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); }
+.verdict { border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 16px; }
+.verdict.passed { background: var(--okbg); color: var(--ok); }
+.verdict.failed { background: var(--badbg); color: var(--bad); }
+.verdict.unanchored { background: var(--warnbg); color: var(--warn); }
+.record { border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+.record.failed { border-color: var(--bad); }
+.badge { display: inline-block; margin: 0; padding: 0 8px; border-radius: 10px; font-size: 0.85rem; }
+.badge.passed { background: var(--okbg); color: var(--ok); }
+.badge.failed { background: var(--badbg); color: var(--bad); }
+.sha { font: 12px ui-monospace, monospace; overflow-wrap: anywhere; }
+.signatures { padding-left: 18px; }
+.signature dl { display: grid; grid-template-columns: max-content 1fr; gap: 0 12px; margin: 4px 0; }
+.signature dt { color: var(--muted); }
+.signature dd { margin: 0; }
+.manifestation { font-weight: 600; }
+details.chain { margin: 6px 0; }
+details.chain summary { cursor: pointer; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; display: block; overflow-x: auto; }
+th, td { border-bottom: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; }
+.problems li { overflow-wrap: anywhere; }

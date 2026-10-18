@@ -607,6 +607,8 @@ export const TARGETS: Target[] = [
   //     deviation references (recipe-core 0500-0504, 0582, 0601, 0603) ----
   {
     group: 'gmp-batch-issue',
+    // Slice 7c (recipe-core 1250) re-creates recipe.gmp_issue_problem for the validation-summary interlock (DI-03); its
+    // test is lifecycle/gmp-issue.test.ts, already listed.
     functions: ['recipe.batch_record_identity_guard', 'recipe.execution_mbr_content', 'recipe.batch_mbr_content',
                 'recipe.content_for_mbr_hash', 'recipe.sandbox_only_blocks_in', 'recipe.batch_allocation_link_guard',
                 'recipe.control_recipe_sandbox_only_guard', 'recipe.batch_issue_content', 'recipe.gmp_batch_problem',
@@ -1120,7 +1122,9 @@ export const TARGETS: Target[] = [
                 'platform.record_reconciliation', 'platform.record_mirror_sync', 'platform.mirror_freshness',
                 'platform.mirror_fresh_or_raise', 'platform.record_inbound_override', 'iam.qualification_source_fresh',
                 'iam.lms_mirror_problem', 'iam.lms_qualification_payload_problem', 'iam.receive_lms_qualification', 'platform.gap_needs_owner_or_qa', 'iam.stale_qualification_source_problem'],
-    tests: [k('inbound/inbound.test.ts'), k('inbound/overrides-and-lms-mirror.test.ts'), k('integrations/lms-inbound.test.ts'),
+    // Slice 7c (kernel 1350) re-creates platform.accept_inbound_detail and record_inbound_refusal for the interface drift
+    // interlock (DI-06); they stay here with the drift test file.
+    tests: [k('inbound/inbound.test.ts'), k('inbound/overrides-and-lms-mirror.test.ts'), k('integrations/lms-inbound.test.ts'), k('inbound/interface-drift.test.ts'),
             k('integration/authorization.test.ts'), k('inbound/source-verification.test.ts'), s('equipment-data/feed-signature.test.ts'), k('inbound/inbound.test.ts'), s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
@@ -1491,6 +1495,52 @@ export const TARGETS: Target[] = [
     group: 'batch-scope-remaining',
     functions: ['recipe.require_issue_permission'],
     tests: [r('review/batch-scope.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7b-2: the full export of the closed records (DI-08 clause 2; kernel 1335, recipe-core 1240).
+  {
+    group: 'full-export',
+    functions: [
+      'records.closed_di_investigation_records', 'records.closed_incident_records',
+      'records.full_export_snapshot', 'records.register_full_export', 'records.register_export_restricted_table',
+      'records.require_export_permissions', 'records.closed_record_chains', 'records.export_chain_parts',
+      'records.open_export_run', 'records.begin_full_export', 'records.full_export_records', 'records.readability_snapshot',
+      'report.closed_batch_records', 'report.closed_record_rows_v1', 'report.readability_sample_rows_v1',
+      'report.register_closed_record_source',
+    ],
+    tests: [k('records/full-export.test.ts'), k('records/records-cli.test.ts'), r('records/closed-batch-records.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7b-2: the periodic evaluation pack and its QA sign-off bound to its hash (DI-11 clause 1, DI-44
+  // clause 1; kernel 1336, site-services 1120, recipe-core 1240).
+  {
+    group: 'evaluation-pack',
+    functions: [
+      'records.store_evaluation_pack', 'records.evaluation_pack_content', 'records.approve_evaluation_pack',
+      'report.register_evaluation_source', 'report.evaluation_entry_rows_v1', 'report.evaluation_period_rows_v1',
+      'report.evaluation_topic_rows_v1', 'report.evaluation_access_recertifications', 'report.evaluation_audit_reviews',
+      'report.evaluation_backups', 'report.evaluation_change_records', 'report.evaluation_config_changes',
+      'report.evaluation_deviations', 'report.evaluation_incidents', 'report.evaluation_integration_alarms',
+      'report.evaluation_integrity_checks', 'report.evaluation_open_di_investigations', 'report.evaluation_recipe_changes',
+      'report.evaluation_restore_drills', 'report.evaluation_time_events',
+    ],
+    tests: [k('records/evaluation-pack.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7c: an inbound interface not in the approved system description is refused and alarmed (DI-06; kernel
+  // 1350). The re-created platform.accept_inbound_detail and record_inbound_refusal stay in their group.
+  {
+    group: 'interface-drift',
+    functions: ['platform.interface_drift_problem', 'platform.check_adapter_start', 'iam.integration_adapter_drift_alarm'],
+    tests: [k('inbound/interface-drift.test.ts'), s('integrations/adapter-startup.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7c: a GMP batch is refused without an approved validation summary (DI-03; recipe-core 1250). The
+  // re-created recipe.gmp_issue_problem stays in its group.
+  {
+    group: 'validation-summary-gate',
+    functions: ['recipe.batch_execution_validation_gate'],
+    tests: [r('lifecycle/gmp-issue.test.ts')],
     threshold: 90,
   },
 ];

@@ -18,6 +18,7 @@ import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { again } from '../../../kernel/test/records/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { approveTestRelease } from '../../../kernel/test/support/validation.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import { define, FIXTURE_INPUTS, FIXTURE_JUSTIFICATIONS } from '../engine/support.ts';
@@ -71,6 +72,8 @@ async function pack(batch: string, pages: number): Promise<IssuedForm[]> {
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  // Slice 7c (DI-03, recipe-core 1250): a GMP batch is issued only on a release with an approved validation summary.
+  await approveTestRelease(db);
   w = new World(db, await seedCast(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   supervisor = await seedActor(db, { roleCode: 'SHIFT_SUPERVISOR', legalName: 'Sunil Supervisor' });

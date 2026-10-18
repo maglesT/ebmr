@@ -60,3 +60,36 @@ Residuals of the parts:
   without loosening other change detection (D-P7-7; defect log).
 - Ten writers refuse administrators just after their permission check rather than before (both before anything is
   written); listed by the wider authorization scan (6jc-R7), not re-created.
+
+## Slice 7b-2 (the stand-alone viewer and the periodic evaluation pack; review of 18 October 2026)
+
+One read-only pass. Checked without a finding: XSS and network in the viewer (record text set as text, CSP
+`default-src 'none'` with pinned script and style), the four definers' `search_path`, administrator check and grants,
+no `Date.now()` or JavaScript numbers for GMP values. Every finding was fixed in one round, each with a test that fails
+on the earlier code (the slice's migrations were not yet merged, so kernel 1335, 1336, site-services 1120 and
+recipe-core 1240 were corrected in place).
+
+| Id | Severity | Finding | Outcome |
+|---|---|---|---|
+| P7B2-1 | high (DI-11) | The pack store compared only each entry's identity with the source logs, so a generator could change a restore-drill result, a deviation's classification or an integrity count and QA would sign the hash of a falsified pack. | Fixed: every entry's full content, every topic's sources and every sampled record are compared with the database's own rows before the pack is stored. |
+| P7B2-2 | medium-high (DI-08, DI-44) | "Closed" was the first move to a terminal status, not the record's current state, so a reopened batch, or one still in review, was exported and sampled as closed. | Fixed: a batch is closed only while its record is locked, or it is aborted or cancelled; the latest such event is its close time. |
+| P7B2-3 | medium (DI-08) | Amendments of a locked record (`record_lock`) and their signatures were missing from the export. | Fixed. |
+| P7B2-4 | medium (DI-08) | The export's registration trusted the client's chains and head hashes. | Fixed: the export is a run with its scope fixed and audited, paged, written to disk as it goes; registration must match the run's records, chains and heads, each head hash checked in the database. |
+| P7B2-5 | medium (DI-08) | Without the registered export hash, the viewer showed "All checks passed". | Fixed: it shows "NOT ANCHORED — origin unverified" and says where the registered hash is found. |
+| P7B2-6 | medium (IN-53) | Batch and lot chains holding controlled-substance rows were exported and sampled for a holder without CONTROLLED.READ. | Fixed: such an export or sample is refused, not trimmed (an export must be complete). |
+| P7B2-7 | medium (scale) | Unindexed signature lookups, the closed-record set recomputed per call, the whole export held in memory. | Fixed: a range index, the scope computed once per run, keyset paging, files streamed to disk and loaded by the viewer on demand. 7d's load test measures it. |
+| P7B2-8 | low | The reporting reader was not checked; a malformed part left the viewer on "Checking…"; the sample's seed and size were free. | Fixed: the reader must be `ebmr_report`; viewer errors are a failed verdict; the sample is at least the smaller of 10 and the closed records, with its seed and size in the signed pack. |
+
+Residuals of the slice: no screen yet for QA's sign-off of the pack (slice 7g-3, decision 0025); an HMAC-sealed
+installation's seals are checked by the installation, not offline (Ed25519 sealing is checked offline; D-7b2-1).
+
+## Slice 7c (validation pack generators and the DI-03 and DI-06 interlocks; review of 18 October 2026)
+
+One read-only quick pass, no findings. Checked: kernel 1350 against main's latest definitions (`accept_inbound_detail`
+from kernel 1305 and `record_inbound_refusal` from 1180 differ only by the drift check; the alarm-kind check keeps
+SERIES_GAP and adds INTERFACE_DRIFT, matching the SDK's list); recipe-core 1250's `gmp_issue_problem` is 0891's body
+plus the validation-summary check first; every new definer has a fixed `search_path`, the internal functions are
+revoked from public and only `check_adapter_start` is granted to `ebmr_app`; no `Date.now()` or JavaScript numbers for
+GMP values; the DI-06 tests exercise the alarm, the refusal without a stored message, the start check and the bypasses.
+The golden batches pass unchanged (44/44): no golden output was re-taken.
+

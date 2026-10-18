@@ -9,6 +9,7 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import { ensureFixtureChangeRecord, underChange } from '../../../kernel/test/support/change-record.ts';
 import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { acknowledgeGaps } from '../../../kernel/test/integrations/support.ts';
+import { describeTestInterfaces, testInterface } from '../../../kernel/test/support/validation.ts';
 import type { TestDatabase } from '../helpers.ts';
 import { seedCast, World } from '../lots/support.ts';
 
@@ -18,6 +19,8 @@ export const sha = (s: string): string => createHash('sha256').update(s, 'utf8')
 export async function registerAdapter(db: TestDatabase, actor: SeededActor, system: string, prefix = 'ERPWMS'): Promise<string> {
   const { admin } = await seedAdministration(db);
   const code = `${prefix}-${randomBytes(3).toString('hex').toUpperCase()}`;
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  await describeTestInterfaces(db, [testInterface(code, system as Parameters<typeof testInterface>[1])]);
   await withCommand(db.app, withReason(admin), (c) =>
     c.query('select iam.register_integration_adapter($1, $2, $3, $4, $5)', [code, system, actor.accountId, actor.deviceId, `test adapter ${code}`]),
   );

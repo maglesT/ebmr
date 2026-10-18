@@ -445,6 +445,39 @@ Tests create their CA and certificates at run time
 ([test-pki.ts](../../apps/tablets-server/test/support/test-pki.ts), OpenSSL command line); no key material is
 committed.
 
+## Validation summary and system description (Phase 7 slice 7c)
+
+A GMP installation issues no GMP batch until QA has approved the validation summary of the release it runs
+([DI-03](../../compliance/controls/DI-03.yaml); EBMR-VAL-001), and takes no message from, and starts no adapter of, an
+interface missing from the approved system description ([DI-06](../../compliance/controls/DI-06.yaml); EBMR-INT-035,
+alarm INTERFACE_DRIFT). A sandbox and training runs are not gated.
+
+### Approving the validation summary of a release
+
+1. After the upgrade, generate the pack for the release (see
+   [06-testing-and-debugging](06-testing-and-debugging.md#generating-the-validation-pack)) and run the IQ and OQ.
+2. QA reviews the validation summary report (`validation-summary.html`), completes the conclusion, and keeps the final
+   document. Its SHA-256 is the summary hash.
+3. A QA person holding VALIDATION.APPROVE_SUMMARY signs VALIDATION_SUMMARY_APPROVED on the aggregate
+   `validation_summary`, id `<schema release>@<summary sha256>` (the schema release is `select platform.schema_release()`),
+   then records the approval with that signature: `platform.approve_validation_summary(release, sha256, title,
+   signature)` (kernel caller `config.approveValidationSummary`).
+4. Check: `select platform.validation_summary_problem()` returns NULL. GMP batches may now be issued.
+
+Every migration changes the schema release, so each upgrade needs a new approval. Batches issued before are not touched.
+
+### Recording an interface in the system description
+
+1. The system owner (PROCESS_OWNER or CSV_DI_LEAD) raises a change record naming the area SYSTEM_DESCRIPTION.
+2. QA approves it with a CONFIG_CHANGE_APPROVED signature.
+3. Under that change record the system owner records the interface: `platform.describe_interface` with its adapter code,
+   source system, endpoint host, transport (LOOPBACK or MTLS), whether its feed is signed (the OPC UA feed always is)
+   and status DESCRIBED (WITHDRAWN to remove it). Then the change record is closed.
+4. Restart the server: an adapter whose interface was refused at start (health BLOCKED, EBMR-INT-035) starts now. The
+   INTERFACE_DRIFT alarms on the integrations page are acknowledged with a note.
+
+`pnpm validation:iq` (IQ-10) lists every active adapter that is not described.
+
 ## Reconciliation and series gaps (Phase 7 slice 7b-1)
 
 Both raise an integration alarm on the integrations page; neither is acknowledged until someone has found out why
@@ -482,6 +515,51 @@ days (the offline buffer) before the session opened (kept as the current value, 
 clock or its timestamp settings are wrong: check its time synchronisation and that it returns source timestamps. The
 database refuses series, alarms and events from any other path, and sessions, older than the gateway's offline buffer (`integration.opcua_offline_buffer_s`, default 7 days;
 raise it under a change record before a planned longer outage).
+
+## Full export and periodic evaluation (Phase 7 slice 7b-2)
+
+The full export of the installation and the periodic evaluation pack of the system
+([kernel](modules/kernel.md#the-full-export-the-closed-records-and-the-periodic-evaluation-pack-phase-7-slice-7b-2-kernel-1335-1336),
+[record viewer](modules/record-viewer.md); DI-08, DI-11, DI-44). Both are run by the CSV / DI lead with the operators'
+command line [records-cli.ts](../../packages/kernel/src/records/records-cli.ts), as an open session of that person
+(`--actor-json`, the same form as the restore drill's). Exit code 0 is done, 1 a refusal (the message names the
+`EBMR-` code), 2 a usage error.
+
+**Make a full export** (at a contract's end, for an inspector, or to test the archive).
+1. `tsx packages/kernel/src/records/records-cli.ts full-export --url <app URL> --actor-json @lead.json --out <empty folder> --seal-key-file <the installation's seal key file>`.
+   The person needs RECORD.EXPORT (CSV / DI lead or read-only auditor), and CONTROLLED.READ with no site or product
+   limit when controlled-substance records are exported (the export is refused otherwise, never cut short). The seal key
+   file lets the installation record its own check of each HMAC seal; leave it out and the viewer shows those seals as
+   not checked. On any refusal nothing is registered and the folder is removed.
+2. Keep the printed export SHA-256 with the export (it is also in `records.full_export`). Give it to whoever opens the
+   export: the viewer compares the folder with it.
+3. Build the viewer once per release, `pnpm --filter @ebmr/record-viewer build`, and hand over
+   `apps/record-viewer/dist/record-viewer.html` with the export. It opens from the file system in a current browser.
+4. In the viewer: pick the export folder, type the export SHA-256, and read the verdict. "All checks passed" with "It
+   matches the expected export SHA-256" means every record shown is the registered copy. "NOT ANCHORED" means the
+   SHA-256 was not given: the files agree with each other, but their origin is not proven. Any failed record is listed
+   with its findings and not shown; treat it as a data-integrity event (raise an incident, DI-12).
+
+**Run the periodic evaluation** (DI-11 default: every 12 months; the readability sample DI-44 default: quarterly).
+1. Choose a period that has ended, for example `--from 2026-07-01T00:00:00+05:30 --to 2026-10-01T00:00:00+05:30`, and a
+   seed (any text, stored and signed with the pack so the sample can be repeated, for example `2026-Q3`). The sample
+   takes at least 10 records (every closed record when fewer are closed); a closed record is a locked batch record, an
+   aborted or cancelled one, a closed incident or a closed DI investigation.
+2. `tsx packages/kernel/src/records/records-cli.ts evaluation-pack --url <app URL> --report-url <URL of the role ebmr_report> --actor-json @lead.json --from <time> --to <time> --seed <text> --sample 10 --out pack-2026-Q3.json`.
+   The person needs VALIDATION.MANAGE and RECORD.EXPORT (the CSV / DI lead). The entries are read through the reporting
+   role (any other login is refused, EBMR-REC-160), and the database compares every entry's whole content with the
+   source logs before it stores the pack.
+3. The command prints the pack id, the entries per topic, the records sampled and how many were unreadable, and the
+   pack SHA-256. The database has stored the pack only after checking it against the source logs and the seeded sample
+   (EBMR-REC-152 to -157 name what did not match).
+4. Review the pack: every entry names its source log and row, so any entry can be traced (`select * from <source log>
+   where id = <row>`). An UNREADABLE record is a data-integrity event: raise an incident (DI-12) with the findings.
+5. QA (QA_REVIEWER or QA_MBR_APPROVER, not the person who generated it) signs the pack off with the
+   PERIODIC_EVALUATION_APPROVED signature over aggregate `evaluation_pack`, id the pack id, and records it with
+   `records.approve_evaluation_pack(pack id, signature id)`. The signature binds the pack SHA-256; a second sign-off is
+   refused. There is no screen for this sign-off yet (residual of slice 7b-2): until there is, the signature is made
+   through the kernel's signing flow (`esig.createChallenge`, the signer's SIGNATURE authentication, `esig.sign`) as the
+   test-kit's helpers do.
 
 ## Release drills, load and security verification (Phase 7 slice 7d)
 

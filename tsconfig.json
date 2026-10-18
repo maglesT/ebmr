@@ -6,6 +6,8 @@
     "**/fixtures/**",
     "packages/ui-kit/**",
     "apps/tablets-web/**",
+    "apps/record-viewer/src/**",
+    "apps/record-viewer/build.ts",
     "tools/e2e/**"
   ]
 }
