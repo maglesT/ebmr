@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { routes, type ActionView, type Result, type RouteResponse } from '@ebmr/api-contract';
 import { Banner, Button, floor } from '@ebmr/ui-kit';
 import { api } from '../../../api/client.ts';
+import { useApiQuery } from '../../../api/hooks.ts';
 import { RefusalMessage } from '../../../app/refusal.tsx';
 import { wcls } from '../classes.ts';
 import { useRouteParams } from '../params.ts';
@@ -47,6 +48,32 @@ function ReplayResult({ replay }: { replay: Replay }) {
       )}
       {r.invariantViolations.length > 0 ? <Banner tone="error" title={st('run.violations', { list: r.invariantViolations.join('; ') })} /> : null}
     </div>
+  );
+}
+
+/**
+ * "What you can do now" in this GMP batch for this terminal's room (batches.workQueue; slice 7g-5): each step with the
+ * action the server offers, greyed with its reason when not available now (DI-34), as on the cockpit.
+ */
+function BatchWorkQueue({ batchId }: { batchId: string }) {
+  const queue = useApiQuery(routes.batches.workQueue, { params: { batchId } }, { refetchInterval: 15_000 });
+  return (
+    <section className={wcls('section')} aria-label={st('run.queue')} data-testid="batch-work-queue">
+      <h2 className={wcls('sectionTitle')}>{st('run.queue')}</h2>
+      {queue.error ? <RefusalMessage error={queue.error.error} /> : null}
+      {queue.data && queue.data.items.length === 0 ? <p className={wcls('muted')}>{st('run.queueEmpty')}</p> : null}
+      <ul className={wcls('list')}>
+        {queue.data?.items.map((item) => (
+          <li key={item.stepKey} className={wcls('item')} data-available={String(item.action.available)} data-testid={`batch-work-${item.stepKey}`}>
+            <Link to="/runs/$runId/steps/$stepKey" params={{ runId: batchId, stepKey: item.stepKey }} className={`${wcls('link')} ${item.action.available ? wcls('linkPrimary') : ''}`}>
+              {item.number} {item.title}
+            </Link>{' '}
+            · {item.stage} · <strong>{actionLabel(item.action)}</strong>
+            {item.action.available ? null : <span className={wcls('muted')}> — {floor.ft('action.notAvailable')}: {item.action.reason ?? ''}</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -167,6 +194,8 @@ export function RunOverviewPage() {
           ) : null,
         )}
       </section>
+
+      {isGmpFloor() ? <BatchWorkQueue batchId={runId} /> : null}
 
       <ExceptionList exceptions={view.exceptions} actions={view.actions} perform={perform} busy={signed.busy} />
 

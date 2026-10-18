@@ -11,6 +11,7 @@ import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, Section, useRefresh } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { ReportExport } from './ReportExport.tsx';
 
 /** The reads of this page (route ids), refreshed together. */
 export const DASHBOARD_READS: readonly string[] = [
@@ -63,6 +64,7 @@ export function DashboardsPage() {
       <OverdueReviewsTile />
       <PressOeeTile period={asked} />
       <AlarmTrendTile period={asked} />
+      <ReportExport />
     </>
   );
 }

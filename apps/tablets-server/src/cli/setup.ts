@@ -175,6 +175,7 @@ export async function setupInstallation(opts: SetupOptions): Promise<SiteSeed> {
         return { ...a, reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' };
       },
       adminActor: () => passwordActor(db, seed.bootstrap.admin, seed.bootstrap.admin.fingerprint, { reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
+      ownerActor: () => passwordActor(db, seed.bootstrap.owner, seed.bootstrap.owner.fingerprint, { reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
       serviceActorFor: async (k): Promise<ActorContext> => ({ ...(await openServiceSession(db, seed, k as ServiceKey)), reasonCode: 'DEMO_SETUP', reasonText: 'demo installation set-up' }),
       signAs: async (signer, aggregate, meaning, expectedState): Promise<string> => {
         const p = personaOf(seed, signer);

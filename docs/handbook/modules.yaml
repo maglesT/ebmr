@@ -518,7 +518,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_']
+      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_', '^1260_']
     tests:
       - 'packages/recipe-core/test/mutation/gmp-batch-issue.test.ts'
       - 'packages/recipe-core/test/mutation/erp-interfaces.test.ts'

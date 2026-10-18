@@ -7,7 +7,11 @@
  *  - PENDING_7G2 / PENDING_7G3: person-facing acts whose screens the later parts of slice 7g build (each entry is removed
  *    by the slice that builds its screen);
  *  - NO_SLICE_YET: person-facing routes this test found without a screen that no part of slice 7g names yet (reported to
- *    the lead by slice 7g-1, to be given a slice or a screen).
+ *    the lead by slice 7g-1; slice 7g-5 gave every one a screen, so it is empty).
+ * The acts that had a database function and no route at all (role-permission requests, delegations, the US e-signature
+ * certification) got their routes in slice 7g-5 (ns/access-governance.ts); the server's [meta] test
+ * apps/tablets-server/test/meta/db-acts-have-routes.test.ts lists the database functions a person executes that no route
+ * calls.
  * Every signable action of the ceremony is likewise sent by a screen, unless it is listed.
  *
  * The test fails on a new person-facing route without a screen, on a listed route that now has a screen (remove it from
@@ -40,34 +44,11 @@ const PENDING_7G2: Readonly<Record<string, string>> = {
 /** Slice 7g-3 (system description, validation summary, full export, evaluation pack): their routes join the contract with 7b-2 and 7c. */
 const PENDING_7G3: Readonly<Record<string, string>> = {};
 
-/** Person-facing routes without a screen that no part of slice 7g names yet (found by this test in slice 7g-1). */
-const NO_SLICE_YET: Readonly<Record<string, string>> = {
-  'access.keepAlive': 'a kiosk badge tap that extends the session before the idle lock',
-  'designer.referenceDocuments': 'the list of reference documents (master-data steward)',
-  'quality.registerEvidenceDocument': 'storing an evidence document (investigation report, certificate)',
-  'batches.workQueue': 'the GMP batch work queue of one batch',
-  'erpShipping.lot': 'the shipments of a finished lot with the interlock states',
-  'india.shelfLifeBases': 'the shelf-life bases (IN-27 area)',
-  'india.recordShelfLifeBasis': 'recording a shelf-life basis',
-  'india.hazards': 'the hazard classes of products and rooms (IN-27)',
-  'india.recordHazard': 'recording a hazard class (QA)',
-  'capa.scheduleCheck': 'scheduling another CAPA effectiveness check',
-  'alarms.alarm': 'one plant alarm in detail',
-  'equipmentData.events': 'equipment events',
-  'equipmentData.originals': 'the original equipment records of a batch',
-  'plantRules.setRoomRule': 'a room rule',
-  'plantRules.adjacencies': 'room adjacencies',
-  'plantRules.defineAdjacency': 'defining a room adjacency',
-  'plantRules.reagentLots': 'reagent lots',
-  'plantRules.recordReagentLot': 'recording a reagent lot',
-  'plantRules.withdrawReagentLot': 'withdrawing a reagent lot',
-  'plantRules.recordReagentUse': 'recording a reagent use',
-  'labels.template': 'one label template in detail',
-  'transfers.proposePeer': 'the administrator proposes a peer installation; QA approves its key (DI-31)',
-  'dashboards.catalog': 'the catalogue of report views',
-  'dashboards.export': 'the documented export of a report view',
-  'analytics.flag': 'one analytics flag in detail',
-};
+/**
+ * Person-facing routes without a screen that no part of slice 7g names yet. Slice 7g-1 found 25 (defect log 7g1-1);
+ * slice 7g-5 gave each a screen, so the list is empty and stays so: a new person-facing route needs its screen.
+ */
+const NO_SLICE_YET: Readonly<Record<string, string>> = {};
 
 /** Signable actions not yet sent by a screen. */
 const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
@@ -121,8 +102,8 @@ describe('[meta] every act a person performs has a screen (decision 0025)', () =
     expect(allRoutes(routes).length).toBe(contract.length);
   });
 
-  it('[meta] the people and device administration of slice 7g-1 is called by a screen, every route of both namespaces', () => {
-    for (const ns of ['people', 'deviceRegistry'] as const) {
+  it('[meta] the people and device administration of slice 7g-1 and the access governance of slice 7g-5 are called by a screen, every route of each namespace', () => {
+    for (const ns of ['people', 'deviceRegistry', 'accessGovernance'] as const) {
       for (const name of Object.keys(routes[ns])) expect(called.has(keyOf(ns, name)), `${ns}.${name}`).toBe(true);
     }
   });

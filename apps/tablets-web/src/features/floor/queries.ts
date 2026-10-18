@@ -77,7 +77,7 @@ export async function applyStepView(qc: QueryClient, view: StepScreenView, signe
 
 /** Refreshes everything a command on a run may have changed (the step itself too, unless its view came back). */
 export async function refreshRun(qc: QueryClient, opts: { steps: boolean }): Promise<void> {
-  const ids = [routes.execution.run.id, routes.execution.runs.id, routes.execution.workQueue.id, routes.execution.timeline.id, ...(opts.steps ? [routes.execution.step.id] : [])];
+  const ids = [routes.execution.run.id, routes.execution.runs.id, routes.execution.workQueue.id, routes.batches.workQueue.id, routes.execution.timeline.id, ...(opts.steps ? [routes.execution.step.id] : [])];
   await Promise.all(ids.map((id) => qc.invalidateQueries({ queryKey: [id] })));
 }
 

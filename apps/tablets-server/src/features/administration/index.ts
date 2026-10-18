@@ -5,6 +5,11 @@
  * records; the database decides who may and keeps the segregation of duties (the administrator requests a grant or a
  * break-glass window, a second person approves it; nobody verifies, unlocks or grants themselves; INV-11). The reads are
  * the administration roles' (ADMIN_READERS); a read shows metadata only, never a secret.
+ *
+ * Slice 7g-5 (contract ns/access-governance.ts): role-permission requests and their decision, delegations of signing
+ * authority (the delegator requests, a third person approves) and the US e-signature certification letter, each the
+ * kernel's own function (iam.add_role_permission, decide_role_permission, remove_role_permission, request_delegation,
+ * decide_delegation, revoke_delegation, record_us_esig_certification).
  */
 import { routes } from '@ebmr/api-contract';
 import { commands, continuity, identity, type ActorContext } from '@ebmr/kernel';
@@ -15,6 +20,7 @@ import { withActorCommand, withIdempotentActorCommand } from '../../platform/db/
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { compact } from '../common/people.ts';
+import { certificationStatus, certificationViews, delegableMeanings, delegationViews, personOfLogin, requestViews, roleApprovesDelegations, rolePermissionsView } from './governance.ts';
 import { adapterViews, bindingViews, DEVICE_REASON, gatewayKeyViews, oneAdapter, oneTerminal, registryView } from './devices.ts';
 import {
   ACCESS_REASON,
@@ -329,6 +335,91 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
         return rows[0]?.id ?? null;
       });
       return one(await adapterViews(app, pool, body.code), 'adapter');
+    },
+  });
+
+  const G = routes.accessGovernance;
+  const delegationsFor = async (who: { personId: string; roleCode: string | null }, delegationId?: string) =>
+    delegationViews(app, pool, { all: await roleApprovesDelegations(pool, who.roleCode), viewer: who.personId, ...(delegationId ? { delegationId } : {}) });
+  bindRoutes(scope, app, G, {
+    rolePermissions: async ({ requireRole }) => {
+      requireRole(...ADMIN_READERS);
+      return rolePermissionsView(app, pool);
+    },
+    requestRolePermission: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const id = await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), idempotencyKey, requestHash, (c) =>
+        identity.requestRolePermission(c, { roleCode: body.roleCode, permission: body.permissionCode, reason: body.reason }),
+      );
+      return one(await requestViews(app, pool, id ?? ''), 'role-permission request');
+    },
+    decideRolePermission: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+      const who = { ...actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), ...(body.changeRecord ? { changeRecord: body.changeRecord } : {}) };
+      await act(pool, who, idempotencyKey, requestHash, (c) => identity.decideRolePermission(c, params.requestId, body.approve, body.reason));
+      return one(await requestViews(app, pool, params.requestId), 'role-permission request');
+    },
+    removeRolePermission: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const who = { ...actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), changeRecord: body.changeRecord };
+      await act(pool, who, idempotencyKey, requestHash, (c) => identity.removeRolePermission(c, body.roleCode, body.permissionCode));
+      return rolePermissionsView(app, pool);
+    },
+    delegations: async ({ requireSession }) => {
+      const s = requireSession();
+      const mayApprove = await roleApprovesDelegations(pool, s.roleCode);
+      return { delegations: await delegationsFor(s), meanings: await delegableMeanings(pool), mayApprove };
+    },
+    requestDelegation: async ({ body, actor, idempotencyKey, requestHash, requireSession }) => {
+      const s = requireSession();
+      const delegate = await personOfLogin(pool, body.delegateLoginName);
+      if (!delegate) throw notFound('user ID');
+      const id = await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        const { rows } = await c.query<{ id: string }>('select iam.request_delegation($1, $2::jsonb, $3, $4, $5, $6, $7, $8) as id', [
+          delegate,
+          JSON.stringify(compact(body.scope)),
+          body.markets,
+          body.meanings,
+          body.validFrom,
+          body.validTo,
+          body.sopRef,
+          body.reason,
+        ]);
+        return rows[0]?.id ?? null;
+      });
+      return one(await delegationsFor(s, id ?? ''), 'delegation');
+    },
+    decideDelegation: async ({ params, body, actor, idempotencyKey, requestHash, requireSession }) => {
+      const s = requireSession();
+      await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.decide_delegation($1, $2, $3)', [params.delegationId, body.approve, body.reason]);
+      });
+      return one(await delegationsFor(s, params.delegationId), 'delegation');
+    },
+    revokeDelegation: async ({ params, body, actor, idempotencyKey, requestHash, requireSession }) => {
+      const s = requireSession();
+      await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: body.reason }), idempotencyKey, requestHash, async (c) => {
+        await c.query('select iam.revoke_delegation($1, $2)', [params.delegationId, body.reason]);
+      });
+      return one(await delegationsFor(s, params.delegationId), 'delegation');
+    },
+    usEsigCertifications: async ({ query, requireRole }) => {
+      requireRole(...ADMIN_READERS);
+      const status = await certificationStatus(pool, query.legalEntity ?? '');
+      return {
+        mode: status.mode,
+        certifications: await certificationViews(app, pool),
+        status: query.legalEntity ? { legalEntity: status.legalEntity, onFile: status.onFile, blocking: status.blocking } : null,
+      };
+    },
+    recordUsEsigCertification: async ({ body, actor, idempotencyKey, requestHash }) => {
+      const id = await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: `US e-signature certification of ${body.legalEntity}: ${body.letterRef}` }), idempotencyKey, requestHash, async (c) => {
+        const { rows } = await c.query<{ id: string }>('select iam.record_us_esig_certification($1, $2, $3::date, $4) as id', [
+          body.legalEntity,
+          body.letterRef,
+          body.submittedOn,
+          body.agencyAcknowledgementRef ?? null,
+        ]);
+        return rows[0]?.id ?? null;
+      });
+      return one(await certificationViews(app, pool, id ?? ''), 'certification');
     },
   });
   return Promise.resolve();

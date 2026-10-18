@@ -1,7 +1,8 @@
 /**
  * Web feature `india` (Phase 4 slice 6a, GMP): licences and export permissions (IN-30, D-6-1, D-6-2), the batch-number
  * allocation register (IN-18), and a batch's India-domestic label particulars with its Schedule H2 payload stub (IN-31,
- * PR-43, D-P4-14). Every state, gate and meaning is the server's; the browser computes none of them.
+ * PR-43, D-P4-14). Slice 7g-5: the shelf-life bases (PR-43) and hazard classes with dedicated areas (IN-27). Every state,
+ * gate and meaning is the server's; the browser computes none of them.
  */
 import { createRoute, type AnyRootRoute, type AnyRoute } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
@@ -9,11 +10,13 @@ import type { HomeTile } from '../../app/feature.ts';
 import { AllocationRegisterPage } from './AllocationRegisterPage.tsx';
 import { BatchLabelPage } from './BatchLabelPage.tsx';
 import { LicencesPage } from './LicencesPage.tsx';
+import { ProductRulesPage } from './ProductRulesPage.tsx';
 
 export function routes(root: AnyRootRoute): AnyRoute[] {
   return [
     createRoute({ getParentRoute: () => root, path: '/india', component: LicencesPage }),
     createRoute({ getParentRoute: () => root, path: '/india/register', component: AllocationRegisterPage }),
+    createRoute({ getParentRoute: () => root, path: '/india/product-rules', component: ProductRulesPage }),
     createRoute({ getParentRoute: () => root, path: '/india/batches/$batchId', component: BatchLabelPage }),
   ];
 }
@@ -24,6 +27,14 @@ export const homeTiles: readonly HomeTile[] = [
     title: 'Licences and export permissions',
     description: 'Manufacturing and loan licences, export permissions, and what the issue gate says for a product.',
     to: '/india',
+    installations: ['GMP'],
+    available: true,
+  },
+  {
+    id: 'india-product-rules',
+    title: 'Shelf-life bases and hazard classes',
+    description: 'The stability basis of each shelf life, and hazard classes of products with the rooms dedicated to them.',
+    to: '/india/product-rules',
     installations: ['GMP'],
     available: true,
   },

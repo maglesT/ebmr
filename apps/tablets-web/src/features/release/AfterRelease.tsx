@@ -9,7 +9,8 @@
  *  - the ERP stock-block messages and the recall-assessment and serial-decommissioning tasks;
  *  - per market, the authorised person's RECONFIRM (with an impact assessment, on G-REL for the market at the epoch
  *    shown), RECALL and REJECT_AFTER_RELEASE (each with the person's reason), each behind the server's gate;
- *  - the signed decisions so far, and the disposal (Disposal.tsx).
+ *  - the signed decisions so far, and the disposal (Disposal.tsx);
+ *  - the shipments the ERP recorded, with the states the interlock saw (Shipments.tsx; slice 7g-5).
  * Every state, gate and meaning is the server's; the browser computes none of them, and every act goes through
  * esig.describe and the ceremony (RELEASE_ACT).
  */
@@ -23,6 +24,7 @@ import { RefusalMessage } from '../../app/refusal.tsx';
 import { useSessionRole } from '../../app/roles.ts';
 import { GateProblems } from '../review/parts.tsx';
 import { DisposalSection } from './Disposal.tsx';
+import { LotShipments } from './Shipments.tsx';
 import { RELEASE_READS, releaseTone, stateTone, words, type AfterReleaseMarketView, type LotAfterReleaseView } from './reads.ts';
 
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -32,7 +34,12 @@ export function AfterReleaseTab({ lot }: { lot: LotReleaseView }) {
   const v = q.data;
   if (q.error) return <RefusalMessage error={q.error.error} />;
   if (!v) return <p aria-busy="true">Loading the lot after release…</p>;
-  return <AfterRelease view={v} lot={lot} />;
+  return (
+    <>
+      <AfterRelease view={v} lot={lot} />
+      <LotShipments lotId={lot.lotId} />
+    </>
+  );
 }
 
 function AfterRelease({ view: v, lot }: { view: LotAfterReleaseView; lot: LotReleaseView }) {

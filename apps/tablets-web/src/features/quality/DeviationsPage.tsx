@@ -2,6 +2,7 @@
  * Deviation-lite (Phase 3 slice 6, IN-02, PR-49): the site's deviation, OOS and investigation records, newest first,
  * filtered by state or kind, and a new record raised with its classification and the risk rationale the database
  * requires (a MINOR record without one is refused by the route and the database). The reference is the database's.
+ * Slice 7g-5: an evidence document (investigation report, risk assessment, certificate) is stored here for a record to cite.
  */
 import { Link } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { Section } from '../../app/acts.tsx';
 import { DefineForm } from '../../app/define-form.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
+import { EvidenceDocumentSection } from './EvidenceDocument.tsx';
 
 const STATES = ['OPEN', 'UNDER_INVESTIGATION', 'IMPACT_ASSESSED', 'PENDING_CLOSURE', 'CLOSED', 'CANCELLED'] as const;
 const KINDS = ['DEVIATION', 'OOS', 'INVESTIGATION'] as const;
@@ -53,6 +55,7 @@ export function DeviationsPage() {
           ]}
         />
       </Section>
+      <EvidenceDocumentSection />
     </>
   );
 }

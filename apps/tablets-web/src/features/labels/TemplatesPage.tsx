@@ -1,7 +1,9 @@
 /**
  * Label templates (Phase 6 slice 6c; IN-31, D-P6c-2): the template designer and the approval. A template holds layout
  * and bindings to record fields only (no value is typed on a template); a second person approves it. Why a draft cannot
- * be approved (an India particular missing, the manufacturing date among them) is the database's words.
+ * be approved (an India particular missing, the manufacturing date among them) is the database's words. One version
+ * opens in detail (labels.template; slice 7g-5): its size and where each record field is placed, as the database holds
+ * them now.
  */
 import { useState } from 'react';
 import { LABEL_BINDINGS, routes, type LabelTemplateView } from '@ebmr/api-contract';
@@ -47,6 +49,7 @@ function TemplateRow({ t }: { t: LabelTemplateView }) {
       {t.approvalProblem ? (
         <p data-testid={`label-template-problem-${t.ref}`}>Cannot be approved: {t.approvalProblem}</p>
       ) : null}
+      <TemplateDetail templateId={t.templateId} ref_={t.ref} />
       {approver && t.status === 'DRAFT' ? (
         <>
           <ActButton label={`Approve ${t.ref}`} onPress={() => approve.run({ params: { templateId: t.templateId }, body: {} })} disabled={approve.busy || t.approvalProblem !== null} />
@@ -54,6 +57,43 @@ function TemplateRow({ t }: { t: LabelTemplateView }) {
         </>
       ) : null}
     </li>
+  );
+}
+
+/** One template version in detail, read when opened (labels.template). */
+function TemplateDetail({ templateId, ref_ }: { templateId: string; ref_: string }) {
+  const [open, setOpen] = useState(false);
+  const q = useApiQuery(routes.labels.template, { params: { templateId } }, { enabled: open });
+  return (
+    <details onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)} data-testid={`label-template-detail-${ref_}`}>
+      <summary style={{ minHeight: '2.75rem', paddingBlock: '0.65rem', cursor: 'pointer', boxSizing: 'border-box' }}>{`Layout of ${ref_}`}</summary>
+      {q.error ? <RefusalMessage error={q.error.error} /> : null}
+      {q.data ? (
+        <>
+          <p>
+            {q.data.layout.width} mm by {q.data.layout.height} mm, version {q.data.version} ({words(q.data.status)}).
+          </p>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Record field</th>
+                <th scope="col">x (mm)</th>
+                <th scope="col">y (mm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {q.data.layout.elements.map((e, i) => (
+                <tr key={`${e.field}-${i.toString()}`}>
+                  <th scope="row">{words(e.field)}</th>
+                  <td>{e.x}</td>
+                  <td>{e.y}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : null}
+    </details>
   );
 }
 

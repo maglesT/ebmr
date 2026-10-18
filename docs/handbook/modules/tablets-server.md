@@ -1864,3 +1864,18 @@ Found while writing this page; none changes behaviour.
   [api-contract](api-contract.md), [tablets-web](tablets-web.md), [integrations](integrations.md).
 - Generated: [code map](../code-map.md), [database catalogue](../reference/db-catalogue.md),
   [control map](../reference/control-map.md), [error codes](../reference/error-codes.md).
+
+## ts-administration: access governance (Phase 7 slice 7g-5)
+
+Decision 0025. [governance.ts](../../../apps/tablets-server/src/features/administration/governance.ts) and the
+administration plugin bind the `accessGovernance` routes: role-permission requests, their decision and removal
+(`iam.add_role_permission`, `iam.decide_role_permission`, `iam.remove_role_permission`), delegations of signing
+authority (`iam.request_delegation`, `iam.decide_delegation`, `iam.revoke_delegation`) and the US e-signature
+certification letter (`iam.record_us_esig_certification`, `iam.us_esig_certification_status`), each as the person's
+command with the reason `ACCESS_ADMINISTRATION`; no migration was needed. An approval or removal of a role permission
+carries the body's change-record number in the actor context (`changeRecord`), which the configuration guard of kernel
+1195 requires for area ROLE_PERMISSION. A delegation names its delegate by user ID, resolved to the person (an unknown one
+is `EBMR-API-NOT-FOUND` before anything is recorded). Reads: role permissions and certifications to `ADMIN_READERS`;
+delegations to every session, all of them only when the session's role holds IAM.DELEGATION_APPROVE. Tests:
+[access-governance-routes.test.ts](../../../apps/tablets-server/test/administration/access-governance-routes.test.ts);
+the [meta] [db-acts-have-routes.test.ts](../../../apps/tablets-server/test/contract/db-acts-have-routes.test.ts).

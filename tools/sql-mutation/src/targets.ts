@@ -608,7 +608,8 @@ export const TARGETS: Target[] = [
   {
     group: 'gmp-batch-issue',
     // Slice 7c (recipe-core 1250) re-creates recipe.gmp_issue_problem for the validation-summary interlock (DI-03); its
-    // test is lifecycle/gmp-issue.test.ts, already listed.
+    // test is lifecycle/gmp-issue.test.ts, already listed. Slice 7g-5 (recipe-core 1260) re-creates it again for the US
+    // e-signature certification (DI-15).
     functions: ['recipe.batch_record_identity_guard', 'recipe.execution_mbr_content', 'recipe.batch_mbr_content',
                 'recipe.content_for_mbr_hash', 'recipe.sandbox_only_blocks_in', 'recipe.batch_allocation_link_guard',
                 'recipe.control_recipe_sandbox_only_guard', 'recipe.batch_issue_content', 'recipe.gmp_batch_problem',
@@ -619,8 +620,10 @@ export const TARGETS: Target[] = [
                 'recipe.batch_product', 'recipe.packaging_parent_problem', 'recipe.packaging_link_guard',
                 'recipe.gmp_reference_problem', 'recipe.allocation_problem', 'recipe.prepare_gmp_issue',
                 // Phase 3 exit fixes (site services 0800-0802, recipe-core 0700-0701, tablets 1100-1102).
-                'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check'],
-    tests: [r('lifecycle/record-lock.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
+                'recipe.release_for_packing_problem', 'recipe.issue_packaging_bulk', 'recipe.packaging_bulk_charged', 'tab.packaging_run_problem', 'tab.packaging_run_check',
+                // Phase 7 slice 7g-5 (recipe-core 1260): the US e-signature certification at issue (DI-15).
+                'recipe.us_esig_issue_entity', 'recipe.batch_execution_us_esig_gate'],
+    tests: [r('lifecycle/us-esig-certification.test.ts'), s('execution/us-esig-certification-issue.test.ts'), r('lifecycle/record-lock.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'), r('lifecycle/gmp-issue.test.ts'), r('lifecycle/gmp-references.test.ts'), r('lifecycle/packaging-issue.test.ts'), s('execution/gmp-batch.test.ts'), s('execution/gmp-batch-routes.test.ts'), s('blocks/packaging/bulk-gate-gmp.test.ts'),
             // The row checks 0502 replaced (recipe-core 0338, 0339, 0345): their Phase 2 tests.
             s('execution/db-guards-row-context.test.ts'), s('execution/db-guards-entry-identifiers.test.ts'), s('execution/db-guards-row-shape.test.ts'), s('execution/signed-content-hold-point.test.ts'), r('review/batch-scope.test.ts')],
     threshold: 90,

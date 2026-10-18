@@ -1680,6 +1680,44 @@ export). **Cause.** Each was added with its server feature and tested over HTTP;
 **Fix.** Not fixed here: the test lists them by name in `NO_SLICE_YET`, so it passes now and fails on any new route
 without a screen; each entry is removed when its screen is built. **Lesson.** Completeness is a test over the contract,
 not a list in a document.
+**Closed in slice 7g-5 (18 October 2026):** each of the 25 routes got a screen (or was wired into the screen where it
+belongs: the keep-alive into the session's inactivity warning, the batch work queue into the floor's batch overview, the
+alarm into the alarm list's detail); `NO_SLICE_YET` is empty and no route was moved to the service-only list.
+
+## Slice 7g-5: the remaining screens and the acts with no route (Phase 7, decision 0025)
+
+### 7g5-1: database acts a person performs that no route calls (gap; found by the new [meta] test, 18 October 2026)
+
+**Symptom.** The web completeness test sees only routes. Three acts had a database function and no route at all
+(role-permission requests and their decision, delegation approval, the US e-signature certification); slice 7g-5 gave
+them routes and screens. The new [meta] test
+([db-acts-have-routes.test.ts](../../apps/tablets-server/test/contract/db-acts-have-routes.test.ts)) lists every
+SECURITY DEFINER function the application role may execute whose permission a person's role holds, and found more that
+no route calls: besides service acts and the Phase 2 stub-batch stand-in, and the acts slices 7g-2, 7g-3 and 7g-4 build
+(incidents, market-authorisation withdrawal, the validation summary and system description, restore, first-run set-up,
+adapter status), 64 person acts, among them packaging floor acts of the Tablets blocks (print-job release, batch
+data and its check, detector challenge, setpoint download, process-alarm acknowledgment), records retention (legal holds,
+record types, purge approval), data-integrity investigations, batch-number void and recovery, lot destruction, MBR change
+assessments and periodic review, reprocessing requests, market policies, e-signature meaning types, qualification types,
+customer roles, security-alert and continuity-alarm acknowledgment. **Cause.** These were built and tested at the
+database (the SQL tests call them directly); no check asked for a route. **Fix.** Not fixed here (beyond the three acts):
+each is listed by name in `NO_ROUTE_YET` with what it does, so the test passes now and fails on a new such act without
+a route; an entry is removed when its route and screen are built. **Lesson.** A screen-completeness test must start from
+what the database lets a person do, not only from the API contract.
+
+### 7g5-2: a US-market batch was issued with no 21 CFR 11.100(c) certification on file (high; DI-15; recipe-core 1260)
+
+**Symptom.** Under the default policy BLOCK a US-market GMP batch must not be issued until the licence holder's
+certification letter to the US agency is recorded, but `iam.assert_us_esig_certification` (kernel 0170) was called on no
+issue path, so the batch was issued. **Cause.** The kernel kept the letters and the check; no issue gate asked.
+**Fix.** Recipe-core 1260 rebuilds `recipe.gmp_issue_problem` from 1250 with the check after the India gate (the legal
+entity is the holder of the licence the batch is issued under, `recipe.us_esig_issue_entity`) and adds a BEFORE INSERT
+trigger on `recipe.batch_execution` that calls the kernel's assert for every writer of a GMP batch row. **Tests.**
+[us-esig-certification.test.ts](../../packages/recipe-core/test/lifecycle/us-esig-certification.test.ts) and
+[us-esig-certification-issue.test.ts](../../apps/tablets-server/test/execution/us-esig-certification-issue.test.ts):
+refused without the letter (issue, the step before it, a superuser's direct write), issued once it is recorded, an
+India-only batch never asked, FLAG only reports. **Lesson.** A guard function is only a control once a path calls it; a
+test of the guard alone proved nothing about the issue.
 
 ## Open residuals for the owner
 

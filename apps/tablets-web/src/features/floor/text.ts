@@ -123,6 +123,8 @@ export const SCREEN_EN = {
   'run.checked': 'Checked {at}',
   'run.audit': 'Audit trail of this run',
   'run.timeline': 'Timeline',
+  'run.queue': 'What you can do now in this batch',
+  'run.queueEmpty': 'Nothing in this batch is waiting for this terminal\'s room.',
   'run.holds': 'Holds',
   'run.noHolds': 'No holds.',
   'run.holdReleased': 'Released by {name}, {at}: {reason}',
