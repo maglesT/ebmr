@@ -373,6 +373,9 @@ tests:
   - "apps/tablets-server/test/security/route-matrix.test.ts > the route-by-role authorization matrix (slice 7d) > [DI-17][DI-14] without a session every SESSION route answers 401 (or stops at validation), never a 5xx and never an answer with data"
   - "apps/tablets-server/test/security/route-matrix.test.ts > the route-by-role authorization matrix (slice 7d) > [DI-17][DI-14][DI-18] in a session of every role, every route answers that role's right (403 without it), never a 5xx or a 401"
   - "apps/tablets-server/test/security/route-matrix.test.ts > the route-by-role authorization matrix (slice 7d) > [DI-17] the matrix equals the reviewed matrix (fixtures/route-role-matrix.json); a changed right is reviewed before it is written again"
+  - "apps/tablets-server/test/operations/demo-and-simulators.test.ts > the simulators' test console (decision 0025) > [DI-05][DI-17] on a sandbox the system administrator starts a simulator, switches a fault on and off and stops it, each act recorded; another role is refused (PLATFORM.OPERATE)"
+  - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the background workers (decision 0025) > [DI-31][DI-17] the system administrator stops, starts and restarts an adapter's worker with a reason, each act recorded; QA is refused (PLATFORM.OPERATE)"
+  - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the background workers (decision 0025) > [DI-17] the system administrator stops and starts the analytics runner with a reason (GMP with the runner on)"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

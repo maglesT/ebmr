@@ -537,6 +537,22 @@ importers:
 
   tools/handbook: {}
 
+  tools/install:
+    dependencies:
+      '@ebmr/kernel':
+        specifier: workspace:0.1.0
+        version: link:../../packages/kernel
+      '@ebmr/test-kit':
+        specifier: workspace:0.1.0
+        version: link:../../packages/test-kit
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+
   tools/load:
     dependencies:
       '@ebmr/api-contract':

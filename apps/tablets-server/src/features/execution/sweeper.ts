@@ -206,8 +206,17 @@ export function startSweeper(
   let running: Promise<void> | null = null;
   let stopped = false;
 
+  // Phase 7 slice 7g-4: a new session reads the identity file again, so a demo load from the operations screen (a new
+  // installation with new DEMO-ONLY service secrets) does not need a restart; a file that cannot be read keeps the last.
+  const current = (): typeof c => {
+    try {
+      return sweeperCredentials(app.config.serviceKeysFile, app.config.installation) ?? c;
+    } catch {
+      return c;
+    }
+  };
   const session = async (): Promise<ActorContext> => {
-    actor ??= await openSweeperActor(app, c);
+    actor ??= await openSweeperActor(app, current());
     return actor;
   };
 

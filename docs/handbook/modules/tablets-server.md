@@ -1631,6 +1631,18 @@ the approval is the ceremony (MANUFACTURER_APPROVED on `approved_manufacturer <i
 [tablets 1259](../../../apps/tablets-server/sql/1259_signing_meanings_receipt.sql)). Tests:
 [receipt-routes.test.ts](../../../apps/tablets-server/test/quality/receipt-routes.test.ts).
 
+## ts-operations: operations without a terminal (Phase 7 slice 7g-4)
+
+[features/operations](../../../apps/tablets-server/src/features/operations/) serves the screens described in
+[tablets-web, operations](tablets-web.md#operations-set-up-demo-data-backups-workers-simulators-api-reference): the
+first-run set-up, the demo data load and reset, backups, the background workers, the simulators and the API reference.
+Contract: [ns/operations.ts](../../../packages/api-contract/src/ns/operations.ts).
+[1485_operations_demo_and_backups.sql](../../../apps/tablets-server/sql/1485_operations_demo_and_backups.sql) refuses
+the demo conveniences on a GMP installation that is not a demo one (`tab.demo_conveniences_problem`,
+`tab.record_demo_act`, EBMR-OPS-010) and reads the backup catalogue by permission (`tab.backup_overview`, EBMR-OPS-030).
+The server records each convenience before it acts, so a refused one does nothing. Tests:
+[test/operations](../../../apps/tablets-server/test/operations/); SQL mutation group `operations-demo-backups`.
+
 ## ts-meta: meta routes
 
 GET `/api/meta` (`meta.get`, contract [meta.ts](../../../packages/api-contract/src/ns/meta.ts)) tells the screens

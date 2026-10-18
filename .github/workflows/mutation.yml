@@ -98,7 +98,8 @@ jobs:
                 analytics-method-change, analytics-inputs, analytics-audit,
                 analytics-rate-inputs, analytics-review-inputs, analytics-profile-inputs, analytics-mspc-reference, analytics-exit,
                 release-identity, gateway-feed-signature, plant-rule-approval, controlled-reads, batch-scope-remaining,
-                full-export, evaluation-pack, interface-drift, validation-summary-gate, specimen-approval]
+                full-export, evaluation-pack, interface-drift, validation-summary-gate, specimen-approval,
+                first-run-setup, operations-acts, operations-demo-backups]
     services:
       postgres:
         image: postgres:16

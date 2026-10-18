@@ -12,6 +12,10 @@ async function main(): Promise<void> {
   const config = parseConfig(process.env, () => randomBytes(32).toString('hex'));
   const built = await buildApp(config);
   const { app, ctx } = built;
+  // Phase 7 slice 7g-4: a demo or sandbox server that may recreate its database (EBMR_PG_ADMIN_URL; refused for a
+  // production GMP server, config.ts) gets the set-up CLI's own code for its demo data load and reset. Only here, so no
+  // feature imports the DEMO-ONLY seeding and a production GMP server never loads it.
+  if (config.adminUrl) ctx.operations.demoTooling = await import('./cli/installation.ts');
   await app.listen({ host: config.host, port: config.port });
   app.log.info({ installation: config.installation, database: config.database, origin: config.publicOrigin, demo: ctx.demo.enabled }, 'tablets server ready');
 

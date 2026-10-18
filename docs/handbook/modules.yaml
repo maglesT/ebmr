@@ -288,6 +288,13 @@ modules:
       packages/kernel/sql: ['^119[0-4]_']
     tests: ['packages/kernel/test/identity/area-authorisation.test.ts']
 
+  - id: kernel-operations
+    title: First-run set-up with the installer's one-time token, operations acts and backup requests (Phase 7 slice 7g-4)
+    page: modules/kernel.md
+    package: packages/kernel
+    migrations:
+      packages/kernel/sql: ['^137[56]_']
+
   - id: kernel-installation
     title: Installation (bootstrap roles and schemas, hardening, migration runner) and kernel regression tests
     page: modules/kernel.md
@@ -1085,6 +1092,17 @@ modules:
       - 'apps/tablets-server/test/mutation/tablets-core-checks.test.ts'
       - 'apps/tablets-server/test/mutation/weighing.test.ts'
 
+  - id: ts-operations
+    title: Operations screens without a terminal (set-up, demo data, backups, workers, simulators, API reference; Phase 7 slice 7g-4)
+    page: modules/tablets-server.md
+    package: apps/tablets-server
+    migrations:
+      apps/tablets-server/sql: ['^1485_']
+    server: [apps/tablets-server/src/features/operations]
+    contract: [packages/api-contract/src/ns/operations.ts]
+    screens: [apps/tablets-web/src/features/operations]
+    tests: ['apps/tablets-server/test/operations/**', 'apps/tablets-web/test/operations/**']
+
   - id: ts-meta
     title: Meta routes (health, version)
     page: modules/tablets-server.md
@@ -1195,6 +1213,13 @@ modules:
     page: modules/tools.md
     package: tools/boundaries
     tests: ['tools/boundaries/test/**']
+
+  - id: tools-install
+    title: One-command installer for a server (Phase 7 slice 7g-4)
+    page: modules/tools.md
+    package: tools/install
+    src: [tools/install/src, tools/install/install.sh]
+    tests: ['tools/install/test/**']
 
   - id: tools-demo
     title: Demo set-up and run

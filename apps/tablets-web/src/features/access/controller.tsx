@@ -17,6 +17,7 @@ import { routes, type Attribution, type RefusalEnvelope, type SessionView } from
 import { Dialog, identity, machines } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
 import { useBoot, type Boot } from '../../app/boot.tsx';
+import { followingRecreation } from '../../app/maintenance.ts';
 import type { TapRequest } from '../../app/ports.tsx';
 import { apiState } from '../../api/client.ts';
 import { buildAttribution, keepAliveCall, lockCall, sessionCall, switchCall, unlockWithBadge, unlockWithPassword, type CallOutcome } from './calls.ts';
@@ -336,6 +337,9 @@ function SessionControl(props: {
 
   // The kernel decides: poll the session so an idle lock, an end or a lock elsewhere shows here.
   const check = useCallback(() => {
+    // A demo load or reset recreates the database (slice 7g-4): the session goes with it, and the page follows the job
+    // until it reloads on the new installation (app/maintenance.ts).
+    if (followingRecreation.active) return;
     const asked = latestBoot.get();
     // Before each poll: a sign-out that another tab of this browser marked is joined (the page blocks), never polled
     // past (DI-38, DI-14; review P5).

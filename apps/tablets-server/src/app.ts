@@ -31,6 +31,7 @@ import { answerFrameworkError, installSecurity, isApiRequest } from './platform/
 import { installSpa } from './platform/http/static.ts';
 import { assertInstallation, demoState, siteZoneFromPolicy } from './platform/installation.ts';
 import { formatInstant, REFUSING_DEVICE_READING_PORT, SignableActionRegistry, sealKeyFromFile, type DeviceReadingPort } from './platform/ports.ts';
+import { MAINTENANCE_OPEN_PATHS, maintenanceRefusal, newOperationsRuntime } from './platform/operations.ts';
 import { SiteZoneGuard, SITE_ZONE_CHECK_INTERVAL_MS } from './platform/site-zone.ts';
 
 export interface AppDeps {
@@ -124,6 +125,7 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
       siteZone,
       formatInstant: (us) => formatInstant(us, siteZone.current()),
       boundRoutes: new Map(),
+      operations: newOperationsRuntime(),
     };
     let port: DeviceReadingPort | undefined;
     for (const f of features) {
@@ -143,7 +145,11 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     // the bare prefix, a query or a fragment on it is refused too, and the check does not rest on the security hook
     // answering every other spelling first (review P8).
     app.addHook('onRequest', async (request) => {
-      if (isApiRequest(request)) await siteZone.check();
+      if (!isApiRequest(request)) return;
+      // Phase 7 slice 7g-4: while a demo load or reset recreates the database, only what shows that it runs is answered.
+      const maintenance = ctx.operations.maintenance;
+      if (maintenance !== null && !MAINTENANCE_OPEN_PATHS.includes(request.url.split('?')[0] ?? '')) throw maintenanceRefusal(maintenance);
+      if (maintenance === null) await siteZone.check();
     });
     for (const f of features) {
       await app.register(async (scope) => f.module.plugin(scope, ctx), { prefix: '' });
@@ -154,16 +160,20 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
     // Phase 6A slice 6A-1: the analytics runner, on the GMP installation only (D-6A-6), on its own login (ADR 0020 point 3).
     // Slice 7d (P6A7-4, SLO-5): in its own worker thread, so its reads, hashes and methods never block the server's
     // event loop; in process only for tests that give it their own method implementations (functions stay in process).
+    // Slice 7g-4: the operations screen pauses and resumes it; a demo load or reset listens on the in-process runner's
+    // pool (the worker thread's pool logs its own idle-connection errors, analytics/worker-entry.ts).
+    const implementations = deps.analytics?.implementations;
+    const analyticsPool = config.analytics.enabled && implementations ? createAnalyticsPool(config.analytics.url) : null;
     const analytics: AnalyticsRunnerApi | null = !config.analytics.enabled
       ? null
-      : deps.analytics?.implementations
+      : analyticsPool && implementations
         ? new AnalyticsRunner({
-            pool: createAnalyticsPool(config.analytics.url),
+            pool: analyticsPool,
             log: app.log,
             siteZone: () => siteZone.current(),
             commit: config.analytics.commit,
-            implementations: deps.analytics.implementations,
-            ...(deps.analytics.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
+            implementations,
+            ...(deps.analytics?.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
           })
         : new ThreadedAnalyticsRunner({
             url: config.analytics.url,
@@ -174,6 +184,9 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
           });
     // The runner starts only on the analytics role alone (P6A7-8); a refusal is logged and the server serves on.
     void analytics?.start();
+    if (analytics) {
+      ctx.operations.analytics = { running: () => analytics.isRunning(), start: () => analytics.resume(), stop: () => analytics.pause(), pool: analyticsPool };
+    }
     return {
       app,
       ctx,

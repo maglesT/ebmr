@@ -242,6 +242,9 @@ tests:
   - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > the gateway signs its OPC UA feed and the database verifies it (6jc-R9) > [DI-31][DI-20] the SQL twin of the feed signature gives the SDK's bytes for every committed vector, and the database verifies the vectors' signatures"
   - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > a revoked gateway key and an unbound adapter (6jc-R9) > [DI-31][DI-20] after the bound gateway's key is revoked its signature no longer counts, and an adapter bound to no gateway takes nothing"
   - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-20] an endpoint session that starts more than the offline buffer before the database clock (a gateway clock at 1970) is refused; one pulled an hour late is taken"
+  - "apps/tablets-web/test/operations/setup-wizard.test.tsx > the first-run set-up (decision 0025) > [DI-18][DI-20] the shell shows the set-up instead of the sign-in; the set-up sends the site, the zone in force, the two persons with their first passwords and this browser's new key, and asks for the seal key"
+  - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-20][DI-19] the set-up browser's key is the administrator's console: the first passwords sign in there only through a change of password; a browser with another key is not a terminal"
+  - "tools/e2e/specs/operations/operations.spec.ts > [DI-18][DI-20] the first-run set-up of a new installation in the browser: the token, the site, the administrator and the process owner, the seal key; the administrator signs in on this browser and changes the first password @office"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

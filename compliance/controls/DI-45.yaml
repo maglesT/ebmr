@@ -97,6 +97,11 @@ tests:
   - "packages/kernel/test/mutation/protected-numbers.test.ts > external anchors: classification when a restore is recorded, and coverage by an approved restore event > [DI-45][INV-27] where the identifiers were never secured (the database is bound by its own anchor export), completion moves a sequence past its restored position by the whole margin"
   - "packages/kernel/test/review/f57.test.ts > F57: an approved restore event must not cover changed (not lost) anchored history > [INV-08][DI-45][DI-23] a FAILOVER event on a never-restored database does not turn a rewritten anchored event into COVERED"
   - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
+  - "apps/tablets-web/test/operations/operations.test.tsx > backups (DI-45) > [DI-45] the catalogue shows each backup with its size, time and hash, and the failed job with its error; a backup is taken with a reason"
+  - "apps/tablets-web/test/operations/operations.test.tsx > backups (DI-45) > [DI-45] a copy of a stored backup is offered to save once the server hands it over; a refusal is shown in its words"
+  - "apps/tablets-server/test/operations/workers-and-backups.test.ts > backups from the screen (DI-45) > [DI-45] the system administrator takes a backup: the request is recorded with the reason, the backup service identity records the run and the catalogue entry, and the screen lists it with its size, time and hash; a copy is the artefact as stored, and the copy is recorded"
+  - "apps/tablets-server/test/operations/workers-and-backups.test.ts > backups from the screen (DI-45) > [DI-45] a server without its backup configuration takes no backup and records no request; the screen says what is missing"
+  - "tools/e2e/specs/operations/operations.spec.ts > [DI-45] a backup is taken from the screen with a reason and listed with its size, time and hash; a copy is offered to save @office"
 clauses:
   - clause: "Restore into an isolated environment and hash-compare records, audit trails and signatures with production."
     tests:

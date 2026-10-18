@@ -910,6 +910,46 @@ mirrors with their mode, age and bound, a stale blocking mirror named with whom 
 acknowledged with a note, with a badge tap on a shared terminal) and one adapter (messages accepted, refusals with their
 class, reconciliation reports). Tests: [integrations.test.tsx](../../../apps/tablets-web/test/integrations/integrations.test.tsx).
 
+### operations: set-up, demo data, backups, workers, simulators, API reference
+
+[features/operations](../../../apps/tablets-web/src/features/operations/) (Phase 7 slice 7g-4; [decision 0025](../../decisions/0025-every-act-has-a-screen.md)
+point 2: nobody types a command to use the system). The routes are in
+[ns/operations.ts](../../../packages/api-contract/src/ns/operations.ts) and the server's
+[features/operations](../../../apps/tablets-server/src/features/operations/).
+
+- **The first-run set-up** ([SetupWizard.tsx](../../../apps/tablets-web/src/features/operations/SetupWizard.tsx)). While
+  `meta.setupRequired` is true (no administrator yet), the shell shows it instead of the sign-in (boot phase `setup`).
+  It shows the installation's kind (fixed when it was installed) and the site time zone in force, and asks for the
+  installer's one-time set-up token, the site code and name, the first system administrator and process owner with
+  their first passwords, and whether to generate the e-signature seal key. This browser makes a new terminal key and
+  sends only its public key: it becomes the administrator's console (`BOOTSTRAP-CONSOLE-1`). The token and the
+  passwords are read from their fields only when sent (SecretInput). The database decides everything
+  ([`iam.first_run_setup`](../../../packages/kernel/sql/1375_first_run_setup.sql#sym=iam.first_run_setup)).
+- **Operations** (`/operations`, a home tile) links the pages below. The installation's kind decides what they offer;
+  the database decides who may use them.
+- **Demo and test data** (`/operations/demo`): load the demo data or reset the installation, on a sandbox or a demo
+  installation only. The page names what is lost (persons, accounts, terminals, batches, signatures, audit entries),
+  and the person types the database name to confirm. Both acts recreate the database, so the page follows the job
+  (`operations.demoJob`, no session needed) and then starts the application again. A reset shows the new set-up token
+  once.
+- **Backups** (`/operations/backups`): take an operational backup with a reason; the catalogue lists each backup with
+  its size, time and SHA-256, the job runs and the requests; "Take a copy" offers the stored artefact (encrypted, as
+  stored) to save.
+- **Background workers** (`/operations/workers`, and a panel on the integration health page): start, stop or restart
+  each adapter's worker and the analytics runner with a reason. An adapter that may not start shows why
+  (`EBMR-INT-034`, a STAND_IN system, no configuration).
+- **Simulators** (`/operations/simulators`, demo and sandbox only): start and stop the ERP, WMS, QMS, LIMS, LMS, CMMS,
+  EMS, L3 and OPC UA simulators and switch their faults. The adapter endpoint each one serves is shown.
+- **API reference** (`/developer/api`, a home tile): the OpenAPI document of the contract as the server builds it
+  (`meta.openapi`), grouped by namespace, with a filter and each route's schemas on demand. It is rendered here: no
+  third-party viewer and nothing from another origin, so the strict CSP holds.
+
+Tests: [operations.test.tsx](../../../apps/tablets-web/test/operations/operations.test.tsx),
+[setup-wizard.test.tsx](../../../apps/tablets-web/test/operations/setup-wizard.test.tsx), the `[meta]` test that every
+command used to operate an installation has a screen
+([commands-have-screens.test.ts](../../../apps/tablets-web/test/meta/commands-have-screens.test.ts)), and the browser
+flows in [operations.spec.ts](../../../tools/e2e/specs/operations/operations.spec.ts).
+
 ### quality: receipt with supplier batches, the receipt record, approved manufacturers
 
 In [features/quality](../../../apps/tablets-web/src/features/quality/) (Phase 6 slice 6a, builder A; PR-17):

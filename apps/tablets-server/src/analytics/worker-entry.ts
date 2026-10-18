@@ -18,7 +18,7 @@ export interface AnalyticsWorkerData {
 }
 
 export type AnalyticsRequest =
-  | { id: number; siteZone: string; op: 'tick' | 'nightlyDue' | 'pollCompleted' | 'stop' | 'roleProblem' }
+  | { id: number; siteZone: string; op: 'tick' | 'nightlyDue' | 'pollCompleted' | 'pause' | 'stop' | 'roleProblem' }
   | { id: number; siteZone: string; op: 'runAll'; trigger: RunTrigger }
   | { id: number; siteZone: string; op: 'runVersionAll'; version: EffectiveVersion; trigger: RunTrigger }
   | { id: number; siteZone: string; op: 'runVersion'; version: EffectiveVersion; trigger: RunTrigger; referenceSet: string | null };
@@ -42,6 +42,9 @@ if (parentPort) {
   const logAt = (level: 'info' | 'warn' | 'error' | 'debug') => (obj: unknown, msg?: string) => post({ type: 'log', level, obj: plain(obj), msg: msg ?? '' });
   const log = { info: logAt('info'), warn: logAt('warn'), error: logAt('error'), debug: logAt('debug') } as unknown as ConstructorParameters<typeof AnalyticsRunner>[0]['log'];
   const pool = createAnalyticsPool(data.url);
+  // Phase 7 slice 7g-4: an idle connection that ends (a demo load or reset drops the database, a server restart) is
+  // logged; unhandled, it would end the worker and with it every analytics run until the server restarts.
+  pool.on('error', (e) => log.warn({ err: e.message }, 'analytics runner: an idle database connection ended'));
   const runner = new AnalyticsRunner({
     pool,
     log,
@@ -60,6 +63,9 @@ if (parentPort) {
         return runner.nightlyDue();
       case 'pollCompleted':
         return runner.pollCompleted();
+      case 'pause':
+        // Phase 7 slice 7g-4: waits for the work in progress (the timer is the parent's); the pool stays open.
+        return runner.pause();
       case 'stop':
         return runner.stop();
       case 'runAll':

@@ -18,6 +18,7 @@ import { planning } from './ns/planning.ts';
 import { plant } from './ns/plant.ts';
 import { quality } from './ns/quality.ts';
 import { notifications } from './ns/notifications.ts';
+import { operations } from './ns/operations.ts';
 import { erpShipping, qpPackage } from './ns/qp-shipping.ts';
 import { india } from './ns/india.ts';
 import { incidents } from './ns/incidents.ts';
@@ -53,7 +54,7 @@ import { people } from './ns/people.ts';
 import { deviceRegistry } from './ns/device-registry.ts';
 import { accessGovernance } from './ns/access-governance.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsMspc, analyticsReview, analyticsProfile, people, deviceRegistry, accessGovernance, incidents } as const;export type Routes = typeof routes;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsMspc, analyticsReview, analyticsProfile, people, deviceRegistry, accessGovernance, incidents, operations } as const;export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
 /** Which module owns each namespace's handlers (the stub feature files pass to these owners). */
@@ -119,4 +120,5 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   accessGovernance: 'P7',
   /** Phase 7 slice 7g-2 (decision 0025): the incident register and its CERT-In step. */
   incidents: 'P7',
+  operations: 'P7',
 };

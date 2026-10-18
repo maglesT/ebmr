@@ -30,7 +30,7 @@ Read this page before you add or change a route, a screen call or a signed act.
 | Tests | [test/contract.test.ts](../../../packages/api-contract/test/contract.test.ts), [test/client.test.ts](../../../packages/api-contract/test/client.test.ts), [test/india.test.ts](../../../packages/api-contract/test/india.test.ts) |
 | Server side: binding, refusals, signable registry | [bind.ts](../../../apps/tablets-server/src/platform/http/bind.ts#sym=bindRoutes), [refusal.ts](../../../apps/tablets-server/src/platform/http/refusal.ts#sym=refusal), [ports.ts](../../../apps/tablets-server/src/platform/ports.ts#sym=SignableActionRegistry) |
 | Route coverage test (server) | [coverage.test.ts](../../../apps/tablets-server/test/contract/coverage.test.ts) |
-| OpenAPI generator | [cli/openapi.ts](../../../apps/tablets-server/src/cli/openapi.ts#sym=openApiDocument) |
+| OpenAPI generator | [platform/openapi.ts](../../../apps/tablets-server/src/platform/openapi.ts#sym=openApiDocument) |
 | Original design | Phase 2 apps plan, section 4, [00-plan.md](../../build-plan/phase-2/apps/00-plan.md); [ADR 0017](../../adr/0017-web-runtime.md) (web runtime) |
 | Generated list of files, tests and controls | [code map, `api-contract`](../code-map.md#api-contract) |
 
@@ -383,7 +383,7 @@ evaluated) is refused if the evidence changed since (INV-05; see [The life of a 
 
 ## The OpenAPI document
 
-`pnpm openapi` runs [cli/openapi.ts](../../../apps/tablets-server/src/cli/openapi.ts#sym=openApiDocument): it registers
+`pnpm openapi` (and the API reference page, `meta.openapi`) runs [platform/openapi.ts](../../../apps/tablets-server/src/platform/openapi.ts#sym=openApiDocument): it registers
 every route's schemas on a bare Fastify instance (no database, no handler runs) with `@fastify/swagger` and writes
 `.reports/openapi.json`. Each operation's description carries the route id, installation, auth, attribution and
 idempotency; every 4xx and 5xx answer is a `RefusalEnvelope`. CI runs it and keeps the file as an artifact

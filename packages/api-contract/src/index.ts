@@ -351,3 +351,19 @@ export {
   TrainingOverviewView,
   TrainingPersonaView,
 } from './ns/dashboards.ts';
+export {
+  BackupFileView,
+  BackupRunView,
+  BackupView,
+  BackupsView,
+  DemoJobView,
+  DemoView,
+  SetupDoneView,
+  SetupRequest,
+  SetupStateView,
+  SimulatorCode,
+  SimulatorView,
+  SimulatorsView,
+  WorkerView,
+  WorkersView,
+} from './ns/operations.ts';

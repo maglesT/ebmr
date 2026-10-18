@@ -9,6 +9,7 @@
  * an expectation checked against the policy: when it is set and differs, the server refuses to start.
  */
 import { existsSync, readFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { z } from 'zod';
 import { continuity } from '@ebmr/kernel';
 
@@ -94,6 +95,22 @@ export const EnvSchema = z.object({
   EBMR_DB_ANALYTICS_URL: z.string().optional(),
   /** The build's commit, recorded with every analytics run and method version (code identity). */
   EBMR_COMMIT: z.string().regex(/^[0-9A-Za-z._-]{1,64}$/).default('development'),
+  /**
+   * Phase 7 slice 7g-4: a superuser connection to the database server (any database; the set-up replaces it), which a
+   * demo or sandbox installation needs to load its demo data or reset itself from the operations screen (the set-up CLI
+   * and test-kit read the same variable). Refused with EBMR_ENV=production on a GMP installation.
+   */
+  EBMR_PG_ADMIN_URL: z.string().optional(),
+  /** DEMO-ONLY: where a demo load writes its keys and seed (default: the directory of EBMR_DEMO_KEYS_FILE). */
+  EBMR_KEYS_DIR: z.string().optional(),
+  /** Phase 7 slice 7g-4: backups from the operations screen (kernel continuity runBackupJob; DI-45). */
+  EBMR_BACKUP_DIR: z.string().optional(),
+  /** The backup encryption key (32 bytes as 64 hex characters or base64; a KMS-held key in production). */
+  EBMR_BACKUP_KEY_FILE: z.string().optional(),
+  /** The key's reference in the key-management system, recorded with each backup (default file:<EBMR_BACKUP_KEY_FILE>). */
+  EBMR_BACKUP_KEY_REF: z.string().optional(),
+  /** The connection pg_dump reads with (a backup role); default EBMR_PG_ADMIN_URL on this database. */
+  EBMR_BACKUP_SOURCE_URL: z.string().optional(),
 });
 
 /** What the environment configures (parseConfig). */
@@ -136,6 +153,12 @@ export interface EnvConfig {
   logLevel: z.infer<typeof EnvSchema>['EBMR_LOG_LEVEL'];
   logPretty: boolean;
   cookies: { session: string; csrf: string };
+  /** Phase 7 slice 7g-4: EBMR_PG_ADMIN_URL (demo and sandbox load and reset), or null. */
+  adminUrl: string | null;
+  /** DEMO-ONLY keys directory of a demo load (EBMR_KEYS_DIR), or null. */
+  keysDir: string | null;
+  /** Backups from the operations screen, or null when no backup directory is configured. */
+  backup: { dir: string; keyFile: string | null; keyRef: string; sourceUrl: string | null } | null;
 }
 
 /** The configuration the running server uses (buildApp): the environment's, plus the site's time zone. */
@@ -196,6 +219,9 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   if (production && e.EBMR_GATEWAY_LISTEN && !e.EBMR_DB_LISTENER_URL) {
     throw new ConfigError('EBMR_ENV=production with EBMR_GATEWAY_LISTEN needs EBMR_DB_LISTENER_URL, the gateway listener\'s own login (no development credentials)');
   }
+  if (production && e.EBMR_INSTALLATION === 'GMP' && e.EBMR_PG_ADMIN_URL) {
+    throw new ConfigError('EBMR_ENV=production refuses EBMR_PG_ADMIN_URL on a GMP installation: demo data and resets are for demo and sandbox installations (decision 0025)');
+  }
   if (production && e.EBMR_INSTALLATION === 'GMP' && e.EBMR_ANALYTICS === 'on' && !e.EBMR_DB_ANALYTICS_URL) {
     throw new ConfigError('EBMR_ENV=production with EBMR_ANALYTICS=on needs EBMR_DB_ANALYTICS_URL, the analytics runner\'s own login (no development credentials)');
   }
@@ -251,5 +277,22 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
     logLevel: e.EBMR_LOG_LEVEL,
     logPretty: e.EBMR_LOG_PRETTY,
     cookies: cookieNames(e.EBMR_INSTALLATION, https),
+    adminUrl: e.EBMR_PG_ADMIN_URL ?? null,
+    keysDir: e.EBMR_KEYS_DIR ?? (e.EBMR_DEMO_KEYS_FILE ? dirname(e.EBMR_DEMO_KEYS_FILE) : null),
+    backup: e.EBMR_BACKUP_DIR
+      ? {
+          dir: e.EBMR_BACKUP_DIR,
+          keyFile: e.EBMR_BACKUP_KEY_FILE ?? null,
+          keyRef: e.EBMR_BACKUP_KEY_REF ?? (e.EBMR_BACKUP_KEY_FILE ? `file:${e.EBMR_BACKUP_KEY_FILE}` : 'none'),
+          sourceUrl: e.EBMR_BACKUP_SOURCE_URL ?? (e.EBMR_PG_ADMIN_URL ? withDatabase(e.EBMR_PG_ADMIN_URL, e.EBMR_DATABASE) : null),
+        }
+      : null,
   };
+}
+
+/** A connection URL with its database replaced. */
+export function withDatabase(url: string, database: string): string {
+  const u = new URL(url);
+  u.pathname = `/${encodeURIComponent(database)}`;
+  return u.toString();
 }

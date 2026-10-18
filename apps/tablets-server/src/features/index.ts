@@ -37,6 +37,7 @@ import * as qpPackage from './qp-package/index.ts';
 import * as quality from './quality/index.ts';
 import * as lims from './quality/lims.ts';
 import * as notifications from './notifications/index.ts';
+import * as operations from './operations/index.ts';
 import * as records from './records/index.ts';
 import * as pqr from './pqr/index.ts';
 import * as release from './release/index.ts';
@@ -100,6 +101,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   // Phase 7 slice 7g-1 (decision 0025): people and access, and the device registry, on both installations.
   { name: 'administration', installations: ['GMP', 'SANDBOX'], module: administration satisfies FeatureModule },
   { name: 'incidents', installations: ['GMP'], module: incidents satisfies FeatureModule },
+  // Phase 7 slice 7g-4 (decision 0025): the operations screens' routes (set-up, demo data, backups, workers, simulators).
+  { name: 'operations', installations: ['GMP', 'SANDBOX'], module: operations satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

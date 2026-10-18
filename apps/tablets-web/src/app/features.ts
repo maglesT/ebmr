@@ -14,6 +14,7 @@
  * Phase 7 slice 7g-1: administration (people and access, the device registry; both installations; decision 0025).
  * Phase 7 slice 7g-2 (decision 0025): master-records (MBR signatures, market authorisations, labelling specimens),
  * plant-rules (penicillin facility and beta-lactam proposals and QA approval) and incidents (register, CERT-In step); GMP.
+ * Phase 7 slice 7g-4: operations (the first-run set-up, demo data, backups, workers, simulators, API reference).
  */
 import * as access from '../features/access/index.tsx';
 import * as administration from '../features/administration/index.tsx';
@@ -37,6 +38,7 @@ import * as plant from '../features/plant/index.tsx';
 import * as plantStatus from '../features/plant-status/index.tsx';
 import * as plantRules from '../features/plant-rules/index.tsx';
 import * as notifications from '../features/notifications/index.tsx';
+import * as operations from '../features/operations/index.tsx';
 import * as quality from '../features/quality/index.tsx';
 import * as records from '../features/records/index.tsx';
 import * as pqr from '../features/pqr/index.tsx';
@@ -92,4 +94,6 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['master-records', masterRecords satisfies WebFeature],
   ['plant-rules', plantRules satisfies WebFeature],
   ['incidents', incidents satisfies WebFeature],
+  // Phase 7 slice 7g-4 (decision 0025): operations without a terminal (set-up, demo data, backups, workers, simulators, API reference).
+  ['operations', operations satisfies WebFeature],
 ];

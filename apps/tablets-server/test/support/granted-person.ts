@@ -32,7 +32,10 @@ export async function grantedPerson(server: TestServer, roleCode: string, legalN
   const admin = await passwordActor(server.db, server.seed.bootstrap.admin, server.seed.bootstrap.admin.fingerprint);
   const owner = await passwordActor(server.db, server.seed.bootstrap.owner, server.seed.bootstrap.owner.fingerprint);
   // In the sandbox a user ID is a test label too (DI-05).
-  const loginName = `${server.kind === 'SANDBOX' ? 'test-' : ''}${roleCode.toLowerCase().replace(/_/g, '.')}.${randomUUID().slice(0, 8)}`;
+  // In the sandbox the suffix is letters only: a hex suffix such as 3f2a9c1d can have the form of a batch or lot number,
+  // which the sandbox refuses in any text that is not a TEST- identifier (EBMR-SBX-024).
+  const suffix = server.kind === 'SANDBOX' ? [...randomUUID().replace(/-/g, '').slice(0, 8)].map((c) => String.fromCharCode(97 + (parseInt(c, 16) % 26))).join('') : randomUUID().slice(0, 8);
+  const loginName = `${server.kind === 'SANDBOX' ? 'test-' : ''}${roleCode.toLowerCase().replace(/_/g, '.')}.${suffix}`;
   const created = await withCommand(server.db.app, reason(admin), async (c) => {
     const personId = await identity.createPerson(c, 'NATURAL', legalName);
     await identity.recordIdentityVerification(c, {
