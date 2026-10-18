@@ -89,7 +89,7 @@ export function liveDriver(sim: OpcuaSimProcess, opts: { thumbprint?: string; ga
   };
   const feed = OpcuaFeed.open({ dir: join(dir, 'feed'), gatewayCode: 'GW-TEST', signingKey: TEST_FEED_KEY, clock: systemClock });
   const driver = new OpcuaDriver({
-    code: 'OPC-LINE-1', endpoint, equipment: SIM_UNITS, transport: new NodeOpcuaTransport({ pkiDir: join(dir, 'pki'), units: Object.keys(SIM_UNITS) }), clock: systemClock,
+    code: 'OPC-LINE-1', endpoint, equipment: SIM_UNITS, transport: new NodeOpcuaTransport({ pkiDir: join(dir, 'pki'), units: Object.keys(SIM_UNITS), wallUs: () => systemClock.wallUs() }), clock: systemClock,
     sink: feed.sink(), nextChunkNo: (u, t) => feed.nextChunkNo(u, t), gapAfterMs: opts.gapAfterMs ?? 3000, backoffInitialMs: 200, backoffMaxMs: 1000, samplingIntervalMs: 100,
     chunkMaxSpanUs: opts.chunkMaxSpanUs ?? 2_000_000n,
   });

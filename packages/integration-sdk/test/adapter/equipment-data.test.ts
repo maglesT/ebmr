@@ -115,7 +115,7 @@ describe('equipment data (6b-0)', () => {
   });
 
   it('[meta] the OPCUA and EMS contracts list their message types with version 1 schemas', () => {
-    expect(schemaRows(OPCUA).map((r) => r.messageType)).toEqual(['opcua.series_chunk', 'opcua.alarm', 'opcua.equipment_event', 'opcua.endpoint_session']);
+    expect(schemaRows(OPCUA).map((r) => r.messageType)).toEqual(['opcua.series_chunk', 'opcua.alarm', 'opcua.equipment_event', 'opcua.endpoint_session', 'opcua.series_gap']);
     expect(schemaRows(EMS).map((r) => r.messageType)).toEqual(['ems.series_chunk', 'ems.alarm']);
     expect(payloadSchema(EMS, { sourceSystem: 'EMS', messageType: 'ems.series_chunk', schemaVersion: '1' })).toBe(SeriesChunkV1);
   });

@@ -1562,6 +1562,30 @@ it again through the epoch triggers. Excluding the lock's bump would need a caus
 paths and a rule for the transaction's other bumps; excluding the whole first-disposition transaction would hide any
 evidence written in it. It fails safe (the next market's signer acknowledges the items again), so it stays a known issue.
 
+## Slice 7b-1 (worker, gateway and message items): hardening (Phase 7)
+
+- **O-T12-1 (DI-31): reconciliation never ran.** `AdapterWorker.reconcile` had no caller, so a source that stopped
+  publishing its last messages was seen only as "head ahead of cursor". Now each worker reconciles every closed hour
+  (10-minute grace) by itself and a mismatch raises RECONCILIATION_MISMATCH (`reconcileDue`, framework.ts). Test:
+  server `integrations/feed-adapters.test.ts` "O-T12-1". Lesson: a check with no caller is no check.
+- **T12 observation (DI-32, DI-31): a gateway crash lost the open chunk's samples.** They were in memory only. Now they
+  are spooled on receipt (fsync at most 1 s apart), the chunk is completed at restart and what cannot be filled is a
+  SERIES_GAP alarm naming unit, tag and interval (kernel 1328, recipe-core 1232, tablets 1432). Tests: gateway
+  `opcua-spool.test.ts`, server `equipment-data/opcua-adapter.test.ts` "a series gap".
+- **O-T13-1 (message accuracy): "Nothing was saved" when only the answer failed.** A read after the committed command
+  that failed was answered INTERNAL. Now it is SAVED_NOT_SHOWN with the command's idempotency key (bind.ts, commands.ts).
+  Test: server `platform/saved-not-shown.test.ts` (and the `[meta]` list of the 84 routes). Lesson: an error message
+  must say what the system knows, not what is usual.
+- **F-6jb-2 (DI-31): the stale-mirror refusal did not say which mirror or whom to call.** Now the refusal names the
+  mirror, its age, its bound and the system owner (kernel 1329, errors.ts `withStaleSourceDetail`). Tests: kernel
+  `inbound/overrides-and-lms-mirror.test.ts`, server `execution/gmp-batch.test.ts` "F-6jb-2".
+- **6jc-R13 (DI-32): a value without an OPC UA timestamp was dated epoch 0, and the database had no lower bound.** Now
+  the gateway dates it at receipt and marks it BAD with a reason, and the database refuses OPC UA data more than five
+  minutes before their endpoint session's start (recipe-core 1233). The gateway keeps an older sample (a tag unchanged
+  since before the session) out of the series with an alarm, so a working gateway is never refused. Tests: gateway
+  `opcua-spool.test.ts` (6jc-R13), server `opcua-adapter.test.ts` "6jc-R13". Lesson: a missing value is never replaced
+  by a default that looks like data.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

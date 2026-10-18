@@ -115,7 +115,7 @@ export class InboundError extends Error {
 }
 
 /** Integration alarm kinds (`platform.integration_alarm.kind`): the refusal classes plus what the database detects. */
-export const ALARM_KINDS = ['SEQUENCE_GAP', 'OUT_OF_ORDER', 'MALFORMED', 'DUPLICATE', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT', 'RECONCILIATION_MISMATCH'] as const;
+export const ALARM_KINDS = ['SEQUENCE_GAP', 'OUT_OF_ORDER', 'MALFORMED', 'DUPLICATE', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT', 'RECONCILIATION_MISMATCH', 'SERIES_GAP'] as const;
 export const AlarmKind = z.enum(ALARM_KINDS);
 export type AlarmKind = z.infer<typeof AlarmKind>;
 export const AlarmSeverity = z.enum(['MINOR', 'MAJOR', 'CRITICAL']);

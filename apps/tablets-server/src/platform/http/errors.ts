@@ -98,14 +98,64 @@ export function mapError(app: AppContext, error: unknown, correlationId: string)
   return fromGuidance('INTERNAL', g('INTERNAL'), 'An unexpected error occurred; it has been logged.', correlationId);
 }
 
+interface StaleSource {
+  source: string;
+  mirror: string;
+  ageSeconds: string | null;
+  boundSeconds: string;
+  systemOwner: string;
+  message: string;
+}
+
+/**
+ * Finding F-6jb-2 (DI-31): a refusal that names STALE_QUALIFICATION_SOURCE (the authority check refused a qualification
+ * from a stale mirror) also names the mirror, its age and the system owner to call, from the database
+ * (iam.stale_qualification_source_problem, kernel 1329). The refusal itself is unchanged; when the read fails the
+ * refusal is answered as it was.
+ */
+export async function withStaleSourceDetail(app: AppContext, mapped: MappedError): Promise<MappedError> {
+  const r = mapped.envelope.refusal;
+  if (!r.why.includes('STALE_QUALIFICATION_SOURCE')) return mapped;
+  let stale: StaleSource[];
+  try {
+    const { rows } = await app.pools.app.query<{ p: StaleSource[] | null }>('select iam.stale_qualification_source_problem() as p');
+    stale = rows[0]?.p ?? [];
+  } catch {
+    return mapped;
+  }
+  const first = stale[0];
+  if (!first) return mapped;
+  const owners = [...new Set(stale.map((x) => x.systemOwner))];
+  const capital = (t: string): string => `${t.charAt(0).toUpperCase()}${t.slice(1)}`;
+  return {
+    ...mapped,
+    envelope: {
+      ...mapped.envelope,
+      refusal: {
+        ...r,
+        why: `${r.why} (${stale.map((x) => x.message).join('; ')})`,
+        whatYouCanDo: [`Call ${owners.join(' and ')}: the qualification comes from a mirror that is too old to be used.`, ...r.whatYouCanDo],
+        whoCanHelp: [...owners.map(capital), ...r.whoCanHelp],
+        details: {
+          ...(r.details ?? {}),
+          staleMirror: first.mirror,
+          staleMirrorAgeSeconds: first.ageSeconds ?? 'never synchronised',
+          staleMirrorBoundSeconds: first.boundSeconds,
+          systemOwner: first.systemOwner,
+        },
+      },
+    },
+  };
+}
+
 export function installErrorHandling(scope: FastifyInstance, app: AppContext): void {
-  scope.setErrorHandler((error: unknown, request: FastifyRequest, reply: FastifyReply) => {
+  scope.setErrorHandler(async (error: unknown, request: FastifyRequest, reply: FastifyReply) => {
     const correlationId = String(request.id);
-    const mapped = mapError(app, error, correlationId);
+    const mapped = await withStaleSourceDetail(app, mapError(app, error, correlationId));
     if (mapped.status >= 500) request.log.error({ err: error, correlationId }, 'request failed');
     else if (mapped.warn) request.log.warn({ err: error, code: mapped.envelope.refusal.code, status: mapped.status, correlationId }, 'request refused late');
     else request.log.info({ code: mapped.envelope.refusal.code, status: mapped.status, correlationId }, 'request refused');
-    void reply.code(mapped.status).send(mapped.envelope);
+    return reply.code(mapped.status).send(mapped.envelope);
   });
 
 }

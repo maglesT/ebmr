@@ -69,7 +69,8 @@ let db: TestDatabase;
 let w: OpcuaWorld;
 let feed: Feed;
 let worker: AdapterWorker;
-let clock = BigInt(Date.now()) * 1000n - 1_800_000_000n;
+// Slice 7b-1 (6jc-R13): a chunk is dated within the allowed skew (five minutes) of the session it stands on.
+let clock = BigInt(Date.now()) * 1000n - 120_000_000n;
 
 beforeAll(async () => {
   server = await startServer('SANDBOX');
@@ -119,7 +120,7 @@ const seriesRows = () => count(db, 'select count(*) as n from plant.series s joi
 describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
   it('[DI-31] the OPC UA adapter is a slot of the server, started by the rule of the EMS', () => {
     expect(ADAPTER_SLOTS.find((s) => s.system === 'OPCUA')).toMatchObject({ terminal: 'SRV-OPCUA-ADAPTER-01', roleCode: 'SERVICE_ACCOUNT' });
-    expect(Object.keys(OPCUA_ADAPTER.receive).sort()).toEqual(['opcua.alarm', 'opcua.endpoint_session', 'opcua.equipment_event', 'opcua.series_chunk']);
+    expect(Object.keys(OPCUA_ADAPTER.receive).sort()).toEqual(['opcua.alarm', 'opcua.endpoint_session', 'opcua.equipment_event', 'opcua.series_chunk', 'opcua.series_gap']);
   });
 
   it('[DI-32][DI-49] a session, native chunks, a reject-burst alarm and an equipment event from the feed land as sent', async () => {
@@ -217,6 +218,49 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     expect(await events()).toBe(1);
   });
 
+  // Phase 7 slice 7b-1 (the T12 observation, decision 0022): what the gateway could not record after a crash.
+  it('[DI-32][DI-31] a series gap the gateway reports raises SERIES_GAP naming unit, tag and interval; a malformed gap or one of an unknown tag is refused with an alarm', async () => {
+    feed.publish('opcua.endpoint_session', session());
+    const from = (BigInt(nowUs()) - 30_000_000n).toString();
+    const to = nowUs();
+    const gap = (over: Json = {}): Json => ({
+      subjectKind: 'EQUIPMENT', subjectCode: w.unit.code, tag: 'force.main_kN', unit: 'kN', fromUs: from, toUs: to, reason: 'GATEWAY_RESTART',
+      detail: 'The gateway stopped without closing chunk 9; samples after the last one spooled could not be recorded.', ...over,
+    });
+    feed.publish('opcua.series_gap', gap());
+    const rs = await settle();
+    expect(total(rs, 'accepted')).toBe(2);
+    const { rows } = await db.app.query<{ severity: string; details: Record<string, string> }>(
+      "select severity, details from platform.integration_alarm where adapter_code = $1 and kind = 'SERIES_GAP'", [w.adapter.code]);
+    expect(rows).toEqual([{ severity: 'MAJOR', details: expect.objectContaining({ unit: w.unit.code, tag: 'force.main_kN', fromUs: from, toUs: to, reason: 'GATEWAY_RESTART' }) as unknown }]);
+    // The contract refuses a gap that ends before it starts; the database refuses one of a tag that is no series tag.
+    feed.publish('opcua.series_gap', gap({ fromUs: to, toUs: from }));
+    feed.publish('opcua.series_gap', gap({ tag: 'force.not_a_tag_kN' }));
+    const rs2 = await settle();
+    expect(refusedOf(rs2, 'MALFORMED')).toBe(1);
+    expect(refusedOf(rs2, 'WRONG_IDENTITY')).toBe(1);
+    expect(await count(db, "select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'SERIES_GAP'", [w.adapter.code])).toBe(1);
+  });
+
+  it('[DI-32] 6jc-R13: a chunk dated more than the allowed skew before its endpoint session started is refused with an alarm and lands nowhere; one within it lands', async () => {
+    const before = await seriesRows();
+    const opened = BigInt(nowUs());
+    feed.publish('opcua.endpoint_session', session({ openedAt: opened.toString() }));
+    chunkNo += 1;
+    const old = { subjectKind: 'EQUIPMENT' as const, subjectCode: w.unit.code, tag: 'force.main_kN', unit: 'kN', chunkNo: chunkNo.toString(),
+      samples: [{ sourceTime: '0', serverTime: null, raw: '12.5', value: '12.5', status: '0x00000000' }] };
+    feed.publish('opcua.series_chunk', { ...old, chunkHash: seriesChunkHash(old) });
+    const rs = await settle();
+    expect(refusedOf(rs, 'OUT_OF_RANGE')).toBe(1);
+    expect(rs.flatMap((r) => r.outcomes).find((o) => o.result === 'REFUSED')?.detail).toMatch(/EBMR-EQD-003 source time 0 is more than five minutes before the start of the endpoint session/);
+    expect(await seriesRows()).toBe(before);
+    const within = { ...old, samples: [{ sourceTime: (opened - 60_000_000n).toString(), serverTime: null, raw: '12.5', value: '12.5', status: '0x00000000' }] };
+    feed.publish('opcua.series_chunk', { ...within, chunkHash: seriesChunkHash(within) });
+    expect(total(await settle(), 'accepted')).toBe(1);
+    expect(await seriesRows()).toBe(before + 1);
+  });
+
+  // (Last: it ends the adapter's shared session.)
   it('[DI-31] M6-D2: a page that repeats a refused item unchanged is handled once; the refusal is not recorded twice', async () => {
     const key = `opcua.equipment_event:${randomBytes(6).toString('hex')}`;
     const event: Json = { equipmentCode: w.unit.code, eventId: `EV-${randomBytes(3).toString('hex')}`, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'press running', occurredAt: nowUs() };
@@ -236,4 +280,5 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     expect(await count(db, "select count(*) as n from platform.inbound_exception where adapter_code = $1 and kind = 'REFUSED' and idempotency_key = $2", [w.adapter.code, key])).toBe(1);
     await repeating.stop();
   });
+
 });

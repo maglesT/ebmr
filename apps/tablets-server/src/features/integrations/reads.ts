@@ -147,6 +147,8 @@ export function alarmSummary(kind: AlarmRow['kind'], d: Record<string, string | 
       return `Message ${d['received'] ?? '?'} arrived after message ${d['highestBefore'] ?? '?'}`;
     case 'RECONCILIATION_MISMATCH':
       return `The source reports ${d['sourceCount'] ?? '?'} messages for the period; the eBMR received ${d['receivedCount'] ?? '?'}`;
+    case 'SERIES_GAP':
+      return `The gateway could not record ${d['tag'] ?? '?'} of ${d['unit'] ?? '?'} from ${d['fromUs'] ?? '?'} to ${d['toUs'] ?? '?'} (epoch microseconds): ${d['detail'] ?? d['reason'] ?? ''}`;
     default:
       return d['detail'] ?? kind;
   }

@@ -210,6 +210,20 @@ the controls, and the correlation id that also appears in the log line.
    the database's own message without its code. A code with no entry still answers 422 `NOT_ALLOWED`;
 6. anything else is `INTERNAL` (500), logged with the correlation id: nothing was saved.
 
+**Saved, but the answer failed (Phase 7 slice 7b-1, owner observation O-T13-1).** Most routes commit their command with
+`withIdempotentActorCommand` and then read their answer outside it. When only that read failed, the answer used to be
+`INTERNAL` "Nothing was saved", although the command had committed. The route binder now runs each handler in a command
+scope ([inCommandScope](../../../apps/tablets-server/src/platform/db/commands.ts#sym=inCommandScope)): both command
+wrappers note whether the request's latest command committed (or answered from its stored result) and its idempotency
+key. A failure after such a command, other than a refusal the handler throws on purpose (the e-signature's recorded
+refusal), is answered `SAVED_NOT_SHOWN` (500, kind `STALE`, not retryable): "Saved; the result could not be shown. Reload
+the screen to see it.", with the command's idempotency key in `why` and `details.commandId`
+([savedNotShown](../../../apps/tablets-server/src/platform/http/bind.ts#sym=savedNotShown)). A resend with the same key
+returns the stored result. The `[meta]` test [saved-not-shown.test.ts](../../../apps/tablets-server/test/platform/saved-not-shown.test.ts)
+lists every route whose handler commits with `withIdempotentActorCommand` and reads afterwards (84 at 7b-1, found with
+the TypeScript parser in `later-read-scan.ts`), checks that each is bound through `bindRoutes` and runs no command the
+scope cannot see after it, and shows the answer on a real route whose read fails once.
+
 Each feature registers its own entries (`guidance.ts` in its folder) beside the platform's
 ([PLATFORM_GUIDANCE](../../../apps/tablets-server/src/platform/http/guidance.ts#sym=PLATFORM_GUIDANCE)). The full list
 of codes is the [error-code reference](../reference/error-codes.md); how codes are raised in SQL is in

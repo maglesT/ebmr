@@ -8,6 +8,7 @@
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { routes } from '@ebmr/api-contract';
 import { withCommand } from '@ebmr/kernel';
 import { plant } from '@ebmr/recipe-core';
 import { passwordActor, terminalOf } from '@ebmr/test-kit';
@@ -15,12 +16,13 @@ import { withReason } from '../../../../packages/kernel/test/identity/seed.ts';
 import { count, ctxOf, registerAdapter, setMirrorMode, type Administration, type TestAdapter } from '../../../../packages/kernel/test/integrations/support.ts';
 import type { TestDatabase } from '../../../../packages/kernel/test/support/db.ts';
 import { CMMS_ADAPTER } from '../../src/features/integrations/adapters/cmms/index.ts';
-import { feedWorker, type AdapterWorker, type CycleReport, type FeedAdapterSpec } from '../../src/features/integrations/adapters/framework.ts';
+import { feedWorker, type AdapterWorker, type AdapterWorkerOptions, type CycleReport, type FeedAdapterSpec } from '../../src/features/integrations/adapters/framework.ts';
 import { LIMS_ADAPTER } from '../../src/features/integrations/adapters/lims/index.ts';
 import { LMS_ADAPTER } from '../../src/features/integrations/adapters/lms/index.ts';
 import { QMS_ADAPTER } from '../../src/features/integrations/adapters/qms/index.ts';
 import { actorOf } from '../support/gmp-world.ts';
 import { grantedPerson } from '../support/granted-person.ts';
+import { valueOf } from '../esig/support.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
 import { spawnFeedSimulator, type FeedSimProcess } from './feed-simulator.ts';
 
@@ -92,13 +94,13 @@ interface Rig {
   fault(f: FeedFault, on: boolean, slowMs?: number): Promise<void>;
 }
 
-async function rig(spec: FeedAdapterSpec): Promise<Rig> {
+async function rig(spec: FeedAdapterSpec, opts: Pick<AdapterWorkerOptions, 'nowUs' | 'reconcile'> = {}): Promise<Rig> {
   // The OPC UA feed is the gateway's, not a feed simulator's (equipment-data/opcua-adapter.test.ts).
   const sim = await spawnFeedSimulator(spec.system as Exclude<FeedAdapterSpec['system'], 'OPCUA'>);
   sims.push(sim);
   const adapter = await registerAdapter(db, spec.system, adm);
   const base = sim.base;
-  const worker = feedWorker(db.app, adapter.code, spec, () => Promise.resolve(ctxOf(adapter.actor)), { endpoint: `${base}/${spec.prefix}/v1`, timeoutMs: 400 });
+  const worker = feedWorker(db.app, adapter.code, spec, () => Promise.resolve(ctxOf(adapter.actor)), { endpoint: `${base}/${spec.prefix}/v1`, timeoutMs: 400, ...opts });
   return {
     sim, adapter, worker,
     post: (path, body) => sim.post(path, body),
@@ -231,5 +233,47 @@ describe('the feed adapters against their simulators (DI-31)', () => {
     const publish = (i: number, record: number) =>
       r.post('/cmms/v1/work-orders', { equipmentCode, workOrder: `WO-${record.toString()}`, kind: 'PREVENTIVE', status: i % 2 === 0 ? 'OPEN' : 'COMPLETED', dueOn: '2099-12-31' });
     await soak(r, publish, true);
+  });
+
+  it('[DI-31] O-T12-1: the worker reconciles every closed hour after its grace by itself; a message the source published and the eBMR never received raises RECONCILIATION_MISMATCH; the health page shows the last period', async () => {
+    const HOUR = 3_600_000_000n;
+    const GRACE = 600_000_000n;
+    const dbNow = async () => BigInt((await db.app.query<{ us: string }>('select tab.now_micros() as us')).rows[0]?.us ?? '0');
+    let now = await dbNow();
+    const r = await rig(LIMS_ADAPTER, { nowUs: () => Promise.resolve(now), reconcile: { everyMs: 0 } });
+    const publish = (i: number) =>
+      r.post('/lims/v1/results', { sampleId: `S-REC-${i.toString()}`, lotNumber: lotCode, testCode: 'ASSAY', specificationRef: 'SP-1', result: { value: `98.${i.toString()}0`, unit: '%' },
+                                   conformance: 'CONFORMS', state: 'APPROVED', recordedAt: '1790000000000000' });
+    for (const i of [1, 2]) expect(await publish(i)).toBe(201);
+    // The hour the messages are in is still open: nothing is reconciled yet.
+    const first = await settle(r);
+    expect(first).toMatchObject({ accepted: 2, caughtUp: true, stopped: null, reconciled: { periods: [], error: null } });
+    // The source publishes a third message the feed never delivers (the head moves on, the page stays empty).
+    await r.fault('FEED_GAP', true);
+    expect(await publish(3)).toBe(201);
+    // The clock passes the end of the hour plus the grace: the closed hour is reconciled by the cycle itself.
+    const hourEnd = (now / HOUR) * HOUR + HOUR;
+    now = hourEnd + GRACE + 1n;
+    const during = await r.worker.cycle();
+    expect(during).toMatchObject({ fetched: 0, caughtUp: false, stopped: null });
+    const periods = during.reconciled?.periods ?? [];
+    expect(periods.length).toBeGreaterThanOrEqual(1);
+    expect(periods.at(-1)).toMatchObject({ from: (hourEnd - HOUR).toString(), to: hourEnd.toString(), matched: false });
+    const mismatches = await db.app.query<{ details: Record<string, string> }>("select details from platform.integration_alarm where adapter_code = $1 and kind = 'RECONCILIATION_MISMATCH'", [r.adapter.code]);
+    expect(mismatches.rows).toEqual([{ details: expect.objectContaining({ periodFrom: (hourEnd - HOUR).toString(), periodTo: hourEnd.toString(), sourceCount: '3', receivedCount: '2' }) as unknown }]);
+    // A reconciled period is not submitted again; the next hour closes later.
+    await r.fault('FEED_GAP', false);
+    const again = await settle(r);
+    expect(again).toMatchObject({ caughtUp: true, reconciled: { periods: [], error: null } });
+    expect(await count(db, 'select count(*) as n from platform.reconciliation_report where adapter_code = $1 and period_to = platform.epoch_us_to_timestamptz($2)', [r.adapter.code, hourEnd.toString()])).toBe(1);
+    // The next hour (nothing published in it) closes and matches.
+    now = hourEnd + HOUR + GRACE;
+    const next = await r.worker.cycle();
+    expect(next.reconciled?.periods).toEqual([expect.objectContaining({ from: hourEnd.toString(), to: (hourEnd + HOUR).toString(), matched: true })]);
+    // The health page shows the last reconciled period.
+    const qa = await server.asPersona('qaInvestigator');
+    const health = valueOf(await qa.call(routes.integrations.adapters)).adapters.find((a) => a.adapterCode === r.adapter.code);
+    expect(health?.lastReconciliation).toMatchObject({ matched: true, sourceCount: '0', receivedCount: '0' });
+    expect(health?.lastReconciliation?.periodTo.us).toBe((hourEnd + HOUR).toString());
   });
 });

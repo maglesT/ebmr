@@ -15,7 +15,7 @@
 import { ERP_WMS, type AdapterTransportOptions, type InboundEnvelope } from '@ebmr/integration-sdk/adapter';
 import type { ActorContext } from '@ebmr/kernel';
 import type pg from 'pg';
-import { AdapterWorker, httpFeedClient, type AdapterDefinition, type FetchFn, type ReceiveResult } from '../framework.ts';
+import { AdapterWorker, httpFeedClient, workerOptions, type AdapterDefinition, type AdapterWorkerOptions, type FetchFn, type ReceiveResult } from '../framework.ts';
 import { mtlsFetch } from '../transport.ts';
 import { answerMoveQuestions } from './moves.ts';
 import { OutboundDelivery } from './outbound.ts';
@@ -44,6 +44,9 @@ export interface ErpWmsOptions extends AdapterTransportOptions {
   timeoutMs?: number;
   fetchFn?: FetchFn;
   pageSize?: number;
+  /** The database clock and the reconciliation schedule (framework.ts; tests inject them). */
+  nowUs?: () => Promise<bigint>;
+  reconcile?: Exclude<AdapterWorkerOptions['reconcile'], undefined>;
 }
 
 /** The worker of one ERP/WMS feed, registered as adapter `code`. */
@@ -63,5 +66,5 @@ export function erpWmsWorker(pool: pg.Pool, code: string, feed: ErpWmsFeed, open
       else await answerMoveQuestions(w, opts.endpoint, fetchOpts);
     },
   };
-  return new AdapterWorker(pool, def, httpFeedClient(opts.endpoint, fetchOpts), openActor, opts.pageSize ? { pageSize: opts.pageSize } : {});
+  return new AdapterWorker(pool, def, httpFeedClient(opts.endpoint, fetchOpts), openActor, workerOptions(opts));
 }
