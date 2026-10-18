@@ -12,7 +12,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { ADMIN_URL } from '../../../packages/kernel/test/support/db.ts';
 import { guideHtml, guides, productVersion } from '../src/build.ts';
 import { catalogueFromMigrations, renderPermissions, type Catalogue } from '../src/catalogue.ts';
-import { escapeHtml, toHtml, type Resolver } from '../src/html.ts';
+import { escapeHtml, externalHref, toHtml, type Resolver } from '../src/html.ts';
 import { REFERENCE } from '../src/md.ts';
 import { readScreens, renderScreens } from '../src/screens.ts';
 
@@ -191,5 +191,18 @@ describe('the guides\' Markdown to HTML', () => {
     expect(html).toContain('<pre><code>&lt;script&gt;</code></pre>');
     expect(html).not.toMatch(/<script|<b>/);
     expect(escapeHtml('"<&>')).toBe('&quot;&lt;&amp;&gt;');
+  });
+
+  it('[meta] keeps only http, https and mailto links live; another scheme is shown as text (P7E-1)', () => {
+    expect(externalHref('https://example.org/a')).toBe('https://example.org/a');
+    expect(externalHref('HTTP://example.org')).toBe('HTTP://example.org');
+    expect(externalHref('mailto:qa@example.org')).toBe('mailto:qa@example.org');
+    for (const bad of ['javascript:alert(1)', 'JavaScript:alert(1)', 'data:text/html,x', 'file:///etc/passwd', 'vbscript:x']) {
+      expect(externalHref(bad)).toBeNull();
+    }
+    const r: Resolver = { headingId: (s) => s, href: externalHref, image: () => '' };
+    const html = toHtml('[bad](javascript:alert(1)) and [ok](https://example.org)', r);
+    expect(html).not.toContain('href="javascript:');
+    expect(html).toContain('<a href="https://example.org">ok</a>');
   });
 });

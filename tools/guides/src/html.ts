@@ -15,6 +15,15 @@ export interface Resolver {
   image(target: string): string;
 }
 
+/**
+ * The href of a link target that names a scheme: kept only for http, https and mailto (P7E-1); any other scheme
+ * (javascript:, data:, file:) gives null, so the link is shown as text. Null also when the target names no scheme.
+ */
+export function externalHref(target: string): string | null {
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(target)?.[1]?.toLowerCase();
+  return scheme === 'http' || scheme === 'https' || scheme === 'mailto' ? target : null;
+}
+
 export function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

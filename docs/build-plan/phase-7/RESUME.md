@@ -16,11 +16,12 @@ branch `phase-7/slice-7g`.
 | (notes) | #55 | these resume notes and the CLAUDE.md token rules |
 | 7b-2 | #56 | stand-alone record viewer, full export of closed records, periodic evaluation pack |
 | 7c | #57 | validation pack generators, DI-03 validation-summary gate (recipe-core 1250), DI-06 interface drift (kernel 1350 rebuilt from main's latest definitions, SERIES_GAP kept); review: no findings; golden 44/44 without a re-take |
-| 7d | (next PR) | release drills, security tools and the route-by-role matrix, load driver (analytics runner in a worker thread, P6A7-8 role check kept in the worker), inactivity warning (tablets 1460), accessibility audit run (A11Y-4 to -7 fixed); review: no findings; golden run by CI's golden job (decision D-P7R-1: the local golden cluster was busy with 7e; same suite, same clock library) |
+| 7d | #58 | release drills, security tools and the route-by-role matrix, load driver (analytics runner in a worker thread, P6A7-8 role check kept in the worker), inactivity warning (tablets 1460), accessibility audit run (A11Y-4 to -7 fixed); review: no findings; golden run by CI's golden job (decision D-P7R-1: the local golden cluster was busy with 7e; same suite, same clock library) |
+| 7e | (next PR) | branding (Batchwright, decision 0020), user and administrator guides, `tools/guides` (reference lists from a migration-built database, self-contained HTML and PDF); review: P7E-1 (low: a link with another scheme than http, https or mailto was live) fixed with a test; golden 51/51 |
 
 ## Merge order from here (D-P7-9, amended by decision 0025)
 
-7e, then 7g (its parts 7g-1, 7g-2, 7g-4, 7g-5, and 7g-3 still to build), then 7f (exit).
+7g (its parts 7g-1, 7g-2, 7g-4, 7g-5, and 7g-3 still to build), then 7f (exit).
 Each slice: merge main into its branch, resolve, register its new SQL functions in `tools/sql-mutation/src/targets.ts`
 (with a job in `.github/workflows/mutation.yml` for a new group, same order as TARGETS), claim its migrations in
 `docs/handbook/modules.yaml`, `pnpm handbook`, run every test file the slice changed (and the folders around them) and
@@ -32,7 +33,6 @@ merge when green.
 
 | Branch | State | What is left |
 |---|---|---|
-| `phase-7/slice-7e` | built (branding, guides, `tools/guides`), not reviewed | modules.yaml entry `tools-guides` (page modules/tools.md, src tools/guides/src, tests tools/guides/test/**); golden run (vendor-name tests read outputs only); apply the guide changes of 7g (below) after 7g merges or in 7g; review |
 | `phase-7/slice-7g` | decision 0025 and the 7g plan | the integration branch of the 7g parts |
 | `phase-7/slice-7g1` | built: administration screens (people, grants, recertification, break-glass, devices), the route-completeness `[meta]` test | modules.yaml `ts-administration`; review |
 | `phase-7/slice-7g2` | WIP 4f3fc4c: MBR signing, plant-rule proposal and approval, incidents screens; tablets 1479; E2E master-records and plant-rules pass | `tools/e2e/specs/phase7/incidents.spec.ts` fails at line 70 (CERT-In report time typed from the browser clock; check the server's refusal); then summary items: targets, modules.yaml, which completeness routes leave the pending list, guide text |

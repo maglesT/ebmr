@@ -8,7 +8,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join, posix } from 'node:path';
-import { escapeHtml, toHtml, type Resolver } from './html.ts';
+import { escapeHtml, externalHref, toHtml, type Resolver } from './html.ts';
 import { REFERENCE } from './md.ts';
 
 /** The part of playwright-core's API the PDF print uses (the package is tools/e2e's, loaded at run time). */
@@ -78,7 +78,7 @@ export function guideHtml(root: string, guide: Guide, version: string): string {
     const r: Resolver = {
       headingId: (s) => `${id}--${s}`,
       href(target) {
-        if (/^[a-z][a-z0-9+.-]*:/i.test(target)) return target;
+        if (/^[a-z][a-z0-9+.-]*:/i.test(target)) return externalHref(target);
         const hash = target.indexOf('#');
         const path = hash === -1 ? target : target.slice(0, hash);
         const frag = hash === -1 ? '' : target.slice(hash + 1);

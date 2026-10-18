@@ -104,3 +104,15 @@ rights (7b-1's tightening of four routes); no secrets in the drill, security and
 changes (`page.goBack()` for a browser key headless Chromium does not receive, a hidden radio measured by its label)
 keep the checks. The accessibility run found A11Y-4 to A11Y-7, fixed in the app (`docs/validation/accessibility-audit.md`).
 
+## Slice 7e (branding, guides and `tools/guides`; review of 18 October 2026)
+
+One read-only quick pass. Checked without a finding: the Markdown converter escapes raw HTML in text, alt text, code,
+headings and table cells; images are limited to .svg and .png and links outside a guide become text, so no file
+outside the guide is read; the tools write only under `docs/guides/reference` and `.reports/guides`; the catalogue
+reads a throwaway database built from the migrations; the guides' rights, signature meanings and functions are checked
+against that database by the tests; no verbatim regulation passages; the UI changes are branding only.
+
+| Id | Severity | Finding | Outcome |
+|---|---|---|---|
+| P7E-1 | low | A link target with any scheme (for example `javascript:`) became a live link in the built guide (repository-authored Markdown only). | Fixed: only http, https and mailto stay links; any other scheme is shown as text (`externalHref`), with a test. |
+
