@@ -5,6 +5,7 @@
 import { createElement } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { Button, Layout, StatusChip, t, WatermarkBand, WatermarkOverlay } from '@ebmr/ui-kit';
+import { AppHeaderBrand, InRouter } from './brand.tsx';
 import { cls } from './classes.ts';
 import { useBoot } from './boot.tsx';
 import { installationLabel, isSandbox } from './installation.ts';
@@ -16,7 +17,7 @@ export function IdentityBanner() {
   return (
     <div className={cls('banner')}>
       <div className={cls('identity')}>
-        <span className={cls('product')}>{t('app.name')}</span>
+        <AppHeaderBrand />
         <StatusChip tone={isSandbox(boot.meta?.installation) ? 'test' : 'info'} label={installationLabel(boot.meta?.installation)} />
         {s ? (
           <span className={cls('who')} data-testid="identity">
@@ -54,8 +55,10 @@ export function Frame({ children, withBanner }: { children: React.ReactNode; wit
 /** Root route component: the signed-in shell around the current route. */
 export function ShellOutlet() {
   return (
-    <Frame withBanner>
-      <Outlet />
-    </Frame>
+    <InRouter.Provider value>
+      <Frame withBanner>
+        <Outlet />
+      </Frame>
+    </InRouter.Provider>
   );
 }

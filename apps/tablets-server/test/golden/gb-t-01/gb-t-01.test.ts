@@ -21,7 +21,8 @@ import { expectRunnerBeside } from '../analytics-check.ts';
 import { planAll, runSource, runVariant, SOURCE_AGE_MINUTES } from './scenario.ts';
 import { startGoldenWorld, type GoldenWorld } from './world.ts';
 import { DRUMS, ORDER_PLAN, PRODUCT_TESTS, RESERVE_PACKS, runContinuation, TIMINGS, type Continuation } from './release.ts';
-import { lotFacts, orderFacts, reportNames, type LotFacts, type OrderFacts } from './release-results.ts';
+import { lotFacts, orderFacts, trueCopyReading, type LotFacts, type OrderFacts } from './release-results.ts';
+import { vendorNames } from '../vendor-identity.ts';
 import type { GoldenBatch } from './driver.ts';
 
 type Json = Record<string, unknown>;
@@ -240,12 +241,16 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
       expect(r().signatures).toBe(want().signatures);
       expect(r().trueCopy.sha256).toBe(want().normalisedTrueCopySha256);
     });
+
+    it('its batch record carries the manufacturer\'s identity only: no Batchwright and no Medhanta in its normalised true copy (decision 0020, D-P7-11)', () => {
+      expect(vendorNames(r().trueCopy.normalised)).toEqual([]);
+    });
   });
 
   // Phase 4 slice 7b (D-P4-15): GB-T-01 continued from the release for packing to the release. Its outputs are recorded in
   // expected-release.json; nothing it does comes before the outputs above are read.
   describe('continued to the release: two blister orders from one bulk', () => {
-    const cont: { c?: Continuation; orders: BatchResults[]; facts: OrderFacts[]; lots: LotFacts[]; units: string[][] } = { orders: [], facts: [], lots: [], units: [] };
+    const cont: { c?: Continuation; orders: BatchResults[]; facts: OrderFacts[]; lots: LotFacts[]; units: string[][]; vendorNames: string[] } = { orders: [], facts: [], lots: [], units: [], vendorNames: [] };
     const c = (): Continuation => {
       if (!cont.c) throw new Error('the continuation did not run');
       return cont.c;
@@ -260,7 +265,9 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
       for (const o of cont.c.orders) {
         cont.orders.push(await resultsOf(w, o.batchId, numbers, run.start * 1_000_000n));
         cont.facts.push(await orderFacts(w, o.batchId));
-        cont.units.push(await reportNames(qa, o.batchId, ['BLISTER-01', 'CTN-01', 'BAL-PL-01', 'PL-1']));
+        const reading = await trueCopyReading(qa, o.batchId, ['BLISTER-01', 'CTN-01', 'BAL-PL-01', 'PL-1']);
+        cont.units.push(reading.units);
+        cont.vendorNames.push(...reading.vendorNames);
       }
       for (const l of cont.c.lots) cont.lots.push(await lotFacts(w, l.lotId, numbers));
       const dump = process.env['EBMR_GOLDEN_DUMP'];
@@ -289,6 +296,11 @@ describe.runIf(goldenClockAvailable)('GB-T-01, the tablets golden batch', () => 
 
     it('[PR-22] the batch report of each order (its PDF/A-3 true copy) names the line and the units it ran on', () => {
       expect(cont.units).toEqual([['BLISTER-01', 'CTN-01', 'BAL-PL-01', 'PL-1'], ['BLISTER-01', 'CTN-01', 'BAL-PL-01', 'PL-1']]);
+    });
+
+    it('each order\'s record and its PDF/A-3 true copy carry the manufacturer\'s identity only: no Batchwright and no Medhanta (decision 0020, D-P7-11)', () => {
+      expect(cont.orders).toHaveLength(2);
+      expect([...cont.orders.flatMap((o) => vendorNames(o.trueCopy.normalised)), ...cont.vendorNames]).toEqual([]);
     });
 
     it('[INV-05][IN-05][PR-45][PR-44][PR-53] each finished lot: the worksheet\'s packs, release results approved by the head of QC, reserve samples, G-REL for India green with every item read from signed records, RELEASED by the AP', () => {

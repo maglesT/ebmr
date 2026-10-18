@@ -15,7 +15,7 @@ export async function openApiDocument(): Promise<unknown> {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
   await app.register(swagger, {
-    openapi: { info: { title: 'eBMR Tablets API (GMP and sandbox installations)', version: CONTRACT_VERSION } },
+    openapi: { info: { title: 'Batchwright Tablets API (GMP and sandbox installations)', version: CONTRACT_VERSION } },
     transform: jsonSchemaTransform,
   });
   const typed = app.withTypeProvider<ZodTypeProvider>();

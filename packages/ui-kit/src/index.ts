@@ -12,3 +12,4 @@ export * as identity from './identity/index.ts';
 export * as audit from './audit/index.ts';
 export * as floor from './floor/index.ts';
 export * as machines from './machines/index.ts';
+export * as brand from './brand/index.ts';

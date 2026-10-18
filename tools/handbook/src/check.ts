@@ -88,10 +88,13 @@ export function headerProblems(model: Model): string[] {
   return problems;
 }
 
-/** (c) the link checker over docs/handbook/**.md, the generated pages read as they would be written. */
+/** The user and administrator guides (slice 7e): their pages' links are checked as the handbook's are. */
+export const GUIDES_DIR = 'docs/guides';
+
+/** (c) the link checker over docs/handbook/**.md and docs/guides/**.md, the generated pages read as they would be written. */
 export function linkProblems(model: Model, generated: ReadonlyMap<string, string>): string[] {
   const pending = new Set(model.manifest.pending.map((p) => `${HANDBOOK_DIR}/${p}`.replace(/\/+$/, '')));
-  const pages = new Set([...model.files.filter((f) => f.startsWith(`${HANDBOOK_DIR}/`) && f.endsWith('.md')), ...generated.keys()]);
+  const pages = new Set([...model.files.filter((f) => (f.startsWith(`${HANDBOOK_DIR}/`) || f.startsWith(`${GUIDES_DIR}/`)) && f.endsWith('.md')), ...generated.keys()]);
   const cache = new Map<string, string>();
   const symbols = new Map<string, Set<string>>();
   const ctx = { root: model.root, pending, overlay: generated };

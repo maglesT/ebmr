@@ -8,6 +8,7 @@
 import { routes } from '@ebmr/api-contract';
 import { records } from '@ebmr/kernel';
 import type { TestBrowser } from '../../support/harness.ts';
+import { vendorNames } from '../vendor-identity.ts';
 import type { GoldenWorld } from './world.ts';
 
 type Json = Record<string, unknown>;
@@ -80,12 +81,17 @@ export async function lotFacts(w: GoldenWorld, lotId: string, batchNumbers: read
   return { state: String(lot['state']), quantity: String(lot['quantity']), markets, dispositions, results, samples, grel };
 }
 
-/** The unit codes of `codes` the PDF/A-3 true copy of batch `batchId` names (its associated record files), as QA reads it. */
-export async function reportNames(b: TestBrowser, batchId: string, codes: readonly string[]): Promise<string[]> {
+/**
+ * What QA reads in the PDF/A-3 true copy of batch `batchId` (one download): the unit codes of `codes` it names (its
+ * associated record files), and any vendor name in its record files, keywords or uncompressed metadata (decision 0020).
+ */
+export async function trueCopyReading(b: TestBrowser, batchId: string, codes: readonly string[]): Promise<{ units: string[]; vendorNames: string[] }> {
   const pdf = await b.call(routes.archive.pdf, { params: { batchId } });
   if (!pdf.ok) throw new Error(`the true copy of ${batchId} was refused: ${JSON.stringify(pdf.error)}`);
-  const contents = await records.readPdfA3(new Uint8Array(Buffer.from(pdf.value.pdfBase64, 'base64')));
+  const bytes = Buffer.from(pdf.value.pdfBase64, 'base64');
+  const contents = await records.readPdfA3(new Uint8Array(bytes));
   const text = [...contents.attachments.values()].join('\n');
   // records.json holds each row as canonical jsonb text, so the codes in the entries appear JSON-escaped (\"PL-1\").
-  return codes.filter((c) => text.includes(`\\"${c}\\"`));
+  const units = codes.filter((c) => text.includes(`\\"${c}\\"`));
+  return { units, vendorNames: vendorNames([text, contents.keywords ?? '', bytes.toString('latin1')].join('\n')) };
 }

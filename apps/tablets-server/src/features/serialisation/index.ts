@@ -57,7 +57,7 @@ export const guidance: Readonly<Record<string, GuidanceEntry>> = {
 /** The L3 system's answer, or a refusal naming what failed (fails closed). */
 async function askL3<S extends z.ZodType>(base: string | null, method: 'GET' | 'POST', path: string, body: unknown, schema: S): Promise<z.infer<S>> {
   const fail = (status: number, why: string) =>
-    refusal(status, { code: 'L3-UNAVAILABLE', kind: 'NOT_ALLOWED', whatHappened: 'The L3 serialisation system did not give an answer the eBMR can use. Nothing was recorded.', why, controls: ['PR-42'], whatYouCanDo: ['Try again when the L3 system answers.'], whoCanHelp: ['The L3 system owner'] }, true);
+    refusal(status, { code: 'L3-UNAVAILABLE', kind: 'NOT_ALLOWED', whatHappened: 'The L3 serialisation system did not give an answer this system can use. Nothing was recorded.', why, controls: ['PR-42'], whatYouCanDo: ['Try again when the L3 system answers.'], whoCanHelp: ['The L3 system owner'] }, true);
   if (base === null) throw fail(503, 'no serialisation L3 system is configured for this server (EBMR_L3_URL)');
   let res: Response;
   try {

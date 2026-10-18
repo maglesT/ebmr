@@ -86,6 +86,15 @@ describe('handbook checker on a fixture', () => {
     expect(problems(yaml('-- a header\n-- Handbook: modules/a.md\n'))).toEqual([]);
   });
 
+  it('[meta] the guides\' links are checked as the handbook\'s are (slice 7e): a broken file link and a wrong anchor are reported, right ones pass', () => {
+    const ok = problems({ 'docs/guides/user-guide/README.md': '# Guide\n\n## Tasks\n\n[runbook](../../handbook/modules/a.md#main-functions) [tasks](#tasks)\n' });
+    expect(ok).toEqual([]);
+    const out = problems({ 'docs/guides/user-guide/README.md': '# Guide\n\n[gone](02-gone.md) [anchor](../../handbook/modules/a.md#no-such-heading)\n' });
+    expect(out).toHaveLength(2);
+    expect(out.join('\n')).toMatch(/docs\/guides\/user-guide\/README\.md: link 02-gone\.md: docs\/guides\/user-guide\/02-gone\.md does not exist/);
+    expect(out.join('\n')).toMatch(/has no heading #no-such-heading/);
+  });
+
   it('[meta] the link checker catches a broken file link', () => {
     const out = problems({ 'docs/handbook/modules/a.md': '# Module a\n\nSee [gone](../../../packages/p/sql/0009_gone.sql).\n' });
     expect(out.join('\n')).toMatch(/link \.\.\/\.\.\/\.\.\/packages\/p\/sql\/0009_gone\.sql: packages\/p\/sql\/0009_gone\.sql does not exist/);

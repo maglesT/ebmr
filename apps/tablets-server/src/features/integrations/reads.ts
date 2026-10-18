@@ -146,7 +146,7 @@ export function alarmSummary(kind: AlarmRow['kind'], d: Record<string, string | 
     case 'OUT_OF_ORDER':
       return `Message ${d['received'] ?? '?'} arrived after message ${d['highestBefore'] ?? '?'}`;
     case 'RECONCILIATION_MISMATCH':
-      return `The source reports ${d['sourceCount'] ?? '?'} messages for the period; the eBMR received ${d['receivedCount'] ?? '?'}`;
+      return `The source reports ${d['sourceCount'] ?? '?'} messages for the period; this system received ${d['receivedCount'] ?? '?'}`;
     default:
       return d['detail'] ?? kind;
   }

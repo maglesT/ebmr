@@ -32,6 +32,11 @@
   --ebmr-test-bg: #ffc107;
   --ebmr-test-border: #a16d00;
 
+  /* Brand (decision 0020; tokens.ts BRAND_COLOURS): product identity only, never a state colour or on a GMP record. */
+  --ebmr-brand-red-orange: #D4553A;
+  --ebmr-brand-amber: #EF9E45;
+  --ebmr-brand-grey: #6C6C6C;
+
   --ebmr-font: 'Noto Sans Variable', 'Noto Sans', system-ui, sans-serif;
   --ebmr-radius: 6px;
 

@@ -28,6 +28,8 @@
     "pins:check": "tsx tools/register/src/cli.ts pins",
     "handbook": "tsx tools/handbook/src/cli.ts generate",
     "handbook:check": "tsx tools/handbook/src/cli.ts check",
+    "guides:lists": "tsx tools/guides/src/cli.ts lists",
+    "guides:build": "tsx tools/guides/src/cli.ts build",
     "mutation:ts": "stryker run",
     "mutation:sql": "tsx tools/sql-mutation/src/run.ts",
     "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm register:validate && pnpm build:web && pnpm test:json && pnpm trace"

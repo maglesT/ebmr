@@ -1,0 +1,26 @@
+<!-- Batchwright by Medhanta, concept A (owner, 17 October 2026). Wordmark font: Poppins Bold (Google Fonts, SIL OFL); outline the text before print. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 160" width="560" height="160">
+<defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F6A54C"/><stop offset="0.55" stop-color="#E5572F"/><stop offset="1" stop-color="#C8352B"/>
+  </linearGradient>
+  <linearGradient id="gt" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#EF8A3C"/><stop offset="1" stop-color="#D4402C"/>
+  </linearGradient>
+</defs>
+<g transform="translate(14,14)">
+  <rect x="14" y="16" width="70" height="96" rx="12" fill="url(#g)"/>
+  <rect x="33" y="6" width="32" height="18" rx="6" fill="#fff" stroke="#E5572F" stroke-width="4"/>
+  <g stroke="#fff" stroke-width="6" stroke-linecap="round">
+    <line x1="28" y1="46" x2="66" y2="46"/><line x1="28" y1="64" x2="58" y2="64"/><line x1="28" y1="82" x2="48" y2="82"/>
+  </g>
+  <g transform="translate(84,92) rotate(-40)">
+    <rect x="-30" y="-12" width="60" height="24" rx="12" fill="#fff" stroke="#5E5E5E" stroke-width="4"/>
+    <path d="M0,-12 h18 a12,12 0 0 1 0,24 h-18 z" fill="#5E5E5E"/>
+  </g>
+  <circle cx="104" cy="26" r="5" fill="#E5572F"/><circle cx="116" cy="16" r="4" fill="#EC7A3A"/>
+  <circle cx="126" cy="8" r="3" fill="#F29A45"/><circle cx="134" cy="2" r="2" fill="#F6B05A"/>
+</g>
+<text x="166" y="98" font-family="Poppins, Montserrat, 'DejaVu Sans', Arial, sans-serif" font-size="54" font-weight="700" letter-spacing="-1"><tspan fill="#4A4A4A">Batch</tspan><tspan fill="url(#gt)">wright</tspan></text>
+<g transform="translate(168,112)"><rect x="0" y="0" width="118" height="28" rx="14" fill="url(#gt)"/><text x="59.0" y="20" text-anchor="middle" font-family="Poppins, Montserrat, 'DejaVu Sans', Arial, sans-serif" font-size="15" font-weight="700" fill="#fff" letter-spacing="3">TABLETS</text></g>
+</svg>

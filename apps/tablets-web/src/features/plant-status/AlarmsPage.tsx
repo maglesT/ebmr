@@ -1,5 +1,5 @@
 /**
- * The plant alarm list (DI-49): alarms from the eBMR, OPC UA equipment and the EMS, newest first, open ones by default,
+ * The plant alarm list (DI-49): alarms from Batchwright itself, OPC UA equipment and the EMS, newest first, open ones by default,
  * filtered by state, source and unit or room code; each open alarm is acknowledged here.
  */
 import { useState } from 'react';
@@ -26,7 +26,7 @@ export function AlarmsPage() {
     <>
       <h1>Plant alarms</h1>
       <p>
-        Alarms from the eBMR, the equipment (OPC UA) and the environmental monitoring system, with their times at the source.
+        Alarms from Batchwright itself, the equipment (OPC UA) and the environmental monitoring system, with their times at the source.
         Each is acknowledged with the action taken; a GMP-critical alarm also needs a comment, and some need a deviation reference.
       </p>
       <Section title="Alarms" testId="plant-alarms">
@@ -42,7 +42,7 @@ export function AlarmsPage() {
         />
         <floor.ChoiceGroup
           label="Source"
-          options={[{ value: 'ANY', label: 'Any' }, { value: 'EBMR', label: 'eBMR' }, { value: 'OPCUA', label: 'Equipment (OPC UA)' }, { value: 'EMS', label: 'EMS' }]}
+          options={[{ value: 'ANY', label: 'Any' }, { value: 'EBMR', label: 'Batchwright' }, { value: 'OPCUA', label: 'Equipment (OPC UA)' }, { value: 'EMS', label: 'EMS' }]}
           value={source}
           onChange={(v) => setSource(SOURCES.find((s) => s === v) ?? 'ANY')}
         />

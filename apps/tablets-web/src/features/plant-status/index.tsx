@@ -27,7 +27,7 @@ export function routes(root: AnyRootRoute): AnyRoute[] {
 }
 
 export const homeTiles: readonly HomeTile[] = [
-  { id: 'alarms', title: 'Plant alarms', description: 'Alarms from the eBMR, the equipment and the EMS, with their source times; acknowledge with the action taken.', to: '/alarms', installations: ['GMP'], available: true },
+  { id: 'alarms', title: 'Plant alarms', description: 'Alarms from Batchwright itself, the equipment and the EMS, with their source times; acknowledge with the action taken.', to: '/alarms', installations: ['GMP'], available: true },
   { id: 'status-board', title: 'Equipment status board', description: 'Every unit, room and line: state, batch, cleaning state and open alarms.', to: '/status-board', installations: ['GMP'], available: true },
   { id: 'area-authorisations', title: 'Area authorisations', description: 'Who may work in each controlled area: record, withdraw and see the current authorisations.', to: '/area-authorisations', installations: ['GMP'], available: true },
   { id: 'trends', title: 'Trends', description: 'Native equipment and room data of a batch, a unit or a room, zoomed over the samples as received.', to: '/trends', installations: ['GMP'], available: true },
