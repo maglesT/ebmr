@@ -150,9 +150,10 @@ test('[DI-18][DI-20] the first-run set-up of a new installation in the browser: 
   await evidence.step('Sign in as the administrator with the first password', 'The first password must be changed first; then the administrator is signed in on this browser, the console of the set-up', async () => {
     await page.getByRole('button', { name: 'Go to the sign-in' }).click();
     await signInOffice(page, ADMIN.loginName, ADMIN.first);
-    await expect(page.getByLabel('New password')).toBeVisible();
-    await page.getByLabel('New password').fill(ADMIN.next);
-    await page.getByLabel('Repeat the new password').fill(ADMIN.next);
+    const fresh = page.getByRole('textbox', { name: 'New password', exact: true });
+    await expect(fresh).toBeVisible();
+    await fresh.fill(ADMIN.next);
+    await page.getByRole('textbox', { name: 'Repeat the new password' }).fill(ADMIN.next);
     await page.getByRole('button', { name: 'Continue' }).click();
     await signInOffice(page, ADMIN.loginName, ADMIN.next);
     await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
