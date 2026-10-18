@@ -1478,6 +1478,7 @@ export const TARGETS: Target[] = [
       'tab.controlled_reader_problem', 'tab.controlled_reader_refusal', 'tab.reader_site', 'tab.controlled_batch_scope',
       'tab.controlled_products', 'tab.controlled_custody', 'tab.controlled_checkpoint_rows', 'tab.controlled_checkpoints',
       'tab.controlled_balance', 'tab.controlled_register_extracts', 'tab.controlled_record_scope',
+      'tab.controlled_aggregate_problem', 'tab.controlled_entry_hidden',
     ],
     tests: [s('controlled/controlled-read.test.ts')],
     threshold: 90,

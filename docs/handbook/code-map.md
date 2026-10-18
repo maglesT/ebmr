@@ -105,7 +105,7 @@ of each database function.
 | [ts-dashboards](#ts-dashboards) | Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 5 | 2 | 3 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
 | [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 8 | 2 | 3 |
-| [ts-controlled](#ts-controlled) | Controlled-substance routes, the CONTROLLED_ACT ceremony and screens (Phase 6 slice 6e, draft IN-53) | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 9 | 3 | 1 |
+| [ts-controlled](#ts-controlled) | Controlled-substance routes, the CONTROLLED_ACT ceremony and screens (Phase 6 slice 6e, draft IN-53) | [modules/tablets-server.md](modules/tablets-server.md) | 5 | 9 | 3 | 1 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 3 |
 | [ts-archive](#ts-archive) | Archive, evidence export and inspection | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 11 | 0 | 0 |
 | [ts-india](#ts-india) | India features (licences, labels, expiry rule) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 15 | 5 | 8 |
@@ -2269,13 +2269,13 @@ of each database function.
 
 **Controlled-substance routes, the CONTROLLED_ACT ceremony and screens (Phase 6 slice 6e, draft IN-53).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
 
-**Migrations** (4):
+**Migrations** (5):
 
-- `apps/tablets-server/sql`: [1250_controlled_signing_content.sql](../../apps/tablets-server/sql/1250_controlled_signing_content.sql), [1290_controlled_read.sql](../../apps/tablets-server/sql/1290_controlled_read.sql), [1413_controlled_reads_gated.sql](../../apps/tablets-server/sql/1413_controlled_reads_gated.sql), [1414_controlled_record_read.sql](../../apps/tablets-server/sql/1414_controlled_record_read.sql)
+- `apps/tablets-server/sql`: [1250_controlled_signing_content.sql](../../apps/tablets-server/sql/1250_controlled_signing_content.sql), [1290_controlled_read.sql](../../apps/tablets-server/sql/1290_controlled_read.sql), [1413_controlled_reads_gated.sql](../../apps/tablets-server/sql/1413_controlled_reads_gated.sql), [1414_controlled_record_read.sql](../../apps/tablets-server/sql/1414_controlled_record_read.sql), [1415_controlled_audit_read.sql](../../apps/tablets-server/sql/1415_controlled_audit_read.sql)
 
 **Database objects** created in these migrations:
 
-- Functions (15): `tab.controlled_balance`, `tab.controlled_batch_scope`, `tab.controlled_checkpoint_rows`, `tab.controlled_checkpoints`, `tab.controlled_custody`, `tab.controlled_pair_ok`, `tab.controlled_preview`, `tab.controlled_products`, `tab.controlled_reader_problem`, `tab.controlled_reader_refusal`, `tab.controlled_record_scope`, `tab.controlled_register_extracts`, `tab.controlled_signing_content`, `tab.reader_site`, `tab.record_read_problem`
+- Functions (21): `tab.audit_chains`, `tab.audit_events`, `tab.audit_headless_chains`, `tab.chain_read_problem`, `tab.controlled_aggregate_problem`, `tab.controlled_balance`, `tab.controlled_batch_scope`, `tab.controlled_checkpoint_rows`, `tab.controlled_checkpoints`, `tab.controlled_custody`, `tab.controlled_entry_hidden`, `tab.controlled_pair_ok`, `tab.controlled_preview`, `tab.controlled_products`, `tab.controlled_reader_problem`, `tab.controlled_reader_refusal`, `tab.controlled_record_scope`, `tab.controlled_register_extracts`, `tab.controlled_signing_content`, `tab.reader_site`, `tab.record_read_problem`
 
 **Server files** (2): [index.ts](../../apps/tablets-server/src/features/controlled/index.ts), [reads.ts](../../apps/tablets-server/src/features/controlled/reads.ts)
 
