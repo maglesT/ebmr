@@ -228,6 +228,17 @@ The checklist that names these tests item by item is [pentest-checklist.md](../s
   migrations ([release-6a-migrations.json](../../tools/drills/fixtures/release-6a-migrations.json)); the commands
   are in [the runbooks](10-runbooks.md#release-drills-load-and-security-verification-phase-7-slice-7d).
 
+### The accessibility audit (Phase 7 slice 7d)
+
+[accessibility.spec.ts](../../tools/e2e/specs/accessibility/accessibility.spec.ts) runs axe (WCAG 2.0 to 2.2, A and
+AA rules) on every page of the SPA's route tree (read from the web features' route files, an example id in each
+parameter), on the sandbox's pages and on the kiosk's floor screens; it measures every target on the floor screens
+(44 x 44 CSS px), checks that every state chip has an icon and a word, and walks the office sign-in and a list with
+the keyboard alone, the focus visible at each stop. A serious or critical axe finding fails it. Run it alone with
+`flock /tmp/ebmr-e2e.lock pnpm --filter @ebmr/e2e exec playwright test -c playwright.config.ts specs/accessibility`.
+What a script cannot judge (screen reader, zoom, reflow) is listed per criterion in
+[accessibility-audit.md](../validation/accessibility-audit.md).
+
 ### Boundary tests
 
 [tools/boundaries/test/](../../tools/boundaries/test/):
