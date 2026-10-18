@@ -5,7 +5,7 @@
  *        [--from-release TEXT] [--record FILE] [--keep-copy NAME] [--render-limit N] [--spot-checks N]
  *   node --import tsx tools/drills/src/cli.ts restore --source-url URL --admin-url URL --report-dir DIR
  *        (--seed-file FILE --seal-key-file FILE [--ledger-file FILE] [--change-reference REF] | --no-restore-event)
- *        [--record FILE] [--purpose TEXT] [--render-limit N] [--encryption-key-file FILE] [--export-chain KEY]
+ *        [--record FILE] [--purpose TEXT] [--render-limit N] [--encryption-key-file FILE] [--export-chain KEY] [--export-anchor]
  *
  * `upgrade` copies database NAME (a database at an earlier release, e.g. built by build-release-db.sh at the Phase 6A
  * exit), upgrades the copy with this tree's migrations and compares (upgrade.ts; DI-46 clause 2, DI-48 clause 1);
@@ -70,6 +70,7 @@ async function main(argv: string[]): Promise<number> {
       'ledger-file': { type: 'string' },
       'change-reference': { type: 'string' },
       'no-restore-event': { type: 'boolean', default: false },
+      'export-anchor': { type: 'boolean', default: false },
       purpose: { type: 'string' },
       'encryption-key-file': { type: 'string' },
       'export-chain': { type: 'string' },
@@ -115,6 +116,7 @@ async function main(argv: string[]): Promise<number> {
       ...int('render-limit', 'renderLimit'),
       ...(values['encryption-key-file'] ? { encryptionKeyFile: values['encryption-key-file'] } : {}),
       ...(values['export-chain'] ? { exportChain: values['export-chain'] } : {}),
+      ...(values['export-anchor'] ? { exportAnchorFirst: true } : {}),
     });
     console.log(`restore drill ${out.report.kernel.drillId}: ${out.report.result}`);
     for (const f of out.report.failures) console.log(`  - ${f}`);

@@ -35,7 +35,13 @@ export async function renderRecord(c: pg.Client, chainKey: string): Promise<Rend
   try {
     const bundle = await records.trueCopyBundleFromSnapshot(asOwner(c), chainKey);
     const inDb = await c.query<{ n: string }>('select count(*)::text as n from kernel.audit_event where chain_key = $1', [chainKey]);
-    const sigs = await c.query<{ n: string }>('select count(*)::text as n from esig.signature where aggregate_type || \':\' || aggregate_id = $1', [chainKey]);
+    // The record's signatures: on the aggregate itself, or on its parts (a batch's issue, steps, stages and exceptions
+    // are signed as batch_issue, batch_step ... with ids that start with the batch's id).
+    const id = chainKey.slice(chainKey.indexOf(':') + 1);
+    const sigs = await c.query<{ n: string }>(
+      "select count(*)::text as n from esig.signature where aggregate_type || ':' || aggregate_id = $1 or aggregate_id = $2 or aggregate_id like $2 || ':%'",
+      [chainKey, id],
+    );
     await c.query('commit');
     const out = await records.renderTrueCopyPdf(bundle, { title: `True copy of ${chainKey}`, label: chainKey });
     const pdfCheck = await records.verifyTrueCopyPdf(out.pdf, bundle);
@@ -68,17 +74,17 @@ export async function renderRecord(c: pg.Client, chainKey: string): Promise<Rend
   }
 }
 
-/**
- * The records a drill renders: the batch chains (`batch:<id>`) of closed batches first (released, or rejected, or with
- * a closed review), then the other batches, then the MBR versions, up to `limit` chains.
- */
+/** The kinds of record a drill renders, in this order: batch records, their reviews, masters and what releases rest on. */
+export const RENDERED_KINDS = ['batch', 'batch_review', 'batch_audit_review', 'mbr_version', 'mbr_market_authorisation', 'manufacturing_licence', 'specification', 'deviation', 'material_lot'] as const;
+
+/** Up to `limit` records of the kinds above, each kind's longest chains first. */
 export async function recordsToRender(c: pg.Client, limit: number): Promise<string[]> {
   const { rows } = await c.query<{ chain_key: string }>(
     `select h.chain_key from kernel.audit_chain_head h
-      where h.chain_key like 'batch:%' or h.chain_key like 'mbr_version:%'
-      order by case when h.chain_key like 'batch:%' then 0 else 1 end, h.last_seq desc, h.chain_key collate "C"
+      where split_part(h.chain_key, ':', 1) = any ($2::text[])
+      order by array_position($2::text[], split_part(h.chain_key, ':', 1)), h.last_seq desc, h.chain_key collate "C"
       limit $1`,
-    [limit],
+    [limit, RENDERED_KINDS],
   );
   return rows.map((r) => r.chain_key);
 }

@@ -25,7 +25,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import pg from 'pg';
-import { migrate, type MigrationSource } from '@ebmr/kernel';
+import { config, migrate, type MigrationSource } from '@ebmr/kernel';
 import { columnsOf, connect, copyDatabase, databaseSize, dropDatabase, elapsedMs, listTables, quoteIdent, verifyChains, withDatabase, type ChainCheck, type TableRef } from './db.ts';
 import { recordsToRender, renderRecord, type RenderedRecord } from './render.ts';
 
@@ -142,8 +142,8 @@ async function schemaRelease(c: pg.Client): Promise<string | null> {
   const ok = await c.query<{ ok: boolean }>("select to_regprocedure('platform.schema_release()') is not null as ok");
   if (!ok.rows[0]?.ok) {
     // Before platform.schema_release() (kernel 1300) the release is the same hash computed here (interfaces section 4).
-    const { rows } = await c.query<{ l: string }>("select namespace || '/' || name || '/' || checksum as l from public.schema_migration order by namespace collate \"C\", name collate \"C\"");
-    return sha256(rows.map((r) => r.l).join('\n'));
+    const { rows } = await c.query<{ namespace: string; name: string; checksum: string }>('select namespace, name, checksum from public.schema_migration');
+    return config.releaseOfLedger(rows);
   }
   return (await c.query<{ r: string }>('select platform.schema_release() as r')).rows[0]?.r ?? null;
 }
@@ -242,7 +242,7 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
     let c = await connect(url);
     const stamp = (await c.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', 'YYYYMMDD"T"HH24MISS"Z"') as t`)).rows[0]?.t ?? '';
     const drillId = `upgrade-${stamp}-${randomBytes(3).toString('hex')}`;
-    const serverVersion = (await c.query<{ v: string }>('show server_version')).rows[0]?.v ?? '';
+    const serverVersion = (await c.query<{ v: string }>("select current_setting('server_version') as v")).rows[0]?.v ?? '';
     const sizeBytes = await databaseSize(c);
     const releaseBefore = await schemaRelease(c);
     const migrationsBefore = Number((await c.query<{ n: string }>('select count(*)::text as n from public.schema_migration')).rows[0]?.n ?? 0);
@@ -260,7 +260,7 @@ export async function runUpgradeDrill(o: UpgradeDrillOptions): Promise<UpgradeOu
     }
     const chainsBefore = await verifyChains(c);
     const samples = await takeSamples(c, spot, seed);
-    const keys = await recordsToRender(c, o.renderLimit ?? 10);
+    const keys = await recordsToRender(c, o.renderLimit ?? 16);
     const rendersBefore = new Map<string, RenderedRecord>();
     for (const k of keys) rendersBefore.set(k, await renderRecord(c, k));
     await c.end();

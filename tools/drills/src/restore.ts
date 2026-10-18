@@ -37,6 +37,11 @@ export interface RecordedRestoreDrillOptions {
   restoreEvent: { seed: SiteSeed; sealKey: esig.SealKeyProvider; ledgerFile?: string | null; changeReference: string } | null;
   /** The record exported and restored into isolation (default: the first record rendered). */
   exportChain?: string;
+  /**
+   * Export an external anchor of the source to the installation's ledger first (continuity.exportAnchor, as the
+   * installation's anchor job does; needs restoreEvent.ledgerFile), so the restored copy is verified against it.
+   */
+  exportAnchorFirst?: boolean;
   /** Called with the restored copy's name after its records are rendered and its restore event recorded (the application may connect then). */
   inspectRestored?: (database: string) => Promise<void>;
   /** The proposals of ha-and-restore.md section 3 for this database. */
@@ -58,6 +63,8 @@ export interface RecordedRestoreReport {
   exportRoundTrip: ExportRoundTrip | null;
   measured: { restoreTimeMs: number; drillTimeMs: number; recoveryPoint: string; bytesPerSecond: number | null };
   proposals: NonNullable<RecordedRestoreDrillOptions['proposals']>;
+  /** The anchor the drill exported first, or null. */
+  anchorExported: string | null;
 }
 
 export interface RecordedRestoreOutcome {
@@ -87,10 +94,20 @@ export async function runRecordedRestoreDrill(o: RecordedRestoreDrillOptions): P
   const failures: string[] = [];
   const openItems: string[] = [];
   try {
+    let anchorExported: string | null = null;
+    if (o.exportAnchorFirst) {
+      if (!o.restoreEvent?.ledgerFile) throw new Error('exporting an anchor needs the installation\'s ledger file');
+      const pool = new pg.Pool({ connectionString: o.sourceUrl, max: 1 });
+      try {
+        anchorExported = String((await continuity.exportAnchor(pool, new continuity.FileLedger(o.restoreEvent.ledgerFile, { database: o.restoreEvent.seed.database }))).anchor_id);
+      } finally {
+        await pool.end();
+      }
+    }
     // The records the drill renders, read from the source first.
     const src = await connect(o.sourceUrl);
     const sourceSizeBytes = await databaseSize(src);
-    const keys = await recordsToRender(src, o.renderLimit ?? 10);
+    const keys = await recordsToRender(src, o.renderLimit ?? 16);
     const sourceRenders = new Map<string, RenderedRecord>();
     for (const k of keys) sourceRenders.set(k, await renderRecord(src, k));
     await src.end();
@@ -208,12 +225,14 @@ export async function runRecordedRestoreDrill(o: RecordedRestoreDrillOptions): P
         bytesPerSecond: restoreTimeMs > 0 ? Math.round((sourceSizeBytes * 1000) / restoreTimeMs) : null,
       },
       proposals: o.proposals ?? TABLETS_PROPOSALS,
+      anchorExported,
     };
     mkdirSync(o.reportDir, { recursive: true });
     const jsonPath = join(o.reportDir, `${k.drillId}-recorded.json`);
     const markdownPath = join(o.reportDir, `${k.drillId}-recorded.md`);
     writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`);
-    writeFileSync(markdownPath, renderRestoreRecord(report, readFileSync(outcome.markdownPath, 'utf8')));
+    // The kernel's report again, now that the copy is dropped (the kernel drill kept it for the steps above).
+    writeFileSync(markdownPath, renderRestoreRecord(report, continuity.renderDrillMarkdown(k)));
     return { report, jsonPath, markdownPath };
   } finally {
     rmSync(work, { recursive: true, force: true });
@@ -233,7 +252,8 @@ export function renderRestoreRecord(r: RecordedRestoreReport, kernelMarkdown: st
   L.push(`| Drill id | \`${k.drillId}\` |`, `| Purpose | ${cell(r.purpose)} |`, `| Started and finished | ${cell(k.startedAt)} to ${cell(k.finishedAt)} (database clock, UTC) |`);
   L.push(`| Duration | ${String(k.durationMs)} ms (kernel drill); ${String(r.measured.drillTimeMs)} ms with rendering, restore event and export |`);
   L.push(`| Source database and server version | ${cell(k.source.database)}, PostgreSQL ${cell(k.source.serverVersion)}, ${String(r.sourceSizeBytes)} bytes |`);
-  L.push('| Change or validation record | (reviewer) |', '');
+  L.push('| Change or validation record | (reviewer) |');
+  L.push(`| External anchor exported before the backup | ${r.anchorExported ? `anchor ${r.anchorExported} (to the installation's ledger, as its anchor job does)` : 'none (the anchors already in the ledger are used)'} |`, '');
   // Sections 2 to 6 as the kernel drill wrote them.
   const from = kernelMarkdown.indexOf('## 2.');
   const to = kernelMarkdown.indexOf('## 7.');
