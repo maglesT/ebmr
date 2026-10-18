@@ -1,0 +1,15 @@
+{
+  "name": "@ebmr/tool-security",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Security verification: installation hardening check, licence and secret scans, SBOM and release-manifest signing (ASVS V10.3, V14.2)",
+  "type": "module",
+  "dependencies": {
+    "@ebmr/kernel": "workspace:0.1.0",
+    "@ebmr/test-kit": "workspace:0.1.0",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

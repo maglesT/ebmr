@@ -15,10 +15,10 @@
  *    pqr_extract <extract id>   PQR_SIGNED_OFF (the authorised person, outside the batches' records), state EXTRACTED
  */
 import { z } from 'zod';
-import { Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
+import { CalendarDate, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
-const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'a calendar date (YYYY-MM-DD)');
+const IsoDate = CalendarDate();
 export const PqrProductCode = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$/, 'a product code');
 
 export const PqrCounts = z.strictObject({
