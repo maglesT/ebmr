@@ -59,6 +59,26 @@ Decisions taken on resume (owner's standing instruction to decide and record):
   acts that wait for 7g-3's screens (listed pending 7g-3, not exempt); `register:status` (a developer tool on the
   control register) and the stand-alone record viewer (itself the reading tool) are exempt.
 
+- D-P7R-3: market policies stay in v1.0; their acts get screens (WP3). If the GMP batch issue does not already pin a
+  batch's market policies, `market.pin_policies_for_batch` runs inside the issue transaction (a step of the person's
+  issue, not a screen); a golden output that moves is re-taken once with the reason in the defect log.
+- D-P7R-4: the upgrade drill runs only on a sandbox or staging installation (it needs admin database access and
+  creates databases); on a GMP installation the screen shows the drill records and runs the restore drill as a job.
+- D-P7R-5: IQ (`runIq`) moves into `packages/validation-kit` so a route can run it and store its record; the CLI
+  keeps working by importing it.
+
+### 7g state (18 October, evening)
+
+`phase-7/slice-7g` holds the integrated parts (9647df5d) and the scaffold for four parallel work packages (73461266:
+reserved signable kinds, stub `validation` and `market` features, `// WP1..WP4` blocks in the three meta tests). The
+packages build on `phase-7/slice-7g-wp1` (validation, export, records, esig), `-wp2` (continuity, drills, platform and
+access configuration), `-wp3` (master-record, market, plant configuration, labelling), `-wp4` (floor, materials, batch
+numbers). Then: merge the four into `phase-7/slice-7g`; root-cause the web test `justify-revision` that fails only in
+full runs (and check `readings-after-refusal`); run E2E administration, operations, phase7 and sync the register (18
+E2E entries wait for it); golden on the clock cluster (GB-T-03 and the US letter; D-P7R-3); one quick review that also
+checks the integration's change letting the system administrator use the `people` and `deviceRegistry` routes (it must
+not reach role or permission grants) and the idle-warning rule the 7g-5 merge dropped; PR; merge when green.
+
 ## Open findings to carry
 
 - **US e-signature certification (high, from 7g-5): fixed on `phase-7/slice-7g5`** (recipe-core 1260, 3 `[DI-15]`
