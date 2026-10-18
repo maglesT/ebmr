@@ -3,7 +3,7 @@
  * Validation runs on the server in A1 (decision D10); simulation is stamped SIMULATION (DI-04, DI-05).
  */
 import { z } from 'zod';
-import { DecimalString, Empty, Instant, PersonRef, Uuid, Watermark } from '../common.ts';
+import { DecimalString, Empty, Instant, PersonRef, Uuid, Watermark, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { FormulaChoiceView } from './master-data.ts';
 
@@ -153,6 +153,50 @@ export const ReferenceDocumentView = z.strictObject({
   hash: z.string(),
   status: z.string(),
 });
+
+// Phase 7 slice 7g-2 (decision 0025): the market authorisations of an approved version (recipe-core 0160, 0290; ADR
+// 0014) and the labelling specimens (tablets 1479). Their signatures go through the ceremony (signable actions
+// MBR_MARKET_ACT and SPECIMEN_ACT); the database decides every rule.
+
+const Reason = z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) });
+export const ScopeCellWire = z.strictObject({ site: z.string().trim().min(1).max(64), line: z.string().trim().min(1).max(64), batchSize: z.string().trim().min(1).max(64) });
+
+export const MarketAuthorisationView = z.strictObject({
+  authorisationId: Uuid,
+  versionId: Uuid,
+  market: z.string().regex(/^[A-Z]{2}$/),
+  kind: z.enum(['CURRENT', 'BRIDGING']),
+  cells: z.array(ScopeCellWire),
+  effectiveFrom: Instant.nullable(),
+  effectiveTo: Instant.nullable(),
+  regulatoryBasis: z.string(),
+  /** PROPOSED, ACTIVE (activated with both signatures) or WITHDRAWN (recipe.market_authorisation_state). */
+  state: z.enum(['PROPOSED', 'ACTIVE', 'WITHDRAWN']),
+  proposedBy: PersonRef,
+  proposedAt: Instant,
+  /** The valid REGULATORY_CONFIRMED and MBR_MARKET_AUTHORISED signatures on the record, if any. */
+  regulatoryConfirmedBy: z.strictObject({ by: PersonRef, at: Instant }).nullable(),
+  qaAuthorisedBy: z.strictObject({ by: PersonRef, at: Instant }).nullable(),
+  activatedAt: Instant.nullable(),
+  withdrawal: z.strictObject({ reason: z.string(), by: PersonRef, at: Instant }).nullable(),
+});
+export type MarketAuthorisationView = z.infer<typeof MarketAuthorisationView>;
+
+export const LabellingSpecimenView = z.strictObject({
+  documentId: Uuid,
+  code: z.string(),
+  version: z.string(),
+  title: z.string(),
+  hash: z.string(),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** RECORDED (waits for approval), APPROVED, RETIRED or WITHDRAWN (tab.labelling_specimen_state). */
+  state: z.enum(['RECORDED', 'APPROVED', 'RETIRED', 'WITHDRAWN']),
+  recordedBy: PersonRef,
+  recordedAt: Instant,
+  approvedBy: PersonRef.nullable(),
+  approvedAt: Instant.nullable(),
+});
+export type LabellingSpecimenView = z.infer<typeof LabellingSpecimenView>;
 
 export const designer = {
   templates: defineRoute({
@@ -322,5 +366,61 @@ export const designer = {
       batchSize: z.string().regex(/^[1-9][0-9]{0,11}$/),
     }),
     response: FormulaChoiceView,
+  }),
+  marketAuthorisations: defineRoute({
+    id: 'designer.marketAuthorisations',
+    method: 'GET',
+    path: '/api/mbr/versions/:versionId/market-authorisations',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: "A version's market authorisations with their state and the regulatory and QA signatures on each (ADR 0014; PR-04, PR-05)",
+    params: z.strictObject({ versionId: Uuid }),
+    response: z.strictObject({ authorisations: z.array(MarketAuthorisationView) }),
+  }),
+  proposeMarketAuthorisation: defineRoute({
+    id: 'designer.proposeMarketAuthorisation',
+    method: 'POST',
+    path: '/api/mbr/versions/:versionId/market-authorisations',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: 'Propose the authorisation of an APPROVED version for a market and scope with its regulatory basis (ADR 0014; MBR.APPROVE); it takes effect once confirmed and authorised (MBR_MARKET_ACT)',
+    params: z.strictObject({ versionId: Uuid }),
+    body: withAttribution({
+      market: z.string().regex(/^[A-Z]{2}$/),
+      kind: z.enum(['CURRENT', 'BRIDGING']),
+      cells: z.array(ScopeCellWire).min(1).max(50),
+      effectiveFrom: z.iso.datetime({ offset: true }).optional(),
+      /** BRIDGING only: the end of the time-limited validity and the approved successor. */
+      effectiveTo: z.iso.datetime({ offset: true }).optional(),
+      successorVersionId: Uuid.optional(),
+      regulatoryBasis: z.string().trim().min(1).max(2000),
+    }),
+    response: MarketAuthorisationView,
+  }),
+  withdrawMarketAuthorisation: defineRoute({
+    id: 'designer.withdrawMarketAuthorisation',
+    method: 'POST',
+    path: '/api/mbr/market-authorisations/:authorisationId/withdraw',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: true,
+    attribution: 'FRESH_ON_SHARED',
+    summary: "Withdraw a market authorisation: its open cells end (PR-05; MBR.APPROVE), with QA's own reason",
+    params: z.strictObject({ authorisationId: Uuid }),
+    body: withAttribution({ reason: Reason }),
+    response: MarketAuthorisationView,
+  }),
+  specimens: defineRoute({
+    id: 'designer.specimens',
+    method: 'GET',
+    path: '/api/mbr/specimens',
+    installation: 'GMP',
+    auth: 'SESSION',
+    mutating: false,
+    summary: 'The labelling and printed packaging specimens (SPECIMEN reference documents) with their approval (DI-35; SPECIMEN_ACT signs SPECIMEN_APPROVED)',
+    response: z.strictObject({ specimens: z.array(LabellingSpecimenView) }),
   }),
 } as const;

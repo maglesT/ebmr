@@ -11,6 +11,8 @@
  * Phase 6A slice 6A-2: analytics-spc (control charts, capability, deviation rates; GMP).
  * Phase 6A slice 6A-3: analytics-mspc (multivariate monitoring; GMP).
  * Phase 6A slice 6A-5: analytics-review (one record's review priority; the queue's priority note; GMP).
+ * Phase 7 slice 7g-2 (decision 0025): master-records (MBR signatures, market authorisations, labelling specimens),
+ * plant-rules (penicillin facility and beta-lactam proposals and QA approval) and incidents (register, CERT-In step); GMP.
  */
 import * as access from '../features/access/index.tsx';
 import * as analytics from '../features/analytics/index.tsx';
@@ -23,12 +25,15 @@ import * as audit from '../features/audit/index.tsx';
 import * as designer from '../features/designer/index.tsx';
 import * as devices from '../features/devices/index.tsx';
 import * as floor from '../features/floor/index.tsx';
+import * as incidents from '../features/incidents/index.tsx';
 import * as india from '../features/india/index.tsx';
 import * as integrations from '../features/integrations/index.tsx';
 import * as masterData from '../features/master-data/index.tsx';
+import * as masterRecords from '../features/master-records/index.tsx';
 import * as planning from '../features/planning/index.tsx';
 import * as plant from '../features/plant/index.tsx';
 import * as plantStatus from '../features/plant-status/index.tsx';
+import * as plantRules from '../features/plant-rules/index.tsx';
 import * as notifications from '../features/notifications/index.tsx';
 import * as quality from '../features/quality/index.tsx';
 import * as records from '../features/records/index.tsx';
@@ -81,4 +86,7 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['analytics-spc', analyticsSpc satisfies WebFeature],
   ['analytics-mspc', analyticsMspc satisfies WebFeature],
   ['analytics-review', analyticsReview satisfies WebFeature],
+  ['master-records', masterRecords satisfies WebFeature],
+  ['plant-rules', plantRules satisfies WebFeature],
+  ['incidents', incidents satisfies WebFeature],
 ];

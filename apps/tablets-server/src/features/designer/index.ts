@@ -40,6 +40,7 @@ import { compositionGate, withFormulaBom } from './formula-choice.ts';
 import { DESIGNER_GUIDANCE } from './guidance.ts';
 import { hazardContext, NoContainedAreaError, withContainment } from './hazard.ts';
 import { slotPool } from './limits.ts';
+import { masterRecordHandlers } from './master-records.ts';
 
 export { registerSignableActions } from './signables.ts';
 import {
@@ -721,6 +722,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     palette: () => Promise.resolve({ blocks: palette }),
 
     referenceDocuments: async () => ({ documents: await referenceDocumentViews(pool, await siteToday(pool)) }),
+    // Phase 7 slice 7g-2 (decision 0025): market authorisations and labelling specimens (master-records.ts).
+    ...masterRecordHandlers(app),
   }, {
     rateLimits: {
       simulate: SIMULATION_RATE_LIMIT,

@@ -14,7 +14,7 @@ import { withIdempotentActorCommand } from '../../platform/db/commands.ts';
 import { bindRoutes } from '../../platform/http/bind.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { PLANT_RULES_GUIDANCE } from './guidance.ts';
-import { adjacencies, areaAuthorisationRecord, areaAuthorisations, lineStation, reagentLot, reagentLots, room, roomConditions, rooms, statusBoard } from './reads.ts';
+import { adjacencies, areaAuthorisationRecord, areaAuthorisations, lineStation, plantRuleProposals, reagentLot, reagentLots, room, roomConditions, rooms, statusBoard } from './reads.ts';
 
 export const guidance = PLANT_RULES_GUIDANCE;
 
@@ -79,6 +79,11 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const { result: version } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
         one(c, 'select plant.classify_beta_lactam($1, $2, $3, $4) as r', [body.kind, body.code, body.betaLactam, body.reason]));
       return { version, ...(await proposal(pool, 'select id from plant.beta_lactam_class where subject_kind = $1 and code = $2 and version = $3::integer', [body.kind, body.code, version])) };
+    },
+    // Phase 7 slice 7g-2 (decision 0025): the proposals and what is in force, for the steward's and QA's screen.
+    proposals: async ({ requireSession }) => {
+      requireSession();
+      return plantRuleProposals(app, pool);
     },
     createAreaAuthorisation: async ({ body, actor, idempotencyKey, requestHash }) => {
       const { result: qualificationCode } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, (c) =>
