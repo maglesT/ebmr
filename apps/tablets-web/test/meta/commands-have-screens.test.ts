@@ -72,6 +72,12 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'ebmr#typecheck': 'build check', 'ebmr#lint': 'build check', 'ebmr#deps:check': 'build check', 'ebmr#pins:check': 'build check',
   'ebmr#test': 'the test suite', 'ebmr#test:json': 'the test suite', 'ebmr#ci': 'everything CI runs',
   'ebmr#register:import': 'the control register (development of the validation evidence)', 'ebmr#register:validate': 'the control register', 'ebmr#register:sync-tests': 'the control register',
+  'ebmr#register:status': 'the control register',
+  'ebmr#validation:bundle': 'the validation pack (slice 7c): the evidence bundle built from the test reports of a release',
+  'ebmr#validation:generate': 'the validation pack (slice 7c): the documents generated from the evidence bundle',
+  'ebmr#validation:oq': 'the validation pack (slice 7c): the OQ record written from the regression, golden and browser suites',
+  '@ebmr/record-viewer#build': 'the build of the stand-alone record viewer shipped with a full export',
+  'apps/record-viewer/src/main.ts': 'the stand-alone record viewer: a page opened from the file system beside a full export, offline, with no installation behind it',
   'ebmr#trace': 'the traceability matrix', 'ebmr#trace:e2e': 'the traceability matrix',
   'ebmr#handbook': 'the generated handbook', 'ebmr#handbook:check': 'the generated handbook',
   'ebmr#mutation:ts': 'mutation testing', 'ebmr#mutation:sql': 'mutation testing',
@@ -97,6 +103,9 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
 /** Commands whose screen comes with a later slice of decision 0025 (each names the slice). */
 const LATER: Readonly<Record<string, string>> = {
   'ops/backup/drill.sh': 'the restore drill and its record: slice 7g-3, after 7d',
+  'packages/kernel/src/records/records-cli.ts': 'the full export and the periodic evaluation pack (slice 7b-2): slice 7g-3 (validation and records)',
+  'ebmr#validation:iq': 'the IQ check of an installation and its record (slice 7c): slice 7g-3 (validation and records)',
+  'tools/validation/src/cli.ts': 'iq: the IQ check of an installation, slice 7g-3 (validation and records); bundle, generate and oq build the validation pack from test reports (no operation)',
 };
 
 function walk(dir: string, out: string[] = []): string[] {

@@ -70,7 +70,7 @@ export const LEFT_OUT: Record<string, string> = Object.fromEntries(
       'recipe.last_federated_excerpt', 'recipe.contract_giver_accesses', 'recipe.mbr_edition_review',
       'recipe.mbr_edition_citations', 'recipe.rbe_rules_as_of', 'iam.support_grants', 'esig.policy_values',
       'esig.dsc_configuration', 'esig.dsc_of', 'esig.dsc_enrolments_of', 'platform.config_as_of', 'platform.config_diff',
-      'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
+      'report.catalog_rows_v1', 'analytics.method_monitor_rows_v1', 'iam.setup_state', 'tab.installation_contents'].map((f): [string, string] => [f, READS_FOR_A_SCREEN]),
 );
 
 const k = (f: string) => `packages/kernel/test/${f}`;
@@ -1539,6 +1539,30 @@ export const TARGETS: Target[] = [
     group: 'validation-summary-gate',
     functions: ['recipe.batch_execution_validation_gate'],
     tests: [r('lifecycle/gmp-issue.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-4: the browser's first-run set-up of a new installation with the installer's one-time token
+  // (decision 0025 point 2; kernel 1375).
+  {
+    group: 'first-run-setup',
+    functions: ['iam.is_bootstrapped', 'iam.issue_setup_token', 'iam.first_run_setup'],
+    tests: [s('operations/setup.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-4: the operations acts of a person (worker start and stop, a backup now, a copy of a stored backup),
+  // recorded and attributed (DI-17, DI-18, DI-45; kernel 1376).
+  {
+    group: 'operations-acts',
+    functions: ['platform.record_operations_act', 'continuity.request_backup', 'continuity.record_backup_download'],
+    tests: [s('operations/workers-and-backups.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-4: the demo conveniences refused on a GMP installation that is not a demo one, and the backup
+  // catalogue read by permission (tablets 1485).
+  {
+    group: 'operations-demo-backups',
+    functions: ['tab.demo_conveniences_problem', 'tab.record_demo_act', 'tab.backup_overview'],
+    tests: [s('operations/demo-and-simulators.test.ts'), s('operations/workers-and-backups.test.ts')],
     threshold: 90,
   },
 ];
