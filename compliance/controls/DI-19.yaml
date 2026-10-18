@@ -194,6 +194,7 @@ tests:
   - "packages/kernel/test/mutation/site-zone.test.ts > iam.set_policy: an INTEGER policy takes a whole number in plain decimal digits (DI-19, EBMR-IAM-110) > [DI-19] a whole number in the allowed range is recorded in its canonical form: blanks trimmed, leading zeros dropped; out of range is refused with the range"
   - "packages/kernel/test/mutation/site-zone.test.ts > iam.set_policy: the BOOLEAN policy credential.compromised_screening takes true or false (DI-19, EBMR-IAM-110) > [DI-19] yes, on, 1, t, y and other words PostgreSQL reads as booleans or not are refused as not true or false; nothing is recorded or audited and screening keeps its value"
   - "packages/kernel/test/mutation/site-zone.test.ts > iam.set_policy: the BOOLEAN policy credential.compromised_screening takes true or false (DI-19, EBMR-IAM-110) > [DI-19] true or false in any case and with surrounding blanks is recorded in lower case"
+  - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-19][DI-13] sign-in is rate-limited per address and user ID (10 a minute), signing per session (20 a minute)"
 clauses:
   - clause: "Make 5 failed signing attempts. The account locks and the security unit receives the alert within the configured time."
     tests:

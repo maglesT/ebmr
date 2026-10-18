@@ -412,7 +412,9 @@ export const TARGETS: Target[] = [
     functions: ['tab.set_session_role', 'tab.unbind_session', 'tab.consume_device_nonce', 'tab.set_attribution_method',
                 'tab.session_role_withdrawn', 'tab.resolve_session', 'tab.end_withdrawn_session', 'tab.session_to_extend', 'tab.bind_session'],
     tests: [s('session/login.test.ts'), s('session/no-role-binding.test.ts'), s('session/role-withdrawn.test.ts'),
-            s('session/device-nonce-limit.test.ts'), s('access/attribution.test.ts')],
+            s('session/device-nonce-limit.test.ts'), s('access/attribution.test.ts'),
+            // Slice 7d: the file that tests tab.resolve_session as tablets 1460 re-created it (the idle-lock seconds).
+            s('access/session.test.ts')],
     threshold: 90,
   },
   // ---- Phase 2: the designer's records: references, justifications, market set, content roles (tablets 0150, 0280;

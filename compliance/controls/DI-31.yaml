@@ -423,6 +423,8 @@ tests:
   - "apps/tablets-server/test/execution/gmp-batch.test.ts > a product-limited qualification requirement applies to batches of that product only (6jc-R16) > [DI-31] F-6jb-2: the stale-mirror refusal names the mirror, its age and the system owner to call"
   - "apps/tablets-server/test/integrations/feed-adapters.test.ts > the feed adapters against their simulators (DI-31) > [DI-31] O-T12-1: the worker reconciles every closed hour after its grace by itself; a message the source published and the eBMR never received raises RECONCILIATION_MISMATCH; the health page shows the last period"
   - "apps/tablets-server/test/integrations/feed-adapters.test.ts > the feed adapters against their simulators (DI-31) > [DI-31] O-T12-1: a report that committed while its answer was lost is not submitted again; the next run goes on from the database's latest report"
+  - "apps/tablets-server/test/security/tls.test.ts > TLS settings of the adapters (slice 7d) > [DI-13][DI-31] the adapters negotiate TLS 1.2 or later; a system that offers only TLS 1.1 or older is refused"
+  - "apps/tablets-server/test/security/tls.test.ts > TLS settings of the adapters (slice 7d) > [DI-13][DI-31] an adapter that holds TLS material speaks https only, and a system certificate from the public trust store does not do"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

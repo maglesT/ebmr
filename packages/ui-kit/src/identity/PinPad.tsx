@@ -54,7 +54,7 @@ export function PinPad({ label = 'Enter your PIN', onSubmit, disabled = false, m
   };
   return (
     <div role="group" aria-label={label} onKeyDown={onKeyDown} className={icls('stack')}>
-      <div className={icls('dots')} aria-live="polite" aria-label={`${length} digits entered`}>
+      <div className={icls('dots')} role="status" aria-live="polite" aria-label={`${length} digits entered`}>
         {'•'.repeat(length)}
       </div>
       <div className={icls('keypad')}>

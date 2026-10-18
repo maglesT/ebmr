@@ -38,7 +38,15 @@ export async function callRead<R extends AnyRoute>(route: R, input: Pick<CallInp
   const target = readRoute(route);
   if (target === route) return api.call(route, input as CallInput<R>);
   const params = gmpParams(input.params as Record<string, string> | undefined);
-  return api.call(target, { ...input, ...(params ? { params } : {}) }) as unknown as Promise<Result<RouteResponse<R>>>;
+  const r = (await api.call(target, { ...input, ...(params ? { params } : {}) })) as unknown as Result<RouteResponse<R>>;
+  // The one view whose wrapper differs: the batches list answers `{ batches }` where the test runs answer `{ runs }`
+  // (the same RunSummaryView items). Without this the GMP floor's runs page read `runs` of nothing and failed
+  // (slice 7d, found by the accessibility audit: A11Y-4).
+  if (r.ok && route.id === routes.execution.runs.id) {
+    const { batches } = r.value as unknown as { batches: unknown };
+    return { ...r, value: { runs: batches } as unknown as RouteResponse<R> };
+  }
+  return r;
 }
 
 /** The command route of a run on this installation and its path parameters. */

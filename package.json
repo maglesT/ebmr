@@ -35,6 +35,13 @@
     "handbook:check": "tsx tools/handbook/src/cli.ts check",
     "mutation:ts": "stryker run",
     "mutation:sql": "tsx tools/sql-mutation/src/run.ts",
+    "security:hardening": "tsx tools/security/src/cli.ts hardening",
+    "security:licences": "tsx tools/security/src/cli.ts licences",
+    "security:secrets": "tsx tools/security/src/cli.ts secrets",
+    "security:release": "tsx tools/security/src/cli.ts release",
+    "security:verify": "tsx tools/security/src/cli.ts verify",
+    "drills": "tsx tools/drills/src/cli.ts",
+    "load": "tsx tools/load/src/cli.ts",
     "ci": "pnpm typecheck && pnpm lint && pnpm deps:check && pnpm pins:check && pnpm register:validate && pnpm build:web && pnpm test:json && pnpm trace"
   },
   "devDependencies": {

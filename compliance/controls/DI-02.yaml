@@ -37,6 +37,7 @@ catalog_test: Export a batch and restore it into an isolated environment. For 20
 implemented_by: {}
 tests:
   - "packages/kernel/test/records/evidence-export.test.ts > PDF/A-3 true copy (D-6-4, D-P4-7) > [DI-41][DI-24][DI-40][DI-02][IN-06] the rendering shows the DI-24 clause, every row as stored and each change after entry with its original value, person and reason"
+  - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
 clauses:
   - clause: "Export a batch and restore it into an isolated environment."
     deferred:

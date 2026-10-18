@@ -17,7 +17,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes, RatesView, SpcChartView, StatNumber } from '@ebmr/api-contract';
 import { analyticsHistory, analyticsHistorySql, HISTORY_ITEMS, HISTORY_PRODUCT, HISTORY_SEEDS, type AnalyticsHistory } from '@ebmr/test-kit';
 import { SPC_METHOD_DEFINITIONS } from '../../src/analytics/spc.ts';
-import type { AnalyticsRunner, RunReport } from '../../src/analytics/runner.ts';
+import { createAnalyticsPool } from '../../src/analytics/pool.ts';
+import { AnalyticsRunner, type EffectiveVersion, type RunReport } from '../../src/analytics/runner.ts';
+import { ThreadedAnalyticsRunner, type AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
@@ -90,7 +92,7 @@ async function approvedChangeRecord(areas: string[]): Promise<string> {
   return number;
 }
 
-const runner = (): AnalyticsRunner => {
+const runner = (): AnalyticsRunnerApi => {
   const r = gmp.built.analytics;
   if (!r) throw new Error('the GMP server started without its analytics runner');
   return r;
@@ -220,5 +222,31 @@ describe('the SPC, capability, drift and rate methods (slice 6A-2)', () => {
     expect(refusalOf(await author.call(routes.analyticsSpc.chart, { query: chartQuery }))).toMatchObject({ code: 'EBMR-IAM-040' });
     expect(refusalOf(await qa.call(routes.analyticsSpc.chart, { query: { ...chartQuery, item: 'no.such.item' } }))).toMatchObject({ status: 404, code: 'EBMR-ANA-021' });
     expect(refusalOf(await qa.call(routes.analyticsSpc.capability, { query: { ...chartQuery, product: 'NONE' } }))).toMatchObject({ status: 404 });
+  });
+  it('[DI-51][DI-52] the server runs the analytics in a worker thread (slice 7d, P6A7-4): the in-process runner records the same outputs on the same data; a stopped worker refuses', async () => {
+    expect(gmp.built.analytics).toBeInstanceOf(ThreadedAnalyticsRunner);
+    const silent = { info: () => undefined, warn: () => undefined, error: () => undefined, debug: () => undefined };
+    const { rows: versions } = await gmp.db.admin.query<EffectiveVersion>('select method, version, parameters, parameters_sha256, code_identity from analytics.effective_methods() order by method, version');
+    // One more connection of the role at a time (it has four on the cluster): in process first, then a worker of its own.
+    const inProcess = new AnalyticsRunner({ pool: createAnalyticsPool(gmp.config.analytics.url), log: silent, siteZone: () => 'Asia/Kolkata', commit: gmp.config.analytics.commit });
+    const here: RunReport[] = [];
+    try {
+      for (const v of versions) here.push(...(await inProcess.runVersionAll(v, 'ON_DEMAND')));
+    } finally {
+      await inProcess.stop();
+    }
+    const threaded = new ThreadedAnalyticsRunner({ url: gmp.config.analytics.url, log: silent, siteZone: () => 'Asia/Kolkata', commit: gmp.config.analytics.commit });
+    const there = await (async () => {
+      try {
+        expect(await threaded.nightlyDue()).toBe(false);
+        return await threaded.runAll('ON_DEMAND');
+      } finally {
+        await threaded.stop();
+      }
+    })();
+    const key = (r: RunReport) => `${r.method}|${r.referenceSet ?? ''}`;
+    expect(there.map((r) => [key(r), r.status, r.outputSha256]).sort()).toEqual(here.map((r) => [key(r), r.status, r.outputSha256]).sort());
+    expect(there.every((r) => r.status === 'DONE')).toBe(true);
+    await expect(threaded.runAll('ON_DEMAND')).rejects.toThrow(/analytics worker stopped/);
   });
 });

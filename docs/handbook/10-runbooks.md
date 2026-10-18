@@ -561,6 +561,72 @@ command line [records-cli.ts](../../packages/kernel/src/records/records-cli.ts),
    through the kernel's signing flow (`esig.createChallenge`, the signer's SIGNATURE authentication, `esig.sign`) as the
    test-kit's helpers do.
 
+## Release drills, load and security verification (Phase 7 slice 7d)
+
+### Restore drill with its record
+
+```bash
+pnpm drills restore --source-url postgres://backup@db1/ebmr_tablets --admin-url postgres://postgres@drill-host/postgres \
+  --report-dir /var/lib/ebmr/drills --encryption-key-file backup.key --export-anchor \
+  --seed-file <keys>/gmp-seed.json --seal-key-file <keys>/gmp-seal-key.json --ledger-file <keys>/gmp-numbers.ledger.jsonl \
+  --change-reference VAL-RC-RESTORE-DRILL-01 --record docs/validation/v1.0-rc/restore-drill.md
+```
+
+It runs the kernel's drill ([ops/backup/drill.sh](../../ops/backup/drill.sh) does the same alone), keeps the restored
+copy for the drill's own steps, renders the records (batches, their reviews, masters and authorisations) from the copy
+and compares each true copy with the source's, records the signed restore event in the copy (the system administrator
+records it, a QA person approves it with RESTORE_APPROVED), exports one batch and restores it in a process that has no
+environment and no database (the export verifies offline and gives the same record), then drops the copy and writes the
+record in the form of [restore-drill-report-template.md](../operations/restore-drill-report-template.md). The seed and
+seal-key files are a demo, E2E or validation-test installation's DEMO-ONLY keys; without them (`--no-restore-event`) the
+record lists the restore event as open. The drill writes only a copy of the external ledger, never the installation's;
+`--export-anchor` exports an anchor of the source first (the installation's anchor job, which the Tablets server does
+not run yet: finding P7D-3). On a Tablets installation the restore event is written through the owner's connection: the
+application role selects no restore event (tablets 0450), so the kernel's `recordRestoreEvent` must be given that pool
+(finding P7D-5). With the golden batches the lead runs it with the golden cluster's URLs.
+
+### Upgrade drill and migration dry run
+
+```bash
+bash tools/drills/build-release-db.sh bc46d55 ebmr_drill6a_e2e_0001 var/drills/keys-6a   # the Phase 6A exit's own code
+pnpm drills upgrade --admin-url postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres --database ebmr_drill6a_e2e_0001 \
+  --report-dir .reports/drills --record docs/validation/v1.0-rc/upgrade-drill.md --keep-copy ebmr_drillrc_e2e_0001
+```
+
+The script checks the earlier release out in a temporary worktree and runs its own set-up CLI (records closed by real
+signed acts: the review batch and the release path); the drill copies that database, upgrades the copy with this
+tree's migrations and writes the record (DI-46 clause 2, DI-48 clause 1). `--keep-copy` keeps the upgraded copy, the
+release candidate's state, for the restore drill. The source database is never changed.
+
+### Load and soak on the pod
+
+```bash
+EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres pnpm load reference   # 60 min, the reference site
+EBMR_PG_ADMIN_URL=postgres://ebmr_dev:ebmr_dev@localhost:5432/postgres pnpm load soak        # 4 h at three times the rate
+```
+
+Run them on a cluster no other run uses (the measurements share its CPUs). The history of the reference run (36,500
+batches) takes hours to generate: the driver issues it through the routes over the main server and extra server
+processes (three for the reference profile; 730 batches took about 2.5 minutes here with one); `--history-days` and
+`--batches-per-day` shorten it, and the record says which history was used. Each run adds its section to
+[load-and-soak.md](../validation/v1.0-rc/load-and-soak.md) and leaves its JSON record in `.reports/load/`.
+`EBMR_LOAD_KEEP=1` keeps the database for a second look; with `EBMR_LOAD_TRACK_FUNCTIONS=1` as well the database times
+every SQL function, read afterwards from `pg_stat_user_functions` of the kept database (where a slow command spends its
+time). A run that stops before its end says so in its section ("STOPPED before its end", with the error).
+
+### Security verification at installation
+
+```bash
+pnpm security:hardening --database-url postgres://postgres@db1/ebmr_tablets --env-file /etc/ebmr/tablets.env \
+  --allow-ports 443,5432 --break-glass postgres --out .reports/security
+pnpm security:release --out .reports/release && pnpm security:verify --dir .reports/release
+```
+
+The hardening check is the IQ's view of the installation (PostgreSQL settings and authentication rules, roles, demo
+material, the server's configuration, open ports); the release command writes the SBOM and the release manifest and
+signs both (the release key in `EBMR_RELEASE_SIGNING_KEY` or `--key-file`; without it a DEMO-ONLY key made for the run).
+CI runs the licence and secret scans, the dependency audit and the signed SBOM in its "Supply chain" job.
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

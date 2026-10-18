@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { routes } from '@ebmr/api-contract';
 import { callQuery, inputQuery, InputSpecError } from '../../src/analytics/inputs.ts';
 import { assembleProfile } from '../../src/analytics/profile.ts';
-import type { AnalyticsRunner } from '../../src/analytics/runner.ts';
+import type { AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
 import { signAction } from '../support/signed-acts.ts';
@@ -26,7 +26,7 @@ let author: TestBrowser;
 let batches: ProfileBatch[];
 let abnormal: ProfileBatch;
 
-const runner = (): AnalyticsRunner => {
+const runner = (): AnalyticsRunnerApi => {
   const r = gmp.built.analytics;
   if (!r) throw new Error('the GMP server started without its analytics runner');
   return r;

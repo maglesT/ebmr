@@ -20,6 +20,7 @@ implemented_by: {}
 tests:
   - "packages/recipe-core/test/blocks/automated.test.ts > G-06@1 automated equipment phase (K-06) > [DI-31][DI-32][IN-09] a device value of quality STALE or BAD, or received longer ago than the configured age (database time), is flagged unusable, raises PROCESS_DATA_UNUSABLE and does not satisfy the step"
   - "packages/recipe-core/test/blocks/material.test.ts > G-07 weighing and dispensing > [PR-20][PR-14][DI-30][IN-09] with the scale offline (manual weighing) the step needs a second, different person, and the fallback is an exception"
+  - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
 clauses:
   - clause: "stop an equipment feed mid-step; a gap flag appears."
     tests:

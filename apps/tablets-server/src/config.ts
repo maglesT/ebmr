@@ -10,6 +10,7 @@
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
+import { continuity } from '@ebmr/kernel';
 
 const bool = z.enum(['0', '1', 'true', 'false']).transform((v) => v === '1' || v === 'true');
 
@@ -30,6 +31,8 @@ export const EnvSchema = z.object({
    * when EBMR_GATEWAY_LISTEN is set.
    */
   EBMR_DB_LISTENER_URL: z.string().optional(),
+  /** Slice 7d (P7D-6): a single-host installation may reach its database over a local Unix socket (no network path). */
+  EBMR_DB_ALLOW_LOCAL_SOCKET: bool.default(false),
   /** Exact origin the browser uses, port included, e.g. http://localhost:3001. */
   EBMR_PUBLIC_ORIGIN: z.url(),
   EBMR_HOST: z.string().default('127.0.0.1'),
@@ -181,6 +184,14 @@ export function parseConfig(env: Readonly<Record<string, string | undefined>>, r
   if (production && e.EBMR_DEMO) throw new ConfigError('EBMR_ENV=production refuses demo switches (EBMR_DEMO)');
   if (production && (!e.EBMR_DB_APP_URL || !e.EBMR_DB_AUTHN_URL || !e.EBMR_SECRETS_FILE)) {
     throw new ConfigError('EBMR_ENV=production needs EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL and EBMR_SECRETS_FILE (no development credentials)');
+  }
+  // Slice 7d (P7D-6; DI-13, security-baseline.md a): a production database URL must authenticate the server over TLS
+  // (sslmode=verify-full; verify-ca and require pass with a warning), as the kernel's baseline rules say.
+  if (production) {
+    const urls = { EBMR_DB_APP_URL: e.EBMR_DB_APP_URL, EBMR_DB_AUTHN_URL: e.EBMR_DB_AUTHN_URL, EBMR_DB_LISTENER_URL: e.EBMR_DB_LISTENER_URL, EBMR_DB_ANALYTICS_URL: e.EBMR_DB_ANALYTICS_URL };
+    const socket = { allowLocalSocket: e.EBMR_DB_ALLOW_LOCAL_SOCKET };
+    const refused = Object.entries(urls).flatMap(([name, url]) => (url ? continuity.checkDatabaseUrl(url, name, socket).filter((f) => f.severity === 'ERROR') : []));
+    if (refused.length > 0) throw new ConfigError(`EBMR_ENV=production refuses a database connection without verified TLS: ${refused.map((f) => `${f.code} ${f.path}: ${f.message}`).join('; ')} (DI-13)`);
   }
   if (production && e.EBMR_GATEWAY_LISTEN && !e.EBMR_DB_LISTENER_URL) {
     throw new ConfigError('EBMR_ENV=production with EBMR_GATEWAY_LISTEN needs EBMR_DB_LISTENER_URL, the gateway listener\'s own login (no development credentials)');

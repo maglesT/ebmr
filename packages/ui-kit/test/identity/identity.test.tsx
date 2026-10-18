@@ -88,6 +88,8 @@ describe('PinPad and BadgePrompt', () => {
     for (const d of '4829') await userEvent.click(within(pad).getByRole('button', { name: d }));
     expect(document.body.textContent).not.toContain('4829');
     expect(within(pad).getByLabelText('4 digits entered').textContent).toBe('••••');
+    // The count is a live status with its name (ARIA allows a name on a status, not on a plain div; A11Y-5).
+    expect(within(pad).getByRole('status', { name: '4 digits entered' })).toBeTruthy();
     await userEvent.click(within(pad).getByRole('button', { name: 'OK' }));
     expect(got).toHaveBeenCalledWith('4829');
     expect(within(pad).getByLabelText('0 digits entered').textContent).toBe('');

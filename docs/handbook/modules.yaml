@@ -678,7 +678,7 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^0400_', '^0480_', '^0550_']
+      apps/tablets-server/sql: ['^0400_', '^0480_', '^0550_', '^1460_']
     server: [apps/tablets-server/src/features/session]
     contract: [packages/api-contract/src/ns/session.ts]
     screens: [apps/tablets-web/src/features/session]
@@ -1218,6 +1218,26 @@ modules:
     package: tools/register
     src: [tools/register/src]
     tests: ['tools/register/test/**']
+
+  - id: tools-load
+    title: Load and soak driver against the SLOs (slice 7d)
+    page: modules/tools.md
+    package: tools/load
+    src: [tools/load/src]
+
+  - id: tools-drills
+    title: Restore, upgrade and migration drills with their records (slice 7d)
+    page: modules/tools.md
+    package: tools/drills
+    src: [tools/drills/src, tools/drills/fixtures, tools/drills/build-release-db.sh]
+    tests: ['tools/drills/test/**']
+
+  - id: tools-security
+    title: Security verification and installation hardening checks (slice 7d)
+    page: modules/tools.md
+    package: tools/security
+    src: [tools/security/src]
+    tests: ['tools/security/test/**']
 
   - id: tools-regulatory
     title: Regulatory register scripts

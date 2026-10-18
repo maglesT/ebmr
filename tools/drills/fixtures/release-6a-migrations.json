@@ -1,0 +1,2796 @@
+{
+  "release": "Phase 6A exit (main at the start of Phase 7, PR #50)",
+  "commit": "bc46d5520c2db3893afc8a3139505c7316645668",
+  "files": [
+    {
+      "namespace": "kernel",
+      "name": "0001_bootstrap.sql",
+      "sha256": "f38c37206b4c074f434e3102aec72c767f8dfdc7aa49050f093b4dcc43513a2f"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0010_audit_trail.sql",
+      "sha256": "d971f197eb64dd71402e1d7392b5b1d64c04f1cb0799d10adb253fa7a6ba7c54"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0100_iam_foundation.sql",
+      "sha256": "223926c8fb28eea9589f98c0bfe44cdfaf5390f742a4d4629eb7848870216574"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0110_iam_persons_accounts.sql",
+      "sha256": "4999d5d371ec9870f1c4e8cfda63240d9bafd7b729552d3f4665ab98948afdd8"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0120_iam_roles_grants.sql",
+      "sha256": "43ee9a959c1507b8bc7e0cdec29be28ac8a87045d5fb6a660ead4620c62c816d"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0130_iam_qualifications_authority.sql",
+      "sha256": "6a67447e3dfbe4a0ddc895f5579ab88848a6bf10fe334827a753e0068d86b43b"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0140_iam_devices.sql",
+      "sha256": "22d61b20132256d69be47efef0861be05ec06f8ef2383320c03dfce95c1b1f90"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0150_iam_credentials_badges.sql",
+      "sha256": "c7c4cfaa70b141603e05827058a9e65278fe67f70ecdcbbf28bdd958b12bdd59"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0160_iam_authentication_sessions.sql",
+      "sha256": "92c63cc288c5f2fbf31f7253e788b036d7c83bdcdce9077854e3365b95f7324c"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0170_iam_signing_readiness.sql",
+      "sha256": "1346f940e905254c65a3396baa5f665704dcd63c19638f6a76f4ffe8b1b7d91a"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0180_iam_lifecycle.sql",
+      "sha256": "8f83afb3b1cf0ff39d1b20aa3ed8fd4162c76ff53bd2dcf76510331fab0e684d"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0190_iam_actor_context.sql",
+      "sha256": "4275cf628dd5ab2fe396ac0b4485c9b885f07258f568307828b4f40ce23f31cd"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0200_esig_foundation.sql",
+      "sha256": "5b2d30d0ce7cb1283dc4de05ac445cf1fbbda5eaed5c12f3fd7ca5d0f82d0c2d"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0210_esig_catalogue.sql",
+      "sha256": "4f30576605cacbd3bc2e6b5145ebb4c6e96c7bc380a204cc78b2d4ea9bae1411"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0220_esig_signatures.sql",
+      "sha256": "2c6d89d91d1017c7cbc029834e550a42cdf172654f9f33cbfc7695bfb930b5ae"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0230_esig_sign.sql",
+      "sha256": "c8661db9f25b8723ab45f4a6741e0aa84aaa0b83ed711b19dd9211b8298d6687"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0240_esig_integrity.sql",
+      "sha256": "02e26af0d819ca9a5770b8e23153b2da5503e687eb210dbfaaeaea155bf0e32b"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0250_esig_stub.sql",
+      "sha256": "9b446831b146657c830664c5f89d6f2de1e09edbb0893ecd1b938257669a2450"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0300_market_rule_model.sql",
+      "sha256": "bb9c52f25801ac4caec0e9fd989fad9b3fbea88a8f2eaf2dd3ef156b14521e1e"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0310_market_scopes.sql",
+      "sha256": "c9ccab3431b4ba6080695a9f5b1b42b695c44ed8bfd8f429e2d570c8dd9d0653"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0320_market_site_values.sql",
+      "sha256": "7e556c484c871de9e86f057b33d217af5c4c639d6b34f35655306bc7b09cf2c6"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0330_market_evaluations.sql",
+      "sha256": "3766cf8b02d02a17512c7b9a6c84ae74f1ef532151598347b61d5194d92d437c"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0340_market_publish.sql",
+      "sha256": "07211ee51b8e081198a43000217a08dcdafc6b97e83aa5a41baa471ddd7ef5c9"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0350_market_policies.sql",
+      "sha256": "a59ad51fabebef81b065f0e93ea64525241ba80783abafff1146924139711a1a"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0360_market_signatures.sql",
+      "sha256": "3d19bbc280625b45c93a9543d5efbe6ab7716e78485a9947c07c87243bb4c020"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0400_records_register.sql",
+      "sha256": "b1bbc09debb2b3e10ce849d228452ef75eaac8c84f239f18ecd8091779270e74"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0410_records_incidents.sql",
+      "sha256": "5e526093ffed2918a4da6bde7dc6b745090203076f7cf674815ad498fee0af07"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0420_records_retention.sql",
+      "sha256": "eafbaa236915b27c01698c0e7cb699fd535ac947d72edbcd78f3260d4300f377"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0430_records_di_investigations.sql",
+      "sha256": "c84c09e466e11056dd7571655193805e82534c15ace554ffa6d7d121e74ad214"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0440_records_blockers_and_purge.sql",
+      "sha256": "1c152bae8633033509f0381c30a48af726954475d0c693bde20a5a59fa8db191"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0500_platform_base.sql",
+      "sha256": "f100ec38dcedbdbce74b0b562bbbc9426c2c7bba31d7ca012b5b4f84a5d699e1"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0510_platform_outbox.sql",
+      "sha256": "4379e98f5af876f025fb48e10bd6bd525a2fc95a77025db5bae4c77d61212ade"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0520_platform_time_sources.sql",
+      "sha256": "ee7cbe472f0ff4f293033adfc0d47c861ad76d1ef53604266ce12599cc375aff"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0530_platform_time_model.sql",
+      "sha256": "b1cb4c97d3803833457e57754a0876bbacd4581fc49a57106ec3418fe6acfcf3"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0540_platform_idempotency.sql",
+      "sha256": "c9a093d7e90c4bd9039a6a66c7e7f26b03e23d6f417dafcf7120c673e01efa2e"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0550_platform_state_engine.sql",
+      "sha256": "d95bb6be63bd9592b5f011b3f6f5c9de01c5614d19da6b11fc83301e3ecc4633"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0551_platform_sample_record.sql",
+      "sha256": "599fb5f1aef270bb7f378403891760861e54544ea272175a00fee140ea5c6931"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0552_machine_sample_record_v1.sql",
+      "sha256": "bf1d8d32f2bba660f799b984af8430da934a04c97d74b21969992733b0ce8a93"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0600_continuity_core.sql",
+      "sha256": "8a066c33d7ea4f24a2e67b1f4ae7740053476615970a586c62319557c8d035f7"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0610_continuity_backup.sql",
+      "sha256": "dd15e5fc21c9749684407e476df5e390dd62d4f166413d83eb90d5ad7a28a497"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0620_continuity_device_hardening.sql",
+      "sha256": "e45486e71278c4e8e68ade8e711e620a3e378557eeda1bc71dea5126504e6a89"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0700_authorization_catalogue.sql",
+      "sha256": "77cc83f47753ecea5c8eb1f501bc0aabf68f2fbc0ac0ffa6e3da30287c58247c"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0710_authorization_scope_and_platform.sql",
+      "sha256": "8326238997cb66ed03af6427991fb670224ce512f190968e04c87f162ae58db7"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0720_authorization_signatures.sql",
+      "sha256": "bdff33b232cf362f472af706bdf9ca854cc4c3bfcdc4ceaa26eb6df5a6835110"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0800_sandbox_installation.sql",
+      "sha256": "f13f7bc23120cbb17178f369b00473362efe7ef1146fdc2a70399f6367552bdc"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0810_sandbox_identifiers.sql",
+      "sha256": "c64c7b7fcc2c13ebc85b30474e11c8614474e3f3103f7915c22f4d7b8aebd264"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0820_sandbox_privileges.sql",
+      "sha256": "7baeeec1658c73602dda4e264254e48b6a40c9d79288a58855f121f98391fcbe"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0900_integration_wiring.sql",
+      "sha256": "9133872578190c68d0d64111475935b5b13aa0bdd4de1fbfbe8e050a5ad6035f"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0910_integration_esig.sql",
+      "sha256": "17c192ab4af7328206e78569e0c0eabe61f665059a6d6e092bdac8fc6a2068ba"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0920_integration_sandbox.sql",
+      "sha256": "ec993309055ec71a825e57b80f2c1beb4baa9a2e040de45cced8480e9cd10ec2"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0930_esig_engine_meanings.sql",
+      "sha256": "ceeaee814a570cc0f8f92685d320bd5dbb667cd0e2039c354c3cf4f3f1272da3"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0940_site_zone_policy_check.sql",
+      "sha256": "ca0daa80e094752503bfdd8e51ecffdd2a129c5e2cbddb82e23ac21117894c3a"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0950_signing_failure_own_command.sql",
+      "sha256": "c60d019a3dfd93f69c17c6fb22854bb706fe7a0fe94d309f928ff3955d9e925f"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0960_visible_reason_text.sql",
+      "sha256": "4eccf63e336226a2b73f941fd29de6f494b170a9e80543e5e4c81416a241d669"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0970_backend_signal_policy.sql",
+      "sha256": "6b554f2c85940cfa294ad54c55fd97bf48528f3c0813001fe14865d5b1b71f92"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0980_listener_login_roles.sql",
+      "sha256": "edd2572f35e9b9497741d2b37d8d09e5ae4c393c7186a272794940fe73c8191c"
+    },
+    {
+      "namespace": "kernel",
+      "name": "0990_shared_terminal_secret_change_window.sql",
+      "sha256": "c4cfddd9e432d5b32f33a115784f59b4a67dcd547be397733b91a88aa11239a5"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1000_sandbox_bootstrap_labels.sql",
+      "sha256": "229b944cf83273308e8c85e8ef184bdb09918be235c531f5ddee09ee25a1cc80"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1010_site_value_set_equality.sql",
+      "sha256": "e02d190dfe25cda4c9e71af32d8609f92c6966f7b9111d48741f0475ccca046c"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1020_esig_lock_read_committed.sql",
+      "sha256": "fab22a4ff5352308905ddfbe65a8e6c3e49621d739f6b6bb3cc19146d53d5990"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1030_sandbox_identifier_words.sql",
+      "sha256": "b0758bec291c6306ab92c2ac65212deb450fe677e067be3b9ca73cfdc1fef1ad"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1040_sandbox_identifier_reading.sql",
+      "sha256": "ac85eeab343434dcdbc47837d42152b19cc8eba9d45d3dc0f1ba17a11361bea0"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1050_sandbox_identifier_as_shown.sql",
+      "sha256": "1333cd61e726b99aee2fff8e8c9648d3b2d6a87201073d2aa102801f47044660"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1060_sandbox_look_alike_names.sql",
+      "sha256": "2a0fbc0336b5e30f5fc1da37f7a1bc464353f0cae66fbdcadffacf9223bd14d8"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1070_sandbox_separator_look_alikes.sql",
+      "sha256": "b8a13f0a431dc770f6da52e52b47a39db95df14379f80b98d6b9a2d7dc54e58b"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1080_sandbox_full_stop_look_alikes.sql",
+      "sha256": "b2e578f731311ff1e5982b2a1a82c46f01daff5d037e3c2a061ce5762337e55f"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1090_sandbox_no_advance.sql",
+      "sha256": "3fc5bd890296c0e9f2c059af93659900e289aefef426b6e681492f0f128970a0"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1100_segregation_problems_missing_roles.sql",
+      "sha256": "ca1746d8689ddc93a6f928ab41867e59d01826f33209838bb41d7083171c66ff"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1101_sandbox_letter_shapes.sql",
+      "sha256": "f4762b1850b83b0cb6ec60e0cc6b413fc41149d682cd6c0ee8169924c3750b25"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1102_sandbox_letter_shapes_by_weight.sql",
+      "sha256": "6b4321c3fcfcd0f4582496b31dabab408ae51ecb908dcdb16d9c44ebd9294809"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1110_state_rows_follow_published_machine.sql",
+      "sha256": "14306e919c1be758c1cef4a3950964de4719c97b4f095630d611791b68ae2f72"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1111_connect_policy_unknown_grantee.sql",
+      "sha256": "d6bccd3742763c01e9bb97aa3e23117dfee1f4c5d66abb51d4cadcb4675c6d4d"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1112_signature_row_backed_by_its_challenge.sql",
+      "sha256": "3e7fe47bcc7d95f0f8ad23f9790e8434b4f9f4c1ef162b59f9e97e555f88d41b"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1120_sandbox_digit_words_ascii.sql",
+      "sha256": "94d30d946d44a2fcb8d84994878af02bd5970c56897dc2c251f75b4fceb0e972"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1130_sandbox_reordered_digit_words.sql",
+      "sha256": "bf72bce9beb740c81e97c65f2a89de0152821df070e5784df2128d617d026fdf"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1140_sandbox_reordering_ranges.sql",
+      "sha256": "7890dd0f48f17e2075d40abf96e5e1edfb7c048f0f07b26ab278da003c0f1b7b"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1150_platform_scope_hook.sql",
+      "sha256": "42243f010e26f3c4c4bad9e6ed9113d826e5a32f8e8d213d90e4247ed1470d6a"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1160_qp_batch_package.sql",
+      "sha256": "8461eb4f17728c05e9b5fb22bbd719d3d4f115b727e7286042d08b04a80c9c0f"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1161_true_copy_snapshot.sql",
+      "sha256": "20106cd29b37b8d738d67cf4d5f60fbb6ce27ea5da3720df98948cab0e732297"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1162_qp_package_review_fixes.sql",
+      "sha256": "85a18160a4263e39eff10d32ee506c03bffe7e5fdd13bd8e246300830eaf9f3b"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1170_contingency_forms.sql",
+      "sha256": "6a0e55bc46e096bc7d64733717a7f50063acbb705114c68bdb74e8ae5b9e91a3"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1171_evidence_export.sql",
+      "sha256": "ffc5cacad658a0658a0ad978a8287fc31d6001a54ab45113725f09c5cc1ecbd1"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1172_disposal_requests.sql",
+      "sha256": "ec120028dfb5c2f7735e617b29e799a4283b3677d98c277c2e83c77e83e76b61"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1173_true_copy_table_names.sql",
+      "sha256": "fc1a0c8ede9dc6b08e6675c80cd2ca7a346aed6e642449725a31ecf0d77a30fc"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1174_evidence_export_review_fixes.sql",
+      "sha256": "0c54ef2a5f3d216315a4d97bc6969ba117d1d0d833db1dbd1f8fcb2fd74be769"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1180_inbound_adapter_framework.sql",
+      "sha256": "535f02cb03ca5fb169ed96ff7b804e402a5b68f6a5b060277fd35123923869d1"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1181_inbound_overrides_and_lms_mirror.sql",
+      "sha256": "a6dcec6a79b933daec6e9ba0be09432d4cfd0763b486e8bafa0f12ba95333043"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1182_mirror_sync_caught_up.sql",
+      "sha256": "84dc10d052b4f67ed8b42bf9a267fb3b5ed1670b00871c43275297a6a8a95916"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1186_lms_qualification_inbound.sql",
+      "sha256": "2f29848f3e2e97cd844aa199dd36877f726cc3821e0e30683e0c05fc4eed96ee"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1190_area_authorisation.sql",
+      "sha256": "9c9c5e4f3d6bb9f9e9948f96ded12879c308418f60752c25999441387851aa61"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1195_configuration_change_control.sql",
+      "sha256": "bd7796e1dd2bd6ef85c3f7162b55863178841058b790fabeee96a0621fdde36f"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1196_config_areas_roles_retention.sql",
+      "sha256": "9269702677de16edce8fa6ff98beebdbd01335f604e42ca96fc9e296cfaf3fa4"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1202_support_grant.sql",
+      "sha256": "169d68cb6433c99f521989be6060c5da38d47ec843f69ceb17d7b0f36b4edf1d"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1203_india_dsc.sql",
+      "sha256": "aa15ec1a8325b17bcf4de5615c6d70902efcc0c30874367a4c89a1c7a4f5eebf"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1204_contract_giver_reviewer.sql",
+      "sha256": "45004e0a2f7d4d8b7f851f89ef38fe3d2afcf648367739a0af34ca4bb0348051"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1205_dsc_configuration_areas.sql",
+      "sha256": "18d5d8215b159addcfc7209dccd172210a83f9aa2ed67d3f966df8170bb96704"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1206_dsc_signer_enrolment.sql",
+      "sha256": "be73dca5519daceeca9e18b3bdd50bc6569dbdf4bb4fe96b7d029a7040c9da12"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1210_reporting_role.sql",
+      "sha256": "e8917e244ef41214e29056c3a8f5496a039fc7b31c143be1ded53d3d2071539d"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1211_training_attempts.sql",
+      "sha256": "01df13c5223c0ec717caebd71a6938c4fcae391e48a62412dced6448e766e019"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1220_installation_keys.sql",
+      "sha256": "23da042a6648baf245e31fc22ae6f2290402f190dd45286ef3e9d8b74d733a6c"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1221_installation_alarm_ack_admin.sql",
+      "sha256": "313a173e9f48876a96c432dbd92ddbadc70fa1dedb0f1ff7601bd08f717d35d2"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1230_installation_key_large_order.sql",
+      "sha256": "ff594b78245e54e6bb45014c27868e726db74c275bc42331efdf4362b8b93114"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1240_analytics_schema_role.sql",
+      "sha256": "4436f9e05ac261b7227acc5f1a9c477e9e41632715fe9fdc95e327a2dddd1b9d"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1241_analytics_tables.sql",
+      "sha256": "96c3a81c33d62acd900f131389b0af1af8c9d7891f973c1a8c4f5d5d7f4112af"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1242_analytics_record_functions.sql",
+      "sha256": "d9b4cab35b42814e37ea1fe672a0820f341a8cf2a012203250476c526575c5ac"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1243_analytics_read_views.sql",
+      "sha256": "797e35f4ebddc6c0281305c5abdd9403cd3a3e4cd9da3dd25481ccb38a1eb1ce"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1244_analytics_permissions.sql",
+      "sha256": "6d7ccc8189246551fa174825917b4e9df356258d1972f2331c85fb3880cda7fb"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1245_analytics_method_change.sql",
+      "sha256": "6fb1a8bba8062f7c48212c496a0d0e050e7b55f7fa4b2149d98abb9a95c80343"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1260_analytics_auth_facts.sql",
+      "sha256": "511dcee7fbd7cd0ed26160af2a35e36151913ed97aacf37469e58ac7726dcc06"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1261_analytics_audit_flag_groups.sql",
+      "sha256": "8d1e0951c05f74c1a5486df94bb228f0a9c9e56851ed52418e037ba1fe2872d2"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1270_analytics_reference_candidate.sql",
+      "sha256": "889ad02dab1b11ed8114eeea68bd9edb587d90a2566f4031d9ad02fdb3581f93"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1271_analytics_flag_repeats.sql",
+      "sha256": "472aa61e35a4f5dfa32d06ca3a8b5f1e1afd69a7ee300252c388b9bb1a3201e0"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1280_analytics_flag_groups.sql",
+      "sha256": "50a1f76e2b995bd220cd7fa051258998e104dd7650536311508d2e0ff1953c4e"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1281_analytics_priority_audit_term.sql",
+      "sha256": "48f0324258e7452959269313380c594d217d4026663f8ea085f475844a2e29d3"
+    },
+    {
+      "namespace": "kernel",
+      "name": "1282_analytics_audit_key_verdicts.sql",
+      "sha256": "9e0f9e2cdaf790a8418c4f34975f2b400a8cb0a5d477d51e920124c2ac43e929"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0600_batch_number_register.sql",
+      "sha256": "1e9467eeb7ce85415049706d3ec6153f94896ff361a7aacda79be309ca60c93a"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0690_sandbox_identifier_guard.sql",
+      "sha256": "c923b35ef9fb73185eeef71825902f024e047008c20e763d9b55f27e1666a588"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0700_batch_number_site_zone.sql",
+      "sha256": "c36ed0e3d6eeac7ac810c4fc77128258d0294963a0937bb517dafca0a6d95470"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0710_material_lots.sql",
+      "sha256": "4b7e16cb55cdd2503e1b59ee831976a2394b91016a239c7e8f107923c466f0c2"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0711_machine_material_lot_v1.sql",
+      "sha256": "84ed08fd3251fe858ab62a8eb6b115275a62a0f7e587a17dfe9147a22b6691f4"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0712_material_lot_commands.sql",
+      "sha256": "0374036c8ae4ce9cf181be1014d195629d61d8979c926da68a1bf0a8945be4a7"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0720_lot_release_signed_route.sql",
+      "sha256": "5343ec6c2744269d2d3a0495ffbf8ab6c9cb41f41265d1aa64122c204bcfef26"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0721_lot_release_received_quantity.sql",
+      "sha256": "b990e59521897fdfe9459af38a061b01c46388d4c98362b5b43ef9584a85fecd"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0730_deviation_lite.sql",
+      "sha256": "f1f60e116e2476025bd3c9e9683807e347877b92ae03e3338b2f7e6509a931a9"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0731_evidence_documents.sql",
+      "sha256": "26f90ba253b9a4848cb71f2b514cfbf122cc1026f006475f0f017606e1f87966"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0732_erp_product_master.sql",
+      "sha256": "ecf0ede72dd697a711adbb46cca9e6457fcb180b983cd47ba813182704f4e00f"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0733_qc_extra_testing_decision.sql",
+      "sha256": "44a07d04fa267af42a80d5b45a51dc00a9a4edf1df4055338eede51f04eeca45"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0740_lims_lite.sql",
+      "sha256": "568dc5e889f2e7af6c8e9eda5fda7a8ef9e43c3981b875d5a3fc12ed8262900c"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0750_erp_material_master.sql",
+      "sha256": "fd00f056be4654e4f86db78fc33c059fe6adeacb8b94effb09ada89accb0fdf4"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0751_erp_production_orders.sql",
+      "sha256": "96eaf8a3019ff77fd1498cb3224be7bcf0c6e304333b6371c9271db1be267718"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0752_lot_retest.sql",
+      "sha256": "b0c33bdaaf3edef3363ffca1064e93f53e3b7323a07fb8922e2c0df77aa79c06"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0753_review_lab_error_and_investigator.sql",
+      "sha256": "b3a28ee38de9914a46a5c3c6ef21191636de7776797581ad215b06356559219c"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0760_signed_lot_retest.sql",
+      "sha256": "12d9b70ffad2a542c4e49baff9e71848e5658f56f34dd5d98c45e25a67764c27"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0761_retest_signed_only.sql",
+      "sha256": "b9c696c08e66d8571ed2c9a0a38ea55e1664d4a73e51233a84fe174fa762328d"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0762_lot_retest_signed_content.sql",
+      "sha256": "1168e6726eb5ce3ba6c3a7eca325506b2d2f0ae50b2444ec56fbd7dedc981375"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0800_lot_decision_signed_event.sql",
+      "sha256": "a46326828b9ceb68c50b07ac3fe486423b9968120ae4990b0482a2f6d19a619f"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0801_batch_end_reservations.sql",
+      "sha256": "19504eda43fe72cd04b0ef83f026d10edbd7b109acb2ae39417db67c53bceff0"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0802_erp_master_confirmation.sql",
+      "sha256": "7c0ad21f33b1de0c93b5a84f8ba7a6453029a40e99afde19482524788496cee2"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0803_erp_beta_lactam_confirmed.sql",
+      "sha256": "4a4b9fb559798e3792dce223534d1e34ec90df8a90980a638dc0a561a1bc2f60"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0810_qc_test_codes_collation.sql",
+      "sha256": "dc6060481e111f383090e8cb5094b7ca306dc492224bc3e175c38d7efa020369"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0820_deviation_full_records.sql",
+      "sha256": "dfd34daa95e6a55c50a0a4af8439004f7e3a43aec14db861f04fb089f76670ba"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0821_deviation_full_commands.sql",
+      "sha256": "873e30ba4c7fb5835fe494d299792f20bb540a460139cf9c8526585833207291"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0822_deviation_release_blocking.sql",
+      "sha256": "92c79067fb016100c03e31c19adbbe4f435a3951676df955dc84e5c650c6ff25"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0823_evidence_document_bytes.sql",
+      "sha256": "6a29dca8f79b3a3b5cbb17d154099d453154a6c19ac98cb6fa896b56010b8ed6"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0824_deviation_review_fixes.sql",
+      "sha256": "4a040e6c63fbcacd623ef6052a2d10c615cc9b535f9d370f87e963806e9f3aae"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0825_deviation_seq_protected.sql",
+      "sha256": "a11e295e7878878c77703c8317325cbcd6ba4f6bf2677b0b82b1043134b944f6"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0840_specifications.sql",
+      "sha256": "9047ed4e226a0c65399eefe2821ddd30405ddb851b31dff71c733be22439c3ee"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0841_lims_from_specification.sql",
+      "sha256": "207d2301546bd120c1e8c66c2072023d8a245b9097eea3a882029d2018ad90cc"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0842_finished_and_returned_lots.sql",
+      "sha256": "4245efe683ac79a649e7d4238358f2157429c0e3c275f1f6935cbfce6a286c49"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0843_lot_samples.sql",
+      "sha256": "716d33753524d82002a23b1aa14edf097e1fadbdb86b19ddfb68c3091e721767"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0844_revision_oos_same_test.sql",
+      "sha256": "2018cfcd5ea15127b911c4fa0a75d3b1891a44d13ce3e832f3ab39d97406363f"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0859_oos_lab_error_full_states.sql",
+      "sha256": "f8715508a537ba4f13e7d5fd5b8dd5cf5cdf5d1731ed30142a751516f6d77b22"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0860_manufacturer_release_guard.sql",
+      "sha256": "5c62059a63753e900d19055f8c56b55ac2d59215eba3349e94f6bb721ef146e3"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0861_machine_material_lot_v2.sql",
+      "sha256": "7a57b1ca44311aa4c3e1c5083c4dd8063879172251b8b92b4fb5e21774b38beb"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0870_erp_shipping_interlock.sql",
+      "sha256": "78a7f087bf7710fcec4573e5e618114fe9a9a26f0ec9369edc12dc5d8befcbaf"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0871_qp_subject_and_shipping_locks.sql",
+      "sha256": "a63e3310147d107fb5c61389e1a464aa60fc577c20c63c690cbba451b34cd47b"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0880_after_release_lot_exits_and_erp_stock_block.sql",
+      "sha256": "15d02bc5d4b703d6a760c18623d441daee1613ac507f6480bcffa3c60d739755"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0881_machine_material_lot_v3.sql",
+      "sha256": "6fad83c5f754933ad6768183f23bb2baef45b27a55166fea215a331aebc320c6"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0885_india_licences.sql",
+      "sha256": "c54543a8c6363d9d25b1156e7d622fa37c37e4c3f2ae1c9d3648f493fae8822b"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0886_shelf_life_basis.sql",
+      "sha256": "3105e85d2e9a047dae8364888d8ab2e6756f61434bb8a0787722ec6c6badf453"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0903_export_permission_problem_reason.sql",
+      "sha256": "6c2a46b5483420e811b33914e111145f044cc77c0898143295c2c2b6cb7ed2fe"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0910_receipt_record_and_approved_manufacturers.sql",
+      "sha256": "97a502a3c5f17413f16e13f3bbdd2305f247fea1b6626e3dcac0363501c970d4"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0911_stock_locations.sql",
+      "sha256": "d72aad1c00102fb90092aae79c8c15ccfe8568930d56571da6c0679a9e3d59d4"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0912_erp_lot_status_mirror_and_outbound.sql",
+      "sha256": "7b6a1ccfd525d1d2c54f12957b5ceb0f40af150ff29185d0be139cef02aed109"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0913_erp_wms_inbound_and_issue_gate.sql",
+      "sha256": "5a2c2139484e8dfd8d94e0af3058409532846572f757c9d9c1256e4462631fd5"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0914_erp_wms_interface_role.sql",
+      "sha256": "028acc76d427c96a9e236f68ee5c4ab766baf274b2630de6144f683e5f04f8ef"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0915_wms_location_question.sql",
+      "sha256": "45ce373fef7379091359b9ebe0d4daeb71b009b4665e80348d5586092fc60136"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0916_erp_wms_entry_authority.sql",
+      "sha256": "12ef75ea234181e34ea2d1c245356a96b44fc3fa2be8cf45b732adc94c0165f6"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0925_capa_and_qms_mirror.sql",
+      "sha256": "2c757bb98b5d3264d07225e36f82c8d49529dd12a4b0b5f46fc5139fc183b32c"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0926_lims_results_inbound.sql",
+      "sha256": "05b50572985540d9fd9ef3290249c14412a3e69ed4fd79a6ad8036df7fce9104"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0927_qms_release_mirror_fresh.sql",
+      "sha256": "5cde9e686f545beb4c462f63c82d0db3a38386511ace7df31058f0d6820176b7"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0940_reagent_lots.sql",
+      "sha256": "ed681571bce8742a74875711aa4d90acd4eafa76279aaf201971ac58da4e8d5d"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0950_label_store.sql",
+      "sha256": "87995775193b23313c088bf8093adcb3735e371ba451b6bfa673188ccd0de014"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0960_chemical_recovery.sql",
+      "sha256": "c3102d99882da650266b3509525fbbf5dbfc204df26e5a8f2ef0234df0694a95"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0961_distribution_records.sql",
+      "sha256": "2f1904fb97d543e8d3c0249b0ecadae458767d6c850df39e07cef89724a5bd86"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0970_controlled_wms_moves.sql",
+      "sha256": "c910d8113e3afab4f302b6a5c113bd6588d851b8bd6afbaf7aec9f3aa0ba0e32"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0980_transfer_packages.sql",
+      "sha256": "818f89f1becf603f4a94bf44faa55dc5ea3e17f5055947fc4eee3fd53486f08f"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0981_transfer_receipts.sql",
+      "sha256": "ce5349175f206df885fe8ab55fb288bf3dbfd7a6ac552f157b58fc3271eaba1d"
+    },
+    {
+      "namespace": "site-services",
+      "name": "0990_material_acts_by_person.sql",
+      "sha256": "05211d7229256d1dbeb1a955fd5664d1bcbf0058ab146d530498216aeec6cb18"
+    },
+    {
+      "namespace": "site-services",
+      "name": "1002_receipt_code_numbering.sql",
+      "sha256": "1b82ea7859133880f32885a813cda862553ef6566bd08c28b267adcb1de87d43"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0100_recipe_foundation.sql",
+      "sha256": "498e57172f6ee84ee74e49def809c2b21cc2e9d4590815df65333e45b76ee00d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0110_mbr_family_version.sql",
+      "sha256": "ddf54523cc6ed759061b124399e9ceabc8177a3834cf52f2e8cf8f6ad6994198"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0120_mbr_evidence.sql",
+      "sha256": "ca4ed0b7b9e299ff2a4fcb37e6213bc959b6b82f33ff38bec1aef1e6a3feb4bd"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0130_mbr_guards.sql",
+      "sha256": "9f40df01bf2647af2bbfa0f5e98386c8ed70699b35bd784600348330bfb1536b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0140_machine_mbr_version_v1.sql",
+      "sha256": "dfbaed05266fd1acde85f40b048bf76e2b7d88d64ef048741aa08a631cf1a432"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0150_mbr_commands.sql",
+      "sha256": "eba3cad12f544bc892b7cae0daceacf86e4eb975962c3605d5655cd12457ea0b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0160_market_authorisation.sql",
+      "sha256": "5a86a9d3bd879be0a5993d19ac6c7582a02ce25e9348d16a262e45ae2329f930"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0170_batch_issue.sql",
+      "sha256": "0f1935214d6f2bde74b91c6f276e443f08df84dc8b374370612e7cc3f0d86e40"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0180_review_inventory_invariants.sql",
+      "sha256": "9dc89e234fabe829666a859df130d7290de2cc33cd0ec6e9ee0d48f5cd7803b2"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0200_execution_store.sql",
+      "sha256": "fa5775a49f7e7f08e5240e4c5dd5a4fc9d55a3d4641df0bc4629dab695ce38f5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0210_execution_writers.sql",
+      "sha256": "8af5ee7b4d7272adecbe5d01f9efad6248f6d70e97b77c1b29ff5c7520e8a932"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0220_protected_sequences.sql",
+      "sha256": "21f955d220e453efe4d65ff903265f2a5b1983bc48db6dc53865737f631adec8"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0230_push_reason_both_fields.sql",
+      "sha256": "56ec7a6482fafd76b193f519d552bc6e6bef81d0bde68a11aa3c318b612a7e8e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0240_test_batch_number_width.sql",
+      "sha256": "2685720021faa2691422f089b293051fcf67645831f3e80924fcb633b553e122"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0250_user_edit_own_reason.sql",
+      "sha256": "8f49d44e96d66ae8158ed08fa3a0a8b5f85e76b3aa237c7c61b42604190e9286"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0260_execution_sweeper_role.sql",
+      "sha256": "1c1d17a1210d5e02350e384cffa1c9ee1a909d8ae512eef42da82297d8d19804"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0270_execution_guards.sql",
+      "sha256": "4bc0c33b16da426dac852215a1bc22b75a6f472c4895fd2755c1255d44db1001"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0280_system_facts.sql",
+      "sha256": "98265a86051056f95e2c37b326120c4faa8b9aaefa5bf08269573f55f8593cd2"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0285_evidence_source.sql",
+      "sha256": "b844e99db90039f9a287eb8d4d0693d780fad4b1efe5390c399c7c15c49485f2"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0290_market_activation_reason.sql",
+      "sha256": "de1891eed3e21f0701a0d0004a36ca32d17bf154afb22f810d07eca16a719047"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0295_signed_decisions.sql",
+      "sha256": "5583d9b0af6854e73626339343c948211984c9f32d3efe74d324f19fecefba82"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0296_exact_step_meanings.sql",
+      "sha256": "320731b9a98a00437fda3c87d874a1a616afa7a2c723988d8c31d8fab10a0dac"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0297_signature_same_transaction.sql",
+      "sha256": "46ac5a25e6e52f26a8ee69493e01b89469599ac0ab3d0e0041a8ac99510896e4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0298_exception_facts_and_issue_state.sql",
+      "sha256": "983064c56bb1960591b619a9505299cba25f1afd17bc744c5a3eb6c500a243c3"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0299_system_fact_bookkeeping.sql",
+      "sha256": "e29eb94604fc60fbb579bc8449c6d0fd0a917d6243a75c99e9615854a3e6c86c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0300_evidence_state_binding.sql",
+      "sha256": "1cc0275f0f6de8846e13c4f907cc0e1b7965ed77df61e62f11a74369bee79029"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0301_visible_reason_text.sql",
+      "sha256": "aadf89d17e5ad46fe01f037d74744ffc047bdf69ece77d34b36816d3d48a0494"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0302_hold_point_content_compat.sql",
+      "sha256": "642e93d24d910bf6b654187281a74f89b1d435aea19acf75e4e862d3d75ba127"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0303_recorded_state_binding.sql",
+      "sha256": "2220d3c3bf64a7e864fee3a10e2ea53488e09aa6619e93e415fe1b3d2998aa3c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0304_hold_point_first_version.sql",
+      "sha256": "77f209959d429656b7a99140698eb54561e0d9dce3f3895d007667970cd5062d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0305_limit_exception_facts.sql",
+      "sha256": "2e7f8941bf40de8eae87ae217a946b1f7bf832224efbfa421fd4a2f42a7c9448"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0306_disposition_involvement.sql",
+      "sha256": "69cb818daf6fe301c519b96e1d00ea2565e2fa54c703939b20f5e1d1d2de06ca"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0307_step_order.sql",
+      "sha256": "a2a9230c6ecb4c8ad50eed489f7f41b3f87dd31c3de79877b90258a50616b4c3"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0308_step_act_guards.sql",
+      "sha256": "d5698cf0da48c09e9872b7d5e1cdf5e72dd6f6f5710ff88865d19840b26e587c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0309_proposal_lock.sql",
+      "sha256": "84631ee8740d27956acb15a68d51b0fe5e9cf7ec1c42768351996d1fc4da8482"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0310_involvement_from_rows.sql",
+      "sha256": "0bad39740570e87e4ad6d0f32dbe9665ed7cd3bbfe5a90e9ffe44bec5cfae927"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0311_step_status_transitions.sql",
+      "sha256": "2f869231a5a557e022dd8b3e9e4121bc3566d141f63554065b0f95a7d39aaaa0"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0312_own_node_events.sql",
+      "sha256": "5fd5c447482ba52adfa150e04455ce68f9891beb403b671dc868aecdf6ee4716"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0313_entry_data_binding.sql",
+      "sha256": "eaeb229a765a222be54d69711a748bb0ab11c33ece67163b183320c3623839b5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0314_left_construct_ends.sql",
+      "sha256": "1777867cf2f1cf97278fbcacc53a49a9f5877f271d6c9c95f99180e99a310d44"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0315_exception_raising_row.sql",
+      "sha256": "4391eaa562aca5f684fc9a8f47653d5999f678257bc5e1a6db8a20f4818599e3"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0316_finished_construct_ends.sql",
+      "sha256": "e5b9f7d62a8708146565ae0d5ca29b04c8b66a0d2cb226d4a80044030860f824"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0317_container_entry_binding.sql",
+      "sha256": "4ce16372d6d826bb8f455d6e18439f994e3d292de35621c5b241286729ce072e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0318_test_package_header.sql",
+      "sha256": "46947ce09a34c433dc26dfc5defe9cd80d77f74d93b41112aae938cefbb4de9e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0319_stage_summary_content.sql",
+      "sha256": "b2fc3e197a4673131b69a5a2c703b11dbf0bb9044b99309be2db11ee372a6ea5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0320_stage_sign_off_shape.sql",
+      "sha256": "f079ea5d0f4c9ff949f4ba9628ab4688979183be5ef7cf929b7def88be98c475"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0321_weighing_net_resolution.sql",
+      "sha256": "dac097559300983619ea1182f618b8c97eea3c3381dfb92848a6835a28c9b140"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0322_weighing_label_and_total.sql",
+      "sha256": "498f3aa12907bd257a1e257b8f98d58c6f82b80855f240e54f2f4ce407709d9c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0323_weighing_counted_item.sql",
+      "sha256": "8c8886edb510b6c7f4c16cb3333c8c7f7c0ab2767bb95624a1bb572f4ade756e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0324_mbr_content_roles.sql",
+      "sha256": "4c63ebd700422657b96ad2a58b503a7dfd22500b132adf3be026b0c2d9355c80"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0325_witness_without_declared_evidence.sql",
+      "sha256": "68c9bb5387565e92799b1f043fd313e9e5798677b8c056cb6ad9565584510f44"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0326_stale_command_rows.sql",
+      "sha256": "761382cd0dd13ee2877b060c645a0ffdda92520161d73df6203a555fb3f62aab"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0327_exception_source_step.sql",
+      "sha256": "3322bfe4f8ae898bcff51818570df96aa25da7e14952045f19ce92f75db6e206"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0328_entry_mbr_references.sql",
+      "sha256": "2444a151ba41cbc7d243c1fcbdd66c768af89b6655305ff86f75c80bebb21e30"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0329_proposal_signing_lock.sql",
+      "sha256": "324e1f79b4aee53347a62e5924df177737ef87162a6bcc2aefd622b45403ab3b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0330_entry_block_data.sql",
+      "sha256": "ba6b941d36f9c26a7e8246ec5aaebea89bf2d22e17a68d22022ca91e51ff1849"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0331_proposal_read_committed.sql",
+      "sha256": "313dd763ce6910182f0a0bf7a51243f8fd4717bdcdcb0790f60cd485e28f3f30"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0332_entry_block_schema.sql",
+      "sha256": "c0fd8e2c79670826b3c5fe864e3ff1dfd5318f66e6370df8cd36e3a8f886def4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0333_late_witness_review.sql",
+      "sha256": "c861d163cf289daa46160eedce1ac1b257d59de91c911b6608a22938aaca947e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0334_step_times_and_witness_window.sql",
+      "sha256": "da407195da97880e9845c9ce79433adf331170bec5f636705b76c92c7c67aa52"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0335_execution_row_shape.sql",
+      "sha256": "065e8ceb7a768c1164abf321a4245cbc835de742271c278e267be31310cf62cd"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0336_execution_refusal_shape.sql",
+      "sha256": "6044c9d3dbc817bd47f536da19827ef8066334786b12e3089e6eaa92f32d61a1"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0337_issue_request_accept_rules.sql",
+      "sha256": "6c69d546673961db790f771671e691b468bbbb5a71642d5d167690b80ccda4fa"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0338_row_context_and_content_versions.sql",
+      "sha256": "32cf7b4d5891a28c0bc8992702e0fd5c434b34ed2a40a8bb893fbbee4ffffd3e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0339_state_record_names.sql",
+      "sha256": "098a05ebbcb61efe80f3c03dcf8e43b4b90022682fa31afb8427cea35e5b06c0"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0340_approval_roles.sql",
+      "sha256": "7ed3b0a2efc0e92fd5f57d008222406fa7fe05d08e8ce4f625bbbe043e4b04ee"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0341_stub_batch_identifier.sql",
+      "sha256": "f9d93e7f52676e2370141b2aada8d573ab3d224edbd4c4f16a6e051398cd4383"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0342_approval_person.sql",
+      "sha256": "d6b84389e0c66b4bbf2e36b541ac7d368a82979133578e0e2ab74b3e6bb52739"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0343_exception_and_hold_targets.sql",
+      "sha256": "307d9875b4becea335a7a79af7d1956cc9e9c5307e415fd4636ef83d947cf959"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0344_sandbox_free_text_identifiers.sql",
+      "sha256": "97a198c1152e897470a93e7c98b6d0baa43c52c93ddbb738bcb0592b61b39602"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0345_start_data_and_status_equipment.sql",
+      "sha256": "60f619d509882e11a07740a412d27b4a75089ed25cedceede40b5eaec6f717b9"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0346_sandbox_bound_names.sql",
+      "sha256": "9dda20828a1441df7de8b5743658a75caaeb205dd28aaadfca0c9bf046bbf8f5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0347_sandbox_held_compounds.sql",
+      "sha256": "53f5137e405b673f69ff849b1ce845de4094424c486a2d4d6ab40fde0e4be3c4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0348_sandbox_compound_shapes.sql",
+      "sha256": "09d12370c1c19149f22d92ede69e5fca5d1bb300bc3baa2deee3375eafbedf4f"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0349_sandbox_reading_as_shown.sql",
+      "sha256": "80862643f6fc60bd8ca709d94c004d93316c2980889242a9eb77fd25d4069bad"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0350_sandbox_digit_words_bound.sql",
+      "sha256": "eecf13df9137e6b73365f7c3863637156063b4f95047171116ec6ae4593dcb28"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0370_loop_exit_limit_verdicts.sql",
+      "sha256": "7f410a9349f715bfd52a906519f93a8ed74e23108c1d81aab9f29171bb4987d7"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0371_market_authorisation_family.sql",
+      "sha256": "085ad29c2c34e2a9da1bc4786f01df24760f19fe8e6833056e14b2c5e6904753"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0372_lot_material_null_line.sql",
+      "sha256": "bb996450ab89d1e83bb06a5fbf648fb1a2aa859eedd748b7dc93476410c54cd9"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0380_engine_name_read.sql",
+      "sha256": "fb5cb74e118f37908d101c628f536a52fe52af8e4f474c990cc969bf0f249a25"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0381_signature_validity_fail_closed.sql",
+      "sha256": "37e359b3da0ed7aaefba17e247326b8818828674f947d0e4adf2ccc7a47bd87c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0382_signature_invalidation_rows.sql",
+      "sha256": "05010e3f06782861d9fc0a71537d84bcfa729aebcd72c7d12c35d73c137dc221"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0383_market_activation_rows.sql",
+      "sha256": "538b78bb3477404be945e140af27eff7f58e6d0e215c499ea14e0215b563afad"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0384_package_header_reason.sql",
+      "sha256": "742b17cd86e49b1c803b80eee73f30e67d2c1ee180a10d38b62a89088bb1130d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0400_plant_foundation.sql",
+      "sha256": "c550cc3fe17934edef117ed0e607b6e4e5e6a4444b2b688452df2da704474655"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0401_machine_equipment_cleanliness_v1.sql",
+      "sha256": "68a500dd3f20cadf8755051d1f97d22ada3176bc8fcc3afd98c07b739cc5396a"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0402_machine_area_status_v1.sql",
+      "sha256": "0e46b08156e6bc156d270611553c50a32cc64d368ccaa85b6553cf21bdb0ce98"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0403_plant_equipment_commands.sql",
+      "sha256": "2e0530924413337d361b33dae10099a766f5cc8aa36182e995ee9dad3fa7557b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0404_plant_area_commands.sql",
+      "sha256": "400499959e4278d41759f3d5f4221c606d95216687563f2f73b5e35d17e111a5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0405_plant_logbook.sql",
+      "sha256": "617d86b9c1e8bb517f4e558694b2fb1752581386c0810f7ff7da774c231e8316"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0420_output_containers.sql",
+      "sha256": "7e71fce2de11d4523473ee2be5186a794c662157349e81f3dfb6a0e76f21af54"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0421_machine_output_container_v1.sql",
+      "sha256": "7634c0858b58f1eb4ca893ca4a79c4cab00677f50877be6e13bbbf3b17f2e4ef"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0422_output_container_commands.sql",
+      "sha256": "493c427c67f54bb841d93e7c898c5e4dcc8d390c9e261f90189e99b40b40cee8"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0430_lot_consumption.sql",
+      "sha256": "1531520200f2cc53a7f852ea0676db8880a9131cfeb416fead6739abf0465dfe"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0440_exception_register.sql",
+      "sha256": "3cf5e586802f2e0bd17db41466a5e6845c3ea7e02e49a01569d648d0e19fbb49"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0441_exception_register_qa_roles.sql",
+      "sha256": "1574211e481a03f671628818053f7e89b6aa0a6aac48ff17c72d4c88fe23e3ea"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0450_change_path_catalogue.sql",
+      "sha256": "e0d5ce8deaca6b3854738b858d151b7ea8312eedf14f5dc2b02f7e5949f5b910"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0451_change_path_signatures.sql",
+      "sha256": "f9a926f26031a8e5ac422e5b396188fa95b0c3a286f0c60cf361b921ee512e34"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0452_change_path_guards.sql",
+      "sha256": "912766292f3663e0dfd37297401819c56149fd7d500b8172b899e5b3dbf5e6a4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0453_change_path_state_binding.sql",
+      "sha256": "c5999c9e2bfeabc4b7a52c1e58c3d6a140b9b89f7df5c52c6b9ad6964956e830"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0460_plant_repair_verification.sql",
+      "sha256": "d8f0be721a97f32c6b43fc29c0d106d996ec7df9cd6852c55df348596ddfaea0"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0461_hand_over_catalogue.sql",
+      "sha256": "9b75e0c85545171c87190878fea63fcadb1ec933d29cfa5ad506a5fed5f4eb09"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0462_hand_over_signatures.sql",
+      "sha256": "9643a3bebc5c5f6a6f4041476547c4118b52c5639c8c66da0bd2baf4122fb2ca"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0463_hand_over_guards.sql",
+      "sha256": "9b0e702a32c45674d03b33e75f40881de7658fd9e3e2cdd52ca3707cc14208c5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0470_approved_act.sql",
+      "sha256": "4b4f64a4397b087d651cdc57221e8fe883ae181ae8b04833bd135b974eebfdda"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0471_approved_act_signatures.sql",
+      "sha256": "948ee0b8a04dd3f6ccc82c23e24535520ad08a244b13c3484df0c76dfcb886d6"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0472_change_path_review_fixes.sql",
+      "sha256": "fbd7ff19da5ee256283f38481385a339647b893c239f051324605cb7eb9a5c7f"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0480_hand_over_review_fixes.sql",
+      "sha256": "63755b5bf08d10b5c813826d91b2b4f27d441cab485c34bd4579b2655602e991"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0490_exception_register_protected_ids.sql",
+      "sha256": "3d5204e09234d741d6b68cc916258c220dd19171a3b9110ed27e4968ddb31e60"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0500_gmp_batch_store.sql",
+      "sha256": "dc79afacccc1fd8aa0b3c71082bed6f43803e8128f88f082c22e9b6f5fd5627d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0501_gmp_batch_issue.sql",
+      "sha256": "36312b86ee1b87d73ff3cb2a98bf1143a6e4b6ff7416bf24ecadc386d4a2910c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0502_gmp_batch_content_readers.sql",
+      "sha256": "13c64310c0022888e23b244b1f9929789d89fdb3955e1067fe03fc7170626f61"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0503_gmp_execution_violations.sql",
+      "sha256": "000f724810d19c8273b9eae8ede951b578e7b4b3a3a3b705d91c1238c5b4064b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0504_gmp_batch_product_scope.sql",
+      "sha256": "a6b39cf0bf8c3fa8b58c0e0ff1a04c38b8b1b84bd1527b3f3b906222c56ba38f"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0520_g06_and_status_v2_registers.sql",
+      "sha256": "b8e0aa11b001f67336034a7c4b90583c62753187b31b4528c4d2d5032b0e825b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0521_status_v2_plant_binding.sql",
+      "sha256": "651cedd802979243326b264e37397ba52566fc0f308e93b599c6ec938d03a095"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0522_plant_feed_age.sql",
+      "sha256": "23364644b0086edf6b69653968a14e2181c39de640ec593b7b3c5f0c9b11d49b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0523_plant_transition_scope_hook.sql",
+      "sha256": "ffba294d42efd1ec79f89e06de6c02700df5505adc366acff4656e4b57d323d9"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0540_press_codes_and_hold_race.sql",
+      "sha256": "596bc544841ccfda4ffaf28f95e8a259240c11315ed1a3d583314c2c00c0a56a"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0541_ipc_missed_by_sweeper.sql",
+      "sha256": "255aebdfcc00936c40e80a4441ded2e35b607e51b9b7fb4b7f017b8e4acc3b8c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0580_g21_registers.sql",
+      "sha256": "8c133c56d3a6e3613fdcfa0caa481feccb35d0d84aefcbce043c3aff669012f8"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0581_g21_guards.sql",
+      "sha256": "9c081a54a1276cb5ed3ffbdac2b5c790e9ed9b1b13844bbe9ead222a8d52cadc"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0582_packaging_batch_issue.sql",
+      "sha256": "9249122e22438f457e34889f102437bb9dcc698f99e7d9724fbfa09dcc78fac1"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0600_site_subject_resolver.sql",
+      "sha256": "020347621367fe9339be123ca829d61ddd9f5716f32cd9fed49c3db535f0c5fe"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0601_gmp_deviation_references.sql",
+      "sha256": "284cb82094f3a6538ba4178e86316e1f67c82dc54a9c3f612302554ecb915ff4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0602_gmp_issue_erp_order.sql",
+      "sha256": "81d277da2c7d1790954c52eb37d2a996f7d60f64351d2cfc92512302640788dc"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0603_reprocessing_register_kind.sql",
+      "sha256": "e7ab2f578debebb0e8987da1d8068d95fb57b6e620fdee0e901471ad3d7df1b1"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0620_g24_database_path.sql",
+      "sha256": "4c6400011eaf33e143c950ee04ff613627029db6a99f9fa9bf6a86b1a6f96b62"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0621_reprocessing_registers.sql",
+      "sha256": "6e4267d9ef22c1634981358d330a21bee98ffdcb7406e877d9527cb47e2d189d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0622_source_addition_guards.sql",
+      "sha256": "cd766a680fbb9795138a81c4279713ade878d068c7a8fca0e2df73a50ef8a3fd"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0623_g24v2_start.sql",
+      "sha256": "bb48c3037bbe065cdce869eb1095e61b5559a8cda0eb7bae9d712b3d96a56c95"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0624_whole_batch_reprocessing.sql",
+      "sha256": "9fcb1b527853c172be823937cdb0e93a7e72ed06a185be1fa6a1cc6a89ed3b66"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0625_reprocessing_review_fixes.sql",
+      "sha256": "7cdd8479936ed6c10213348de8480f6fa604678ce58310d57c591a3dbd54dfd6"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0640_formulation_library.sql",
+      "sha256": "cae91e968c2592161f3529c2cfde8de9cdeab29dd6d4d7d57c015637f86f5678"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0641_planning_orders.sql",
+      "sha256": "b19d585eb34c6c2746a8ecb88cf29d63aed9180da2f60fcc68afd44bcc7ca4ec"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0642_formula_readers_by_flag.sql",
+      "sha256": "ffaf0250e0d6f12a8641c6e5882b7b560e12ba1b5587b828540a0742d9319479"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0643_slice6_review.sql",
+      "sha256": "6aa241a701be66873d0c9a3a3829c0d21860a7ac09ca64d49a304f6915aca2ab"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0690_formula_base_standard.sql",
+      "sha256": "d3c570e171c6b10b8d0adfc68b7ad889dd2dfa3060d3bd81aac8a01b36389b73"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0691_status_v2_instrument_use.sql",
+      "sha256": "787724a037154ddc6a755f6b6cbe39adddd528f6b6582ddd22d24ff508490b5a"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0700_consumption_guards.sql",
+      "sha256": "76d239d34f3e45a41f60d35722dcb830ebf4ea0038b76c8eeffbf1cd8f59248f"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0701_packaging_bulk_issue.sql",
+      "sha256": "0e62454cf1d37fd98cbabaf407b4508e9901cd40c0841cfd67b53e3dc36f7923"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0710_review_register.sql",
+      "sha256": "69afffc1e98006cbb9481eb526881e8955fa0c7b40ba051a1a0b27d81c1f80e2"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0711_audit_trail_scope.sql",
+      "sha256": "846e243f0802b3da4bbe98b84904dd6432378d7e64852603f201ca312262a480"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0712_review_acts.sql",
+      "sha256": "f993ed5a70c325104179732dbd75e6534ecccbae790f4d0a49d6ef10624124f1"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0713_review_freeze.sql",
+      "sha256": "034fc04e89cd375a4fdff21cd76812fe18660a0f3fc895365cac5d17cfe62481"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0714_evidence_epoch_triggers.sql",
+      "sha256": "ae8fe76b3993a56b53a39df0dd19a8a510379e2a595d0af3e06da2eba1f53e05"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0715_rbe_pause.sql",
+      "sha256": "5038e327cfbd720db037c29398a99ca8fe38a972f3e975c8e8af5d26fe5fa539"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0716_loop_reading_correction.sql",
+      "sha256": "0e7dff6ac69d4548ba658d30d145a9e59ca41de87ae689a06a36c6181b44cb1a"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0717_correct_entry_row_evidence.sql",
+      "sha256": "4be768f31d054edcf823b88310680cc166d288d95f7a65d1ff515b662836d366"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0718_review_gates_and_epoch_rows.sql",
+      "sha256": "98593c845030a4ff25d7f13a73dea963009e0bb8fac04ddd876dbd20cc2ae70d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0719_review_involvement_and_scope.sql",
+      "sha256": "3391da8ac97eca5d4e52819bd30671b0c4dc85da24fad8dc0da10a8c3d729368"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0720_review_epochs_follow_evidence.sql",
+      "sha256": "320df78019bf32812e7896a67003262f563a87cf3c5a11c359d86dc23b3663c6"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0721_review_acts_after_quick_review.sql",
+      "sha256": "9440bb2a2e12d06f046151ca173c6a51afadaa9607ace30379f2c7ab51c83025"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0740_container_close_net_check.sql",
+      "sha256": "f782acdc796a9d7d78d65fac84f91f9dbbfbd8623756e973b51fd016f0cb046c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0741_container_release_after_hold_closed.sql",
+      "sha256": "dd5ee9afcc4c72671cd48d106789c4403ff9c0f7e8ee436c0211e650118a759c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0760_packaging_family_pack_type.sql",
+      "sha256": "14f70ee604ffe38d9ace257337dc266e6a18e5bf6aee4fe16c03956162eeb7f1"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0761_packaging_order_planning.sql",
+      "sha256": "5669a445a199df7a28b8a3363e476fe99044dcbce0a119186350cf3f70bcc9a9"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0762_packaging_planning_reads.sql",
+      "sha256": "2c47ed4b271010770132e4915e189ca8774cc7c8a161399b768ad158ca7bffaa"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0770_evidence_verified_bytes.sql",
+      "sha256": "bead75a7ebf398849d2029a02643a88b7d6d80c011a2a481da7f01fa742ea991"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0780_grel_interfaces.sql",
+      "sha256": "240bee2d20db031341197750b8f9e9436981adb87097f0de3d42400ef36d0d0c"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0781_manufacturer_release.sql",
+      "sha256": "50aabdb80d31f04e3d4fc2af967d5387a6247507f66b5500ad55d0f7bab56516"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0782_release_reads.sql",
+      "sha256": "290c6b94852d5fcfb9ffd7d83c3aa269d8536eb85fc31afd2fa8c0c25efb8d5d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0783_justification_links.sql",
+      "sha256": "d7da86e5ef08791e8804ef8f01049c8fc401c35d18d145638302ec4292780b0b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0800_packaging_master_every_path.sql",
+      "sha256": "66b1e9ac06af3c3a180ddcaaa1b28bc94522c62e63a8238ccc408e35ad556e16"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0810_notification_centre.sql",
+      "sha256": "34989d466b1845f534da5ba0d796dfa6a3702ef133cc795e30eef670195bce9d"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0811_release_decision_notifies.sql",
+      "sha256": "c1a8227d334c11643d2d9deb8369c918e2562ec689c9ed4f383619a3bdd6b24e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0812_notification_ack_permission.sql",
+      "sha256": "b4a0def7a29b49e72e0b952d0a3433c89781dd6ad5b18b97dfacb92c3ac82075"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0820_market_disposition_interfaces.sql",
+      "sha256": "8b219151300b3f2486aeb5393dbb7633a90f0412d35f1e03c9015e9214240d32"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0821_market_changes.sql",
+      "sha256": "fa843aad684db2962352c473442b898a6c5e8864c6d3445247b9c35cbbb5c328"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0822_market_dispositions.sql",
+      "sha256": "7d1c42c2343f06196bdb0ef06891c1f7a71f2186b027e764b3fd296304d94ab6"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0823_manufacturer_release_cascade.sql",
+      "sha256": "36a9a59a8a1651aac7bbba04f365822c1d07b79727af9907fe6f0f40308bb4fa"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0824_qp_certification.sql",
+      "sha256": "9d25fdd78dc37ea62dfdd7adbc978a3fa3d955bcdaee0abf261b77e2b8cbfcf7"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0825_market_reads.sql",
+      "sha256": "eccc3df703605727bab0a73c9ac76af027f3f066fcc01c2cd9e46d295ede3622"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0826_qp_review_fixes.sql",
+      "sha256": "b2e0f3ade3d9f84fceeaa633044251165cefeea2bd4b0f8dead6999295b779f7"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0840_after_release.sql",
+      "sha256": "b7e13bae48ae74475f9858589d26461436cede90dcffa5789fab5e70dafcc11e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0841_after_release_market_removal.sql",
+      "sha256": "0ffe3b7b3faa2f493928261bb8033cbe4b41bf69ecd8922146ecdef24a3afd70"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0870_record_lock.sql",
+      "sha256": "6cebe71486cf305f5b3fa3b6b38891d5ca6b17ff3113c1026d40572549d9099e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0871_bulk_reconciliation_and_bright_stock.sql",
+      "sha256": "881bf01a29a3331b5645278ed8dcc452355d71177a59de5ad9b890e3c829d25b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0872_record_amendment.sql",
+      "sha256": "75550f8bd696a485b586e4b7fcb8e229381608ee81c4cbe0be52a325b129f0a7"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0873_record_lock_roles_and_entries.sql",
+      "sha256": "11fa9a72781692db3bfe9217b79ea25bcd29273e85b92a0c607a1e1fdbf81ff5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0874_amendment_with_suspension.sql",
+      "sha256": "427d984cce7315177042df4e603752695b635509951378a697692ed94de92e2e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0875_suspension_again_after_reconfirm.sql",
+      "sha256": "9fce8e0708ef6b90eb3aee2ea2b8c33894292af1a83dad4cbb7086ce5db2c36b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0890_hazard_dedication.sql",
+      "sha256": "c9244a14fc1f53c5b19d1b74a0e86ad2ffd1a81a567f37accbbed492b55cd64f"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0891_india_issue_gate.sql",
+      "sha256": "d7b9d6462121d90b2d236b3d492a35b3dc7ab4ea6ed98a81d06234f9f0815210"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0892_grel_licence_item.sql",
+      "sha256": "896c708d7d7d602687f999e429f9f21c1bf6536a3c93acfa6c2fb15101216db8"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0893_expiry_dating.sql",
+      "sha256": "745e1844ee1c84d387158e19ad8ea3d4e0775066a7a9fea6fa9d24bf25b0019a"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0894_india_label_and_h2.sql",
+      "sha256": "406678ab14958414ab06f89bd8107b3576c5a4f28d8683f301c3aa1ec87ee118"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0895_allocation_register.sql",
+      "sha256": "945861e0d9023c475f85f93896b21e47306c4c62d57655b6ce1cf5c7ca635f63"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0910_pqr_extract.sql",
+      "sha256": "5a54a9808bf1763c19c2b369d107c23f34afcc1cc1521060c1e0bfb9918f8369"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0911_execution_complete_form_gate.sql",
+      "sha256": "2cd6ab58566bfdc043d81bb41e97ceeb4e1554ea7bd21dcdb79147a852c45184"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0912_hazard_second_person.sql",
+      "sha256": "86f8c4a9c42013021d95dd6212992263cb219e6acd8f128109929fb440fed9e3"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0913_allocation_register_permission.sql",
+      "sha256": "a89317cf8c04575d85a338fd6714f85a36529eef1817a8887d95d059310d30d6"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0930_drop_reprocessing_start_problem.sql",
+      "sha256": "7b880a789c6d2548315630b50f0e4bce8e1f316d5c635c633340c66e735398da"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0931_audit_review_events_once.sql",
+      "sha256": "31bf1d869be8c4f003feb9e76705bebeb15cbd0498ec7a71661546badcc2c78f"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0932_grel_validation_basis_lineage.sql",
+      "sha256": "1ae44edaa8a5fb9337ebb43a1eb7213997d31c479a3576126aab10fc5b63c4f9"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0950_cmms_mirror_at_equipment_use.sql",
+      "sha256": "4a91a749f37ecfe9420958d8ed7258a53da071843864625d4c4f84a7ecae8d20"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0951_qms_status_at_release.sql",
+      "sha256": "9652d78a7294df87b781193faa17474f081f09a0df69474913354fd322b772f5"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0952_capa_master_resolver.sql",
+      "sha256": "71e23febb29843ce132ef90b566f1b66176b759d2b058adc2e49a50d4e1131dc"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0960_plant_alarms_series_interfaces.sql",
+      "sha256": "59747bbc480ee03ab57fa648a17c7f80bb795c75597ccb4c1ca19744ca277f45"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0961_opcua_endpoint_identity.sql",
+      "sha256": "2db42b852c2d80bda2b1298bf64e34d860ccb8da6947e280980627e8511f1cc4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0973_plant_room_rules.sql",
+      "sha256": "284c47bdf4da7ed8c6d25c6a0b5b85a767dd439c571b70ccd87772aa8d92cea3"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0974_plant_step_guards_and_review.sql",
+      "sha256": "343f15e1a845820d01e043c752a9290c2748e800029368d9e1075ed4b05769c4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0975_plant_status_reads.sql",
+      "sha256": "76c777bfdc1633fd073066ef6fab202e4cb5b6f02888e38ae92ebe55a68187ef"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0976_alarm_ack_every_batch_scope.sql",
+      "sha256": "41bd1454eba77d40120ec072e180c042389ac7a95eb4547c59969db0776ed026"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "0990_label_templates.sql",
+      "sha256": "c3b2679215c02ca345620c5b44e9fb56f751b1dae790a7aa12b36443a642a0bd"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1010_genealogy.sql",
+      "sha256": "68f1b5c64fc206c739aed730f3f803845c519127be09876693c1a4bb36e9b8ab"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1011_genealogy_recovery_and_dosage_form.sql",
+      "sha256": "29faa555624231110451a11434d7b9b013aea7b485c97a8982d6623ca1e0cba8"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1012_mock_recall_impact_recurrence.sql",
+      "sha256": "fa30e1b999636583a7ba1008aac36f9729b717a2337f943b18d3511c40e3519e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1013_genealogy_reads.sql",
+      "sha256": "7d52b031a1cd9ef13496d7c5b0a0010178bd062dd00671bc8ab60b6ec89b4f3e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1030_controlled_substance_catalogue.sql",
+      "sha256": "b99ff409d1ccf0600dd0b154f8a490013acfc6f289a5f1ebba4744ad2040e69f"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1031_controlled_product_flag.sql",
+      "sha256": "d5f783640e2023dfddcba056b7a57d37ec11ccc9603a77fd0dcc136ba8329357"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1032_controlled_custody.sql",
+      "sha256": "b72f08a2ebdb9117fbae518b9b07e0d9e72a19a7995577ac83eb1f3362b00e75"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1033_controlled_checkpoint.sql",
+      "sha256": "631d4bff8e871f838682957c1aa0da16d5c703222eb331c2987fe47b062bb9c2"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1034_controlled_register.sql",
+      "sha256": "6167d86d2b9ba8e4afb0e1dc3e85cee77c6cbae55fb69d8ec5418e6a733b3a3e"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1035_controlled_batch_end.sql",
+      "sha256": "114ae69094f0d07bd413e0795858f4e902555bb962a55bade5c5414226707d12"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1050_rbe_rules.sql",
+      "sha256": "42121cbc3647fee23848ee369759f35a778c49ffe380a19a7a686afcab9d6a78"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1051_excursion_notifications.sql",
+      "sha256": "ce64a5e37539fc0419a3c1f4b83d30348f95080377269564b0466cdf0f1e57e2"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1060_contract_giver_access.sql",
+      "sha256": "7388b623d714045196b24ee48143c8f082135d38093ae47b1d30939a8a5acf87"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1061_mbr_edition_review.sql",
+      "sha256": "60459c18163e029ac3fd4358a2bb6cec58d4a4abaade72ca72993f92d3488cb8"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1062_pqr_cpp_extract.sql",
+      "sha256": "29add0de9fb2119548cdc9d96a7d1123be281580c8a917701cc2ee994a3aed0a"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1070_reporting_views.sql",
+      "sha256": "27516348db6ccc225a9b6dc67c33842a6aaf7c274668a15cf7e43cf925672998"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1071_change_impact.sql",
+      "sha256": "de0c83df4bed9f35e918b32555f3a09ec6451635cf106380a5638572764e5cce"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1090_genealogy_across_sites.sql",
+      "sha256": "762ea00f6850a1fd4abd6fc93aa44528e598577cc34ae463025bc971b0538b18"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1091_mock_recall_across_sites.sql",
+      "sha256": "c0fb49121d6e0a51e345d63f83b36dd0e3e63db3c5ba21ff185c255c7433f646"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1092_transfer_review_fixes.sql",
+      "sha256": "9161942139d42d8166cd3bcb77ba8ae0e7ae193f0b8be1361356ada0830bc52b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1093_federation_actor_and_audit.sql",
+      "sha256": "c2bc3ec958e4f52f55bb2f16e41fc2d18b33106e4458e4ec6efec09c37056e6b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1100_batch_product_in_step_authority.sql",
+      "sha256": "5268376fc74bbd0058f072242dbe781d77620a6ab24b11e550342c202b395b38"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1110_analytics_draft_controls.sql",
+      "sha256": "a674ae18d538c3c3ebad8cc6086863284727a7fd6c61cbcae7e1843b02c8a3ad"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1115_analytics_input_views.sql",
+      "sha256": "c28ca0e01b8acf4bf772d7e52f244c76cf1fb32c54255bbab41f218fcbb98427"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1130_analytics_rate_inputs.sql",
+      "sha256": "cd9a0e7061af83b24994f27d8be5485e5fb02b7d310ea6dd473c06c030e8873b"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1150_analytics_audit_inputs.sql",
+      "sha256": "e09b3c81ef0329ced19a6cd3b488942dfe95ca398b29d3cb8c6114d57b7178b7"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1151_analytics_audit_flag_entries.sql",
+      "sha256": "a1ed2d5fd762449eda40a485d23a86e51d0087eddd3eb23d7fa29531e2748bd4"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1160_analytics_review_facts.sql",
+      "sha256": "35c9b4ad9dd1fafe987e518bd42f59c6711da0099537870d8dddc309e14187c6"
+    },
+    {
+      "namespace": "recipe-core",
+      "name": "1170_analytics_series_inputs.sql",
+      "sha256": "d8ed257472ce2ba7f14e293831c7e69c637145a11ad507d49e8772d83d765aab"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0001_tab_foundation.sql",
+      "sha256": "716296cc10ac253baa1d7faf949cf16642a0f3fb7868839ec58cc8b084a37121"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0100_tab_attribution.sql",
+      "sha256": "000ec9adc49a9ac6b033b8e467c08b0cde967e83b8becd751769ec9a0e0868e1"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0150_designer.sql",
+      "sha256": "49da7dd96b2e6417cff0fa484651d12e15e582591b3302bf18ace43f0e9f9d67"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0200_execution.sql",
+      "sha256": "1b827299103b77c69fe4caf4e426d82835647b5859a2366a9cab43f6106ba71b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0250_devices_readings.sql",
+      "sha256": "d1d4c56ec61a8d0a5a362212c18bd19777b7681e401bc2e26fc6767f8b114288"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0260_protected_sequences_and_db_time.sql",
+      "sha256": "dbe46f1d2bf79dfe8e2a4e9e770a99dbdada07b5045435478013e56b21336265"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0270_devices_readings_guards.sql",
+      "sha256": "2f4c1aed2f288d43c87b72f0444c0ec9719be6118bfc4267cca102fdc3ae70e0"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0280_designer_guards.sql",
+      "sha256": "a6ba7dc1dfde320599d2cd724d856ebef47a6de6b79d20be4e4fab5f67f8e0e7"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0290_gateway_role.sql",
+      "sha256": "ad15f3be31d9082b786f53b6cf8acea5c4f9c8bae57868fa474c624c35c2a9d5"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0300_device_entry_readings.sql",
+      "sha256": "50daaf15f87140d0b725b1e47d73cc8fed2e8cf9c23a71bb27be24aefb77d23b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0310_manual_weighing_gate.sql",
+      "sha256": "59b1ccb4dd65203fea4ad62269f88679d21624e06b11e897331cfbad808f5a3c"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0320_device_readiness_and_age.sql",
+      "sha256": "1bbe779801c611946fec4238b17a3ecdcd2e2e81e87042686f7207fd62051e24"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0330_reading_freshness_challenge.sql",
+      "sha256": "9c1b95112947fa8fe6f539371475df35f5f98deed78f85c2210910a20060eb8d"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0340_manual_weighing_reachability.sql",
+      "sha256": "b96012e2c21f16d769112a04b6bb8f63e94a6c467168d4f3769a639394afc10d"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0350_scale_room_locks_and_report_evidence.sql",
+      "sha256": "857b564f031d205eb6a22a4da0dac37a5b47ab31e04c3a303f11c157ea4c6b6f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0360_reading_age_policy.sql",
+      "sha256": "9f6d596b11394f3a31d9f7116eb3ddc93a386cef6cf5a71263a42e22ad91e297"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0370_entry_identifiers.sql",
+      "sha256": "ad6439adf166b8b081b9721d17a2e495d7b98cf792c7be75a78c8e55558372ff"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0380_state_entry_identifiers.sql",
+      "sha256": "00c8c5b22c6d191fe9557fb4bf7c60f2ae70d070bc8c440501de38b75a66ddb7"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0390_state_container_identifiers.sql",
+      "sha256": "fa9799a4c34887f6bf9eef0aeee59a185dff0cd01f9bd63a311eb21223e869b6"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0400_session_role_withdrawn.sql",
+      "sha256": "949efe3415e4e95af7652d7edae128c8edb7aff0dffcabf30f2c262ad77ba6f0"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0410_signing_content_read.sql",
+      "sha256": "8ae6719dbbe5f80c08af3c13d0e3289c0e2835959f19cdc3acc884b0783af478"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0420_audit_read.sql",
+      "sha256": "e53ba72ea36d81d325f6f428522ab7712e7d27b9a3108f2414351c17865ab6e4"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0430_governance_read_doors.sql",
+      "sha256": "987be316f8234ec9258bb1596f7904ffcab0dc4ae979dc4e3f42f5f819524392"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0440_investigation_subject_reads.sql",
+      "sha256": "bc2a165279adb1f8a756f0b061a42b87b9d280cc353ad7f80da9e91275a53b69"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0450_governance_signature_ids.sql",
+      "sha256": "5e19bbeba42d2867e1ca8527f2d130c2bc59a83927a7abc21c510632fe7565bd"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0460_disposition_blocker_reads.sql",
+      "sha256": "aa797b02b7533e298b8cfb876776ea4435ecdf68b24c290a86dc486eb432678f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0470_audit_actor_readers.sql",
+      "sha256": "d9fd6f38fec574e5595e8debddc7311570e991356bef4c7b38e5637548b0b7d8"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0480_bind_session_needs_live_role.sql",
+      "sha256": "e9af3ca8601d8b5f52bf0f809ad8982efe602651770ef587aac69c8867d20323"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0490_audit_headless_chains.sql",
+      "sha256": "f51bd8effc26a8dbcfc719d61b967182cabfdd95589c23c08d6d2a3919dea1cf"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0500_stale_weighing_readings.sql",
+      "sha256": "798b15e766efc3a91187bf0774a872b8c4fd1d7873b8e7c69bb2fdc4db2d8df6"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0510_stale_weighing_reading_pair.sql",
+      "sha256": "d4f2e7c595bf6bc21517eeeda67af7645b2b7c9e36a6306a04f4cd139131cf52"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0520_stale_row_claims_at_commit.sql",
+      "sha256": "834eb5064ac19336b850acab81366554fba8f87e7cb054e1f0bd187fa235823c"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0530_chain_verification_and_subject_answers.sql",
+      "sha256": "f446986cfa79592b4aeb0474c7ab45abc1d7572d8b4ef9ddd07ff36c16cd0115"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0540_sequence_high_water_reads.sql",
+      "sha256": "d110a0d600d1d2f4f06c1ee6bd648cbcab022812488d8f7ea69aae9bb88948b7"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0550_session_terminal_key.sql",
+      "sha256": "028a29c24da45a1a1fd032a030c83f11b8f60a5459efa306f4730e9c9c43ce60"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0560_subject_counts_shown_entries.sql",
+      "sha256": "aef75d810d8f372ca9d7924c8816625fbf9e7bef8f333bf97324289b0d8803f0"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0570_table_statistics_reads.sql",
+      "sha256": "a2cbae2c1ef386100c880b5f929f5ac52d6ae360b5c919aea854790b13237890"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0580_authority_evaluation_reads.sql",
+      "sha256": "34de590d8ce7d4a87391038835b0f0c8cfd2586601c9c5daa1ebfbee8376d19d"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0590_used_readings_as_stored.sql",
+      "sha256": "143ef36c96ed14c35d30c915ca3a671f40b6e8368508c437c1105b7252e4c195"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0600_reading_purpose_and_lot_material.sql",
+      "sha256": "6c6388ac4fbbc73cd2552c14a11967088e9c4a023e86d53588967f297054e0be"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0610_signature_table_plan_reads.sql",
+      "sha256": "52b8198dd6c8d82e1bdc2c00d2b575ab35409cefc98b7b0d3f2765c00a478a74"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0620_signing_failure_log_session.sql",
+      "sha256": "824e497957d5655e1fb279a3249413acc3a8764c68a8650ee2da2e76735d995f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0630_sandbox_lot_material_name.sql",
+      "sha256": "60b93305b22cc932f20a645df519eb1a6e2f0c9802d0866ed4c968fd2b6b16b2"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0640_manual_weighing_basis_identifiers.sql",
+      "sha256": "2a7260e2f70ba8e36d1f432666cd6671d137a7c367fdfbb54cd8c31a329f5a5f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0700_api_answer_at_report_instant.sql",
+      "sha256": "f108f10606540e7dae8950b76b5fc9fc04fa6453a4edffee87b02a40c3d1d23e"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0701_sandbox_lot_identity_test.sql",
+      "sha256": "ad8ee5707923369c61a48ca290115b7ad6c44a27de12c3c25e3fdba3f94d047b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0702_gateway_key_large_order.sql",
+      "sha256": "b491e66715e2421c851d39ab21e74480137e05657788c7eab09e3fdd9cece399"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0710_answered_message_wording.sql",
+      "sha256": "1b252cd9ce41ecbf6d778ce015cd2b3ee8122e0a931e303a7713384311f1f847"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0711_sandbox_lot_message.sql",
+      "sha256": "e5f87305c57770a6dc4322b2034e737206b0104f2284bd1f82b4956e763c3ddc"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0715_listener_tick_prune_from_close.sql",
+      "sha256": "8beffb941ecb3bfb470eba29ed45b62a3a738fae1b30803b5d77637cc71a3181"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0800_gmp_batch_issue_signing.sql",
+      "sha256": "a2619bd1dd4fe61589dff06440d05e6a107e0fbb1e17507bf453022d5d25fb2f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0801_gmp_execution_lots.sql",
+      "sha256": "839e6f508f1a99e4dbd4fc154822065e334fa9df4f91c1a32eb62bc9f76239b5"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0820_process_readings.sql",
+      "sha256": "3ab6b801844cf8411eea166d3eb1657602e1fb254476c35b623714db7576e008"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0840_tb01_registers.sql",
+      "sha256": "73180e6674f1c46a120b914d1f8446402e3615f72d1cfb84ee8a8c816b54f39f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0841_lot_assay_results.sql",
+      "sha256": "e46c92538305d9c4669a37639b9a5fdb77b1ad3922aa607844ad510732750146"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0842_tb01_calculation.sql",
+      "sha256": "a9d11bc3b167d0daf945580afd9fc117999d9950409ae88c2401b005426f712a"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0843_tb01_entry_guards.sql",
+      "sha256": "3a3d72f72815a9e42bec7b02650c3eefac0bf7a4c69b02be082fda4f946cbdb5"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0844_tablets_blocks_in_core_checks.sql",
+      "sha256": "3915ddec79e7d9f87be724a9dec613574181dfe12cf80501dc045dc7ba58b647"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0845_tablets_blocks_never_skipped.sql",
+      "sha256": "3e01b5c86e447447b2f2dfe90e27283891fa26bac941bcc8a9c81cc652448f22"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0850_granulation_registers.sql",
+      "sha256": "c6586f670dd4d314ef98e0ff87fcc6bcdcdf986262aaacd0564297df1bbad204"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0851_granulation_guards.sql",
+      "sha256": "fa47dae2e29b40f6bfe38330cf650dafdb92724756b512595b42041a9d76213a"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0852_granulation_block_values.sql",
+      "sha256": "c55b87c14186de93ea2512d02248337c61a3da6dd8b7c2a6a77db1879c2ecfc4"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0870_process_device_units.sql",
+      "sha256": "ac7632013ef288f330d2180e71190a195030cb882553ebf613588ed2b342a26b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0871_tooling_register.sql",
+      "sha256": "dc90325f4618408fa5fa1ce6fd0b68b917a10aa73815ef910d37fce6fa798c5f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0872_detector_challenges.sql",
+      "sha256": "ddfcfbb38052e2e3ad7a653a18b8ad727d3ddfb7859aebe31b5043dfe7770e66"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0873_compression_blocks.sql",
+      "sha256": "8aedf73dba8f9c77f7cbaa9efb97c1b56d5fce0f47ed1efa170bdad1f25c19bc"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0874_compression_guards.sql",
+      "sha256": "3bdc6e402039255bd6211ef5f5de30a31f75e179c99e3ab62c77de382802246c"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0890_ipc_registers.sql",
+      "sha256": "ea9aa12a4558a9e1d8f7a06f8a35f9394f4a5277f38c126b5d6371daec403e31"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0891_ipc_calculations.sql",
+      "sha256": "9e1381f0cfee9b56c3cbd6dc4832b56af8d7273ca18cc21191e0da6c2264099b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0892_ipc_entry_rules.sql",
+      "sha256": "cc46a74528c014150a01b416ed3c1eadb2173d1a01860c501b490dece468823a"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0893_ipc_guards.sql",
+      "sha256": "94d6f9be1cbadcd1a9c6b9f7c6fa29baabb733753d2b6809713d91f4cfd2949a"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0894_ipc_reading_purpose.sql",
+      "sha256": "36704af0b9d018aa8c6679a5e7f9896f4018a8b857f46000963be6559bd7f9a4"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0910_coating_blocks.sql",
+      "sha256": "b9f1c9bea8a0321d5d0040226a202086322f71d24d4460e2df82331f6af47642"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0911_coating_calculations.sql",
+      "sha256": "a3b9c0e4d5d3db836cbf8fbc7342f28c4fb07e329330827c412221a4653a8026"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0912_coating_guards.sql",
+      "sha256": "2a1519ac586a71e0ea54f0158e67a0e7e74b531e426177e96018477a584e9e2f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0913_process_value_exceptions.sql",
+      "sha256": "b8e9b22f39af12ee456b79e8f37dd6845e7b1601fdc52a960b7bc13da8e93d3a"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0930_forming_registers.sql",
+      "sha256": "4d05bb93d49c0c90887b782efbc3bebbc66ba1b8248d46db1683ee269b71acae"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0931_forming_rules.sql",
+      "sha256": "008bb5ce8e5b8bdb76954c8dfe412da05058fe5c5ae79419f40ad0d737e201b2"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0932_forming_guards.sql",
+      "sha256": "e065bd26d1bfcf2f0ac7792f6d334e7ff48a139b193b7a8126293c2fb6cec69b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0950_printed_material_lots.sql",
+      "sha256": "fbd88f3b35bc714f271c7c98ee119f3a3c13ae6a9b26c0e07ba50e216c25eadf"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0951_print_jobs.sql",
+      "sha256": "43e6e09be6d7d174dcd1cea902f37723c671c9640ac0cd4dbb50a2d0111ed83b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0952_serialisation.sql",
+      "sha256": "ac61165f923ade819f7d1e653c8efb3b544a043a4174513cdd922cc4defa7dbc"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0970_blister_registers.sql",
+      "sha256": "11fb3a110dae9f0b9e7c2442230b43310951e9ce70750fea9544eb54cd608fb7"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0971_blister_rules.sql",
+      "sha256": "54f6e8a39b1dc9a67428233bf34ad0d2988852f265f587fd4e5d649a3476b3c9"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0972_blister_guards.sql",
+      "sha256": "3572822464226bb31f84af6e68e9ffb2f6b8a75b0c49c3d5f4cf2bec3c2c6ddb"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0985_bottle_registers.sql",
+      "sha256": "84d904747b7510971fafb5aa1cdb960504747866c9bfb85aebe0c0c590f3bf65"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0986_bottle_rules.sql",
+      "sha256": "0d21f7ded1c7b9a0b86bb8ac8a0b5193117c4d326e3aa07b8ae6f26e7e9c29fb"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0987_bottle_guards.sql",
+      "sha256": "f2dea82c5eae2280e5845e23e8bc33d974cd7b42db719b581b13e6347d9b7367"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0988_packline_line_clearance.sql",
+      "sha256": "fac1e01727b4476f15d1a628a88b8237eddeee23a2a8ba1ba4da73dc2bed1f46"
+    },
+    {
+      "namespace": "tablets",
+      "name": "0989_packline_overdue.sql",
+      "sha256": "d22ee2bc7018a8008566fbb67d0fc7ec82ffe9ae9914db505e7fef1065ec1fdd"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1000_lot_retest_reads.sql",
+      "sha256": "9ff12cce7dd01275725de117d4edaf46a0f66c350929f47080bb17e871f41f28"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1001_lot_assay_from_lims.sql",
+      "sha256": "6eb1006368708085899afe4869c73232910700dcfb71d08046c9252e58cb7e20"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1002_blister_isolation_product_master.sql",
+      "sha256": "eec981737757b01c6c31a1d9780127d25edf849d951a0efe86ac948cc498240b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1020_tb08_registers.sql",
+      "sha256": "e05f3f1ae90606d5b0ee79f3e2abfec731e2ad3a44dc6e821923e88c57ff6569"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1021_tb08_guards.sql",
+      "sha256": "1f74d1c1610e930c420c06f8bc582d82c0e451c3468047a7c8e677bf63bbf73e"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1022_recovered_expiry_cap.sql",
+      "sha256": "cddd023d3b4a425dab21d8b1143764d10b95f36ebb12322f730c5baf735de254"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1040_slice6_signing_and_detectors.sql",
+      "sha256": "5c3b8c269cb88e0f8cb227f973d031bb0b99e4720a25785aaf737da235dd8b50"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1041_formula_reads_by_session.sql",
+      "sha256": "4e0d5c8f477b0ab95194e3542686ec9dac6e6f2744196fe4ac479f49a426c8c9"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1042_slice6_review.sql",
+      "sha256": "b9b5d1c7d2d2caeb50dcfe32d697d734bffab93f614b10207531a60be4f7eb74"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1060_packaging_line_devices.sql",
+      "sha256": "6c6cd84ff70c0b24cc814572506e57165a44e5424df0c5b00a5e24a8c18b462b"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1090_mbr_transition_signing.sql",
+      "sha256": "7f3e22658738b89e7253c521d1054ca8d15bd5a5d87730d0987bd39894509d03"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1091_tb01_hydrate_codes.sql",
+      "sha256": "b0bc8f4e6451719b9abadb53808830131b1d8845687a96b4381dc7427b5645c0"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1092_held_cores_not_coated.sql",
+      "sha256": "3acc832a68f8c4ec16f5a3e0012f0961fc707bd083e2e2a7ecf0d8abb5e74532"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1093_g07_lot_consumption.sql",
+      "sha256": "4af510682353f6cbd0122a4b04f6a61bdcf9ee347d3293563d59173ae21f2d93"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1100_g07_consumption_claims.sql",
+      "sha256": "582363d1f86ea009803b583cc37e08530571bbb6dde8becd1c94ff262987dc36"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1101_erp_master_signing.sql",
+      "sha256": "64d1b0d00bf71d421555e00c6d18c30b11bcf348e19ab8dedf05878b4dab6309"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1102_packaging_run_needs_bulk.sql",
+      "sha256": "394ba65cbd5c0c4503354a0ddcabb5025dbe67fdf75253d1023ffa6864177096"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1110_ipc_missed_sweep_not_due_again.sql",
+      "sha256": "4b34712b2cb8741582f32222da9eb4edda25cb539cf6e52bffef10b3abd06879"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1111_weighed_close_and_reading_window.sql",
+      "sha256": "60d384c48e71f12a1a1444d8197407a779c2c6ce350cdd17c26f686430d05b01"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1112_container_act_signing.sql",
+      "sha256": "ae86a032b9583b2fcd66b558e5da55f650dc6e3548329b866bbbf58dd110f43e"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1113_tb20_v2_no_plan.sql",
+      "sha256": "3c57d7bd13988a486b45a49ba6e772e3a592e40f8636c348c5455a23b3595e01"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1140_review_signing_meanings.sql",
+      "sha256": "0e2eadae24697d37ac59db3c24b458c3c4782ba423f36f8dde30d2a8e15c48d0"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1141_weighed_close_one_balance.sql",
+      "sha256": "6455a1e9d079fc8679d1cde183e634730a12903372e5d0a42c7bdb8657a079a5"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1150_finished_lot_post.sql",
+      "sha256": "6f1421a901ebd9d56e22cea81aee54ba45fe96824f734bdf2d58db46ff8b1e4d"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1151_reels_in_use_still_released.sql",
+      "sha256": "6b2756df86655c9d0788a2185ce55c252fbe8e36b1f8e09412a124df5ca1b933"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1159_signing_meanings_slice2.sql",
+      "sha256": "ee4b269c3a7b0c48f047dd2d0babc4349ffe3487d8abd932e6ac31acdd8a10c5"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1160_grel_edition_items.sql",
+      "sha256": "a90f0099dd847e3607c326a2cd08c04b50cfd21132b34172978bb1ee1d170ca6"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1161_rule_set_verification.sql",
+      "sha256": "664f25a341e51dbfb15c0aa08e47fbb635939f8efdb0e498b04f78ea5ddeb74d"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1162_grel_edition_items.sql",
+      "sha256": "7cc7e6445b11d9803d0b1eff8858672ca47a98564f0b62f03f6a77d289869e41"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1163_grel_edition_items_fail_closed.sql",
+      "sha256": "575c3d9f9c8d83790d42d32db243359fbe48aa84aa64f9edbcc58d8a3edb14b3"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1179_signing_meanings_slice3.sql",
+      "sha256": "ad6fe1998d061647c10d1ed04ac4de1496b541809c3f0ab3e27498834fc7f5e6"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1180_qp_message_intake.sql",
+      "sha256": "f290aa28f8f335494ceb724e261d80cf7dd74ead32269b2b7150d46fafeb69e9"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1189_signing_meanings_slice4.sql",
+      "sha256": "97581f0d3baa4059e4f2396e3ccb475f6e8257eaaba546d4c3b8620094e71db7"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1190_record_lock_and_bright_stock.sql",
+      "sha256": "e69c2f6008f6a20f58fcc7e163fb0a39b667142c1cc27aa00fac266803fa11f4"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1199_signing_meanings_slice5.sql",
+      "sha256": "02e704547369a9ce05cf76944895a673ccb1355c7530102ad94918407ff04e5e"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1200_signing_meanings_slice6.sql",
+      "sha256": "ec9309064aa65a1f125dd60cff6064c45005296feab09c29a79cc344984c68fa"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1201_one_expiry_rule.sql",
+      "sha256": "931d6836440da509dad4fd52434876b29b9383958360d39a1bf76dbc76535d5c"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1209_signing_meanings_hazard.sql",
+      "sha256": "b360cb2ffd1a5c3da4151060aa87412567f32300d76734672c9919c9140540db"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1210_opcua_process_readings.sql",
+      "sha256": "e46729710137c7fc4b7ba1a7db9bd1e31c2ef0be1791645543123dec999ab138"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1218_plant_alarm_bridge.sql",
+      "sha256": "993eb080a39d366a35f15c64e33f1f864fe7ab602f51fa57801a9d6c5b73cdbc"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1229_signing_meanings_capa.sql",
+      "sha256": "6fdb26dfc7bbd4ff976d1a191a165774c15d304b96bf69f34f433cfe4a9928e0"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1230_packaging_line_completion.sql",
+      "sha256": "aa554007faf7966237d31bba93200320eb9079d85b726d6246cf8e95bd7055cb"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1231_serialisation_l3_l4.sql",
+      "sha256": "b53e9b392d84d6543f8e7f24c01209cf2502c7521f90939bfb0f6b0314d4c3aa"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1250_controlled_signing_content.sql",
+      "sha256": "39aa688d11edc126e83581da3ab906fd199b677546413fc9517517483fa17b40"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1259_signing_meanings_receipt.sql",
+      "sha256": "cbc0609f594a6f4cb3b6a196b4bf2a6e57edb0f2a839a0ba13ecc7b4b6367953"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1270_signing_meanings_config_change.sql",
+      "sha256": "2eda6cb5db53dbf55e498056c7eba7a3d42978f54aaede09c3ad3f10e0a70add"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1275_support_grant_signing.sql",
+      "sha256": "1d4b0ea0b47b77febc9b9132d75b903c4d7468c229a0283775378c66a7fb59bc"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1276_support_grant_read.sql",
+      "sha256": "02cad5c35218c1cbd6927abf47bea0420aa1604feaa9726379d141d889797a0c"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1280_signing_meanings_mock_recall.sql",
+      "sha256": "808b7ad259bec75706e81d90cfcdf8b307d059775662b79bc832410a9e29a96a"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1290_controlled_read.sql",
+      "sha256": "20f85612fab2f24c27888d14068ca0984c3e60bdf47681b771fd62d2b14997b9"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1300_signing_meanings_transfer.sql",
+      "sha256": "34e92331f4bf047f2301d53b6aa2770e489581ef2186b4037cb584bc79d1927f"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1301_peer_installation_read_class.sql",
+      "sha256": "ed213e0f0cb50919172bdab3cc7dc094d57750767c2d993a2767e7d2f78b68f3"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1320_engine_roles_on_batch.sql",
+      "sha256": "ea83bd774cd89f66a8fff039d06e1e27dbf8d7d03b3b76223684a97d97ade677"
+    },
+    {
+      "namespace": "tablets",
+      "name": "1330_analytics_role_permissions.sql",
+      "sha256": "113db5fe26e089a65efff3890b1b1dfd858dccf29bc0487a0270167333e22174"
+    }
+  ]
+}
