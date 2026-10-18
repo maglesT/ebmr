@@ -270,7 +270,7 @@ modules:
     page: modules/integrations.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^118\d_', '^130[56]_', '^1320_', '^132[89]_']
+      packages/kernel/sql: ['^118\d_', '^130[56]_', '^1320_', '^132[89]_', '^1330_']
     tests: ['packages/kernel/test/inbound/**']
 
   - id: kernel-transfer
@@ -453,7 +453,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_', '^123[23]_']
+      packages/recipe-core/sql: ['^09[6-8]\d_', '^1210_', '^123[2-5]_']
     tests: ['packages/recipe-core/test/integrations/plant-alarms-series.test.ts', 'packages/recipe-core/test/equipment-data/**', 'packages/recipe-core/test/plant-rules/**']
 
   - id: rc-mirrors

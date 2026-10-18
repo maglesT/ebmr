@@ -1179,7 +1179,7 @@ export const TARGETS: Target[] = [
                 'plant.retire_opcua_endpoint', 'plant.receive_opcua_endpoint_session', 'plant.opcua_unit_problem',
                 'plant.opcua_data_guard', 'tab.status_quality', 'tab.process_device_endpoint', 'tab.ingest_opcua_readings',
                 'tab.process_reading_native_required', 'tab.bridge_process_alarm', 'tab.bridge_process_alarm_ack',
-                'tab.bridge_device_alarm', 'tab.bridge_step_device', 'plant.opcua_session_start_us', 'plant.receive_series_gap'],
+                'tab.bridge_device_alarm', 'tab.bridge_step_device', 'plant.opcua_session_start_us', 'plant.receive_series_gap', 'plant.opcua_session_start_guard'],
     tests: [r('integrations/plant-alarms-series.test.ts'), r('equipment-data/opcua-endpoint-identity.test.ts'),
             r('plant/equipment.test.ts'), s('equipment-data/opcua-readings.test.ts'), s('equipment-data/opcua-adapter.test.ts'),
             s('alarms/alarm-bridge.test.ts'), r('plant-rules/alarm-ack-batch-scope.test.ts'), s('equipment-data/feed-signature.test.ts')],
