@@ -21,7 +21,7 @@ test('[DI-12] an incident raised, investigated, assessed, reported to CERT-In an
   await evidence.step('The batch issuer raises a security incident linked to a record', 'The incident is OPEN in the register', async () => {
     await i.goto(`${base}/incidents`);
     const form = i.getByTestId('incident-raise');
-    await form.getByRole('radio', { name: 'Security' }).click();
+    await form.getByRole('radio', { name: 'Security' }).locator('xpath=ancestor::label[1]').click();
     await form.getByRole('textbox', { name: 'Type (an upper-case code, e.g. PRINTER_JAM)' }).fill('SUSPICIOUS_LOGIN');
     await form.getByRole('textbox', { name: 'Title' }).fill(title);
     await form.getByRole('textbox', { name: 'What happened' }).fill('Repeated failed logins from an unknown address.');

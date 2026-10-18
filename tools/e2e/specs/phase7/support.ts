@@ -80,10 +80,15 @@ export async function recordSpecimen(e2e: E2eWorld, steward: SeededPersona, code
 export async function officeSignRefused(page: Page, title: string | RegExp, who: SeededPersona): Promise<string> {
   const dialog = page.getByRole('dialog', { name: title });
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: 'Sign', exact: true }).click();
+  // The refusal may come with the content, before the review's "Sign", or with the challenge after it.
+  const review = dialog.getByRole('button', { name: 'Sign', exact: true });
   const form = dialog.getByRole('form', { name: 'Sign with your user ID and password' });
   const close = dialog.getByRole('button', { name: 'Close' });
-  await expect(form.or(close).first()).toBeVisible();
+  await expect(review.or(close).first()).toBeVisible();
+  if (await review.isVisible()) {
+    await review.click();
+    await expect(form.or(close).first()).toBeVisible();
+  }
   if (await form.isVisible()) {
     await form.getByLabel('User ID').fill(who.loginName);
     await form.getByLabel('Password').fill(who.password);
