@@ -63,7 +63,10 @@ export function RegisterPage() {
   const error: CallError | null = shown.data && !shown.data.ok ? shown.data.error : null;
   const items = useMemo(() => register?.items ?? [], [register]);
   const move = useCallback((step: 1 | -1) => setSelected((cur) => nextItem(items, cur, step) ?? cur), [items]);
+  // Single-key shortcuts can be turned off (WCAG 2.1.4: speech input types letters; slice 7d finding A11Y-3).
+  const [keysOn, setKeysOn] = useState(true);
   useEffect(() => {
+    if (!keysOn) return undefined;
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return;
       const t = e.target as HTMLElement | null;
@@ -78,7 +81,7 @@ export function RegisterPage() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [move]);
+  }, [move, keysOn]);
 
   const number = batch.data?.batchNumber ?? batchId;
   const current = items.find((i) => i.exceptionId === selected) ?? null;
@@ -96,7 +99,12 @@ export function RegisterPage() {
           {register.noExceptions ? 'The record has no exception.' : `${items.length} items (${Object.entries(register.byCategory).map(([c, n]) => `${words(c)} ${n}`).join(', ')}); ${items.filter(needsQa).length} need QA.`} List shown to you {register.shownAt.text}.
         </p>
       ) : null}
-      <p id="register-keys">Press N for the next item that needs QA and P for the previous one; each opens the item's detail.</p>
+      <p id="register-keys">
+        {keysOn ? 'Press N for the next item that needs QA and P for the previous one; each opens the item\'s detail.' : 'The single-key shortcuts are off.'}{' '}
+        <label>
+          <input type="checkbox" checked={keysOn} onChange={(e) => setKeysOn(e.currentTarget.checked)} /> Single-key shortcuts (N, P)
+        </label>
+      </p>
       <ActButton primary={false} label="Next item (N)" onPress={() => move(1)} disabled={items.filter(needsQa).length === 0} />
       <ol aria-label="Exception register" aria-describedby="register-keys" data-testid="register-items">
         {items.map((i) => (

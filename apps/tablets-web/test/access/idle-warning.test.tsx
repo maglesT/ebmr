@@ -1,15 +1,18 @@
 /**
- * The inactivity warning of the session (module C1; slice 7g-5, decision 0025; DI-38; route access.keepAlive), with the
- * real boot state and access controller against a fixture server: shortly before the kernel's idle lock the page warns
- * and offers to stay signed in; on an office terminal one press sends the keep-alive; an accepted write starts the count
- * again; on a shop-floor kiosk the person taps their own badge (the server checks it). The count runs on the fake
- * interval clock; no clock is read.
+ * The warning before the inactivity lock and the absolute end (outline 7.4; WCAG 2.2 success criterion 2.2.1; DI-14,
+ * DI-38; slice 7d finding A11Y-1), with the real boot state and the real access controller against a fixture server:
+ *  - office: the warning opens when the server says the lock is near; "Keep working" sends the keep-alive with no
+ *    attribution and the warning closes on the server's new answer;
+ *  - kiosk: the warning asks for a badge tap; the tap is sent as the keep-alive's badge with a device proof over it;
+ *    "Lock now" locks the terminal;
+ *  - the absolute end is announced once and nothing extends it;
+ *  - with time to spare there is no warning.
  */
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { EXAMPLES } from '@ebmr/api-contract/examples';
-import { routes, type FetchLike, type SessionView } from '@ebmr/api-contract';
+import type { FetchLike, SessionView } from '@ebmr/api-contract';
 
 const holder = vi.hoisted(() => ({ key: null as null | { privateKey: CryptoKey; publicKeySpki: string; label: string } }));
 vi.mock('../../src/device/keystore.ts', () => ({
@@ -19,54 +22,53 @@ vi.mock('../../src/device/keystore.ts', () => ({
   importDemoKey: () => Promise.reject(new Error('not used in this test')),
 }));
 
-const { api, apiState, setTransport } = await import('../../src/api/client.ts');
+const { setTransport } = await import('../../src/api/client.ts');
 const { createFixtureFetch } = await import('../../src/api/fixture-fetch.ts');
-const { BootProvider } = await import('../../src/app/boot.tsx');
+const { BootProvider, useBoot } = await import('../../src/app/boot.tsx');
 const { Provider } = await import('../../src/features/access/index.tsx');
-const { warnSecondsOf } = await import('../../src/features/access/idle-warning.tsx');
 
-const OFFICE: SessionView = { ...(EXAMPLES['session-office'].data as SessionView), idleTimeoutSeconds: 40 };
-const KIOSK: SessionView = { ...(EXAMPLES['session-kiosk'].data as SessionView), idleTimeoutSeconds: 40 };
+const OFFICE = EXAMPLES['session-office'].data as SessionView;
+const KIOSK = EXAMPLES['session-kiosk'].data as SessionView;
 
-function server(session: SessionView) {
-  const seen: { method: string; url: string; body: unknown }[] = [];
+function fixtureServer(base: SessionView, first: { idleLockInSeconds: number | null; endsInSeconds: number | null }) {
+  const state = { view: { ...base, ...first }, keepAlives: [] as unknown[], locks: 0 };
   const fixtures = createFixtureFetch(
     {
-      'meta.get': EXAMPLES['meta-gmp'].data,
+      'meta.get': EXAMPLES[base === KIOSK ? 'meta-sandbox' : 'meta-gmp'].data,
       'session.deviceNonce': { nonce: 'fixture-nonce-0123456789', expiresInSeconds: 60 },
-      'session.identify': session.device,
-      'session.get': session,
-      'access.keepAlive': session,
-      'notifications.acknowledge': { acknowledged: true },
+      'session.identify': base.device,
+      'session.demoDevices': { devices: [] },
+      'session.get': () => state.view,
+      'access.keepAlive': ({ body }: { body: unknown }) => {
+        state.keepAlives.push(body);
+        state.view = { ...state.view, idleLockInSeconds: state.view.idleTimeoutSeconds };
+        return state.view;
+      },
+      'access.lock': () => {
+        state.locks += 1;
+        state.view = { ...state.view, locked: true, idleLockInSeconds: null };
+        return state.view;
+      },
     },
-    { installation: 'GMP' },
+    { installation: base === KIOSK ? 'SANDBOX' : 'GMP' },
   );
-  const fetch: FetchLike = (url, init) => {
-    seen.push({ method: init.method, url, body: init.body ? JSON.parse(init.body) : undefined });
-    return fixtures(url, init);
-  };
-  return { seen, fetch };
+  const fetch: FetchLike = (url, init) => fixtures(url, init);
+  return { state, fetch };
 }
 
 function renderPage() {
+  function Page() {
+    const boot = useBoot();
+    return <p>{boot.phase === 'ready' ? `Signed in as ${boot.session?.person.legalName ?? ''}` : `Page: ${boot.phase}`}</p>;
+  }
   render(
     <BootProvider>
       <Provider>
-        <p>Signed in</p>
+        <Page />
       </Provider>
     </BootProvider>,
   );
 }
-
-/** Lets `seconds` pass on the fake interval clock, one second at a time (each tick renders). */
-const tick = async (seconds: number) => {
-  for (let i = 0; i < seconds; i += 1) {
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-      await Promise.resolve();
-    });
-  }
-};
 
 beforeAll(async () => {
   const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']);
@@ -76,84 +78,71 @@ beforeAll(async () => {
 
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
   window.localStorage.clear();
 });
 
-describe('the inactivity warning (DI-38)', () => {
-  it('[DI-38] warns a quarter of the timeout before the idle lock (5 to 60 s)', () => {
-    expect(warnSecondsOf(40)).toBe(10);
-    expect(warnSecondsOf(900)).toBe(60);
-    expect(warnSecondsOf(8)).toBe(5);
+describe('the warning before the inactivity lock (A11Y-1)', () => {
+  it('[DI-14][DI-38] office: the warning opens when the lock is near; "Keep working" sends the keep-alive and closes it', async () => {
+    const server = fixtureServer(OFFICE, { idleLockInSeconds: 40, endsInSeconds: 40_000 });
+    setTransport(server.fetch);
+    renderPage();
+    const dialog = await screen.findByRole('alertdialog', { name: 'Are you still working?' });
+    expect(within(dialog).getByText(/It locks in (40|39|38) s\./)).toBeTruthy();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Keep working' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(server.state.keepAlives).toEqual([{}]);
+    expect(screen.getByText(`Signed in as ${OFFICE.person.legalName}`)).toBeTruthy();
   });
 
-  it('[DI-38] on an office terminal the warning shows before the idle lock and one press keeps the session alive', async () => {
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    const s = server(OFFICE);
-    setTransport(s.fetch);
+  it('[DI-14][INV-40] kiosk: the warning asks for a badge tap, sent as the keep-alive with a device proof over it; "Lock now" locks', async () => {
+    holder.key = holder.key && { ...holder.key, label: KIOSK.device.deviceCode };
+    const server = fixtureServer(KIOSK, { idleLockInSeconds: 30, endsInSeconds: 40_000 });
+    setTransport(server.fetch);
     renderPage();
-    await screen.findByText('Signed in');
-    await waitFor(() => expect(s.seen.some((r) => r.url === '/api/session')).toBe(true));
-    await tick(28);
-    expect(screen.queryByTestId('idle-warning')).toBeNull();
-    await tick(4);
-    const warning = await screen.findByTestId('idle-warning');
-    expect(warning.textContent).toMatch(/This session locks in (8|9|10) seconds because nothing was done in it\./);
-    await userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) }).click(screen.getByRole('button', { name: 'Stay signed in' }));
-    await waitFor(() => expect(s.seen.filter((r) => r.method === 'POST' && r.url === routes.access.keepAlive.path)).toHaveLength(1));
-    expect(s.seen.find((r) => r.method === 'POST' && r.url === routes.access.keepAlive.path)?.body).toEqual({});
-    await waitFor(() => expect(screen.queryByTestId('idle-warning')).toBeNull());
-  });
+    const dialog = await screen.findByRole('alertdialog', { name: 'Are you still working?' });
+    expect(within(dialog).getByText('Tap your badge to keep working.')).toBeTruthy();
+    expect(within(dialog).queryByRole('button', { name: 'Keep working' })).toBeNull();
+    await userEvent.type(within(dialog).getByLabelText('Badge'), '04A10000000001{Enter}');
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(server.state.keepAlives).toHaveLength(1);
+    expect(server.state.keepAlives[0]).toMatchObject({ badgeUid: '04A10000000001', proof: { nonce: 'fixture-nonce-0123456789' } });
 
-  it('[DI-38] an accepted write is activity: the count starts again', async () => {
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    const s = server(OFFICE);
-    setTransport(s.fetch);
-    renderPage();
-    await screen.findByText('Signed in');
-    await waitFor(() => expect(s.seen.some((r) => r.url === '/api/session')).toBe(true));
-    await tick(25);
-    // A command of the session (any accepted POST other than the nonce and the terminal check).
-    await act(async () => {
-      await api.call(routes.notifications.acknowledge, { params: { notificationId: '0b8f1c2a-1111-4c7d-8e9f-0a1b2c3d4e99' }, body: {} });
+    // The lock comes near again: "Lock now" locks the terminal at once.
+    act(() => {
+      server.state.view = { ...server.state.view, idleLockInSeconds: 20 };
     });
-    await tick(10);
-    expect(screen.queryByTestId('idle-warning')).toBeNull();
-    await tick(22);
-    expect(await screen.findByTestId('idle-warning')).toBeTruthy();
-  });
-
-  it('[DI-38][DI-14] on a shop-floor kiosk the person taps their own badge to stay signed in', async () => {
-    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
-    const s = server(KIOSK);
-    setTransport(s.fetch);
+    cleanup();
     renderPage();
-    await screen.findByText('Signed in');
-    await waitFor(() => expect(s.seen.some((r) => r.url === '/api/session')).toBe(true));
-    await tick(32);
-    const warning = await screen.findByTestId('idle-warning');
-    expect(warning.textContent).toContain('Tap your own badge to stay signed in.');
-    await userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) }).click(screen.getByRole('button', { name: 'Tap to stay signed in' }));
-    expect(await screen.findByRole('dialog', { name: 'Stay signed in' })).toBeTruthy();
-    // Nothing is sent before the tap.
-    expect(s.seen.filter((r) => r.url === routes.access.keepAlive.path)).toHaveLength(0);
+    const again = await screen.findByRole('alertdialog', { name: 'Are you still working?' });
+    await userEvent.click(within(again).getByRole('button', { name: 'Lock now' }));
+    await waitFor(() => expect(server.state.locks).toBe(1));
+    await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Are you still working?' })).toBeNull());
   });
 
-  it('[DI-38] the client tells the warning about accepted writes only', async () => {
-    const s = server(OFFICE);
-    setTransport(s.fetch);
-    apiState.installation = 'GMP';
-    const told = vi.fn();
-    apiState.onWrite.add(told);
-    try {
-      await api.call(routes.session.get);
-      await api.call(routes.session.deviceNonce, { body: { spki: 'AAAA' } });
-      expect(told).not.toHaveBeenCalled();
-      await api.call(routes.access.keepAlive, { body: {} });
-      expect(told).toHaveBeenCalledTimes(1);
-    } finally {
-      apiState.onWrite.delete(told);
-      apiState.installation = undefined;
-    }
+  it('[DI-14][DI-38] the absolute end is announced once, with nothing to extend it; with time to spare there is no warning', async () => {
+    const server = fixtureServer(OFFICE, { idleLockInSeconds: 900, endsInSeconds: 200 });
+    setTransport(server.fetch);
+    renderPage();
+    const dialog = await screen.findByRole('alertdialog', { name: 'Your session ends soon' });
+    expect(within(dialog).getByText(/Your session ends in 3 min \d\d s/)).toBeTruthy();
+    expect(within(dialog).queryByRole('button', { name: 'Keep working' })).toBeNull();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'OK' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    // It stays closed for this session.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 1500));
+    });
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(server.state.keepAlives).toEqual([]);
+
+    cleanup();
+    const calm = fixtureServer(OFFICE, { idleLockInSeconds: 900, endsInSeconds: 40_000 });
+    setTransport(calm.fetch);
+    renderPage();
+    expect(await screen.findByText(`Signed in as ${OFFICE.person.legalName}`)).toBeTruthy();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 1200));
+    });
+    expect(screen.queryByRole('alertdialog')).toBeNull();
   });
 });

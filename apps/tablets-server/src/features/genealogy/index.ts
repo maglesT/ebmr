@@ -13,9 +13,9 @@ import { bindRoutes } from '../../platform/http/bind.ts';
 import type { SignableActionRegistry } from '../../platform/ports.ts';
 import type pg from 'pg';
 import { GENEALOGY_GUIDANCE } from './guidance.ts';
-import { askPeer, federatedTrace, otherEnd } from '../transfers/federation.ts';
+import { askPeer, federatedTrace } from '../transfers/federation.ts';
 import { usOf } from '../common/people.ts';
-import { deviationImpact, lookup, mockRecallFederation, mockRecallList, mockRecallView, nodeViews, recurrence, supplyChain, trace, tsOf } from './reads.ts';
+import { deviationImpact, lookup, mockRecallList, mockRecallView, recurrence, supplyChain, trace, tsOf } from './reads.ts';
 import { mockRecallSignOffHandler } from './signables.ts';
 
 export const guidance = GENEALOGY_GUIDANCE;
@@ -62,29 +62,27 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return mockRecallView(app, pool, params.mockRecallId);
     },
     run: async ({ body, actor, idempotencyKey, requestHash }) => {
-      // One command (the person's tap on a shared terminal is used once): the as-of point is fixed first, every outbound
-      // transfer the forward genealogy reaches then is asked of its destination as of that instant, and the run is stored
-      // with what each destination answered (L-41; D-P6i-0-7). A resend returns the stored run and asks nobody again.
+      // One command (the person's tap on a shared terminal is used once): the as-of point is fixed first and the run is
+      // stored (RECALL.MOCK_RUN, the subject and the instant checked by the database before any site is asked); then every
+      // outbound transfer the stored run reached is asked of its destination as of that instant, and what each answered
+      // is recorded (L-41; D-P6i-0-7). A resend returns the stored run and asks nobody again.
       const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
         const us = body.asOfUs ?? String(await dbNowUs(c));
-        const asked = await askDestinations(app, c, body.subjectKind, body.subjectId, us);
         const runId = (await c.query<{ id: string }>(
           `select recipe.run_mock_recall($1, $2, ${tsOf('$3')}, $4, $5) as id`,
           [body.subjectKind, body.subjectId, us, body.authorityInformed, body.authorityReference ?? null],
         )).rows[0]!.id;
-        await recordRemote(c, runId, asked);
+        await recordRemote(c, runId, await askDestinations(app, c, runId, us));
         return runId;
       });
       return mockRecallView(app, pool, id);
     },
     refreshFederation: async ({ params, actor, idempotencyKey, requestHash }) => {
-      const m = (await pool.query<{ us: string; kind: 'LOT' | 'DEVIATION'; subject: string }>(
-        `select ${usOf('as_of')} as us, subject_kind as kind, subject_id::text as subject from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
+      const m = (await pool.query<{ us: string }>(`select ${usOf('as_of')} as us from recipe.mock_recall where id = $1`, [params.mockRecallId])).rows[0];
       if (!m) return mockRecallView(app, pool, params.mockRecallId);
-      const open = (await mockRecallFederation(app, pool, params.mockRecallId)).transfers.filter((t) => t.status !== 'ANSWERED').map((t) => t.transferId);
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) => {
-        const asked = await askDestinations(app, c, m.kind, m.subject, m.us, open);
-        await recordRemote(c, params.mockRecallId, asked);
+        // The destinations still without an answer, named by the database after its RECALL.MOCK_RUN check (recipe-core 1225).
+        await recordRemote(c, params.mockRecallId, await askDestinations(app, c, params.mockRecallId, m.us));
         return params.mockRecallId;
       });
       return mockRecallView(app, pool, params.mockRecallId);
@@ -101,34 +99,18 @@ interface Asked {
 }
 
 /**
- * Phase 6 slice 6i: every outbound transfer the forward genealogy of the subject reaches as of `us`, each asked of its
- * destination as of that instant (transfers/federation.ts; the answer, or why not, with the last excerpt received).
+ * Phase 6 slice 6i; Phase 7 slice 7b-1 (6jc-R12): the outbound transfers of the stored run that have no answer yet, as
+ * the database names them after its RECALL.MOCK_RUN check (recipe.mock_recall_destinations, recipe-core 1225), each asked
+ * of its destination as of `us` (transfers/federation.ts; the answer, or why not, with the last excerpt received). The
+ * transfers are the run's own (its stored result), not a second read here, so a failed read cannot stand for "no
+ * destination": it fails the command, and a destination that is not asked keeps the run incomplete.
  */
-async function askDestinations(app: AppContext, c: pg.PoolClient, kind: 'LOT' | 'DEVIATION', id: string, us: string, only?: readonly string[]): Promise<Asked[]> {
-  // An unknown subject or a future instant is left to the run's own refusal (EBMR-RCL-002, -003); the failed read rolls
-  // back to its savepoint only.
-  await c.query('savepoint recall_destinations');
-  const rows = await c.query<{ k: string; i: string }>(
-    `select distinct g.node_kind as k, g.node_id::text as i
-       from (select 'LOT'::text as kind, $2::uuid as id where $1 = 'LOT'
-             union select y.subject_kind, y.subject_id from site.deviation_link y where $1 = 'DEVIATION' and y.deviation_id = $2::uuid and y.linked_at <= ${tsOf('$3')}) s,
-            recipe.genealogy(s.kind, s.id, 'FORWARD', ${tsOf('$3')}) g
-      where g.node_kind = 'TRANSFER'`, [kind, id, us]).then(
-      async (r) => {
-        await c.query('release savepoint recall_destinations');
-        return r.rows;
-      },
-      async () => {
-        await c.query('rollback to savepoint recall_destinations');
-        return [] as { k: string; i: string }[];
-      },
-    );
-  const outbound = (await nodeViews(c, rows.map((r) => ({ kind: r.k, id: r.i })))).filter((n) => n.subKind === 'OUTBOUND');
+async function askDestinations(app: AppContext, c: pg.PoolClient, runId: string, us: string): Promise<Asked[]> {
+  const destinations = (await c.query<{ d: { transferId: string; destination: string }[] }>('select recipe.mock_recall_destinations($1) as d', [runId])).rows[0]!.d;
   const out: Asked[] = [];
-  for (const t of outbound) {
-    if (only && !only.includes(t.id)) continue;
-    const a = await askPeer(app, c, otherEnd(t), t.id, 'FORWARD', us);
-    out.push({ transferId: t.id, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
+  for (const t of destinations) {
+    const a = await askPeer(app, c, t.destination, t.transferId, 'FORWARD', us);
+    out.push({ transferId: t.transferId, status: a.status === 'WRONG_ANSWER' ? 'REFUSED' : a.status, excerptId: a.excerptId, detail: a.detail });
   }
   return out;
 }

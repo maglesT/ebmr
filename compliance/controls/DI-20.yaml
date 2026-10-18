@@ -241,6 +241,7 @@ tests:
   - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > the gateway signs its OPC UA feed and the database verifies it (6jc-R9) > [DI-31][DI-20] a good envelope signed by the bound gateway's key is accepted with its verification; an exact resend is de-duplicated"
   - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > the gateway signs its OPC UA feed and the database verifies it (6jc-R9) > [DI-31][DI-20] the SQL twin of the feed signature gives the SDK's bytes for every committed vector, and the database verifies the vectors' signatures"
   - "apps/tablets-server/test/equipment-data/feed-signature.test.ts > a revoked gateway key and an unbound adapter (6jc-R9) > [DI-31][DI-20] after the bound gateway's key is revoked its signature no longer counts, and an adapter bound to no gateway takes nothing"
+  - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-20] an endpoint session that starts more than the offline buffer before the database clock (a gateway clock at 1970) is refused; one pulled an hour late is taken"
 clauses:
   - clause: "Data arriving from an unregistered or relocated scale is rejected with an alert."
     tests:

@@ -10,6 +10,7 @@ import { authenticate, type AuthnDb } from '../../src/identity/authentication.ts
 import { openSession } from '../../src/identity/sessions.ts';
 import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import type { TestDatabase } from '../support/db.ts';
+import { describeTestInterfaces, testInterface } from '../support/validation.ts';
 import { testActor } from '../identity/helpers.ts';
 import { SEED_SITE, SEED_ZONE, seedAdministration, withReason, type SeededActor } from '../identity/seed.ts';
 
@@ -69,11 +70,16 @@ export async function integrationActor(db: TestDatabase, name: string, given?: A
   };
 }
 
-/** An INTEGRATION account on its own SERVER device, registered for `system` by the device administrator. */
-export async function registerAdapter(db: TestDatabase, system: SourceSystem, given?: Administration): Promise<TestAdapter> {
+/**
+ * An INTEGRATION account on its own SERVER device, registered for `system` by the device administrator; its interface
+ * is described first (kernel 1350), unless `described` is false (the DI-06 drift tests).
+ */
+export async function registerAdapter(db: TestDatabase, system: SourceSystem, given?: Administration, opts: { described?: boolean } = {}): Promise<TestAdapter> {
   const { admin } = await administration(db, given);
   const actor = await integrationActor(db, `${system} adapter ${randomBytes(2).toString('hex')}`, given);
   const code = `${system}-${randomBytes(3).toString('hex').toUpperCase()}`;
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  if (opts.described ?? true) await describeTestInterfaces(db, [testInterface(code, system)], given?.owner);
   const id = await withCommand(db.app, withReason(admin), async (c) =>
     (await c.query<{ id: string }>('select iam.register_integration_adapter($1, $2, $3, $4, $5) as id', [code, system, actor.accountId, actor.deviceId, `test ${system} adapter`])).rows[0]!.id,
   );
@@ -197,9 +203,10 @@ export async function acknowledgeGaps(db: TestDatabase, code: string): Promise<v
     [code],
   );
   if (rows.length === 0) return;
-  const operator = await testActor(db);
+  // QA acknowledges: a gap on a blocking mirror's adapter is the system owner's or QA's (kernel 1320, 6jc-R11).
+  const qa = await testActor(db, { roleCode: 'QA_REVIEWER' });
   for (const r of rows) {
-    await withCommand(db.app, { ...operator, correlationId: randomUUID() }, (c) =>
+    await withCommand(db.app, { ...qa, correlationId: randomUUID() }, (c) =>
       c.query('select platform.acknowledge_integration_alarm($1, $2)', [r.id, 'test feed: the skipped numbers were refused messages']));
   }
 }

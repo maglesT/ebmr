@@ -72,8 +72,9 @@ const refuse = (a: TestAdapter, o: EnvelopeOptions = {}, payload: unknown = { n:
 const sync = (a: TestAdapter, head: string, cls = 'CMMS_CALIBRATION') =>
   withCommand(db.app, ctxOf(a.actor), (c) => c.query('select platform.record_mirror_sync($1, $2)', [cls, head]));
 const acknowledge = async (alarmId: string | null): Promise<void> => {
-  const operator = await testActor(db);
-  await withCommand(db.app, ctxOf(operator), (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [alarmId, 'the missing numbers were test orders cancelled at the source']));
+  // A CMMS gap (a blocking mirror's adapter) is acknowledged by QA or the system owner (kernel 1320, 6jc-R11).
+  const qa = await testActor(db, { roleCode: 'QA_REVIEWER' });
+  await withCommand(db.app, ctxOf(qa), (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [alarmId, 'the missing numbers were test orders cancelled at the source']));
 };
 const forget = (cls: string) => db.admin.query('delete from platform.mirror_sync where data_class = $1', [cls]);
 const mark = async (cls: string): Promise<string | undefined> =>

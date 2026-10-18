@@ -123,7 +123,7 @@ to database is in [Architecture, how a request travels](../03-architecture.md#6-
 The session cookie is a random 256-bit token made at login. It is never the kernel's session id (that id appears in
 audit payloads). The database keeps only the token's SHA-256 hash
 ([tab.bind_session](../../../apps/tablets-server/sql/0480_bind_session_needs_live_role.sql#sym=tab.bind_session),
-[tab.resolve_session](../../../apps/tablets-server/sql/0550_session_terminal_key.sql#sym=tab.resolve_session),
+[tab.resolve_session](../../../apps/tablets-server/sql/1460_session_idle_lock_in.sql#sym=tab.resolve_session),
 [tab.unbind_session](../../../apps/tablets-server/sql/0001_tab_foundation.sql#sym=tab.unbind_session)). There is one
 cookie name per installation (`ebmr_gmp_sid`, `ebmr_sbx_sid`, with the `__Host-` prefix on https; see
 [cookieNames](../../../apps/tablets-server/src/config.ts#sym=cookieNames)), so a GMP and a sandbox session in the
@@ -209,6 +209,20 @@ the controls, and the correlation id that also appears in the log line.
    ([GuidanceCatalogue](../../../apps/tablets-server/src/platform/http/guidance.ts#sym=GuidanceCatalogue)); `why` is
    the database's own message without its code. A code with no entry still answers 422 `NOT_ALLOWED`;
 6. anything else is `INTERNAL` (500), logged with the correlation id: nothing was saved.
+
+**Saved, but the answer failed (Phase 7 slice 7b-1, owner observation O-T13-1).** Most routes commit their command with
+`withIdempotentActorCommand` and then read their answer outside it. When only that read failed, the answer used to be
+`INTERNAL` "Nothing was saved", although the command had committed. The route binder now runs each handler in a command
+scope ([inCommandScope](../../../apps/tablets-server/src/platform/db/commands.ts#sym=inCommandScope)): both command
+wrappers note whether the request's latest command committed (or answered from its stored result) and its idempotency
+key. A failure after such a command, other than a refusal the handler throws on purpose (the e-signature's recorded
+refusal), is answered `SAVED_NOT_SHOWN` (500, kind `STALE`, not retryable): "Saved; the result could not be shown. Reload
+the screen to see it.", with the command's idempotency key in `why` and `details.commandId`
+([savedNotShown](../../../apps/tablets-server/src/platform/http/bind.ts#sym=savedNotShown)). A resend with the same key
+returns the stored result. The `[meta]` test [saved-not-shown.test.ts](../../../apps/tablets-server/test/platform/saved-not-shown.test.ts)
+lists every route whose handler commits with `withIdempotentActorCommand` and reads afterwards (84 at 7b-1, found with
+the TypeScript parser in `later-read-scan.ts`), checks that each is bound through `bindRoutes` and runs no command the
+scope cannot see after it, and shows the answer on a real route whose read fails once.
 
 Each feature registers its own entries (`guidance.ts` in its folder) beside the platform's
 ([PLATFORM_GUIDANCE](../../../apps/tablets-server/src/platform/http/guidance.ts#sym=PLATFORM_GUIDANCE)). The full list
@@ -414,6 +428,18 @@ The audit and e-signature features call those doors.
 > - **Tests:** [access/session.test.ts](../../../apps/tablets-server/test/access/session.test.ts),
 >   [access/attribution.test.ts](../../../apps/tablets-server/test/access/attribution.test.ts).
 > - **Error:** `UNLOCK_OTHER_PERSON`, `SWITCH_USER`, `SWITCH_NOT_ON_OFFICE`, `TAP_REQUIRED`, `EBMR-TAB-014`, `EBMR-TAB-017`.
+
+**The warning before the inactivity lock** (slice 7d, finding A11Y-1; outline 7.4; WCAG 2.2 success criterion 2.2.1).
+The session view names `idleLockInSeconds` and `endsInSeconds`, counted by the database's clock
+([tab.resolve_session](../../../apps/tablets-server/sql/1460_session_idle_lock_in.sql#sym=tab.resolve_session), tablets
+1460; the lock and the end are still decided by `iam.session_state` alone). The web app's session control
+([controller.tsx](../../../apps/tablets-web/src/features/access/controller.tsx)) keeps the two deadlines from every
+session answer, moves the idle one on after each command the server took, and opens
+[IdleWarning](../../../packages/ui-kit/src/identity/IdleWarning.tsx#sym=IdleWarning) 60 s before the lock: "Keep
+working" on an office PC, a badge tap of the session's own person on a kiosk (the keep-alive takes a tap there), or
+"Lock now". Five minutes before the absolute end it says so once; nothing extends the end. Tests:
+[access/session.test.ts](../../../apps/tablets-server/test/access/session.test.ts) and
+[access/idle-warning.test.tsx](../../../apps/tablets-web/test/access/idle-warning.test.tsx).
 
 ## ts-audit: audit trail reads
 
@@ -1497,7 +1523,12 @@ QA and IT approve with SUPPORT_ACT through the ceremony, revoke) and the `contra
 the reviewer's own two read routes). A support grant is a GOVERNANCE record, so its content is read through
 [1275](../../../apps/tablets-server/sql/1275_support_grant_signing.sql) and [1276](../../../apps/tablets-server/sql/1276_support_grant_read.sql) (`tab.record_read_problem`
 lets the roles that request or approve support grants read them). [bind.ts](../../../apps/tablets-server/src/platform/http/bind.ts) keeps a session
-of an account holding CONTRACT_GIVER_REVIEWER on its own routes (CONTRACT_GIVER_SCOPE). The esig feature
+of an account holding CONTRACT_GIVER_REVIEWER on its own routes (CONTRACT_GIVER_SCOPE); since tablets
+[1425](../../../apps/tablets-server/sql/1425_contract_giver_record_read.sql) (Phase 7 slice 7b-1, 6jc-R3, IN-30) the
+database holds it too: `tab.record_read_problem` refuses that role, and any account holding it, for every record, so the
+reviewer reads its loan licence's batches only through its own logged reads (recipe-core 1060); tablets
+[1426](../../../apps/tablets-server/sql/1426_contract_giver_audit_read.sql) refuses it in the audit-trail reads as well
+(`tab.chain_read_problem`, `tab.audit_events`, `tab.audit_chains`, `tab.audit_headless_chains`). The esig feature
 ([esig/dsc.ts](../../../apps/tablets-server/src/features/esig/dsc.ts)) serves the DSC configuration routes and puts the DSC statement on the
 challenge and verifies the submitted DSC in the signing command. The designer
 ([designer/hazard.ts](../../../apps/tablets-server/src/features/designer/hazard.ts), [IN-27](../../../compliance/controls/IN-27.yaml)) adds the
@@ -1562,7 +1593,9 @@ so a writer who may not read it is refused and nothing is committed. Later migra
 
 Phase 6 slice 6d. [features/genealogy](../../../apps/tablets-server/src/features/genealogy/index.ts) serves the `genealogy`
 namespace (trace, complaint lookup, API supply chain, deviation impact, recurrence; any session, read-only, D-P6d-0-8)
-and the `recall` namespace (mock recalls; the run needs RECALL.MOCK_RUN). Every value is a recipe-core function's
+and the `recall` namespace (mock recalls; the run needs RECALL.MOCK_RUN). The run is stored first, then the
+destinations `recipe.mock_recall_destinations` names are asked and their answers recorded, in the run and in the
+refresh (Phase 7 slice 7b-1, 6jc-R12; recipe-core 1225). Every value is a recipe-core function's
 ([reads.ts](../../../apps/tablets-server/src/features/genealogy/reads.ts)); the as-of point is epoch microseconds turned into
 a timestamptz in SQL. The AP's sign-off is the signable action MOCK_RECALL_SIGN_OFF
 ([signables.ts](../../../apps/tablets-server/src/features/genealogy/signables.ts); meaning in
@@ -1716,7 +1749,9 @@ carries `dataAsOf`, `readAt`, `dataAgeSeconds` and `notForGmpDecisions: true`; e
 [features/training](../../../apps/tablets-server/src/features/training/index.ts) is registered on the SANDBOX only:
 the overview (watermark of the TRAINING source, `TEST-` personas, the exercises of
 [exercises.ts](../../../apps/tablets-server/src/features/training/exercises.ts) with the person's attempts) and the
-start and step commands (FRESH_ON_SHARED, so a kiosk taps), kept in the sandbox by kernel 1211.
+start and step commands (FRESH_ON_SHARED, so a kiosk taps), kept in the sandbox by kernel 1211. The attempt they answer
+is read for the session's person only (`trainingAttemptOf`; another person's is EBMR-SBX-040; Phase 7 slice 7b-1,
+6jc-R15).
 
 **Pitfalls.** Periods are site-zone dates (the zone from `app.siteZone`); a start after the end is EBMR-RPT-001. The
 alarm list is capped at 500 rows but the counts never are. Tests: `apps/tablets-server/test/dashboards/`.

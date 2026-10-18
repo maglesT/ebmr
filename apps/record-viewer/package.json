@@ -1,0 +1,17 @@
+{
+  "name": "@ebmr/record-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stand-alone record viewer: a static, offline HTML and JavaScript page that verifies a full export of the installation and shows its records read-only (DI-08)",
+  "type": "module",
+  "exports": {
+    "./build": "./build.ts",
+    "./verify": "./src/verify/index.ts"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "scripts": {
+    "build": "node --import tsx build.ts"
+  }
+}

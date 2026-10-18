@@ -10,6 +10,8 @@
  *   opcua.series_chunk      plant.receive_series_chunk (0960): native samples as received, hash recomputed (DI-32)
  *   opcua.alarm             plant.receive_equipment_alarm (0960): occurrences that are not tag readings (DI-49)
  *   opcua.equipment_event   plant.receive_equipment_event (0960): state, recipe and fault events in batch context
+ *   opcua.series_gap        plant.receive_series_gap (1232, slice 7b-1): what the gateway could not record after a
+ *                           crash (unit, tag, interval) raises a SERIES_GAP alarm (DI-32, DI-31)
  *
  * Phase 7 slice 7a (6jc-R9; DI-31): the gateway signs every envelope of the feed (gatewaySignature, SDK
  * feed-signature.ts) and the worker hands each to tab.accept_gateway_envelope (tablets 1405), which checks the signature
@@ -36,6 +38,8 @@ export const OPCUA_ADAPTER: FeedAdapterSpec = {
     'opcua.series_chunk': 'tab.accept_gateway_envelope',
     'opcua.alarm': 'tab.accept_gateway_envelope',
     'opcua.equipment_event': 'tab.accept_gateway_envelope',
+    // Slice 7b-1 (tablets 1432, recipe-core 1232): a stretch of a series the gateway could not record (SERIES_GAP).
+    'opcua.series_gap': 'tab.accept_gateway_envelope',
   },
   envelopeType: 'json',
   mirrorClasses: [],

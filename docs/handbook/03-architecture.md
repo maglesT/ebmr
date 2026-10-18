@@ -425,6 +425,11 @@ sequenceDiagram
 - **Logout** unbinds the token
   ([tab.unbind_session](../../apps/tablets-server/sql/0001_tab_foundation.sql#sym=tab.unbind_session)) and ends the
   kernel session.
+- **Security verification.** What a penetration tester would check, item by item (ASVS level 2 and the threat model),
+  and which of it a test proves on every run, is the [penetration test checklist](../security/pentest-checklist.md)
+  (Phase 7 slice 7d): the route-by-role authorization matrix, the fuzzing of every route, cookies, fixation, timeouts,
+  rate limits, headers and the CSP on every page, TLS, the supply-chain scans and the signed SBOM. A production start
+  refuses database URLs without verified TLS and checks with the database that its sessions are encrypted (P7D-6).
 
 ## 8. The audit trail
 
@@ -786,6 +791,8 @@ codes (`CONTENT_CHANGED`, `MUST_CHANGE_SECRET`) or engine codes (`ENG-...`). The
 ## Related pages
 
 - [The life of a batch](04-life-of-a-batch.md): all of the above, step by step, for one batch.
+- [Penetration test and security verification checklist](../security/pentest-checklist.md), with the
+  [threat model](../security/threat-model.md) and the [ASVS level 2 review](../security/asvs-l2-review.md).
 - Module guides: [kernel](modules/kernel.md), [recipe-core](modules/recipe-core.md),
   [tablets-server](modules/tablets-server.md), [api-contract](modules/api-contract.md).
 - [Database reference](05-database.md) and the generated [database catalogue](reference/db-catalogue.md).

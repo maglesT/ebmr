@@ -20,11 +20,7 @@ export interface ApiState {
   terminalKey: string | undefined;
   /** Told when a request of the session this page works in was served as nobody: the browser's sign-in is not its own. */
   onForeignSession: Set<(code: ForeignSessionCode) => void>;
-  /**
-   * Told when a write was accepted (a 2xx answer to a request other than GET, the device nonce and the terminal check):
-   * a command of the session, which the kernel counts as activity (iam.session_activity), so the inactivity warning
-   * starts counting again (slice 7g-5).
-   */
+  /** Told after a request other than GET succeeded: the server counts it as the session's activity (A11Y-1). */
   onWrite: Set<() => void>;
 }
 
@@ -89,13 +85,10 @@ export function setTransport(f: FetchLike): void {
   fetchImpl = f;
 }
 
-/** Requests that are not a command of the session (no activity for the kernel's inactivity lock). */
-const NOT_ACTIVITY = new Set(['/api/session/device-nonce', '/api/session/identify']);
-
 export const api: ApiClient = createApiClient({
   fetch: async (url, init) => {
     const r = await fetchImpl(url, init);
-    if (init.method !== 'GET' && r.status >= 200 && r.status < 300 && !NOT_ACTIVITY.has(url.split('?')[0] ?? url)) for (const tell of apiState.onWrite) tell();
+    if (init.method !== 'GET' && r.status >= 200 && r.status < 300) for (const f of apiState.onWrite) f();
     return r;
   },
   installation: () => apiState.installation,

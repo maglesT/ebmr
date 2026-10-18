@@ -71,6 +71,8 @@ tests:
   - "packages/api-contract/test/governance.test.ts > the support, contract-giver and DSC routes (Phase 6 slice 6f) > [DI-08][IN-30][IN-10] every support and contract-giver route is GMP only under its own path, and every one of these routes has an example that parses"
   - "packages/recipe-core/test/release/india.test.ts > the contract giver reviewer (recipe-core 1060, kernel 1204; IN-30) > [IN-30] a contract-giver reviewer cannot edit: read-only, scoped to the loan licence's batches, every write path refused"
   - "apps/tablets-web/test/governance/governance.test.tsx > the contract giver's reviewer > [IN-30] the reviewer sees the batches of its loan licence and a record read-only, with no act offered"
+  - "apps/tablets-server/test/governance/governance-routes.test.ts > the contract giver's reviewer over HTTP (IN-30) > [IN-30] the database's record reads refuse the contract giver's reviewer: its loan licence is read through its own logged reads only (6jc-R3, tablets 1425)"
+  - "apps/tablets-server/test/governance/governance-routes.test.ts > the contract giver's reviewer over HTTP (IN-30) > [IN-30] the database's audit-trail reads refuse the contract giver's reviewer: no chain, listing or entry outside its own logged reads; QA still reads (6jc-R3 round 1, tablets 1426)"
 clauses:
   - clause: "create a loan-licence batch; both licence numbers appear"
     tests:

@@ -33,7 +33,9 @@ const THUMB = 'a'.repeat(64);
 const endpoint: OpcuaEndpoint = { endpointUrl: 'opc.tcp://press-01:4840/ebmr', securityMode: 'SignAndEncrypt', securityPolicy: 'Basic256Sha256', certificateThumbprint: THUMB, equipmentCodes: ['PRESS-01'], areaCode: 'RM-COMP-1' };
 
 class TestClock implements GatewayClock {
-  wall = 1_790_000_000_000_000n;
+  // Slice 7b-1: the tests push samples from source time 1000 on, so the sessions open at 1000 too (6jc-R13: no sample
+  // more than the allowed skew before its session enters the series).
+  wall = 1_000n;
   mono = 1_000_000n;
   wallUs(): bigint {
     return this.wall;

@@ -26,7 +26,9 @@ behaviour: |-
   - The migration report is approved before go-live.
 catalog_test: In a migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged.
 implemented_by: {}
-tests: []
+tests:
+  - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] in the migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged"
+  - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-48] a migration that changes an earlier row fails the dry run, names the table and shows the changed unit"
 clauses:
   - clause: "In a migration dry run, counts and hashes match, and spot-checked audit trails, e-signature meaning and date-time, and units are unchanged."
     deferred:

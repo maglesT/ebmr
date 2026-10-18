@@ -1057,11 +1057,9 @@ installations:
 The 25 routes the completeness test had found without a screen (defect log 7g1-1) each got one, mostly inside the screen
 where the act belongs:
 
-- the session's inactivity warning ([idle-warning.tsx](../../../apps/tablets-web/src/features/access/idle-warning.tsx)):
-  a quarter of the idle timeout (5 to 60 s) before the kernel's lock, a warning with "Stay signed in"
-  (`access.keepAlive`); on a kiosk the person taps their own badge, proved by the terminal key over the exact request.
-  It counts seconds with an interval (no clock is read) and starts again on a renewed session view or an accepted write
-  (`apiState.onWrite`, told by the API client); the lock stays the kernel's, shown by the session poll;
+- the session's inactivity warning: the kiosk keep-alive (`access.keepAlive`) is wired into the warning slice 7d built
+  in [controller.tsx](../../../apps/tablets-web/src/features/access/controller.tsx) (A11Y-1; the 7g-5 copy of it was
+  dropped at the merge of main); on a kiosk the person taps their own badge, proved by the terminal key over the request;
 - the floor's batch overview on GMP: "What you can do now in this batch" (`batches.workQueue`);
 - `/india/product-rules` ([ProductRulesPage](../../../apps/tablets-web/src/features/india/ProductRulesPage.tsx)):
   shelf-life bases (head of QC, QA) and hazard classes of products and dedicated rooms (QA), each approved by a second QA

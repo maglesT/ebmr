@@ -14,6 +14,7 @@ import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { activateAccount, createAccount, createPerson, decideRoleGrant, recordIdentityVerification, requestRoleGrant } from '../../../kernel/src/identity/admin.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { approveTestRelease } from '../../../kernel/test/support/validation.ts';
 import { withChangeRecord } from '../../../kernel/test/support/change-record.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -170,6 +171,8 @@ async function productMaster(m: Master, months: number): Promise<void> {
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  // Slice 7c (DI-03, recipe-core 1250): a GMP batch is issued only on a release with an approved validation summary.
+  await approveTestRelease(db);
   w = new World(db, await seedCast(db));
   ({ admin } = await seedAdministration(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });

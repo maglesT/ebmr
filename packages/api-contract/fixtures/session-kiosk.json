@@ -24,6 +24,8 @@
   "installation": "SANDBOX",
   "locked": false,
   "idleTimeoutSeconds": 300,
+  "idleLockInSeconds": 300,
+  "endsInSeconds": 43200,
   "csrfToken": "fixture-csrf-token",
   "attribution": "TAP"
 }

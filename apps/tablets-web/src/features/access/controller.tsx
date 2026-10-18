@@ -5,8 +5,7 @@
  *    GET /api/session every 15 s (the kernel locks idle sessions; the overlay follows within 15 s). Before each poll
  *    the page joins a sign-out another tab of this browser marked; an answer that arrives after the session on show
  *    changed (sign-out, switch, lock or unlock meanwhile) is dropped; an unlock seen by the poll is announced as one;
- *  - the session-change announcements C4's pending entries listen to ('ebmr:session-change');
- *  - the inactivity warning before the kernel's idle lock, with its keep-alive (idle-warning.tsx; slice 7g-5).
+ *  - the session-change announcements C4's pending entries listen to ('ebmr:session-change').
  *
  * Secrets: badge UIDs and PINs live in Vault / KeptBadge holders only, for as long as the next step needs them (a
  * badge tapped for an entry is kept 30 s so a "Switch to <name>?" offer needs only the PIN), and are wiped when used.
@@ -19,11 +18,28 @@ import { Dialog, identity, machines } from '@ebmr/ui-kit';
 import { api } from '../../api/client.ts';
 import { useBoot, type Boot } from '../../app/boot.tsx';
 import type { TapRequest } from '../../app/ports.tsx';
-import { buildAttribution, lockCall, sessionCall, switchCall, unlockWithBadge, unlockWithPassword, type CallOutcome } from './calls.ts';
+import { apiState } from '../../api/client.ts';
+import { buildAttribution, keepAliveCall, lockCall, sessionCall, switchCall, unlockWithBadge, unlockWithPassword, type CallOutcome } from './calls.ts';
 import { Latest, Vault } from './holders.ts';
-import { IdleWarning } from './idle-warning.tsx';
 
 export const SESSION_POLL_MS = 15_000;
+/** The warning before the inactivity lock opens this many seconds before it (WCAG 2.2.1 asks at least 20). */
+export const IDLE_WARN_SECONDS = 60;
+/** The warning before the absolute timeout opens this many seconds before it. */
+export const END_WARN_SECONDS = 300;
+
+/** When the session locks and ends, on this page's monotonic clock, from the server's last answer (A11Y-1). */
+interface Deadlines {
+  idleAt: number | null;
+  endAt: number | null;
+  idleTimeoutMs: number;
+}
+const deadlinesOf = (v: SessionView, now = performance.now()): Deadlines => ({
+  idleAt: v.idleLockInSeconds === null ? null : now + v.idleLockInSeconds * 1000,
+  endAt: v.endsInSeconds === null ? null : now + v.endsInSeconds * 1000,
+  idleTimeoutMs: v.idleTimeoutSeconds * 1000,
+});
+type Warning = { kind: 'IDLE' | 'END'; secondsLeft: number } | null;
 
 export interface AccessController {
   demoBadges: readonly identity.DemoBadge[];
@@ -250,6 +266,15 @@ function SessionControl(props: {
   const [offerResolve] = useState(() => new Vault<(ok: boolean) => void>());
   const [offerBadgeTapped, setOfferBadgeTapped] = useState(false);
   const [switchFirst, setSwitchFirst] = useState(false);
+  // The warning before the inactivity lock and the absolute end (outline 7.4; WCAG 2.2.1; A11Y-1).
+  const [deadlines] = useState(() => new Latest<Deadlines>(deadlinesOf(session)));
+  const [warning, setWarning] = useState<Warning>(null);
+  // The session view whose end warning the person dismissed (a new session view warns again).
+  const [endSeenFor, setEndSeenFor] = useState<SessionView | null>(null);
+  const endSeen = endSeenFor === session;
+  const [keeping, setKeeping] = useState(false);
+  const [keepError, setKeepError] = useState<RefusalEnvelope | null>(null);
+  const [keepPrompt, setKeepPrompt] = useState(0);
 
   const [machine] = useState(() =>
     machines.kioskLockMachine.provide({
@@ -322,6 +347,7 @@ function SessionControl(props: {
       // lock or unlock meanwhile) is dropped: the next poll asks again.
       if (!mounted.current || b.phase !== 'ready' || b.session !== polled || b.joinMarkedSignOut()) return;
       if (r.ok) {
+        deadlines.set(deadlinesOf(r.value));
         const now = latestState.get();
         if (r.value.person.personId !== polled?.person.personId) {
           b.setSession(r.value);
@@ -344,12 +370,94 @@ function SessionControl(props: {
         if (code !== 'SESSION_CHANGED' && code !== 'SESSION_OTHER_TERMINAL') send({ type: 'ENDED' });
       }
     });
-  }, [send, latestState, latestBoot]);
+  }, [send, latestState, latestBoot, deadlines]);
 
   useEffect(() => {
     const id = setInterval(check, SESSION_POLL_MS);
     return () => clearInterval(id);
   }, [check]);
+
+  // Every session view the page is given (sign-in, unlock, switch, keep-alive) names its own deadlines.
+  useEffect(() => {
+    deadlines.set(deadlinesOf(session));
+  }, [session, deadlines]);
+
+  // A command the server took (a request other than GET that succeeded) restarts the idle time there; the page's
+  // estimate follows at once, and the next poll replaces it with the database's own answer.
+  useEffect(() => {
+    const onWrite = () => {
+      const d = deadlines.get();
+      if (d.idleAt !== null) deadlines.set({ ...d, idleAt: performance.now() + d.idleTimeoutMs });
+    };
+    apiState.onWrite.add(onWrite);
+    return () => {
+      apiState.onWrite.delete(onWrite);
+    };
+  }, [deadlines]);
+
+  // Once a second while the session is active: open, update or close the warning; at the lock, ask the server at once
+  // (the overlay then follows without waiting for the next poll).
+  const askedAtLock = useRef(false);
+  useEffect(() => {
+    if (state !== 'active') return undefined;
+    const tick = () => {
+      const d = deadlines.get();
+      const now = performance.now();
+      const idleLeft = d.idleAt === null ? null : Math.ceil((d.idleAt - now) / 1000);
+      const endLeft = d.endAt === null ? null : Math.ceil((d.endAt - now) / 1000);
+      if ((idleLeft !== null && idleLeft <= 0) || (endLeft !== null && endLeft <= 0)) {
+        if (!askedAtLock.current) {
+          askedAtLock.current = true;
+          check();
+        }
+      } else {
+        askedAtLock.current = false;
+      }
+      let next: Warning = null;
+      if (idleLeft !== null && idleLeft <= IDLE_WARN_SECONDS && (endLeft === null || idleLeft <= endLeft)) next = { kind: 'IDLE', secondsLeft: Math.max(0, idleLeft) };
+      else if (endLeft !== null && endLeft <= END_WARN_SECONDS && !endSeen) next = { kind: 'END', secondsLeft: Math.max(0, endLeft) };
+      if (next === null) {
+        // Closed (kept alive, a command, or more time by the server's answer): the next warning starts clean.
+        setKeepError(null);
+        setKeeping(false);
+      }
+      setWarning(next);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [state, deadlines, check, endSeen]);
+
+  // The warning has just opened: its countdown starts from the database's answer, not only from the page's estimate.
+  // Only while the session is active (a lock, an offer or a switch covers it otherwise).
+  const shown: Warning = state === 'active' ? warning : null;
+  const warned = shown !== null;
+  useEffect(() => {
+    if (warned) check();
+  }, [warned, check]);
+
+  const keepAlive = useCallback(
+    async (badgeUid?: string) => {
+      setKeeping(true);
+      setKeepError(null);
+      const b = latestBoot.get();
+      const r = await keepAliveCall(b.deviceKey ?? null, badgeUid);
+      if (!mounted.current) return;
+      setKeeping(false);
+      if (r.ok) {
+        deadlines.set(deadlinesOf(r.value));
+        latestBoot.get().setSession(r.value);
+        setWarning(null);
+        return;
+      }
+      setKeepPrompt((k) => k + 1);
+      if (r.failure.kind === 'REFUSAL') {
+        if (r.failure.status === 423) send({ type: 'SERVER_LOCKED' });
+        else setKeepError(r.failure.envelope);
+      }
+    },
+    [latestBoot, deadlines, send],
+  );
 
   // Registered in a layout effect, so lock, switch and check work the moment the page shows the session. In a passive
   // effect, which runs later, a lock asked for in between (a screen's own effect, an observer of the page) did
@@ -413,14 +521,28 @@ function SessionControl(props: {
           void latestBoot.get().signOut();
         }}
       />
-      <IdleWarning
-        session={session}
-        kiosk={kiosk}
-        suspended={lockOpen || offerOpen || state !== 'active'}
-        deviceKey={boot.deviceKey}
-        demoBadges={demoBadges}
-        onKept={(s) => latestBoot.get().setSession(s)}
-      />
+      {shown ? (
+        <identity.IdleWarning
+          isOpen
+          kind={shown.kind}
+          secondsLeft={shown.secondsLeft}
+          kiosk={kiosk}
+          busy={keeping}
+          error={keepError}
+          demoBadges={demoBadges}
+          promptKey={keepPrompt}
+          onKeepWorking={() => void keepAlive()}
+          onTap={(uid) => void keepAlive(uid)}
+          onLockNow={() => {
+            setSwitchFirst(false);
+            send({ type: 'LOCK' });
+          }}
+          onDismiss={() => {
+            setEndSeenFor(session);
+            setWarning(null);
+          }}
+        />
+      ) : null}
       {offer && offerOpen ? (
         <identity.SwitchUserDialog
           isOpen

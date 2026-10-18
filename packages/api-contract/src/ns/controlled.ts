@@ -17,14 +17,14 @@
  * Every quantity is decimal text in the lot's unit.
  */
 import { z } from 'zod';
-import { DecimalString, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
+import { DecimalString, CalendarDate, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 
 const ProductCode = z.string().regex(/^[A-Z0-9][A-Z0-9._-]{0,63}$/);
 const MaterialCode = z.string().regex(/^[A-Z0-9][A-Z0-9/._-]{0,39}$/);
 const Location = z.string().regex(/^[!-~]{1,64}$/);
 const Text = (max: number) => z.string().trim().min(1).max(max);
-const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'a calendar date (YYYY-MM-DD)');
+const IsoDate = CalendarDate();
 /** A quantity as entered: a positive or zero decimal, at most 12 integer and 6 fraction digits. */
 const Quantity = z.string().regex(/^(0|[1-9][0-9]{0,11})(\.[0-9]{1,6})?$/, 'a decimal quantity such as 1.250');
 

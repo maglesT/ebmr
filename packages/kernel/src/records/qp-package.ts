@@ -289,7 +289,8 @@ export async function readQpPackage(db: pg.Pool | pg.PoolClient, packageId: stri
 // True copies through the definer (kernel 1161), for editions that read the audit trail only through functions
 // ---------------------------------------------------------------------------------------------
 
-interface SnapshotJson {
+/** The parts of one chain as records.true_copy_parts returns them (kernel 1161, 1173). */
+export interface SnapshotJson {
   generatedAt: string;
   aggregateType: string;
   aggregateId: string;
@@ -309,6 +310,14 @@ export async function trueCopyBundleFromSnapshot(db: pg.Pool | pg.PoolClient, ch
   const { rows } = await db.query<{ s: SnapshotJson }>('select records.true_copy_snapshot($1) as s', [chainKey]);
   const s = rows[0]?.s;
   if (!s) throw new Error(`EBMR-REC-070 no snapshot of ${chainKey}`);
+  return trueCopyBundleOfParts(chainKey, s);
+}
+
+/**
+ * The true-copy bundle of one chain from its parts as the database read them (records.true_copy_parts), in exactly the
+ * form buildTrueCopyBundle gives (the full export, kernel 1335, reads many chains in one snapshot this way).
+ */
+export function trueCopyBundleOfParts(chainKey: string, s: SnapshotJson): TrueCopyBundle {
   const records: RecordsPart = {
     chainKey,
     aggregateType: s.aggregateType,

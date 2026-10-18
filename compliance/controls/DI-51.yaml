@@ -69,6 +69,8 @@ tests:
   - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-51][DI-52] the control chart of a critical item shows the advisory band, its Phase I limits, the master's specification and each recorded value as decimal text with the rule hit and its reasons; a point drills to the batch record @office"
   - "tools/e2e/specs/phase6a/analytics.spec.ts > [DI-51][DI-52] the trend viewer shows a batch step's press series as received and, on request, the golden profile overlay under it: the reference set's band, the batch's curve, its flags and every sample exactly as recorded @office"
   - "packages/kernel/test/analytics/exit-review.test.ts > the verdicts of the audit-trail keys as an analytics input (kernel 1282; P6A5-2) > [DI-51][DI-53] the analytics role reads the current verdict of each audit-trail key from its allow-list; the application and reporting roles cannot, and the segregation check stays clean"
+  - "apps/tablets-server/test/analytics/runner.test.ts > the analytics runner (apps/tablets-server/src/analytics) > [DI-51] the runner starts only on ebmr_analytics with no elevated attribute; on another login it does not start (P6A7-8)"
+  - "apps/tablets-server/test/analytics/spc.test.ts > the SPC, capability, drift and rate methods (slice 6A-2) > [DI-51][DI-52] the server runs the analytics in a worker thread (slice 7d, P6A7-4): the in-process runner records the same outputs on the same data; a stopped worker refuses"
 clauses:
   - clause: "as the analytics role, insert, update and delete in a GMP table and run a command; all are refused;"
     tests:

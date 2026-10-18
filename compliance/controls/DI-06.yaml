@@ -27,6 +27,11 @@ tests:
   - "packages/kernel/test/config/release-identity.test.ts > the approved system description (kernel 1300) > [DI-06] a described interface is in force until it is withdrawn, and every version names its change record"
   - "packages/test-kit/test/seed.test.ts > test-kit validation approvals (slice 7-0, kernel 1300, D-P7-12) > [DI-03][DI-06] a seeded GMP site approves the validation summary of its release and its system description through real signed acts"
   - "apps/tablets-server/test/validation/role-permissions.test.ts > the Phase 7 permissions of the Tablets roles (tablets 1400) > [DI-06] CONFIG.SYSTEM_DESCRIPTION is held by the system owner and the CSV and data-integrity lead"
+  - "packages/kernel/test/inbound/interface-drift.test.ts > the interface drift interlock (kernel 1350, DI-06) > [DI-06] an interface not in the approved system description raises the drift alarm and is refused"
+  - "packages/kernel/test/inbound/interface-drift.test.ts > the interface drift interlock (kernel 1350, DI-06) > [DI-06] an adapter blocked and enabled again without a description raises the drift alarm; a described one does not"
+  - "packages/kernel/test/inbound/interface-drift.test.ts > the interface drift interlock (kernel 1350, DI-06) > [DI-06] the drift check cannot be bypassed: the application and the adapter neither describe an interface nor silence the alarm"
+  - "packages/validation-kit/test/pack.test.ts > the trace matrix (DI-06) > [DI-06] every critical limit shows its boundary tests in the trace matrix"
+  - "apps/tablets-server/test/integrations/adapter-startup.test.ts > the integration adapters start with the server (DI-31) > [DI-06] an interface not in the approved system description raises the drift alarm and is refused: the adapter does not start and its health says why (EBMR-INT-035)"
 clauses:
   - clause: "Enable an interface that is not in the approved description. The drift alarm fires."
     deferred:
