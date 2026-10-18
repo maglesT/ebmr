@@ -71,7 +71,7 @@ of each database function.
 | [rc-after-release](#rc-after-release) | After release (suspension, re-confirmation, recall, rejection, disposal) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 0 | 0 |
 | [rc-record-lock](#rc-record-lock) | Record lock, bulk reconciliation and amendment | [modules/recipe-core.md](modules/recipe-core.md) | 5 | 0 | 0 | 0 |
 | [rc-india](#rc-india) | India issue gates, label particulars and Schedule H2 payload | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 2 | 5 |
-| [rc-controlled](#rc-controlled) | Controlled-substance mode, product flag, dual custody, yield-checkpoint account, register export (Phase 6 slice 6e, draft IN-53) | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 0 | 1 |
+| [rc-controlled](#rc-controlled) | Controlled-substance mode, product flag, dual custody, yield-checkpoint account, register export (Phase 6 slice 6e, draft IN-53) | [modules/recipe-core.md](modules/recipe-core.md) | 8 | 0 | 0 | 1 |
 | [rc-pqr](#rc-pqr) | Product quality review extract | [modules/recipe-core.md](modules/recipe-core.md) | 2 | 0 | 1 | 2 |
 | [rc-execution](#rc-execution) | Execution store and engine (steps, entries, exceptions, change paths, hand-over, approvals) | [modules/recipe-core.md](modules/recipe-core.md) | 88 | 0 | 56 | 59 |
 | [rc-flow](#rc-flow) | Flows, validator and limits | [modules/recipe-core.md](modules/recipe-core.md) | 0 | 0 | 18 | 14 |
@@ -1225,9 +1225,9 @@ of each database function.
 
 **Controlled-substance mode, product flag, dual custody, yield-checkpoint account, register export (Phase 6 slice 6e, draft IN-53).** Package `packages/recipe-core`. Handbook: [modules/recipe-core.md](modules/recipe-core.md).
 
-**Migrations** (7):
+**Migrations** (8):
 
-- `packages/recipe-core/sql`: [1030_controlled_substance_catalogue.sql](../../packages/recipe-core/sql/1030_controlled_substance_catalogue.sql), [1031_controlled_product_flag.sql](../../packages/recipe-core/sql/1031_controlled_product_flag.sql), [1032_controlled_custody.sql](../../packages/recipe-core/sql/1032_controlled_custody.sql), [1033_controlled_checkpoint.sql](../../packages/recipe-core/sql/1033_controlled_checkpoint.sql), [1034_controlled_register.sql](../../packages/recipe-core/sql/1034_controlled_register.sql), [1035_controlled_batch_end.sql](../../packages/recipe-core/sql/1035_controlled_batch_end.sql), [1214_controlled_reads_closed.sql](../../packages/recipe-core/sql/1214_controlled_reads_closed.sql)
+- `packages/recipe-core/sql`: [1030_controlled_substance_catalogue.sql](../../packages/recipe-core/sql/1030_controlled_substance_catalogue.sql), [1031_controlled_product_flag.sql](../../packages/recipe-core/sql/1031_controlled_product_flag.sql), [1032_controlled_custody.sql](../../packages/recipe-core/sql/1032_controlled_custody.sql), [1033_controlled_checkpoint.sql](../../packages/recipe-core/sql/1033_controlled_checkpoint.sql), [1034_controlled_register.sql](../../packages/recipe-core/sql/1034_controlled_register.sql), [1035_controlled_batch_end.sql](../../packages/recipe-core/sql/1035_controlled_batch_end.sql), [1214_controlled_reads_closed.sql](../../packages/recipe-core/sql/1214_controlled_reads_closed.sql), [1215_controlled_tables_app_select.sql](../../packages/recipe-core/sql/1215_controlled_tables_app_select.sql)
 
 **Database objects** created in these migrations:
 

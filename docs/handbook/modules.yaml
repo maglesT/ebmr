@@ -611,7 +611,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^103\d_', '^1214_']
+      packages/recipe-core/sql: ['^103\d_', '^121[45]_']
 
   - id: rc-pqr
     title: Product quality review extract
