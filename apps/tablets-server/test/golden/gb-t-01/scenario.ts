@@ -8,7 +8,7 @@
 import { randomUUID } from 'node:crypto';
 import { routes } from '@ebmr/api-contract';
 import { engine, execution } from '@ebmr/recipe-core';
-import { personaOf, terminalOf } from '@ebmr/test-kit';
+import { personaOf, siteZoneOf, terminalOf } from '@ebmr/test-kit';
 import { runContext } from '../../../src/features/execution/runs.ts';
 import { GBT01_ORDERS } from '../../../src/features/execution/seed-gb-t-01.ts';
 import { dbAs, dispensing, GoldenBatch, granulation, ok, signAct, type GranulationPlan } from './driver.ts';
@@ -174,7 +174,15 @@ async function ipcFailure(w: GoldenWorld, g: GoldenBatch, held: { id: string; la
   // (OUTPUT_CONTAINER_RELEASED: the kernel's ceremony directly) before the approval for coating.
   const approver = (w.b['qaApprover2'] ??= await w.server.asPersona('qaApprover2'));
   const id = { deviationId: dev.deviationId };
-  const due = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 1, 28)).toISOString().slice(0, 10);
+  // The 28th of the month after the scenario's own date, read from the database's clock in the site's zone (the clock
+  // the due-date check uses, site services 0821), never from the machine's calendar: the golden clock runs weeks ahead
+  // of it, so a date taken from the machine was already past from about the 18th of each month.
+  const due = (
+    await w.server.db.app.query<{ d: string }>(
+      "select to_char((date_trunc('month', clock_timestamp() at time zone $1) + interval '1 month' + interval '27 days')::date, 'YYYY-MM-DD') as d",
+      [await siteZoneOf(w.server.db.app)],
+    )
+  ).rows[0]!.d;
   ok(
     await (await w.server.asPersona('qcuAuthoriser')).call(routes.quality.startInvestigation, {
       params: id,

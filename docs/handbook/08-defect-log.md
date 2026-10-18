@@ -1467,6 +1467,16 @@ in force at once and until an approved loosening (tablets 1410 maps the ceremony
 QA signature by someone other than the proposer"), site services `test/plant-rules/materials.test.ts`, server
 `test/alarms/plant-rule-approval.test.ts`.
 
+### GB-T-01's investigation due date came from the machine's calendar (test defect; found in slice 7a, 18 October 2026)
+
+**Symptom.** From about the 18th of each month, GB-T-01 stopped at the investigation: "EBMR-SITE-822 the due date
+... is in the past", and every later step of the golden batch failed with it, on every branch. **Cause.** The scenario
+set the due date to the 28th of the month after the machine's date, while the golden cluster's clock runs weeks ahead
+of the machine (the 41 days of the source batch and more); the database checks the due date against its own clock in
+the site's zone (site services 0821). **Fix.** The scenario reads the 28th of the next month from the database's clock
+in the site's zone. No product code changed; the database's check was right. **Lesson.** A golden scenario takes every
+date from the database's clock, never from the machine's.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.
