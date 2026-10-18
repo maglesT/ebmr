@@ -1,6 +1,7 @@
 /**
  * Inter-site transfers (Phase 6 slice 6i; L-41, DI-31, DI-39): this installation and the installations it trusts (QA
- * approves a proposed key through the ceremony, PEER_INSTALLATION_APPROVE), the packages this site sealed (built by the
+ * approves a proposed key through the ceremony, PEER_INSTALLATION_APPROVE; the system administrator proposes it with its
+ * URL and public key, transfers.proposePeer, slice 7g-5), the packages this site sealed (built by the
  * database, sealed by the server; downloadable as the file exchanged), the packages received (taken in as received; a
  * refused one is shown with its reason and alarm), local QA's decision on a received lot (TRANSFER_RECEIPT_DECIDE) and the
  * alarms of the transfer and federation paths. Every value and gate is the server's; the screens send what the person
@@ -66,7 +67,10 @@ export function TransfersPage() {
 
 function Installations() {
   const q = useApiQuery(routes.transfers.peers);
-  const qa = offered(useSessionRole(), 'QA');
+  const role = useSessionRole();
+  const qa = offered(role, 'QA');
+  // The system administrator proposes a peer (display only: the database decides).
+  const admin = role === 'SYSTEM_ADMINISTRATOR';
   const act = useSignedAct(TRANSFER_READS);
   const v = q.data;
   return (
@@ -98,7 +102,50 @@ function Installations() {
         ))}
       </ul>
       <ActResult error={act.error} outcome={act.outcome} />
+      {admin ? <ProposePeer /> : null}
     </Section>
+  );
+}
+
+const INSTALLATION_CODE = /^[A-Z0-9][A-Z0-9-]{1,31}$/;
+const SITE_CODE = /^[A-Z0-9][A-Z0-9-]{0,15}$/;
+const BASE_URL = /^https?:\/\/[A-Za-z0-9.-]+(:[0-9]{1,5})?(\/[!-~]*)?$/;
+const PUBLIC_KEY = /^[A-Za-z0-9+/]{43}=$/;
+
+/**
+ * The system administrator proposes another installation with its URL and Ed25519 public key (transfers.proposePeer);
+ * it is trusted only once QA approves its key under their own signature (DI-31). The key is compared out of band.
+ */
+function ProposePeer() {
+  const propose = useCommand(routes.transfers.proposePeer, TRANSFER_READS);
+  const [code, setCode] = useState('');
+  const [site, setSite] = useState('');
+  const [edition, setEdition] = useState<'TABLETS' | 'INJECTABLES'>('TABLETS');
+  const [url, setUrl] = useState('');
+  const [key, setKey] = useState('');
+  const ok = INSTALLATION_CODE.test(code.trim()) && SITE_CODE.test(site.trim()) && BASE_URL.test(url.trim()) && url.trim().length <= 200 && PUBLIC_KEY.test(key.trim());
+  return (
+    <div data-testid="peer-propose">
+      <h3>Propose another installation</h3>
+      <p>QA approves its key before anything from it is trusted; compare the key with the other site by another channel first.</p>
+      <Field name="peerCode" label="Installation code (e.g. GOA-TAB-GMP)" value={code} onChange={(v) => setCode(v.toUpperCase())} />
+      <Field name="peerSite" label="Site code" value={site} onChange={(v) => setSite(v.toUpperCase())} />
+      <label>
+        Edition{' '}
+        <select name="peerEdition" value={edition} onChange={(e) => setEdition(e.target.value === 'INJECTABLES' ? 'INJECTABLES' : 'TABLETS')} style={{ minHeight: '2.75rem' }}>
+          <option value="TABLETS">Tablets</option>
+          <option value="INJECTABLES">Injectables</option>
+        </select>
+      </label>
+      <Field name="peerUrl" label="Base URL (e.g. https://goa.example.internal)" value={url} onChange={setUrl} />
+      <Field name="peerKey" label="Public key (Ed25519, base64)" value={key} onChange={setKey} />
+      <ActButton
+        label="Propose the installation"
+        disabled={!ok || propose.busy}
+        onPress={() => (ok ? propose.run({ body: { installationCode: code.trim(), siteCode: site.trim(), edition, baseUrl: url.trim(), publicKey: key.trim() } }) : null)}
+      />
+      <ActResult error={propose.error} done={propose.done} label="Proposed: QA approves its key." />
+    </div>
   );
 }
 

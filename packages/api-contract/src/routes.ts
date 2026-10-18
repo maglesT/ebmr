@@ -50,8 +50,9 @@ import { specifications } from './ns/specifications.ts';
 import { contractGiver, support } from './ns/support.ts';
 import { people } from './ns/people.ts';
 import { deviceRegistry } from './ns/device-registry.ts';
+import { accessGovernance } from './ns/access-governance.ts';
 
-export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsMspc, analyticsReview, analyticsProfile, people, deviceRegistry } as const;export type Routes = typeof routes;
+export const routes = { meta, session, access, esig, audit, designer, execution, devices: { ...devices, ...deviceReadings }, quality, batches, planning, masterData, plant, review, containers, specifications, samples, release, notifications, qpPackage, erpShipping, records, pqr, archive, india, integrations, capa, alarms, equipmentData, equipmentDisplays, plantRules, config, support, contractGiver, controlled, labels, serialisation, genealogy, recall, transfers, federation, dashboards, changeImpact, training, analytics, analyticsConfig, analyticsAudit, analyticsSpc, analyticsMspc, analyticsReview, analyticsProfile, people, deviceRegistry, accessGovernance } as const;export type Routes = typeof routes;
 export type NamespaceName = keyof Routes;
 
 /** Which module owns each namespace's handlers (the stub feature files pass to these owners). */
@@ -113,4 +114,6 @@ export const NAMESPACE_OWNERS: Readonly<Record<NamespaceName, 'C0' | 'C1' | 'C2'
   // Phase 7 slice 7g-1 (decision 0025): the administration of people and access, and the device registry.
   people: 'P7',
   deviceRegistry: 'P7',
+  // Phase 7 slice 7g-5 (decision 0025): role-permission requests, delegations of signing authority, the US e-signature certification.
+  accessGovernance: 'P7',
 };

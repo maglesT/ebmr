@@ -20,9 +20,15 @@ export interface ApiState {
   terminalKey: string | undefined;
   /** Told when a request of the session this page works in was served as nobody: the browser's sign-in is not its own. */
   onForeignSession: Set<(code: ForeignSessionCode) => void>;
+  /**
+   * Told when a write was accepted (a 2xx answer to a request other than GET, the device nonce and the terminal check):
+   * a command of the session, which the kernel counts as activity (iam.session_activity), so the inactivity warning
+   * starts counting again (slice 7g-5).
+   */
+  onWrite: Set<() => void>;
 }
 
-export const apiState: ApiState = { installation: undefined, csrfToken: undefined, mismatch: null, onMismatch: new Set(), terminalKey: undefined, onForeignSession: new Set() };
+export const apiState: ApiState = { installation: undefined, csrfToken: undefined, mismatch: null, onMismatch: new Set(), terminalKey: undefined, onForeignSession: new Set(), onWrite: new Set() };
 
 /** The refusal code of an answer, when it is a refusal of status 401. */
 const refusalCode401 = (status: number, text: string): string | null => {
@@ -83,8 +89,15 @@ export function setTransport(f: FetchLike): void {
   fetchImpl = f;
 }
 
+/** Requests that are not a command of the session (no activity for the kernel's inactivity lock). */
+const NOT_ACTIVITY = new Set(['/api/session/device-nonce', '/api/session/identify']);
+
 export const api: ApiClient = createApiClient({
-  fetch: (url, init) => fetchImpl(url, init),
+  fetch: async (url, init) => {
+    const r = await fetchImpl(url, init);
+    if (init.method !== 'GET' && r.status >= 200 && r.status < 300 && !NOT_ACTIVITY.has(url.split('?')[0] ?? url)) for (const tell of apiState.onWrite) tell();
+    return r;
+  },
   installation: () => apiState.installation,
   csrfToken: () => apiState.csrfToken,
   onInstallationMismatch: (expected, actual) => {

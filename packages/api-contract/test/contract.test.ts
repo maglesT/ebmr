@@ -206,6 +206,8 @@ describe('route table', () => {
   it('[INV-40] every FRESH_ON_SHARED route is a mutating SESSION route whose body carries the attribution member', () => {
     const fresh = all.filter((r) => r.attribution === 'FRESH_ON_SHARED');
     expect(fresh.map((r) => r.id).sort()).toEqual([
+      'accessGovernance.decideDelegation', 'accessGovernance.decideRolePermission', 'accessGovernance.recordUsEsigCertification', 'accessGovernance.removeRolePermission',
+      'accessGovernance.requestDelegation', 'accessGovernance.requestRolePermission', 'accessGovernance.revokeDelegation',
       'alarms.acknowledge', 'analytics.dispose', 'analyticsConfig.setMethodVersion', 'analyticsConfig.setReferenceSet', 'archive.formEvent', 'archive.issuePack', 'batches.command', 'batches.issueBulk', 'batches.issueSscc', 'batches.proposeAct',
       'capa.cancel', 'capa.implement', 'capa.linkDeviation', 'capa.linkMasterVersion', 'capa.raise', 'capa.recordEffectiveness', 'capa.scheduleCheck', 'config.closeChangeRecord', 'config.raiseChangeRecord', 'config.setRbeRule', 'config.setSetting', 'containers.close', 'containers.open', 'containers.reject', 'containers.sort', 'contractGiver.grantAccess', 'contractGiver.revokeAccess', 'controlled.proposeCustody', 'controlled.recordCheckpoint', 'controlled.recordProduct', 'controlled.runRegister',
       'deviceRegistry.attestHardening', 'deviceRegistry.bindDevice', 'deviceRegistry.bindGatewayFeed', 'deviceRegistry.endBinding', 'deviceRegistry.enrolGatewayKey', 'deviceRegistry.registerAdapter',

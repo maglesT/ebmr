@@ -1490,6 +1490,30 @@ export). **Cause.** Each was added with its server feature and tested over HTTP;
 **Fix.** Not fixed here: the test lists them by name in `NO_SLICE_YET`, so it passes now and fails on any new route
 without a screen; each entry is removed when its screen is built. **Lesson.** Completeness is a test over the contract,
 not a list in a document.
+**Closed in slice 7g-5 (18 October 2026):** each of the 25 routes got a screen (or was wired into the screen where it
+belongs: the keep-alive into the session's inactivity warning, the batch work queue into the floor's batch overview, the
+alarm into the alarm list's detail); `NO_SLICE_YET` is empty and no route was moved to the service-only list.
+
+## Slice 7g-5: the remaining screens and the acts with no route (Phase 7, decision 0025)
+
+### 7g5-1: database acts a person performs that no route calls (gap; found by the new [meta] test, 18 October 2026)
+
+**Symptom.** The web completeness test sees only routes. Three acts had a database function and no route at all
+(role-permission requests and their decision, delegation approval, the US e-signature certification); slice 7g-5 gave
+them routes and screens. The new [meta] test
+([db-acts-have-routes.test.ts](../../apps/tablets-server/test/contract/db-acts-have-routes.test.ts)) lists every
+SECURITY DEFINER function the application role may execute whose permission a person's role holds, and found more that
+no route calls: besides service acts and the Phase 2 stub-batch stand-in, and the acts slices 7g-2, 7g-3 and 7g-4 build
+(incidents, market-authorisation withdrawal, the validation summary and system description, restore, first-run set-up,
+adapter status), 64 person acts, among them packaging floor acts of the Tablets blocks (print-job release, batch
+data and its check, detector challenge, setpoint download, process-alarm acknowledgment), records retention (legal holds,
+record types, purge approval), data-integrity investigations, batch-number void and recovery, lot destruction, MBR change
+assessments and periodic review, reprocessing requests, market policies, e-signature meaning types, qualification types,
+customer roles, security-alert and continuity-alarm acknowledgment. **Cause.** These were built and tested at the
+database (the SQL tests call them directly); no check asked for a route. **Fix.** Not fixed here (beyond the three acts):
+each is listed by name in `NO_ROUTE_YET` with what it does, so the test passes now and fails on a new such act without
+a route; an entry is removed when its route and screen are built. **Lesson.** A screen-completeness test must start from
+what the database lets a person do, not only from the API contract.
 
 ## Open residuals for the owner
 

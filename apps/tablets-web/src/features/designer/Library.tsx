@@ -1,4 +1,7 @@
-/** Master records library (module C2; plan section 12, screen 4): families and their versions with state chips. */
+/**
+ * Master records library (module C2; plan section 12, screen 4): families and their versions with state chips, and the
+ * reference documents an MBR may cite (slice 7g-5).
+ */
 import { Link } from '@tanstack/react-router';
 import { routes } from '@ebmr/api-contract';
 import { Banner } from '@ebmr/ui-kit';
@@ -6,6 +9,7 @@ import { useApiQuery } from '../../api/hooks.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { dcls } from './classes.ts';
 import { StateChip } from './components/common.tsx';
+import { ReferenceDocuments } from './ReferenceDocuments.tsx';
 
 export function Library() {
   const families = useApiQuery(routes.designer.families);
@@ -60,6 +64,7 @@ export function Library() {
           </tbody>
         </table>
       )}
+      <ReferenceDocuments />
     </div>
   );
 }

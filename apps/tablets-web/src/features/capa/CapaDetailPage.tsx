@@ -113,7 +113,30 @@ function Checks({ view: v }: { view: CapaView }) {
           </li>
         ))}
       </ul>
+      {qa && v.origin === 'STAND_IN' && (v.state === 'OPEN' || v.state === 'IMPLEMENTED' || v.state === 'EFFECTIVENESS_CHECK') ? <ScheduleCheck capaId={v.capaId} /> : null}
     </Section>
+  );
+}
+
+/** QA schedules another effectiveness check (capa.scheduleCheck; slice 7g-5): the database computes its due date. */
+function ScheduleCheck({ capaId }: { capaId: string }) {
+  const schedule = useCommand(routes.capa.scheduleCheck, CAPA_READS);
+  const [criteria, setCriteria] = useState('');
+  const [days, setDays] = useState('');
+  const period = /^[1-9][0-9]{0,3}$/.test(days.trim()) ? Number(days.trim()) : null;
+  const ok = criteria.trim() !== '' && period !== null && period <= 1095;
+  return (
+    <div data-testid="capa-schedule-check">
+      <h3>Schedule another check</h3>
+      <Field name="capaCheckCriteria" label="What shows the action worked (criteria)" value={criteria} onChange={setCriteria} />
+      <Field name="capaCheckDays" label="Period (days from today, 1 to 1095)" value={days} onChange={setDays} />
+      <ActButton
+        label="Schedule the check"
+        onPress={() => (ok && period !== null ? schedule.run({ params: { capaId }, body: { criteria: criteria.trim(), periodDays: period } }) : undefined)}
+        disabled={!ok || schedule.busy}
+      />
+      <ActResult error={schedule.error} done={schedule.done} label="The check is scheduled; its due date is the database's." />
+    </div>
   );
 }
 

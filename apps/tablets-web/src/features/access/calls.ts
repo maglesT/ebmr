@@ -62,6 +62,20 @@ export async function switchCall(key: StoredDeviceKey, badgeUid: string, pin: st
   return wrap(await api.call(routes.access.switchUser, { body: { ...body, proof: proof.proof } }));
 }
 
+/**
+ * Extends the session before the inactivity lock (access.keepAlive). On a shop-floor kiosk the server needs a fresh
+ * badge tap of the session's person, proved by this terminal's key over the exact request ({ badgeUid }); on an office
+ * terminal the request carries nothing.
+ */
+export async function keepAliveCall(key: StoredDeviceKey | null, badgeUid?: string): Promise<CallOutcome<SessionView>> {
+  if (badgeUid === undefined) return wrap(await api.call(routes.access.keepAlive, { body: {} }));
+  if (!key) return { ok: false, failure: { kind: 'ERROR', message: 'this terminal has no device key' } };
+  const body = { badgeUid };
+  const proof = await deviceProof(key, 'POST', '/api/session/keep-alive', body);
+  if (!proof.ok) return wrap(proof);
+  return wrap(await api.call(routes.access.keepAlive, { body: { ...body, proof: proof.proof } }));
+}
+
 export async function sessionCall(): Promise<CallOutcome<SessionView>> {
   return wrap(await api.call(routes.session.get));
 }

@@ -1032,3 +1032,62 @@ Found while writing this page; none changes behaviour.
   (the browser suite, the demo).
 - Generated: [code map](../code-map.md), [error codes](../reference/error-codes.md),
   [control map](../reference/control-map.md).
+
+## Access governance and the remaining screens (Phase 7 slice 7g-5)
+
+Decision 0025. Three acts had a database function and no route, so no screen; slice 7g-5 gave them the contract
+namespace `accessGovernance` ([ns/access-governance.ts](../../../packages/api-contract/src/ns/access-governance.ts)) and
+screens in [GovernancePages](../../../apps/tablets-web/src/features/administration/GovernancePages.tsx), on both
+installations:
+
+- `/admin/role-permissions`: the roles with the permissions they hold now; the system administrator requests a
+  permission for a role (`iam.add_role_permission`); a second person approves or refuses it (`iam.decide_role_permission`;
+  never the requester, never a holder of the role, and INV-11 holds), naming the approved change record covering
+  ROLE_PERMISSION, since a role's permissions are configuration (DI-09; without one the database refuses with
+  EBMR-CFG-001 and the screen shows it); the administrator removes a permission at once under a change record.
+- `/admin/delegations`: a holder of signing authority delegates delegable meanings (the e-signature catalogue's) to a
+  named user ID for a scope, markets and a window, citing the procedure; a third person approves it (never the delegator,
+  the delegate or the requester; EBMR-IAM-182); the delegator or an approver revokes it; nobody passes on a meaning held
+  only by delegation (EBMR-IAM-181). The read shows all delegations to a role holding IAM.DELEGATION_APPROVE, otherwise
+  the person's own.
+- `/admin/us-esig-certification`: the process owner records the legal entity's certification letter to the US agency
+  on electronic signatures (reference, submission date, acknowledgement); the page shows the policy mode and, for a
+  legal entity typed in, whether a letter is on file and whether US-market work is blocked (`iam.us_esig_certification_status`).
+
+The 25 routes the completeness test had found without a screen (defect log 7g1-1) each got one, mostly inside the screen
+where the act belongs:
+
+- the session's inactivity warning ([idle-warning.tsx](../../../apps/tablets-web/src/features/access/idle-warning.tsx)):
+  a quarter of the idle timeout (5 to 60 s) before the kernel's lock, a warning with "Stay signed in"
+  (`access.keepAlive`); on a kiosk the person taps their own badge, proved by the terminal key over the exact request.
+  It counts seconds with an interval (no clock is read) and starts again on a renewed session view or an accepted write
+  (`apiState.onWrite`, told by the API client); the lock stays the kernel's, shown by the session poll;
+- the floor's batch overview on GMP: "What you can do now in this batch" (`batches.workQueue`);
+- `/india/product-rules` ([ProductRulesPage](../../../apps/tablets-web/src/features/india/ProductRulesPage.tsx)):
+  shelf-life bases (head of QC, QA) and hazard classes of products and dedicated rooms (QA), each approved by a second QA
+  person through the ceremony (INDIA_ACT HAZARD_APPROVE, DEDICATION_APPROVE);
+- the CAPA page: schedule another effectiveness check; the alarm list: one alarm in detail; `/equipment-records`
+  ([EquipmentRecordsPage](../../../apps/tablets-web/src/features/plant-status/EquipmentRecordsPage.tsx)): equipment events
+  and a batch's original device records; the rooms page: a new version of a room's rules and the adjacency and
+  segregation of rooms and lines (the master-data steward); `/reagent-lots`
+  ([ReagentLotsPage](../../../apps/tablets-web/src/features/plant-status/ReagentLotsPage.tsx)): record and withdraw a lot
+  (QC), record the lot a check used (the floor);
+- label templates: one version's layout in detail; transfers: the system administrator proposes a peer installation;
+  dashboards: the report views and their documented export, downloaded as exactly the text the server's SHA-256 covers;
+  analytics flags: every disposition of a flag; the master records library: the reference documents; deviations: store
+  an evidence document (the database computes its SHA-256 and size); the release cockpit's After release tab: the lot's
+  shipments with the states the interlock saw.
+
+**Completeness ([meta]):** the web test's `NO_SLICE_YET` list is empty, and the `accessGovernance` namespace is checked
+route by route like `people` and `deviceRegistry`. The server's
+[db-acts-have-routes.test.ts](../../../apps/tablets-server/test/contract/db-acts-have-routes.test.ts) closes the gap the
+web test cannot see: every SECURITY DEFINER function the application role may execute whose permission a person's role
+holds must be called by a route (through the server's source, the package declarations it reaches and the SQL bodies
+and views those call), or be listed with its reason (service or Phase 2 stand-in, pending 7g-2/7g-3/7g-4, or found with
+no route yet: defect log 7g5-1). Tests: [governance.test.tsx](../../../apps/tablets-web/test/administration/governance.test.tsx),
+[screen-gaps.test.tsx](../../../apps/tablets-web/test/office/screen-gaps.test.tsx),
+[batch-work-queue.test.tsx](../../../apps/tablets-web/test/floor/batch-work-queue.test.tsx),
+[idle-warning.test.tsx](../../../apps/tablets-web/test/access/idle-warning.test.tsx), the server's
+[access-governance-routes.test.ts](../../../apps/tablets-server/test/administration/access-governance-routes.test.ts) and
+the browser suite's [governance.spec.ts](../../../tools/e2e/specs/administration/governance.spec.ts) and
+[screen-gaps.spec.ts](../../../tools/e2e/specs/administration/screen-gaps.spec.ts).

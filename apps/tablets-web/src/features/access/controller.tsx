@@ -5,7 +5,8 @@
  *    GET /api/session every 15 s (the kernel locks idle sessions; the overlay follows within 15 s). Before each poll
  *    the page joins a sign-out another tab of this browser marked; an answer that arrives after the session on show
  *    changed (sign-out, switch, lock or unlock meanwhile) is dropped; an unlock seen by the poll is announced as one;
- *  - the session-change announcements C4's pending entries listen to ('ebmr:session-change').
+ *  - the session-change announcements C4's pending entries listen to ('ebmr:session-change');
+ *  - the inactivity warning before the kernel's idle lock, with its keep-alive (idle-warning.tsx; slice 7g-5).
  *
  * Secrets: badge UIDs and PINs live in Vault / KeptBadge holders only, for as long as the next step needs them (a
  * badge tapped for an entry is kept 30 s so a "Switch to <name>?" offer needs only the PIN), and are wiped when used.
@@ -20,6 +21,7 @@ import { useBoot, type Boot } from '../../app/boot.tsx';
 import type { TapRequest } from '../../app/ports.tsx';
 import { buildAttribution, lockCall, sessionCall, switchCall, unlockWithBadge, unlockWithPassword, type CallOutcome } from './calls.ts';
 import { Latest, Vault } from './holders.ts';
+import { IdleWarning } from './idle-warning.tsx';
 
 export const SESSION_POLL_MS = 15_000;
 
@@ -410,6 +412,14 @@ function SessionControl(props: {
           machines.announceSessionChange({ reason: 'ENDED', personId: null });
           void latestBoot.get().signOut();
         }}
+      />
+      <IdleWarning
+        session={session}
+        kiosk={kiosk}
+        suspended={lockOpen || offerOpen || state !== 'active'}
+        deviceKey={boot.deviceKey}
+        demoBadges={demoBadges}
+        onKept={(s) => latestBoot.get().setSession(s)}
       />
       {offer && offerOpen ? (
         <identity.SwitchUserDialog
