@@ -41,8 +41,8 @@ test.describe('smoke', () => {
 
   test('Branding (decision 0020): title, icons and manifest; the sign-in lockup with "by Medhanta"; the header links to the about page with the version the server reports', { tag: '@office' }, async ({ officePage, persona, evidence }) => {
     const page = await officePage('GMP', 'PC-DESIGN-01');
-    await evidence.step('Open the sign-in page', 'The title is Batchwright Tablets; the lockup and the maker\'s mark are shown', async () => {
-      await expect(page).toHaveTitle('Batchwright Tablets');
+    await evidence.step('Open the sign-in page', 'The title is "Sign in - Batchwright Tablets" (the page, then the product); the lockup and the maker\'s mark are shown', async () => {
+      await expect(page).toHaveTitle('Sign in - Batchwright Tablets');
       await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
       const brand = page.getByTestId('sign-in-brand');
       await expect(brand.getByRole('img', { name: 'Batchwright Tablets' })).toBeVisible();
