@@ -36,6 +36,7 @@ import {
   RECIPE_VERSION_TAG,
   SERIES_CHUNK_MAX_SAMPLES,
   seriesChunkHash,
+  OPCUA_OFFLINE_BUFFER_US,
   type OpcuaEndpointSessionV1,
   type SeriesChunkV1,
 } from '@ebmr/integration-sdk/adapter';
@@ -46,6 +47,8 @@ import type { GatewayClock } from '../clock.ts';
 export interface OpcuaDataChange {
   nodeId: string;
   sample: NativeSample;
+  /** Slice 7b-1 (6jc-R13): why the transport marked the sample BAD (a value without any timestamp), or absent. */
+  problem?: string;
 }
 
 /** The port the driver uses; node-opcua is wrapped behind it (builder A), a fake in tests. */
@@ -85,6 +88,8 @@ export interface OpcuaDriverOptions {
   nextChunkNo?: (equipmentCode: string, tag: string) => bigint;
   /** A unit that sends no data change for this long is a feed gap (alarmed once until data come again). */
   gapAfterMs?: number;
+  /** The site's offline buffer (setting integration.opcua_offline_buffer_s; default OPCUA_OFFLINE_BUFFER_US, 7 days). */
+  offlineBufferUs?: bigint;
 }
 
 /** Where the driver hands what it receives: each is journalled by the feed before anything else happens to it. */
@@ -93,13 +98,31 @@ export interface OpcuaSink {
   chunk(c: SeriesChunkV1): void;
   alarm(a: EquipmentAlarmV1): void;
   event(e: EquipmentEventV1): void;
+  /**
+   * Phase 7 slice 7b-1 (DI-32, DI-31): each sample of an open chunk, on receipt, with the number the chunk will have; the
+   * feed spools it (../opcua-feed.ts), so a crash before the chunk closes does not lose it.
+   */
+  sample?(s: SpooledSample): void;
+}
+
+/** A sample of an open chunk as the feed's spool keeps it (the chunk's subject, tag, unit and number, and the sample). */
+export interface SpooledSample {
+  subjectKind: SeriesChunkV1['subjectKind'];
+  subjectCode: string;
+  tag: string;
+  unit: string;
+  chunkNo: string;
+  sample: NativeSample;
 }
 
 /** Device states of an OPC UA endpoint (the scale and process states plus the certificate check). */
 export type OpcuaEndpointState = 'CONNECTING' | 'ONLINE' | 'OFFLINE' | 'CERTIFICATE_MISMATCH';
 
 export interface OpcuaDriverAlarm {
-  kind: 'CERTIFICATE_MISMATCH' | 'INSECURE_ENDPOINT' | 'STALE_VALUE' | 'FEED_GAP' | 'RECIPE_MISMATCH' | 'DISCONNECTED' | 'OUT_OF_ORDER' | 'WRONG_UNIT' | 'MALFORMED';
+  kind:
+    | 'CERTIFICATE_MISMATCH' | 'INSECURE_ENDPOINT' | 'STALE_VALUE' | 'FEED_GAP' | 'RECIPE_MISMATCH' | 'DISCONNECTED' | 'OUT_OF_ORDER' | 'WRONG_UNIT' | 'MALFORMED'
+    // Slice 7b-1 (6jc-R13, DI-32): a value without any timestamp (kept BAD), a source time before the session's start.
+    | 'MISSING_TIMESTAMP' | 'BEFORE_SESSION';
   endpointCode: string;
   message: string;
   details: Record<string, string>;
@@ -142,6 +165,11 @@ export class SeriesChunker {
     if (first && (this.samples.length >= this.maxSamples || BigInt(sample.sourceTime) - BigInt(first.sourceTime) >= this.maxSpanUs)) closed = this.flush();
     this.samples.push(sample);
     return closed;
+  }
+
+  /** The number the open chunk will have when it closes (the next chunk's number when none is open). */
+  openChunkNo(): bigint {
+    return this.nextNo;
   }
 
   /** The source time of the open chunk's first sample (null when none is open): a quiet tag's chunk is closed by span. */
@@ -220,6 +248,8 @@ export class OpcuaDriver extends EventEmitter {
   private tick: NodeJS.Timeout | null = null;
   private connecting: Promise<void> | null = null;
   private session = 0;
+  /** When the current session opened (its openedAt, the gateway's clock): no older sample enters the series (6jc-R13). */
+  private sessionOpenedUs: bigint | null = null;
   private reportedMismatch: string | null = null;
   /** Nodes whose first notification after a (re)subscription is still due: a repeat of the known sample is no news. */
   private readonly resubscribed = new Set<string>();
@@ -311,10 +341,11 @@ export class OpcuaDriver extends EventEmitter {
       return;
     }
     this.presentedThumbprint = thumbprint;
+    const openedUs = this.options.clock.wallUs();
     const problem = certificateProblem(endpoint, thumbprint);
     const report = (reportedLocation: string | null): OpcuaEndpointSessionV1 => ({
       endpointCode: this.options.code, endpointUrl: endpoint.endpointUrl, securityMode: endpoint.securityMode, securityPolicy: endpoint.securityPolicy,
-      certificateThumbprint: thumbprint, reportedLocation, equipmentCodes: [...this.units.keys()], openedAt: this.options.clock.wallUs().toString(),
+      certificateThumbprint: thumbprint, reportedLocation, equipmentCodes: [...this.units.keys()], openedAt: openedUs.toString(),
     });
     if (problem) {
       // DI-20: nothing is read from an endpoint that is not the enrolled one; the session is still reported (once per
@@ -330,6 +361,7 @@ export class OpcuaDriver extends EventEmitter {
     try {
       const location = transport.readText ? await transport.readText(ENDPOINT_LOCATION_NODE) : null;
       sink?.session(report(location !== null && /^[A-Z0-9][A-Z0-9_-]{0,63}$/.test(location) ? location : null));
+      this.sessionOpenedUs = openedUs;
       this.reportedMismatch = null;
       transport.onConnectionLost?.((reason) => this.lost(session, reason));
       for (const unit of this.units.keys()) {
@@ -433,12 +465,31 @@ export class OpcuaDriver extends EventEmitter {
       });
       return;
     }
+    if (c.problem) {
+      // 6jc-R13: dated at receipt and BAD (the transport); kept in the series as received, alarmed with the reason.
+      this.alarm('MISSING_TIMESTAMP', `${node.equipmentCode}/${node.tag}: ${c.problem}`, { tag: node.tag, raw: sample.raw, sourceTime: sample.sourceTime });
+    }
     if (qualityOfStatus(sample.status) !== 'GOOD') this.markDoubtful(key, `${node.equipmentCode}/${node.tag} reports status ${sample.status}`, sample);
     else this.doubtful.delete(key);
     this.latest.set(key, sample);
     this.touch(node.equipmentCode);
-    const closed = this.chunker(node.equipmentCode, node.tag, spec.unit).add(sample);
+    // 6jc-R13 (DI-32; golden regression fix round 2): the database refuses a source time more than the offline buffer
+    // before the session's start (recipe-core 1235). Within it the sample is genuine (the current value of a tag
+    // unchanged since before the session, sent at subscription; a value held while the gateway was down) and enters the
+    // series as received. Older, it stays the tag's current value but is not taken into the series, with an alarm, so no
+    // chunk is refused.
+    const buffer = this.options.offlineBufferUs ?? OPCUA_OFFLINE_BUFFER_US;
+    if (this.sessionOpenedUs !== null && BigInt(sample.sourceTime) < this.sessionOpenedUs - buffer) {
+      this.alarm('BEFORE_SESSION', `${node.equipmentCode}/${node.tag}: source time ${sample.sourceTime} is more than ${(buffer / 1_000_000n).toString()} s before this session opened (${this.sessionOpenedUs.toString()}); kept as the current value, not taken into the series`, {
+        tag: node.tag, raw: sample.raw, status: sample.status, sourceTime: sample.sourceTime,
+      });
+      return;
+    }
+    const chunker = this.chunker(node.equipmentCode, node.tag, spec.unit);
+    const closed = chunker.add(sample);
     if (closed) this.options.sink?.chunk(closed);
+    // Slice 7b-1: the sample is spooled with its open chunk's number (the closed chunk, if any, is journalled first).
+    this.options.sink?.sample?.({ subjectKind: 'EQUIPMENT', subjectCode: node.equipmentCode, tag: node.tag, unit: spec.unit, chunkNo: chunker.openChunkNo().toString(), sample });
   }
 
   private markDoubtful(key: string, message: string, sample: NativeSample): void {

@@ -68,9 +68,17 @@ const attemptView = (app: AppContext, r: AttemptRow): TrainingAttemptView => ({
   complete: r.done.length >= r.step_count,
 });
 
-async function attempt(app: AppContext, db: Db, id: string): Promise<TrainingAttemptView> {
-  const { rows } = await db.query<AttemptRow>(`${ATTEMPT_SQL} where a.id = $1`, [id]);
-  return attemptView(app, rows[0]!);
+/**
+ * One training attempt of the person (Phase 7 slice 7b-1, 6jc-R15; DI-05): another person's attempt, or none with this
+ * id, is refused as EBMR-SBX-040 (the same answer as the database's sandbox.complete_training_step), never shown.
+ */
+export async function trainingAttemptOf(app: AppContext, db: Db, id: string, personId: string): Promise<TrainingAttemptView> {
+  const { rows } = await db.query<AttemptRow>(`${ATTEMPT_SQL} where a.id = $1 and a.person_id = $2`, [id, personId]);
+  const row = rows[0];
+  if (row === undefined) {
+    throw refusal(404, { code: 'EBMR-SBX-040', kind: 'INVALID_INPUT', whatHappened: 'There is no training attempt of yours with this id.', whatYouCanDo: ['Open the exercise again from the training page.'] });
+  }
+  return attemptView(app, row);
 }
 
 async function overview(app: AppContext, db: Db, personId: string): Promise<TrainingOverviewView> {
@@ -107,7 +115,7 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const s = requireSession();
       return overview(app, pool, s.personId);
     },
-    start: async ({ body, actor, idempotencyKey, requestHash }) => {
+    start: async ({ body, actor, requireSession, idempotencyKey, requestHash }) => {
       const exercise = exerciseOf(body.exerciseCode);
       if (exercise === undefined) {
         throw refusal(404, { code: 'EBMR-TRN-001', kind: 'INVALID_INPUT', whatHappened: `There is no training exercise ${body.exerciseCode}.`, whatYouCanDo: ['Choose an exercise from the training page.'] });
@@ -115,13 +123,13 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       const { result: id } = await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
         (await c.query<{ id: string }>('select sandbox.start_training($1, $2, $3)::text as id', [exercise.code, exercise.version, exercise.steps.length])).rows[0]!.id,
       );
-      return attempt(app, pool, id);
+      return trainingAttemptOf(app, pool, id, requireSession().personId);
     },
-    completeStep: async ({ params, body, actor, idempotencyKey, requestHash }) => {
+    completeStep: async ({ params, body, actor, requireSession, idempotencyKey, requestHash }) => {
       await withIdempotentActorCommand(pool, actor(), idempotencyKey ?? '', requestHash, async (c) =>
         (await c.query<{ done: boolean }>('select sandbox.complete_training_step($1, $2) as done', [params.attemptId, body.step])).rows[0]!.done,
       );
-      return attempt(app, pool, params.attemptId);
+      return trainingAttemptOf(app, pool, params.attemptId, requireSession().personId);
     },
   });
   return Promise.resolve();

@@ -35,3 +35,28 @@ Residuals of the parts (from the builders):
   at a GMP issue stay location-only (BATCH_ISSUER maps no engine role).
 - Lead: `recipe.check_engine_roles` stays in the `execution-commands` mutation group: recipe-core 1224 drops only its
   2-argument form; the 3-argument form remains and is mutated by name.
+
+## Slice 7b-1 (the hardening list; review of 18 October 2026)
+
+Built in two parts (7b-1a database and access items, 7b-1b worker, gateway and message items). One read-only pass for
+bypasses, dropped checks in re-created functions, definer hardening, silent data loss and the "saved" answer. Checked
+without a finding: the gap-alarm acknowledgment (kernel 1320), the DSC functions (1321), the insert-only outbound table
+(site-services 1110), the restricted analytics counts (1322), every re-created function (only the intended lines
+changed), `set search_path` and the administrator check first in every new definer, SAVED_NOT_SHOWN answered only after
+a committed command.
+
+| Id | Severity | Finding | Outcome |
+|---|---|---|---|
+| P7B1-1 | medium (DI-32) | The 5-minute lower bound on OPC UA source times (recipe-core 1233) also refused alarms and equipment events that happened while the gateway was down and arrived at reconnect, and (found by GB-T-03) the current value of a tag that never changes, which an OPC UA server sends dated at its last change. | Fixed (kernel 1330, recipe-core 1234, 1235): series, alarms and events are refused only when older than the session start minus the gateway's offline buffer (`integration.opcua_offline_buffer_s`, default 7 days, change-controlled); a 1970 time is still refused; the gateway uses the same window. The round-2 fix came from the golden run. |
+| P7B1-2 | medium (IN-30) | The contract-giver reviewer was refused only by `tab.record_read_problem`; the audit-trail reads granted on RECORD.READ, so its session read any batch's audit chain at database level. | Fixed (tablets 1426): every audit-trail read refuses the contract giver's reviewer at database level; QA still reads. |
+| P7B1-3 | low-medium (DI-32, DI-31) | The gateway spool could lose samples without a SERIES_GAP: a crash just after a chunk closed, a spooled chunk failing validation, and a signing error that let the spool be truncated. | Fixed (gateway): the gap starts at the series' last journalled chunk end; dropped chunks are reported as a gap; the spool is truncated only when every recovery publish succeeded. |
+| P7B1-4 | low (DI-32) | An endpoint session reported with a gateway clock near 1970 made the lower bound near 0. | Fixed (recipe-core 1234): a session is refused when it starts more than the offline buffer before the database clock (not 5 minutes: a server outage would otherwise refuse the sessions pulled after it). |
+| P7B1-5 | low | The slow tag's baseline sample was dropped at every reconnect. | Settled by P7B1-1's fix (the window is the offline buffer). |
+| P7B1-6 | low (DI-31) | A reconciliation whose commit succeeded but whose follow-up read failed was reported again on the next run. | Fixed (adapter framework): the result is read in the same statement as the insert. |
+
+Residuals of the parts:
+- F-6jb-g1 (medium, fail-safe): a record lock still counts as a change since review; the epoch rows carry no cause and
+  the lock's bump shares `record_lock_append` with amendment and reconciliation bumps, so it cannot be told apart
+  without loosening other change detection (D-P7-7; defect log).
+- Ten writers refuse administrators just after their permission check rather than before (both before anything is
+  written); listed by the wider authorization scan (6jc-R7), not re-created.

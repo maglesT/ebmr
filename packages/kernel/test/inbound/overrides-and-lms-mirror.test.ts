@@ -67,6 +67,37 @@ describe('the LMS qualification source on the generic mirror freshness (kernel 1
   });
 });
 
+describe('the stale qualification sources a refusal names (kernel 1329, F-6jb-2)', () => {
+  const problems = async () =>
+    (await db.app.query<{ p: { source: string; mirror: string; ageSeconds: string | null; boundSeconds: string; systemOwner: string; message: string }[] }>(
+      'select iam.stale_qualification_source_problem() as p')).rows[0]?.p ?? [];
+
+  it('[DI-31] F-6jb-2: each stale qualification source is named with its mirror, its age, its bound and the system owner to call; a fresh one is not', async () => {
+    // STAND_IN: the LMS heartbeat (none recorded) rules; INTERNAL is never listed.
+    expect(await problems()).toEqual([{ source: 'LMS', mirror: 'LMS qualification heartbeat', ageSeconds: null, boundSeconds: '86400', systemOwner: 'the LMS system owner',
+      message: 'the LMS qualification heartbeat is stale: it has never synchronised, more than its bound of 86400 s; call the LMS system owner' }]);
+    await db.admin.query("insert into iam.mirror_heartbeat (source_code, last_synced_at) values ('LMS', clock_timestamp() - interval '2 days')");
+    try {
+      expect((await problems())[0]).toMatchObject({ mirror: 'LMS qualification heartbeat', message: expect.stringMatching(/last synchronised 1728\d\d s ago, more than its bound of 86400 s/) as unknown });
+      await db.admin.query("update iam.mirror_heartbeat set last_synced_at = clock_timestamp() where source_code = 'LMS'");
+      expect(await problems()).toEqual([]);
+    } finally {
+      await db.admin.query("delete from iam.mirror_heartbeat where source_code = 'LMS'");
+    }
+    // MIRROR: the LMS adapter's synchronisation and the data class's bound.
+    await setMode('MIRROR');
+    try {
+      await withCommand(db.app, ctxOf(lms), async (c) => c.query("select platform.record_mirror_sync('LMS_QUALIFICATION', $1)", [await heldHead(db, LMS)]));
+      expect(await problems()).toEqual([]);
+      await db.admin.query("update platform.mirror_sync set last_synced_at = last_synced_at - interval '2 hours' where data_class = 'LMS_QUALIFICATION'");
+      expect(await problems()).toEqual([{ source: 'LMS', mirror: 'LMS_QUALIFICATION', ageSeconds: expect.stringMatching(/^720\d$/) as unknown, boundSeconds: '3600', systemOwner: 'the LMS system owner',
+        message: expect.stringMatching(/^the LMS mirror LMS_QUALIFICATION is stale: last synchronised 720\d s ago, more than its bound of 3600 s; call the LMS system owner$/) as unknown }]);
+    } finally {
+      await setMode('STAND_IN');
+    }
+  });
+});
+
 describe('overrides of interface-captured values (kernel 1181)', () => {
   it('[DI-31][DI-26] the override register is written only through a domain correction: the application can neither call the function nor write the table', async () => {
     const person = await testActor(db);
