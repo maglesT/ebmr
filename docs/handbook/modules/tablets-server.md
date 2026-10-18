@@ -1500,7 +1500,9 @@ lets the roles that request or approve support grants read them). [bind.ts](../.
 of an account holding CONTRACT_GIVER_REVIEWER on its own routes (CONTRACT_GIVER_SCOPE); since tablets
 [1425](../../../apps/tablets-server/sql/1425_contract_giver_record_read.sql) (Phase 7 slice 7b-1, 6jc-R3, IN-30) the
 database holds it too: `tab.record_read_problem` refuses that role, and any account holding it, for every record, so the
-reviewer reads its loan licence's batches only through its own logged reads (recipe-core 1060). The esig feature
+reviewer reads its loan licence's batches only through its own logged reads (recipe-core 1060); tablets
+[1426](../../../apps/tablets-server/sql/1426_contract_giver_audit_read.sql) refuses it in the audit-trail reads as well
+(`tab.chain_read_problem`, `tab.audit_events`, `tab.audit_chains`, `tab.audit_headless_chains`). The esig feature
 ([esig/dsc.ts](../../../apps/tablets-server/src/features/esig/dsc.ts)) serves the DSC configuration routes and puts the DSC statement on the
 challenge and verifies the submitted DSC in the signing command. The designer
 ([designer/hazard.ts](../../../apps/tablets-server/src/features/designer/hazard.ts), [IN-27](../../../compliance/controls/IN-27.yaml)) adds the

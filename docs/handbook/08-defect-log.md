@@ -1499,7 +1499,10 @@ fail-closed guard, the acknowledgment needs the authority of the guard, not of t
 and audit chains of any RECORD-class record; only the server's route allow-list kept it to its loan licence. **Fix.**
 The function refuses that role, and any account holding it, for every record: the loan licence's batches are read
 through the reviewer's own scoped and logged reads (recipe-core 1060). **Test.** Server
-`test/governance/governance-routes.test.ts` ("[IN-30] the database's record reads refuse the contract giver's reviewer ...").
+`test/governance/governance-routes.test.ts` ("[IN-30] the database's record reads refuse the contract giver's reviewer ..."). Review round 1: the audit-trail reads granted on RECORD.READ too; tablets 1426 refuses the reviewer first in
+`tab.chain_read_problem` (so every chain read that asks it) and in `tab.audit_events`, `tab.audit_chains` and
+`tab.audit_headless_chains` ("[IN-30] the database's audit-trail reads refuse the contract giver's reviewer ..."). **Lesson.**
+A role refused in one read definer must be refused in each definer that grants on the same permission.
 
 ### 6jc-R6: the DSC enrolment and the DSC record did not refuse administrators (DI-18; kernel 1321)
 
