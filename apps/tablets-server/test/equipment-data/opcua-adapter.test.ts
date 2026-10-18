@@ -242,7 +242,7 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     expect(await count(db, "select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'SERIES_GAP'", [w.adapter.code])).toBe(1);
   });
 
-  it('[DI-32] 6jc-R13: a chunk dated more than the allowed skew before its endpoint session started is refused with an alarm and lands nowhere; one within it lands', async () => {
+  it('[DI-32] 6jc-R13: a chunk dated more than the offline buffer before its endpoint session started (a 1970 clock) is refused with an alarm and lands nowhere; a value unchanged for a day before the session lands', async () => {
     const before = await seriesRows();
     const opened = BigInt(nowUs());
     feed.publish('opcua.endpoint_session', session({ openedAt: opened.toString() }));
@@ -252,12 +252,58 @@ describe('the OPC UA adapter worker (D-P6b-0-1)', () => {
     feed.publish('opcua.series_chunk', { ...old, chunkHash: seriesChunkHash(old) });
     const rs = await settle();
     expect(refusedOf(rs, 'OUT_OF_RANGE')).toBe(1);
-    expect(rs.flatMap((r) => r.outcomes).find((o) => o.result === 'REFUSED')?.detail).toMatch(/EBMR-EQD-003 source time 0 is more than five minutes before the start of the endpoint session/);
+    expect(rs.flatMap((r) => r.outcomes).find((o) => o.result === 'REFUSED')?.detail).toMatch(/EBMR-EQD-003 source time 0 is more than 604800 s before the start of the endpoint session/);
     expect(await seriesRows()).toBe(before);
-    const within = { ...old, samples: [{ sourceTime: (opened - 60_000_000n).toString(), serverTime: null, raw: '12.5', value: '12.5', status: '0x00000000' }] };
+    // The current value of a tag unchanged since the day before, sent at subscription: genuine (golden regression, round 2).
+    const within = { ...old, samples: [{ sourceTime: (opened - 86_400_000_000n).toString(), serverTime: null, raw: '12.5', value: '12.5', status: '0x00000000' }] };
     feed.publish('opcua.series_chunk', { ...within, chunkHash: seriesChunkHash(within) });
     expect(total(await settle(), 'accepted')).toBe(1);
     expect(await seriesRows()).toBe(before + 1);
+  });
+
+  // Review round 1 of 7b-1b, findings 1 and 3 (recipe-core 1234, kernel 1330).
+  it('[DI-32][DI-49] an alarm or equipment event that happened while the gateway was down lands within the offline buffer; one dated at 1970 is refused', async () => {
+    const opened = BigInt(nowUs());
+    feed.publish('opcua.endpoint_session', session({ openedAt: opened.toString() }));
+    const alarm = (occ: string, at: bigint): Json => ({
+      subjectKind: 'EQUIPMENT', subjectCode: w.unit.code, occurrenceId: occ, transition: 'RAISED', alarmCode: 'REJECT_BURST', severity: '700',
+      tag: null, value: null, limit: null, limitKind: null, message: 'reject burst while the gateway was down', occurredAt: at.toString(),
+    });
+    const event = (id: string, at: bigint): Json => ({ equipmentCode: w.unit.code, eventId: id, kind: 'STATE_CHANGED', state: 'RUNNING', recipeVersion: null, message: 'press running', occurredAt: at.toString() });
+    const hourAgo = opened - 3_600_000_000n;
+    const occ = `REJ-${randomBytes(3).toString('hex')}`;
+    const ev = `EV-${randomBytes(3).toString('hex')}`;
+    feed.publish('opcua.alarm', alarm(occ, hourAgo));
+    feed.publish('opcua.equipment_event', event(ev, hourAgo));
+    const rs = await settle();
+    expect(total(rs, 'accepted')).toBe(3);
+    expect(await count(db, "select count(*) as n from plant.alarm where source = 'OPCUA' and occurrence_id = $1", [occ])).toBe(1);
+    expect(await count(db, 'select count(*) as n from plant.equipment_state_event where event_id = $1', [ev])).toBe(1);
+    // A source time of 1970 (a gateway or device clock that was never set) is more than the offline buffer before the session.
+    const occ0 = `REJ-${randomBytes(3).toString('hex')}`;
+    const ev0 = `EV-${randomBytes(3).toString('hex')}`;
+    feed.publish('opcua.alarm', alarm(occ0, 1000n));
+    feed.publish('opcua.equipment_event', event(ev0, 1000n));
+    const rs2 = await settle();
+    expect(refusedOf(rs2, 'OUT_OF_RANGE')).toBe(2);
+    const details = rs2.flatMap((r) => r.outcomes).filter((o) => o.result === 'REFUSED').map((o) => o.detail ?? '');
+    expect(details[0]).toMatch(/EBMR-ALM-003 source time 1000 is more than 604800 s before the start of the endpoint session/);
+    expect(details[1]).toMatch(/EBMR-EQD-003 source time 1000 is more than 604800 s before the start of the endpoint session/);
+    expect(await count(db, "select count(*) as n from plant.alarm where occurrence_id = $1", [occ0])).toBe(0);
+    expect(await count(db, 'select count(*) as n from plant.equipment_state_event where event_id = $1', [ev0])).toBe(0);
+  });
+
+  it('[DI-32][DI-20] an endpoint session that starts more than the offline buffer before the database clock (a gateway clock at 1970) is refused; one pulled an hour late is taken', async () => {
+    const sessions = () => count(db, 'select count(*) as n from plant.opcua_endpoint_session where endpoint_code = $1', [w.endpoint.code]);
+    const before = await sessions();
+    feed.publish('opcua.endpoint_session', session({ openedAt: '1000' }));
+    const rs = await settle();
+    expect(refusedOf(rs, 'OUT_OF_RANGE')).toBe(1);
+    expect(rs.flatMap((r) => r.outcomes).find((o) => o.result === 'REFUSED')?.detail).toMatch(/EBMR-EQD-003 the session of endpoint .* started at 1000, more than 604800 s/);
+    expect(await sessions()).toBe(before);
+    feed.publish('opcua.endpoint_session', session({ openedAt: (BigInt(nowUs()) - 3_600_000_000n).toString() }));
+    expect(total(await settle(), 'accepted')).toBe(1);
+    expect(await sessions()).toBe(before + 1);
   });
 
   // (Last: it ends the adapter's shared session.)

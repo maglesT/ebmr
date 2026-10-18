@@ -36,7 +36,7 @@ import {
   RECIPE_VERSION_TAG,
   SERIES_CHUNK_MAX_SAMPLES,
   seriesChunkHash,
-  SOURCE_TIME_SKEW_US,
+  OPCUA_OFFLINE_BUFFER_US,
   type OpcuaEndpointSessionV1,
   type SeriesChunkV1,
 } from '@ebmr/integration-sdk/adapter';
@@ -88,6 +88,8 @@ export interface OpcuaDriverOptions {
   nextChunkNo?: (equipmentCode: string, tag: string) => bigint;
   /** A unit that sends no data change for this long is a feed gap (alarmed once until data come again). */
   gapAfterMs?: number;
+  /** The site's offline buffer (setting integration.opcua_offline_buffer_s; default OPCUA_OFFLINE_BUFFER_US, 7 days). */
+  offlineBufferUs?: bigint;
 }
 
 /** Where the driver hands what it receives: each is journalled by the feed before anything else happens to it. */
@@ -471,11 +473,14 @@ export class OpcuaDriver extends EventEmitter {
     else this.doubtful.delete(key);
     this.latest.set(key, sample);
     this.touch(node.equipmentCode);
-    // 6jc-R13 (DI-32): the database refuses a source time more than the allowed skew before the session's start (the
-    // current value of a tag that has not changed since then, sent at subscription, or a source clock far behind). Such
-    // a sample stays the tag's current value but is not taken into the series, with an alarm, so no chunk is refused.
-    if (this.sessionOpenedUs !== null && BigInt(sample.sourceTime) < this.sessionOpenedUs - SOURCE_TIME_SKEW_US) {
-      this.alarm('BEFORE_SESSION', `${node.equipmentCode}/${node.tag}: source time ${sample.sourceTime} is more than ${(SOURCE_TIME_SKEW_US / 1_000_000n).toString()} s before this session opened (${this.sessionOpenedUs.toString()}); kept as the current value, not taken into the series`, {
+    // 6jc-R13 (DI-32; golden regression fix round 2): the database refuses a source time more than the offline buffer
+    // before the session's start (recipe-core 1235). Within it the sample is genuine (the current value of a tag
+    // unchanged since before the session, sent at subscription; a value held while the gateway was down) and enters the
+    // series as received. Older, it stays the tag's current value but is not taken into the series, with an alarm, so no
+    // chunk is refused.
+    const buffer = this.options.offlineBufferUs ?? OPCUA_OFFLINE_BUFFER_US;
+    if (this.sessionOpenedUs !== null && BigInt(sample.sourceTime) < this.sessionOpenedUs - buffer) {
+      this.alarm('BEFORE_SESSION', `${node.equipmentCode}/${node.tag}: source time ${sample.sourceTime} is more than ${(buffer / 1_000_000n).toString()} s before this session opened (${this.sessionOpenedUs.toString()}); kept as the current value, not taken into the series`, {
         tag: node.tag, raw: sample.raw, status: sample.status, sourceTime: sample.sourceTime,
       });
       return;

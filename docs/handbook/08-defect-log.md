@@ -1588,6 +1588,18 @@ evidence written in it. It fails safe (the next market's signer acknowledges the
   since before the session) out of the series with an alarm, so a working gateway is never refused. Tests: gateway
   `opcua-spool.test.ts` (6jc-R13), server `opcua-adapter.test.ts` "6jc-R13". Lesson: a missing value is never replaced
   by a default that looks like data.
+- **Review round 1 of 7b-1b.** The five-minute bound refused alarms and events that happened while the gateway was down
+  (now the offline buffer, setting `integration.opcua_offline_buffer_s`, recipe-core 1234, kernel 1330); a session start
+  at 1970 was not refused (now it is); a crash with no open chunk, an invalid spooled chunk or an unjournalled recovery
+  message lost samples without a gap (now each is a gap, or the spool is kept); a reconciliation report that committed
+  while its answer was lost was submitted again (now the next run reads the database). Tests: `opcua-adapter.test.ts`,
+  `opcua-spool.test.ts` "review round 1", `feed-adapters.test.ts` "answer was lost". Lesson: a bound must fit what each
+  record is: a sample, an alarm and a session reach the database at different delays.
+- **Fix round 2 (GB-T-03 regression).** The press's fill depth, unchanged since the simulator started, came at
+  subscription with its old source time; the five-minute series bound (gateway and recipe-core 1233) kept it out of the
+  series and GB-T-03 waited for it in vain. A value unchanged since before the session is genuine: series now have the
+  offline buffer too (recipe-core 1235). Lesson: an OPC UA source time is the time of the last change, not of the
+  delivery.
 
 ## Open residuals for the owner
 

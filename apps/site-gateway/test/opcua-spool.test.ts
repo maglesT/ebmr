@@ -9,7 +9,7 @@
  * nothing more reaches the files, as when the process dies.
  */
 import { verify } from 'node:crypto';
-import { appendFileSync, mkdtempSync, readFileSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { DataValue } from 'node-opcua';
@@ -199,6 +199,69 @@ describe('the gateway spool of open chunks (slice 7b-1)', () => {
   });
 });
 
+// Review round 1 of 7b-1b, finding 2: nothing the spool knew of is lost without a gap.
+describe('the gateway spool: what a crash leaves (review round 1)', () => {
+  const sampleLine = (chunkNo: string, sourceTime: string, raw: string, value: string | null = raw) =>
+    `${JSON.stringify({ k: 's', subjectKind: 'EQUIPMENT', subjectCode: 'PRESS-01', tag: 'force.main_kN', unit: 'kN', chunkNo, sample: { sourceTime, serverTime: null, raw, value, status: '0x00000000' } })}\n`;
+
+  it('[DI-32][DI-31] a crash just after a chunk closed (nothing open, the next sample never written) is a series gap from the end of the last journalled chunk', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opcua-spool-'));
+    const clock = new TestClock();
+    const f1 = openFeed(dir, clock, [], { spoolSyncMs: 1000 });
+    const crash = cuttable(f1.sink());
+    const t = new FakeTransport();
+    const d1 = driverOn(crash.sink, f1, clock, t);
+    await until(() => d1.state === 'ONLINE', 2000, 'online');
+    for (const [i, raw] of ['12.5', '12.43', '12.6'].entries()) t.push('force.main_kN', BigInt((i + 1) * 1000), raw);
+    f1.syncSpool();
+    // The fourth sample closes chunk 1 (journalled); the process dies before the sample itself is spooled.
+    t.push('force.main_kN', 4000n, '12.7');
+    expect(chunkNos(f1)).toEqual(['1']);
+    crash.cut();
+    await d1.stop();
+    const head = f1.head();
+    clock.wall = 8_000_000n;
+    const alarms: OpcuaFeedAlarm[] = [];
+    const f2 = openFeed(dir, clock, alarms);
+    feeds.push(f2);
+    const added = f2.published().slice(Number(head));
+    expect(added.map((m) => m.messageType)).toEqual(['opcua.series_gap']);
+    expect(SeriesGapV1.parse(added[0]?.payload)).toMatchObject({ subjectCode: 'PRESS-01', tag: 'force.main_kN', fromUs: '3000', toUs: '8000000' });
+    expect(alarms.map((a) => a.kind)).toEqual(['SERIES_GAP']);
+  });
+
+  it('[DI-32][DI-31] a spooled chunk that is not a valid chunk is reported as a gap up to the next completed chunk, never dropped silently', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opcua-spool-'));
+    // Chunk 1: a shown value that is not the raw value (no valid chunk); chunk 2: valid.
+    writeFileSync(join(dir, 'opcua-spool.jsonl'), sampleLine('1', '1000', '12.5', '99') + sampleLine('2', '2000', '12.6') + sampleLine('2', '3000', '12.7'));
+    const clock = new TestClock(9_000_000n);
+    const f = openFeed(dir, clock);
+    feeds.push(f);
+    expect(f.published().map((m) => m.messageType)).toEqual(['opcua.series_gap', 'opcua.series_chunk', 'opcua.series_gap']);
+    const [dropped, chunk, tail] = f.published();
+    expect(SeriesGapV1.parse(dropped?.payload)).toMatchObject({ fromUs: '999', toUs: '2000', detail: expect.stringContaining('chunk(s) 1 could not be completed') as unknown });
+    expect(SeriesChunkV1.parse(chunk?.payload)).toMatchObject({ chunkNo: '2' });
+    expect(SeriesGapV1.parse(tail?.payload)).toMatchObject({ fromUs: '3000', toUs: '9000000' });
+  });
+
+  it('[DI-32][DI-31] a recovery message that cannot be signed keeps the spool: it is never truncated or marked closed, and the next start completes the chunk', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opcua-spool-'));
+    const spool = sampleLine('1', '1000', '12.5') + sampleLine('1', '2000', '12.6');
+    writeFileSync(join(dir, 'opcua-spool.jsonl'), spool);
+    const clock = new TestClock(9_000_000n);
+    const alarms: OpcuaFeedAlarm[] = [];
+    const broken = OpcuaFeed.open({ dir, gatewayCode: 'GW-TEST', signingKey: { privateKey: {} as typeof TEST_FEED_KEY.privateKey, keyId: TEST_FEED_KEY.keyId }, clock, onAlarm: (a) => alarms.push(a) });
+    expect(broken.head()).toBe(0n);
+    expect(alarms.map((a) => a.kind)).toContain('FEED_JOURNAL_FAILED');
+    await broken.close();
+    expect(readFileSync(join(dir, 'opcua-spool.jsonl'), 'utf8')).toBe(spool);
+    const f = openFeed(dir, clock);
+    feeds.push(f);
+    expect(f.published().map((m) => m.messageType)).toEqual(['opcua.series_chunk', 'opcua.series_gap']);
+    expect(SeriesChunkV1.parse(f.published()[0]?.payload).samples.map((x) => x.sourceTime)).toEqual(['1000', '2000']);
+  });
+});
+
 describe('the dating of OPC UA samples (6jc-R13)', () => {
   const dv = (over: Record<string, unknown>): DataValue =>
     ({ statusCode: { value: 0 }, value: { value: 12.5 }, sourceTimestamp: null, sourcePicoseconds: 0, serverTimestamp: null, serverPicoseconds: 0, ...over }) as unknown as DataValue;
@@ -216,7 +279,7 @@ describe('the dating of OPC UA samples (6jc-R13)', () => {
     expect(sampleOf(dv({ sourceTimestamp: new Date(1_790_000_000_001), serverTimestamp: new Date(1_790_000_000_002) }), 7_000_000n).sample.sourceTime).toBe('1790000000001000');
   });
 
-  it('[DI-32] 6jc-R13: the driver alarms a sample without a timestamp and keeps it BAD; a sample dated more than the allowed skew before its session stays out of the series with an alarm', async () => {
+  it('[DI-32] 6jc-R13: the driver alarms a sample without a timestamp and keeps it BAD; a sample dated more than the offline buffer before its session stays out of the series with an alarm; a value unchanged for hours before it is taken', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'opcua-spool-'));
     const clock = new TestClock(1_790_000_000_000_000n);
     const feed = openFeed(dir, clock);
@@ -226,10 +289,12 @@ describe('the dating of OPC UA samples (6jc-R13)', () => {
     const d = driverOn(feed.sink(), feed, clock, t, alarms);
     drivers.push(d);
     await until(() => d.state === 'ONLINE', 2000, 'online');
-    // Six minutes before the session opened: the current value of a tag unchanged since then.
-    t.push('force.main_kN', clock.wall - 360_000_000n, '12.4');
+    // Eight days before the session opened: more than the offline buffer (7 days).
+    t.push('force.main_kN', clock.wall - 8n * 86_400_000_000n, '12.3');
     expect(alarms.map((a) => a.kind)).toEqual(['BEFORE_SESSION']);
-    // Within the skew, and a value without a timestamp (dated at receipt by the transport, BAD).
+    // A day before it: the current value of a tag unchanged since then (genuine; golden regression of round 2).
+    t.push('force.main_kN', clock.wall - 86_400_000_000n, '12.4');
+    // A minute before it, and a value without a timestamp (dated at receipt by the transport, BAD).
     t.push('force.main_kN', clock.wall - 60_000_000n, '12.5');
     t.onChange?.({
       nodeId: opcuaNodeId('PRESS-01', 'force.main_kN'), sample: { sourceTime: clock.wall.toString(), serverTime: null, raw: '12.6', value: null, status: MISSING_TIMESTAMP_STATUS },
@@ -240,6 +305,8 @@ describe('the dating of OPC UA samples (6jc-R13)', () => {
     drivers.splice(0);
     await d.stop();
     const samples = feed.published().filter((m) => m.messageType === 'opcua.series_chunk').flatMap((m) => SeriesChunkV1.parse(m.payload).samples);
-    expect(samples.map((s) => [s.sourceTime, s.status])).toEqual([[(clock.wall - 60_000_000n).toString(), '0x00000000'], [clock.wall.toString(), MISSING_TIMESTAMP_STATUS]]);
+    expect(samples.map((s) => [s.sourceTime, s.status])).toEqual([
+      [(clock.wall - 86_400_000_000n).toString(), '0x00000000'], [(clock.wall - 60_000_000n).toString(), '0x00000000'], [clock.wall.toString(), MISSING_TIMESTAMP_STATUS],
+    ]);
   });
 });

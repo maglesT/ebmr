@@ -559,6 +559,10 @@ export class AdapterWorker {
       this.reconciledTo = from;
     } catch (error) {
       run.error = error instanceof Error ? error.message : String(error);
+      // Review round 1 of 7b-1b (finding 4): the report may have committed even though its answer was lost (a connection
+      // cut after the commit); the next run starts again from the database's latest report, never from memory, so a
+      // period is never submitted twice.
+      this.reconciledTo = null;
       if (!(error instanceof TransportError)) this.actor = null; // a lapsed or broken session is reopened next time
       this.healthState.lastError = `reconciliation: ${run.error}`;
     }
