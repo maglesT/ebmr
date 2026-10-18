@@ -104,7 +104,7 @@ of each database function.
 | [ts-transfers](#ts-transfers) | Inter-site transfer routes and screens, the installation key and the site-to-site endpoint (Phase 6 slice 6i) | [modules/tablets-server.md](modules/tablets-server.md) | 2 | 11 | 3 | 5 |
 | [ts-dashboards](#ts-dashboards) | Dashboards, change impact and training mode routes and screens (Phase 6 slice 6g) | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 5 | 2 | 3 |
 | [ts-config-change](#ts-config-change) | Configuration change records, history and RBE rules (Phase 6 slice 6f, builder A) | [modules/tablets-server.md](modules/tablets-server.md) | 1 | 10 | 2 | 2 |
-| [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 3 | 8 | 2 | 3 |
+| [ts-governance](#ts-governance) | Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B) | [modules/tablets-server.md](modules/tablets-server.md) | 4 | 8 | 2 | 3 |
 | [ts-controlled](#ts-controlled) | Controlled-substance routes, the CONTROLLED_ACT ceremony and screens (Phase 6 slice 6e, draft IN-53) | [modules/tablets-server.md](modules/tablets-server.md) | 5 | 9 | 3 | 1 |
 | [ts-pqr](#ts-pqr) | Product quality review | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 3 | 2 | 3 |
 | [ts-archive](#ts-archive) | Archive, evidence export and inspection | [modules/tablets-server.md](modules/tablets-server.md) | 0 | 11 | 0 | 0 |
@@ -2234,13 +2234,13 @@ of each database function.
 
 **Vendor support grants, the contract giver's reviewer and the India DSC screens (Phase 6 slice 6f, builder B).** Package `apps/tablets-server`. Handbook: [modules/tablets-server.md](modules/tablets-server.md).
 
-**Migrations** (3):
+**Migrations** (4):
 
-- `apps/tablets-server/sql`: [1275_support_grant_signing.sql](../../apps/tablets-server/sql/1275_support_grant_signing.sql), [1276_support_grant_read.sql](../../apps/tablets-server/sql/1276_support_grant_read.sql), [1425_contract_giver_record_read.sql](../../apps/tablets-server/sql/1425_contract_giver_record_read.sql)
+- `apps/tablets-server/sql`: [1275_support_grant_signing.sql](../../apps/tablets-server/sql/1275_support_grant_signing.sql), [1276_support_grant_read.sql](../../apps/tablets-server/sql/1276_support_grant_read.sql), [1425_contract_giver_record_read.sql](../../apps/tablets-server/sql/1425_contract_giver_record_read.sql), [1426_contract_giver_audit_read.sql](../../apps/tablets-server/sql/1426_contract_giver_audit_read.sql)
 
 **Database objects** created in these migrations:
 
-- Functions (3): `tab.record_read_problem`, `tab.support_grant_preview`, `tab.support_grant_signing_content`
+- Functions (9): `tab.audit_chains`, `tab.audit_events`, `tab.audit_headless_chains`, `tab.chain_read_problem`, `tab.contract_giver_refusal`, `tab.reader_is_contract_giver`, `tab.record_read_problem`, `tab.support_grant_preview`, `tab.support_grant_signing_content`
 
 **Server files** (1): [index.ts](../../apps/tablets-server/src/features/governance/index.ts)
 

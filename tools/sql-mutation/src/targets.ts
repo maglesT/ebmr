@@ -398,7 +398,7 @@ export const TARGETS: Target[] = [
                 'tab.audit_registry_value', 'tab.mbr_content_saved_role', 'tab.aggregate_ref_read_class', 'tab.withheld_from',
                 'tab.chain_is_about', 'tab.entry_withheld', 'tab.chain_listed', 'tab.chain_read_problem', 'tab.audit_chains',
                 'tab.audit_events', 'tab.audit_registry_chains', 'tab.audit_headless_chains', 'tab.audit_chain_length',
-                'tab.record_withheld', 'tab.registry_chains_of', 'tab.audit_verify_chain', 'tab.partly_withheld_chains'],
+                'tab.record_withheld', 'tab.registry_chains_of', 'tab.audit_verify_chain', 'tab.partly_withheld_chains', 'tab.reader_is_contract_giver', 'tab.contract_giver_refusal'],
     tests: [s('audit/read-authorisation.test.ts'), s('esig/read-authorisation.test.ts'), s('audit/view-integrity.test.ts'),
             // Phase 3 exit: the files that test this group's functions as Phase 3 redefined them.
             s('master-data/formula.test.ts'),
