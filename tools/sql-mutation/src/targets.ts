@@ -1491,4 +1491,34 @@ export const TARGETS: Target[] = [
     tests: [r('review/batch-scope.test.ts')],
     threshold: 90,
   },
+  // Phase 7 slice 7b-2: the full export of the closed records (DI-08 clause 2; kernel 1335, recipe-core 1240).
+  {
+    group: 'full-export',
+    functions: [
+      'records.closed_di_investigation_records', 'records.closed_incident_records',
+      'records.full_export_snapshot', 'records.register_full_export', 'records.register_export_restricted_table',
+      'records.require_export_permissions', 'records.closed_record_chains', 'records.export_chain_parts',
+      'records.open_export_run', 'records.begin_full_export', 'records.full_export_records', 'records.readability_snapshot',
+      'report.closed_batch_records', 'report.closed_record_rows_v1', 'report.readability_sample_rows_v1',
+      'report.register_closed_record_source',
+    ],
+    tests: [k('records/full-export.test.ts'), k('records/records-cli.test.ts'), r('records/closed-batch-records.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7b-2: the periodic evaluation pack and its QA sign-off bound to its hash (DI-11 clause 1, DI-44
+  // clause 1; kernel 1336, site-services 1120, recipe-core 1240).
+  {
+    group: 'evaluation-pack',
+    functions: [
+      'records.store_evaluation_pack', 'records.evaluation_pack_content', 'records.approve_evaluation_pack',
+      'report.register_evaluation_source', 'report.evaluation_entry_rows_v1', 'report.evaluation_period_rows_v1',
+      'report.evaluation_topic_rows_v1', 'report.evaluation_access_recertifications', 'report.evaluation_audit_reviews',
+      'report.evaluation_backups', 'report.evaluation_change_records', 'report.evaluation_config_changes',
+      'report.evaluation_deviations', 'report.evaluation_incidents', 'report.evaluation_integration_alarms',
+      'report.evaluation_integrity_checks', 'report.evaluation_open_di_investigations', 'report.evaluation_recipe_changes',
+      'report.evaluation_restore_drills', 'report.evaluation_time_events',
+    ],
+    tests: [k('records/evaluation-pack.test.ts')],
+    threshold: 90,
+  },
 ];

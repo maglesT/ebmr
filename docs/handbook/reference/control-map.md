@@ -131,8 +131,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Closed-system classification, hosting and supplier agreements, open-system data flows.** [DI-08.yaml](../../../compliance/controls/DI-08.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [kernel-iam](../code-map.md#kernel-iam), [ts-governance](../code-map.md#ts-governance), [api-contract](../code-map.md#api-contract)
-- Tests: [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/kernel/test/identity/support-grant.test.ts](../../../packages/kernel/test/identity/support-grant.test.ts)
+- Modules: [kernel-iam](../code-map.md#kernel-iam), [kernel-records](../code-map.md#kernel-records), [rc-core](../code-map.md#rc-core), [ts-governance](../code-map.md#ts-governance), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract), [tools-boundaries](../code-map.md#tools-boundaries), [tools-e2e](../code-map.md#tools-e2e), [record-viewer](../code-map.md#record-viewer)
+- Tests: [apps/record-viewer/test/verify-export.test.ts](../../../apps/record-viewer/test/verify-export.test.ts), [apps/tablets-server/test/governance/governance-routes.test.ts](../../../apps/tablets-server/test/governance/governance-routes.test.ts), [apps/tablets-server/test/validation/evaluation-permissions.test.ts](../../../apps/tablets-server/test/validation/evaluation-permissions.test.ts), [apps/tablets-web/test/governance/governance.test.tsx](../../../apps/tablets-web/test/governance/governance.test.tsx), [packages/api-contract/test/governance.test.ts](../../../packages/api-contract/test/governance.test.ts), [packages/kernel/test/identity/support-grant.test.ts](../../../packages/kernel/test/identity/support-grant.test.ts), [packages/kernel/test/records/full-export.test.ts](../../../packages/kernel/test/records/full-export.test.ts), [packages/kernel/test/records/records-cli.test.ts](../../../packages/kernel/test/records/records-cli.test.ts), [packages/recipe-core/test/records/closed-batch-records.test.ts](../../../packages/recipe-core/test/records/closed-batch-records.test.ts), [tools/boundaries/test/boundaries.test.ts](../../../tools/boundaries/test/boundaries.test.ts), [tools/e2e/specs/records/record-viewer.spec.ts](../../../tools/e2e/specs/records/record-viewer.spec.ts)
 
 ## DI-09
 
@@ -159,7 +159,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Periodic evaluation and routine checks of the eBMR itself.** [DI-11.yaml](../../../compliance/controls/DI-11.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [kernel-records](../code-map.md#kernel-records), [ts-core](../code-map.md#ts-core)
+- Tests: [apps/tablets-server/test/validation/evaluation-permissions.test.ts](../../../apps/tablets-server/test/validation/evaluation-permissions.test.ts), [packages/kernel/test/records/evaluation-pack.test.ts](../../../packages/kernel/test/records/evaluation-pack.test.ts), [packages/kernel/test/records/records-cli.test.ts](../../../packages/kernel/test/records/records-cli.test.ts)
 
 ## DI-12
 
@@ -808,8 +809,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Protection and integrity checking of stored data.** [DI-44.yaml](../../../compliance/controls/DI-44.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [kernel-audit](../code-map.md#kernel-audit)
-- Tests: [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts)
+- Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-records](../code-map.md#kernel-records), [rc-core](../code-map.md#rc-core)
+- Tests: [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/records/evaluation-pack.test.ts](../../../packages/kernel/test/records/evaluation-pack.test.ts), [packages/kernel/test/records/full-export.test.ts](../../../packages/kernel/test/records/full-export.test.ts), [packages/recipe-core/test/records/closed-batch-records.test.ts](../../../packages/recipe-core/test/records/closed-batch-records.test.ts)
 
 ## DI-45
 
@@ -1415,7 +1416,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Controlled substances (India NDPS).** [IN-53.yaml](../../../compliance/controls/IN-53.yaml). Target phase 6; editions tablets, injectables; IMPLEMENTED.
 
-- Modules: [ss-controlled](../code-map.md#ss-controlled), [ss-core](../code-map.md#ss-core), [rc-controlled](../code-map.md#rc-controlled), [ts-esig](../code-map.md#ts-esig), [ts-controlled](../code-map.md#ts-controlled), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract), [tools-e2e](../code-map.md#tools-e2e)
+- Modules: [ss-controlled](../code-map.md#ss-controlled), [ss-core](../code-map.md#ss-core), [rc-controlled](../code-map.md#rc-controlled), [rc-core](../code-map.md#rc-core), [ts-esig](../code-map.md#ts-esig), [ts-controlled](../code-map.md#ts-controlled), [ts-core](../code-map.md#ts-core), [api-contract](../code-map.md#api-contract), [tools-e2e](../code-map.md#tools-e2e)
 - Code: [packages/recipe-core/sql/1030_controlled_substance_catalogue.sql](../../../packages/recipe-core/sql/1030_controlled_substance_catalogue.sql)
 - Code: [packages/recipe-core/sql/1031_controlled_product_flag.sql](../../../packages/recipe-core/sql/1031_controlled_product_flag.sql)
 - Code: [packages/recipe-core/sql/1032_controlled_custody.sql](../../../packages/recipe-core/sql/1032_controlled_custody.sql)
@@ -1431,7 +1432,7 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 - Guard: recipe.controlled_consumption_guard (zzc_controlled_dual_custody on site.lot_consumption)
 - Guard: recipe.controlled_sign_off_guard (a1_controlled_checkpoint on recipe.execution_command)
 - Guard: recipe.controlled_batch_end_guard (a1_controlled_batch_end on recipe.execution_state)
-- Tests: [apps/tablets-server/test/controlled/controlled-read.test.ts](../../../apps/tablets-server/test/controlled/controlled-read.test.ts), [apps/tablets-server/test/controlled/controlled-routes.test.ts](../../../apps/tablets-server/test/controlled/controlled-routes.test.ts), [apps/tablets-server/test/esig/read-authorisation.test.ts](../../../apps/tablets-server/test/esig/read-authorisation.test.ts), [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [apps/tablets-web/test/controlled/controlled.test.tsx](../../../apps/tablets-web/test/controlled/controlled.test.tsx), [packages/api-contract/test/controlled.test.ts](../../../packages/api-contract/test/controlled.test.ts), [packages/site-services/test/controlled/controlled.test.ts](../../../packages/site-services/test/controlled/controlled.test.ts), [packages/site-services/test/mutation/controlled-substance-mode.test.ts](../../../packages/site-services/test/mutation/controlled-substance-mode.test.ts), [tools/e2e/specs/phase6/controlled.spec.ts](../../../tools/e2e/specs/phase6/controlled.spec.ts)
+- Tests: [apps/tablets-server/test/controlled/controlled-read.test.ts](../../../apps/tablets-server/test/controlled/controlled-read.test.ts), [apps/tablets-server/test/controlled/controlled-routes.test.ts](../../../apps/tablets-server/test/controlled/controlled-routes.test.ts), [apps/tablets-server/test/esig/read-authorisation.test.ts](../../../apps/tablets-server/test/esig/read-authorisation.test.ts), [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [apps/tablets-web/test/controlled/controlled.test.tsx](../../../apps/tablets-web/test/controlled/controlled.test.tsx), [packages/api-contract/test/controlled.test.ts](../../../packages/api-contract/test/controlled.test.ts), [packages/recipe-core/test/records/closed-batch-records.test.ts](../../../packages/recipe-core/test/records/closed-batch-records.test.ts), [packages/site-services/test/controlled/controlled.test.ts](../../../packages/site-services/test/controlled/controlled.test.ts), [packages/site-services/test/mutation/controlled-substance-mode.test.ts](../../../packages/site-services/test/mutation/controlled-substance-mode.test.ts), [tools/e2e/specs/phase6/controlled.spec.ts](../../../tools/e2e/specs/phase6/controlled.spec.ts)
 
 ## PR-01
 

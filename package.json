@@ -15,7 +15,7 @@
     "build:web": "pnpm --filter @ebmr/tablets-web build",
     "openapi": "node --import tsx apps/tablets-server/src/cli/openapi.ts .reports/openapi.json",
     "e2e": "flock /tmp/ebmr-e2e.lock pnpm --filter @ebmr/e2e test",
-    "typecheck": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p tsconfig.json && node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p packages/ui-kit/tsconfig.json && node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p apps/tablets-web/tsconfig.json && node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p tools/e2e/tsconfig.json",
+    "typecheck": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p tsconfig.json && node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p packages/ui-kit/tsconfig.json && node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p apps/tablets-web/tsconfig.json && node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p tools/e2e/tsconfig.json && node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p apps/record-viewer/tsconfig.json",
     "lint": "node --max-old-space-size=8192 node_modules/eslint/bin/eslint.js .",
     "deps:check": "depcruise --config .dependency-cruiser.cjs packages apps tools",
     "test": "vitest run",

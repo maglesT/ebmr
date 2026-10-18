@@ -45,6 +45,7 @@ The module list behind the generated pages is [modules.yaml](modules.yaml). Writ
 | [api-contract](modules/api-contract.md) | `packages/api-contract`: the route table and the request and response shapes |
 | [tablets-server](modules/tablets-server.md) | `apps/tablets-server`: the Tablets edition's server, its features and its migrations |
 | [tablets-web](modules/tablets-web.md) | `apps/tablets-web`: the Tablets edition's screens |
+| [record-viewer](modules/record-viewer.md) | `apps/record-viewer`: the stand-alone, offline viewer of a full export (verifies, then shows, read-only) |
 | [integrations](modules/integrations.md) | `packages/integration-sdk`, `apps/site-gateway`, `apps/simulators` |
 | [shared-kits](modules/shared-kits.md) | `packages/ui-kit`, `packages/test-kit`, `packages/validation-kit` |
 | [injectables](modules/injectables.md) | `apps/injectables-*`: placeholders for Phase 5 |

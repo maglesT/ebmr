@@ -1583,6 +1583,92 @@ read's transaction time on a primary and the last replayed commit on a replica.
 and `sandbox.complete_training_step` (the person's own attempt only, EBMR-SBX-040). Tests:
 `packages/kernel/test/sandbox/reporting-and-training.test.ts`.
 
+## The full export, the closed records and the periodic evaluation pack (Phase 7 slice 7b-2; kernel 1335, 1336)
+
+[1335_full_export_closed_records.sql](../../../packages/kernel/sql/1335_full_export_closed_records.sql) and
+[1336_periodic_evaluation_pack.sql](../../../packages/kernel/sql/1336_periodic_evaluation_pack.sql)
+([DI-08](../../../compliance/controls/DI-08.yaml) clause 2, [DI-11](../../../compliance/controls/DI-11.yaml) clause 1,
+[DI-44](../../../compliance/controls/DI-44.yaml) clause 1). Site services adds the deviations
+([1120](../../../packages/site-services/sql/1120_evaluation_deviations.sql)); recipe-core adds the closed batch records,
+the audit-trail reviews and the master-record change records
+([1240](../../../packages/recipe-core/sql/1240_evaluation_batch_records.sql)). TypeScript:
+[full-export.ts](../../../packages/kernel/src/records/full-export.ts#sym=buildFullExport),
+[evaluation-pack.ts](../../../packages/kernel/src/records/evaluation-pack.ts#sym=runPeriodicEvaluation) and the
+operators' [records-cli.ts](../../../packages/kernel/src/records/records-cli.ts). The viewer that opens an export is
+its own app: [record-viewer](record-viewer.md).
+
+- **Closed records.** A closed record is one closed by its own life cycle now: a closed incident, a closed DI
+  investigation, a batch record whose record is LOCKED (recipe-core 0870; not while an amendment is open) or that is
+  aborted or cancelled now. Each owning module registers a STABLE row function in `report.closed_record_source`
+  (migrations only); `report.closed_record_v1` lists them all with the audit chains of their archive package. The
+  reporting role `ebmr_report` reads it.
+- **The seeded readability sample.** `report.readability_sample_rows_v1(seed, closed_before, size)` takes the records
+  closed before a time with the smallest SHA-256 of `seed:type:id`. The same seed gives the same records in the same
+  order, so a sample can be repeated and checked.
+- **The full export** is one run in one REPEATABLE READ transaction. `records.begin_full_export()` (RECORD.EXPORT) fixes
+  the run's scope once: every closed record with the chains of its package that exist and its signature chains, and the
+  seal key chains (`records.full_export_run`, `records.full_export_scope`, audited on the run's chain). Rows of a
+  restricted table (`records.export_restricted_table`; the controlled-substance tables, recipe-core 1240) in an
+  exported chain need that table's permission (CONTROLLED.READ) with no site or product limit: the export is refused,
+  never served with rows left out. The records are read page by page (`records.full_export_records`), their chains in
+  calls of up to 200 (`records.full_export_snapshot`; any other chain is refused, `EBMR-REC-143`), and every file is
+  written to the folder as it is made. `records.register_full_export(run, manifest, sha256)` registers the manifest's
+  SHA-256 only when the manifest lists exactly the run's records in order, each with exactly its chains, every chain at
+  the head `kernel.audit_chain_head` holds in the same snapshot, the seal keys, and every chain file among its files
+  (`EBMR-REC-145`, `-147`, `-148`). The export SHA-256 in the register is the reference the viewer compares with.
+- **The evaluation entries.** Each module registers its topics in `report.evaluation_source`: a STABLE row function per
+  topic and source log, and how a period selects its rows (IN_PERIOD, or OPEN_AT_END for the open issues). Every time
+  is a database-clock time, so the entries of a past period never change. `report.evaluation_period_rows_v1(from, to)`
+  gives a period's entries; the generator reads them as `ebmr_report` (and refuses a reader in another role,
+  `EBMR-REC-160`), and the store checks the pack with the same function.
+- **The pack.** `runPeriodicEvaluation` reads the entries and the sample through the reporting path, opens each sampled
+  record's archive package (`records.readability_snapshot`, with the same permissions as the export), verifies it,
+  renders it as a PDF/A-3 true copy with its audit trail and reads the rendering back; each record gets READABLE with
+  its render SHA-256 or UNREADABLE with the findings. `records.store_evaluation_pack` (VALIDATION.MANAGE) stores the pack
+  only when every entry's whole content (source log and row, times, summary) is the source log's, each topic has its
+  registered sources, and the readability report is exactly the seeded sample (at least 10 records, or every closed
+  record when fewer), each named as the database names it. The seed and the sample size are stored and signed with the
+  pack.
+
+> **Why this exists**
+> - **Pharma reason:** the periodic evaluation of a computerised system must show what changed and what went wrong in
+>   the period, and its approval must be bound to exactly the report that was reviewed (EU GMP Annex 11 section 11;
+>   21 CFR 211.68(a)). A report that can be edited after approval, or that leaves out an entry, is no evidence.
+> - **Control:** [DI-11](../../../compliance/controls/DI-11.yaml), [DI-44](../../../compliance/controls/DI-44.yaml).
+> - **Code:** [`records.store_evaluation_pack`](../../../packages/kernel/sql/1336_periodic_evaluation_pack.sql#sym=records.store_evaluation_pack),
+>   [`records.approve_evaluation_pack`](../../../packages/kernel/sql/1336_periodic_evaluation_pack.sql#sym=records.approve_evaluation_pack).
+> - **Tests:** [evaluation-pack.test.ts](../../../packages/kernel/test/records/evaluation-pack.test.ts), tests named `[DI-11]` and `[DI-44]`.
+> - **Error:** `EBMR-REC-152` (hash), `-153` (period not over), `-154` (topics), `-155` (entries not the source
+>   logs'), `-156` (not the seeded sample), `-157` (a result missing), `-158`, `-159` (sign-off).
+
+> **Why this exists**
+> - **Pharma reason:** a QA sign-off must be the quality unit's own e-signature over the content it reviewed, and the
+>   person who prepared a report does not approve it (four-eyes principle).
+> - **Control:** [DI-11](../../../compliance/controls/DI-11.yaml); invariant INV-03.
+> - **Code:** [`records.approve_evaluation_pack`](../../../packages/kernel/sql/1336_periodic_evaluation_pack.sql#sym=records.approve_evaluation_pack)
+>   with the signed content [`records.evaluation_pack_content`](../../../packages/kernel/sql/1336_periodic_evaluation_pack.sql#sym=records.evaluation_pack_content)
+>   (aggregate `evaluation_pack`, which carries the pack SHA-256; meaning PERIODIC_EVALUATION_APPROVED, excludes the
+>   performer).
+> - **Tests:** [evaluation-pack.test.ts](../../../packages/kernel/test/records/evaluation-pack.test.ts).
+> - **Error:** `EBMR-REC-158`, `EBMR-REC-159`, `EBMR-ESIG-044` (the generator signs), `EBMR-ESIG-070`.
+
+> **Why this exists**
+> - **Pharma reason:** at the end of a contract the customer gets all its records back, with audit trails and
+>   signatures, in a form it can read without the supplier's system (EU GMP Annex 11 section 3.1; 21 CFR 11.10(b)).
+> - **Control:** [DI-08](../../../compliance/controls/DI-08.yaml).
+> - **Code:** [`records.full_export_snapshot`](../../../packages/kernel/sql/1335_full_export_closed_records.sql#sym=records.full_export_snapshot),
+>   [`records.register_full_export`](../../../packages/kernel/sql/1335_full_export_closed_records.sql#sym=records.register_full_export).
+> - **Tests:** [full-export.test.ts](../../../packages/kernel/test/records/full-export.test.ts), tests named `[DI-08]`.
+> - **Error:** `EBMR-REC-142` to `EBMR-REC-145`.
+
+**Pitfalls.** An HMAC seal can be checked only by the installation that holds its secret: the export records the
+installation's check, and the viewer says the seal is not checkable offline. A production installation that wants
+every seal checked offline seals with an Ed25519 key (its public key travels in the export). A new closed-record type or
+evaluation topic is registered in its own module's migration with `report.register_closed_record_source` or
+`report.register_evaluation_source`; the registry is insert-only, so a source is replaced by a new topic code, never
+edited. The source row functions must stay STABLE: the reporting role may run no volatile function
+(`sandbox.segregation_problems`).
+
 ## How to test the kernel
 
 | What | Command |
