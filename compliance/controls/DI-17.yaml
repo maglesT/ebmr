@@ -369,6 +369,7 @@ tests:
   - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-17][INV-13] both checks of the consumption name the batch's product: the batch side at the actor's location, the site side in the lot's site"
   - "packages/kernel/test/integration/authorization.test.ts > the authorization scan of the identity, e-signature and sandbox schemas (6jc-R7) > [DI-17][DI-18] every app-callable writer of iam, esig and sandbox checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no table is app-writable"
   - "packages/recipe-core/test/lifecycle/authorization.test.ts > the authorization scan of the plant schema (6jc-R7) > [DI-17][DI-18] every app-callable writer of plant checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no plant table is app-writable"
+  - "apps/tablets-server/test/validation/authorization-scan.test.ts > the authorization scan of the Tablets schema (6jc-R7) > [DI-17][DI-18] every app-callable writer of tab checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no tab table is app-writable"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:
