@@ -3,8 +3,9 @@
  * register exports as the database holds them (recipe-core 1031 to 1034). Quantities stay decimal text throughout.
  *
  * Phase 7 slice 7a (6jc-R2): every read goes through the gated definers of tablets 1413 for the session behind the
- * request (its token hash), which need CONTROLLED.READ in the record's {site, product} scope; the application role no
- * longer reads the tables (recipe-core 1214). A refusal is the database's (EBMR-CSM-060 or 061, 403).
+ * request (its token hash), which need CONTROLLED.READ in the record's {site, product} scope; no route reads the tables
+ * directly (the application role keeps SELECT only for true copies and archives, recipe-core 1215). A refusal is the
+ * database's (EBMR-CSM-060 or 061, 403).
  */
 import {
   CONTROLLED_DRAFT_BANNER,

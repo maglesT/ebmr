@@ -335,11 +335,12 @@ describe('controlled-substance mode (IN-53, draft; recipe-core 1031 to 1035)', (
     expect(await w.consume(batch, reservation, lot.materialCode, '1')).toMatchObject({ batch_id: batch.id });
   });
 
-  it('[IN-53] the application role reads no controlled-substance table or read function directly; the writers stay granted (recipe-core 1214)', async () => {
-    // Phase 7 slice 7a (6jc-R2): the edition reads them through its gated definers (CONTROLLED.READ in scope).
+  it('[IN-53] the old controlled read functions are closed to the application role, which keeps table SELECT for true copies; the writers stay granted (recipe-core 1214, 1215)', async () => {
+    // Phase 7 slice 7a (6jc-R2, P7A-7): the edition's people read through its gated definers (CONTROLLED.READ in scope);
+    // the application role, the server's own identity, reads the tables for true copies, evidence exports and archives.
     const tables = ['plant.controlled_product', 'plant.controlled_product_approval', 'recipe.controlled_custody', 'recipe.controlled_custody_signature',
       'recipe.controlled_custody_use', 'recipe.controlled_checkpoint', 'recipe.controlled_checkpoint_signature', 'recipe.controlled_register_extract'];
-    for (const t of tables) expect(await refusal(db.app.query(`select count(*) from ${t}`)), t).toMatch(/permission denied/);
+    for (const t of tables) expect(await refusal(db.app.query(`select count(*) from ${t}`)), t).toBe('');
     const id = randomUUID();
     const reads = ['plant.controlled_materials(text)', 'plant.material_is_controlled(text)', 'plant.controlled_product_state(text)', 'plant.controlled_record_state(uuid)',
       'recipe.batch_controlled_materials(uuid)', 'recipe.controlled_moved_materials(uuid)', 'recipe.controlled_custody_state(uuid)', 'recipe.controlled_custodians(uuid)',
