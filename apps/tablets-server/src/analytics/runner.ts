@@ -35,7 +35,7 @@ import { canonicalText, outputHash, sha256Hex, type FlagDraft, type MethodId, ty
 import { codeRuns, methodDefinitionProblems, parametersSha256, runtimeOf } from './catalog.ts';
 import { IMPLEMENTATIONS, type InputRow, type InputSpec, type MethodImplementation, type ReferenceRow } from './implementation.ts';
 import { readSnapshot, recordedFilter, type InputRecord } from './inputs.ts';
-import { connectRetrying, queryRetrying } from './pool.ts';
+import { analyticsRoleProblem, connectRetrying, queryRetrying } from './pool.ts';
 
 export type RunTrigger = 'SCHEDULED' | 'BATCH_COMPLETE' | 'ON_DEMAND';
 
@@ -93,12 +93,29 @@ export class AnalyticsRunner {
     this.impls = o.implementations ?? IMPLEMENTATIONS;
   }
 
-  /** Starts the timer; the first tick sets the poll's baseline and the nightly day. */
-  start(): void {
-    if (this.timer || this.stopped) return;
+  /**
+   * Starts the timer once the connection is proven to be ebmr_analytics with no elevated attribute (analyticsRoleProblem;
+   * Phase 7 slice 7b-1, P6A7-8, DI-51); the first tick sets the poll's baseline and the nightly day. Resolves true when
+   * the runner started; false, with an operations alert logged, when the role is wrong or cannot be read: the runner
+   * then never runs (the server serves on; analytics is advisory).
+   */
+  async start(): Promise<boolean> {
+    if (this.timer || this.stopped) return this.timer !== null;
+    let problem: string | null;
+    try {
+      problem = await analyticsRoleProblem(this.o.pool);
+    } catch (error) {
+      problem = `its role could not be read: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    if (problem !== null) {
+      this.o.log.error({ problem }, 'analytics runner: not started, its database connection is not the analytics role alone (DI-51; check EBMR_DB_ANALYTICS_URL)');
+      return false;
+    }
+    if (this.timer || this.stopped) return this.timer !== null;
     this.timer = setInterval(() => void this.tick(), this.o.pollMs ?? POLL_MS);
     this.timer.unref();
     void this.tick();
+    return true;
   }
 
   /** Phase 7 slice 7g-4: the runner's timer runs (started, not paused, not stopped). */
@@ -114,8 +131,8 @@ export class AnalyticsRunner {
   }
 
   /** Phase 7 slice 7g-4 (operations screen): starts the timer again after pause() (never after stop()). */
-  resume(): void {
-    this.start();
+  resume(): Promise<boolean> {
+    return this.start();
   }
 
   /** Stops the timer, waits for the work in progress, and closes the pool. */

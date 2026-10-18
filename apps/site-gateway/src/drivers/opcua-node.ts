@@ -31,6 +31,7 @@ import {
 } from 'node-opcua';
 import {
   canonicalDecimal,
+  MISSING_TIMESTAMP_STATUS,
   OPCUA_NAMESPACE_URI,
   opcuaEventsNodeId,
   qualityOfStatus,
@@ -49,6 +50,8 @@ export interface NodeOpcuaTransportOptions {
   applicationName?: string;
   /** How long a connect may take before it fails (ms). */
   connectTimeoutMs?: number;
+  /** The gateway's wall clock (clock.ts): dates a value the source sent without any timestamp (sampleOf). */
+  wallUs: () => bigint;
 }
 
 const URI_PREFIX = `nsu=${OPCUA_NAMESPACE_URI};`;
@@ -87,13 +90,26 @@ export function leafCertificate(der: Buffer | null | undefined): Buffer | null {
   return der.length >= 2 + n + len ? der.subarray(0, 2 + n + len) : null;
 }
 
-export function sampleOf(dv: DataValue): NativeSample {
-  const status = `0x${(dv.statusCode.value >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
+/**
+ * One OPC UA DataValue as a native sample. The source time is the source's timestamp, or the source server's when the
+ * source gave none (OPC UA allows it). Phase 7 slice 7b-1 (6jc-R13, DI-32): when the value carries neither timestamp (or
+ * one at or before the epoch), the sample is never dated epoch 0: it is dated when the gateway received it
+ * (`receivedUs`), marked BAD (MISSING_TIMESTAMP_STATUS, so it shows no value) and `problem` says why, with the status the
+ * source sent; the driver alarms it.
+ */
+export function sampleOf(dv: DataValue, receivedUs: bigint): { sample: NativeSample; problem: string | null } {
+  const sent = `0x${(dv.statusCode.value >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
   const raw = rawText(dv.value.value).slice(0, 64) || '-';
   const decimal = /^[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]{1,3})?$/.test(raw) ? canonicalDecimal(raw) : null;
-  const source = micros(dv.sourceTimestamp, dv.sourcePicoseconds) ?? micros(dv.serverTimestamp, dv.serverPicoseconds) ?? 0n;
-  const server = micros(dv.serverTimestamp, dv.serverPicoseconds);
-  return { sourceTime: source.toString(), serverTime: server === null ? null : server.toString(), raw, value: qualityOfStatus(status) === 'BAD' ? null : decimal, status };
+  const positive = (us: bigint | null): bigint | null => (us !== null && us > 0n ? us : null);
+  const server = positive(micros(dv.serverTimestamp, dv.serverPicoseconds));
+  const source = positive(micros(dv.sourceTimestamp, dv.sourcePicoseconds)) ?? server;
+  const status = source === null ? MISSING_TIMESTAMP_STATUS : sent;
+  const sample: NativeSample = {
+    sourceTime: (source ?? receivedUs).toString(), serverTime: server === null ? null : server.toString(), raw, value: qualityOfStatus(status) === 'BAD' ? null : decimal, status,
+  };
+  const problem = source === null ? `the value came with no source or server timestamp (status ${sent}); dated when the gateway received it and marked BAD (${MISSING_TIMESTAMP_STATUS})` : null;
+  return { sample, problem };
 }
 
 export class NodeOpcuaTransport implements OpcuaTransport {
@@ -160,7 +176,10 @@ export class NodeOpcuaTransport implements OpcuaTransport {
     const sub = await this.ensureSubscription(samplingIntervalMs);
     for (const id of nodeIds) {
       const item = ClientMonitoredItem.create(sub, { nodeId: this.nodeId(id), attributeId: AttributeIds.Value }, { samplingInterval: samplingIntervalMs, discardOldest: false, queueSize: 100 }, TimestampsToReturn.Both);
-      item.on('changed', (dv: DataValue) => onChange({ nodeId: id, sample: sampleOf(dv) }));
+      item.on('changed', (dv: DataValue) => {
+        const { sample, problem } = sampleOf(dv, this.options.wallUs());
+        onChange({ nodeId: id, sample, ...(problem ? { problem } : {}) });
+      });
     }
   }
 
@@ -187,7 +206,7 @@ export class NodeOpcuaTransport implements OpcuaTransport {
   async read(nodeId: string): Promise<NativeSample> {
     if (!this.session) throw new Error('the session is not open');
     const dv = await this.session.read({ nodeId: this.nodeId(nodeId), attributeId: AttributeIds.Value }, 0);
-    return sampleOf(dv);
+    return sampleOf(dv, this.options.wallUs()).sample;
   }
 
   async readText(nodeId: string): Promise<string | null> {

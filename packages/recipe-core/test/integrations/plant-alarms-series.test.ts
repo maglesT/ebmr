@@ -167,8 +167,9 @@ describe('the plant alarm log in the batch context (DI-49)', () => {
     const idle = await servedPress();
     const loose = await sendAlarm(alarmPayload(idle.code, { alarmCode: code('IDLE') }));
     expect((await db.app.query('select count(*)::int as n from plant.alarm_batch where alarm_id = $1', [loose['alarmId']])).rows[0]).toEqual({ n: 0 });
-    // A source time before the use began binds to no batch (the binding is by the source time, not by arrival).
-    const early = await sendAlarm(alarmPayload(press.code, { alarmCode: code('EARLY'), occurredAt: '1600000000000000' }));
+    // A source time before the use began binds to no batch (the binding is by the source time, not by arrival). Two
+    // minutes before now: within the skew the database allows before the endpoint session (6jc-R13, recipe-core 1233).
+    const early = await sendAlarm(alarmPayload(press.code, { alarmCode: code('EARLY'), occurredAt: (BigInt(nowUs()) - 120_000_000n).toString() }));
     expect((await db.app.query('select count(*)::int as n from plant.alarm_batch where alarm_id = $1', [early['alarmId']])).rows[0]).toEqual({ n: 0 });
   });
 

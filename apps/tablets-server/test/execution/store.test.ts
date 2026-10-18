@@ -280,6 +280,19 @@ describe('installation (DI-05, INV-18)', () => {
   }, 180_000);
 });
 
+describe('the validated release (DI-03, slice 7c)', () => {
+  it('[DI-03] a sandbox, which training uses, is not gated: with no approved validation summary its test batch is issued; the GMP copy holds the approval its batches need', async () => {
+    const problem = async (db: typeof sbx.db) => (await db.app.query<{ p: string | null }>('select platform.validation_summary_problem() as p')).rows[0]?.p ?? null;
+    expect((await sbx.db.admin.query<{ n: string }>('select count(*)::text as n from platform.validation_summary')).rows[0]?.n).toBe('0');
+    expect(await problem(sbx.db)).toBeNull();
+    const { runId } = await newRun();
+    expect((await sbx.db.admin.query<{ i: string }>('select installation as i from recipe.batch_execution where id = $1', [runId])).rows[0]?.i).toBe('SANDBOX');
+    // The GMP template approved the summary of its release (test/support/global-setup.ts), so its copies issue GMP batches.
+    expect(await problem(gmp.db)).toBeNull();
+    expect((await gmp.db.admin.query<{ n: string }>('select count(*)::text as n from platform.validation_summary where schema_release = platform.schema_release()')).rows[0]?.n).toBe('1');
+  });
+});
+
 describe('the append path', () => {
   it('[INV-40] a command on a kiosk needs the tap; a row that does not carry the tap this command consumed is refused even when written directly', async () => {
     const { runId, op } = await newRun();

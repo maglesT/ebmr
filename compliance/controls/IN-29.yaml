@@ -52,6 +52,7 @@ tests:
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29][DI-37] a run that no longer reproduces as of its own instant (a transaction straddled it) is not signed off, even with a valid signature"
   - "packages/site-services/test/mutation/genealogy-and-recall.test.ts > the AP's sign-off of a mock recall (IN-29, DI-37) > [IN-29] a signer holding the sign-off permission through another role than the AP's is refused"
   - "packages/site-services/test/mutation/transfer-and-federation.test.ts > acts with no other test in the group (kernel 1220, 1221, site services 0980, recipe-core 1091) > [IN-29] a mock recall records for a transfer only the destination's forward excerpt of that transfer, with a known status"
+  - "apps/tablets-server/test/transfers/transfer-routes.test.ts > federated genealogy over HTTP (PR-57, IN-29) > [IN-29][PR-57] a mock recall asks the destinations of its own stored run, so a failed genealogy read is no \"no destination\"; and nobody is asked before RECALL.MOCK_RUN is checked (6jc-R12)"
 clauses:
   - clause: "from a defective API lot, list every finished batch"
     tests:

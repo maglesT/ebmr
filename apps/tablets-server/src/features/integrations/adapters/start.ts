@@ -14,6 +14,9 @@
  * Phase 7 slice 7a (6jc-R9; DI-31): an adapter with `<code>.ca.pem`, `.cert.pem` and `.key.pem` in EBMR_ADAPTER_TLS_DIR
  * talks mutual TLS (./transport.ts); on a GMP installation an adapter whose base URL is off loopback without it does not
  * start (EBMR-INT-034) and its health shows BLOCKED with the refusal as its last error.
+ * Phase 7 slice 7c (DI-06): before its first cycle the adapter asks the database (platform.check_adapter_start, as the
+ * adapter); on a GMP installation an interface missing from the approved system description raises the INTERFACE_DRIFT
+ * alarm and does not start (EBMR-INT-035), shown the same way.
  * Workers stop (their cycle ends, their session is closed) when the server closes; their health shows on the
  * integrations routes (AdapterHealthView.worker).
  * Phase 7 slice 7g-4 (decision 0025): the operations screen starts, stops and restarts each worker (AdapterControl,
@@ -86,7 +89,7 @@ export interface AdapterRuntime {
   readonly workers: readonly AdapterWorker[];
   /** The health of the worker of adapter `code` (BLOCKED, naming why, for one refused at start), or null when none runs. */
   health(code: string): AdapterHealth | null;
-  /** The adapters refused at their last start because of their transport (EBMR-INT-034, slice 7a), with why. */
+  /** The adapters refused at their last start because of their transport (EBMR-INT-034, slice 7a) or of interface drift (EBMR-INT-035, slice 7c), with why. */
   readonly refusedAtStart: ReadonlyMap<string, string>;
   /** Start, stop and list the workers (the operations screen, slice 7g-4). */
   control: AdapterControl;
@@ -128,7 +131,7 @@ export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000
   };
 
   /** Starts the worker of adapter `code` on `r`; the refusal, or null when it runs. */
-  const launch = (code: string, r: Resolved, mirrored: Set<SourceSystem>): string | null => {
+  const launch = async (code: string, r: Resolved, mirrored: Set<SourceSystem>): Promise<string | null> => {
     if (!mirrored.has(r.slot.system)) {
       const why = `the site runs ${r.slot.system} as STAND_IN: its adapter does not start (D-P6a-5)`;
       notStarted.set(code, why);
@@ -153,6 +156,16 @@ export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000
     notStarted.delete(code);
     const entry = r.entry;
     const w = r.slot.make(app.pools.app, code, () => openAdapterActor(app, entry, r.slot.roleCode), entry.endpoint, tls);
+    // Slice 7c (DI-06, kernel 1350): the database checks the adapter against the approved system description as the
+    // adapter itself; on a GMP installation an interface not described raises the INTERFACE_DRIFT alarm and does not
+    // start (EBMR-INT-035), and the health page names the refusal.
+    const drift = await w.command(async (c) => (await c.query<{ p: string | null }>('select platform.check_adapter_start() as p')).rows[0]?.p ?? null);
+    if (drift !== null) {
+      await w.stop();
+      log.warn({ adapter: code, system: r.slot.system, code: 'EBMR-INT-035' }, drift);
+      refused.set(code, refusedHealth(code, r.slot.system, drift));
+      return drift;
+    }
     w.start(intervalMs, log);
     workers.set(code, w);
     log.info({ adapter: code, system: r.slot.system, endpoint: entry.endpoint, mutualTls: tls !== undefined }, 'integration adapter started');
@@ -178,7 +191,7 @@ export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000
         log.warn({ terminal: slot.terminal, system: slot.system, account: entry.loginName }, 'the adapter account is not registered as an active adapter of its system; it does not start');
         continue;
       }
-      launch(code, { slot, entry }, mirrored);
+      await launch(code, { slot, entry }, mirrored);
     } catch (e) {
       log.warn({ terminal: slot.terminal, err: e instanceof Error ? e.message : String(e) }, 'the integration adapter could not start');
     }

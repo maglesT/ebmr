@@ -65,7 +65,9 @@ export async function controlWorker(app: AppContext, code: string, action: 'STAR
     const runner = app.operations.analytics;
     if (!runner) throw noSuchWorker(code);
     if (action !== 'START') await runner.stop();
-    if (action !== 'STOP') runner.start();
+    if (action !== 'STOP' && !(await runner.start())) {
+      return 'the analytics runner did not start: its database connection is not the analytics role alone (DI-51; check EBMR_DB_ANALYTICS_URL)';
+    }
     return null;
   }
   const adapters = app.operations.adapters;

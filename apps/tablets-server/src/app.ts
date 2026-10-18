@@ -161,7 +161,8 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
           ...(deps.analytics?.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
         })
       : null;
-    analytics?.start();
+    // The runner starts only on the analytics role alone (P6A7-8); a refusal is logged and the server serves on.
+    void analytics?.start();
     if (analytics && analyticsPool) {
       ctx.operations.analytics = { running: () => analytics.isRunning(), start: () => analytics.resume(), stop: () => analytics.pause(), pool: analyticsPool };
     }

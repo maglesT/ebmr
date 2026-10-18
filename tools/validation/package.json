@@ -1,0 +1,17 @@
+{
+  "name": "@ebmr/tool-validation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Validation pack tooling: the evidence bundle (register, reports, inventory of a migrated database, records, SBOM), the pack, the IQ and OQ scripts and records",
+  "type": "module",
+  "dependencies": {
+    "@ebmr/api-contract": "workspace:0.1.0",
+    "@ebmr/kernel": "workspace:0.1.0",
+    "@ebmr/test-kit": "workspace:0.1.0",
+    "@ebmr/validation-kit": "workspace:0.1.0",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

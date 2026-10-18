@@ -12,6 +12,8 @@ import { identity, withCommand, type ActorContext } from '@ebmr/kernel';
 import { passwordActor } from '@ebmr/test-kit';
 import { erpWmsWorker, ERP_WMS_ROLE, type ErpWmsFeed as FeedName } from '../../../src/features/integrations/adapters/erp-wms/index.ts';
 import type { AdapterWorker } from '../../../src/features/integrations/adapters/framework.ts';
+import type { TestDatabase } from '../../../../../packages/kernel/test/support/db.ts';
+import { describeTestInterfaces, testInterface } from '../../../../../packages/kernel/test/support/validation.ts';
 import { startServer, type TestServer } from '../../support/harness.ts';
 
 const reason = <T extends ActorContext>(ctx: T): T => ({ ...ctx, reasonCode: 'TEST_SETUP', reasonText: 'ERP/WMS adapter test set-up', correlationId: randomUUID() });
@@ -44,6 +46,8 @@ export async function adapterIdentity(server: TestServer, name: string, system =
   const code = `${name}-${tag}`;
   const ev = await identity.authenticate(server.db.authn, { method: 'SERVICE_KEY', identifier: loginName, secret: created.secret, deviceFingerprint: fingerprint, purpose: 'LOGIN' });
   const s = await identity.openSession(server.db.app, ev.authEventId, fingerprint);
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  if (server.kind === 'GMP') await describeTestInterfaces(server.db as unknown as TestDatabase, [testInterface(code, system as Parameters<typeof testInterface>[1])], owner);
   await withCommand(server.db.app, reason(admin), (c) =>
     c.query('select iam.register_integration_adapter($1, $2, $3, $4, $5)', [code, system, created.accountId, s.deviceId, `${name} feed (test)`]));
   await identity.endSession(server.db.app, s.sessionId);

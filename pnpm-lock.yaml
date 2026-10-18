@@ -110,6 +110,12 @@ importers:
         specifier: workspace:0.1.0
         version: link:../../packages/ui-kit
 
+  apps/record-viewer:
+    devDependencies:
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
+
   apps/simulators:
     dependencies:
       '@ebmr/integration-sdk':
@@ -530,6 +536,28 @@ importers:
       '@ebmr/kernel':
         specifier: workspace:0.1.0
         version: link:../../packages/kernel
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+
+  tools/validation:
+    dependencies:
+      '@ebmr/api-contract':
+        specifier: workspace:0.1.0
+        version: link:../../packages/api-contract
+      '@ebmr/kernel':
+        specifier: workspace:0.1.0
+        version: link:../../packages/kernel
+      '@ebmr/test-kit':
+        specifier: workspace:0.1.0
+        version: link:../../packages/test-kit
+      '@ebmr/validation-kit':
+        specifier: workspace:0.1.0
+        version: link:../../packages/validation-kit
       pg:
         specifier: 8.23.0
         version: 8.23.0

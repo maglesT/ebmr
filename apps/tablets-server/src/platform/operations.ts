@@ -35,7 +35,8 @@ export interface AdapterControl {
 
 export interface AnalyticsControl {
   running(): boolean;
-  start(): void;
+  /** Starts the runner; false when it refused (its connection is not the analytics role alone, P6A7-8). */
+  start(): Promise<boolean>;
   stop(): Promise<void>;
   /** The runner's own pool (a demo load or reset listens for its idle connections ending with the database). */
   pool: pg.Pool;

@@ -18,3 +18,5 @@ export * from './pdf-true-copy.ts';
 export * from './evidence-export.ts';
 export * from './contingency.ts';
 export * from './batch-retention.ts';
+export * from './full-export.ts';
+export * from './evaluation-pack.ts';

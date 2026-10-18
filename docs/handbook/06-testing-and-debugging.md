@@ -478,6 +478,42 @@ The E2E job limit was raised to 45 minutes when the set-up started building the 
 The golden job runs one file at a time; GB-T-01 takes about 20 minutes. A single test over 30 minutes is not allowed
 ([defect log, CI](08-defect-log.md#ci)).
 
+## Generating the validation pack
+
+The validation pack (Phase 7 slice 7c; [validation-kit](modules/validation-kit.md),
+[tools-validation](modules/tools-validation.md)) is generated from one evidence bundle. On a run's reports:
+
+```bash
+pnpm test:json                                    # .reports/vitest.json (golden and E2E reports join when present)
+pnpm validation:bundle --results .reports --db postgres://ebmr_dev:ebmr_dev@localhost:5432/<a database migrated to the release> \
+  --out .reports/validation/bundle.json           # also writes .reports/validation/sbom.cdx.json
+pnpm validation:generate --bundle .reports/validation/bundle.json --out .reports/validation/pack
+pnpm validation:iq --db <url> --server <url> --bundle .reports/validation/bundle.json
+```
+
+- The bundle refuses a database on another schema release than the files: create one with the set-up CLI or
+  `createGmpDatabase` of the test kit first.
+- Generate twice and compare: the pack is byte-identical for the same bundle (`manifest.json` lists each file's
+  SHA-256 and the bundle's).
+- The pack and the bundle are not committed (D-P7-13).
+
+### The interlocks in tests (D-P7-12)
+
+Since slice 7c a GMP batch is issued only on a release with an approved validation summary (DI-03, recipe-core 1250),
+and a GMP installation takes messages only from an interface in the approved system description (DI-06, kernel 1350).
+The test set-ups approve both with real signed acts:
+
+| Set-up | How |
+|---|---|
+| Kernel and recipe-core tests (kernel template) | [`approveTestRelease(db)`](../../packages/kernel/test/support/validation.ts#sym=approveTestRelease) after `createTestDatabase()` in every file that issues a GMP batch; [`describeTestInterfaces`](../../packages/kernel/test/support/validation.ts#sym=describeTestInterfaces) in the adapter helpers (`registerAdapter` describes first; `{ described: false }` for the drift tests) |
+| Server tests (GMP template) | the global set-up approves the summary in the template with test-kit `approveValidationSummary` and `seededValidationActs`; the ERP/WMS `adapterIdentity` describes its adapter |
+| Set-up CLI (golden batches, E2E, demo) | `setupInstallation` approves a DEMO-ONLY summary as `qaInvestigator` before the feature seeds |
+| Browser suite adapters | `registerAdapter` of `tools/e2e/specs/phase6/support.ts` uses test-kit `approveSystemDescription` on the GMP side |
+
+A new test file that issues a GMP batch on the kernel template must call `approveTestRelease(db)`; without it the issue
+is refused with EBMR-VAL-001. A test that needs a release without a summary adds a stand-in ledger row (see
+`upgraded` in [gmp-issue.test.ts](../../packages/recipe-core/test/lifecycle/gmp-issue.test.ts)).
+
 ## Related pages
 
 - [Database reference](05-database.md): migrations, guards, locks, test databases, clusters, the SQL mutation harness.

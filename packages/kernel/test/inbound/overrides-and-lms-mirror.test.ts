@@ -10,6 +10,7 @@ import { toDbContext, withCommand, type ActorContext } from '../../src/db/comman
 import { heldHead } from '../integrations/support.ts';
 import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { describeTestInterfaces, testInterface } from '../support/validation.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
 
@@ -30,6 +31,8 @@ beforeAll(async () => {
   await ensureFixtureChangeRecord(db);
   ({ admin, owner } = await seedAdministration(db));
   lms = await seedServiceActor(db, { kind: 'INTEGRATION', name: 'LMS adapter' });
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  await describeTestInterfaces(db, [testInterface(LMS, 'LMS')]);
   await withCommand(db.app, withReason(admin), (c) =>
     c.query('select iam.register_integration_adapter($1, $2, $3, $4, $5)', [LMS, 'LMS', lms.accountId, lms.deviceId, 'LMS adapter for 1181']));
 }, 120_000);
@@ -61,6 +64,37 @@ describe('the LMS qualification source on the generic mirror freshness (kernel 1
       expect((await db.app.query<{ p: string | null }>('select iam.lms_mirror_problem() as p')).rows[0]?.p).toMatch(/last synchronised 720\d s ago, more than its bound of 3600 s/);
       // The INTERNAL register never goes stale.
       expect((await db.app.query("select iam.qualification_source_fresh('INTERNAL', clock_timestamp()) as f")).rows[0]).toEqual({ f: true });
+    } finally {
+      await setMode('STAND_IN');
+    }
+  });
+});
+
+describe('the stale qualification sources a refusal names (kernel 1329, F-6jb-2)', () => {
+  const problems = async () =>
+    (await db.app.query<{ p: { source: string; mirror: string; ageSeconds: string | null; boundSeconds: string; systemOwner: string; message: string }[] }>(
+      'select iam.stale_qualification_source_problem() as p')).rows[0]?.p ?? [];
+
+  it('[DI-31] F-6jb-2: each stale qualification source is named with its mirror, its age, its bound and the system owner to call; a fresh one is not', async () => {
+    // STAND_IN: the LMS heartbeat (none recorded) rules; INTERNAL is never listed.
+    expect(await problems()).toEqual([{ source: 'LMS', mirror: 'LMS qualification heartbeat', ageSeconds: null, boundSeconds: '86400', systemOwner: 'the LMS system owner',
+      message: 'the LMS qualification heartbeat is stale: it has never synchronised, more than its bound of 86400 s; call the LMS system owner' }]);
+    await db.admin.query("insert into iam.mirror_heartbeat (source_code, last_synced_at) values ('LMS', clock_timestamp() - interval '2 days')");
+    try {
+      expect((await problems())[0]).toMatchObject({ mirror: 'LMS qualification heartbeat', message: expect.stringMatching(/last synchronised 1728\d\d s ago, more than its bound of 86400 s/) as unknown });
+      await db.admin.query("update iam.mirror_heartbeat set last_synced_at = clock_timestamp() where source_code = 'LMS'");
+      expect(await problems()).toEqual([]);
+    } finally {
+      await db.admin.query("delete from iam.mirror_heartbeat where source_code = 'LMS'");
+    }
+    // MIRROR: the LMS adapter's synchronisation and the data class's bound.
+    await setMode('MIRROR');
+    try {
+      await withCommand(db.app, ctxOf(lms), async (c) => c.query("select platform.record_mirror_sync('LMS_QUALIFICATION', $1)", [await heldHead(db, LMS)]));
+      expect(await problems()).toEqual([]);
+      await db.admin.query("update platform.mirror_sync set last_synced_at = last_synced_at - interval '2 hours' where data_class = 'LMS_QUALIFICATION'");
+      expect(await problems()).toEqual([{ source: 'LMS', mirror: 'LMS_QUALIFICATION', ageSeconds: expect.stringMatching(/^720\d$/) as unknown, boundSeconds: '3600', systemOwner: 'the LMS system owner',
+        message: expect.stringMatching(/^the LMS mirror LMS_QUALIFICATION is stale: last synchronised 720\d s ago, more than its bound of 3600 s; call the LMS system owner$/) as unknown }]);
     } finally {
       await setMode('STAND_IN');
     }

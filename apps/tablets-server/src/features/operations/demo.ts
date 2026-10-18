@@ -147,7 +147,7 @@ export async function recreateInstallation(app: AppContext, opts: DemoJobOptions
     if (zone !== null) app.siteZone.expectNewInstallationZone(zone);
     ops.maintenance = null;
     await app.siteZone.check();
-    ops.analytics?.start();
+    await ops.analytics?.start();
   } finally {
     ops.maintenance = null;
   }

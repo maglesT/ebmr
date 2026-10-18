@@ -3,6 +3,8 @@
  * recipe-core and tablets SQL) and one sandbox template (provisioned once as ebmr_sandbox_tpl<hex>), both
  * bootstrapped and seeded with the persona catalogue through test-kit. Test files copy them
  * (support/harness.ts); the seeds, with their DEMO-ONLY credentials and keys, reach the files through provide().
+ * The GMP template also holds an approved validation summary of its release (slice 7c, DI-03: a GMP batch needs one),
+ * approved by the seed's QA person through a real signed act (test-kit seededValidationActs, D-P7-12).
  *
  * It also declares the test cluster's listener share (kernel 0980, decision X41): each test file that starts the gateway
  * listener runs one of its own, on its own database, and the files run in parallel, so the cluster runs several
@@ -31,6 +33,7 @@ import { readFileSync } from 'node:fs';
 import type pg from 'pg';
 import type { TestProject } from 'vitest/node';
 import {
+  approveValidationSummary,
   asAdmin,
   bootstrapInstallation,
   createTemplateDatabase,
@@ -39,6 +42,7 @@ import {
   openDatabase,
   provisionSandboxTemplate,
   seedDemoSite,
+  seededValidationActs,
   type SiteSeed,
 } from '@ebmr/test-kit';
 
@@ -142,7 +146,11 @@ export async function buildServerTemplates(): Promise<ServerTemplates> {
       const template = await createTemplateDatabase(sources, { prefix: 'ebmr_stpl' });
       const db = openDatabase(template, 'GMP');
       try {
-        return { template, seed: await seedDemoSite(db, 'GMP', await bootstrapInstallation(template, 'GMP')) };
+        const seed = await seedDemoSite(db, 'GMP', await bootstrapInstallation(template, 'GMP'));
+        // Slice 7c (DI-03, D-P7-12): the GMP template's release has an approved validation summary, through QA's real
+        // signed act, so every copy may issue GMP batches (recipe-core 1250).
+        await approveValidationSummary(await seededValidationActs(db, seed));
+        return { template, seed };
       } finally {
         await db.close();
       }
