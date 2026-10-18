@@ -1,4 +1,8 @@
-# eBMR: Electronic Batch Manufacturing Record system
+# Batchwright: Electronic Batch Manufacturing Record system
+
+**Batchwright by Medhanta** (decision `docs/decisions/0020-product-name-batchwright.md`; brand files in `docs/brand/`).
+The repository, packages and code keep the working name eBMR and the `ebmr` prefix. Guides for users and administrators:
+`docs/guides/`; developer handbook: `docs/handbook/`.
 
 Two separate products for pharmaceutical manufacturers in India, many of whom export:
 

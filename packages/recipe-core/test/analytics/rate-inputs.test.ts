@@ -22,6 +22,7 @@ import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { signFor } from '../../../kernel/test/records/helpers.ts';
 import { createTestDatabase, urlFor, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { approveTestRelease } from '../../../kernel/test/support/validation.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
 import { encodeState } from '../../src/engine/codec.ts';
@@ -155,6 +156,8 @@ const setShifts = (value: string, changeRecord: string) =>
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  // Slice 7c (DI-03, recipe-core 1250): a GMP batch is issued only on a release with an approved validation summary.
+  await approveTestRelease(db);
   w = new World(db, await seedCast(db));
   ({ owner } = await seedAdministration(db));
   qa = await seedActor(db, { roleCode: 'QA_REVIEWER' });

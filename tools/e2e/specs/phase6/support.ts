@@ -18,7 +18,7 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import type { Page } from '@playwright/test';
 import { identity, toDbContext, withCommand, type ActorContext } from '@ebmr/kernel';
-import { openDatabase, openPersonaSession, passwordActor, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
+import { approveSystemDescription, openDatabase, openPersonaSession, passwordActor, seededValidationActs, terminalOf, type DatabaseHandle, type SiteSeed } from '@ebmr/test-kit';
 import { expect, type E2eWorld } from '../../fixtures/index.ts';
 
 export type Installation = 'GMP' | 'SANDBOX';
@@ -170,6 +170,13 @@ export async function registerAdapter(db: DatabaseHandle, seed: SiteSeed, adm: A
     siteZone: adm.admin.siteZone, legalName,
   };
   const code = `${system}-E2E-${tag}`;
+  // Slice 7c (DI-06, kernel 1350; D-P7-12): on the GMP installation the interface is in the approved system description
+  // first (the system owner's change record, approved by QA's signature), or its messages are refused.
+  if (!sandbox) {
+    await approveSystemDescription(await seededValidationActs(db, seed), [
+      { adapterCode: code, sourceSystem: system, endpointHost: '127.0.0.1', transport: 'LOOPBACK', signedFeed: system === 'OPCUA', status: 'DESCRIBED' },
+    ]);
+  }
   const id = await withCommand(db.app, because(adm.admin, `E2E set-up: register the ${system} adapter`), async (c) =>
     (await c.query<{ id: string }>('select iam.register_integration_adapter($1, $2, $3, $4, $5) as id', [code, system, created.accountId, s.deviceId, `${system} adapter (E2E)`])).rows[0]?.id ?? '',
   );

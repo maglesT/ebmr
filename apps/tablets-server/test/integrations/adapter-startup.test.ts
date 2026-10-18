@@ -4,6 +4,8 @@
  * worker's health shows on the integrations routes. A STAND_IN site starts none, even with an adapter configured.
  * Slice 7a (6jc-R9): a GMP installation does not start an adapter whose base URL is off loopback without mutual TLS
  * (EBMR-INT-034), and the health page says why.
+ * Slice 7c (DI-06, kernel 1350): nor one whose interface is not in the approved system description: the start raises the
+ * INTERFACE_DRIFT alarm (EBMR-INT-035) and the health page says why.
  */
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -24,7 +26,7 @@ afterAll(async () => {
 });
 
 /** A GMP server whose service-keys file configures an LMS adapter at a running LMS simulator, in `mode`. */
-async function serverWithLmsAdapter(mode: 'MIRROR' | 'STAND_IN', endpoint?: string): Promise<{ server: TestServer; adapter: TestAdapter; sim: FeedSimProcess }> {
+async function serverWithLmsAdapter(mode: 'MIRROR' | 'STAND_IN', endpoint?: string, described = true): Promise<{ server: TestServer; adapter: TestAdapter; sim: FeedSimProcess }> {
   const sim = await spawnFeedSimulator('LMS');
   sims.push(sim);
   const file = join(mkdtempSync(join(tmpdir(), 'ebmr-adapters-')), 'service-keys.json');
@@ -38,7 +40,7 @@ async function serverWithLmsAdapter(mode: 'MIRROR' | 'STAND_IN', endpoint?: stri
         owner: await passwordActor(handle, seed.bootstrap.owner, seed.bootstrap.owner.fingerprint),
         authn: handle.authn,
       };
-      adapter = await registerAdapter(db, 'LMS', adm);
+      adapter = await registerAdapter(db, 'LMS', adm, { described });
       if (mode === 'MIRROR') await setMirrorMode(db, 'LMS_QUALIFICATION', 'MIRROR', adm);
       const s = adapter.actor.seed;
       writeFileSync(file, JSON.stringify({
@@ -98,5 +100,24 @@ describe('the integration adapters start with the server (DI-31)', () => {
     expect(r.value.health.worker).toMatchObject({ state: 'BLOCKED', cycles: '0' });
     expect(r.value.health.worker?.lastError).toMatch(/^EBMR-INT-034 a GMP installation does not start an adapter whose base URL http:\/\/lms\.plant\.example:4100\/lms\/v1 is off loopback without mutual TLS/);
     expect(await openSessions(server, adapter)).toBe(0);
+  });
+
+  it('[DI-06] an interface not in the approved system description raises the drift alarm and is refused: the adapter does not start and its health says why (EBMR-INT-035)', async () => {
+    const { server, adapter } = await serverWithLmsAdapter('MIRROR', undefined, false);
+    const db = server.db as unknown as TestDatabase;
+    const qa = await server.asPersona('qaInvestigator');
+    const r = await qa.call(routes.integrations.adapter, { params: { adapterCode: adapter.code } });
+    if (!r.ok) throw new Error(JSON.stringify(r.error));
+    expect(r.value.health.worker).toMatchObject({ state: 'BLOCKED', cycles: '0' });
+    expect(r.value.health.worker?.lastError).toMatch(/^EBMR-INT-035 interface drift: adapter LMS-[0-9A-F]{6} \(LMS\) is not in the approved system description/);
+    // The alarm fired when the adapter was registered, and again at its refused start; nothing was received.
+    expect(await count(db, "select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'INTERFACE_DRIFT' and details ->> 'at' = 'ADAPTER_START'", [adapter.code])).toBe(1);
+    expect(await count(db, "select count(*) as n from platform.integration_alarm where adapter_code = $1 and kind = 'INTERFACE_DRIFT'", [adapter.code])).toBe(2);
+    expect(await count(db, 'select count(*) as n from platform.inbound_message where adapter_code = $1', [adapter.code])).toBe(0);
+    expect(await openSessions(server, adapter)).toBe(0);
+    // The alarm is on the integrations page with its kind and summary.
+    const alarms = await qa.call(routes.integrations.alarms, { query: { adapterCode: adapter.code } });
+    if (!alarms.ok) throw new Error(JSON.stringify(alarms.error));
+    expect(alarms.value.alarms.map((a) => [a.kind, a.severity])).toEqual([['INTERFACE_DRIFT', 'CRITICAL'], ['INTERFACE_DRIFT', 'CRITICAL']]);
   });
 });

@@ -42,6 +42,11 @@ tests:
   - "packages/kernel/test/config/release-identity.test.ts > the validation-summary approval (kernel 1300) > [DI-03] an approved validation summary is insert-only and in the audit trail"
   - "packages/test-kit/test/seed.test.ts > test-kit validation approvals (slice 7-0, kernel 1300, D-P7-12) > [DI-03][DI-06] a seeded GMP site approves the validation summary of its release and its system description through real signed acts"
   - "apps/tablets-server/test/validation/role-permissions.test.ts > the Phase 7 permissions of the Tablets roles (tablets 1400) > [DI-03] VALIDATION.APPROVE_SUMMARY is held by the quality unit only"
+  - "packages/validation-kit/test/pack.test.ts > the risk assessment and the release documents > [DI-03] the validation summary template names the release, the runs, the deviations and the open expert decisions, and leaves the conclusion to QA"
+  - "tools/validation/test/validation.test.ts > the evidence bundle of a migrated database (tools/validation) > [DI-03] the IQ script passes every check on a correct installation and fails a dropped trigger, a revoked privilege and a DEMO-ONLY key by name"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the validated release (DI-03, recipe-core 1250) > [DI-03] a GMP batch is refused on a release without an approved validation summary"
+  - "packages/recipe-core/test/lifecycle/gmp-issue.test.ts > the validated release (DI-03, recipe-core 1250) > [DI-03] the validation-summary gate holds for every writer of a GMP batch row, and the application cannot approve or fake a release"
+  - "apps/tablets-server/test/execution/store.test.ts > the validated release (DI-03, slice 7c) > [DI-03] a sandbox, which training uses, is not gated: with no approved validation summary its test batch is issued; the GMP copy holds the approval its batches need"
 clauses:
   - clause: "In a test environment, change a DB row outside the application. The integrity job alarms and names the record."
     tests:

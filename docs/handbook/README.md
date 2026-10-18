@@ -1,4 +1,13 @@
-# eBMR developer handbook
+# Batchwright developer handbook
+
+![Batchwright Tablets](../brand/batchwright-tablets.svg)
+
+by ![Medhanta](../brand/medhanta-logo-278x148.png)
+
+**Batchwright by Medhanta**: the electronic batch manufacturing record system, editions Tablets and Injectables
+(decision [0020](../decisions/0020-product-name-batchwright.md)). In the code and in this handbook it keeps its working
+name, eBMR: the packages, schemas, environment variables and the `ebmr` prefix do not change. The product's users and
+administrators have their own guides: [docs/guides](../guides/README.md).
 
 Start here if you are a developer joining this project. The handbook explains what the software does, why
 (the pharma rules behind it), and how the code does it. You do not need to know pharma: the primer and the glossary
@@ -45,7 +54,10 @@ The module list behind the generated pages is [modules.yaml](modules.yaml). Writ
 | [api-contract](modules/api-contract.md) | `packages/api-contract`: the route table and the request and response shapes |
 | [tablets-server](modules/tablets-server.md) | `apps/tablets-server`: the Tablets edition's server, its features and its migrations |
 | [tablets-web](modules/tablets-web.md) | `apps/tablets-web`: the Tablets edition's screens |
+| [record-viewer](modules/record-viewer.md) | `apps/record-viewer`: the stand-alone, offline viewer of a full export (verifies, then shows, read-only) |
 | [integrations](modules/integrations.md) | `packages/integration-sdk`, `apps/site-gateway`, `apps/simulators` |
 | [shared-kits](modules/shared-kits.md) | `packages/ui-kit`, `packages/test-kit`, `packages/validation-kit` |
+| [validation-kit](modules/validation-kit.md) | `packages/validation-kit`: the evidence bundle and the validation pack generators (Phase 7) |
 | [injectables](modules/injectables.md) | `apps/injectables-*`: placeholders for Phase 5 |
 | [tools](modules/tools.md) | `tools/*`: register, boundaries, SQL mutation, demo, end-to-end suite, handbook |
+| [tools-validation](modules/tools-validation.md) | `tools/validation`: the evidence bundle, the pack, the IQ and OQ scripts, the build statuses |

@@ -34,7 +34,7 @@ export function MethodsPage() {
           <tbody>
             {monitor.data?.rows.map((r) => (
               <tr key={`${r.method}-${r.version.toString()}-${r.month}`} data-testid={`analytics-monitor-${r.method}-${r.version.toString()}-${r.month}`}>
-                <td>{r.method}</td><td>{r.version.toString()}</td><td>{r.month}</td><td>{r.runs.toString()}</td><td>{r.failures.toString()}</td><td>{r.flags.toString()}</td>
+                <td>{r.method}</td><td>{r.version.toString()}</td><td>{r.month}</td><td>{r.runs.toString()}</td><td>{r.failures.toString()}</td><td>{r.flags === null ? 'restricted' : r.flags.toString()}</td>
                 <td><Stat value={r.dispositionedShare} /></td><td><Stat value={r.falseAlarmRate} /></td>
               </tr>
             ))}

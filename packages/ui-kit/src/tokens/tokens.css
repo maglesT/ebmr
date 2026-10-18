@@ -32,6 +32,11 @@
   --ebmr-test-bg: #ffc107;
   --ebmr-test-border: #a16d00;
 
+  /* Brand (decision 0020; tokens.ts BRAND_COLOURS): product identity only, never a state colour or on a GMP record. */
+  --ebmr-brand-red-orange: #D4553A;
+  --ebmr-brand-amber: #EF9E45;
+  --ebmr-brand-grey: #6C6C6C;
+
   --ebmr-font: 'Noto Sans Variable', 'Noto Sans', system-ui, sans-serif;
   --ebmr-radius: 6px;
 
@@ -60,6 +65,15 @@ html {
   background: var(--ebmr-background);
 }
 
+/*
+ * The floor's run header (sticky at the top) and its action bar (sticky at the bottom) never cover the element that has
+ * the focus: the browser scrolls a focused element clear of both (WCAG 2.4.11; slice 7d accessibility audit).
+ */
+:root[data-density='floor'] {
+  scroll-padding-top: calc(var(--ebmr-primary-bar) + 4 * var(--ebmr-gap));
+  scroll-padding-bottom: calc(var(--ebmr-primary-bar) + 2 * var(--ebmr-gap));
+}
+
 body {
   margin: 0;
 }
@@ -73,6 +87,36 @@ body {
 :focus-visible {
   outline: 3px solid var(--ebmr-focus);
   outline-offset: 2px;
+}
+
+/*
+ * WCAG 2.5.8 (target size, 24 px): a link alone in a list item (the plain link lists of the office home pages) and a
+ * disclosure's summary were 22 px tall at the body's line height (accessibility audit A11Y-6). In a layer, so any
+ * screen's own class still wins.
+ */
+@layer ebmr-base {
+  li > a:only-child {
+    display: inline-block;
+    min-block-size: 24px;
+    padding-block: 1px;
+  }
+
+  summary {
+    min-block-size: 24px;
+    padding-block: 1px;
+  }
+
+  /*
+   * On the shop floor every link is a gloved target of at least 44 x 44 CSS px (outline 7.4), the links in the status
+   * board's table included (they were 27 px tall at the floor's line height; A11Y-7).
+   */
+  :root[data-density='floor'] a[href] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
 }
 
 /* react-aria's pressable rule, which it would otherwise inject as an inline <style> (blocked by the CSP). */

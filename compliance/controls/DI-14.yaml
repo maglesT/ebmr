@@ -266,6 +266,14 @@ tests:
   - "packages/kernel/test/identity/devices-sessions.test.ts > authentication methods and purposes (DI-14, DI-38) > [DI-14][DI-38] an account without an active credential of the method is refused before any secret is compared, whatever the secret"
   - "packages/recipe-core/test/release/dispositions.test.ts > the US disposition and the EU importer (mutation triage T11; PR-54, INV-05, INV-39, INV-42, D-P4-5) > [D-P4-5][DI-14] a two-row release with the manufacturer release signed in an earlier command and the US row signed now is refused (EBMR-DSP-042)"
   - "packages/site-services/test/mutation/erp-wms-receipt-and-stock.test.ts > receipt (PR-17, PR-18, INV-13; site services 0910) > [PR-17][DI-14] the receipt record of a lot received without one, and its examination: each refusal"
+  - "apps/tablets-web/test/access/idle-warning.test.tsx > the warning before the inactivity lock (A11Y-1) > [DI-14][DI-38] office: the warning opens when the lock is near; \"Keep working\" sends the keep-alive and closes it"
+  - "apps/tablets-web/test/access/idle-warning.test.tsx > the warning before the inactivity lock (A11Y-1) > [DI-14][INV-40] kiosk: the warning asks for a badge tap, sent as the keep-alive with a device proof over it; \"Lock now\" locks"
+  - "apps/tablets-web/test/access/idle-warning.test.tsx > the warning before the inactivity lock (A11Y-1) > [DI-14][DI-38] the absolute end is announced once, with nothing to extend it; with time to spare there is no warning"
+  - "apps/tablets-server/test/security/route-matrix.test.ts > the route-by-role authorization matrix (slice 7d) > [DI-17][DI-14] without a session every SESSION route answers 401 (or stops at validation), never a 5xx and never an answer with data"
+  - "apps/tablets-server/test/security/route-matrix.test.ts > the route-by-role authorization matrix (slice 7d) > [DI-17][DI-14][DI-18] in a session of every role, every route answers that role's right (403 without it), never a 5xx or a 401"
+  - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] no session fixation: a session cookie planted before sign-in is served as nobody, and the sign-in sets a new one"
+  - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-14][DI-38] the API ends a session at its absolute timeout and locks a kiosk session at its idle timeout"
+  - "apps/tablets-server/test/access/session.test.ts > keep-alive > [DI-14][DI-38] the session view names the seconds until the idle lock and the absolute end by the database clock; a keep-alive restarts the idle time; a locked session names no idle lock (A11Y-1)"
 clauses:
   - clause: "Assign a write permission to an account flagged generic. Refused."
     tests:

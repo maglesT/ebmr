@@ -5,6 +5,7 @@
  */
 export { BadgePrompt, BURST_GAP_MS, DemoBadgeReader, NOT_A_BADGE, NOT_TAPPED, type BadgePromptProps, type DemoBadge } from './BadgePrompt.tsx';
 export { IdentityBanner, type IdentityBannerProps } from './IdentityBanner.tsx';
+export { IdleWarning, timeLeft, type IdleWarningProps } from './IdleWarning.tsx';
 export { KEEP_BADGE_MS, KeptBadge, LockOverlay, SwitchUserDialog, useKeptBadge, type LockOverlayProps, type SwitchUserDialogProps } from './LockOverlay.tsx';
 export { ManifestationCard, ManifestationPreview, manifestationLine } from './Manifestation.tsx';
 export { PinPad, type PinPadProps } from './PinPad.tsx';

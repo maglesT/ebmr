@@ -12,6 +12,7 @@ import { requestRoleGrant } from '../../src/identity/admin.ts';
 import { heldHead } from '../integrations/support.ts';
 import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { describeTestInterfaces, testInterface } from '../support/validation.ts';
 import { expectPermissionDenied, expectRefused, testActor } from '../identity/helpers.ts';
 import { seedAdministration, seedAuthn, seedServiceActor, withReason, type SeededActor } from '../identity/seed.ts';
 
@@ -30,6 +31,8 @@ const ctxOf = (a: SeededActor, extra: Partial<ActorContext> = {}): ActorContext 
 };
 
 async function register(actor: SeededActor, code: string, system: string): Promise<string> {
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  await describeTestInterfaces(db, [testInterface(code, system as Parameters<typeof testInterface>[1])]);
   return withCommand(db.app, withReason(admin), async (c) => {
     const { rows } = await c.query<{ id: string }>('select iam.register_integration_adapter($1, $2, $3, $4, $5) as id', [
       code, system, actor.accountId, actor.deviceId, `test adapter ${code}`,
@@ -312,9 +315,10 @@ describe('fail-closed mirrors (DI-31, INV-26, INV-38)', () => {
     const code = `ERP-${randomBytes(3).toString('hex').toUpperCase()}`;
     await register(actor, code, 'ERP_WMS');
     const send = (n: number) => accept(envelope({ sequenceNo: n.toString() }), actor);
-    const acknowledgeGap = async (alarmId: string | null) => {
-      const operator = await testActor(db);
-      await withCommand(db.app, ctxOf(operator), (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [alarmId, 'message 4 was a test order cancelled in the ERP']));
+    // A gap on a blocking mirror's adapter is acknowledged by QA or the system owner (kernel 1320, 6jc-R11).
+    const acknowledgeGap = async (alarmId: string | null, by?: SeededActor) => {
+      const qa = by ?? await testActor(db, { roleCode: 'QA_REVIEWER' });
+      await withCommand(db.app, ctxOf(qa), (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [alarmId, 'message 4 was a test order cancelled in the ERP']));
     };
     const syncAt = (head: string) => withCommand(db.app, ctxOf(actor), (c) => c.query("select platform.record_mirror_sync('ERP_LOT_STATUS', $1)", [head]));
     const mark = async () => (await db.admin.query<{ h: string | null }>("select source_head::text as h from platform.mirror_sync where data_class = 'ERP_LOT_STATUS'")).rows[0]?.h;
@@ -378,6 +382,60 @@ describe('fail-closed mirrors (DI-31, INV-26, INV-38)', () => {
     } finally {
       await setMode('ERP_LOT_STATUS', 'STAND_IN');
     }
+  });
+
+  it('[DI-31] a sequence gap on a blocking mirror\'s adapter is acknowledged by the system owner or QA only; an operator\'s acknowledgment no longer marks the mirror fresh (6jc-R11)', async () => {
+    await setMode('ERP_LOT_STATUS', 'MIRROR');
+    try {
+      const feed = await freshFeed();
+      await feed.syncAt('0');
+      await feed.send(1);
+      const gap = await feed.send(3);
+      expect(gap.sequenceStatus).toBe('GAP');
+      const ack = (who: SeededActor, alarmId: string | null) =>
+        withCommand(db.app, ctxOf(who), (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [alarmId, 'message 2 was a cancelled order']));
+      // ALARM.ACKNOWLEDGE is not enough: the operator and the shift supervisor are refused, the administrator first of all.
+      const [operator, supervisor] = await Promise.all([testActor(db), testActor(db, { roleCode: 'SHIFT_SUPERVISOR' })]);
+      await expectRefused(ack(operator, gap.alarmId), 'EBMR-PLAT-006', /ALARM\.ACKNOWLEDGE_GAP/);
+      await expectRefused(ack(supervisor, gap.alarmId), 'EBMR-PLAT-006', /ALARM\.ACKNOWLEDGE_GAP/);
+      await expectRefused(ack(admin, gap.alarmId), 'EBMR-IAM-042');
+      // Nobody accounted for message 2, so the mirror is not refreshed over it.
+      await expectRefused(feed.syncAt('3'), 'EBMR-INT-024', /\(the first is 2\)/);
+      // The application cannot write an acknowledgment itself.
+      await expectPermissionDenied(withCommand(db.app, ctxOf(operator), (c) => c.query(
+        "insert into platform.integration_alarm_ack (alarm_id, adapter_code, note, acknowledged_by, acknowledged_role) values ($1, 'x', 'n', $2, 'OPERATOR')", [gap.alarmId, operator.personId])));
+      // The system owner acknowledges it; then the mirror is fresh again.
+      await feed.acknowledgeGap(gap.alarmId, owner);
+      await feed.syncAt('3');
+      expect(await fresh('ERP_LOT_STATUS')).toMatchObject({ mode: 'MIRROR', stale: false });
+      expect(await count("select count(*) as n from platform.integration_alarm_ack where alarm_id = $1 and acknowledged_role = 'PROCESS_OWNER'", [gap.alarmId])).toBe(1);
+      // QA acknowledges the next one.
+      const next = await feed.send(5);
+      await feed.acknowledgeGap(next.alarmId);
+      expect(await count("select count(*) as n from platform.integration_alarm_ack where alarm_id = $1 and acknowledged_role = 'QA_REVIEWER'", [next.alarmId])).toBe(1);
+    } finally {
+      await setMode('ERP_LOT_STATUS', 'STAND_IN');
+    }
+    // A gap on an adapter whose system feeds no blocking mirror (a LIMS) stays the operator's to acknowledge.
+    const lims = await seedServiceActor(db, { kind: 'INTEGRATION', name: `LIMS adapter ${randomUUID().slice(0, 6)}` });
+    const limsCode = `LIMS-${randomBytes(3).toString('hex').toUpperCase()}`;
+    const limsId = await register(lims, limsCode, 'LIMS');
+    // (The alarm is a fixture, triggers off: a LIMS feed of its own is not needed to raise one.)
+    const fx = await db.admin.connect();
+    let rows: { id: string }[];
+    try {
+      await fx.query('begin');
+      await fx.query('set local session_replication_role = replica');
+      ({ rows } = await fx.query<{ id: string }>(
+        "insert into platform.integration_alarm (adapter_id, adapter_code, kind, severity, details) values ($1, $2, 'SEQUENCE_GAP', 'MAJOR', '{\"missingFrom\": \"2\", \"missingTo\": \"2\"}') returning id",
+        [limsId, limsCode]));
+      await fx.query('commit');
+    } finally {
+      fx.release();
+    }
+    expect((await db.app.query<{ b: boolean }>('select platform.gap_needs_owner_or_qa($1) as b', [rows[0]?.id])).rows[0]?.b).toBe(false);
+    const operator = await testActor(db);
+    await withCommand(db.app, ctxOf(operator), (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [rows[0]?.id, 'LIMS resent result 2']));
   });
 
   it('[DI-31] only an adapter of the mirrored system records its synchronisation', async () => {

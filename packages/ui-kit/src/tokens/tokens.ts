@@ -23,6 +23,15 @@ export const PALETTE: Readonly<Record<StateTone, TonePair>> = {
 
 export const SURFACE = { text: '#202124', background: '#ffffff', muted: '#5f6368', focus: '#1a73e8' } as const;
 
+/**
+ * The Batchwright brand colours (decision 0020: sampled from the Medhanta logo, approximate until a brand guide gives the
+ * exact codes). They mark the product's own identity only (the sign-in page, the header, the about page), never a state
+ * and never a GMP record. Use: `grey` for text (at least 4.5:1 on white); `redOrange` for non-text marks such as the
+ * header's rule (at least 3:1 on white, WCAG 1.4.11); `amber` only inside the gradient beside red-orange, never alone
+ * as a mark or for text (about 2.2:1 on white). tokens.css mirrors these values (--ebmr-brand-*).
+ */
+export const BRAND_COLOURS = { redOrange: '#D4553A', amber: '#EF9E45', grey: '#6C6C6C' } as const;
+
 export type Density = 'office' | 'floor';
 
 /** Minimum sizes per density (plan section 9: floor targets >= 56 px, primary bar 80 px, keypad keys 72 px, base font 20 px, values 32 px). */

@@ -1,13 +1,17 @@
 /**
  * IdentityBanner, full (module C1; plan sections 5 and 9): who is signed in (legal name, user ID, role), on which
- * terminal and room, the installation, and the session actions: Lock, Switch user (kiosks) and Sign out.
+ * terminal and room, the installation, and the session actions: Lock, Switch user (kiosks) and Sign out. `brand`, when
+ * given, takes the place of the plain product name (the web app passes the brand's HeaderBrand, decision 0020).
  */
+import type { ReactNode } from 'react';
 import { Button } from '../primitives/Button.tsx';
 import { StatusChip } from '../primitives/StatusChip.tsx';
 import { icls } from './classes.ts';
 
 export interface IdentityBannerProps {
   productName: string;
+  /** The product's brand mark shown instead of the plain name (decision 0020). */
+  brand?: ReactNode;
   installation: 'GMP' | 'SANDBOX';
   installationLabel: string;
   legalName: string;
@@ -27,7 +31,7 @@ export function IdentityBanner(p: IdentityBannerProps) {
   return (
     <div className={icls('banner')}>
       <div className={icls('identity')}>
-        <span className={icls('product')}>{p.productName}</span>
+        {p.brand ?? <span className={icls('product')}>{p.productName}</span>}
         <StatusChip tone={p.installation === 'SANDBOX' ? 'test' : 'info'} label={p.installationLabel} />
         <span className={icls('who')} data-testid="identity">
           {`Signed in as ${p.legalName} (${p.loginName}), ${p.role}`}

@@ -37,6 +37,10 @@ export interface ResolvedSession {
   legalName: string;
   loginName: string;
   idleTimeoutSeconds: number;
+  /** Seconds until the idle lock by the database's clock (tablets 1460); null when the session is not ACTIVE. */
+  idleLockInSeconds: number | null;
+  /** Seconds until the absolute timeout (tablets 1460); null once the session is ended or expired. */
+  endsInSeconds: number | null;
   /** Per-entry attribution on this device (decision D8; C1's tab.attribution_method_for): NONE off the shop floor. */
   attributionMethod: 'NONE' | 'TAP' | 'TAP_PIN';
 }
@@ -119,6 +123,8 @@ export async function resolveSession(pool: pg.Pool, hash: string): Promise<Resol
     legalName: str('legal_name'),
     loginName: str('login_name'),
     idleTimeoutSeconds: Number(r['idle_timeout_seconds']),
+    idleLockInSeconds: typeof r['idle_lock_in_seconds'] === 'number' ? r['idle_lock_in_seconds'] : null,
+    endsInSeconds: typeof r['ends_in_seconds'] === 'number' ? r['ends_in_seconds'] : null,
     // Fail towards the stricter prompt: an unknown answer on a shop-floor terminal asks for the PIN as well.
     attributionMethod: m === 'NONE' || m === 'TAP' || m === 'TAP_PIN' ? m : isShopFloor(str('device_class')) ? 'TAP_PIN' : 'NONE',
   };
@@ -148,6 +154,8 @@ export function sessionView(session: ResolvedSession, config: ServerConfig, csrf
     installation: config.installation,
     locked: session.state === 'LOCKED' || session.state === 'IDLE_LOCKED',
     idleTimeoutSeconds: session.idleTimeoutSeconds,
+    idleLockInSeconds: session.state === 'ACTIVE' ? session.idleLockInSeconds : null,
+    endsInSeconds: session.endsInSeconds,
     csrfToken,
     attribution: shopFloor ? (session.attributionMethod === 'NONE' ? 'TAP' : session.attributionMethod) : 'NONE',
   };

@@ -185,6 +185,60 @@ PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers flock /tmp/ebmr-e2e.lock -c 'CI=true p
 The lock stops two agents from starting two stacks at once. Never run `playwright install` on the pod; the browser is
 already in `/opt/pw-browsers`. `pnpm e2e` is a shortcut with the same lock.
 
+### Security sweeps (Phase 7 slice 7d)
+
+[apps/tablets-server/test/security/](../../apps/tablets-server/test/security/) checks the whole route table at once,
+from the contract (`allRoutes(routes)`), so a new route is covered the day it is added:
+
+- [route-matrix.test.ts](../../apps/tablets-server/test/security/route-matrix.test.ts): every route without a session
+  (401), and in a session of every role (one person per role: the seed's personas, the rest granted through the kernel's
+  access workflow). The answers are compared with the reviewed matrix in
+  [fixtures/route-role-matrix.json](../../apps/tablets-server/test/security/fixtures/route-role-matrix.json) (a cell per
+  route and role: S done, A refused about the record, F refused for want of a right, ...). A change of rights fails the
+  test until the matrix is written again with `EBMR_WRITE_MATRIX=1` and the diff is reviewed in the pull request.
+- [route-fuzz.test.ts](../../apps/tablets-server/test/security/route-fuzz.test.ts): fast-check makes malformed requests
+  for every route (and schema-valid ones by several seeds); no answer may be a 500 or show a stack, a path or a database
+  message. `EBMR_FUZZ_RUNS` and `EBMR_FUZZ_SEED` widen or replay it.
+- [samples.ts](../../apps/tablets-server/test/security/samples.ts) samples a valid input from each route's zod schema
+  (through its JSON Schema, with fast-check for patterns), so requests reach the session and permission gates.
+- [session-and-headers.test.ts](../../apps/tablets-server/test/security/session-and-headers.test.ts),
+  [tls.test.ts](../../apps/tablets-server/test/security/tls.test.ts) and
+  [production-baseline.test.ts](../../apps/tablets-server/test/security/production-baseline.test.ts): headers and the CSP
+  on every page of the SPA, `__Host-` cookies, fixation, timeouts, rate limits, the adapters' TLS floor and the
+  production start's TLS checks.
+
+The checklist that names these tests item by item is [pentest-checklist.md](../security/pentest-checklist.md).
+
+### Load, soak and the release drills (Phase 7 slice 7d)
+
+- **Load and soak** ([tools/load](../../tools/load/)): a TypeScript driver of the reference site (D-P7-4) over the
+  real HTTP API of a server process and the adapter feeds of the simulators. It builds its own database (LOAD-ONLY:
+  DEMO-ONLY keys and personas), a year of generated history (batches planned and issued through the routes with the
+  issuer's e-signature), one running batch per shop-floor session (each on its own kiosk and its own loopback address,
+  so the per-terminal limits are real) and a review batch, then measures for the given minutes and writes a JSON
+  record and a summary. It runs in Vitest with its own config (not part of `pnpm test`):
+  `pnpm load smoke` (the cloud smoke), `pnpm load reference` and `pnpm load soak` (on the pod); options in
+  [options.ts](../../tools/load/src/options.ts), the SLOs in [report.ts](../../tools/load/src/report.ts). The record
+  is [load-and-soak.md](../validation/v1.0-rc/load-and-soak.md).
+- **Release drills** ([tools/drills](../../tools/drills/)): the upgrade drill and migration dry run (a copy of a database
+  at an earlier release, upgraded with this tree's migrations, every table's rows compared over the columns it had, the
+  chains, renders and spot checks) and the restore drill with its record (the kernel drill, then the records rendered
+  from the restored copy, the signed restore event, a batch exported and restored in an isolated process).
+  [drills.test.ts](../../tools/drills/test/drills.test.ts) runs both on a database built from the Phase 6A exit's
+  migrations ([release-6a-migrations.json](../../tools/drills/fixtures/release-6a-migrations.json)); the commands
+  are in [the runbooks](10-runbooks.md#release-drills-load-and-security-verification-phase-7-slice-7d).
+
+### The accessibility audit (Phase 7 slice 7d)
+
+[accessibility.spec.ts](../../tools/e2e/specs/accessibility/accessibility.spec.ts) runs axe (WCAG 2.0 to 2.2, A and
+AA rules) on every page of the SPA's route tree (read from the web features' route files, an example id in each
+parameter), on the sandbox's pages and on the kiosk's floor screens; it measures every target on the floor screens
+(44 x 44 CSS px), checks that every state chip has an icon and a word, and walks the office sign-in and a list with
+the keyboard alone, the focus visible at each stop. A serious or critical axe finding fails it. Run it alone with
+`flock /tmp/ebmr-e2e.lock pnpm --filter @ebmr/e2e exec playwright test -c playwright.config.ts specs/accessibility`.
+What a script cannot judge (screen reader, zoom, reflow) is listed per criterion in
+[accessibility-audit.md](../validation/accessibility-audit.md).
+
 ### Boundary tests
 
 [tools/boundaries/test/](../../tools/boundaries/test/):
@@ -477,6 +531,42 @@ anywhere shared, never after.
 The E2E job limit was raised to 45 minutes when the set-up started building the release path through real signed acts.
 The golden job runs one file at a time; GB-T-01 takes about 20 minutes. A single test over 30 minutes is not allowed
 ([defect log, CI](08-defect-log.md#ci)).
+
+## Generating the validation pack
+
+The validation pack (Phase 7 slice 7c; [validation-kit](modules/validation-kit.md),
+[tools-validation](modules/tools-validation.md)) is generated from one evidence bundle. On a run's reports:
+
+```bash
+pnpm test:json                                    # .reports/vitest.json (golden and E2E reports join when present)
+pnpm validation:bundle --results .reports --db postgres://ebmr_dev:ebmr_dev@localhost:5432/<a database migrated to the release> \
+  --out .reports/validation/bundle.json           # also writes .reports/validation/sbom.cdx.json
+pnpm validation:generate --bundle .reports/validation/bundle.json --out .reports/validation/pack
+pnpm validation:iq --db <url> --server <url> --bundle .reports/validation/bundle.json
+```
+
+- The bundle refuses a database on another schema release than the files: create one with the set-up CLI or
+  `createGmpDatabase` of the test kit first.
+- Generate twice and compare: the pack is byte-identical for the same bundle (`manifest.json` lists each file's
+  SHA-256 and the bundle's).
+- The pack and the bundle are not committed (D-P7-13).
+
+### The interlocks in tests (D-P7-12)
+
+Since slice 7c a GMP batch is issued only on a release with an approved validation summary (DI-03, recipe-core 1250),
+and a GMP installation takes messages only from an interface in the approved system description (DI-06, kernel 1350).
+The test set-ups approve both with real signed acts:
+
+| Set-up | How |
+|---|---|
+| Kernel and recipe-core tests (kernel template) | [`approveTestRelease(db)`](../../packages/kernel/test/support/validation.ts#sym=approveTestRelease) after `createTestDatabase()` in every file that issues a GMP batch; [`describeTestInterfaces`](../../packages/kernel/test/support/validation.ts#sym=describeTestInterfaces) in the adapter helpers (`registerAdapter` describes first; `{ described: false }` for the drift tests) |
+| Server tests (GMP template) | the global set-up approves the summary in the template with test-kit `approveValidationSummary` and `seededValidationActs`; the ERP/WMS `adapterIdentity` describes its adapter |
+| Set-up CLI (golden batches, E2E, demo) | `setupInstallation` approves a DEMO-ONLY summary as `qaInvestigator` before the feature seeds |
+| Browser suite adapters | `registerAdapter` of `tools/e2e/specs/phase6/support.ts` uses test-kit `approveSystemDescription` on the GMP side |
+
+A new test file that issues a GMP batch on the kernel template must call `approveTestRelease(db)`; without it the issue
+is refused with EBMR-VAL-001. A test that needs a release without a summary adds a stand-in ledger row (see
+`upgraded` in [gmp-issue.test.ts](../../packages/recipe-core/test/lifecycle/gmp-issue.test.ts)).
 
 ## Related pages
 

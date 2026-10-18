@@ -1,0 +1,17 @@
+{
+  "name": "@ebmr/tool-drills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Restore, upgrade and migration dry-run drills of a GMP database, with their records (DI-02, IN-09, DI-46, DI-48)",
+  "type": "module",
+  "dependencies": {
+    "@ebmr/api-contract": "workspace:0.1.0",
+    "@ebmr/expr": "workspace:0.1.0",
+    "@ebmr/kernel": "workspace:0.1.0",
+    "@ebmr/test-kit": "workspace:0.1.0",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

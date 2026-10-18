@@ -14,7 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { review } from '@ebmr/analytics';
 import { routes } from '@ebmr/api-contract';
-import type { AnalyticsRunner } from '../../src/analytics/runner.ts';
+import type { AnalyticsRunnerApi } from '../../src/analytics/threaded.ts';
 import { refusalOf, startSigningServer, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf, type GrantedPerson } from '../support/granted-person.ts';
 import type { TestBrowser, TestServer } from '../support/harness.ts';
@@ -32,7 +32,7 @@ const codeIn = (r: Parameters<typeof refusalOf>[0]): string => {
   return `${f.code} ${f.why ?? ''}`.match(/EBMR-[A-Z]+-\d{3}/)?.[0] ?? f.code;
 };
 
-const runner = (): AnalyticsRunner => {
+const runner = (): AnalyticsRunnerApi => {
   const r = gmp.built.analytics;
   if (!r) throw new Error('the GMP server started without its analytics runner');
   return r;

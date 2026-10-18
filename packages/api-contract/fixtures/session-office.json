@@ -24,6 +24,8 @@
   "installation": "GMP",
   "locked": false,
   "idleTimeoutSeconds": 900,
+  "idleLockInSeconds": 900,
+  "endsInSeconds": 43200,
   "csrfToken": "fixture-csrf-token",
   "attribution": "NONE"
 }

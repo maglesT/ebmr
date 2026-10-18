@@ -1477,6 +1477,196 @@ the site's zone (site services 0821). **Fix.** The scenario reads the 28th of th
 in the site's zone. No product code changed; the database's check was right. **Lesson.** A golden scenario takes every
 date from the database's clock, never from the machine's.
 
+## Slice 7b-1: the hardening list, database and access items (Phase 7)
+
+The low review residuals of the Phase 6 exit (6jc-R*) and the Phase 6A exit (P6A7-*) that touch access, attribution or
+silent loss (D-P7-6). Each entry names the test that failed before the fix.
+
+### 6jc-R11: an operator's acknowledgment of a sequence gap let a blocking mirror be used again (DI-31; kernel 1320)
+
+**Symptom.** An OPERATOR or SHIFT_SUPERVISOR (ALARM.ACKNOWLEDGE) could acknowledge a SEQUENCE_GAP on the ERP, LMS, CMMS,
+QMS or L3 adapter, and `platform.record_mirror_sync` then marked the blocking mirror fresh over the missing messages.
+**Fix.** A new GMP permission ALARM.ACKNOWLEDGE_GAP (PROCESS_OWNER and QA_REVIEWER). `platform.acknowledge_integration_alarm`
+refuses administrators first, then asks it for a gap on an adapter whose system feeds a blocking mirror
+(`platform.gap_needs_owner_or_qa`), ALARM.ACKNOWLEDGE for every other alarm. **Tests.** Kernel
+`test/inbound/inbound.test.ts` ("[DI-31] a sequence gap on a blocking mirror's adapter is acknowledged by the system
+owner or QA only ..."), server `test/integrations/alarm-routes.test.ts`. **Lesson.** When an acknowledgment releases a
+fail-closed guard, the acknowledgment needs the authority of the guard, not of the alarm.
+
+### 6jc-R3: the contract giver's reviewer could read any record through the record reads (IN-30; tablets 1425)
+
+**Symptom.** CONTRACT_GIVER_REVIEWER holds RECORD.READ, so `tab.record_read_problem` let it read the content, signatures
+and audit chains of any RECORD-class record; only the server's route allow-list kept it to its loan licence. **Fix.**
+The function refuses that role, and any account holding it, for every record: the loan licence's batches are read
+through the reviewer's own scoped and logged reads (recipe-core 1060). **Test.** Server
+`test/governance/governance-routes.test.ts` ("[IN-30] the database's record reads refuse the contract giver's reviewer ..."). Review round 1: the audit-trail reads granted on RECORD.READ too; tablets 1426 refuses the reviewer first in
+`tab.chain_read_problem` (so every chain read that asks it) and in `tab.audit_events`, `tab.audit_chains` and
+`tab.audit_headless_chains` ("[IN-30] the database's audit-trail reads refuse the contract giver's reviewer ..."). **Lesson.**
+A role refused in one read definer must be refused in each definer that grants on the same permission.
+
+### 6jc-R6: the DSC enrolment and the DSC record did not refuse administrators (DI-18; kernel 1321)
+
+**Fix.** `esig.enrol_dsc_certificate`, `esig.record_dsc_signature` and `esig.end_dsc_enrolment` (whose own path had no
+refusal either) call `iam.assert_not_administrator()` first. **Tests.** Kernel `test/integration/authorization.test.ts`
+("[DI-18] the DSC enrolment, its end and the DSC record refuse administrators first"), server
+`test/governance/governance-routes.test.ts` (an administrator's enrolment is EBMR-IAM-042).
+
+### 6jc-R7: the authorization meta scans missed five schemas (DI-17, DI-18)
+
+**Fix.** One scan (`packages/kernel/test/support/authorization-scan.ts`) runs over iam, esig and sandbox (kernel), plant
+(recipe-core) and tab (server `test/validation/authorization-scan.test.ts`). Each list entry carries its reason, and an
+entry that names no function, or one that no longer needs it, fails the scan. **Real findings:** 6jc-R6 above and
+`esig.end_dsc_enrolment`. Ten writers (five esig configuration functions, five tab gateway and sandbox writers) refuse
+administrators after their permission check, in their declarations; both refuse before anything is written, so they
+are listed rather than re-created. **Lesson.** A meta scan is only as wide as its schema list; keep the lists beside
+the schemas' owners.
+
+### 6jc-R5: the ERP outbound queue was insert-only by grant only (DI-31; site services 1110)
+
+**Fix.** `platform.make_insert_only('site.erp_outbound_message')`: UPDATE, DELETE and TRUNCATE are refused for every
+writer (EBMR-PLAT-002). **Test.** Site services `test/erp-wms/inbound.test.ts` ("[DI-31] a queued ERP message is
+insert-only for every writer ...").
+
+### 6jc-R12: a failed genealogy read in the mock recall asked no destination; peers were asked before the permission check (IN-29, PR-57; recipe-core 1225)
+
+**Fix.** The server runs `recipe.run_mock_recall` first (RECALL.MOCK_RUN, subject and instant checked), then asks exactly
+the destinations `recipe.mock_recall_destinations` names (the stored run's transfers without an answer, after its own
+RECALL.MOCK_RUN check), in the run and in the refresh. A destination not asked keeps the run incomplete. **Test.** Server
+`test/transfers/transfer-routes.test.ts` ("[IN-29][PR-57] a mock recall asks the destinations of its own stored run ...").
+**Lesson.** A read that decides what else is checked must fail the command, never stand for "nothing found".
+
+### 6jc-R15: the training attempt read did not check whose attempt it was (DI-05)
+
+**Fix.** `trainingAttemptOf` (features/training) reads the attempt of the session's person only; another's is
+EBMR-SBX-040. **Test.** Server `test/dashboards/dashboards-routes.test.ts` ("[DI-05] the training attempt read answers the
+person's own attempt only ...").
+
+### P6A7-6, P6A7-7: restricted analytics counts and reasons (DI-53; package, kernel 1322)
+
+**Fix.** REVIEW.PRIORITY chooses its top reasons among the terms every reader sees and adds the audit-trail reason after
+them (`scoreOf`), so a reader without ANALYTICS.DI_REVIEW sees as many reasons as the other terms give. The monitor and
+the run list (`analytics.method_monitor_v1`, `analytics.run_v1`) show the flag counts of the ATA.* methods only to
+ANALYTICS.DI_REVIEW holders (NULL, "restricted" on the screen, otherwise). **Tests.** `packages/analytics/test/review-priority.test.ts`
+("[DI-53] the top reasons are chosen among the terms every reader sees ..."), kernel `test/analytics/exit-review.test.ts`
+("[DI-53] the monitor and the run list show the flag counts of the audit-trail methods only to ANALYTICS.DI_REVIEW holders ...").
+
+### P6A7-8: the analytics runner did not check its own role (DI-51)
+
+**Fix.** `AnalyticsRunner.start()` asks the database what its connection is (`analyticsRoleProblem`): ebmr_analytics as
+current and session user, no elevated attribute, member of nothing; otherwise it logs an operations alert and never
+starts. **Test.** Server `test/analytics/runner.test.ts` ("[DI-51] the runner starts only on ebmr_analytics ...").
+
+### F-6jb-g1 stays: a record lock counts as a change since review (fail-safe; D-P7-7)
+
+The database cannot tell a lock-only epoch bump from an evidence change without loosening another check. A BATCH epoch
+row carries no cause; the lock bumps it in `recipe.record_lock_append` (also for the amendment events and the
+BULK_RECONCILIATION_CLOSED lock, which do change evidence), and the same transaction's audit events and writes may bump
+it again through the epoch triggers. Excluding the lock's bump would need a cause on every one of about fifteen bump
+paths and a rule for the transaction's other bumps; excluding the whole first-disposition transaction would hide any
+evidence written in it. It fails safe (the next market's signer acknowledges the items again), so it stays a known issue.
+
+## Slice 7b-1 (worker, gateway and message items): hardening (Phase 7)
+
+- **O-T12-1 (DI-31): reconciliation never ran.** `AdapterWorker.reconcile` had no caller, so a source that stopped
+  publishing its last messages was seen only as "head ahead of cursor". Now each worker reconciles every closed hour
+  (10-minute grace) by itself and a mismatch raises RECONCILIATION_MISMATCH (`reconcileDue`, framework.ts). Test:
+  server `integrations/feed-adapters.test.ts` "O-T12-1". Lesson: a check with no caller is no check.
+- **T12 observation (DI-32, DI-31): a gateway crash lost the open chunk's samples.** They were in memory only. Now they
+  are spooled on receipt (fsync at most 1 s apart), the chunk is completed at restart and what cannot be filled is a
+  SERIES_GAP alarm naming unit, tag and interval (kernel 1328, recipe-core 1232, tablets 1432). Tests: gateway
+  `opcua-spool.test.ts`, server `equipment-data/opcua-adapter.test.ts` "a series gap".
+- **O-T13-1 (message accuracy): "Nothing was saved" when only the answer failed.** A read after the committed command
+  that failed was answered INTERNAL. Now it is SAVED_NOT_SHOWN with the command's idempotency key (bind.ts, commands.ts).
+  Test: server `platform/saved-not-shown.test.ts` (and the `[meta]` list of the 84 routes). Lesson: an error message
+  must say what the system knows, not what is usual.
+- **F-6jb-2 (DI-31): the stale-mirror refusal did not say which mirror or whom to call.** Now the refusal names the
+  mirror, its age, its bound and the system owner (kernel 1329, errors.ts `withStaleSourceDetail`). Tests: kernel
+  `inbound/overrides-and-lms-mirror.test.ts`, server `execution/gmp-batch.test.ts` "F-6jb-2".
+- **6jc-R13 (DI-32): a value without an OPC UA timestamp was dated epoch 0, and the database had no lower bound.** Now
+  the gateway dates it at receipt and marks it BAD with a reason, and the database refuses OPC UA data more than five
+  minutes before their endpoint session's start (recipe-core 1233). The gateway keeps an older sample (a tag unchanged
+  since before the session) out of the series with an alarm, so a working gateway is never refused. Tests: gateway
+  `opcua-spool.test.ts` (6jc-R13), server `opcua-adapter.test.ts` "6jc-R13". Lesson: a missing value is never replaced
+  by a default that looks like data.
+- **Review round 1 of 7b-1b.** The five-minute bound refused alarms and events that happened while the gateway was down
+  (now the offline buffer, setting `integration.opcua_offline_buffer_s`, recipe-core 1234, kernel 1330); a session start
+  at 1970 was not refused (now it is); a crash with no open chunk, an invalid spooled chunk or an unjournalled recovery
+  message lost samples without a gap (now each is a gap, or the spool is kept); a reconciliation report that committed
+  while its answer was lost was submitted again (now the next run reads the database). Tests: `opcua-adapter.test.ts`,
+  `opcua-spool.test.ts` "review round 1", `feed-adapters.test.ts` "answer was lost". Lesson: a bound must fit what each
+  record is: a sample, an alarm and a session reach the database at different delays.
+- **Fix round 2 (GB-T-03 regression).** The press's fill depth, unchanged since the simulator started, came at
+  subscription with its old source time; the five-minute series bound (gateway and recipe-core 1233) kept it out of the
+  series and GB-T-03 waited for it in vain. A value unchanged since before the session is genuine: series now have the
+  offline buffer too (recipe-core 1235). Lesson: an OPC UA source time is the time of the last change, not of the
+  delivery.
+
+## Slice 7d: performance, restore, security verification and accessibility (Phase 7)
+
+### P7D-1: a date that is no calendar day answered 500 (DI-13; found by the route fuzzing, 18 October 2026)
+
+**Symptom.** `controlled.runRegister` and `pqr.run` answered 500 to a body with a date such as 9177-00-56 or 2026-02-30.
+**Cause.** Their contract took any `NNNN-NN-NN` text as a date; the database's date cast then failed inside the command
+(it rolled back; nothing was written, no internals were shown). **Fix.** The contract's `CalendarDate` (a real day of
+the calendar) in both namespaces (`packages/api-contract/src/common.ts`). **Tests.** Server
+`test/security/route-fuzz.test.ts` ("[DI-13] a date that is no calendar day ... (P7D-1)"; it failed before the fix).
+**Lesson.** A date in a contract is checked as a date, not as a pattern.
+
+### P7D-6: the production start did not apply the database security baseline (DI-13, 18 October 2026)
+
+**Symptom.** With `EBMR_ENV=production` the server accepted database URLs without `sslmode` or with
+`sslmode=disable`, and never asked the database whether its sessions were encrypted, although
+`docs/security/security-baseline.md` says it does. **Cause.** The kernel's checks (`continuity.checkDatabaseUrl`,
+`assertEncryptedDatabaseSession`) existed but the server's configuration and start never called them. **Fix.** The
+configuration refuses such URLs in production (a local socket only with `EBMR_DB_ALLOW_LOCAL_SOCKET`), and the start
+refuses to open on unencrypted sessions (EBMR-SEC-015). **Tests.** Server `test/security/production-baseline.test.ts`
+(both tests failed before the fix). **Lesson.** A control in a library is not in force until the product calls it; the
+security sweep checks the call, not the library.
+
+### A11Y-1: no warning before the inactivity lock (outline 7.4; WCAG 2.2.1; DI-14, DI-38; tablets 1460)
+
+**Symptom.** A kiosk or office session locked after its idle time without a warning, so a person reading a long screen
+lost the moment and had to unlock; the server's keep-alive existed but no screen offered it. **Cause.** The page learnt
+of the lock only from its 15-second session poll, and the session view did not say when the lock would fall. **Fix.**
+Tablets 1460 re-creates `tab.resolve_session` to answer the seconds until the idle lock and the absolute end by the
+database's clock; the session view carries them (`idleLockInSeconds`, `endsInSeconds`); the session control opens
+`IdleWarning` 60 s before the lock ("Keep working" on an office PC, a badge tap on a kiosk, or "Lock now") and says once,
+five minutes ahead, that the session ends. **Tests.** Server `test/access/session.test.ts` ("[DI-14][DI-38] the session
+view names the seconds until the idle lock ..."), web `test/access/idle-warning.test.tsx` (3 tests). **Lesson.** A time
+limit the person cannot see is a time limit they cannot meet: the server says how long is left.
+
+### A11Y-4 to A11Y-7: what the first accessibility run found (slice 7d, 18 October 2026)
+
+**Symptom.** The GMP floor's runs page failed on every load ("Something went wrong!"); the PIN keypad's digit count
+had a name on a plain div; plain link lists and disclosures were 22 px tall (WCAG 2.5.8 asks 24); the status board's
+links on a kiosk were 27 px tall. **Cause.** The batches list answers `{ batches }` where the test runs answer
+`{ runs }`, and the floor's family switch passed the answer through unchanged (since Phase 3); the rest were browser
+default sizes nobody had measured. **Fix.** `features/floor/family.ts` maps the answer; the count is a named
+`role="status"`; ui-kit `tokens.css` sets the minimum sizes in a layer the screens' classes override. **Tests.** Web
+`test/floor/tablet-blocks.test.tsx` (the runs page on GMP; failed before the fix), ui-kit `test/identity/identity.test.tsx`,
+and the browser suite's `specs/accessibility/accessibility.spec.ts` (4 tests). **Lesson.** A page no test opens on
+the installation it serves is broken there until someone does: the audit opens every page.
+
+### P6A7-4 measured: the nightly analytics run blocked the server's event loop (SLO-5; ADR 0020)
+
+**Symptom.** In the load smoke (2 % of the reference site's year of history: 730 batches, 18,000 audit facts) the
+nightly run blocked the server's event loop for up to 0.88 s (SLO-5: no block over 200 ms); at the full year it would
+be far longer. Per method, the canonical sort and hash of whole inputs took up to 0.72 s at once and the audit-trail
+methods up to 0.54 s. **Cause.** The runner read, sorted, hashed and computed in the server's own thread (the Phase 6A
+residual P6A7-4). **Fix.** The server runs the unchanged runner in a worker thread with its own connection
+(`apps/tablets-server/src/analytics/threaded.ts`, `worker-entry.ts`); only requests and run reports cross the threads.
+Tests that give the runner their own method implementations keep an in-process runner. **Tests.** Server
+`test/analytics/spc.test.ts` ("[DI-51][DI-52] the server runs the analytics in a worker thread ..."), and every other
+analytics test now runs through the worker; the load record's SLO-5. **Lesson.** Work whose size grows with the site's
+history never runs on the thread that answers the shop floor.
+
+### The load driver (test defects, 18 October 2026)
+
+A kiosk of the driver asked for more device nonces than the server allows (120 a minute per terminal and address)
+while it made the review batch's entries, and the run stopped with RATE_LIMITED: the driver now paces itself at 110 a
+minute. A keep-alive socket the server had closed while idle failed at its next use (NETWORK): the driver sends such a
+request once more on a fresh socket. A run that stops now says so in its summary instead of "no SLO failed".
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

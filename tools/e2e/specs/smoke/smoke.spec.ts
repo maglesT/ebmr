@@ -1,6 +1,7 @@
 /**
  * Smoke (exit A0): sign-in on both installations through the real screens; the sandbox shows TEST, NOT GMP on
- * every screen, before and after sign-in; GMP shows no watermark.
+ * every screen, before and after sign-in; GMP shows no watermark. Slice 7e (decision 0020): the product's brand on the
+ * sign-in page, the header and the about page, the page title, the icons and the web app manifest.
  */
 import { axe, expect, signIn, test } from '../../fixtures/index.ts';
 
@@ -36,5 +37,35 @@ test.describe('smoke', () => {
     await signIn.office(page, persona('SANDBOX', 'issuer'));
     await expect(page.getByText('Test-run packages')).toBeVisible();
     await expect(page.getByRole('note', { name: 'TEST, NOT GMP' })).toBeVisible();
+  });
+
+  test('Branding (decision 0020): title, icons and manifest; the sign-in lockup with "by Medhanta"; the header links to the about page with the version the server reports', { tag: '@office' }, async ({ officePage, persona, evidence }) => {
+    const page = await officePage('GMP', 'PC-DESIGN-01');
+    await evidence.step('Open the sign-in page', 'The title is "Sign in - Batchwright Tablets" (the page, then the product); the lockup and the maker\'s mark are shown', async () => {
+      await expect(page).toHaveTitle('Sign in - Batchwright Tablets');
+      await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+      const brand = page.getByTestId('sign-in-brand');
+      await expect(brand.getByRole('img', { name: 'Batchwright Tablets' })).toBeVisible();
+      await expect(brand.getByRole('img', { name: 'Medhanta' })).toBeVisible();
+      await expect(brand.getByTestId('maker-mark')).toContainText('by');
+    }, page);
+    // The page's own origin (the config sets no baseURL).
+    const at = (path: string) => new URL(path, page.url()).toString();
+    for (const [path, type] of [['/favicon.svg', 'image/svg+xml'], ['/icon-192.png', 'image/png'], ['/icon-512.png', 'image/png'], ['/apple-touch-icon.png', 'image/png'], ['/manifest.webmanifest', 'application/manifest+json']] as const) {
+      const res = await page.request.get(at(path));
+      expect({ path, status: res.status(), type: (res.headers()['content-type'] ?? '').split(';')[0] }).toEqual({ path, status: 200, type });
+    }
+    const manifest = (await (await page.request.get(at('/manifest.webmanifest'))).json()) as { name: string };
+    expect(manifest.name).toBe('Batchwright Tablets');
+    await axe.check(page);
+    const meta = (await (await page.request.get(at('/api/meta'))).json()) as { version: string };
+    await evidence.step('Sign in and open the about page from the header', 'The about page names the product, edition, version, maker and installation', async () => {
+      await signIn.office(page, persona('GMP', 'author'));
+      await page.getByTestId('header-brand').getByRole('link', { name: 'Batchwright Tablets' }).click();
+      await expect(page.getByRole('heading', { name: 'About Batchwright Tablets' })).toBeVisible();
+      const facts = page.getByTestId('about-facts');
+      for (const text of ['Batchwright', 'Tablets', meta.version, 'Medhanta Digipartner', 'GMP installation']) await expect(facts).toContainText(text);
+    }, page);
+    await axe.check(page);
   });
 });
