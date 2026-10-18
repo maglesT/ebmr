@@ -93,7 +93,7 @@ modules:
     page: modules/kernel.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^04\d\d_']
+      packages/kernel/sql: ['^04\d\d_', '^133[56]_']
     src: [packages/kernel/src/records]
     tests: ['packages/kernel/test/records/**']
 
@@ -390,6 +390,8 @@ modules:
     title: Reporting views and change-impact DB tests (Phase 6 slice 6g)
     page: modules/recipe-core.md
     package: packages/site-services
+    migrations:
+      packages/site-services/sql: ['^1120_']
     tests: ['packages/site-services/test/reporting/**']
 
   - id: ss-receipt-erp-wms
@@ -491,7 +493,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^107\d_']
+      packages/recipe-core/sql: ['^107\d_', '^1240_']
 
   - id: rc-containers
     title: Output containers
@@ -1227,6 +1229,13 @@ modules:
     title: Validation pack tooling (evidence bundle, inventory, pack, IQ and OQ; built in slice 7c)
     page: modules/tools.md
     package: tools/validation
+
+  - id: record-viewer
+    title: Stand-alone record viewer (Phase 7 slice 7b-2) - offline page that verifies a full export and shows it read-only
+    page: modules/record-viewer.md
+    package: apps/record-viewer
+    src: [apps/record-viewer/src, apps/record-viewer/build.ts]
+    tests: ['apps/record-viewer/test/**']
 
   - id: tools-sql-mutation
     title: SQL mutation harness
