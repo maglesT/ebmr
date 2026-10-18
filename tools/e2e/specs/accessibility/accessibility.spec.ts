@@ -64,7 +64,9 @@ async function smallTargets(page: Page): Promise<string[]> {
     const out: string[] = [];
     const sel = 'button, a[href], input:not([type="hidden"]), select, textarea, [role="button"], [role="tab"], [role="link"], [role="checkbox"], [role="radio"], [role="switch"], [role="option"], [role="menuitem"]';
     for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
-      const r = el.getBoundingClientRect();
+      // A field inside its label (React Aria's radios and checkboxes: the input is visually hidden, 13 x 13 px but
+      // clipped to nothing) is pressed through the label: the label is the target that is measured.
+      const r = (el.tagName === 'INPUT' ? (el.closest('label') ?? el) : el).getBoundingClientRect();
       const style = getComputedStyle(el);
       if (r.width === 0 || r.height === 0 || style.visibility === 'hidden' || style.display === 'none') continue;
       // A control inside a larger one (an icon in its button) is that control's target.
@@ -149,8 +151,10 @@ test.describe('accessibility audit (slice 7d)', () => {
     await page.keyboard.press('Enter');
     await page.waitForLoadState('networkidle');
     await expect(page).not.toHaveURL(/\/$/);
-    // Back with the keyboard (Alt+Left) to where the flow began.
-    await page.keyboard.press('Alt+ArrowLeft');
+    // Back to where the flow began. Alt+Left is the browser's own keystroke, handled by its window, not by the page:
+    // headless Chromium never receives it through Playwright's keyboard (the first run stayed on the list). The
+    // history step it makes is taken here; what the app must do is show the home screen again on it.
+    await page.goBack();
     await expect(page.getByRole('heading', { name: 'What do you want to do?' })).toBeVisible();
   });
 

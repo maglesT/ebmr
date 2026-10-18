@@ -1635,6 +1635,18 @@ five minutes ahead, that the session ends. **Tests.** Server `test/access/sessio
 view names the seconds until the idle lock ..."), web `test/access/idle-warning.test.tsx` (3 tests). **Lesson.** A time
 limit the person cannot see is a time limit they cannot meet: the server says how long is left.
 
+### A11Y-4 to A11Y-7: what the first accessibility run found (slice 7d, 18 October 2026)
+
+**Symptom.** The GMP floor's runs page failed on every load ("Something went wrong!"); the PIN keypad's digit count
+had a name on a plain div; plain link lists and disclosures were 22 px tall (WCAG 2.5.8 asks 24); the status board's
+links on a kiosk were 27 px tall. **Cause.** The batches list answers `{ batches }` where the test runs answer
+`{ runs }`, and the floor's family switch passed the answer through unchanged (since Phase 3); the rest were browser
+default sizes nobody had measured. **Fix.** `features/floor/family.ts` maps the answer; the count is a named
+`role="status"`; ui-kit `tokens.css` sets the minimum sizes in a layer the screens' classes override. **Tests.** Web
+`test/floor/tablet-blocks.test.tsx` (the runs page on GMP; failed before the fix), ui-kit `test/identity/identity.test.tsx`,
+and the browser suite's `specs/accessibility/accessibility.spec.ts` (4 tests). **Lesson.** A page no test opens on
+the installation it serves is broken there until someone does: the audit opens every page.
+
 ### P6A7-4 measured: the nightly analytics run blocked the server's event loop (SLO-5; ADR 0020)
 
 **Symptom.** In the load smoke (2 % of the reference site's year of history: 730 batches, 18,000 audit facts) the

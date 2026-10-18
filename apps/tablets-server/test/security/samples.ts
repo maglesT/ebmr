@@ -149,7 +149,7 @@ export function validRequest(route: AnyRoute, seed = 7): RouteRequest {
   const query = validSample(route.query, seed);
   const body = route.body && route.method !== 'GET' ? validSample(route.body, seed) : undefined;
   const valid = params !== undefined && query !== undefined && (route.method === 'GET' || !route.body || body !== undefined);
-  const p = params && typeof params === 'object' && !Array.isArray(params) ? Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) : {};
+  const p = params && typeof params === 'object' && !Array.isArray(params) ? Object.fromEntries(Object.entries(params).map(([k, v]) => [k, typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v as string | number | boolean | bigint | null | undefined)])) : {};
   const url = `${buildPath(route.path, p)}${queryString(query)}`;
   return { method: route.method, url, valid, ...(route.method !== 'GET' ? { payload: JSON.stringify(body ?? {}) } : {}) };
 }

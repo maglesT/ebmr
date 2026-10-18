@@ -130,8 +130,8 @@ of each database function.
 | [tools-handbook](#tools-handbook) | Handbook generator and link checker | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
 | [tools-register](#tools-register) | Control register tooling | [modules/tools.md](modules/tools.md) | 0 | 0 | 4 | 0 |
 | [tools-load](#tools-load) | Load and soak driver against the SLOs (slice 7d) | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
-| [tools-drills](#tools-drills) | Restore, upgrade and migration drills with their records (slice 7d) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
-| [tools-security](#tools-security) | Security verification and installation hardening checks (slice 7d) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 0 |
+| [tools-drills](#tools-drills) | Restore, upgrade and migration drills with their records (slice 7d) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 5 |
+| [tools-security](#tools-security) | Security verification and installation hardening checks (slice 7d) | [modules/tools.md](modules/tools.md) | 0 | 0 | 1 | 3 |
 | [tools-regulatory](#tools-regulatory) | Regulatory register scripts | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
 | [tools-validation](#tools-validation) | Validation pack tooling (evidence bundle, inventory, pack, IQ and OQ; built in slice 7c) | [modules/tools.md](modules/tools.md) | 0 | 0 | 0 | 0 |
 | [tools-sql-mutation](#tools-sql-mutation) | SQL mutation harness | [modules/tools.md](modules/tools.md) | 0 | 0 | 2 | 0 |
@@ -2649,6 +2649,8 @@ of each database function.
 
 **Tests** (1): [drills.test.ts](../../tools/drills/test/drills.test.ts)
 
+**Controls** (5): [DI-02](../../compliance/controls/DI-02.yaml), [DI-45](../../compliance/controls/DI-45.yaml), [DI-46](../../compliance/controls/DI-46.yaml), [DI-48](../../compliance/controls/DI-48.yaml), [IN-09](../../compliance/controls/IN-09.yaml)
+
 ## tools-security
 
 **Security verification and installation hardening checks (slice 7d).** Package `tools/security`. Handbook: [modules/tools.md](modules/tools.md).
@@ -2656,6 +2658,8 @@ of each database function.
 **Source** (3): [cli.ts](../../tools/security/src/cli.ts), [hardening.ts](../../tools/security/src/hardening.ts), [supply-chain.ts](../../tools/security/src/supply-chain.ts)
 
 **Tests** (1): [security-tools.test.ts](../../tools/security/test/security-tools.test.ts)
+
+**Controls** (3): [DI-05](../../compliance/controls/DI-05.yaml), [DI-13](../../compliance/controls/DI-13.yaml), [DI-18](../../compliance/controls/DI-18.yaml)
 
 ## tools-regulatory
 

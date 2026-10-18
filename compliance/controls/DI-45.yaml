@@ -96,6 +96,7 @@ tests:
   - "packages/kernel/test/mutation/protected-numbers.test.ts > external anchors: classification when a restore is recorded, and coverage by an approved restore event > [INV-08][DI-45] an approved restore event covers only the history it discarded: not history the restore kept, and not an anchor id this database issued again"
   - "packages/kernel/test/mutation/protected-numbers.test.ts > external anchors: classification when a restore is recorded, and coverage by an approved restore event > [DI-45][INV-27] where the identifiers were never secured (the database is bound by its own anchor export), completion moves a sequence past its restored position by the whole margin"
   - "packages/kernel/test/review/f57.test.ts > F57: an approved restore event must not cover changed (not lost) anchored history > [INV-08][DI-45][DI-23] a FAILOVER event on a never-restored database does not turn a rewritten anchored event into COVERED"
+  - "tools/drills/test/drills.test.ts > restore drill with its record (slice 7d) > [DI-02][IN-09][DI-45] restore a backup to an isolated test instance: chains and anchors verified, the signed restore event recorded, a batch renders completely; the exported batch restores in an isolated environment"
 clauses:
   - clause: "Restore into an isolated environment and hash-compare records, audit trails and signatures with production."
     tests:

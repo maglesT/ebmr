@@ -375,7 +375,7 @@ export function writeUpgradeReport(dir: string, report: UpgradeReport): UpgradeO
   return { report, jsonPath, markdownPath, reportSha256: sha256(json) };
 }
 
-const cell = (v: unknown): string => String(v ?? '').replace(/\|/g, '\\|');
+const cell = (v: unknown): string => (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v as string | number | boolean | bigint | null | undefined ?? '')).replace(/\|/g, '\\|');
 
 export function renderUpgradeMarkdown(r: UpgradeReport): string {
   const L: string[] = [];

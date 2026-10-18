@@ -53,8 +53,6 @@ export interface HardeningOptions {
 }
 
 const APP_ROLES = ['ebmr_app', 'ebmr_authn', 'ebmr_listener', 'ebmr_analytics', 'ebmr_report', 'ebmr_sandbox', 'ebmr_sandbox_listener'];
-const pass = (id: string, area: HardeningCheck['area'], title: string, evidence: string): HardeningCheck => ({ id, area, title, status: 'PASS', evidence });
-const fail = (id: string, area: HardeningCheck['area'], title: string, evidence: string): HardeningCheck => ({ id, area, title, status: 'FAIL', evidence });
 const na = (id: string, area: HardeningCheck['area'], title: string, evidence: string): HardeningCheck => ({ id, area, title, status: 'NOT_APPLICABLE', evidence });
 const judge = (id: string, area: HardeningCheck['area'], title: string, ok: boolean, evidence: string, warnOnly = false): HardeningCheck =>
   ({ id, area, title, status: ok ? 'PASS' : warnOnly ? 'WARN' : 'FAIL', evidence });

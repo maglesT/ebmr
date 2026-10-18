@@ -35,7 +35,7 @@ async function send(server: TestServer, b: TestBrowser, route: AnyRoute, req: { 
   const where = `${server.kind} ${route.id} ${req.method} ${req.url.slice(0, 120)} ${String(req.payload ?? '').slice(0, 80)}`;
   if (LEAK.test(res.body)) problems.push(`${where}: the answer shows internals: ${res.body.slice(0, 160)}`);
   if (res.statusCode >= 500) {
-    let code = '';
+    let code: string;
     try {
       code = (JSON.parse(res.body) as { refusal?: { code?: string } }).refusal?.code ?? '';
     } catch {

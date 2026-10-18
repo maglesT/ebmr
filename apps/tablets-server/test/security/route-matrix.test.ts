@@ -98,7 +98,7 @@ async function call(server: TestServer, b: TestBrowser | null, route: AnyRoute) 
   const res = b
     ? await b.inject({ method: req.method, url: req.url, ...(req.payload !== undefined ? { payload: req.payload } : {}), headers })
     : await server.app.inject({ method: req.method as 'GET', url: req.url, headers, ...(req.payload !== undefined ? { payload: req.payload } : {}) });
-  let code = '';
+  let code: string;
   try {
     code = res.statusCode >= 300 ? ((JSON.parse(res.body) as { refusal?: { code?: string } }).refusal?.code ?? '') : '';
   } catch {

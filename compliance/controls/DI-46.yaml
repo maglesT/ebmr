@@ -25,6 +25,7 @@ implemented_by: {}
 tests:
   - "packages/kernel/test/records/batch-retention.test.ts > batch retention keys (D-6-5) > [DI-47][DI-46] an aborted batch is kept like a completed one, and the record a kept batch depends on inherits the longer period"
   - "packages/kernel/test/records/evidence-export.test.ts > certified evidence export (IN-11) and the inspection workspace (DI-40) > [IN-11][DI-46] export a batch; alter one byte; hash verification fails"
+  - "tools/drills/test/drills.test.ts > upgrade drill and migration dry run from the Phase 6A exit (slice 7d) > [DI-46] upgrade the test environment, then retrieve and render the record: content, audit trail and signatures intact and the hashes match"
 clauses:
   - clause: "Archive a batch and run a fixity check."
     tests:

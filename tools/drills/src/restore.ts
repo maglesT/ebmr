@@ -239,7 +239,7 @@ export async function runRecordedRestoreDrill(o: RecordedRestoreDrillOptions): P
   }
 }
 
-const cell = (v: unknown): string => String(v ?? '').replace(/\|/g, '\\|');
+const cell = (v: unknown): string => (typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v as string | number | boolean | bigint | null | undefined ?? '')).replace(/\|/g, '\\|');
 const minutes = (ms: number): string => `${(ms / 60_000).toFixed(2)} min`;
 
 /** The record in the template's form (restore-drill-report-template.md). `kernelMarkdown`: the kernel drill's report. */
