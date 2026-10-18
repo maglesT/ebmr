@@ -1865,6 +1865,11 @@ verifies its seal and that it answers that request (`recipe.record_federated_exc
 ([IN-29](../../../compliance/controls/IN-29.yaml)): the mock recall's query version 2 lists the outbound transfers it
 reaches; `recipe.record_mock_recall_remote` records what each destination answered (ANSWERED only as of the run's own
 instant) and `recipe.mock_recall_federation` says whether the run is complete; the AP signs that off with the rest.
+[1225](../../../packages/recipe-core/sql/1225_mock_recall_destinations.sql) (Phase 7 slice 7b-1, 6jc-R12):
+`recipe.mock_recall_destinations(run)` names the destinations to ask, the stored run's outbound transfers without an
+ANSWERED row, after refusing administrators and checking RECALL.MOCK_RUN (and EBMR-RCL-010, -020). The server asks
+exactly these, after the run is stored, so no other site is asked before the permission check and a failed read fails
+the command instead of standing for "no destination".
 
 [1093](../../../packages/recipe-core/sql/1093_federation_actor_and_audit.sql): the four federation functions refuse
 administrators and check GENEALOGY.FEDERATE (asking) or FEDERATION.ANSWER (the endpoint's INTEGRATION identity, role
@@ -1935,6 +1940,26 @@ dropped in 1224 once nothing called it.
 **Pitfall.** When you write a new act on a batch, name the batch's product in its permission check (use the batch form
 of `recipe.require_command_permission`, or add `recipe.batch_scope_members(batch)` to the scope). A check at the
 actor's location only looks safe because it fails closed, but it refuses correct work.
+
+## Closed batch records and the periodic evaluation (Phase 7 slice 7b-2; recipe-core 1240)
+
+[1240_evaluation_batch_records.sql](../../../packages/recipe-core/sql/1240_evaluation_batch_records.sql)
+([DI-08](../../../compliance/controls/DI-08.yaml), [DI-11](../../../compliance/controls/DI-11.yaml),
+[DI-44](../../../compliance/controls/DI-44.yaml)) registers with the kernel:
+- **the closed batch records**: a GMP batch record closed by its life cycle now: its record LOCKED (0870; a record
+  under an open amendment is not closed), closed at its latest lock or closed amendment; or, never locked, aborted or
+  cancelled now. A completed record that is not locked yet, or one reopened, is not closed. Its archive package is every
+  audit chain keyed by the batch (the record, its review, its record lock and amendments, its contingency forms, its
+  readings and release) and the signature chains of its parts, record-lock amendments included, found through a range
+  index on `esig.signature`. The full export holds them and the readability sample draws from them;
+- **the restricted tables of the export**: the eight controlled-substance tables need CONTROLLED.READ, with no site or
+  product limit, for an export or a readability read of a chain holding their rows (IN-53; the export is refused, never
+  cut short);
+- **the topic AUDIT_TRAIL_REVIEW**: every full or delta audit-trail review of a batch record signed in the period;
+- **the topic CHANGE_RECORD** for `recipe.change_record`: the master-record change records of the period.
+
+The functions are STABLE and the owner's only; the kernel's report functions call them
+([kernel](kernel.md#the-full-export-the-closed-records-and-the-periodic-evaluation-pack-phase-7-slice-7b-2-kernel-1335-1336)).
 
 ## How to test recipe-core
 

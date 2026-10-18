@@ -24,7 +24,8 @@ import { resolveAttribution } from '../auth/attribution.ts';
 import { spkiFingerprint } from '../auth/device-proof.ts';
 import { isShopFloor, requestTokenHash, resolveSession, type ResolvedSession } from '../auth/session.ts';
 import type { AppContext } from '../context.ts';
-import { refusal } from './refusal.ts';
+import { inCommandScope } from '../db/commands.ts';
+import { HttpRefusal, refusal } from './refusal.ts';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -493,15 +494,42 @@ export function bindRoutes<NS extends RouteNamespace>(scope: FastifyInstance, ap
           idempotencyKey: typeof request.headers['idempotency-key'] === 'string' ? request.headers['idempotency-key'] : null,
           requestHash: requestHashOf(route.id, request.params, request.query, request.body),
         };
-        const result = await handler(ctx);
+        // O-T13-1: a failure after the request's command committed is not "nothing was saved" (savedNotShown). A
+        // refusal the handler throws on purpose after a commit (the e-signature's recorded refusal) stays as it is.
+        const { scope, outcome } = await inCommandScope(() => handler(ctx));
+        if (!outcome.ok) {
+          if (scope.committed && !reply.sent && !(outcome.error instanceof HttpRefusal)) {
+            request.log.error({ err: outcome.error, correlationId, commandId: scope.commandId }, 'the command committed; its answer could not be built');
+            throw savedNotShown(scope.commandId);
+          }
+          throw outcome.error;
+        }
         if (reply.sent) return reply;
-        return result;
+        return outcome.value;
       },
     });
     app.boundRoutes.set(route.id, { method: route.method, path: route.path, installation: app.installation });
     registered.push(route.id);
   }
   return registered;
+}
+
+/**
+ * The answer when a route's command committed and only the answer after it failed (O-T13-1): the request was saved
+ * (or answered from its stored result), so the screen must not say "nothing was saved". It names the command by its
+ * idempotency key; a resend with that key returns the stored result. Status 500 (the answer is missing), not retryable:
+ * the person reloads instead of entering it again.
+ */
+export function savedNotShown(commandId: string | null): HttpRefusal {
+  return refusal(500, {
+    code: 'SAVED_NOT_SHOWN',
+    kind: 'STALE',
+    whatHappened: 'Saved; the result could not be shown. Reload the screen to see it.',
+    why: `The action was saved${commandId ? ` (command ${commandId})` : ''}; reading its result afterwards failed, and the error is logged under the correlation id.`,
+    whatYouCanDo: ['Reload the screen; do not enter it again.', 'If the record does not show the action after a reload, quote the command id and the correlation id.'],
+    whoCanHelp: ['The system administrator (quote the command id and the correlation id)'],
+    ...(commandId ? { details: { commandId } } : {}),
+  });
 }
 
 /**

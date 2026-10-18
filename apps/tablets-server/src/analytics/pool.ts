@@ -47,3 +47,48 @@ export async function queryRetrying<T extends pg.QueryResultRow>(pool: pg.Pool, 
     client.release();
   }
 }
+
+/** The runner's own login (kernel 1240): LOGIN, NOINHERIT, member of nothing, no elevated attribute. */
+export const ANALYTICS_ROLE = 'ebmr_analytics';
+
+/** What the database says the runner's connection is (analyticsRoleProblem). */
+export interface AnalyticsRoleFacts {
+  current_user: string;
+  session_user: string;
+  rolsuper: boolean;
+  rolcreaterole: boolean;
+  rolcreatedb: boolean;
+  rolreplication: boolean;
+  rolbypassrls: boolean;
+  member_of: string[];
+}
+
+/**
+ * Phase 7 slice 7b-1 (Phase 6A residual P6A7-8; draft control DI-51): what is wrong with the role the runner's
+ * connection runs as, or null. The runner reads GMP inputs with no GMP privilege only when it is ebmr_analytics itself
+ * (current and session user), with no elevated attribute (superuser, create role, create database, replication, bypass
+ * row-level security) and a member of no other role: a misconfigured EBMR_DB_ANALYTICS_URL naming another login would
+ * otherwise run it with that login's rights.
+ */
+export function analyticsRoleProblems(f: AnalyticsRoleFacts | undefined): string[] {
+  if (f === undefined) return ['the database did not describe the connection\'s role'];
+  const problems: string[] = [];
+  if (f.current_user !== ANALYTICS_ROLE || f.session_user !== ANALYTICS_ROLE) {
+    problems.push(`it connects as ${f.session_user} acting as ${f.current_user}, not as ${ANALYTICS_ROLE}`);
+  }
+  const elevated = ([['rolsuper', 'superuser'], ['rolcreaterole', 'create role'], ['rolcreatedb', 'create database'], ['rolreplication', 'replication'],
+    ['rolbypassrls', 'bypass row-level security']] as const).filter(([k]) => f[k]).map(([, name]) => name);
+  if (elevated.length > 0) problems.push(`the role has the elevated attribute(s) ${elevated.join(', ')}`);
+  if (f.member_of.length > 0) problems.push(`the role is a member of ${f.member_of.join(', ')}`);
+  return problems;
+}
+
+/** Asks the database what the runner's connection runs as; the problem (analyticsRoleProblems), or null when none. */
+export async function analyticsRoleProblem(pool: pg.Pool): Promise<string | null> {
+  const { rows } = await queryRetrying<AnalyticsRoleFacts>(pool, `
+    select current_user::text as current_user, session_user::text as session_user, r.rolsuper, r.rolcreaterole, r.rolcreatedb, r.rolreplication, r.rolbypassrls,
+           array(select b.rolname::text from pg_catalog.pg_auth_members m join pg_catalog.pg_roles b on b.oid = m.roleid where m.member = r.oid order by 1) as member_of
+      from pg_catalog.pg_roles r where r.rolname = current_user`);
+  const problems = analyticsRoleProblems(rows[0]);
+  return problems.length === 0 ? null : problems.join('; ');
+}

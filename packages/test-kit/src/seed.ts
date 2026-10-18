@@ -332,6 +332,24 @@ async function seedPersona(
   };
 }
 
+/**
+ * One more persona on a seeded site after its set-up, for a spec that needs a role no seeded persona holds (the CSV /
+ * DI lead who makes the full export of the installation, slice 7b-2): created, verified, granted and approved exactly as
+ * the seeded personas are, by the bootstrap administrator and the process owner, and returned as a persona of set 0.
+ * DEMO-ONLY credentials; the seed file is not changed.
+ */
+export async function addPersona(db: DatabaseHandle, seed: SiteSeed, p: PersonaSpec): Promise<SeededPersona> {
+  const authn = seedAuthn(db.admin);
+  const adminCtx = await passwordActor(db, seed.bootstrap.admin, seed.bootstrap.admin.fingerprint);
+  const ownerCtx = await passwordActor(db, seed.bootstrap.owner, seed.bootstrap.owner.fingerprint);
+  try {
+    return await seedPersona(db, authn, adminCtx, ownerCtx, p, 0, terminalOf(seed, p.homeTerminal));
+  } finally {
+    await identity.endSession(db.app, adminCtx.sessionId);
+    await identity.endSession(db.app, ownerCtx.sessionId);
+  }
+}
+
 /** The persona of a seed by key (e.g. 'operator1' or 'operator1-w2'). */
 export function personaOf(seed: SiteSeed, key: string): SeededPersona {
   const p = seed.personas.find((x) => x.key === key);

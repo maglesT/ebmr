@@ -191,6 +191,14 @@ names the source's highest published sequence number, and the database refuses i
 alone never keeps a blocking mirror fresh; a lost message keeps the mirror ageing until it arrives or a person
 acknowledges its gap with a note on the integration health page.
 
+Who acknowledges a gap (Phase 7 slice 7b-1, 6jc-R11, kernel
+[1320](../../../packages/kernel/sql/1320_sequence_gap_acknowledgment.sql)): a SEQUENCE_GAP on the adapter of a system
+that feeds a blocking mirror (LMS, CMMS, QMS, ERP/WMS, L3) is acknowledged only with ALARM.ACKNOWLEDGE_GAP, held by the
+system owner (PROCESS_OWNER) and QA (QA_REVIEWER); the note is then the account of the lost messages that lets the
+mirror be used again. Every other integration alarm stays ALARM.ACKNOWLEDGE's (operators and shift supervisors), and an
+administrator acknowledges none. `platform.gap_needs_owner_or_qa(alarm)` says which rule applies. An operator who tries
+reads EBMR-PLAT-006 naming ALARM.ACKNOWLEDGE_GAP: call QA or the system owner.
+
 ## The ERP/WMS adapter and the worker base (Phase 6, slice 6a, builder A)
 
 **The worker framework** ([framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker)):
@@ -446,6 +454,89 @@ Tests: [feed-signature.test.ts](../../../apps/tablets-server/test/equipment-data
 [adapter-startup.test.ts](../../../apps/tablets-server/test/integrations/adapter-startup.test.ts) (EBMR-INT-034 at
 start-up) and the gateway's [opcua-driver.test.ts](../../../apps/site-gateway/test/opcua-driver.test.ts). The test
 certificates are made at run time by [test-pki.ts](../../../apps/tablets-server/test/support/test-pki.ts).
+
+## Hardening of the worker and the gateway (Phase 7, slice 7b-1)
+
+Four residuals of Phase 6 on this side, each with its test
+([DI-31](../../../compliance/controls/DI-31.yaml), [DI-32](../../../compliance/controls/DI-32.yaml)).
+
+**Reconciliation runs by itself (owner observation O-T12-1).** Before, `AdapterWorker.reconcile` had no caller: a
+source that stopped publishing its last messages showed only as "head ahead of cursor" on the health page. Now each
+worker reconciles every closed period itself (`reconcileDue` in
+[framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts), started from a cycle at
+most once a minute). A period is one hour of source time aligned to the hour; it closes once the database's clock
+(`tab.now_micros`; tests inject their own clock) has passed its end plus a grace of 10 minutes. The worker starts after
+the last period the database holds a report for, or at the hour the adapter was registered, and submits the closed
+periods in order, at most 24 a run, through `platform.record_reconciliation` (kernel 1180), which raises
+RECONCILIATION_MISMATCH when the source's count or checksum differs from what the eBMR accepted or recorded as refused.
+A period the source cannot report is asked again next run; after any failure the next run starts from the database's
+latest report, so a report that committed while its answer was lost is not submitted twice. The worker does not reconcile while it is working off a
+backlog of messages (not caught up but receiving), because those periods would mismatch only because their messages are
+still queued; a source whose head stays ahead without delivering is reconciled, so what it never sends is a mismatch.
+The health page shows the last report (period, counts, matched). Test: `feed-adapters.test.ts` "O-T12-1".
+
+**The gateway spools open chunks (the T12 observation, decision 0022).** A chunk is journalled when it closes. Before,
+its samples were only in the driver's memory until then, and a crash lost them without a trace. Now the driver hands each
+sample of an open chunk to the feed on receipt (`OpcuaSink.sample`), and the feed spools it in `opcua-spool.jsonl`
+beside the journal ([opcua-feed.ts](../../../apps/site-gateway/src/opcua-feed.ts)): the chunk's unit, tag, unit of
+measure and number, and the sample. The spool is written and fsynced in batches at most `spoolSyncMs` apart (at most
+1 s). A clean stop closes every chunk first and ends the spool with a `closed` line. At open, a spool that does not end
+so is a crash: each open chunk it holds (a number the journal does not hold) is completed from its samples and
+journalled, signed like every chunk, and the next chunk numbers continue after it. What the gateway cannot fill (the
+samples after the last one spooled, the time it was down) is published per series as an `opcua.series_gap` message from
+that sample's source time to the restart. The database raises a SERIES_GAP integration alarm (MAJOR) that names the
+unit, the tag and the interval (`plant.receive_series_gap`, recipe-core
+[1232](../../../packages/recipe-core/sql/1232_series_gap_message.sql); the kind in kernel
+[1328](../../../packages/kernel/sql/1328_series_gap_alarm_kind.sql); the verifier's dispatch in tablets
+[1432](../../../apps/tablets-server/sql/1432_gateway_feed_series_gap.sql), so the gap message is signature-checked like
+every other). A torn last spool line is a sample that was never written and lies inside the gap; a damaged earlier line
+stops the gateway from opening, as for the journal. The spool is started afresh after recovery and rewritten with only the
+open chunks' samples and a `seen` line per series spooled since the start when it passes 4 MiB. Review round 1: a
+series with no open chunk at the crash (a chunk had just closed, or a quiet tag's chunk was flushed) is a gap from the end
+of its last journalled chunk; a spooled chunk that is not a valid chunk is a gap up to the next completed chunk; and when
+a recovery message cannot be journalled (a signing or journal failure) the spool is kept, not truncated nor marked
+closed, so the next start tries again. Tests: the gateway's
+[opcua-spool.test.ts](../../../apps/site-gateway/test/opcua-spool.test.ts) and the server's
+`opcua-adapter.test.ts` "a series gap".
+
+**No sample dated epoch 0 (6jc-R13).** The node-opcua transport (`sampleOf`,
+[opcua-node.ts](../../../apps/site-gateway/src/drivers/opcua-node.ts)) dates a sample by the source's timestamp, or the
+source server's when the source gave none. A value with neither (or one at or before the epoch) is dated when the
+gateway received it, marked BAD with `MISSING_TIMESTAMP_STATUS` (OPC UA Bad_InvalidTimestamp, `0x80230000`, so it shows
+no value), and the driver alarms MISSING_TIMESTAMP with the status the source sent. The database now has a lower bound:
+recipe-core [1233](../../../packages/recipe-core/sql/1233_source_time_session_lower_bound.sql) re-creates
+`plant.opcua_data_guard` (every check of 0961 kept) so that a series chunk, alarm or equipment event of the OPC UA
+source dated more than five minutes (`SOURCE_TIME_SKEW_US`, the same allowance as for a time ahead) before the start of
+the endpoint session it stands on is refused (`plant.source_time_or_raise(text, text, bigint)`, EBMR-EQD-003 or
+EBMR-ALM-003, OUT_OF_RANGE). So that a working gateway never meets that refusal, the driver keeps a sample older than its
+session's start minus the skew (typically the current value of a tag unchanged since before the session) as the tag's
+current value but out of the series, with a BEFORE_SESSION alarm. Tests: `opcua-spool.test.ts` (6jc-R13) and
+`opcua-adapter.test.ts` "6jc-R13". Test fixtures now date OPC UA data within five minutes of their session. Review
+round 1 (recipe-core [1234](../../../packages/recipe-core/sql/1234_opcua_alarm_event_offline_bound.sql), kernel
+[1330](../../../packages/kernel/sql/1330_opcua_offline_buffer_setting.sql)): the five minutes apply to series only. An
+alarm or equipment event that happened while the gateway was down arrives at the reconnect under the new session, so it
+may be as old as the gateway's offline buffer before that session (setting `integration.opcua_offline_buffer_s`,
+default 7 days, changed under a change record); a time of 1970 still fails. A session itself is refused when its start
+is more than that buffer before the database's clock (`plant.opcua_session_start_guard`), which catches a gateway clock
+at 1970 while a session pulled after a server outage still lands. (The plain five-minute skew would refuse that late
+session, and with it every message after it.) Fix round 2 (recipe-core
+[1235](../../../packages/recipe-core/sql/1235_opcua_series_offline_bound.sql), the GB-T-03 regression): a series sample
+may be as old as the offline buffer before its session too. An OPC UA server sends each monitored value at subscription
+with the source time of its last change, so a tag unchanged since before the session (GB-T-03's fill depth) comes hours
+old and is genuine; the five-minute bound kept it out of the series. The gateway's BEFORE_SESSION threshold is the same
+buffer (`OPCUA_OFFLINE_BUFFER_US`, driver option `offlineBufferUs`).
+
+**The stale-mirror refusal says whom to call (F-6jb-2).** A signature or act refused because a qualification comes from a
+stale mirror said only `STALE_QUALIFICATION_SOURCE:<qualification>`. Kernel
+[1329](../../../packages/kernel/sql/1329_stale_qualification_source_problem.sql) adds
+`iam.stale_qualification_source_problem()`: every stale qualification source by the rule the signing check applies (the
+LMS mirror on `platform.mirror_sync` and its bound in MIRROR mode, otherwise the source's heartbeat and the policy
+`qualification.mirror_max_staleness_seconds`), each with the mirror, its age, its bound and the system owner to call.
+The server's error handler adds it to any refusal that names STALE_QUALIFICATION_SOURCE
+([errors.ts](../../../apps/tablets-server/src/platform/http/errors.ts) `withStaleSourceDetail`): the reason gains the
+line, `whoCanHelp` and `whatYouCanDo` name the system owner first, and `details` carries `staleMirror`,
+`staleMirrorAgeSeconds`, `staleMirrorBoundSeconds` and `systemOwner`. The refusal itself is unchanged. Tests: kernel
+`overrides-and-lms-mirror.test.ts` and server `gmp-batch.test.ts` "F-6jb-2".
 
 ## site-gateway: the equipment gateway
 

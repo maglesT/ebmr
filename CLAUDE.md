@@ -35,6 +35,19 @@ Hard rules:
 - Model by task: the top model builds features and makes design and security fixes; Sonnet does quick reviews; Haiku
   does mechanical jobs (doc updates, test-list syncs, merges without logic conflicts).
 - Plan before a large task; ask the owner only when a decision is genuinely theirs (otherwise take the default).
+- Measured on the Phase 7 session of 18 October 2026 (where its tool output went), so avoid these:
+  - Images and PDF pages were 68 % of all tool output. Never `Read` a PDF page range or a full-size screenshot
+    to check text: use `pdftotext` and `grep`. To see a layout, render only the pages needed at 45–50 dpi
+    (`pdftoppm -r 45`) or downscale the PNG first, and join several into one strip.
+  - Watched-PR events were 10 %: about 4k tokens each, 42 times. Watch only the PR in flight, and unsubscribe as
+    soon as it merges.
+  - CI logs: `get_job_logs` with `failed_only` and `tail_lines` of at most 150, never the whole log.
+  - The graphify skill file is 42 KB. Do not invoke the skill to read its repository notes:
+    `sed -n '/^## In this repository/,/^## Usage/p' .claude/skills/graphify/SKILL.md`, then query
+    `graphify-out/` directly.
+  - A long session re-sends its whole context every turn. Start a fresh session after each merged slice (the
+    resume notes and `PROGRESS.md` carry the state), instead of running several slices in one.
+  - After a compaction, trust the summary: do not re-read `PROGRESS.md`, the plan or files already summarised.
 
 ## Skills and tools
 

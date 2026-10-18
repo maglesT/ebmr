@@ -14,6 +14,9 @@
  * Phase 7 slice 7a (6jc-R9; DI-31): an adapter with `<code>.ca.pem`, `.cert.pem` and `.key.pem` in EBMR_ADAPTER_TLS_DIR
  * talks mutual TLS (./transport.ts); on a GMP installation an adapter whose base URL is off loopback without it does not
  * start (EBMR-INT-034) and its health shows BLOCKED with the refusal as its last error.
+ * Phase 7 slice 7c (DI-06): before its first cycle the adapter asks the database (platform.check_adapter_start, as the
+ * adapter); on a GMP installation an interface missing from the approved system description raises the INTERFACE_DRIFT
+ * alarm and does not start (EBMR-INT-035), shown the same way.
  * Workers stop (their cycle ends, their session is closed) when the server closes; their health shows on the
  * integrations routes (AdapterHealthView.worker).
  */
@@ -80,7 +83,7 @@ export interface AdapterRuntime {
   workers: readonly AdapterWorker[];
   /** The health of the worker of adapter `code` (BLOCKED, naming why, for one refused at start), or null when none runs. */
   health(code: string): AdapterHealth | null;
-  /** The adapters refused at start because of their transport (EBMR-INT-034, slice 7a), with why. */
+  /** The adapters refused at start because of their transport (EBMR-INT-034, slice 7a) or of interface drift (EBMR-INT-035, slice 7c), with why. */
   refusedAtStart: ReadonlyMap<string, string>;
   stop(): Promise<void>;
 }
@@ -126,6 +129,16 @@ export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000
         continue;
       }
       const w = slot.make(app.pools.app, code, () => openAdapterActor(app, entry, slot.roleCode), entry.endpoint, tls);
+      // Slice 7c (DI-06, kernel 1350): the database checks the adapter against the approved system description as the
+      // adapter itself; on a GMP installation an interface not described raises the INTERFACE_DRIFT alarm and does not
+      // start (EBMR-INT-035), and the health page names the refusal.
+      const drift = await w.command(async (c) => (await c.query<{ p: string | null }>('select platform.check_adapter_start() as p')).rows[0]?.p ?? null);
+      if (drift !== null) {
+        await w.stop();
+        log.warn({ adapter: code, system: slot.system, code: 'EBMR-INT-035' }, drift);
+        refused.set(code, refusedHealth(code, slot.system, drift));
+        continue;
+      }
       w.start(intervalMs, log);
       workers.push(w);
       log.info({ adapter: code, system: slot.system, endpoint: entry.endpoint, mutualTls: tls !== undefined }, 'integration adapter started');

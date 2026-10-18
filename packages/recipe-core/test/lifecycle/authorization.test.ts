@@ -7,6 +7,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { seedAdministration } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { authorizationScan, type ScanRules } from '../../../kernel/test/support/authorization-scan.ts';
 import * as lc from '../../src/lifecycle/index.ts';
 import { seedCast, uniqueContent, World } from './support.ts';
 
@@ -100,6 +101,34 @@ describe('authority on every writer (DI-17, DI-18)', () => {
     expect(rows).toEqual([{ domain: 'GMP', effect: 'WRITE', roles: ['QA_MBR_APPROVER', 'REGULATORY_SIGNER'] }]);
     const audit = await db.admin.query<{ role: string }>("select payload -> 'actor' ->> 'role_code' as role from kernel.audit_event where chain_key = 'iam_permission:MBR.CHANGE_RECORD'");
     expect(audit.rows).toEqual([{ role: 'SOFTWARE_RELEASE' }]);
+  });
+});
+
+/**
+ * Phase 7 slice 7b-1 (review residual 6jc-R7): the scan of the plant schema (equipment, rooms, containers, alarms, series,
+ * the plant rules), whose Phase 6 writers were proven by their own tests only.
+ */
+const PLANT: ScanRules = {
+  ungated: {
+    'plant.instrument_use_assessment(uuid,uuid,timestamp with time zone)': 'reads only: the fitness and the checks of an instrument at its planned use; writes nothing',
+  },
+  delegates: {
+    'plant.reject_container(uuid,bigint)': 'plant.dispose_container',
+    'plant.release_container(uuid,bigint,uuid)': 'plant.dispose_container',
+    'plant.sort_container(uuid,bigint)': 'plant.dispose_container',
+  },
+  adminAfterPermission: {},
+};
+
+describe('the authorization scan of the plant schema (6jc-R7)', () => {
+  it('[DI-17][DI-18] every app-callable writer of plant checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no plant table is app-writable', async () => {
+    const r = await authorizationScan(db.admin, ['plant'], PLANT);
+    expect(r.functions).toBeGreaterThanOrEqual(40);
+    expect(r.ungated).toEqual([]);
+    expect(r.unknownPermissions).toEqual([]);
+    expect(r.adminNotFirst).toEqual([]);
+    expect(r.staleEntries).toEqual([]);
+    expect(r.appWritableTables).toEqual([]);
   });
 });
 

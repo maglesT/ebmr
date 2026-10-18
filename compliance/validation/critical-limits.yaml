@@ -7,7 +7,8 @@
 # boundaryTests  tests named as in a control's tests list (`<file> > <describe> > ... > <title>`); each must be a test
 #                the register lists, or `pnpm register:validate` refuses the file
 #
-# Seeded in 7-0 with limits whose boundary tests already exist; slice 7c completes the list.
+# Seeded in 7-0 with limits whose boundary tests already exist; slice 7c added record-retain-until, usp-limit-rounding
+# and weight-uniformity-band (boundary tests the register already lists).
 limits:
   - key: batch-number-past-date
     description: "A numbering rule may be dated at most one minute before the database clock; exactly one minute is accepted, anything older is refused."
@@ -32,11 +33,26 @@ limits:
     boundaryTests:
       - "apps/tablets-server/test/devices/reading-age-policy.test.ts > F38: the maximum age of a scale reading is the database's policy (DI-28) > [DI-28][DI-32] a 10-minute-old reading pair is refused at 120 s, and still refused when the application role asks for 3600 s; nothing is recorded"
       - "apps/tablets-server/test/devices/reading-age-policy.test.ts > F38: the maximum age of a scale reading is the database's policy (DI-28) > [DI-28][DI-32] a site that tightens the policy gets the tighter maximum, whatever the server asks"
+  - key: record-retain-until
+    description: "A record is kept through its retain-until date; it may be disposed of only from the next site day (INV-22)."
+    controls: [DI-47]
+    boundaryTests:
+      - "packages/kernel/test/mutation/retention-and-purge.test.ts > INV-22 retain-until boundary > [DI-47][INV-22] on its retain-until date a record is still kept (EBMR-REC-031); from the next site day it may be disposed of"
   - key: setpoint-read-back
     description: "A setpoint read back from automated equipment must match the configured value within its tolerance, ends allowed, in its unit; otherwise QA decides."
     controls: [DI-31, PR-14]
     boundaryTests:
       - "packages/recipe-core/test/blocks/g06-edges.test.ts > G-06 values > [DI-31][PR-14] a read-back of a configured setpoint matches within its tolerance (ends allowed), in its unit; otherwise QA decides"
+  - key: usp-limit-rounding
+    description: "A result is judged against a pharmacopoeial range after rounding to the stated places: just inside, on and just outside each end, and a missing value (USP 95.0 to 105.0)."
+    controls: [DI-33]
+    boundaryTests:
+      - "packages/expr/test/vectors.test.ts > limit boundary values > [DI-33] USP 95.0-105.0: typical, on-limit, 94.95 just inside, 94.94 just outside, 105.04 / 105.05, and missing"
+  - key: weight-uniformity-band
+    description: "The weight-uniformity band follows the average weight: an inclusive limit takes its average into the band, an exclusive one does not."
+    controls: [IN-34, PR-29]
+    boundaryTests:
+      - "apps/tablets-server/test/mutation/tablets-ipc.test.ts > weight uniformity and subdivision > [PR-29][IN-34] the band by the average weight: an inclusive limit takes its average, an exclusive one does not"
   - key: yield-limit
     description: "The forming yield is computed exactly from the net quantity against the limit times the feed, boundaries inside; the rounded display never decides."
     controls: [DI-29, PR-29]

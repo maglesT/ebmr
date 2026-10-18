@@ -185,6 +185,22 @@ module.exports = {
       from: { path: '^apps/tablets-server/src/features/', pathNot: '^apps/tablets-server/src/features/(analytics/|index\\.ts$)' },
       to: { path: '^apps/tablets-server/src/(analytics|features/analytics)/' },
     },
+    // ---- Phase 7 slice 7b-2: the stand-alone record viewer (DI-08) --------------------------------------------------
+    {
+      name: 'record-viewer-standalone',
+      comment:
+        'The stand-alone record viewer is a static, offline page: its code reaches no package, app or tool of the repository and no database driver (it verifies an export with its own code, in the browser).',
+      severity: 'error',
+      from: { path: '^apps/record-viewer/src/' },
+      to: { path: `^(packages|apps/(?!record-viewer/)|tools)/|${DB_DRIVERS}` },
+    },
+    {
+      name: 'record-viewer-no-node-core',
+      comment: 'The stand-alone record viewer imports no node core module (it runs in a browser from the file system).',
+      severity: 'error',
+      from: { path: '^apps/record-viewer/src/' },
+      to: { dependencyTypes: ['core'] },
+    },
     {
       name: 'e2e-imports',
       comment: 'End-to-end tests import only packages and the demo tooling, never app internals.',
