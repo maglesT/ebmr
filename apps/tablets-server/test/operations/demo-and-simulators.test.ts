@@ -15,7 +15,7 @@ import { ADMIN_URL, generateDeviceKey, openPersonaSession, passwordActor, type S
 import { afterAll, describe, expect, it } from 'vitest';
 import { refusalOf, valueOf } from '../esig/support.ts';
 import { grantedPerson, loginOf } from '../support/granted-person.ts';
-import { startServer, type TestServer } from '../support/harness.ts';
+import { startServer, type TestBrowser, type TestServer } from '../support/harness.ts';
 
 const O = routes.operations;
 const servers: TestServer[] = [];
@@ -149,9 +149,12 @@ describe('demo and test data on a demo sandbox (decision 0025)', () => {
   }, 600_000);
 });
 
-/** Waits for the demo job to end and returns its view. */
-async function settled(s: TestServer) {
-  const anon = s.browser();
+/**
+ * Waits for the demo job to end and returns its view, asked through `via` (by default a browser with no session; the
+ * page that started the job still sends the session cookie of the old database).
+ */
+async function settled(s: TestServer, via?: TestBrowser) {
+  const anon = via ?? s.browser();
   let job = valueOf(await anon.call(O.demoJob));
   for (let i = 0; i < 2400 && job.state === 'RUNNING'; i++) {
     await new Promise((r) => setTimeout(r, 250));
@@ -172,7 +175,9 @@ describe('loading the demo data (decision 0025)', () => {
     const started = valueOf(await admin.call(O.demoLoad, { body })).job;
     expect(started).toMatchObject({ state: 'RUNNING', kind: 'LOAD' });
     expect(refusalOf(await admin.call(O.demoLoad, { body })).code).toMatch(/DEMO_NOT_POSSIBLE|MAINTENANCE/);
-    const job = await settled(s);
+    // The page that started the job follows it with the session cookie of the old database, whose sessions go with it
+    // (E2E 7g-4: the job's state was refused as INTERNAL while the old database was being dropped).
+    const job = await settled(s, admin);
     expect(job).toMatchObject({ state: 'DONE', kind: 'LOAD', error: null });
     const seed = JSON.parse(readFileSync(join(keysDir, 'sandbox-seed.json'), 'utf8')) as SiteSeed;
     expect(seed.personas.length).toBeGreaterThan(5);

@@ -434,6 +434,9 @@ tests:
   - "apps/tablets-server/test/operations/demo-and-simulators.test.ts > demo and test data on a demo sandbox (decision 0025) > [DI-05] the administrator resets a demo sandbox to a clean state after confirming its name; its first-run set-up opens with the token the reset answered; the demo data is then loaded again, with its personas and terminals"
   - "apps/tablets-server/test/operations/demo-and-simulators.test.ts > loading the demo data (decision 0025) > [DI-05] the administrator loads the demo data into a demo sandbox: the personas, terminals and feature seeds of the set-up CLI and the backup service identity; the server takes the new installation without a restart"
   - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-05] a sandbox is set up the same way, with its TEST- labels; a name that is not a test label is refused there"
+  - "apps/tablets-web/test/operations/operations.test.tsx > demo and test data (decision 0025) > [DI-05] a load keeps following its job through answers lost while the database is recreated, and marks the page as following it (the session poll then does not ask, app/maintenance.ts)"
+  - "tools/e2e/specs/operations/operations.spec.ts > [DI-05] the demo data is loaded from the operations screen after the database name is typed to confirm; the browser starts again on the demo terminals @office"
+  - "tools/e2e/specs/operations/operations.spec.ts > [DI-05] the installation is reset to a clean state from the operations screen; the set-up token is shown once and the browser starts again on the first-run set-up @office"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:

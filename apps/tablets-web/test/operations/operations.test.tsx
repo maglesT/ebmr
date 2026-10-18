@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { BackupsView, DemoJobView, DemoView, SimulatorView, WorkersView } from '@ebmr/api-contract';
 import { apiState } from '../../src/api/client.ts';
+import { followingRecreation } from '../../src/app/maintenance.ts';
 import { at, refusalAnswer, renderOperations } from './support.tsx';
 
 afterEach(() => {
@@ -57,6 +58,34 @@ describe('demo and test data (decision 0025)', () => {
     await waitFor(() => expect(screen.getByTestId('demo-job-state').getAttribute('data-state')).toBe('DONE'), { timeout: 5000 });
     expect(screen.getByRole('button', { name: 'Start the application again' })).toBeTruthy();
   });
+
+  it('[DI-05] a load keeps following its job through answers lost while the database is recreated, and marks the page as following it (the session poll then does not ask, app/maintenance.ts)', async () => {
+    let calls = 0;
+    const ui = renderOperations('/operations/demo', {
+      installation: 'SANDBOX',
+      fixtures: {
+        'operations.demo': demo(),
+        'operations.demoLoad': { job: job('RUNNING', 'LOAD', 'starting') },
+        'operations.demoJob': () => {
+          calls += 1;
+          if (calls < 3) return refusalAnswer(503, 'MAINTENANCE', 'The installation is being recreated. Nothing was done.');
+          return calls < 4 ? job('RUNNING', 'LOAD', 'seeding feature planning') : job('DONE', 'LOAD', 'done');
+        },
+      },
+    });
+    await screen.findByTestId('demo-contents');
+    expect(followingRecreation.active).toBe(false);
+    await userEvent.type(screen.getByRole('textbox', { name: 'Reason (recorded)' }), 'demo data');
+    await userEvent.type(screen.getByRole('textbox', { name: /Type the database name/ }), 'ebmr_sandbox_tablets_demo');
+    await userEvent.click(screen.getByRole('button', { name: 'Load the demo data' }));
+    await screen.findByTestId('demo-job');
+    expect(followingRecreation.active).toBe(true);
+    await waitFor(() => expect(screen.getByTestId('demo-job-state').getAttribute('data-state')).toBe('DONE'), { timeout: 8000 });
+    expect(screen.getByRole('button', { name: 'Start the application again' })).toBeTruthy();
+    expect(ui.requests.filter((r) => r.path === '/api/operations/demo/job').length).toBeGreaterThanOrEqual(4);
+    cleanup();
+    expect(followingRecreation.active).toBe(false);
+  }, 15_000);
 
   it('[DI-05] on a GMP installation that is not a demo one the page shows the database\'s refusal and offers no act; a GMP demo installation offers the review batch', async () => {
     renderOperations('/operations/demo', { fixtures: { 'operations.demo': demo({ allowed: false, installation: 'GMP', demo: false, database: 'ebmr_tablets', refusal: 'EBMR-OPS-010 ebmr_tablets is a GMP installation, not a demo one' }) } });

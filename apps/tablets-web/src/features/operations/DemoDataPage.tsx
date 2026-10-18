@@ -6,11 +6,12 @@
  * A GMP installation that is not a demo one refuses both, in the database (EBMR-OPS-010). While the job runs nobody is
  * signed in (the sessions go with the database); the page follows the job and then starts again.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { routes } from '@ebmr/api-contract';
 import { Banner, Field, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, Section, useCommand } from '../../app/acts.tsx';
+import { followingRecreation } from '../../app/maintenance.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 import { DEMO_READS } from './reads.ts';
 
@@ -18,7 +19,17 @@ import { DEMO_READS } from './reads.ts';
 export const reloadApp = { now: (): void => window.location.assign('/') };
 
 function JobPanel({ token }: { token: string | null }) {
-  const job = useApiQuery(routes.operations.demoJob, {}, { refetchInterval: (q) => (q.state.data?.state === 'RUNNING' ? 1000 : false) });
+  // Asked every second until the job has ended: an answer lost meanwhile (the server is recreating the database) is
+  // asked again, never taken for the end.
+  const job = useApiQuery(routes.operations.demoJob, {}, {
+    refetchInterval: (q) => (q.state.data?.state === 'DONE' || q.state.data?.state === 'FAILED' ? false : 1000),
+  });
+  useEffect(() => {
+    followingRecreation.active = true;
+    return () => {
+      followingRecreation.active = false;
+    };
+  }, []);
   const j = job.data;
   return (
     <Section title="The installation is being recreated" testId="demo-job">
