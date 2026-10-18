@@ -42,10 +42,23 @@ import {
 
 /**
  * A row the database refuses as a duplicate by a unique index (an adapter code, one adapter per integration account, a
- * badge UID) answers with the database's own message rather than as an unexpected error; nothing was saved.
+ * badge UID), or by a check constraint, answers with the database's own message rather than as an unexpected error;
+ * nothing was saved.
  */
 function duplicateAsRefusal(error: unknown): unknown {
   const e = error as { code?: unknown; message?: unknown; detail?: unknown; cause?: { code?: unknown; message?: unknown; detail?: unknown } };
+  const check = e.code === '23514' ? e : e.cause?.code === '23514' ? e.cause : null;
+  if (check) {
+    // A row a check constraint refuses (a break-glass account that is generic or not HUMAN): found by the route-by-role
+    // matrix at the 7g integration, where it answered 500.
+    return refusal(422, {
+      code: 'EBMR-API-CHECK',
+      kind: 'INVALID_INPUT',
+      whatHappened: 'The database refused this combination. Nothing was saved.',
+      why: typeof check.message === 'string' && check.message !== '' ? check.message : 'A rule of the record was not met.',
+      whatYouCanDo: ['Correct the combination (a break-glass account is a personal HUMAN account, never generic) and try again.'],
+    });
+  }
   const pgError = e.code === '23505' ? e : e.cause?.code === '23505' ? e.cause : null;
   if (!pgError) return error;
   return refusal(409, {
@@ -55,6 +68,12 @@ function duplicateAsRefusal(error: unknown): unknown {
     why: [pgError.message, pgError.detail].filter((x): x is string => typeof x === 'string' && x !== '').join(': '),
     whatYouCanDo: ['Use another code, or end the existing one first.'],
   });
+}
+
+/** A row that names a record the database does not hold (foreign_key_violation), as the error or its cause. */
+function isForeignKeyViolation(error: unknown): boolean {
+  const e = error as { code?: unknown; cause?: { code?: unknown } };
+  return e.code === '23503' || e.cause?.code === '23503';
 }
 
 /** One act as an idempotent command of the person (the stored result is an id or null, never a secret). */
@@ -111,9 +130,15 @@ export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
       return onePerson(app, pool, params.personId);
     },
     createAccount: async ({ body, actor, idempotencyKey, requestHash }) => {
-      await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: `open account ${body.loginName}` }), idempotencyKey, requestHash, (c) =>
-        identity.createAccount(c, { personId: body.personId, loginName: body.loginName, kind: body.kind, generic: body.generic, breakGlass: body.breakGlass }),
-      );
+      try {
+        await act(pool, actor({ reasonCode: ACCESS_REASON, reasonText: `open account ${body.loginName}` }), idempotencyKey, requestHash, (c) =>
+          identity.createAccount(c, { personId: body.personId, loginName: body.loginName, kind: body.kind, generic: body.generic, breakGlass: body.breakGlass }),
+        );
+      } catch (error) {
+        // The database checks the right first; an account for a person it does not hold is refused by the foreign key
+        // (found by the route-by-role matrix at the 7g integration: it answered 500).
+        throw isForeignKeyViolation(error) ? notFound('person') : error;
+      }
       return onePerson(app, pool, body.personId);
     },
     activateAccount: async ({ params, body, actor, idempotencyKey, requestHash }) => {

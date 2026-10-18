@@ -376,6 +376,7 @@ tests:
   - "apps/tablets-server/test/operations/demo-and-simulators.test.ts > the simulators' test console (decision 0025) > [DI-05][DI-17] on a sandbox the system administrator starts a simulator, switches a fault on and off and stops it, each act recorded; another role is refused (PLATFORM.OPERATE)"
   - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the background workers (decision 0025) > [DI-31][DI-17] the system administrator stops, starts and restarts an adapter's worker with a reason, each act recorded; QA is refused (PLATFORM.OPERATE)"
   - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the background workers (decision 0025) > [DI-17] the system administrator stops and starts the analytics runner with a reason (GMP with the runner on)"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-14][DI-17] a GMP role holder is refused the administration reads and acts: the route names the roles, the database refuses the act"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

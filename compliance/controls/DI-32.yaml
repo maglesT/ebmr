@@ -238,6 +238,7 @@ tests:
   - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32] 6jc-R13: a chunk dated more than the offline buffer before its endpoint session started (a 1970 clock) is refused with an alarm and lands nowhere; a value unchanged for a day before the session lands"
   - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-49] an alarm or equipment event that happened while the gateway was down lands within the offline buffer; one dated at 1970 is refused"
   - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-20] an endpoint session that starts more than the offline buffer before the database clock (a gateway clock at 1970) is refused; one pulled an hour late is taken"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [DI-32] equipment events of a batch and its original device records"
 clauses:
   - clause: "A weighing with direct capture stores a raw string that matches the display."
     tests:

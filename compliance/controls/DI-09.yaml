@@ -59,6 +59,7 @@ tests:
   - "packages/kernel/test/analytics/method-change.test.ts > method versions under change control (kernel 1245) > [DI-52][DI-09] a reference set is written under an approved change record, is its candidate's model, never changes and retires once"
   - "apps/tablets-server/test/analytics/mspc.test.ts > multivariate monitoring (MSPC.PCA, slice 6A-3) > [DI-09] a reference set without an approved change record is refused"
   - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-27][DI-09] the set-up confirms the site time zone it showed, the one in force; it does not change it (a change is made afterwards under a change record), so another zone is refused and nothing is created"
+  - "apps/tablets-web/test/administration/governance.test.tsx > role permissions > [DI-16][DI-09] the process owner approves under the change record; the database's refusal without one is shown in its words"
 clauses:
   - clause: "Try to change a specification limit through the admin console. Impossible."
     tests:

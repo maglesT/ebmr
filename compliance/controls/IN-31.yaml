@@ -42,6 +42,7 @@ tests:
   - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > label templates, rule by rule (recipe-core 0990) > [IN-31] each malformed template alone is refused with EBMR-LBL-001"
   - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > label templates, rule by rule (recipe-core 0990) > [IN-31] each malformed layout or element alone is refused; a text or a default on an element is a value (D-P6c-2)"
   - "packages/recipe-core/test/mutation/packaging-labels-and-line-completion.test.ts > label templates, rule by rule (recipe-core 0990) > [IN-31] a template's status is its own events': another template's retirement does not retire it"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [IN-31] one label template version opens with its size and the place of each record field"
 clauses:
   - clause: "load an India-domestic template without a manufacturing-date field; approval fails."
     tests:

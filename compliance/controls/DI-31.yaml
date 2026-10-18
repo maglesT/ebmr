@@ -430,6 +430,9 @@ tests:
   - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the background workers (decision 0025) > [DI-31][DI-17] the system administrator stops, starts and restarts an adapter's worker with a reason, each act recorded; QA is refused (PLATFORM.OPERATE)"
   - "apps/tablets-server/test/operations/workers-and-backups.test.ts > the background workers (decision 0025) > [DI-31] a start from the screen of an adapter whose base URL is off loopback without mutual TLS is refused as at the server's start (EBMR-INT-034), and the refusal is recorded"
   - "tools/e2e/specs/operations/operations.spec.ts > [DI-31] an adapter's worker is started and stopped from the integration health page at a simulator started from the test console; a fault switched on there is seen on the health page @office"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > the device registry over HTTP > [DI-19][DI-20][DI-31] the administrator registers a kiosk and attests its hardening, registers a balance and a gateway, enrols the gateway key, binds the balance behind it and binds an OPC UA adapter to its feed"
+  - "apps/tablets-web/test/administration/administration.test.tsx > the device registry > [DI-31][DI-20] the administrator enrols a gateway key, binds a balance behind it and binds an OPC UA adapter to the gateway's feed"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [DI-31] the system administrator proposes a peer installation; QA approves its key later"
 clauses:
   - clause: "Inject malformed, duplicate, out-of-order and wrong-batch messages. Each is rejected or de-duplicated, with an alarm."
     tests:

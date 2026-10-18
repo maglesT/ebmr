@@ -197,6 +197,11 @@ tests:
   - "apps/tablets-server/test/security/session-and-headers.test.ts > headers, cookies and sessions over HTTP (slice 7d) > [DI-19][DI-13] sign-in is rate-limited per address and user ID (10 a minute), signing per session (20 a minute)"
   - "apps/tablets-web/test/operations/setup-wizard.test.tsx > the first-run set-up (decision 0025) > [DI-19] two different entries of a first password send nothing"
   - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-20][DI-19] the set-up browser's key is the administrator's console: the first passwords sign in there only through a change of password; a browser with another key is not a terminal"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > people and access over HTTP > [DI-19][DI-15] a badge is issued against an identity check, tested and activated; reported lost it stops; a PIN is issued once; nobody verifies their own identity"
+  - "apps/tablets-server/test/administration/administration-routes.test.ts > the device registry over HTTP > [DI-19][DI-20][DI-31] the administrator registers a kiosk and attests its hardening, registers a balance and a gateway, enrols the gateway key, binds the balance behind it and binds an OPC UA adapter to its feed"
+  - "apps/tablets-web/test/administration/administration.test.tsx > people and accounts > [DI-19][DI-38] a badge UID is typed into a secret field, sent once and cleared; badges are tested and activated from the account"
+  - "apps/tablets-web/test/administration/administration.test.tsx > the device registry > [DI-19][DI-20] the administrator registers a terminal with its key fingerprint and attests the hardening of a kiosk only"
+  - "apps/tablets-web/test/administration/administration.test.tsx > the device registry > [DI-19] a person in a GMP role sees the registry with no act offered"
 clauses:
   - clause: "Make 5 failed signing attempts. The account locks and the security unit receives the alert within the configured time."
     tests:

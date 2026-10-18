@@ -35,8 +35,6 @@ const SERVICE_ONLY: Readonly<Record<string, string>> = {
 
 /** Slice 7g-2 (MBR signing, market authorisations and labelling, plant-rule proposals and approval, incidents). */
 const PENDING_7G2: Readonly<Record<string, string>> = {
-  'plantRules.setFacilityRule': 'the steward proposes the penicillin facility rule; QA approves (slice 7a)',
-  'plantRules.classifyBetaLactam': 'the steward proposes a beta-lactam classification; QA approves (slice 7a)',
   'labels.masterLabelling': 'the labelling of an MBR version (labelling specimens)',
   'labels.declareLabelling': 'the declaration of an MBR version\'s labelling (labelling specimens)',
 };
@@ -51,9 +49,7 @@ const PENDING_7G3: Readonly<Record<string, string>> = {};
 const NO_SLICE_YET: Readonly<Record<string, string>> = {};
 
 /** Signable actions not yet sent by a screen. */
-const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
-  MBR_TRANSITION: 'the Prepared, Checked, regulatory-confirmation and Approved signatures of an MBR version',
-};
+const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {};
 
 function sourceText(): string {
   const files: string[] = [];

@@ -72,10 +72,8 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'ebmr#typecheck': 'build check', 'ebmr#lint': 'build check', 'ebmr#deps:check': 'build check', 'ebmr#pins:check': 'build check',
   'ebmr#test': 'the test suite', 'ebmr#test:json': 'the test suite', 'ebmr#ci': 'everything CI runs',
   'ebmr#register:import': 'the control register (development of the validation evidence)', 'ebmr#register:validate': 'the control register', 'ebmr#register:sync-tests': 'the control register',
+  // D-P7R-2: register:status is a developer tool on the control register, not an operation of an installation.
   'ebmr#register:status': 'the control register',
-  'ebmr#validation:bundle': 'the validation pack (slice 7c): the evidence bundle built from the test reports of a release',
-  'ebmr#validation:generate': 'the validation pack (slice 7c): the documents generated from the evidence bundle',
-  'ebmr#validation:oq': 'the validation pack (slice 7c): the OQ record written from the regression, golden and browser suites',
   '@ebmr/record-viewer#build': 'the build of the stand-alone record viewer shipped with a full export',
   'apps/record-viewer/src/main.ts': 'the stand-alone record viewer: a page opened from the file system beside a full export, offline, with no installation behind it',
   'ebmr#trace': 'the traceability matrix', 'ebmr#trace:e2e': 'the traceability matrix',
@@ -97,6 +95,17 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
   'apps/tablets-server/src/cli/golden-packaging.ts': 'library of the demo data load and the golden batches (masters)',
   'apps/simulators/src/scale/main.ts': 'an equipment simulator of the sandbox\'s site gateway (balances), started with the gateway in the demo stack; its faults are on its own web console',
   'apps/simulators/src/process/main.ts': 'an equipment simulator of the sandbox\'s site gateway (presses and coaters), started with the gateway in the demo stack; its own web console',
+  // Slices 7d and 7e (merged on main after 7g-4 was built), classified when the 7g parts were integrated:
+  'ebmr#guides:lists': 'the generated reference pages of the user guides (documentation build)',
+  'ebmr#guides:build': 'the build of the user guides into HTML and PDF (documentation build)',
+  'tools/guides/src/cli.ts': 'the user guides\' build (see the ebmr#guides scripts)',
+  'ebmr#load': 'the load driver: a performance test of the release on a test cluster, not an operation of an installation',
+  'tools/load/src/cli.ts': 'the load driver (see ebmr#load)',
+  'ebmr#security:licences': 'the release\'s supply chain: the licence scan CI runs',
+  'ebmr#security:secrets': 'the release\'s supply chain: the secret scan CI runs',
+  'ebmr#security:release': 'the release\'s supply chain: the SBOM, manifest and signatures made when a release is built',
+  'ebmr#security:verify': 'checks the signatures of a release\'s files before they are put on a server (with the installer, decision 0025 point 2)',
+  'tools/drills/build-release-db.sh': 'development environment: builds a database with an earlier release\'s own code as the upgrade drill\'s starting point',
   'apps/simulators/src/printer/main.ts': 'an equipment simulator of the sandbox\'s site gateway (line printers), started with the gateway in the demo stack; its own web console',
 };
 
@@ -104,8 +113,16 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
 const LATER: Readonly<Record<string, string>> = {
   'ops/backup/drill.sh': 'the restore drill and its record: slice 7g-3, after 7d',
   'packages/kernel/src/records/records-cli.ts': 'the full export and the periodic evaluation pack (slice 7b-2): slice 7g-3 (validation and records)',
+  'ebmr#drills': 'the restore and upgrade drills and their records (slice 7d): slice 7g-3 (validation and records)',
+  'tools/drills/src/cli.ts': 'restore and upgrade: the drills and their records, slice 7g-3 (validation and records)',
+  'ebmr#security:hardening': 'the hardening check of an installation and its record (slice 7d), like the IQ check: slice 7g-3 (validation and records)',
+  'tools/security/src/cli.ts': 'hardening (the check of an installation): slice 7g-3; licences, secrets, release and verify are the release\'s supply chain (see the ebmr#security scripts)',
   'ebmr#validation:iq': 'the IQ check of an installation and its record (slice 7c): slice 7g-3 (validation and records)',
-  'tools/validation/src/cli.ts': 'iq: the IQ check of an installation, slice 7g-3 (validation and records); bundle, generate and oq build the validation pack from test reports (no operation)',
+  // D-P7R-2: the validation-pack builds are acts that wait for 7g-3's screens (pending, not exempt).
+  'ebmr#validation:bundle': 'the validation pack (slice 7c), the evidence bundle built from the test reports of a release: slice 7g-3 (validation and records)',
+  'ebmr#validation:generate': 'the validation pack (slice 7c), the documents generated from the evidence bundle: slice 7g-3 (validation and records)',
+  'ebmr#validation:oq': 'the validation pack (slice 7c), the OQ record written from the regression, golden and browser suites: slice 7g-3 (validation and records)',
+  'tools/validation/src/cli.ts': 'iq (the IQ check of an installation), bundle, generate and oq (the validation pack): slice 7g-3 (validation and records)',
 };
 
 function walk(dir: string, out: string[] = []): string[] {

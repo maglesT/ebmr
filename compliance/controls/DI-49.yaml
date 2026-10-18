@@ -77,6 +77,7 @@ tests:
   - "packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts > the alarm acknowledgment in the batch's {site, product} scope (6jc-R16) > [IN-04][DI-31][DI-49] the alarm acknowledgment: a stale qualification source is still refused"
   - "packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts > the alarm acknowledgment in the batch's {site, product} scope (6jc-R16) > [DI-17][DI-49] O-T1-1: a person whose grant is limited to one product acknowledges an alarm bound only to batches of that product, not one bound to another product nor one bound to no batch"
   - "apps/tablets-server/test/equipment-data/opcua-adapter.test.ts > the OPC UA adapter worker (D-P6b-0-1) > [DI-32][DI-49] an alarm or equipment event that happened while the gateway was down lands within the offline buffer; one dated at 1970 is refused"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [DI-49] one alarm opens in detail with its configuration, times, batches and acknowledgment"
 clauses:
   - clause: "Simulate an excursion. It appears with raise and acknowledgment times, acknowledger identity and comment."
     tests:

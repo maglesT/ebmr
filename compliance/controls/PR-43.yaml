@@ -38,6 +38,7 @@ tests:
   - "packages/site-services/test/mutation/india-licences.test.ts > recording a stability basis: the refusals (site services 0886, site.record_shelf_life_basis) > [PR-43] a stability basis is an object with a whole number of months, its study and whether it is tentative"
   - "packages/site-services/test/mutation/india-licences.test.ts > recording a stability basis: the refusals (site services 0886, site.record_shelf_life_basis) > [PR-43] a stability basis without a product code or with a shelf life outside 1 to 120 months is incomplete"
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [PR-43] [IN-31] [IN-18] the label of a batch gives the database's particulars, a tentative shelf life as such; an unknown batch is not found; the register keeps to its period"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > shelf-life bases and hazard classes (india) > [IN-27][PR-43] QC records a shelf-life basis; QA approves a recorded hazard class and dedication under its own signature"
 clauses:
   - clause: "Changing the shelf life without a stability reference is blocked."
     tests:

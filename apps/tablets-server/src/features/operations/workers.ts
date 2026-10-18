@@ -16,6 +16,7 @@ export async function workerViews(app: AppContext): Promise<WorkerView[]> {
   const out: WorkerView[] = adapters.map((a) => ({ kind: 'ADAPTER', code: a.code, sourceSystem: a.system, running: a.running, state: a.state, problem: a.problem }));
   const runner = app.operations.analytics;
   if (runner) {
+    await runner.settled();
     const running = runner.running();
     out.push({ kind: 'ANALYTICS', code: ANALYTICS_WORKER, sourceSystem: null, running, state: running ? 'RUNNING' : 'STOPPED', problem: null });
   }

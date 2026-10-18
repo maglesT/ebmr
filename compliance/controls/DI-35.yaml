@@ -277,6 +277,10 @@ tests:
   - "tools/e2e/specs/phase7/master-records.spec.ts > [INV-04][DI-35][PR-04] an MBR from draft through Prepared, Checked, the regulatory confirmation and Approved, and its market authorisation, by different people; a labelling specimen approved by QA @office"
   - "apps/tablets-web/test/slice7g2/master-records.test.tsx > the life-cycle signatures of a version > [INV-04][DI-35] shows the signatures and offers all four acts with their meaning; Prepared is signed on the revision shown through the ceremony"
   - "apps/tablets-web/test/slice7g2/master-records.test.tsx > labelling specimens > [DI-35] lists the specimens with their state; a recorded one is approved through the ceremony, an approved one is not offered again"
+  - "apps/tablets-server/test/administration/access-governance-routes.test.ts > delegations of signing authority over HTTP > [IN-05][DI-35][DI-18] the authorised person delegates manufacturer release; the delegate, the delegator and the administrator cannot approve; the process owner approves; the delegate cannot pass it on; the delegator revokes it"
+  - "apps/tablets-web/test/administration/governance.test.tsx > delegations of signing authority > [IN-05][DI-35] the delegator requests a delegation and is not offered its decision"
+  - "apps/tablets-web/test/administration/governance.test.tsx > delegations of signing authority > [DI-35][DI-18] an approver who is not involved approves; the database's refusal is shown in its words"
+  - "apps/tablets-web/test/administration/governance.test.tsx > delegations of signing authority > [DI-35] the delegate is offered neither the decision nor the revocation; the delegator revokes an approved one"
 clauses:
   - clause: "An inventory maps every predicate signature point to a catalogue type."
     tests:

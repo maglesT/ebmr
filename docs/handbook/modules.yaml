@@ -1103,6 +1103,15 @@ modules:
     screens: [apps/tablets-web/src/features/operations]
     tests: ['apps/tablets-server/test/operations/**', 'apps/tablets-web/test/operations/**']
 
+  - id: ts-administration
+    title: People, access, devices and access governance on screen (Phase 7 slices 7g-1 and 7g-5)
+    page: modules/tablets-web.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/administration]
+    contract: [packages/api-contract/src/ns/people.ts, packages/api-contract/src/ns/device-registry.ts, packages/api-contract/src/ns/access-governance.ts]
+    screens: [apps/tablets-web/src/features/administration]
+    tests: ['apps/tablets-server/test/administration/**', 'apps/tablets-web/test/administration/**']
+
   - id: ts-meta
     title: Meta routes (health, version)
     page: modules/tablets-server.md

@@ -90,6 +90,7 @@ tests:
   - "packages/kernel/test/analytics/exit-review.test.ts > one flag-grouping design (kernel 1280; P6A7-1) > [DI-53][DI-52] a disposition on an audit-trail key closes its later raises in every reader, restricted to data-integrity review, and the monitor counts them dispositioned"
   - "packages/kernel/test/analytics/exit-review.test.ts > one flag-grouping design (kernel 1280; P6A7-1) > [DI-52] the group of a flag is 6A-4's key for the audit-trail methods and 6A-3's signal for the others"
   - "apps/tablets-server/test/analytics/spc.test.ts > the SPC, capability, drift and rate methods (slice 6A-2) > [DI-51][DI-52] the server runs the analytics in a worker thread (slice 7d, P6A7-4): the in-process runner records the same outputs on the same data; a stopped worker refuses"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [DI-52] one analytics flag opens with every disposition it had"
 clauses:
   - clause: "write a method version without an approved change record; refused;"
     tests:

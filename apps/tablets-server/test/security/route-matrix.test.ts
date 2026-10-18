@@ -174,11 +174,18 @@ describe('the route-by-role authorization matrix (slice 7d)', () => {
         for (const [role, c] of Object.entries(row)) expect(['E', 'U', 'L'], `${kind} ${id} as ${role}`).not.toContain(c);
       }
     }
-    // Segregation (DI-18) and the read-only auditor: no GMP write succeeds for either.
+    // Segregation (DI-18) and the read-only auditor: no GMP write succeeds for either. The administration of people and
+    // devices (namespaces people and deviceRegistry, slice 7g-1) is the system administrator's own duty, not a GMP
+    // record write; a grant it requests is approved by a second person (administration-routes.test.ts). The auditor
+    // writes nothing at all.
+    const ADMINISTRATION = new Set(['people', 'deviceRegistry']);
     for (const [id, row] of Object.entries(results.GMP)) {
       const route = allRoutes(routes).find((r) => r.id === id);
       if (!route?.mutating) continue;
-      for (const role of ['SYSTEM_ADMINISTRATOR', 'AUDITOR_READONLY']) if (row[role] !== undefined) expect(row[role], `${id} as ${role}`).not.toBe('S');
+      for (const role of ['SYSTEM_ADMINISTRATOR', 'AUDITOR_READONLY']) {
+        if (role === 'SYSTEM_ADMINISTRATOR' && ADMINISTRATION.has(id.split('.')[0] ?? '')) continue;
+        if (row[role] !== undefined) expect(row[role], `${id} as ${role}`).not.toBe('S');
+      }
     }
     // Every role is refused somewhere: no role holds every right.
     for (const kind of ['GMP', 'SANDBOX'] as const) {

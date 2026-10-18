@@ -27,6 +27,7 @@ tests:
   - "apps/tablets-web/test/plant-status/plant-status.test.tsx > plant displays and rooms > [PR-35] the line station shows the product, its name, the batch, stage, packaging order and artwork set"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > lines: adjacency and the station display (PR-35) > [PR-35] product Y on an unsegregated adjacent line is blocked"
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > lines: adjacency and the station display (PR-35) > [PR-35] the station display shows the product and batch"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15][PR-25][PR-35] the master-data steward saves a room's rules and records an adjacency; a refusal is shown in the database's words"
 clauses:
   - clause: "Starting product Y on an unsegregated adjacent line while product X runs is blocked."
     tests:

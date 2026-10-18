@@ -70,6 +70,19 @@ describe('people and access over HTTP', () => {
     expect(codeOf(r1)).toBe('MUST_CHANGE_SECRET');
   }, 120_000);
 
+  it('[DI-14] an account for a person the installation does not hold is refused as not found (404), never 500; without the right it is refused for the right', async () => {
+    const body = { personId: randomUUID(), loginName: `ghost.${suffix()}`, kind: 'HUMAN' as const, generic: false, breakGlass: false };
+    const r = await admin.call(P.createAccount, { body });
+    expect(codeOf(r)).toBe('EBMR-API-NOT-FOUND');
+    expect(r.ok ? 0 : r.error.kind === 'REFUSAL' ? r.error.status : 0).toBe(404);
+    expect(codeOf(await qa.call(P.createAccount, { body }))).not.toBe('EBMR-API-NOT-FOUND');
+    // A generic break-glass account breaks the account's check constraint: refused (422) with the database's words.
+    const person = valueOf(await admin.call(P.createPerson, { body: { kind: 'NATURAL', legalName: 'Gita Generic' } })).personId;
+    const generic = await admin.call(P.createAccount, { body: { ...body, personId: person, generic: true, breakGlass: true } });
+    expect(codeOf(generic)).toBe('EBMR-API-CHECK');
+    expect(generic.ok ? 0 : generic.error.kind === 'REFUSAL' ? generic.error.status : 0).toBe(422);
+  }, 60_000);
+
   it('[DI-16][DI-18][INV-11] the administrator requests a grant and cannot approve it; a GMP role holder cannot approve or request; the process owner approves; the grant is live', async () => {
     const login = `noor.${suffix()}`;
     const { accountId } = await newPersonWithAccount('Noor Khan', login);

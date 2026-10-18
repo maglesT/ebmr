@@ -35,6 +35,11 @@ export interface AdapterControl {
 
 export interface AnalyticsControl {
   running(): boolean;
+  /**
+   * Resolves once the server's own first start has answered (the runner in its worker thread checks its role there
+   * first), so that a list read just after the server starts says what the runner does, not that it is not yet started.
+   */
+  settled(): Promise<void>;
   /** Starts the runner; false when it refused (its connection is not the analytics role alone, P6A7-8). */
   start(): Promise<boolean>;
   stop(): Promise<void>;

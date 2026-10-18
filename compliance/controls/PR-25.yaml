@@ -39,6 +39,7 @@ tests:
   - "packages/recipe-core/test/plant-rules/room-rules.test.ts > rooms: clean hold and spills (PR-25, PR-27) > [PR-25] a room overdue for cleaning is blocked"
   - "packages/recipe-core/test/mutation/plant-rules.test.ts > the clean hold of a room (PR-25) > [PR-25] a room with a clean hold that was never cleaned is refused"
   - "packages/recipe-core/test/mutation/plant-rules.test.ts > the clean hold of a room (PR-25) > [PR-25] another batch's occupancy of the room does not carry this batch past an expired clean hold"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > plant alarms, equipment data, rooms and reagents > [PR-15][PR-25][PR-35] the master-data steward saves a room's rules and records an adjacency; a refusal is shown in the database's words"
 clauses:
   - clause: "Starting product Y in a room occupied by product X is blocked."
     tests:

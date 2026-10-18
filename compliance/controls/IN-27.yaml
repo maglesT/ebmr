@@ -29,6 +29,7 @@ tests:
   - "apps/tablets-server/test/india/india-route-edges.test.ts > the India routes at their edges (feature india) > [IN-27] a product classification alone or an area dedication alone is recorded and listed with all it says"
   - "apps/tablets-server/test/designer/hazard-containment.test.ts > the designer for a hazardous product (IN-27) > [IN-27] a cytotoxic product's MBR gets PPE and decontamination steps and only contained areas"
   - "apps/tablets-server/test/designer/hazard-containment.test.ts > the designer for a hazardous product (IN-27) > [IN-27] a product without a hazard class keeps the template as it is"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > shelf-life bases and hazard classes (india) > [IN-27][PR-43] QC records a shelf-life basis; QA approves a recorded hazard class and dedication under its own signature"
 clauses:
   - clause: "classify a product as cytotoxic; the MBR designer adds PPE and decontamination steps"
     tests:

@@ -18,13 +18,14 @@
  *    blocks US-market work without one (`iam.us_esig_certification_status`).
  */
 import { z } from 'zod';
-import { Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
+import { CalendarDate, Instant, PersonRef, Uuid, withAttribution } from '../common.ts';
 import { defineRoute } from '../route.ts';
 import { ChangeRecordNumber } from './config.ts';
 
 const Text = (max: number) => z.string().trim().min(1).max(max);
 const Code = z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/, 'a code of letters, digits, dot, underscore or hyphen');
-const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'a date as YYYY-MM-DD');
+/** A calendar date that names a real day (P7D-1: an impossible day reached the database's date cast and answered 500). */
+const IsoDate = CalendarDate('a date as YYYY-MM-DD');
 const Market = z.enum(['IN', 'US', 'EU']);
 
 export const RolePermissionRequestStatus = z.enum(['REQUESTED', 'APPROVED', 'REJECTED']);

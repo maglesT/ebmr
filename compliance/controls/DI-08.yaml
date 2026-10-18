@@ -67,6 +67,7 @@ tests:
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44] a closed batch record's archive package is every chain keyed by the batch, its record lock and amendments included, and the signature chains of its parts, record-lock amendments included"
   - "packages/recipe-core/test/records/closed-batch-records.test.ts > the closed batch records (recipe-core 1240) > [DI-08][DI-44][IN-53] an export or a readability read of a closed batch holding controlled-substance rows needs CONTROLLED.READ with no site or product limit: a holder without it is refused, never served a partial copy"
   - "tools/boundaries/test/boundaries.test.ts > architecture boundaries (ADR 0001, 0011, 0015) > [meta][DI-08] the record viewer's rules fire on their own fixtures: no package, no database driver, no node core module; its own files are allowed"
+  - "apps/tablets-web/test/office/screen-gaps.test.tsx > labels, transfers, dashboards and analytics > [DI-08] a report view is exported with the server's SHA-256, and the download is the text that hash covers"
 clauses:
   - clause: "A support engineer tries to log in without a customer-approved time-boxed grant. Refused."
     tests:

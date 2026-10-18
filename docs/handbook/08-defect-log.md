@@ -1747,6 +1747,30 @@ check that the claimed time lies between the occurrence and its own now is uncha
 **Lesson.** A unit test that mocks the client must still check the body against the route's contract; a regulatory time
 in a browser test comes from the server, not from the test machine.
 
+## Slice 7g integration: the parts 7g-1, 7g-5, 7g-2 and 7g-4 merged (Phase 7, 18 October 2026)
+
+Found by the slice 7d security tests and the 7g-4 tests once the parts met on `phase-7/slice-7g`.
+
+- **7gI-1: an account for an unknown person, or a generic break-glass account, answered 500.** The route-by-role matrix
+  sent `people.createAccount` with a person the database does not hold and with `generic` and `breakGlass` both true;
+  the foreign key and the account's check constraint (kernel 0110) refused it, and the feature passed the database
+  error on as an unexpected one. **Fix.** The administration feature answers a foreign-key refusal of the account's
+  person as not found (404) and any check-constraint refusal as 422 with the database's words; the database checks the
+  right first, so a role without it is still refused for the right. **Test.** `administration-routes.test.ts` (`[DI-14]`
+  an account for a person the installation does not hold).
+- **7gI-2: an impossible date in the US e-signature certification answered 500.** `accessGovernance` (7g-5) checked the
+  date's shape only, so the fuzz test's `0550-58-11` reached the database's date cast (P7D-1 again). **Fix.** The
+  contract's `CalendarDate` (a real calendar day). **Test.** `route-fuzz.test.ts`.
+- **7gI-3: the analytics runner showed as stopped just after the server started, and its worker thread lacked the
+  operations screen's pause and resume.** 7g-4 built the screen's control on the in-process runner; slice 7d had moved
+  the runner into a worker thread meanwhile. **Fix.** `ThreadedAnalyticsRunner` gets `isRunning`, `pause` and `resume`
+  (the worker waits for its work in progress); the worker's pool logs an idle connection that ends (a demo load drops the
+  database) instead of ending the thread; the workers list waits for the server's first start to answer.
+  **Test.** `workers-and-backups.test.ts` (`[DI-17]` the analytics runner stopped and started).
+- **Tests adjusted, not loosened:** the fuzz test's stack-frame pattern now needs a location after the parenthesis (the
+  OpenAPI document's own prose, "at receipt (labels", matched it); the matrix's segregation check exempts the system
+  administrator's own people and device administration (namespaces `people`, `deviceRegistry`), never the auditor.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.
