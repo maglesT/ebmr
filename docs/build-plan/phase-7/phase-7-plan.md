@@ -388,9 +388,10 @@ a misleading answer; the rest stay in the backlogs with a line in the pack's kno
     confirmation, Approved), market authorisations, labelling specimens; plant-rule proposals and QA approval (slice
     7a); the incident register and the CERT-In step.
   - **7g-3 validation and records:** the approved system description, the validation-summary approval (7c), the full
-    export, the periodic evaluation pack and its QA sign-off (7b-2). Built after 7b-2 and 7c have merged.
-  - **7g-4 operations without a terminal:** the first-run set-up, demo and test data load and reset, backups and the
-    restore and upgrade drills with their records, adapters and analytics runner start and stop, the simulators' test
+    export, the periodic evaluation pack and its QA sign-off (7b-2), the evidence bundle, the validation pack and the IQ
+    run (7c), the restore and upgrade drills and their records (7d). Built after 7b-2, 7c and 7d have merged.
+  - **7g-4 operations without a terminal:** the first-run set-up, demo and test data load and reset, backups and their
+    status, adapters and analytics runner start and stop, the simulators' test
     console (demo and sandbox only), the API reference page; and a one-command installer for a server.
 - **The completeness test (`[meta]`):** every route of the contract whose permission a person can hold is called by a
   screen; a route held only by a service identity is listed with its reason. The test fails on a new person-facing
