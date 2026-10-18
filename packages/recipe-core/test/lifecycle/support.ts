@@ -114,6 +114,11 @@ export interface PrepareOptions {
 export class World {
   /** Phase 4 slice 6a: authorise() also gives the product its licence and export permissions (licenceFor); off to test the gates. */
   autoLicence = true;
+  /**
+   * Phase 7 slice 7g-5 (DI-15, recipe-core 1260): for a US market licenceFor() also records the licence holder's 21 CFR
+   * 11.100(c) certification letter (process owner), which a US-market GMP issue needs; off to test that gate.
+   */
+  autoUsCertification = true;
 
   constructor(
     readonly db: TestDatabase,
@@ -334,6 +339,13 @@ export class World {
       );
       const sig = await this.sign(this.cast.qa, 'export_permission', id, 'EXPORT_PERMISSION_APPROVED', 'DRAFT');
       await this.run(this.cast.qa, (c) => c.query('select site.approve_export_permission($1, $2)', [id, sig]));
+    }
+    if (market === 'US' && this.autoUsCertification) {
+      const holder = (await this.db.app.query<{ h: string | null }>("select site.licence_basis($1, $2, $3, clock_timestamp()) ->> 'holderName' as h", [site, p.product_code, p.strength])).rows[0]?.h;
+      if (holder && (await this.db.app.query<{ on: boolean }>("select (iam.us_esig_certification_status($1) ->> 'on_file')::boolean as on", [holder])).rows[0]?.on !== true) {
+        const { owner } = await seedAdministration(this.db);
+        await withCommand(this.db.app, withReason(owner), (c) => c.query("select iam.record_us_esig_certification($1, 'LTR-TEST-11.100C', date '2026-03-01')", [holder]));
+      }
     }
   }
 

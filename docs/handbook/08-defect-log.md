@@ -1705,6 +1705,20 @@ each is listed by name in `NO_ROUTE_YET` with what it does, so the test passes n
 a route; an entry is removed when its route and screen are built. **Lesson.** A screen-completeness test must start from
 what the database lets a person do, not only from the API contract.
 
+### 7g5-2: a US-market batch was issued with no 21 CFR 11.100(c) certification on file (high; DI-15; recipe-core 1260)
+
+**Symptom.** Under the default policy BLOCK a US-market GMP batch must not be issued until the licence holder's
+certification letter to the US agency is recorded, but `iam.assert_us_esig_certification` (kernel 0170) was called on no
+issue path, so the batch was issued. **Cause.** The kernel kept the letters and the check; no issue gate asked.
+**Fix.** Recipe-core 1260 rebuilds `recipe.gmp_issue_problem` from 1250 with the check after the India gate (the legal
+entity is the holder of the licence the batch is issued under, `recipe.us_esig_issue_entity`) and adds a BEFORE INSERT
+trigger on `recipe.batch_execution` that calls the kernel's assert for every writer of a GMP batch row. **Tests.**
+[us-esig-certification.test.ts](../../packages/recipe-core/test/lifecycle/us-esig-certification.test.ts) and
+[us-esig-certification-issue.test.ts](../../apps/tablets-server/test/execution/us-esig-certification-issue.test.ts):
+refused without the letter (issue, the step before it, a superuser's direct write), issued once it is recorded, an
+India-only batch never asked, FLAG only reports. **Lesson.** A guard function is only a control once a path calls it; a
+test of the guard alone proved nothing about the issue.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

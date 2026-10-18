@@ -384,6 +384,9 @@ export const DEMO_LICENSED_PRODUCTS: readonly { productCode: string; strength: s
   { productCode: 'GBT02-100', strength: '100 mg', destinations: ['US', 'EU'] },
 ];
 
+/** The holder of the demo manufacturing licence: the legal entity whose US e-signature certification letter the demo records. */
+export const DEMO_LICENCE_HOLDER = 'Demo Pharma Ltd (DEMO-ONLY)';
+
 export async function seed(ctx: FeatureSeedContext): Promise<void> {
   if (ctx.installation !== 'GMP') return;
   const pool = ctx.pools.app;
@@ -392,13 +395,18 @@ export async function seed(ctx: FeatureSeedContext): Promise<void> {
   ctx.log('recording the demo manufacturing licence and export permissions (regulatory signer; QA approves, LICENCE_APPROVED, EXPORT_PERMISSION_APPROVED)');
   const licenceId = await as('regulatory', async (c) =>
     (await c.query<{ id: string }>('select site.record_manufacturing_licence($1::jsonb) as id', [JSON.stringify({
-      licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: 'Demo Pharma Ltd (DEMO-ONLY)',
+      licenceKind: 'MANUFACTURING', form: '25', licenceNumber: 'DEMO/MH/25/0001', holderName: DEMO_LICENCE_HOLDER,
       holderAddress: 'Plot 1, Demo Industrial Area, Pune 411019', validFrom: '2020-01-01T00:00:00+05:30',
       products: DEMO_LICENSED_PRODUCTS.map((p) => ({ productCode: p.productCode, strength: p.strength })),
     })])).rows[0]!.id,
   );
   const sig = await ctx.signAs('approver', { type: 'manufacturing_licence', id: licenceId }, 'LICENCE_APPROVED', 'DRAFT');
   await as('approver', (c) => c.query('select site.approve_manufacturing_licence($1, $2)', [licenceId, sig]));
+  // Phase 7 slice 7g-5 (DI-15, recipe-core 1260): a US-market batch is issued only with the licence holder's 21 CFR
+  // 11.100(c) certification letter on file; the demo's letter is recorded by the process owner (DEMO-ONLY).
+  ctx.log('recording the demo licence holder\'s US e-signature certification letter (process owner, DEMO-ONLY)');
+  await withCommand(pool, { ...(await ctx.ownerActor()), correlationId: globalThis.crypto.randomUUID() }, (c) =>
+    c.query("select iam.record_us_esig_certification($1, 'DEMO/11.100C/0001', date '2020-01-01')", [DEMO_LICENCE_HOLDER]));
   for (const p of DEMO_LICENSED_PRODUCTS) {
     for (const destination of p.destinations) {
       const id = await as('regulatory', async (c) =>
