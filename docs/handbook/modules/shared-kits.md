@@ -5,7 +5,7 @@
 This page explains three shared packages that hold no business rules of their own but that every developer uses:
 `packages/ui-kit` (the components and state machines every screen is built from), `packages/test-kit` (test
 databases, sandboxes, the demo personas and their keys: read this before you write a database or server test), and
-`packages/validation-kit` (a placeholder for the validation pack generators of Phase 7). The pharma terms are in the
+`packages/validation-kit` (the validation pack generators: see [validation-kit](validation-kit.md)). The pharma terms are in the
 [glossary](../02-glossary.md).
 
 ## Where the code is

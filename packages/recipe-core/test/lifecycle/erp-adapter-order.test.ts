@@ -12,6 +12,7 @@ import { withCommand } from '../../../kernel/src/db/command.ts';
 import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts';
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, withReason, type SeededActor } from '../../../kernel/test/identity/seed.ts';
+import { describeTestInterfaces, testInterface } from '../../../kernel/test/support/validation.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -35,8 +36,11 @@ beforeAll(async () => {
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   adapter = await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_WMS_INTERFACE', name: 'ERP/WMS adapter' });
   const { admin } = await seedAdministration(db);
+  const code = `ERP-${randomBytes(3).toString('hex').toUpperCase()}`;
+  // Slice 7c (DI-06, kernel 1350): a GMP installation exchanges messages only with a described interface.
+  await describeTestInterfaces(db, [testInterface(code, 'ERP_WMS')]);
   await withCommand(db.app, withReason(admin), (c) =>
-    c.query("select iam.register_integration_adapter($1, 'ERP_WMS', $2, $3, 'ERP feed (test)')", [`ERP-${randomBytes(3).toString('hex').toUpperCase()}`, adapter.accountId, adapter.deviceId]));
+    c.query("select iam.register_integration_adapter($1, 'ERP_WMS', $2, $3, 'ERP feed (test)')", [code, adapter.accountId, adapter.deviceId]));
 }, 300_000);
 
 afterAll(async () => {

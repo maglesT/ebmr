@@ -1,4 +1,4 @@
-# Phase 7: paused on 18 October 2026 (resume here)
+# Phase 7: resume here (paused and resumed on 18 October 2026)
 
 The owner paused Phase 7 for urgent work on another product ("pause it at some place from where it can be resumed later
 from github"). Everything below is pushed to GitHub; no work exists only in a container. Read this page, then
@@ -13,10 +13,13 @@ branch `phase-7/slice-7g`.
 | 7-0 | #52 | interfaces: release identity, validation-summary approval, system description, evidence bundle v1, feed signature |
 | 7a | #53 | decision 0022 fixes: signed gateway feed and mTLS, QA approval of plant rules, controlled reads, batch scope |
 | 7b-1 | #54 | hardening list and review residuals |
+| (notes) | #55 | these resume notes and the CLAUDE.md token rules |
+| 7b-2 | #56 | stand-alone record viewer, full export of closed records, periodic evaluation pack |
+| 7c | (next PR) | validation pack generators, DI-03 validation-summary gate (recipe-core 1250), DI-06 interface drift (kernel 1350 rebuilt from main's latest definitions, SERIES_GAP kept); review: no findings; golden 44/44 without a re-take |
 
 ## Merge order from here (D-P7-9, amended by decision 0025)
 
-7b-2, then 7c, then 7d, then 7e, then 7g (its parts 7g-1, 7g-2, 7g-4, 7g-5, and 7g-3 still to build), then 7f (exit).
+7d, then 7e, then 7g (its parts 7g-1, 7g-2, 7g-4, 7g-5, and 7g-3 still to build), then 7f (exit).
 Each slice: merge main into its branch, resolve, register its new SQL functions in `tools/sql-mutation/src/targets.ts`
 (with a job in `.github/workflows/mutation.yml` for a new group, same order as TARGETS), claim its migrations in
 `docs/handbook/modules.yaml`, `pnpm handbook`, run every test file the slice changed (and the folders around them) and
@@ -28,8 +31,6 @@ merge when green.
 
 | Branch | State | What is left |
 |---|---|---|
-| `phase-7/slice-7b-2` (integration of `phase-7/slice-7b2`) | built, reviewed, every finding fixed (P7B2-1 to -8), main (with 7b-1) merged in, mutation targets and modules.yaml done | wait for the running local checks to be repeated: packages/tools/record-viewer, golden batches; rerun alone the load-sensitive files if they fail (kernel review/f55, mutation/site-values-and-policies, site-services batch-number-register); `register:sync-tests`; open the PR |
-| `phase-7/slice-7c` | built (validation pack generators, DI-03 and DI-06 interlocks, test-kit wiring, `register:status`), not reviewed | merge main; CAUTION: kernel 1350 re-creates the alarm-kind check, `platform.accept_inbound_detail` and `platform.record_inbound_refusal` from 7a's definitions: rebuild them from the LATEST definitions on main (7b-1 added the SERIES_GAP alarm kind in kernel 1328, and kernel 1329/1330 and recipe-core 1233-1235 changed the inbound path) so nothing 7b-1 added is lost; new migration if 1350 is already merged anywhere, else edit 1350 in place; modules.yaml (kernel-inbound `^1350_`, rc-gmp-batch `^1250_`, the validation-kit and tools-validation pages); targets; golden (the summary approval and system description add audit entries: re-take a golden output once, with the reason in the defect log, D-P7-12); review |
 | `phase-7/slice-7d` | WIP 436b67f: drills, security tools and tests and records, load driver (smoke passes every SLO after the analytics runner moved to a worker thread), inactivity warning (tablets 1460), page titles | run `tools/e2e/specs/accessibility/accessibility.spec.ts` (never run), fix what it finds, fill the `RESULT-*` placeholders of `docs/validation/accessibility-audit.md`; modules.yaml: `^1460_` to ts-session, entries for tools-load, tools-drills, tools-security; review |
 | `phase-7/slice-7e` | built (branding, guides, `tools/guides`), not reviewed | modules.yaml entry `tools-guides` (page modules/tools.md, src tools/guides/src, tests tools/guides/test/**); golden run (vendor-name tests read outputs only); apply the guide changes of 7g (below) after 7g merges or in 7g; review |
 | `phase-7/slice-7g` | decision 0025 and the 7g plan | the integration branch of the 7g parts |
@@ -54,6 +55,8 @@ merge when green.
   (`EBMR_FAKETIME_FILE=/var/lib/postgresql/faketime-g6a1/offset`,
   `EBMR_GOLDEN_CLOCK_LIB=/usr/local/lib/ebmr/golden-clock.so`). 7d kept its drill databases `ebmr_drill6a_e2e_7d01` and
   `ebmr_drillrc_e2e_7d01` on 5439 (the first takes 12 minutes to rebuild).
+- Golden runs: never start a second golden run while one is alive (a killed background run's workers can survive and
+  move the shared clock file; GB-T-01 then fails with "the golden clock only moves forward"). Check `ps` first.
 - A 4-CPU container cannot run more than about three suites at once: clusters crash under memory pressure and restore
   tests time out (load, not code).
 - E2E on a spare cluster needs both `EBMR_PG_ADMIN_URL` and `EBMR_PG_PORT`; always under `flock /tmp/ebmr-e2e.lock`.

@@ -15,6 +15,7 @@ import { tempDir, tempLedger } from '../../../kernel/test/continuity/helpers.ts'
 import { cmd } from '../../../kernel/test/esig/helpers.ts';
 import { seedActor, seedAdministration, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { approveTestRelease } from '../../../kernel/test/support/validation.ts';
 import { stepKey, type Command } from '../../src/engine/index.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as oc from '../../src/containers/index.ts';
@@ -37,6 +38,8 @@ const ledger = tempLedger('gmp-issue', dir.path);
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  // Slice 7c (DI-03, recipe-core 1250): a GMP batch is issued only on a release with an approved validation summary.
+  await approveTestRelease(db);
   w = new World(db, await seedCast(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   erp = await seedServiceActor(db, { kind: 'INTEGRATION', source: 'INTEGRATION', roleCode: 'ERP_INTERFACE', name: 'ERP interface' });
@@ -353,6 +356,58 @@ describe('the ISSUED signature (DI-35, INV-10)', () => {
     // The signer may issue it under the own signature.
     await issue(issuer2, a, byOther);
     expect((await q<{ p: string }>('select issued_by_person::text as p from recipe.batch_execution where id = $1', [a]))[0]?.p).toBe(issuer2.personId);
+  });
+});
+
+describe('the validated release (DI-03, recipe-core 1250)', () => {
+  /** Applies a stand-in migration to the ledger: the database now runs a release no summary was approved for. */
+  async function upgraded<T>(work: (release: string) => Promise<T>): Promise<T> {
+    const name = `9999_test_upgrade_${randomUUID().slice(0, 8)}.sql`;
+    await db.admin.query("insert into public.schema_migration (namespace, name, checksum) values ('recipe-core', $1, repeat('a', 64))", [name]);
+    try {
+      return await work((await q<{ r: string }>('select platform.schema_release() as r'))[0]!.r);
+    } finally {
+      await db.admin.query("delete from public.schema_migration where namespace = 'recipe-core' and name = $1", [name]);
+    }
+  }
+  const begin = (who: SeededActor, batchId: string) => w.run(who, (c) => c.query('select recipe.begin_gmp_issue($1)', [batchId]), reason('batch issued for the test'));
+
+  it('[DI-03] a GMP batch is refused on a release without an approved validation summary', async () => {
+    const m = await effectiveMaster(['IN']);
+    const batchId = randomUUID();
+    await plan(w.cast.issuer, batchId, { familyId: m.familyId, markets: ['IN'] });
+    const signatureId = await signIssue(w.cast.issuer, batchId);
+    await upgraded(async (release) => {
+      // The summary approved for the release before the upgrade does not cover this one.
+      expect((await q<{ p: string | null }>('select platform.validation_summary_problem() as p'))[0]?.p).toMatch(new RegExp(`^EBMR-VAL-001 release ${release} has no approved validation summary`));
+      expect(await codeOf(issue(w.cast.issuer, batchId, signatureId))).toBe('EBMR-VAL-001');
+      // The step the issuer starts from is refused too, so the engine never runs.
+      expect(await codeOf(begin(w.cast.issuer, batchId))).toBe('EBMR-VAL-001');
+      expect(await q('select 1 from recipe.batch_execution where id = $1', [batchId])).toEqual([]);
+      expect((await q<{ status: string }>('select status from recipe.stub_batch where id = $1', [batchId]))[0]?.status).toBe('PLANNED');
+      // QA approves the summary of the running release: the same planned batch, under the same signature, is issued.
+      await approveTestRelease(db);
+      expect((await q<{ p: string | null }>('select platform.validation_summary_problem() as p'))[0]?.p).toBeNull();
+      await issue(w.cast.issuer, batchId, signatureId);
+      expect((await q<{ status: string }>('select status from recipe.stub_batch where id = $1', [batchId]))[0]?.status).toBe('ISSUED');
+    });
+  });
+
+  it('[DI-03] the validation-summary gate holds for every writer of a GMP batch row, and the application cannot approve or fake a release', async () => {
+    await upgraded(async (release) => {
+      // Even the database superuser's direct write of a GMP batch row is refused by the trigger (before any other check).
+      await expect(db.admin.query("insert into recipe.batch_execution (id, installation) values (gen_random_uuid(), 'GMP')")).rejects.toThrow(/EBMR-VAL-001/);
+      // The application role neither writes the ledger nor the approval, nor calls the gate's helper.
+      await expect(db.app.query("insert into public.schema_migration (namespace, name, checksum) values ('kernel', '9999_fake.sql', 'x')")).rejects.toThrow(/permission denied/);
+      await expect(db.app.query(
+        "insert into platform.validation_summary (schema_release, summary_sha256, title, approved_signature, approved_by_person, approved_by_account) values ($1, repeat('b', 64), 'fake', gen_random_uuid(), gen_random_uuid(), gen_random_uuid())",
+        [release])).rejects.toThrow(/permission denied/);
+      await expect(db.app.query('select recipe.batch_execution_validation_gate()')).rejects.toThrow(/permission denied|trigger functions can only be called as triggers/);
+      // An issuer has no VALIDATION.APPROVE_SUMMARY: only the quality unit approves.
+      await expect(w.run(w.cast.issuer, (c) => c.query('select platform.approve_validation_summary($1, repeat(\'c\', 64), \'by the issuer\', gen_random_uuid())', [release]), reason('not QA')))
+        .rejects.toThrow(/EBMR-IAM-040/);
+      expect((await q<{ p: string | null }>('select platform.validation_summary_problem() as p'))[0]?.p).toMatch(/^EBMR-VAL-001/);
+    });
   });
 });
 

@@ -82,3 +82,14 @@ recipe-core 1240 were corrected in place).
 
 Residuals of the slice: no screen yet for QA's sign-off of the pack (slice 7g-3, decision 0025); an HMAC-sealed
 installation's seals are checked by the installation, not offline (Ed25519 sealing is checked offline; D-7b2-1).
+
+## Slice 7c (validation pack generators and the DI-03 and DI-06 interlocks; review of 18 October 2026)
+
+One read-only quick pass, no findings. Checked: kernel 1350 against main's latest definitions (`accept_inbound_detail`
+from kernel 1305 and `record_inbound_refusal` from 1180 differ only by the drift check; the alarm-kind check keeps
+SERIES_GAP and adds INTERFACE_DRIFT, matching the SDK's list); recipe-core 1250's `gmp_issue_problem` is 0891's body
+plus the validation-summary check first; every new definer has a fixed `search_path`, the internal functions are
+revoked from public and only `check_adapter_start` is granted to `ebmr_app`; no `Date.now()` or JavaScript numbers for
+GMP values; the DI-06 tests exercise the alarm, the refusal without a stored message, the start check and the bypasses.
+The golden batches pass unchanged (44/44): no golden output was re-taken.
+

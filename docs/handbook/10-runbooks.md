@@ -445,6 +445,39 @@ Tests create their CA and certificates at run time
 ([test-pki.ts](../../apps/tablets-server/test/support/test-pki.ts), OpenSSL command line); no key material is
 committed.
 
+## Validation summary and system description (Phase 7 slice 7c)
+
+A GMP installation issues no GMP batch until QA has approved the validation summary of the release it runs
+([DI-03](../../compliance/controls/DI-03.yaml); EBMR-VAL-001), and takes no message from, and starts no adapter of, an
+interface missing from the approved system description ([DI-06](../../compliance/controls/DI-06.yaml); EBMR-INT-035,
+alarm INTERFACE_DRIFT). A sandbox and training runs are not gated.
+
+### Approving the validation summary of a release
+
+1. After the upgrade, generate the pack for the release (see
+   [06-testing-and-debugging](06-testing-and-debugging.md#generating-the-validation-pack)) and run the IQ and OQ.
+2. QA reviews the validation summary report (`validation-summary.html`), completes the conclusion, and keeps the final
+   document. Its SHA-256 is the summary hash.
+3. A QA person holding VALIDATION.APPROVE_SUMMARY signs VALIDATION_SUMMARY_APPROVED on the aggregate
+   `validation_summary`, id `<schema release>@<summary sha256>` (the schema release is `select platform.schema_release()`),
+   then records the approval with that signature: `platform.approve_validation_summary(release, sha256, title,
+   signature)` (kernel caller `config.approveValidationSummary`).
+4. Check: `select platform.validation_summary_problem()` returns NULL. GMP batches may now be issued.
+
+Every migration changes the schema release, so each upgrade needs a new approval. Batches issued before are not touched.
+
+### Recording an interface in the system description
+
+1. The system owner (PROCESS_OWNER or CSV_DI_LEAD) raises a change record naming the area SYSTEM_DESCRIPTION.
+2. QA approves it with a CONFIG_CHANGE_APPROVED signature.
+3. Under that change record the system owner records the interface: `platform.describe_interface` with its adapter code,
+   source system, endpoint host, transport (LOOPBACK or MTLS), whether its feed is signed (the OPC UA feed always is)
+   and status DESCRIBED (WITHDRAWN to remove it). Then the change record is closed.
+4. Restart the server: an adapter whose interface was refused at start (health BLOCKED, EBMR-INT-035) starts now. The
+   INTERFACE_DRIFT alarms on the integrations page are acknowledged with a note.
+
+`pnpm validation:iq` (IQ-10) lists every active adapter that is not described.
+
 ## Reconciliation and series gaps (Phase 7 slice 7b-1)
 
 Both raise an integration alarm on the integrations page; neither is acknowledged until someone has found out why

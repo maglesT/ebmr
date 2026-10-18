@@ -32,8 +32,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Computerised-system validation (application, infrastructure, life cycle).** [DI-03.yaml](../../../compliance/controls/DI-03.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-config](../code-map.md#kernel-config), [ts-core](../code-map.md#ts-core), [test-kit](../code-map.md#test-kit)
-- Tests: [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/config/release-identity.test.ts](../../../packages/kernel/test/config/release-identity.test.ts), [packages/test-kit/test/seed.test.ts](../../../packages/test-kit/test/seed.test.ts)
+- Modules: [kernel-audit](../code-map.md#kernel-audit), [kernel-config](../code-map.md#kernel-config), [rc-lifecycle](../code-map.md#rc-lifecycle), [ts-execution](../code-map.md#ts-execution), [ts-core](../code-map.md#ts-core), [test-kit](../code-map.md#test-kit), [validation-kit](../code-map.md#validation-kit), [tools-validation](../code-map.md#tools-validation)
+- Tests: [apps/tablets-server/test/execution/store.test.ts](../../../apps/tablets-server/test/execution/store.test.ts), [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [packages/kernel/test/audit/verification.test.ts](../../../packages/kernel/test/audit/verification.test.ts), [packages/kernel/test/config/release-identity.test.ts](../../../packages/kernel/test/config/release-identity.test.ts), [packages/recipe-core/test/lifecycle/gmp-issue.test.ts](../../../packages/recipe-core/test/lifecycle/gmp-issue.test.ts), [packages/test-kit/test/seed.test.ts](../../../packages/test-kit/test/seed.test.ts), [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts), [tools/validation/test/validation.test.ts](../../../tools/validation/test/validation.test.ts)
 
 ## DI-04
 
@@ -117,8 +117,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **System inventory, system description and requirements traceability.** [DI-06.yaml](../../../compliance/controls/DI-06.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [kernel-config](../code-map.md#kernel-config), [ts-core](../code-map.md#ts-core), [test-kit](../code-map.md#test-kit)
-- Tests: [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [packages/kernel/test/config/release-identity.test.ts](../../../packages/kernel/test/config/release-identity.test.ts), [packages/test-kit/test/seed.test.ts](../../../packages/test-kit/test/seed.test.ts)
+- Modules: [kernel-config](../code-map.md#kernel-config), [kernel-inbound](../code-map.md#kernel-inbound), [ts-integrations](../code-map.md#ts-integrations), [ts-core](../code-map.md#ts-core), [test-kit](../code-map.md#test-kit), [validation-kit](../code-map.md#validation-kit)
+- Tests: [apps/tablets-server/test/integrations/adapter-startup.test.ts](../../../apps/tablets-server/test/integrations/adapter-startup.test.ts), [apps/tablets-server/test/validation/role-permissions.test.ts](../../../apps/tablets-server/test/validation/role-permissions.test.ts), [packages/kernel/test/config/release-identity.test.ts](../../../packages/kernel/test/config/release-identity.test.ts), [packages/kernel/test/inbound/interface-drift.test.ts](../../../packages/kernel/test/inbound/interface-drift.test.ts), [packages/test-kit/test/seed.test.ts](../../../packages/test-kit/test/seed.test.ts), [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts)
 
 ## DI-07
 
@@ -1050,7 +1050,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Validation package and site master file support.** [IN-12.yaml](../../../compliance/controls/IN-12.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Not implemented yet.
+- Modules: [validation-kit](../code-map.md#validation-kit), [tools-validation](../code-map.md#tools-validation)
+- Tests: [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts), [tools/validation/test/validation.test.ts](../../../tools/validation/test/validation.test.ts)
 
 ## IN-13
 
@@ -2003,8 +2004,8 @@ example `[DI-01]`. Modules are the [code map](../code-map.md) modules whose file
 
 **Forward compatibility with EU draft texts (data governance, AI).** [PR-60.yaml](../../../compliance/controls/PR-60.yaml). Target phase 4; editions tablets, injectables; SPECIFIED.
 
-- Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation)
-- Tests: [apps/tablets-server/test/analytics/routes.test.ts](../../../apps/tablets-server/test/analytics/routes.test.ts), [apps/tablets-web/test/analytics/analytics.test.tsx](../../../apps/tablets-web/test/analytics/analytics.test.tsx)
+- Modules: [analytics](../code-map.md#analytics), [analytics-foundation](../code-map.md#analytics-foundation), [validation-kit](../code-map.md#validation-kit)
+- Tests: [apps/tablets-server/test/analytics/routes.test.ts](../../../apps/tablets-server/test/analytics/routes.test.ts), [apps/tablets-web/test/analytics/analytics.test.tsx](../../../apps/tablets-web/test/analytics/analytics.test.tsx), [packages/validation-kit/test/pack.test.ts](../../../packages/validation-kit/test/pack.test.ts)
 
 ## PR-61
 

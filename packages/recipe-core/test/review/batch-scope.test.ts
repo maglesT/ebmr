@@ -25,6 +25,7 @@ import { challengeFor, cmd, ensureSealKey, signatureAuth, testSealKey } from '..
 import { permissionRequirement, qualify, underRequirement, withStaleLms, type Requirement } from '../../../kernel/test/identity/requirements.ts';
 import { seedActor, seedServiceActor, type SeededActor } from '../../../kernel/test/identity/seed.ts';
 import { createTestDatabase, type TestDatabase } from '../../../kernel/test/support/db.ts';
+import { approveTestRelease } from '../../../kernel/test/support/validation.ts';
 import type { Command } from '../../src/engine/index.ts';
 import type { MbrContent } from '../../src/flow/model.ts';
 import * as execution from '../../src/execution/index.ts';
@@ -188,6 +189,8 @@ let approved: { batchId: string; exceptions: string[] };
 
 beforeAll(async () => {
   db = await createTestDatabase();
+  // Slice 7c (DI-03, recipe-core 1250): a GMP batch is issued only on a release with an approved validation summary.
+  await approveTestRelease(db);
   w = new World(db, await seedCast(db));
   steward = await seedActor(db, { roleCode: 'MASTER_DATA_STEWARD', legalName: 'Mira Steward' });
   operator = await seedActor(db, { roleCode: 'OPERATOR', legalName: 'Om Operator', roomCode: 'DISP-01' });
