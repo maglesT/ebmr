@@ -114,6 +114,10 @@ tests:
   - "packages/kernel/test/integration/authorization.test.ts > the authorization scan of the identity, e-signature and sandbox schemas (6jc-R7) > [DI-18] the DSC enrolment, its end and the DSC record refuse administrators first (6jc-R6, kernel 1321)"
   - "packages/recipe-core/test/lifecycle/authorization.test.ts > the authorization scan of the plant schema (6jc-R7) > [DI-17][DI-18] every app-callable writer of plant checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no plant table is app-writable"
   - "apps/tablets-server/test/validation/authorization-scan.test.ts > the authorization scan of the Tablets schema (6jc-R7) > [DI-17][DI-18] every app-callable writer of tab checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no tab table is app-writable"
+  - "apps/tablets-web/test/operations/setup-wizard.test.tsx > the first-run set-up (decision 0025) > [DI-18][DI-20] the shell shows the set-up instead of the sign-in; the set-up sends the site, the zone in force, the two persons with their first passwords and this browser's new key, and asks for the seal key"
+  - "apps/tablets-web/test/operations/setup-wizard.test.tsx > the first-run set-up (decision 0025) > [DI-18] a refusal of the database is shown in its words (a token that is not valid); the sandbox says its names are test labels"
+  - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-18] the set-up needs the installer's one-time token: without it, with a wrong or an expired one nothing is created; with it the administrator and the process owner exist, the token is used up, and a second set-up is refused"
+  - "apps/tablets-server/test/operations/setup.test.ts > the first-run set-up (decision 0025, kernel 1375) > [DI-18] the system administrator and the process owner are two different persons; the token stays unused after a refusal"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:
