@@ -445,6 +445,43 @@ Tests create their CA and certificates at run time
 ([test-pki.ts](../../apps/tablets-server/test/support/test-pki.ts), OpenSSL command line); no key material is
 committed.
 
+## Reconciliation and series gaps (Phase 7 slice 7b-1)
+
+Both raise an integration alarm on the integrations page; neither is acknowledged until someone has found out why
+(DI-31, DI-32; [integrations](modules/integrations.md#hardening-of-the-worker-and-the-gateway-phase-7-slice-7b-1)).
+
+**Reconciliation.** Each running adapter reconciles every closed hour of source time by itself, 10 minutes after the hour
+ends (at most 24 hours a run, so a long outage catches up run by run). The health page shows the last report: its
+period, what the source sent, what was accepted and refused, and Matched or Mismatch.
+- *Mismatch* (alarm RECONCILIATION_MISMATCH, details: period, source count, received count): the source published
+  messages in that hour that the eBMR neither accepted nor recorded as refused. Compare the adapter's messages and
+  refusals of the period with the source system's own log; a sequence gap alarm of the same adapter usually names the
+  missing numbers. Ask the source system's owner to resend them (a resend is de-duplicated by its key). The period is not
+  reconciled again by itself: once the messages are in, submit the period again from a worker
+  (`AdapterWorker.reconcile(from, to)`); the alarm stays in the record with its acknowledgment note.
+- *No report for hours*: the worker is down, the source is unreachable (the worker's last error says
+  `reconciliation: ...`), or it is working off a backlog of messages (it reconciles when it has caught up). The source must
+  serve `GET <base>/reconciliation?from&to`.
+
+**Series gaps.** After a gateway crash, the gateway completes the open chunk of each series from its spool
+(`<journal dir>/opcua/opcua-spool.jsonl`) and reports the rest as a gap: alarm SERIES_GAP (MAJOR) with the unit, the tag and
+the interval from the last sample spooled to the restart (epoch microseconds), and the gateway's local alarm log
+(`alarms.jsonl`) holds the same line.
+1. Find the batch and step that held the unit in that interval (the unit's use on the batch record).
+2. The samples of the interval are not in the eBMR. Decide with QA whether the step's result still stands on the samples
+   recorded around it, or whether the gap needs a deviation; cite it in the acknowledgment note.
+3. Find why the gateway stopped (its log, the host). A gateway that does not open after a crash with "the OPC UA feed
+   spool ... is damaged at line N" has a corrupt spool before its end: keep a copy of the file for the investigation, then
+   move it away and start the gateway; that series' open chunk is then lost, so record the gap by hand in the deviation.
+4. A local SPOOL_FAILED alarm means the gateway could not write its spool (disk full, permissions): samples of open chunks
+   are then in memory only until each chunk closes. Fix the disk and restart the gateway after a clean stop.
+
+**Samples without a timestamp or before their session.** The gateway alarms MISSING_TIMESTAMP when an endpoint sends a
+value with no OPC UA timestamp (kept BAD, dated when received) and BEFORE_SESSION when a value is dated more than five
+minutes before the session opened (kept as the current value, not in the series). Repeated alarms mean the endpoint's
+clock or its timestamp settings are wrong: check its time synchronisation and that it returns source timestamps. The
+database refuses such data from any other path (EBMR-EQD-003, EBMR-ALM-003).
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

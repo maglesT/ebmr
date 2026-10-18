@@ -207,7 +207,7 @@ describe('native series (DI-32, DI-31)', () => {
 
   it('[DI-31][DI-32] a chunk is refused for each malformed chunk field and each malformed sample field on its own; a raw text of 64 characters is taken', async () => {
     const press = await servedPress();
-    const t0 = BigInt(nowUs()) - 600_000_000n;
+    const t0 = BigInt(nowUs()) - 120_000_000n; // within the five minutes before the session (6jc-R13, recipe-core 1233)
     const bad = /malformed series chunk: chunkNo, 1 to 2000 samples/;
     await expectRefused(sendChunk(chunk(press.code, '0', samplesFrom(t0))), 'EBMR-EQD-001', bad);
     await expectRefused(sendChunk(chunk(press.code, '1', { sourceTime: '1' })), 'EBMR-EQD-001', bad);
@@ -233,7 +233,7 @@ describe('native series (DI-32, DI-31)', () => {
 
   it('[DI-32] a chunk that ends where a recorded chunk begins, or begins where one ends, overlaps it', async () => {
     const press = await servedPress();
-    const t0 = BigInt(nowUs()) - 600_000_000n;
+    const t0 = BigInt(nowUs()) - 120_000_000n; // within the five minutes before the session (6jc-R13, recipe-core 1233)
     expect(await sendChunk(chunk(press.code, '5', samplesFrom(t0)))).toMatchObject({ outcome: 'ACCEPTED' }); // t0 .. t0 + 200 ms
     await expectRefused(sendChunk(chunk(press.code, '6', samplesFrom(t0 + 200_000n))), 'EBMR-EQD-005');
     await expectRefused(sendChunk(chunk(press.code, '4', samplesFrom(t0 - 200_000n))), 'EBMR-EQD-005');
@@ -460,7 +460,7 @@ describe('the OPC UA data guard on owner-level writes (DI-20)', () => {
       c.release();
     }
     expect(await reportSession(db, opcua, ep)).toMatchObject({ applied: 'SESSION_REFUSED', refusal: 'RELOCATED' });
-    const t0 = BigInt(nowUs()) - 600_000_000n;
+    const t0 = BigInt(nowUs()) - 120_000_000n; // within the five minutes before the session (6jc-R13, recipe-core 1233)
     const samples = [{ sourceTime: t0.toString(), serverTime: null, raw: '12.5', value: '12.50', status: '0x00000000' }];
     const body = { subjectKind: 'EQUIPMENT', subjectCode: placed, tag: 'force.main_kN', unit: 'kN', chunkNo: '1', samples };
     const hash = sha([['EQUIPMENT', placed, 'force.main_kN', 'kN', '1'].join('|'), [t0.toString(), '', '12.5', '12.50', '0x00000000'].join('|')].join('\n'));
