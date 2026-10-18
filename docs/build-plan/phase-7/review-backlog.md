@@ -93,3 +93,14 @@ revoked from public and only `check_adapter_start` is granted to `ebmr_app`; no 
 GMP values; the DI-06 tests exercise the alarm, the refusal without a stored message, the start check and the bypasses.
 The golden batches pass unchanged (44/44): no golden output was re-taken.
 
+## Slice 7d (drills, security, load, inactivity warning, accessibility; review of 18 October 2026)
+
+One read-only quick pass, no findings. Checked: the analytics runner in a worker thread keeps main's P6A7-8 role check
+(a wrong or unreadable role, or a worker that fails to load, logs the DI-51 error and never starts a run; the server
+keeps serving as on main); tablets 1460's `tab.resolve_session` is tablets 0550's body plus the idle-lock and end
+countdowns (definer, `search_path`, role-withdrawn logic and grant kept); the route-by-role matrix refuses any 5xx and
+any GMP write by the system administrator or the read-only auditor, and its re-recording after the merge only removed
+rights (7b-1's tightening of four routes); no secrets in the drill, security and load tools; the two accessibility-spec
+changes (`page.goBack()` for a browser key headless Chromium does not receive, a hidden radio measured by its label)
+keep the checks. The accessibility run found A11Y-4 to A11Y-7, fixed in the app (`docs/validation/accessibility-audit.md`).
+
