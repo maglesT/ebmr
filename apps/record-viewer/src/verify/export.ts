@@ -2,8 +2,9 @@
  * Verification of a full export of the installation (format ebmr.full-export/1; the kernel's records/full-export.ts
  * writes it). Everything is checked before anything is shown:
  * 1. manifest.json is valid UTF-8 JSON of the known format; its SHA-256 is the export SHA-256, compared with the
- *    reference the reader gives (the export register's value) when one is given. A manifest that cannot be read or does
- *    not match the reference stops everything: nothing of the export is shown.
+ *    reference the reader gives (the export register's value, printed when the export was made). A manifest that cannot
+ *    be read or does not match the reference stops everything: nothing of the export is shown. Without a reference the
+ *    export is NOT ANCHORED: it only agrees with itself, so its origin is not proven, whatever the other checks say.
  * 2. every file the manifest lists is there with its SHA-256 and size; a file that is not listed is reported.
  * 3. every chain's true-copy bundle verifies (true-copy.ts) against the bundle manifest SHA-256 and the head the export
  *    lists for it.
@@ -13,6 +14,8 @@
  *    seal key chain; an HMAC seal needs the installation's secret, so it is reported as not checkable offline, with the
  *    installation's own check at export.
  * A record is shown only when all of its checks pass; a record that fails is listed with its findings and nothing else.
+ * Files are read one at a time, when their record is checked, and dropped after; a record's audit trail is read again
+ * when it is opened (openChain), against the SHA-256 the manifest lists.
  */
 import { canonicalJson } from './canonical.ts';
 import { fromBase64, sealMessage, sha256Hex, verifyEd25519 } from './crypto.ts';
@@ -26,8 +29,12 @@ const MANIFEST = 'manifest.json';
 export interface ExportFile {
   /** The path inside the export folder (a leading folder name, as a folder picker gives it, is removed). */
   path: string;
-  bytes: Uint8Array;
+  /** Reads the file's bytes (a File handle in the browser: the bytes are read when needed and not kept). */
+  read(): Promise<Uint8Array>;
 }
+
+/** An export file from bytes already in memory (tests, small exports). */
+export const fileOf = (path: string, bytes: Uint8Array): ExportFile => ({ path, read: () => Promise.resolve(bytes) });
 
 interface ManifestChain {
   chainKey: string;
@@ -37,6 +44,13 @@ interface ManifestChain {
   headHash: string;
 }
 
+interface ManifestFile {
+  path: string;
+  kind: string;
+  bytes: number;
+  sha256: string;
+}
+
 interface Manifest {
   format: string;
   generatedAt: string;
@@ -44,7 +58,7 @@ interface Manifest {
   records: { recordType: string; recordId: string; label: string; closedAt: string; chains: ManifestChain[]; signatureChains: ManifestChain[] }[];
   sealKeys: ManifestChain[];
   seals: string;
-  files: { path: string; kind: string; bytes: number; sha256: string }[];
+  files: ManifestFile[];
 }
 
 interface SealEntry {
@@ -59,10 +73,13 @@ interface SealEntry {
 export interface VerifiedChain {
   chainKey: string;
   path: string;
+  /** The SHA-256 the manifest lists for the file (the audit trail is read again against it). */
+  sha256: string;
   ok: boolean;
   problems: string[];
-  chain: AuditChainPart | null;
-  records: RecordsPart | null;
+  events: number;
+  rows: number;
+  headSeq: string | null;
 }
 
 export type SealResult = 'VERIFIED' | 'FAILED' | 'NOT_CHECKABLE_OFFLINE';
@@ -94,7 +111,12 @@ export interface VerifiedRecord {
 }
 
 export interface ExportReport {
-  /** Every check passed. */
+  /**
+   * PASSED: every check passed and the export is the one the reference names. NOT_ANCHORED: every check passed but no
+   * reference was given, so the export's origin is not proven. FAILED: a check failed (or the export cannot be read).
+   */
+  verdict: 'PASSED' | 'NOT_ANCHORED' | 'FAILED';
+  /** Every check passed (with or without a reference). */
   ok: boolean;
   /** False when the manifest cannot be read or is not the expected one: nothing of the export is shown. */
   readable: boolean;
@@ -142,98 +164,117 @@ const rowsOf = (records: RecordsPart | null, table: string): JsonObject[] => {
   return out;
 };
 
-/** Verifies an export given as its files. `expected.manifestSha256` is the export SHA-256 held outside the export. */
-export async function verifyExport(input: ExportFile[], expected: { manifestSha256?: string } = {}): Promise<ExportReport> {
-  const files = new Map(normalisePaths(input).map((f) => [f.path, f.bytes]));
-  const report: ExportReport = {
-    ok: false,
-    readable: false,
-    problems: [],
-    manifestSha256: null,
-    reference: 'NONE',
-    installation: null,
-    generatedAt: null,
-    records: [],
-    sealKeys: [],
-    counts: { files: files.size, records: 0, signatures: 0, sealsVerified: 0, sealsNotCheckable: 0 },
+function failedReport(problems: string[], manifestSha256: string | null, reference: ExportReport['reference'], files: number): ExportReport {
+  return {
+    verdict: 'FAILED', ok: false, readable: false, problems, manifestSha256, reference, installation: null, generatedAt: null, records: [], sealKeys: [],
+    counts: { files, records: 0, signatures: 0, sealsVerified: 0, sealsNotCheckable: 0 },
   };
-  const manifestBytes = files.get(MANIFEST);
-  if (!manifestBytes) {
-    report.problems.push('the folder holds no manifest.json: it is not a full export');
-    return report;
+}
+
+/** Reads a listed file and checks it against its manifest entry; the bytes, or the problem. */
+async function readListed(files: Map<string, ExportFile>, f: ManifestFile | undefined, path: string): Promise<{ bytes: Uint8Array } | { problem: string }> {
+  if (!f) return { problem: `${path} is not a listed file of the export` };
+  const file = files.get(path);
+  if (!file) return { problem: `${path} is listed in the manifest but missing` };
+  const bytes = await file.read();
+  if ((await sha256Hex(bytes)) !== f.sha256) return { problem: `${path}: SHA-256 differs from the manifest (the file was altered)` };
+  if (bytes.length !== f.bytes) return { problem: `${path}: size differs from the manifest` };
+  return { bytes };
+}
+
+/**
+ * Verifies an export given as its files. `expected.manifestSha256` is the export SHA-256 held outside the export.
+ * Never throws: an error while reading or checking is a failed verdict that names it.
+ */
+export async function verifyExport(input: ExportFile[], expected: { manifestSha256?: string } = {}): Promise<ExportReport> {
+  try {
+    return await verify(input, expected);
+  } catch (error) {
+    return failedReport([`the export could not be checked: ${(error as Error).message}`], null, 'NONE', input.length);
   }
-  report.manifestSha256 = await sha256Hex(manifestBytes);
+}
+
+/** A record's chain read again for display, against the SHA-256 the manifest lists for its file (null when it differs). */
+export async function openChain(files: ExportFile[], chain: Pick<VerifiedChain, 'path' | 'sha256'>): Promise<{ chain: AuditChainPart; records: RecordsPart } | null> {
+  const file = normalisePaths(files).find((f) => f.path === chain.path);
+  if (!file) return null;
+  const bytes = await file.read();
+  if ((await sha256Hex(bytes)) !== chain.sha256) return null;
+  const bundle = JSON.parse(decoder().decode(bytes)) as { parts: Record<string, string> };
+  return { chain: JSON.parse(bundle.parts['audit-chain.json'] ?? '') as AuditChainPart, records: JSON.parse(bundle.parts['records.json'] ?? '') as RecordsPart };
+}
+
+async function verify(input: ExportFile[], expected: { manifestSha256?: string }): Promise<ExportReport> {
+  const files = new Map(normalisePaths(input).map((f) => [f.path, f]));
+  const manifestFile = files.get(MANIFEST);
+  if (!manifestFile) return failedReport(['the folder holds no manifest.json: it is not a full export'], null, 'NONE', files.size);
+  const manifestBytes = await manifestFile.read();
+  const manifestSha256 = await sha256Hex(manifestBytes);
   const want = expected.manifestSha256?.trim().toLowerCase();
+  let reference: ExportReport['reference'] = 'NONE';
   if (want) {
-    report.reference = want === report.manifestSha256 ? 'MATCHED' : 'MISMATCHED';
-    if (report.reference === 'MISMATCHED') {
-      report.problems.push(`the export SHA-256 ${report.manifestSha256} is not the expected ${want}: this is not the registered export, so nothing of it is shown`);
-      return report;
+    reference = want === manifestSha256 ? 'MATCHED' : 'MISMATCHED';
+    if (reference === 'MISMATCHED') {
+      return failedReport([`the export SHA-256 ${manifestSha256} is not the expected ${want}: this is not the registered export, so nothing of it is shown`], manifestSha256, reference, files.size);
     }
   }
   let manifest: Manifest;
   try {
     const parsed: unknown = JSON.parse(decoder().decode(manifestBytes));
     const shape = manifestShape(parsed);
-    if (shape) {
-      report.problems.push(shape);
-      return report;
-    }
+    if (shape) return failedReport([shape], manifestSha256, reference, files.size);
     manifest = parsed as Manifest;
   } catch (error) {
-    report.problems.push(`manifest.json cannot be read: ${(error as Error).message}`);
-    return report;
+    return failedReport([`manifest.json cannot be read: ${(error as Error).message}`], manifestSha256, reference, files.size);
   }
-  report.readable = true;
-  report.installation = manifest.installation;
-  report.generatedAt = manifest.generatedAt;
+  const report: ExportReport = {
+    verdict: 'FAILED', ok: false, readable: true, problems: [], manifestSha256, reference, installation: manifest.installation, generatedAt: manifest.generatedAt,
+    records: [], sealKeys: [], counts: { files: files.size, records: 0, signatures: 0, sealsVerified: 0, sealsNotCheckable: 0 },
+  };
 
-  // 2. Every listed file with its hash and size; nothing unlisted.
-  const fileProblem = new Map<string, string>();
-  const listed = new Set<string>([MANIFEST]);
-  for (const f of manifest.files) {
-    listed.add(f.path);
-    const bytes = files.get(f.path);
-    if (!bytes) fileProblem.set(f.path, `${f.path} is listed in the manifest but missing`);
-    else if ((await sha256Hex(bytes)) !== f.sha256) fileProblem.set(f.path, `${f.path}: SHA-256 differs from the manifest (the file was altered)`);
-    else if (bytes.length !== f.bytes) fileProblem.set(f.path, `${f.path}: size differs from the manifest`);
-  }
-  for (const p of fileProblem.values()) report.problems.push(p);
-  for (const p of [...files.keys()].sort()) if (!listed.has(p)) report.problems.push(`${p} is in the folder but not listed in the manifest`);
+  // 2. Every listed file present; nothing unlisted. Hashes are checked as each file is read below.
+  const listed = new Map<string, ManifestFile>();
+  for (const f of manifest.files) listed.set(f.path, f);
+  for (const f of manifest.files) if (!files.has(f.path)) report.problems.push(`${f.path} is listed in the manifest but missing`);
+  for (const p of [...files.keys()].sort()) if (p !== MANIFEST && !listed.has(p)) report.problems.push(`${p} is in the folder but not listed in the manifest`);
+  const checked = new Set<string>();
 
-  // 3. Every chain.
-  const verifyChain = async (c: ManifestChain): Promise<VerifiedChain> => {
-    const listedProblem = fileProblem.get(c.path);
-    const bytes = files.get(c.path);
-    if (listedProblem || !bytes || !manifest.files.some((f) => f.path === c.path)) {
-      return { chainKey: c.chainKey, path: c.path, ok: false, problems: [listedProblem ?? `${c.path} is not a listed file of the export`], chain: null, records: null };
+  // 3. Every chain, read when it is checked.
+  const verifyChain = async (c: ManifestChain): Promise<{ v: VerifiedChain; records: RecordsPart | null }> => {
+    const entry = listed.get(c.path);
+    const base = { chainKey: c.chainKey, path: c.path, sha256: entry?.sha256 ?? '', events: 0, rows: 0, headSeq: null };
+    checked.add(c.path);
+    const got = await readListed(files, entry?.kind === 'TRUE_COPY' ? entry : undefined, c.path);
+    if ('problem' in got) {
+      if (!report.problems.includes(got.problem)) report.problems.push(got.problem);
+      return { v: { ...base, ok: false, problems: [got.problem] }, records: null };
     }
-    const r = await verifyBundleBytes(bytes, { manifestSha256: c.manifestSha256, headHash: c.headHash });
+    const r = await verifyBundleBytes(got.bytes, { manifestSha256: c.manifestSha256, headHash: c.headHash });
     const problems = [...r.problems];
     if (r.chainKey !== null && r.chainKey !== c.chainKey) problems.push(`${c.path} holds chain ${r.chainKey}, not ${c.chainKey}`);
     if (r.chain?.head && r.chain.head.seq !== c.headSeq) problems.push(`${c.path}: the chain head is at seq ${r.chain.head.seq}, the export lists ${c.headSeq}`);
-    return { chainKey: c.chainKey, path: c.path, ok: problems.length === 0, problems, chain: r.chain, records: r.records };
+    const rows = r.records?.tables.reduce((n, t) => n + t.rows.length, 0) ?? 0;
+    return { v: { ...base, ok: problems.length === 0, problems, events: r.chain?.events.length ?? 0, rows, headSeq: r.chain?.head?.seq ?? null }, records: r.records };
   };
 
-  for (const k of manifest.sealKeys) report.sealKeys.push(await verifyChain(k));
   const sealKeys = new Map<string, { algorithm: string; publicKey: string | null }>();
-  for (const k of report.sealKeys) {
-    if (!k.ok) continue;
-    for (const row of rowsOf(k.records, 'esig.seal_key')) sealKeys.set(text(row.get('key_id')), { algorithm: text(row.get('algorithm')), publicKey: jsonText(row.get('public_key')) });
+  for (const k of manifest.sealKeys) {
+    const { v, records } = await verifyChain(k);
+    report.sealKeys.push(v);
+    if (v.ok) for (const row of rowsOf(records, 'esig.seal_key')) sealKeys.set(text(row.get('key_id')), { algorithm: text(row.get('algorithm')), publicKey: jsonText(row.get('public_key')) });
+    for (const p of v.problems) report.problems.push(`seal key chain ${k.chainKey}: ${p}`);
   }
-  for (const k of report.sealKeys) for (const p of k.problems) report.problems.push(`seal key chain ${k.chainKey}: ${p}`);
 
   // The seal payloads.
   const seals = new Map<string, SealEntry>();
   let sealsReadable = false;
-  const sealsBytes = files.get(manifest.seals);
-  if (fileProblem.has(manifest.seals)) {
-    // reported with the files
-  } else if (!sealsBytes || !manifest.files.some((f) => f.path === manifest.seals)) {
-    report.problems.push(`${manifest.seals} is not a listed file of the export`);
+  checked.add(manifest.seals);
+  const got = await readListed(files, listed.get(manifest.seals)?.kind === 'SEALS' ? listed.get(manifest.seals) : undefined, manifest.seals);
+  if ('problem' in got) {
+    if (!report.problems.includes(got.problem)) report.problems.push(got.problem);
   } else {
     try {
-      const s = JSON.parse(decoder().decode(sealsBytes)) as { format?: string; seals?: SealEntry[] };
+      const s = JSON.parse(decoder().decode(got.bytes)) as { format?: string; seals?: SealEntry[] };
       if (s.format !== FULL_EXPORT_SEALS_FORMAT || !Array.isArray(s.seals)) {
         report.problems.push(`${manifest.seals} is of an unknown format`);
       } else {
@@ -248,16 +289,17 @@ export async function verifyExport(input: ExportFile[], expected: { manifestSha2
   // 4. Every record with its signatures.
   for (const r of manifest.records) {
     const chains: VerifiedChain[] = [];
-    for (const c of r.chains) chains.push(await verifyChain(c));
+    for (const c of r.chains) chains.push((await verifyChain(c)).v);
     const signatureChains: VerifiedChain[] = [];
-    for (const c of r.signatureChains) signatureChains.push(await verifyChain(c));
     const signatures: VerifiedSignature[] = [];
-    for (const sc of signatureChains) {
-      if (!sc.ok) continue;
-      const seal = new Map(rowsOf(sc.records, 'esig.signature_seal').map((row) => [text(row.get('signature_id')), row]));
-      const invalidated = new Set(rowsOf(sc.records, 'esig.signature_invalidation').map((row) => text(row.get('signature_id'))));
-      for (const row of rowsOf(sc.records, 'esig.signature')) {
-        signatures.push(await verifySignature(row, sc.chainKey, seal, invalidated, sealsReadable ? seals : null, sealKeys));
+    for (const c of r.signatureChains) {
+      const { v, records } = await verifyChain(c);
+      signatureChains.push(v);
+      if (!v.ok) continue;
+      const seal = new Map(rowsOf(records, 'esig.signature_seal').map((row) => [text(row.get('signature_id')), row]));
+      const invalidated = new Set(rowsOf(records, 'esig.signature_invalidation').map((row) => text(row.get('signature_id'))));
+      for (const row of rowsOf(records, 'esig.signature')) {
+        signatures.push(await verifySignature(row, c.chainKey, seal, invalidated, sealsReadable ? seals : null, sealKeys));
       }
     }
     const problems = [
@@ -268,11 +310,18 @@ export async function verifyExport(input: ExportFile[], expected: { manifestSha2
     if (chains.length === 0) problems.push('the record has no chain in the export');
     report.records.push({ recordType: r.recordType, recordId: r.recordId, label: r.label, closedAt: r.closedAt, ok: problems.length === 0, problems, chains: [...chains, ...signatureChains], signatures });
   }
+  // A listed file no chain names is still checked against its hash.
+  for (const f of manifest.files) {
+    if (checked.has(f.path) || !files.has(f.path)) continue;
+    const g = await readListed(files, f, f.path);
+    if ('problem' in g) report.problems.push(g.problem);
+  }
   report.counts.records = report.records.length;
   report.counts.signatures = report.records.reduce((n, r) => n + r.signatures.length, 0);
   report.counts.sealsVerified = report.records.reduce((n, r) => n + r.signatures.filter((s) => s.seal?.result === 'VERIFIED').length, 0);
   report.counts.sealsNotCheckable = report.records.reduce((n, r) => n + r.signatures.filter((s) => s.seal?.result === 'NOT_CHECKABLE_OFFLINE').length, 0);
   report.ok = report.problems.length === 0 && report.records.every((r) => r.ok);
+  report.verdict = !report.ok ? 'FAILED' : report.reference === 'MATCHED' ? 'PASSED' : 'NOT_ANCHORED';
   return report;
 }
 

@@ -1946,10 +1946,15 @@ actor's location only looks safe because it fails closed, but it refuses correct
 [1240_evaluation_batch_records.sql](../../../packages/recipe-core/sql/1240_evaluation_batch_records.sql)
 ([DI-08](../../../compliance/controls/DI-08.yaml), [DI-11](../../../compliance/controls/DI-11.yaml),
 [DI-44](../../../compliance/controls/DI-44.yaml)) registers with the kernel:
-- **the closed batch records**: a GMP batch record whose execution ended (its first status change to
-  EXECUTION_COMPLETE, ABORTED or CANCELLED), with the chains of its archive package (`batch`, `batch_review`,
-  `form_reconciliation`, as the evidence export takes them). The full export holds them and the readability sample
-  draws from them;
+- **the closed batch records**: a GMP batch record closed by its life cycle now: its record LOCKED (0870; a record
+  under an open amendment is not closed), closed at its latest lock or closed amendment; or, never locked, aborted or
+  cancelled now. A completed record that is not locked yet, or one reopened, is not closed. Its archive package is every
+  audit chain keyed by the batch (the record, its review, its record lock and amendments, its contingency forms, its
+  readings and release) and the signature chains of its parts, record-lock amendments included, found through a range
+  index on `esig.signature`. The full export holds them and the readability sample draws from them;
+- **the restricted tables of the export**: the eight controlled-substance tables need CONTROLLED.READ, with no site or
+  product limit, for an export or a readability read of a chain holding their rows (IN-53; the export is refused, never
+  cut short);
 - **the topic AUDIT_TRAIL_REVIEW**: every full or delta audit-trail review of a batch record signed in the period;
 - **the topic CHANGE_RECORD** for `recipe.change_record`: the master-record change records of the period.
 

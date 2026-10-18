@@ -28,7 +28,7 @@ import { serializeBundle, verifyTrueCopyBundleText, type RecordsPart } from './t
 export const EVALUATION_PACK_FORMAT = 'ebmr.periodic-evaluation/1';
 export const EVALUATION_PACK_AGGREGATE = 'evaluation_pack';
 export const EVALUATION_PACK_MEANING = 'PERIODIC_EVALUATION_APPROVED';
-/** DESIGN-CHOICE default of the readability sample (DI-44 type detail: quarterly sampling; D-P7-7b2-3). */
+/** The readability sample's default and minimum size (the database refuses fewer than 10, or than every closed record when fewer are closed). */
 export const DEFAULT_READABILITY_SAMPLE = 10;
 
 /** A reader on the reporting path: a connection logged in as ebmr_report (or a session in that role). */
@@ -117,42 +117,47 @@ async function readTopics(report: ReportReader, from: string, to: string): Promi
   return [...topics.values()];
 }
 
-interface IndexRecord {
+interface ReadabilityJson {
   recordType: string;
   recordId: string;
-  chainKeys: string[];
-  signatureChainKeys: string[];
+  label: string;
+  chains: { chainKey: string; kind: 'RECORD' | 'SIGNATURE'; snapshot: SnapshotJson }[];
 }
 
-/** Opens, verifies and renders one sampled record (its chains and signature chains) through the app path. */
-async function readRecord(client: pg.PoolClient, index: Map<string, IndexRecord>, s: { rank: number; record_type: string; record_id: string; label: string; closed_at: string; sample_key: string }): Promise<ReadabilityRecord> {
-  const entry = index.get(`${s.record_type}:${s.record_id}`);
-  const keys = entry ? [...entry.chainKeys, ...entry.signatureChainKeys] : [];
+/**
+ * Opens, verifies and renders one sampled record (its chains and signature chains) through the app path
+ * (records.readability_snapshot: the sample's record of that rank, with RECORD.EXPORT and, for controlled records,
+ * CONTROLLED.READ).
+ */
+async function readRecord(
+  client: pg.PoolClient,
+  sample: { seed: string; closedBefore: string; size: number },
+  s: { rank: number; record_type: string; record_id: string; label: string; closed_at: string; sample_key: string },
+): Promise<ReadabilityRecord> {
+  const { rows } = await client.query<{ r: ReadabilityJson }>('select records.readability_snapshot($1, $2::timestamptz, $3, $4) as r', [sample.seed, sample.closedBefore, sample.size, s.rank]);
+  const opened = rows[0]?.r;
   const chains: ReadabilityChain[] = [];
   let auditEvents = 0;
   let signatures = 0;
-  if (keys.length > 0) {
-    const { rows } = await client.query<{ s: { chainKey: string; snapshot: SnapshotJson }[] }>('select records.full_export_snapshot($1::text[]) as s', [keys]);
-    for (const e of rows[0]?.s ?? []) {
-      const bundle = trueCopyBundleOfParts(e.chainKey, e.snapshot);
-      const report = verifyTrueCopyBundleText(serializeBundle(bundle));
-      const problems = [...report.problems];
-      let pdfSha256: string | null = null;
-      try {
-        const pdf = await renderTrueCopyPdf(bundle, { title: `Readability check of ${s.label}`, label: s.label });
-        const back = await verifyTrueCopyPdf(pdf.pdf, bundle);
-        problems.push(...back.problems.map((p) => `rendering: ${p}`));
-        pdfSha256 = pdf.pdfSha256;
-      } catch (error) {
-        problems.push(`rendering: ${(error as Error).message}`);
-      }
-      auditEvents += report.summary.events;
-      if (e.chainKey.startsWith('esig_signature:')) {
-        const records = JSON.parse(bundle.parts['records.json'] ?? '{"tables": []}') as RecordsPart;
-        signatures += records.tables.filter((t) => t.table === 'esig.signature').reduce((n, t) => n + t.rows.length, 0);
-      }
-      chains.push({ chainKey: e.chainKey, events: report.summary.events, rows: report.summary.rows, headSeq: report.summary.headSeq, manifestSha256: bundle.manifestSha256, pdfSha256, problems });
+  for (const e of opened?.chains ?? []) {
+    const bundle = trueCopyBundleOfParts(e.chainKey, e.snapshot);
+    const report = verifyTrueCopyBundleText(serializeBundle(bundle));
+    const problems = [...report.problems];
+    let pdfSha256: string | null = null;
+    try {
+      const pdf = await renderTrueCopyPdf(bundle, { title: `Readability check of ${s.label}`, label: s.label });
+      const back = await verifyTrueCopyPdf(pdf.pdf, bundle);
+      problems.push(...back.problems.map((p) => `rendering: ${p}`));
+      pdfSha256 = pdf.pdfSha256;
+    } catch (error) {
+      problems.push(`rendering: ${(error as Error).message}`);
     }
+    auditEvents += report.summary.events;
+    if (e.kind === 'SIGNATURE') {
+      const records = JSON.parse(bundle.parts['records.json'] ?? '{"tables": []}') as RecordsPart;
+      signatures += records.tables.filter((t) => t.table === 'esig.signature').reduce((n, t) => n + t.rows.length, 0);
+    }
+    chains.push({ chainKey: e.chainKey, events: report.summary.events, rows: report.summary.rows, headSeq: report.summary.headSeq, manifestSha256: bundle.manifestSha256, pdfSha256, problems });
   }
   const readable = chains.length > 0 && chains.every((c) => c.problems.length === 0 && c.pdfSha256 !== null);
   return {
@@ -193,19 +198,17 @@ export async function runPeriodicEvaluation(
     const from = await utc(client, input.from);
     const to = await utc(client, input.to);
     const sampleSize = input.sampleSize ?? DEFAULT_READABILITY_SAMPLE;
+    // The entries and the sample are read through the reporting path only: a reader in any other role is refused.
+    const reader = (await report.query<{ u: string }>('select current_user::text as u')).rows[0]?.u;
+    if (reader !== 'ebmr_report') throw new Error(`EBMR-REC-160 the evaluation is read through the reporting role ebmr_report, not ${reader ?? 'an unknown role'} (DI-11)`);
     const topics = await readTopics(report, from, to);
     const { rows: sample } = await report.query<{ rank: number; record_type: string; record_id: string; label: string; closed_at: string; sample_key: string }>(
       `select rank, record_type, record_id, label, to_char(closed_at at time zone 'UTC', ${UTC}) as closed_at, sample_key
          from report.readability_sample_rows_v1($1, $2::timestamptz, $3) order by rank`,
       [input.seed, to, sampleSize],
     );
-    const index = new Map<string, IndexRecord>();
-    if (sample.length > 0) {
-      const { rows } = await client.query<{ i: { records: IndexRecord[] } }>('select records.full_export_index() as i');
-      for (const r of rows[0]?.i.records ?? []) index.set(`${r.recordType}:${r.recordId}`, r);
-    }
     const records: ReadabilityRecord[] = [];
-    for (const s of sample) records.push(await readRecord(client, index, s));
+    for (const s of sample) records.push(await readRecord(client, { seed: input.seed, closedBefore: to, size: sampleSize }, s));
     const generatedAt = (await client.query<{ t: string }>(`select to_char(clock_timestamp() at time zone 'UTC', ${UTC}) as t`)).rows[0]?.t ?? '';
     const pack: EvaluationPack = {
       format: EVALUATION_PACK_FORMAT,
@@ -256,6 +259,9 @@ export interface StoredEvaluationPack {
   entryCount: number;
   sampleCount: number;
   unreadableCount: number;
+  /** The readability sample's seed and size, stored and signed with the pack. */
+  readabilitySeed: string;
+  sampleSize: number;
   generatedByPerson: string;
   approval: { signatureId: string; approvedByPerson: string; recordedAt: Date } | null;
 }
@@ -264,9 +270,9 @@ export interface StoredEvaluationPack {
 export async function evaluationPack(db: pg.Pool | pg.PoolClient, packId: string): Promise<StoredEvaluationPack | undefined> {
   const { rows } = await db.query<{
     id: string; pack_sha256: string; pack: string; period_from: Date; period_to: Date; entry_count: number; sample_count: number; unreadable_count: number;
-    generated_by_person: string; approved_signature: string | null; approved_by_person: string | null; approved_at: Date | null;
+    readability_seed: string; sample_size: number; generated_by_person: string; approved_signature: string | null; approved_by_person: string | null; approved_at: Date | null;
   }>(
-    `select p.id::text, p.pack_sha256, p.pack, p.period_from, p.period_to, p.entry_count, p.sample_count, p.unreadable_count, p.generated_by_person::text,
+    `select p.id::text, p.pack_sha256, p.pack, p.period_from, p.period_to, p.entry_count, p.sample_count, p.unreadable_count, p.readability_seed, p.sample_size, p.generated_by_person::text,
             a.approved_signature::text, a.approved_by_person::text, a.recorded_at as approved_at
        from records.evaluation_pack p left join records.evaluation_pack_approval a on a.pack_id = p.id where p.id = $1`,
     [packId],
@@ -282,6 +288,8 @@ export async function evaluationPack(db: pg.Pool | pg.PoolClient, packId: string
     entryCount: r.entry_count,
     sampleCount: r.sample_count,
     unreadableCount: r.unreadable_count,
+    readabilitySeed: r.readability_seed,
+    sampleSize: r.sample_size,
     generatedByPerson: r.generated_by_person,
     approval: r.approved_signature && r.approved_by_person && r.approved_at ? { signatureId: r.approved_signature, approvedByPerson: r.approved_by_person, recordedAt: r.approved_at } : null,
   };

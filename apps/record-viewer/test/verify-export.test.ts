@@ -7,19 +7,19 @@
  */
 import { createHash } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { buildFullExport, type FullExport, type FullExportManifest } from '../../../packages/kernel/src/records/full-export.ts';
+import type { FullExport, FullExportManifest } from '../../../packages/kernel/src/records/full-export.ts';
 import { verifyTrueCopyBundleText } from '../../../packages/kernel/src/records/true-copy.ts';
 import { testKeyRing } from '../../../packages/kernel/test/esig/helpers.ts';
 import { ExportWorld } from '../../../packages/kernel/test/records/export-world.ts';
-import { again } from '../../../packages/kernel/test/records/helpers.ts';
 import { createTestDatabase, type TestDatabase } from '../../../packages/kernel/test/support/db.ts';
 import { sealMessage, verifyEd25519, fromBase64 } from '../src/verify/crypto.ts';
-import { verifyBundleBytes, verifyExport, type ExportFile } from '../src/verify/index.ts';
+import { fileOf, openChain, verifyBundleBytes, verifyExport, type ExportFile } from '../src/verify/index.ts';
 
 let db: TestDatabase;
 let w: ExportWorld;
 let exp: FullExport;
 let manifest: FullExportManifest;
+let exported: Map<string, string>;
 let edInvestigation: { id: string; signatureId: string };
 let hmacInvestigation: { id: string; signatureId: string };
 let incident: string;
@@ -29,13 +29,13 @@ const sha = (s: string | Uint8Array): string => createHash('sha256').update(s).d
 
 /** The export as a folder picker gives it: every path under the folder's name. */
 function folder(files: Map<string, string>, manifestText: string): ExportFile[] {
-  return [...files.entries(), ['manifest.json', manifestText] as const].map(([path, text]) => ({ path: `export-2026/${path}`, bytes: enc.encode(text) }));
+  return [...files.entries(), ['manifest.json', manifestText] as const].map(([path, text]) => fileOf(`export-2026/${path}`, enc.encode(text)));
 }
-const intact = (): ExportFile[] => folder(exp.files, exp.manifest);
+const intact = (): ExportFile[] => folder(exported, exp.manifest);
 
 /** The export with one file changed and, when `rehash`, the manifest's SHA-256 and size of that file recomputed. */
 function altered(path: string, change: (text: string) => string, rehash = false): ExportFile[] {
-  const files = new Map(exp.files);
+  const files = new Map(exported);
   const text = change(files.get(path)!);
   files.set(path, text);
   let m = exp.manifest;
@@ -55,11 +55,11 @@ beforeAll(async () => {
   incident = await w.closedIncident('Balance B-17 interface lost');
   edInvestigation = await w.closedInvestigation(w.edKey);
   hmacInvestigation = await w.closedInvestigation();
-  exp = await buildFullExport(db.app, again(w.lead), { keyRing: testKeyRing });
-  manifest = JSON.parse(exp.manifest) as FullExportManifest;
+  ({ exp, manifest, files: exported } = await w.export({ keyRing: testKeyRing }));
 }, 300_000);
 
 afterAll(async () => {
+  w?.cleanUp();
   await db?.drop();
 });
 
@@ -69,11 +69,13 @@ describe('the record viewer verifies a full export before it shows anything (DI-
   it('[DI-08] an intact export passes every check: each record with its audit trail and its signature manifestations, an Ed25519 seal verified offline, an HMAC seal with the installation\'s check', async () => {
     const report = await verifyExport(intact(), { manifestSha256: exp.manifestSha256 });
     expect(report.problems).toEqual([]);
-    expect(report).toMatchObject({ ok: true, readable: true, reference: 'MATCHED', manifestSha256: exp.manifestSha256 });
+    expect(report).toMatchObject({ verdict: 'PASSED', ok: true, readable: true, reference: 'MATCHED', manifestSha256: exp.manifestSha256 });
     expect(report.records.map((r) => r.recordId).sort()).toEqual(manifest.records.map((r) => r.recordId).sort());
     for (const r of report.records) {
       expect(r.problems, r.label).toEqual([]);
-      expect(r.chains[0]!.chain!.events.length).toBeGreaterThan(0);
+      expect(r.chains[0]!.events).toBeGreaterThan(0);
+      // Opened for display, the audit trail is read again against the manifest's SHA-256.
+      expect((await openChain(intact(), r.chains[0]!))?.chain.events.length).toBe(r.chains[0]!.events);
     }
     const ed = recordOf(report, edInvestigation.id);
     expect(ed.signatures).toHaveLength(1);
@@ -84,8 +86,8 @@ describe('the record viewer verifies a full export before it shows anything (DI-
     expect(hmac.signatures[0]).toMatchObject({ seal: { algorithm: 'HMAC-SHA256', result: 'NOT_CHECKABLE_OFFLINE', installationCheck: 'VALID' } });
     expect(recordOf(report, incident).signatures).toEqual([]);
     expect(report.counts).toMatchObject({ records: manifest.records.length, sealsVerified: 1, sealsNotCheckable: 1 });
-    // Without a reference the export only agrees with itself, and says so.
-    expect((await verifyExport(intact())).reference).toBe('NONE');
+    // Without a reference the export only agrees with itself: NOT ANCHORED, never passed.
+    expect(await verifyExport(intact())).toMatchObject({ verdict: 'NOT_ANCHORED', ok: true, reference: 'NONE' });
   });
 
   it('[DI-08] a tampered file is shown as failed: the altered record fails with its finding and is not shown, the others stay verified', async () => {
@@ -139,19 +141,48 @@ describe('the record viewer verifies a full export before it shows anything (DI-
     // A missing file and a file nobody listed.
     const missing = intact().filter((f) => !f.path.endsWith(path));
     expect((await verifyExport(missing)).problems.join('\n')).toContain(`${path} is listed in the manifest but missing`);
-    const extra = [...intact(), { path: 'export-2026/records/0099-batch/batch_x.json', bytes: enc.encode('{}') }];
+    const extra = [...intact(), fileOf('export-2026/records/0099-batch/batch_x.json', enc.encode('{}'))];
     expect((await verifyExport(extra)).problems).toContain('records/0099-batch/batch_x.json is in the folder but not listed in the manifest');
     // A manifest that cannot be read, or none: nothing is shown.
-    const badManifest = folder(exp.files, exp.manifest.replace('"format": "ebmr.full-export/1"', '"format": "other"'));
+    const badManifest = folder(exported, exp.manifest.replace('"format": "ebmr.full-export/1"', '"format": "other"'));
     expect(await verifyExport(badManifest)).toMatchObject({ ok: false, readable: false, records: [] });
     expect(await verifyExport(intact().filter((f) => !f.path.endsWith('manifest.json')))).toMatchObject({ ok: false, readable: false });
   });
 
+  it('[DI-08] a file changed after it was checked is not shown when its audit trail is opened; a check that throws is a failed verdict that names the error, never a hang', async () => {
+    const files = intact();
+    const report = await verifyExport(files, { manifestSha256: exp.manifestSha256 });
+    const chain = recordOf(report, incident).chains[0]!;
+    const swapped = files.map((f) => (f.path.endsWith(chain.path) ? fileOf(f.path, enc.encode(`${exported.get(chain.path)!} `)) : f));
+    expect(await openChain(swapped, chain)).toBeNull();
+    // A file that cannot be read makes the whole check fail with its error.
+    const broken = files.map((f) => (f.path.endsWith(chain.path) ? { path: f.path, read: () => Promise.reject(new Error('the disk is gone')) } : f));
+    const failed = await verifyExport(broken, { manifestSha256: exp.manifestSha256 });
+    expect(failed).toMatchObject({ verdict: 'FAILED', ok: false });
+    expect(failed.problems.join('\n')).toContain('the disk is gone');
+    // A hash-consistent malformed part (the bundle re-hashed around a part that is no JSON) is a failed record, not a hang.
+    const malformed = altered(chain.path, (t) => {
+      const b = JSON.parse(t) as { format: string; manifestSha256: string; manifest: string; parts: Record<string, string> };
+      b.parts['audit-chain.json'] = '{not json';
+      const m = JSON.parse(b.manifest) as { parts: { name: string; sha256: string; bytes: number }[] };
+      for (const p of m.parts) {
+        p.sha256 = sha(b.parts[p.name]!);
+        p.bytes = Buffer.byteLength(b.parts[p.name]!, 'utf8');
+      }
+      b.manifest = JSON.stringify(m, null, 2);
+      b.manifestSha256 = sha(b.manifest);
+      return `${JSON.stringify({ format: b.format, manifestSha256: b.manifestSha256, manifest: b.manifest, parts: b.parts })}\n`;
+    }, true);
+    const r = await verifyExport(malformed);
+    expect(r.verdict).toBe('FAILED');
+    expect(recordOf(r, incident).ok).toBe(false);
+  });
+
   it('[DI-08] the Ed25519 seal check is the browser\'s own: the sealed message verifies, the same seal over a changed payload does not', async () => {
-    const seals = (JSON.parse(exp.files.get('signatures.json')!) as { seals: { signatureId: string; keyId: string; algorithm: string; payload: string }[] }).seals;
+    const seals = (JSON.parse(exported.get('signatures.json')!) as { seals: { signatureId: string; keyId: string; algorithm: string; payload: string }[] }).seals;
     const s = seals.find((x) => x.signatureId === edInvestigation.signatureId)!;
     const sigPath = manifest.records.find((r) => r.recordId === edInvestigation.id)!.signatureChains[0]!.path;
-    const recs = JSON.parse((JSON.parse(exp.files.get(sigPath)!) as { parts: Record<string, string> }).parts['records.json']!) as { tables: { table: string; rows: { content: string }[] }[] };
+    const recs = JSON.parse((JSON.parse(exported.get(sigPath)!) as { parts: Record<string, string> }).parts['records.json']!) as { tables: { table: string; rows: { content: string }[] }[] };
     const sealRow = JSON.parse(recs.tables.find((t) => t.table === 'esig.signature_seal')!.rows[0]!.content) as { seal: string };
     const seal = fromBase64(sealRow.seal)!;
     expect(await verifyEd25519(w.edKey.publicKeyPem, sealMessage(s.keyId, s.algorithm, s.payload), seal)).toBe('VALID');
@@ -164,7 +195,7 @@ describe('the record viewer verifies a full export before it shows anything (DI-
     const paths = manifest.files.filter((f) => f.kind === 'TRUE_COPY').map((f) => f.path);
     expect(paths.length).toBeGreaterThanOrEqual(6);
     for (const path of paths) {
-      const text = exp.files.get(path)!;
+      const text = exported.get(path)!;
       const kernel = verifyTrueCopyBundleText(text);
       const viewer = await verifyBundleBytes(enc.encode(text));
       expect([path, viewer.ok, viewer.problems]).toEqual([path, kernel.ok, kernel.problems]);

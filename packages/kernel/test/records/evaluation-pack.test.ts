@@ -103,13 +103,13 @@ beforeAll(async () => {
   beforePeriod = (await db.admin.query<{ id: string }>("select id::text from platform.change_record where number = 'CR-BEFORE-PERIOD'")).rows[0]!.id;
   from = await w.now();
   closed = [];
-  for (let i = 0; i < 5; i++) closed.push(await w.closedIncident(`Closed incident ${i + 1}`));
+  for (let i = 0; i < 11; i++) closed.push(await w.closedIncident(`Closed incident ${i + 1}`));
   for (let i = 0; i < 5; i++) await w.openIncident(`Open incident ${i + 1}`);
   investigation = await w.closedInvestigation(w.edKey);
   for (let i = 0; i < 4; i++) await w.openInvestigation();
   await fiveOfEach();
   to = await w.now();
-  stored = await runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to, seed: SEED, sampleSize: 4 });
+  stored = await runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to, seed: SEED, sampleSize: 10 });
 }, 600_000);
 
 afterAll(async () => {
@@ -155,15 +155,29 @@ describe('the periodic evaluation pack (kernel 1336)', () => {
     await expect(w.report.query('select report.evaluation_incidents()')).rejects.toThrow(/permission denied/);
     const { rows: problems } = await db.admin.query<{ p: string }>('select p from sandbox.segregation_problems() p');
     expect(problems.filter((r) => r.p.includes('ebmr_report'))).toEqual([]);
+    // A reader in another role than ebmr_report is refused before anything is read.
+    await expect(runPeriodicEvaluation(db.app, db.app, again(w.lead), { from, to, seed: SEED })).rejects.toThrow(/EBMR-REC-160 .*not ebmr_app/);
   });
 
   it('[DI-11] the pack is stored with its SHA-256, as generated; the database refuses a pack that is not the source logs\' entries of an ended period', async () => {
     const row = await evaluationPack(db.app, stored.packId);
-    expect(row).toMatchObject({ packSha256: sha(stored.text), text: stored.text, generatedByPerson: w.lead.personId, sampleCount: 4, unreadableCount: 0, approval: null });
+    expect(row).toMatchObject({ packSha256: sha(stored.text), text: stored.text, generatedByPerson: w.lead.personId, sampleCount: 10, readabilitySeed: SEED, sampleSize: 10, unreadableCount: 0, approval: null });
     expect(row!.entryCount).toBe(stored.pack.summary.entries);
     // A dropped entry, an invented one, a hash of other text, a period not over, a missing topic.
-    await expect(store(w.lead, variant((p) => p.topics[0]!.entries.pop()))).rejects.toThrow(/EBMR-REC-155 .*1 missing, 0 not in the source logs/);
-    await expect(store(w.lead, variant((p) => p.topics[1]!.entries.push({ ...p.topics[1]!.entries[0]!, sourceRow: randomUUID() })))).rejects.toThrow(/EBMR-REC-155 .*0 missing, 1 not in/);
+    await expect(store(w.lead, variant((p) => p.topics[0]!.entries.pop()))).rejects.toThrow(/EBMR-REC-155 .*1 of the logs' entries are missing or differ, 0 of the pack's/);
+    await expect(store(w.lead, variant((p) => p.topics[1]!.entries.push({ ...p.topics[1]!.entries[0]!, sourceRow: randomUUID() })))).rejects.toThrow(/EBMR-REC-155 .*0 of the logs' entries are missing or differ, 1 of the pack's/);
+    // Every entry's content is the source log's: a falsified restore-drill result, deviation classification or
+    // integrity-check count, a moved time or an end, is refused.
+    const topic = (p: EvaluationPack, name: string) => p.topics.find((t) => t.topic === name)!;
+    await expect(store(w.lead, variant((p) => { topic(p, 'RESTORE_DRILL').entries[0]!.summary['result'] = 'FAIL'; }))).rejects.toThrow(/EBMR-REC-155 .*1 of the logs' entries are missing or differ, 1 of the pack's/);
+    await expect(store(w.lead, variant((p) => { topic(p, 'DEVIATION').entries[0]!.summary['classification'] = 'CRITICAL'; }))).rejects.toThrow(/EBMR-REC-155/);
+    await expect(store(w.lead, variant((p) => { topic(p, 'INTEGRITY_CHECK').entries[0]!.summary['problems'] = 1; }))).rejects.toThrow(/EBMR-REC-155/);
+    await expect(store(w.lead, variant((p) => { delete topic(p, 'BACKUP').entries[0]!.summary['status']; }))).rejects.toThrow(/EBMR-REC-155/);
+    await expect(store(w.lead, variant((p) => { topic(p, 'INCIDENT').entries[0]!.occurredAt = from; }))).rejects.toThrow(/EBMR-REC-155/);
+    await expect(store(w.lead, variant((p) => { topic(p, 'OPEN_ISSUE').entries[0]!.endedAt = to; }))).rejects.toThrow(/EBMR-REC-155/);
+    await expect(store(w.lead, variant((p) => { topic(p, 'OPEN_ISSUE').sources[0]!.selection = 'IN_PERIOD'; }))).rejects.toThrow(/EBMR-REC-154/);
+    await expect(store(w.lead, variant((p) => { topic(p, 'BACKUP').sources = []; }))).rejects.toThrow(/EBMR-REC-154/);
+    await expect(store(w.lead, variant((p) => { p.topics.push(p.topics[0]!); }))).rejects.toThrow(/EBMR-REC-154/);
     await expect(store(w.lead, variant((p) => p.topics[2]!.entries.push(p.topics[2]!.entries[0]!)))).rejects.toThrow(/EBMR-REC-155/);
     await expect(store(w.lead, { text: stored.text, sha: sha(`${stored.text}x`) })).rejects.toThrow(/EBMR-REC-152/);
     await expect(store(w.lead, variant((p) => { p.period.to = '2999-01-01T00:00:00.000000Z'; }))).rejects.toThrow(/EBMR-REC-153/);
@@ -205,7 +219,7 @@ describe('the periodic evaluation pack (kernel 1336)', () => {
     const qa2 = await signerActor(db, 'QA_REVIEWER', 'Second QA reviewer');
     await expect(approve(qa2, stored.packId, sig)).rejects.toThrow(/EBMR-REC-159/);
     // A signature of another pack does not sign this one off.
-    const other = await runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to: await w.now(), seed: SEED, sampleSize: 2 });
+    const other = await runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to: await w.now(), seed: SEED, sampleSize: 10 });
     await expect(approve(w.qa, other.packId, sig)).rejects.toThrow(/EBMR-ESIG-070/);
     await approve(w.qa, stored.packId, sig);
     expect((await evaluationPack(db.app, stored.packId))!.approval).toMatchObject({ signatureId: sig, approvedByPerson: w.qa.personId });
@@ -219,10 +233,11 @@ describe('the periodic readability report (kernel 1335, 1336)', () => {
   it('[DI-44] the periodic readability report lists the seeded sample of closed records, each opened and rendered with its audit trail, with its result and render hash per record', async () => {
     const r = stored.pack.readability;
     const { rows: sample } = await w.report.query<{ record_type: string; record_id: string }>(
-      'select record_type, record_id from report.readability_sample_rows_v1($1, $2::timestamptz, 4) order by rank', [SEED, to]);
-    expect(r).toMatchObject({ seed: SEED, sampleSize: 4, closedBefore: stored.pack.period.to });
+      'select record_type, record_id from report.readability_sample_rows_v1($1, $2::timestamptz, 10) order by rank', [SEED, to]);
+    expect(r).toMatchObject({ seed: SEED, sampleSize: 10, closedBefore: stored.pack.period.to });
     expect(r.records.map((x) => `${x.recordType}:${x.recordId}`)).toEqual(sample.map((x) => `${x.record_type}:${x.record_id}`));
-    expect(r.records.map((x) => x.rank)).toEqual([1, 2, 3, 4]);
+    expect(r.records.map((x) => x.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(r.records).toHaveLength(10);
     for (const rec of r.records) {
       expect(rec.result, rec.label).toBe('READABLE');
       expect(rec.renderSha256).toMatch(/^[0-9a-f]{64}$/);
@@ -240,7 +255,7 @@ describe('the periodic readability report (kernel 1335, 1336)', () => {
     expect(inv.chains.map((c) => c.chainKey)).toEqual([`di_investigation:${investigation.id}`, `esig_signature:di_investigation:${investigation.id}`]);
     expect(inv.signatures).toBe(1);
     // The same seed for the same period gives the same report, render hashes included.
-    const again2 = await runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to, seed: SEED, sampleSize: 4 });
+    const again2 = await runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to, seed: SEED, sampleSize: 10 });
     expect(again2.pack.readability.records.map((x) => [x.recordId, x.renderSha256])).toEqual(r.records.map((x) => [x.recordId, x.renderSha256]));
     // The database stores only the seeded sample, each with its result.
     await expect(store(w.lead, variant((p) => p.readability.records.reverse()))).rejects.toThrow(/EBMR-REC-156/);
@@ -248,6 +263,16 @@ describe('the periodic readability report (kernel 1335, 1336)', () => {
     await expect(store(w.lead, variant((p) => { p.readability.records[0]!.renderSha256 = null; }))).rejects.toThrow(/EBMR-REC-157/);
     await expect(store(w.lead, variant((p) => { (p.readability.records[0] as { result: string }).result = 'FINE'; }))).rejects.toThrow(/EBMR-REC-157/);
     await expect(store(w.lead, variant((p) => { p.readability.seed = 'another seed'; }))).rejects.toThrow(/EBMR-REC-156/);
+    await expect(store(w.lead, variant((p) => { p.readability.records[1]!.label = 'another record'; }))).rejects.toThrow(/EBMR-REC-156/);
+    await expect(store(w.lead, variant((p) => { p.readability.records[1]!.closedAt = from; }))).rejects.toThrow(/EBMR-REC-156/);
+    // At least 10 records, or every closed record when fewer are closed: a smaller sample is refused, so is a blank seed.
+    await expect(runPeriodicEvaluation(w.report, db.app, again(w.lead), { from, to, seed: SEED, sampleSize: 4 })).rejects.toThrow(/EBMR-REC-141 .*from 10/);
+    await expect(store(w.lead, variant((p) => { p.readability.sampleSize = 9; p.readability.records = p.readability.records.slice(0, 9); }))).rejects.toThrow(/EBMR-REC-141/);
+    await expect(store(w.lead, variant((p) => { p.readability.seed = ' '; }))).rejects.toThrow(/EBMR-REC-141/);
+    // The seed and size are signed with the pack.
+    const content = await contentForSigning(db.app, 'evaluation_pack', stored.packId);
+    expect(content.canonical).toContain(`"readability_seed":"${SEED}"`);
+    expect(content.canonical).toContain('"sample_size":"10"');
   });
 
   it('[DI-44] a sampled record whose stored row was altered is reported UNREADABLE with the finding, and the pack records it', async () => {

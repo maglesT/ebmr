@@ -38,7 +38,7 @@ describe('the records command line (Phase 7 slice 7b-2)', () => {
       const actor = JSON.stringify(w.lead);
       expect(await main(['full-export', '--url', url, '--actor-json', actor, '--out', join(dir, 'export')])).toBe(0);
       expect(readdirSync(join(dir, 'export'))).toContain('manifest.json');
-      const sha = log.mock.calls.map((c) => String(c[0])).find((l) => l.startsWith('export SHA-256'))?.split(': ')[1];
+      const sha = log.mock.calls.map((c) => String(c[0])).find((l) => l.startsWith('export SHA-256'))?.match(/[0-9a-f]{64}$/)?.[0];
       expect(sha).toMatch(/^[0-9a-f]{64}$/);
       expect((await db.app.query('select 1 from records.full_export where manifest_sha256 = $1', [sha])).rows).toHaveLength(1);
 
