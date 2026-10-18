@@ -6,6 +6,9 @@
  * rights), as the reporting views test reads it.
  */
 import { randomUUID } from 'node:crypto';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { withCommand, type ActorContext } from '../../src/db/command.ts';
 import { registerSealKey } from '../../src/esig/catalogue.ts';
 import { generateEd25519SealKey, type Ed25519SealKey, type SealKeyProvider } from '../../src/esig/keys.ts';
@@ -14,6 +17,8 @@ import { authenticate } from '../../src/identity/authentication.ts';
 import { closeIncident, raiseIncident, startIncidentInvestigation } from '../../src/records/incidents.ts';
 import { closeDiInvestigation, openDiInvestigation } from '../../src/records/investigations.ts';
 import type { ReportReader } from '../../src/records/evaluation-pack.ts';
+import { buildFullExport, type FullExport, type FullExportManifest } from '../../src/records/full-export.ts';
+import type { SealKeyRing } from '../../src/esig/keys.ts';
 import { ensureSealKey, testSealKey } from '../esig/helpers.ts';
 import { seedAdministration, seedAuthn, type SeededActor } from '../identity/seed.ts';
 import type { TestDatabase } from '../support/db.ts';
@@ -108,6 +113,29 @@ export class ExportWorld {
     const signatureId = await this.sign(this.qa, { type: 'di_investigation', id }, 'DI_INVESTIGATION_CLOSED', 'OPEN', key);
     await withCommand(this.db.app, again(this.qa), (c) => closeDiInvestigation(c, id, { conclusion: 'no falsification', remediation: 'refresher training', approvalSignatureId: signatureId }));
     return { id, signatureId };
+  }
+
+  /** A fresh empty folder under the system's temporary folder (removed by `cleanUp`). */
+  folder(): string {
+    const d = mkdtempSync(join(tmpdir(), 'ebmr-export-'));
+    this.folders.push(d);
+    return join(d, 'export');
+  }
+
+  private readonly folders: string[] = [];
+
+  cleanUp(): void {
+    for (const d of this.folders) rmSync(d, { recursive: true, force: true });
+  }
+
+  /** A full export by the CSV / DI lead into a fresh folder, with every file it wrote (manifest.json too) as text. */
+  async export(opts: { keyRing?: SealKeyRing; ctx?: ActorContext; page?: number; batch?: number } = {}): Promise<{ exp: FullExport; manifest: FullExportManifest; files: Map<string, string> }> {
+    const dir = this.folder();
+    const exp = await buildFullExport(this.db.app, again(opts.ctx ?? this.lead), dir, opts);
+    const manifest = JSON.parse(exp.manifest) as FullExportManifest;
+    const files = new Map<string, string>();
+    for (const f of manifest.files) files.set(f.path, readFileSync(join(dir, f.path), 'utf8'));
+    return { exp, manifest, files };
   }
 
   /** The database clock now, as an ISO text. */

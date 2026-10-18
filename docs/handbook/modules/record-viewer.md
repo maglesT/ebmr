@@ -41,10 +41,15 @@ the viewer or the export it reads, or if you explain to an auditor how records s
      one sealed (its canonical SHA-256 is in the payload), and the seal itself verifies: an Ed25519 seal with the public
      key from the export's seal key chain, in the browser. An HMAC seal needs the installation's secret, so the viewer
      says it cannot check it offline and shows the installation's own check made at export.
-4. It shows a verdict ("All checks passed." or "Verification failed: ..."), then each record: its label, when it closed,
+4. It shows a verdict: "All checks passed." only when every check passed **and** the export SHA-256 matches the one
+   typed; "NOT ANCHORED: origin unverified." when the checks passed but no SHA-256 was given (files that agree with each
+   other prove nothing on their own); "Verification failed: ..." otherwise, also when a file cannot be read. Then each
+   record: its label, when it closed,
    its signatures with their manifestations (printed name, user ID, role, meaning, date and time with offset and zone)
-   and the seal result, and the audit trail of each chain (sequence, time, action, table, row, who, reason). **A record
-   that fails a check is listed with its findings and is not shown.**
+   and the seal result, and the audit trail of each chain (sequence, time, action, table, row, who, reason), read from its
+   file when it is opened and checked again against the manifest's SHA-256. **A record that fails a check is listed
+   with its findings and is not shown.** Files are read one at a time (browser File handles), so a large export does not
+   have to fit in memory.
 
 ## Pharma context
 
@@ -95,8 +100,9 @@ the viewer or the export it reads, or if you explain to an auditor how records s
   modules). A change to the true-copy bundle format or to its checks in the kernel
   ([true-copy.ts](../../../packages/kernel/src/records/true-copy.ts)) is made in the viewer too; the cross-check test
   fails when the two disagree.
-- An export only agrees with itself until it is compared with the export SHA-256 the installation registered. Give the
-  reader that value with the export (the register is `records.full_export`).
+- An export only agrees with itself until it is compared with the export SHA-256 the installation registered, so the
+  viewer never says "passed" without it. The full-export command prints the SHA-256 and the register
+  (`records.full_export`) keeps it; hand it over separately from the files.
 - HMAC seals are not checkable offline. For an export that must be fully checkable without the installation, seal with
   an Ed25519 key.
 - The page needs a browser with Ed25519 in Web Crypto (current Chromium, Firefox and Safari); an older one says so

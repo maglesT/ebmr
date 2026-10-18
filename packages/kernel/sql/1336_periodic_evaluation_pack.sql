@@ -24,10 +24,13 @@
 --   records.evaluation_pack                insert-only: the pack text (JSON, format ebmr.periodic-evaluation/1), its
 --                                          SHA-256, the period, the counts and who generated it.
 --   records.store_evaluation_pack(p, sha)  VALIDATION.MANAGE. Recomputes the SHA-256; requires a period that has ended,
---                                          every registered topic, exactly the period's entries (each named by its source
---                                          log and row) and exactly the seeded readability sample of the records closed
---                                          before the period's end (report.readability_sample_rows_v1, kernel 1335), each
---                                          with its result and, when readable, its render SHA-256.
+--                                          every registered topic with its source logs, exactly the period's entries with
+--                                          their whole content as the source logs hold it (source log and row, when it
+--                                          occurred and ended, summary), and exactly the seeded readability sample of the
+--                                          records closed before the period's end (report.readability_sample_rows_v1,
+--                                          kernel 1335; at least 10 records, or every one when fewer are closed), each
+--                                          named as the database names it, with its result and, when readable, its render
+--                                          SHA-256. The seed and the sample size are stored and signed with the pack.
 --   records.evaluation_pack_approval       insert-only: QA's sign-off, one per pack.
 --   records.approve_evaluation_pack(id, s) VALIDATION.APPROVE_EVALUATION and the approver's own signature with meaning
 --                                          PERIODIC_EVALUATION_APPROVED over the signed content of the pack (aggregate
@@ -273,6 +276,8 @@ create table records.evaluation_pack (
   entry_count          integer not null check (entry_count >= 0),
   sample_count         integer not null check (sample_count >= 0),
   unreadable_count     integer not null check (unreadable_count >= 0 and unreadable_count <= sample_count),
+  readability_seed     text not null check (btrim(readability_seed) <> ''),
+  sample_size          integer not null check (sample_size between 1 and 1000),
   generated_by_person  uuid not null,
   generated_by_account uuid not null,
   recorded_at          timestamptz not null default clock_timestamp(),
@@ -302,12 +307,13 @@ declare
   v_m        jsonb;
   v_from     timestamptz;
   v_to       timestamptz;
-  v_given    text[];
-  v_expected text[];
+  v_given    jsonb;
+  v_expected jsonb;
   v_missing  integer;
   v_extra    integer;
   v_seed     text;
   v_size     integer;
+  v_closed   integer;
   v_unread   integer;
   v_entries  integer;
   v_id       uuid;
@@ -338,43 +344,57 @@ begin
     raise exception using errcode = 'P0001', message = format(
       'EBMR-REC-153 the period %s to %s has not ended: a pack is stored for a period that is over (DI-11)', v_from, v_to);
   end if;
-  -- Every registered topic, each once.
-  select coalesce(pg_catalog.array_agg(t ->> 'topic' order by t ->> 'topic' collate "C"), '{}') into v_given from jsonb_array_elements(v_m -> 'topics') t;
-  select coalesce(pg_catalog.array_agg(d.topic order by d.topic collate "C"), '{}') into v_expected
-    from (select distinct e.topic from report.evaluation_source e) d;
-  if v_given is distinct from v_expected then
-    raise exception using errcode = 'P0001', message = format(
-      'EBMR-REC-154 the pack covers the topics %s, but the evaluation has the topics %s (DI-11)', v_given, v_expected);
+  -- Every registered topic once, each with exactly its registered source logs and selections.
+  select coalesce(jsonb_agg(x order by x::text collate "C"), '[]') into v_given
+    from (select jsonb_build_array(t -> 'topic', s -> 'sourceLog', s -> 'selection') as x
+            from jsonb_array_elements(v_m -> 'topics') t
+            cross join lateral jsonb_array_elements(case when jsonb_typeof(t -> 'sources') = 'array' then t -> 'sources' else '[]'::jsonb end) s) g;
+  select coalesce(jsonb_agg(x order by x::text collate "C"), '[]') into v_expected
+    from (select jsonb_build_array(e.topic, e.source_log, e.selection) as x from report.evaluation_source e) g;
+  if v_given is distinct from v_expected
+     or (select count(*) from jsonb_array_elements(v_m -> 'topics')) <> (select count(distinct e.topic) from report.evaluation_source e)
+     or (select count(distinct t ->> 'topic') from jsonb_array_elements(v_m -> 'topics') t) <> (select count(*) from jsonb_array_elements(v_m -> 'topics')) then
+    raise exception using errcode = 'P0001', message =
+      'EBMR-REC-154 the pack does not cover exactly the topics of the evaluation, each once with its source logs (DI-11)';
   end if;
-  -- Exactly the period's entries, each named by its topic, source log and row.
-  select coalesce(pg_catalog.array_agg(x order by x collate "C"), '{}') into v_given
-    from (select (t ->> 'topic') || '|' || (e ->> 'sourceLog') || '|' || (e ->> 'sourceRow') as x
+  -- Exactly the period's entries, each as the source log holds it: its topic, source log and row, when it occurred and
+  -- ended, and its summary. A pack whose content differs in any of them is not stored (DI-11: the evaluation shows what
+  -- the logs hold).
+  select coalesce(jsonb_agg(x order by x::text collate "C"), '[]') into v_given
+    from (select jsonb_build_array(t -> 'topic', e -> 'sourceLog', e -> 'sourceRow', e -> 'occurredAt', e -> 'endedAt', e -> 'summary') as x
             from jsonb_array_elements(v_m -> 'topics') t
             cross join lateral jsonb_array_elements(case when jsonb_typeof(t -> 'entries') = 'array' then t -> 'entries' else '[]'::jsonb end) e) g;
-  select coalesce(pg_catalog.array_agg(x order by x collate "C"), '{}') into v_expected
-    from (select p.topic || '|' || p.source_log || '|' || p.source_row as x from report.evaluation_period_rows_v1(v_from, v_to) p) g;
+  select coalesce(jsonb_agg(x order by x::text collate "C"), '[]') into v_expected
+    from (select jsonb_build_array(p.topic, p.source_log, p.source_row,
+                                   pg_catalog.to_char(p.occurred_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
+                                   pg_catalog.to_char(p.ended_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), p.summary) as x
+            from report.evaluation_period_rows_v1(v_from, v_to) p) g;
   if v_given is distinct from v_expected then
-    select count(*) into v_missing from (select pg_catalog.unnest(v_expected) except all select pg_catalog.unnest(v_given)) m;
-    select count(*) into v_extra from (select pg_catalog.unnest(v_given) except all select pg_catalog.unnest(v_expected)) m;
+    select count(*) into v_missing from (select x::text from jsonb_array_elements(v_expected) x except all select x::text from jsonb_array_elements(v_given) x) m;
+    select count(*) into v_extra from (select x::text from jsonb_array_elements(v_given) x except all select x::text from jsonb_array_elements(v_expected) x) m;
     raise exception using errcode = 'P0001', message = format(
-      'EBMR-REC-155 the pack''s entries are not the source logs'' entries of the period: %s missing, %s not in the source logs or listed twice (DI-11)',
+      'EBMR-REC-155 the pack''s entries are not the source logs'' entries of the period: %s of the logs'' entries are missing or differ, %s of the pack''s are not in the logs as they stand (DI-11)',
       v_missing, v_extra);
   end if;
-  v_entries := cardinality(v_expected);
-  -- Exactly the seeded readability sample of the records closed before the period's end, in rank order.
-  select coalesce(pg_catalog.array_agg((r ->> 'rank') || '|' || (r ->> 'recordType') || ':' || (r ->> 'recordId') order by o), '{}') into v_given
-    from jsonb_array_elements(v_m #> '{readability,records}') with ordinality a(r, o);
-  if v_size < 1 or v_size > 1000 or btrim(v_seed) = '' or length(v_seed) > 200 then
-    raise exception using errcode = 'P0001', message =
-      'EBMR-REC-141 a readability sample names a seed (1 to 200 characters), the time its records closed before and a size of 1 to 1000 (DI-44)';
+  v_entries := jsonb_array_length(v_expected);
+  -- The seeded readability sample: a seed, and at least 10 records (every closed record when there are fewer).
+  select count(*) into v_closed from report.closed_record_rows_v1() c where c.closed_at < v_to;
+  if v_size < least(10, greatest(v_closed, 1)) or v_size > 1000 or btrim(v_seed) = '' or length(v_seed) > 200 then
+    raise exception using errcode = 'P0001', message = format(
+      'EBMR-REC-141 a readability sample names a seed (1 to 200 characters) and a size from %s (10, or every closed record when there are fewer) to 1000 (DI-44)',
+      least(10, greatest(v_closed, 1)));
   end if;
-  select coalesce(pg_catalog.array_agg(s.rank::text || '|' || s.record_type || ':' || s.record_id order by s.rank), '{}') into v_expected
-    from report.readability_sample_rows_v1(v_seed, v_to, v_size) s;
+  -- Exactly that sample of the records closed before the period's end, in rank order, each as the database names it.
+  select coalesce(jsonb_agg(jsonb_build_array(r -> 'rank', r -> 'recordType', r -> 'recordId', r -> 'label', r -> 'closedAt', r -> 'sampleKey') order by o), '[]')
+    into v_given from jsonb_array_elements(v_m #> '{readability,records}') with ordinality a(r, o);
+  select coalesce(jsonb_agg(jsonb_build_array(s.rank, s.record_type, s.record_id, s.label,
+                                              pg_catalog.to_char(s.closed_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'), s.sample_key) order by s.rank), '[]')
+    into v_expected from report.readability_sample_rows_v1(v_seed, v_to, v_size) s;
   if v_given is distinct from v_expected
      or (v_m #>> '{readability,closedBefore}')::timestamptz is distinct from v_to then
     raise exception using errcode = 'P0001', message = format(
       'EBMR-REC-156 the readability report lists %s records, not the %s records of the seeded sample of records closed before the period''s end (DI-44)',
-      cardinality(v_given), cardinality(v_expected));
+      jsonb_array_length(v_given), jsonb_array_length(v_expected));
   end if;
   if exists (select 1 from jsonb_array_elements(v_m #> '{readability,records}') r
               where coalesce(r ->> 'result', '') not in ('READABLE', 'UNREADABLE')
@@ -384,10 +404,9 @@ begin
   end if;
   select count(*) into v_unread from jsonb_array_elements(v_m #> '{readability,records}') r where r ->> 'result' = 'UNREADABLE';
   insert into records.evaluation_pack (pack_sha256, pack, period_from, period_to, entry_count, sample_count, unreadable_count,
-                                       generated_by_person, generated_by_account)
-  values (p_pack_sha256, p_pack, v_from, v_to, v_entries,
-          jsonb_array_length(v_m #> '{readability,records}'), v_unread,
-          (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
+                                       readability_seed, sample_size, generated_by_person, generated_by_account)
+  values (p_pack_sha256, p_pack, v_from, v_to, v_entries, jsonb_array_length(v_m #> '{readability,records}'), v_unread,
+          v_seed, v_size, (v_actor ->> 'person_id')::uuid, (v_actor ->> 'account_id')::uuid)
   returning id into v_id;
   return v_id;
 end
@@ -413,7 +432,8 @@ begin
     'content', jsonb_build_object('pack_sha256', v.pack_sha256,
                                   'period_from', pg_catalog.to_char(v.period_from at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
                                   'period_to', pg_catalog.to_char(v.period_to at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'),
-                                  'entry_count', v.entry_count::text, 'sample_count', v.sample_count::text, 'unreadable_count', v.unreadable_count::text),
+                                  'entry_count', v.entry_count::text, 'sample_count', v.sample_count::text, 'unreadable_count', v.unreadable_count::text,
+                                  'readability_seed', v.readability_seed, 'sample_size', v.sample_size::text),
     'state', case when exists (select 1 from records.evaluation_pack_approval a where a.pack_id = v.id) then 'APPROVED' else 'STORED' end,
     'entered_by', jsonb_build_array(v.generated_by_person));
 end

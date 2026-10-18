@@ -22,7 +22,7 @@ import pg from 'pg';
 import type { ActorContext } from '../db/command.ts';
 import { createSealKeyRing, type SealKeyRing } from '../esig/keys.ts';
 import { runPeriodicEvaluation } from './evaluation-pack.ts';
-import { buildFullExport, writeFullExport } from './full-export.ts';
+import { buildFullExport } from './full-export.ts';
 
 const USAGE = `usage:
   full-export     --url URL --actor-json JSON|@FILE --out DIR [--seal-key-file FILE]
@@ -86,11 +86,10 @@ export async function main(argv: string[]): Promise<number> {
     if (command === 'full-export') {
       const out = required(opts, '--out');
       const keyFile = opts.get('--seal-key-file');
-      const exp = await buildFullExport(app, actor, keyFile ? { keyRing: keyRingFrom(keyFile) } : {});
-      writeFullExport(out, exp);
+      const exp = await buildFullExport(app, actor, out, keyFile ? { keyRing: keyRingFrom(keyFile) } : {});
       const m = JSON.parse(exp.manifest) as { records: unknown[]; files: unknown[] };
       console.log(`full export ${exp.exportId}: ${m.records.length} closed records, ${m.files.length} files in ${out}`);
-      console.log(`export SHA-256 (the reference for the viewer): ${exp.manifestSha256}`);
+      console.log(`export SHA-256 (registered; give it with the export: the viewer checks the export against it): ${exp.manifestSha256}`);
       return 0;
     }
     const report = new pg.Pool({ connectionString: required(opts, '--report-url'), max: 2 });

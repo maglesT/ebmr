@@ -1583,29 +1583,38 @@ the audit-trail reviews and the master-record change records
 operators' [records-cli.ts](../../../packages/kernel/src/records/records-cli.ts). The viewer that opens an export is
 its own app: [record-viewer](record-viewer.md).
 
-- **Closed records.** A closed record is one no entry is added to any more: a closed incident, a closed DI
-  investigation, a batch record whose execution ended (completed, aborted or cancelled). Each owning module registers a
-  STABLE row function in `report.closed_record_source` (migrations only); `report.closed_record_v1` lists them all with
-  the audit chains of their archive package. The reporting role `ebmr_report` reads it.
+- **Closed records.** A closed record is one closed by its own life cycle now: a closed incident, a closed DI
+  investigation, a batch record whose record is LOCKED (recipe-core 0870; not while an amendment is open) or that is
+  aborted or cancelled now. Each owning module registers a STABLE row function in `report.closed_record_source`
+  (migrations only); `report.closed_record_v1` lists them all with the audit chains of their archive package. The
+  reporting role `ebmr_report` reads it.
 - **The seeded readability sample.** `report.readability_sample_rows_v1(seed, closed_before, size)` takes the records
   closed before a time with the smallest SHA-256 of `seed:type:id`. The same seed gives the same records in the same
   order, so a sample can be repeated and checked.
-- **The full export.** `records.full_export_index()`, `records.full_export_snapshot(keys)` and
-  `records.register_full_export(manifest, sha256)` need RECORD.EXPORT (the CSV / DI lead, the read-only auditor). The
-  export holds only the chains of closed records, their signature chains and the seal key chains: any other chain (an
-  account with its credentials, an open record) is refused (`EBMR-REC-143`). `buildFullExport` reads everything in one
-  REPEATABLE READ transaction and registers the manifest's SHA-256 in `records.full_export`; the register refuses a
-  manifest that leaves out a closed record (`EBMR-REC-145`). The export SHA-256 in the register is the reference the
-  viewer compares with: an export that only agrees with itself proves nothing.
+- **The full export** is one run in one REPEATABLE READ transaction. `records.begin_full_export()` (RECORD.EXPORT) fixes
+  the run's scope once: every closed record with the chains of its package that exist and its signature chains, and the
+  seal key chains (`records.full_export_run`, `records.full_export_scope`, audited on the run's chain). Rows of a
+  restricted table (`records.export_restricted_table`; the controlled-substance tables, recipe-core 1240) in an
+  exported chain need that table's permission (CONTROLLED.READ) with no site or product limit: the export is refused,
+  never served with rows left out. The records are read page by page (`records.full_export_records`), their chains in
+  calls of up to 200 (`records.full_export_snapshot`; any other chain is refused, `EBMR-REC-143`), and every file is
+  written to the folder as it is made. `records.register_full_export(run, manifest, sha256)` registers the manifest's
+  SHA-256 only when the manifest lists exactly the run's records in order, each with exactly its chains, every chain at
+  the head `kernel.audit_chain_head` holds in the same snapshot, the seal keys, and every chain file among its files
+  (`EBMR-REC-145`, `-147`, `-148`). The export SHA-256 in the register is the reference the viewer compares with.
 - **The evaluation entries.** Each module registers its topics in `report.evaluation_source`: a STABLE row function per
   topic and source log, and how a period selects its rows (IN_PERIOD, or OPEN_AT_END for the open issues). Every time
   is a database-clock time, so the entries of a past period never change. `report.evaluation_period_rows_v1(from, to)`
-  gives a period's entries; the generator reads them as `ebmr_report`, and the store checks the pack with the same
-  function.
+  gives a period's entries; the generator reads them as `ebmr_report` (and refuses a reader in another role,
+  `EBMR-REC-160`), and the store checks the pack with the same function.
 - **The pack.** `runPeriodicEvaluation` reads the entries and the sample through the reporting path, opens each sampled
-  record's archive package, verifies it, renders it as a PDF/A-3 true copy with its audit trail and reads the
-  rendering back; each record gets READABLE with its render SHA-256 or UNREADABLE with the findings. The pack text and
-  its SHA-256 go to `records.store_evaluation_pack` (VALIDATION.MANAGE).
+  record's archive package (`records.readability_snapshot`, with the same permissions as the export), verifies it,
+  renders it as a PDF/A-3 true copy with its audit trail and reads the rendering back; each record gets READABLE with
+  its render SHA-256 or UNREADABLE with the findings. `records.store_evaluation_pack` (VALIDATION.MANAGE) stores the pack
+  only when every entry's whole content (source log and row, times, summary) is the source log's, each topic has its
+  registered sources, and the readability report is exactly the seeded sample (at least 10 records, or every closed
+  record when fewer), each named as the database names it. The seed and the sample size are stored and signed with the
+  pack.
 
 > **Why this exists**
 > - **Pharma reason:** the periodic evaluation of a computerised system must show what changed and what went wrong in
