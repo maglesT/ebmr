@@ -450,6 +450,21 @@ export const SignableAction = z.discriminatedUnion('kind', [
     act: z.literal('APPROVE'),
     documentId: Uuid,
   }),
+  // Phase 7 slice 7g work packages: reserved kinds with a placeholder payload (the subject's id only). Each work package
+  // replaces its placeholder with the real payload and registers the server handler; until then no handler is
+  // registered, so the server refuses a signature for any of them.
+  //  WP1: VALIDATION_SUMMARY_APPROVE, EVALUATION_PACK_APPROVE, RECORDS_ACT
+  //  WP2: RESTORE_APPROVE
+  //  WP3: QP_REGISTER, RULE_SET_VERIFY, MARKET_LOOSENING
+  //  WP4: LOT_DESTRUCTION_WITNESS
+  z.strictObject({ /** WP1 placeholder. */ kind: z.literal('VALIDATION_SUMMARY_APPROVE'), subjectId: Uuid }),
+  z.strictObject({ /** WP1 placeholder. */ kind: z.literal('EVALUATION_PACK_APPROVE'), subjectId: Uuid }),
+  z.strictObject({ /** WP1 placeholder. */ kind: z.literal('RECORDS_ACT'), subjectId: Uuid }),
+  z.strictObject({ /** WP2 placeholder. */ kind: z.literal('RESTORE_APPROVE'), subjectId: Uuid }),
+  z.strictObject({ /** WP3 placeholder. */ kind: z.literal('QP_REGISTER'), subjectId: Uuid }),
+  z.strictObject({ /** WP3 placeholder. */ kind: z.literal('RULE_SET_VERIFY'), subjectId: Uuid }),
+  z.strictObject({ /** WP3 placeholder. */ kind: z.literal('MARKET_LOOSENING'), subjectId: Uuid }),
+  z.strictObject({ /** WP4 placeholder. */ kind: z.literal('LOT_DESTRUCTION_WITNESS'), subjectId: Uuid }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;
 export type SignableKind = SignableAction['kind'];

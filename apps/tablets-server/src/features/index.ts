@@ -52,6 +52,8 @@ import * as review from './review/index.ts';
 import * as session from './session/index.ts';
 import * as transfers from './transfers/index.ts';
 import * as training from './training/index.ts';
+import * as validation from './validation/index.ts';
+import * as market from './market/index.ts';
 import type { FeatureEntry, FeatureModule } from './types.ts';
 
 export const FEATURES: readonly FeatureEntry[] = [
@@ -103,6 +105,10 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'incidents', installations: ['GMP'], module: incidents satisfies FeatureModule },
   // Phase 7 slice 7g-4 (decision 0025): the operations screens' routes (set-up, demo data, backups, workers, simulators).
   { name: 'operations', installations: ['GMP', 'SANDBOX'], module: operations satisfies FeatureModule },
+  // Phase 7 slice 7g work packages: WP1 validation (validation, export, records) and WP3 market (market, plant and
+  // master-record configuration). Empty until each package binds its routes.
+  { name: 'validation', installations: ['GMP'], module: validation satisfies FeatureModule },
+  { name: 'market', installations: ['GMP'], module: market satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

@@ -35,8 +35,12 @@ const SERVICE_ONLY: Readonly<Record<string, string>> = {
 
 /** Slice 7g-2 (MBR signing, market authorisations and labelling, plant-rule proposals and approval, incidents). */
 const PENDING_7G2: Readonly<Record<string, string>> = {
+  // WP1 (validation, export, records): none
+  // WP2 (continuity, platform, access configuration): none
+  // WP3 (master record, market and plant configuration)
   'labels.masterLabelling': 'the labelling of an MBR version (labelling specimens)',
   'labels.declareLabelling': 'the declaration of an MBR version\'s labelling (labelling specimens)',
+  // WP4 (floor, materials, batch numbers): none
 };
 
 /** Slice 7g-3 (system description, validation summary, full export, evaluation pack): their routes join the contract with 7b-2 and 7c. */
@@ -48,8 +52,21 @@ const PENDING_7G3: Readonly<Record<string, string>> = {};
  */
 const NO_SLICE_YET: Readonly<Record<string, string>> = {};
 
-/** Signable actions not yet sent by a screen. */
-const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {};
+/** Signable actions not yet sent by a screen (the kinds the 7g work packages reserved; each removed with its screen). */
+const SIGNABLE_PENDING_7G2: Readonly<Record<string, string>> = {
+  // WP1 (validation, export, records)
+  VALIDATION_SUMMARY_APPROVE: 'the approval of a validation summary',
+  EVALUATION_PACK_APPROVE: 'the approval of a periodic evaluation pack',
+  RECORDS_ACT: 'the signed acts of the records register',
+  // WP2 (continuity, platform, access configuration)
+  RESTORE_APPROVE: 'the second person\'s approval of a restore',
+  // WP3 (master record, market and plant configuration)
+  QP_REGISTER: 'registering an EU qualified person',
+  RULE_SET_VERIFY: 'QA\'s verification of a compendial rule set version',
+  MARKET_LOOSENING: 'the approver\'s signature on a loosened market policy version',
+  // WP4 (floor, materials, batch numbers)
+  LOT_DESTRUCTION_WITNESS: 'the witness\'s signature on a lot destruction',
+};
 
 function sourceText(): string {
   const files: string[] = [];

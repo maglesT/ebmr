@@ -54,6 +54,8 @@ import * as release from '../features/release/index.tsx';
 import * as review from '../features/review/index.tsx';
 import * as session from '../features/session/index.tsx';
 import * as training from '../features/training/index.tsx';
+import * as validation from '../features/validation/index.tsx';
+import * as market from '../features/market/index.tsx';
 import type { WebFeature } from './feature.ts';
 
 export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
@@ -96,4 +98,7 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['incidents', incidents satisfies WebFeature],
   // Phase 7 slice 7g-4 (decision 0025): operations without a terminal (set-up, demo data, backups, workers, simulators, API reference).
   ['operations', operations satisfies WebFeature],
+  // Phase 7 slice 7g work packages: WP1 validation and WP3 market; empty until each package adds its screens.
+  ['validation', validation satisfies WebFeature],
+  ['market', market satisfies WebFeature],
 ];

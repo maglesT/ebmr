@@ -111,18 +111,22 @@ const NOT_OPERATIONS: Readonly<Record<string, string>> = {
 
 /** Commands whose screen comes with a later slice of decision 0025 (each names the slice). */
 const LATER: Readonly<Record<string, string>> = {
-  'ops/backup/drill.sh': 'the restore drill and its record: slice 7g-3, after 7d',
+  // WP1 (validation, export, records)
   'packages/kernel/src/records/records-cli.ts': 'the full export and the periodic evaluation pack (slice 7b-2): slice 7g-3 (validation and records)',
-  'ebmr#drills': 'the restore and upgrade drills and their records (slice 7d): slice 7g-3 (validation and records)',
-  'tools/drills/src/cli.ts': 'restore and upgrade: the drills and their records, slice 7g-3 (validation and records)',
-  'ebmr#security:hardening': 'the hardening check of an installation and its record (slice 7d), like the IQ check: slice 7g-3 (validation and records)',
-  'tools/security/src/cli.ts': 'hardening (the check of an installation): slice 7g-3; licences, secrets, release and verify are the release\'s supply chain (see the ebmr#security scripts)',
   'ebmr#validation:iq': 'the IQ check of an installation and its record (slice 7c): slice 7g-3 (validation and records)',
   // D-P7R-2: the validation-pack builds are acts that wait for 7g-3's screens (pending, not exempt).
   'ebmr#validation:bundle': 'the validation pack (slice 7c), the evidence bundle built from the test reports of a release: slice 7g-3 (validation and records)',
   'ebmr#validation:generate': 'the validation pack (slice 7c), the documents generated from the evidence bundle: slice 7g-3 (validation and records)',
   'ebmr#validation:oq': 'the validation pack (slice 7c), the OQ record written from the regression, golden and browser suites: slice 7g-3 (validation and records)',
   'tools/validation/src/cli.ts': 'iq (the IQ check of an installation), bundle, generate and oq (the validation pack): slice 7g-3 (validation and records)',
+  // WP2 (continuity, platform, access configuration)
+  'ops/backup/drill.sh': 'the restore drill and its record: slice 7g-3, after 7d',
+  'ebmr#drills': 'the restore and upgrade drills and their records (slice 7d): slice 7g-3 (validation and records)',
+  'tools/drills/src/cli.ts': 'restore and upgrade: the drills and their records, slice 7g-3 (validation and records)',
+  'ebmr#security:hardening': 'the hardening check of an installation and its record (slice 7d), like the IQ check: slice 7g-3 (validation and records)',
+  'tools/security/src/cli.ts': 'hardening (the check of an installation): slice 7g-3; licences, secrets, release and verify are the release\'s supply chain (see the ebmr#security scripts)',
+  // WP3 (master record, market and plant configuration): none
+  // WP4 (floor, materials, batch numbers): none
 };
 
 function walk(dir: string, out: string[] = []): string[] {
