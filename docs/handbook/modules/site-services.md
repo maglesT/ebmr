@@ -1112,6 +1112,14 @@ received lot before the acceptance and after its hold limit (EBMR-XFR-040, -041)
 [transfer.test.ts](../../../packages/site-services/test/transfer/transfer.test.ts) with two installations, each its own
 database ([world.ts](../../../packages/site-services/test/transfer/world.ts)).
 
+## Deviations in the periodic evaluation (Phase 7 slice 7b-2; site services 1120)
+
+[1120_evaluation_deviations.sql](../../../packages/site-services/sql/1120_evaluation_deviations.sql) registers the
+topic DEVIATION of the periodic evaluation pack ([DI-11](../../../compliance/controls/DI-11.yaml)): every deviation
+raised in the period, named by its row of `site.deviation`, with its reference, kind and classification. The kernel
+reads it through the reporting path and checks the pack against it
+([kernel](kernel.md#the-full-export-the-closed-records-and-the-periodic-evaluation-pack-phase-7-slice-7b-2-kernel-1335-1336)).
+
 ## How to test site services
 
 | What | Command |

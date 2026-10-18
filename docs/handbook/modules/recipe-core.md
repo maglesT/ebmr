@@ -1936,6 +1936,21 @@ dropped in 1224 once nothing called it.
 of `recipe.require_command_permission`, or add `recipe.batch_scope_members(batch)` to the scope). A check at the
 actor's location only looks safe because it fails closed, but it refuses correct work.
 
+## Closed batch records and the periodic evaluation (Phase 7 slice 7b-2; recipe-core 1240)
+
+[1240_evaluation_batch_records.sql](../../../packages/recipe-core/sql/1240_evaluation_batch_records.sql)
+([DI-08](../../../compliance/controls/DI-08.yaml), [DI-11](../../../compliance/controls/DI-11.yaml),
+[DI-44](../../../compliance/controls/DI-44.yaml)) registers with the kernel:
+- **the closed batch records**: a GMP batch record whose execution ended (its first status change to
+  EXECUTION_COMPLETE, ABORTED or CANCELLED), with the chains of its archive package (`batch`, `batch_review`,
+  `form_reconciliation`, as the evidence export takes them). The full export holds them and the readability sample
+  draws from them;
+- **the topic AUDIT_TRAIL_REVIEW**: every full or delta audit-trail review of a batch record signed in the period;
+- **the topic CHANGE_RECORD** for `recipe.change_record`: the master-record change records of the period.
+
+The functions are STABLE and the owner's only; the kernel's report functions call them
+([kernel](kernel.md#the-full-export-the-closed-records-and-the-periodic-evaluation-pack-phase-7-slice-7b-2-kernel-1335-1336)).
+
 ## How to test recipe-core
 
 - Everything in the package: `pnpm vitest run --project db packages/recipe-core/test` (long; on a 4-CPU pod run only
