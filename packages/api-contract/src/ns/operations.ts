@@ -41,7 +41,7 @@ export const SetupStateView = z.strictObject({
   tokenIssued: z.boolean(),
   /** The site policy site.zone now (the set-up may change it, DI-27). */
   siteZone: z.string(),
-  /** The site the set-up recorded; null before. */
+  /** The site of the set-up in progress; null before it, and once set up (the state is read without a session). */
   site: z.strictObject({ code: z.string(), name: z.string() }).nullable(),
   /**
    * GENERATE: the server has a seal key path (EBMR_SEAL_KEY_FILE) with no key in it, and generates one at the set-up;

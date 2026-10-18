@@ -7,7 +7,8 @@
  *     PLATFORM.OPERATE) and logged; the record goes with the database, the server's log keeps the line;
  *  2. the background workers stop (the adapters' workers, the analytics runner); the pools are told to expect their idle
  *     connections to end with the database;
- *  3. LOAD: the set-up the CLI runs (cli/installation.ts setupInstallation: the personas and terminals of test-kit, the
+ *  3. LOAD: the set-up the CLI runs (cli/installation.ts setupInstallation, AppContext.operations.demoTooling: the
+ *     personas and terminals of test-kit, the
  *     feature seeds, optionally the GMP review batch and packaging order, the backup service identity); RESET: the
  *     database is created again migrated but not set up, with a new one-time set-up token the requester was shown;
  *  4. the server takes the new installation's seal key, demo terminals and site zone (no one is signed in any more: every
@@ -112,8 +113,9 @@ export async function recreateInstallation(app: AppContext, opts: DemoJobOptions
     expectIdleErrors(app.pools.app, app.log);
     expectIdleErrors(app.pools.authn.pool, app.log);
     if (ops.analytics) expectIdleErrors(ops.analytics.pool, app.log);
-    // The cli module imports the test-kit (DEMO-ONLY credentials); it is loaded only when a demo job runs.
-    const installation = await import('../../cli/installation.ts');
+    // The set-up CLI's own code (cli/installation.ts), handed over by the server's entry point (platform/operations.ts).
+    const installation = ops.demoTooling;
+    if (!installation) throw new Error('this server holds no demo tooling (it is handed over with EBMR_PG_ADMIN_URL set)');
     if (opts.kind === 'LOAD') {
       if (!config.keysDir) throw new Error('no keys directory (EBMR_KEYS_DIR or EBMR_DEMO_KEYS_FILE): the demo data has nowhere to write its DEMO-ONLY keys');
       const keysDir = config.keysDir;

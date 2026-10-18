@@ -38,8 +38,10 @@ export async function setupState(app: AppContext): Promise<SetupStateView> {
   );
   const s = rows[0]?.s;
   if (!s) throw new Error('iam.setup_state returned nothing');
+  // Read without a session: once set up, the answer says only that (the site and the configuration are not told).
+  if (s.bootstrapped) return { required: false, installation: app.installation, demo: rows[0]?.demo === true, tokenIssued: false, siteZone: s.zone, site: null, sealKey: 'NOT_CONFIGURED' };
   return {
-    required: !s.bootstrapped,
+    required: true,
     installation: app.installation,
     demo: rows[0]?.demo === true,
     tokenIssued: s.tokenIssued,

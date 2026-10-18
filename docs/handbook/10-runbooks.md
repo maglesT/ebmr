@@ -445,6 +445,102 @@ Tests create their CA and certificates at run time
 ([test-pki.ts](../../apps/tablets-server/test/support/test-pki.ts), OpenSSL command line); no key material is
 committed.
 
+## Install a server, set it up, load demo data, reset (Phase 7 slice 7g-4)
+
+[Decision 0025](../decisions/0025-every-act-has-a-screen.md) point 2: only putting the software on a server is a script.
+Everything after it is a screen of the web app ([tablets-web, operations](modules/tablets-web.md#operations-set-up-demo-data-backups-workers-simulators-api-reference)).
+
+### Install (one command)
+
+Run as root on the server, from a checkout of the code:
+
+```bash
+tools/install/install.sh              # checks node 22.12 and pnpm 10, installs the dependencies, asks, installs
+tools/install/install.sh --dry-run    # says what it would do; changes nothing
+pnpm install:server --answers answers.json --yes   # the same without questions
+```
+
+The installer ([tools/install](../../tools/install/src/cli.ts)) asks for:
+- the installation kind, GMP or SANDBOX. It is fixed for the life of the installation: the database name says it
+  (`ebmr_sandbox_<edition>` for a sandbox, DI-05), and the set-up screen only shows it;
+- whether it is a demo installation (its database name ends in `_demo`; decision D6): only a demo or sandbox
+  installation loads demo data, resets itself and runs the simulators;
+- PostgreSQL: LOCAL (it creates a PostgreSQL 16 cluster with `pg_createcluster`, and reaches it as the postgres OS user
+  with an installer superuser whose password changes on every run) or EXISTING (a superuser connection you give; it is
+  not stored for a GMP installation);
+- the domain and TLS: Let's Encrypt (Caddy's own ACME client gets and renews the certificate), a certificate you
+  provide (PEM files), or none, which is allowed only on localhost for a demo or sandbox installation (a production GMP
+  server refuses an http origin, DI-13);
+- the service manager: systemd (a confined unit for the server and one for the Caddy proxy) or docker compose.
+
+What it does, in order ([plan.ts](../../tools/install/src/plan.ts)): checks the prerequisites; the cluster and the
+installer superuser; creates the database and applies every migration, or applies the pending ones; marks a demo
+installation; sets strong random passwords for the login roles and creates the backup role `ebmr_backup` (GMP:
+`pg_read_all_data`, nothing else); writes the CSRF, nonce and backup keys once, the environment file (0600) and the
+answers file (no secret) under `/etc/ebmr/<name>`; builds the web app; writes the Caddyfile and the systemd units or the
+compose file; starts the service and waits for `/api/meta`; and prints the set-up URL and a one-time **set-up token**
+(valid 24 hours; only its SHA-256 is stored, [`iam.issue_setup_token`](../../packages/kernel/sql/1375_first_run_setup.sql#sym=iam.issue_setup_token)).
+
+It is safe to run again with the same answers: the cluster, roles, keys and database are kept (passwords are read back
+from the environment file), pending migrations are applied, the web app is rebuilt, the service restarted, and while the
+installation is not set up a new token is printed. `install.sh --issue-token` prints a new token only.
+
+Note: the login roles (`ebmr_app`, `ebmr_authn`, ...) belong to the whole PostgreSQL cluster. Two installations on one
+cluster share them, so give each installation its own cluster.
+
+### First-run set-up
+
+Open the URL the installer printed. Until the installation has an administrator, the web app shows "Set up this
+installation" instead of the sign-in:
+1. give the set-up token;
+2. the site code and name; the time zone shown is the one in force (`Asia/Kolkata` by default). The set-up does not
+   change it: the zone is configuration under change control (DI-09, DI-27), so the process owner changes it after the
+   set-up under an approved change record, before the first GMP record (EBMR-SETUP-006 refuses another zone);
+3. the system administrator and the process owner: two different persons with their own user IDs (DI-18,
+   EBMR-SETUP-004), each with a first password of 12 characters or more. In a sandbox, names start with `TEST-` and user
+   IDs with `test-`;
+4. the seal key: when the server has a seal-key path (`EBMR_SEAL_KEY_FILE`) with nothing in it, the set-up generates a
+   key there and registers its id (never its secret).
+
+This browser becomes the administrator's terminal. Each person changes the first password at the first sign-in. The
+process owner's own console is a placeholder no one holds a key for: the owner signs in on this terminal, or on any
+terminal the administrator registers (D-P7g4-4).
+
+Why it is safe without a session: the token is long (256 bits), single-use and expires; the database checks it and uses
+it up in the same transaction as the accounts, and refuses any set-up once an administrator exists (EBMR-SETUP-001,
+EBMR-IAM-190). The route is rate-limited and passes the same-origin checks of every non-GET request. A refused set-up
+creates nothing and leaves the token unused (EBMR-SETUP-002 for a wrong, used or expired token).
+
+### Demo data and reset (demo and sandbox installations only)
+
+**Operations, then Demo and test data.** "Load the demo data" recreates the database with the personas and terminals of
+the demo seed, every feature's seed, the backup service identity and, on a GMP demo installation, optionally the review
+batch and the packaging order (what `pnpm demo:setup` does). "Reset to a clean state" recreates it migrated but not set
+up and shows a new set-up token once. Both lose everything in the database (the page counts it) and need the database
+name typed to confirm. While the job runs, every request but the job's state is refused (MAINTENANCE), and everyone is
+signed out. The server needs `EBMR_PG_ADMIN_URL` (a superuser connection; refused for a production GMP server) and, for
+a load, a keys directory (`EBMR_KEYS_DIR`). A GMP installation that is not a demo one refuses both in the database
+(EBMR-OPS-010, [tablets 1485](../../apps/tablets-server/sql/1485_operations_demo_and_backups.sql)).
+
+After a demo load the browser's terminal key belongs to the old installation: the device picker lists the demo
+terminals. The demo administrator's and process owner's passwords are in `<keys>/<gmp|sandbox>-seed.json`. A site
+gateway process uses the old installation's service secrets until it is restarted with the new
+`sandbox-service-keys.json`.
+
+### Backups, workers and simulators from the screen
+
+- **Backups:** Operations, then Backups. The system administrator takes an operational backup with a reason
+  (CONTINUITY.BACKUP_RUN); the backup service identity records the job. The server needs `EBMR_BACKUP_DIR`,
+  `EBMR_BACKUP_KEY_FILE` and the backup service identity's entry (terminal `SRV-BACKUP-01`, `TEST-SRV-BACKUP-01` in a
+  sandbox) in the service-keys file; the installer and the demo load provide them. Retention-grade backups stay the
+  backup host's scheduled job (section 8): they need write-once storage.
+- **Workers:** the integration health page (or Operations, then Background workers): start, stop or restart an
+  adapter's worker or the analytics runner with a reason (PLATFORM.OPERATE). A start reads the service-keys file again,
+  so an adapter configured after the server started runs without a restart.
+- **Simulators:** Operations, then Simulators (demo and sandbox only). Each simulator runs as a process of the server on
+  a free loopback port; the endpoint shown is the base URL for the adapter's service-keys entry. Faults are switched
+  there; what they do shows on the integration health page.
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

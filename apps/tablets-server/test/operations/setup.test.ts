@@ -79,7 +79,8 @@ describe('the first-run set-up (decision 0025, kernel 1375)', () => {
 
     expect(refusalOf(await b.call(O.setup, { body: request(b, good) }))).toMatchObject({ status: 409, code: 'EBMR-SETUP-001' });
     await expect(s.db.admin.query("select iam.issue_setup_token(repeat('a', 64), 60)")).rejects.toThrow(/EBMR-SETUP-001/);
-    expect(valueOf(await b.call(O.setupState))).toMatchObject({ required: false, site: { code: 'BLR-1', name: 'Bengaluru tablets plant' } });
+    // Once set up, the state read without a session says only that.
+    expect(valueOf(await b.call(O.setupState))).toMatchObject({ required: false, tokenIssued: false, site: null });
   });
 
   it('[DI-18] the system administrator and the process owner are two different persons; the token stays unused after a refusal', async () => {
@@ -151,7 +152,6 @@ describe('the first-run set-up (decision 0025, kernel 1375)', () => {
     expect(rows).toEqual([{ key_id: done.sealKeyId, public_key: null, who: 'kavya.iyer' }]);
     expect(JSON.stringify((await s.db.admin.query('select * from esig.seal_key')).rows)).not.toContain(stored.secret);
     expect(s.built.ctx.sealKey).not.toBeNull();
-    expect(valueOf(await b.call(O.setupState)).sealKey).toBe('PRESENT');
   });
 
   it('[DI-05] a sandbox is set up the same way, with its TEST- labels; a name that is not a test label is refused there', async () => {

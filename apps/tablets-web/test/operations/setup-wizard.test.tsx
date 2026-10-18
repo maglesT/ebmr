@@ -15,10 +15,11 @@ import { setTransport } from '../../src/api/client.ts';
 import { createFixtureFetch, type FixtureMap } from '../../src/api/fixture-fetch.ts';
 import { fixturesFromExamples } from '../../src/api/examples.ts';
 import { App } from '../../src/app/App.tsx';
+import type * as Keystore from '../../src/device/keystore.ts';
 import { refusalAnswer } from './support.tsx';
 
 vi.mock('../../src/device/keystore.ts', async (original) => ({
-  ...(await original<typeof import('../../src/device/keystore.ts')>()),
+  ...(await original<typeof Keystore>()),
   loadDeviceKey: vi.fn(() => Promise.resolve(null)),
   generateDeviceKey: vi.fn((label: string) => Promise.resolve({ privateKey: {} as CryptoKey, publicKeySpki: 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE-test-console-key', label })),
 }));

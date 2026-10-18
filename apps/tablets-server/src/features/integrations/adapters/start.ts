@@ -128,7 +128,7 @@ export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000
   };
 
   /** Starts the worker of adapter `code` on `r`; the refusal, or null when it runs. */
-  const launch = async (code: string, r: Resolved, mirrored: Set<SourceSystem>): Promise<string | null> => {
+  const launch = (code: string, r: Resolved, mirrored: Set<SourceSystem>): string | null => {
     if (!mirrored.has(r.slot.system)) {
       const why = `the site runs ${r.slot.system} as STAND_IN: its adapter does not start (D-P6a-5)`;
       notStarted.set(code, why);
@@ -178,7 +178,7 @@ export async function startAdapters(app: AppContext, log: Log, intervalMs = 5000
         log.warn({ terminal: slot.terminal, system: slot.system, account: entry.loginName }, 'the adapter account is not registered as an active adapter of its system; it does not start');
         continue;
       }
-      await launch(code, { slot, entry }, mirrored);
+      launch(code, { slot, entry }, mirrored);
     } catch (e) {
       log.warn({ terminal: slot.terminal, err: e instanceof Error ? e.message : String(e) }, 'the integration adapter could not start');
     }

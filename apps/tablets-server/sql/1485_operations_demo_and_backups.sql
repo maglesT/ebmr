@@ -47,6 +47,7 @@ create table tab.demo_act (
 revoke all on tab.demo_act from public;
 grant select on tab.demo_act to ebmr_app;
 select kernel.register_audited_table('tab.demo_act', 'demo_act', 'target', true);
+select platform.enforce_db_time('tab.demo_act', array['recorded_at']);
 
 create function tab.record_demo_act(p_act text, p_target text, p_reason text) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, tab, iam, kernel, pg_temp as $$

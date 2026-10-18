@@ -26,6 +26,8 @@ afterAll(async () => {
 const start = async (kind: 'GMP' | 'SANDBOX', opts: Parameters<typeof startServer>[1] = {}) => {
   const s = await startServer(kind, opts);
   servers.push(s);
+  // As the server's entry point does (main.ts): the demo tooling for a server with EBMR_PG_ADMIN_URL.
+  if (opts.env?.['EBMR_PG_ADMIN_URL']) s.built.ctx.operations.demoTooling = await import('../../src/cli/installation.ts');
   return s;
 };
 
@@ -43,7 +45,7 @@ describe('demo conveniences on a GMP installation (DI-05)', () => {
     const confirm = { reason: 'try a reset', confirmDatabase: s.database };
     expect(refusalOf(await admin.call(O.demoReset, { body: confirm }))).toMatchObject({ status: 403, code: 'EBMR-OPS-010' });
     expect(refusalOf(await admin.call(O.demoLoad, { body: { ...confirm, reviewBatch: false, packaging: false } }))).toMatchObject({ status: 403, code: 'EBMR-OPS-010' });
-    expect(valueOf(await admin.call(O.simulators))).toEqual({ allowed: false, refusal: expect.stringMatching(/^EBMR-OPS-010 /), simulators: [] });
+    expect(valueOf(await admin.call(O.simulators))).toEqual({ allowed: false, refusal: expect.stringMatching(/^EBMR-OPS-010 /) as string, simulators: [] });
     expect(refusalOf(await admin.call(O.controlSimulator, { params: { simulator: 'QMS' }, body: { action: 'START', reason: 'try' } }))).toMatchObject({ status: 403, code: 'EBMR-OPS-010' });
     expect(refusalOf(await admin.call(O.simulatorFault, { params: { simulator: 'QMS' }, body: { fault: 'STALE_VALUE', on: true, reason: 'try' } }))).toMatchObject({ status: 403, code: 'EBMR-OPS-010' });
     // The database itself refuses, whoever calls it.
@@ -76,7 +78,7 @@ describe('the simulators\' test console (decision 0025)', () => {
     expect(list.simulators.every((x) => !x.running)).toBe(true);
     try {
       const started = valueOf(await admin.call(O.controlSimulator, { params: { simulator: 'QMS' }, body: { action: 'START', reason: 'test the QMS feed' } }));
-      expect(started).toMatchObject({ code: 'QMS', running: true, faults: [], url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/), endpoint: expect.stringMatching(/\/qms\/v1$/) });
+      expect(started).toMatchObject({ code: 'QMS', running: true, faults: [], url: expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+$/) as string, endpoint: expect.stringMatching(/\/qms\/v1$/) as string });
       expect(started.available).toContain('STALE_VALUE');
       const heartbeat = await fetch(`${started.endpoint ?? ''}/heartbeat`);
       expect(heartbeat.status).toBe(200);

@@ -66,6 +66,7 @@ create table platform.operations_act (
 revoke all on platform.operations_act from public;
 grant select on platform.operations_act to ebmr_app;
 select kernel.register_audited_table('platform.operations_act', 'operations_act', 'target', true);
+select platform.enforce_db_time('platform.operations_act', array['recorded_at']);
 
 create function platform.record_operations_act(p_act text, p_target text, p_reason text, p_outcome text, p_detail text) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, platform, iam, kernel, pg_temp as $$
@@ -106,6 +107,7 @@ create table continuity.backup_request (
 revoke all on continuity.backup_request from public;
 grant select on continuity.backup_request to ebmr_app;
 select kernel.register_audited_table('continuity.backup_request', 'backup_request', 'id', true);
+select platform.enforce_db_time('continuity.backup_request', array['recorded_at']);
 
 create function continuity.request_backup(p_reason text, p_tier text) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, continuity, iam, kernel, pg_temp as $$
@@ -138,6 +140,7 @@ create table continuity.backup_download (
 revoke all on continuity.backup_download from public;
 grant select on continuity.backup_download to ebmr_app;
 select kernel.register_audited_table('continuity.backup_download', 'backup_download', 'backup_id', true);
+select platform.enforce_db_time('continuity.backup_download', array['recorded_at']);
 
 create function continuity.record_backup_download(p_backup_id text) returns uuid
 language plpgsql volatile security definer set search_path = pg_catalog, continuity, iam, kernel, pg_temp as $$

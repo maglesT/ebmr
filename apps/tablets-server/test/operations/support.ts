@@ -136,7 +136,7 @@ export async function startFreshServer(
         const body = { method: 'PASSWORD' as const, identifier: login, secret: password };
         const first = await browser.call(routes.session.login, { body: { ...body, proof: await browser.proof('POST', '/api/session/login', body) } });
         if (first.ok || newPassword === undefined) return first;
-        const ticket = first.error.kind === 'REFUSAL' ? first.error.envelope.refusal.details['changeTicket'] : undefined;
+        const ticket = first.error.kind === 'REFUSAL' ? first.error.envelope.refusal.details?.['changeTicket'] : undefined;
         if (!ticket) return first;
         const change = { method: 'PASSWORD' as const, identifier: login, changeTicket: ticket, newSecret: newPassword, kind: 'PASSWORD' as const };
         const changed = await browser.call(routes.session.changeSecret, { body: { ...change, proof: await browser.proof('POST', '/api/session/change-secret', change) } });

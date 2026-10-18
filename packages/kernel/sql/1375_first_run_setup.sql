@@ -54,6 +54,7 @@ create table iam.installation_site (
 revoke all on iam.installation_site from public;
 grant select on iam.installation_site to ebmr_app;
 select kernel.register_audited_table('iam.installation_site', 'installation_site', 'site_code', true);
+select platform.enforce_db_time('iam.installation_site', array['recorded_at']);
 
 -- True once the bootstrap ran (the test of iam.bootstrap_installation itself, EBMR-IAM-190).
 create function iam.is_bootstrapped() returns boolean

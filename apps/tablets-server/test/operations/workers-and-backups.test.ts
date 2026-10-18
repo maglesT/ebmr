@@ -68,7 +68,7 @@ describe('the background workers (decision 0025)', () => {
     const admin = await adminOf(server);
     const qa = await server.asPersona('qaInvestigator');
     const list = valueOf(await admin.call(O.workers));
-    expect(list.workers).toEqual([{ kind: 'ADAPTER', code: adapter.code, sourceSystem: 'LMS', running: true, state: expect.stringMatching(/IDLE|RUNNING/), problem: null }]);
+    expect(list.workers).toEqual([{ kind: 'ADAPTER', code: adapter.code, sourceSystem: 'LMS', running: true, state: expect.stringMatching(/IDLE|RUNNING/) as string, problem: null }]);
     expect(refusalOf(await qa.call(O.controlWorker, { params: { code: adapter.code }, body: { action: 'STOP', reason: 'try' } })).code).toBe('EBMR-IAM-040');
     const stopped = valueOf(await admin.call(O.controlWorker, { params: { code: adapter.code }, body: { action: 'STOP', reason: 'LMS maintenance window' } }));
     expect(stopped).toMatchObject({ running: false, state: 'STOPPED' });
@@ -91,7 +91,7 @@ describe('the background workers (decision 0025)', () => {
     const { server, adapter } = await serverWithLmsAdapter(() => 'http://lms.example.com:4053/lms/v1');
     const admin = await adminOf(server);
     const before = valueOf(await admin.call(O.workers)).workers[0];
-    expect(before).toMatchObject({ code: adapter.code, running: false, state: 'STOPPED', problem: expect.stringMatching(/^EBMR-INT-034 /) });
+    expect(before).toMatchObject({ code: adapter.code, running: false, state: 'STOPPED', problem: expect.stringMatching(/^EBMR-INT-034 /) as string });
     const refused = refusalOf(await admin.call(O.controlWorker, { params: { code: adapter.code }, body: { action: 'START', reason: 'start it anyway' } }));
     expect(refused).toMatchObject({ status: 409, code: 'WORKER_REFUSED' });
     expect(refused.why).toMatch(/^EBMR-INT-034 /);
@@ -159,7 +159,7 @@ describe('backups from the screen (DI-45)', () => {
     servers.push(server);
     const admin = await adminOf(server);
     const view = valueOf(await admin.call(O.backups));
-    expect(view).toMatchObject({ configured: false, problem: expect.stringMatching(/EBMR_BACKUP_DIR/) });
+    expect(view).toMatchObject({ configured: false, problem: expect.stringMatching(/EBMR_BACKUP_DIR/) as string });
     expect(refusalOf(await admin.call(O.runBackup, { body: { reason: 'try', tier: 'OPERATIONAL' } }))).toMatchObject({ status: 503, code: 'BACKUP_NOT_CONFIGURED' });
     expect((await server.db.admin.query('select 1 from continuity.backup_request')).rows).toEqual([]);
   });

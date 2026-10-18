@@ -6,6 +6,7 @@
  * a GMP installation that is not a demo one (tablets 1485, asked before anything is done). See setup.ts, demo.ts,
  * backups.ts, workers.ts and simulators.ts.
  */
+import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { routes, type DemoView, type SimulatorsView } from '@ebmr/api-contract';
 import type { FastifyInstance } from 'fastify';
@@ -66,7 +67,7 @@ async function demoProblem(app: AppContext): Promise<string | null> {
 
 async function demoView(app: AppContext, jobs: DemoJobs): Promise<DemoView> {
   const problem = await demoProblem(app);
-  const lacks = app.config.adminUrl ? null : 'This server has no administration connection (EBMR_PG_ADMIN_URL), so it cannot recreate its database.';
+  const lacks = app.config.adminUrl && app.operations.demoTooling ? null : 'This server has no administration connection (EBMR_PG_ADMIN_URL), so it cannot recreate its database.';
   const { rows } = await app.pools.app.query<{ c: DemoView['contents']; demo: boolean }>('select tab.installation_contents() as c, tab.is_demo_installation() as demo');
   const row = rows[0];
   return {
@@ -86,7 +87,7 @@ async function simulatorsView(app: AppContext, sims: SimulatorManager): Promise<
   return { allowed: problem === null, refusal: problem, simulators: problem === null ? await sims.list() : [] };
 }
 
-export async function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
+export function plugin(scope: FastifyInstance, app: AppContext): Promise<void> {
   const pool = app.pools.app;
   const jobs = new DemoJobs();
   const sims = new SimulatorManager(join(app.config.exchangeDir, 'simulators'));
@@ -116,7 +117,7 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     const problem = await demoProblem(app);
     if (problem) throw refusal(403, { code: 'EBMR-OPS-010', kind: 'NOT_ALLOWED', whatHappened: 'This is refused on a GMP installation. Nothing was done.', why: problem.replace(/^EBMR-OPS-010\s*/, ''), controls: ['DI-05'], whoCanHelp: ['The system administrator'] });
     if (confirm !== app.config.database) throw wrongConfirmation(app.config.database);
-    if (!app.config.adminUrl) throw demoNotPossible('This server has no administration connection (EBMR_PG_ADMIN_URL), so it cannot recreate its database.');
+    if (!app.config.adminUrl || !app.operations.demoTooling) throw demoNotPossible('This server has no administration connection (EBMR_PG_ADMIN_URL), so it cannot recreate its database.');
     if (jobs.running()) throw demoNotPossible('A demo load or reset is already running.');
   };
 
@@ -145,8 +146,8 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
         const s = ctx.requireSession();
         await assertDemoPossible(ctx.body.confirmDatabase);
         if (await recordDemoAct(ctx, 'DEMO_RESET', app.config.database, ctx.body.reason)) throw demoNotPossible('This reset was already started (the request was sent twice); its set-up token was shown once.');
-        const { newSetupToken } = await import('../../cli/installation.ts');
-        const setupToken = newSetupToken();
+        // A one-time set-up token for the clean installation (stored as its SHA-256 once the database exists).
+        const setupToken = randomBytes(32).toString('base64url');
         return { job: startJob('RESET', { reviewBatch: false, packaging: false, setupToken }, s.loginName, ctx.body.reason), setupToken };
       },
       demoJob: () => Promise.resolve(jobs.view()),
@@ -208,4 +209,5 @@ export async function plugin(scope: FastifyInstance, app: AppContext): Promise<v
     },
     { rateLimits: { setup: SETUP_RATE_LIMIT } },
   );
+  return Promise.resolve();
 }

@@ -141,6 +141,8 @@ export interface Adapter {
   actor: ActorContext;
   /** The last sequence number this adapter's feed sent. */
   seq: number;
+  /** Phase 7 slice 7g-4: what the server's adapter worker signs in with (its entry in the service-keys file). */
+  credentials: { loginName: string; serviceKey: string; fingerprint: string };
 }
 
 /**
@@ -173,7 +175,7 @@ export async function registerAdapter(db: DatabaseHandle, seed: SiteSeed, adm: A
   const id = await withCommand(db.app, because(adm.admin, `E2E set-up: register the ${system} adapter`), async (c) =>
     (await c.query<{ id: string }>('select iam.register_integration_adapter($1, $2, $3, $4, $5) as id', [code, system, created.accountId, s.deviceId, `${system} adapter (E2E)`])).rows[0]?.id ?? '',
   );
-  return { system, code, id, actor, seq: 0 };
+  return { system, code, id, actor, seq: 0, credentials: { loginName, serviceKey: created.secret, fingerprint } };
 }
 
 let lastUs = 0n;

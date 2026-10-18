@@ -41,14 +41,40 @@ export interface AnalyticsControl {
   pool: pg.Pool;
 }
 
+/**
+ * The demo tooling (cli/installation.ts: the set-up CLI's own code, which seeds DEMO-ONLY credentials through the
+ * test-kit). The server's entry point hands it over only to a server with EBMR_PG_ADMIN_URL (main.ts), so no feature
+ * imports it and a production GMP server never loads it.
+ */
+export interface DemoTooling {
+  setupInstallation(opts: {
+    installation: 'GMP' | 'SANDBOX';
+    database: string;
+    keysDir: string;
+    exchangeDir: string;
+    personaSets: number;
+    recreate: boolean;
+    reviewBatch?: boolean;
+    packaging?: boolean;
+    backupIdentity?: boolean;
+    adminUrl?: string;
+    gatewaySpki?: string;
+    log?: (message: string) => void;
+  }): Promise<unknown>;
+  recreateEmptyInstallation(opts: { installation: 'GMP' | 'SANDBOX'; database: string; adminUrl?: string; log?: (m: string) => void }): Promise<void>;
+  issueSetupToken(database: string, token: string, minutes: number, adminUrl?: string): Promise<void>;
+}
+
 export interface OperationsRuntime {
   adapters: AdapterControl | null;
   analytics: AnalyticsControl | null;
+  /** The demo tooling, on a server with EBMR_PG_ADMIN_URL only (main.ts); null otherwise. */
+  demoTooling: DemoTooling | null;
   /** What the server is doing that keeps every other request out (a demo load or reset), or null. */
   maintenance: string | null;
 }
 
-export const newOperationsRuntime = (): OperationsRuntime => ({ adapters: null, analytics: null, maintenance: null });
+export const newOperationsRuntime = (): OperationsRuntime => ({ adapters: null, analytics: null, demoTooling: null, maintenance: null });
 
 /** The API paths answered during maintenance: what the SPA needs to show that it is under way and when it ends. */
 export const MAINTENANCE_OPEN_PATHS: readonly string[] = ['/api/meta', '/api/setup/state', '/api/operations/demo/job'];

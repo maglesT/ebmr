@@ -1143,6 +1143,7 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 | 12 Oct | Deviation spec race | hardened (Phase 3 exit) | |
 | 12 Oct | GB-T-01 hashes changed by day | see "Time" above | fixed lot dates, placeholder year |
 | 11 Oct | `db-guards-free-text-shown` failed once under load, passed alone | suspected chance match of "2409" in generated text | **open**: root cause not yet found (Phase 3 backlog, slice 6c) |
+| 18 Oct | A sandbox system administrator made by the server tests' `grantedPerson` was refused (EBMR-SBX-024) | the user ID ended in eight hex digits of a UUID, which can have the form of a batch or lot number the sandbox refuses in any text that is not a TEST- identifier | the sandbox suffix is letters only ([granted-person.ts](../../apps/tablets-server/test/support/granted-person.ts); slice 7g-4) |
 
 Lessons: a retry is not a fix. Reproduce with the same load (see the `local-ci` skill), find the race, and then
 decide whether the race is in the test or in the product (two of the entries above were in the product).
