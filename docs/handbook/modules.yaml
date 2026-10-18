@@ -270,7 +270,7 @@ modules:
     page: modules/integrations.md
     package: packages/kernel
     migrations:
-      packages/kernel/sql: ['^118\d_', '^130[56]_', '^1320_', '^132[89]_', '^1330_']
+      packages/kernel/sql: ['^118\d_', '^130[56]_', '^1320_', '^132[89]_', '^1330_', '^1350_']
     tests: ['packages/kernel/test/inbound/**']
 
   - id: kernel-transfer
@@ -516,7 +516,7 @@ modules:
     page: modules/recipe-core.md
     package: packages/recipe-core
     migrations:
-      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_']
+      packages/recipe-core/sql: ['^050\d_', '^0582_', '^060[0-2]_', '^076[12]_', '^0893_', '^0895_', '^0913_', '^1250_']
     tests:
       - 'packages/recipe-core/test/mutation/gmp-batch-issue.test.ts'
       - 'packages/recipe-core/test/mutation/erp-interfaces.test.ts'
@@ -1157,7 +1157,7 @@ modules:
 
   - id: validation-kit
     title: Validation kit (evidence bundle schema and types, pack generators)
-    page: modules/shared-kits.md
+    page: modules/validation-kit.md
     package: packages/validation-kit
     src: [packages/validation-kit/src]
     tests: ['packages/validation-kit/test/**']
@@ -1225,8 +1225,10 @@ modules:
 
   - id: tools-validation
     title: Validation pack tooling (evidence bundle, inventory, pack, IQ and OQ; built in slice 7c)
-    page: modules/tools.md
+    page: modules/tools-validation.md
     package: tools/validation
+    src: [tools/validation/src]
+    tests: ['tools/validation/test/**']
 
   - id: tools-sql-mutation
     title: SQL mutation harness

@@ -605,6 +605,8 @@ export const TARGETS: Target[] = [
   //     deviation references (recipe-core 0500-0504, 0582, 0601, 0603) ----
   {
     group: 'gmp-batch-issue',
+    // Slice 7c (recipe-core 1250) re-creates recipe.gmp_issue_problem for the validation-summary interlock (DI-03); its
+    // test is lifecycle/gmp-issue.test.ts, already listed.
     functions: ['recipe.batch_record_identity_guard', 'recipe.execution_mbr_content', 'recipe.batch_mbr_content',
                 'recipe.content_for_mbr_hash', 'recipe.sandbox_only_blocks_in', 'recipe.batch_allocation_link_guard',
                 'recipe.control_recipe_sandbox_only_guard', 'recipe.batch_issue_content', 'recipe.gmp_batch_problem',
@@ -1118,7 +1120,9 @@ export const TARGETS: Target[] = [
                 'platform.record_reconciliation', 'platform.record_mirror_sync', 'platform.mirror_freshness',
                 'platform.mirror_fresh_or_raise', 'platform.record_inbound_override', 'iam.qualification_source_fresh',
                 'iam.lms_mirror_problem', 'iam.lms_qualification_payload_problem', 'iam.receive_lms_qualification', 'platform.gap_needs_owner_or_qa', 'iam.stale_qualification_source_problem'],
-    tests: [k('inbound/inbound.test.ts'), k('inbound/overrides-and-lms-mirror.test.ts'), k('integrations/lms-inbound.test.ts'),
+    // Slice 7c (kernel 1350) re-creates platform.accept_inbound_detail and record_inbound_refusal for the interface drift
+    // interlock (DI-06); they stay here with the drift test file.
+    tests: [k('inbound/inbound.test.ts'), k('inbound/overrides-and-lms-mirror.test.ts'), k('integrations/lms-inbound.test.ts'), k('inbound/interface-drift.test.ts'),
             k('integration/authorization.test.ts'), k('inbound/source-verification.test.ts'), s('equipment-data/feed-signature.test.ts'), k('inbound/inbound.test.ts'), s('execution/gmp-batch.test.ts')],
     threshold: 90,
   },
@@ -1489,6 +1493,22 @@ export const TARGETS: Target[] = [
     group: 'batch-scope-remaining',
     functions: ['recipe.require_issue_permission'],
     tests: [r('review/batch-scope.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7c: an inbound interface not in the approved system description is refused and alarmed (DI-06; kernel
+  // 1350). The re-created platform.accept_inbound_detail and record_inbound_refusal stay in their group.
+  {
+    group: 'interface-drift',
+    functions: ['platform.interface_drift_problem', 'platform.check_adapter_start', 'iam.integration_adapter_drift_alarm'],
+    tests: [k('inbound/interface-drift.test.ts'), s('integrations/adapter-startup.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7c: a GMP batch is refused without an approved validation summary (DI-03; recipe-core 1250). The
+  // re-created recipe.gmp_issue_problem stays in its group.
+  {
+    group: 'validation-summary-gate',
+    functions: ['recipe.batch_execution_validation_gate'],
+    tests: [r('lifecycle/gmp-issue.test.ts')],
     threshold: 90,
   },
 ];
