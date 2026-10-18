@@ -1065,12 +1065,15 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
   request: CONTROLLED.READ (tablets 1400), no administrator, and a grant whose scope covers the record's {site, product};
   lists are filtered row by row, a named batch or record out of scope is refused (EBMR-CSM-060, 061: 403). Tablets
   [1414](../../apps/tablets-server/sql/1414_controlled_record_read.sql) asks the same rule of the signing preview and of
-  `tab.record_read_problem` (signatures and their audit chains), keeping every rule of 1290. Open: the audit
-  viewer still reads the chains of the controlled records by role (GOVERNANCE class) and shows custody and checkpoint
-  entries on the lot and batch chains (RECORD.READ); a residual for the owner.
+  `tab.record_read_problem` (signatures and their audit chains), keeping every rule of 1290. Review round 1, tablets
+  [1415](../../apps/tablets-server/sql/1415_controlled_audit_read.sql): the audit viewer had still read the controlled
+  records' chains by role. It also showed the custody and checkpoint entries filed on the lot's and the batch's chains.
+  Both now need CONTROLLED.READ in scope. A register export (no site, every site's lots) is read only in the scope {}.
+  The write routes read their record back before the commit.
 - **Test.** `[IN-53] the controlled register and balance reads need CONTROLLED.READ` and the other tests of
   [controlled-read.test.ts](../../apps/tablets-server/test/controlled/controlled-read.test.ts) (HTTP 403, the bypass,
-  product and site scope, the preview); the bypass of 1214 again in the package database in
+  product and site scope, the preview, `[IN-53] the audit trail shows controlled-substance entries only to a reader
+  holding CONTROLLED.READ`); the bypass of 1214 again in the package database in
   [controlled.test.ts](../../packages/site-services/test/controlled/controlled.test.ts).
 - **Lesson:** a read route that checks only "a session exists" is no control; when the data is restricted, the grant on
   the table is the first thing to close.
