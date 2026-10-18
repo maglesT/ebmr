@@ -1497,7 +1497,10 @@ QA and IT approve with SUPPORT_ACT through the ceremony, revoke) and the `contra
 the reviewer's own two read routes). A support grant is a GOVERNANCE record, so its content is read through
 [1275](../../../apps/tablets-server/sql/1275_support_grant_signing.sql) and [1276](../../../apps/tablets-server/sql/1276_support_grant_read.sql) (`tab.record_read_problem`
 lets the roles that request or approve support grants read them). [bind.ts](../../../apps/tablets-server/src/platform/http/bind.ts) keeps a session
-of an account holding CONTRACT_GIVER_REVIEWER on its own routes (CONTRACT_GIVER_SCOPE). The esig feature
+of an account holding CONTRACT_GIVER_REVIEWER on its own routes (CONTRACT_GIVER_SCOPE); since tablets
+[1425](../../../apps/tablets-server/sql/1425_contract_giver_record_read.sql) (Phase 7 slice 7b-1, 6jc-R3, IN-30) the
+database holds it too: `tab.record_read_problem` refuses that role, and any account holding it, for every record, so the
+reviewer reads its loan licence's batches only through its own logged reads (recipe-core 1060). The esig feature
 ([esig/dsc.ts](../../../apps/tablets-server/src/features/esig/dsc.ts)) serves the DSC configuration routes and puts the DSC statement on the
 challenge and verifies the submitted DSC in the signing command. The designer
 ([designer/hazard.ts](../../../apps/tablets-server/src/features/designer/hazard.ts), [IN-27](../../../compliance/controls/IN-27.yaml)) adds the
@@ -1562,7 +1565,9 @@ so a writer who may not read it is refused and nothing is committed. Later migra
 
 Phase 6 slice 6d. [features/genealogy](../../../apps/tablets-server/src/features/genealogy/index.ts) serves the `genealogy`
 namespace (trace, complaint lookup, API supply chain, deviation impact, recurrence; any session, read-only, D-P6d-0-8)
-and the `recall` namespace (mock recalls; the run needs RECALL.MOCK_RUN). Every value is a recipe-core function's
+and the `recall` namespace (mock recalls; the run needs RECALL.MOCK_RUN). The run is stored first, then the
+destinations `recipe.mock_recall_destinations` names are asked and their answers recorded, in the run and in the
+refresh (Phase 7 slice 7b-1, 6jc-R12; recipe-core 1225). Every value is a recipe-core function's
 ([reads.ts](../../../apps/tablets-server/src/features/genealogy/reads.ts)); the as-of point is epoch microseconds turned into
 a timestamptz in SQL. The AP's sign-off is the signable action MOCK_RECALL_SIGN_OFF
 ([signables.ts](../../../apps/tablets-server/src/features/genealogy/signables.ts); meaning in
@@ -1716,7 +1721,9 @@ carries `dataAsOf`, `readAt`, `dataAgeSeconds` and `notForGmpDecisions: true`; e
 [features/training](../../../apps/tablets-server/src/features/training/index.ts) is registered on the SANDBOX only:
 the overview (watermark of the TRAINING source, `TEST-` personas, the exercises of
 [exercises.ts](../../../apps/tablets-server/src/features/training/exercises.ts) with the person's attempts) and the
-start and step commands (FRESH_ON_SHARED, so a kiosk taps), kept in the sandbox by kernel 1211.
+start and step commands (FRESH_ON_SHARED, so a kiosk taps), kept in the sandbox by kernel 1211. The attempt they answer
+is read for the session's person only (`trainingAttemptOf`; another person's is EBMR-SBX-040; Phase 7 slice 7b-1,
+6jc-R15).
 
 **Pitfalls.** Periods are site-zone dates (the zone from `app.siteZone`); a start after the end is EBMR-RPT-001. The
 alarm list is capped at 500 rows but the counts never are. Tests: `apps/tablets-server/test/dashboards/`.

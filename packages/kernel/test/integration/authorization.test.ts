@@ -23,6 +23,7 @@ import { approvePurge, createRetentionSchedule, placeLegalHold, releaseLegalHold
 import { createAggregateState, transition } from '../../src/state/engine.ts';
 import { ensureFixtureChangeRecord, underChange } from '../support/change-record.ts';
 import { createTestDatabase, type TestDatabase } from '../support/db.ts';
+import { authorizationScan, type ScanRules } from '../support/authorization-scan.ts';
 import { SEED_SITE, seedActor, seedAdministration, seedServiceActor, withFreshAuth, withReason, type SeededActor } from '../identity/seed.ts';
 import { approveSourceCorrection, createTestTable, miniDocument, publishDocumentAs, publishSeedTables } from '../market/helpers.ts';
 import { registerValidatedTimeSource } from '../platform/helpers.ts';
@@ -239,6 +240,100 @@ describe('every mutating function checks authority (DI-17) and GMP writes refuse
       })
       .map((f) => f.fn);
     expect(missing).toEqual([]);
+  });
+});
+
+/**
+ * Phase 7 slice 7b-1 (review residual 6jc-R7): the same scan over the kernel's identity, e-signature and sandbox schemas,
+ * whose Phase 6 writers were proven by their own tests only. Each entry says why the function checks no permission of its
+ * own: the identity and signature machinery is the check (it is what iam.require_permission and the signing ceremony are
+ * built from), a session's own plumbing, or a read volatile only because it calls volatile readers.
+ */
+const KERNEL_WIDE: ScanRules = {
+  ungated: {
+    // Identity: the checks themselves, and the login and session plumbing of the person's own session.
+    'iam.actor_is_validated()': 'the check: whether the command was started with kernel.begin_command; writes nothing',
+    'iam.assert_validated_actor()': 'the check: refuses a command not started with kernel.begin_command; writes nothing',
+    'iam.assert_not_administrator()': 'the DI-18 check itself; writes nothing',
+    'iam.require_permission(text,jsonb)': 'the DI-17 check itself (it stores its evaluation, INV-26)',
+    'iam.evaluate_authority(uuid,uuid,text,jsonb,timestamp with time zone,text)': 'the authority evaluation behind require_permission; stores the evaluation (INV-26) and changes nothing else',
+    'iam.evaluate_segregation(text,uuid,uuid[],text)': 'the segregation evaluation behind assert_segregated; stores the evaluation and changes nothing else',
+    'iam.assert_segregated(text,uuid[],text)': 'the segregation check of the actor (DI-16); refuses or returns',
+    'iam.can_sign(uuid)': 'the signing-readiness check (an active personal account with a signing permission); writes nothing',
+    'iam.assert_can_sign(uuid)': 'refuses unless iam.can_sign; writes nothing',
+    'iam.grant_is_live(text,timestamp with time zone,timestamp with time zone)': 'a pure test of a grant\'s window; writes nothing',
+    'iam.current_command_auth_event()': 'reads the authentication this command used; writes nothing',
+    'iam.resolve_device(text)': 'login plumbing: names the terminal of a fingerprint and raises the unregistered or blocked device alert (DI-19)',
+    'iam.check_device_location(uuid,text,text)': 'login plumbing: checks the terminal\'s room and site and raises its alert (DI-19)',
+    'iam.open_session(uuid,text)': 'login plumbing: opens the session of an authentication event the authentication service recorded, once (DI-19, DI-20)',
+    'iam.end_session(uuid)': 'the person\'s own logout',
+    'iam.lock_session(uuid)': 'the person\'s own screen lock (unlocking needs a fresh authentication)',
+    'iam.acknowledge_esig_policy(text)': 'the person\'s own acknowledgment of the signature policy, from a personal HUMAN account only (EBMR-IAM-054)',
+    'iam.request_delegation(uuid,jsonb,text[],text[],timestamp with time zone,timestamp with time zone,text,text)':
+      'a request only, by a person holding signing authority (EBMR-IAM-180); it takes effect once approved under IAM.DELEGATION_APPROVE',
+    // E-signatures: the ceremony evaluates the meaning's permissions itself (iam.evaluate_authority in esig.sign).
+    'esig.create_challenge(text,text,bigint,text,text,uuid)': 'the challenge of the ceremony: refuses administrators, checks the signer may sign (iam.assert_can_sign); the meaning\'s permissions are evaluated when it is signed',
+    'esig.sign(uuid,uuid,text,uuid,boolean)': 'the ceremony: refuses administrators, consumes a fresh authentication and evaluates the meaning\'s permissions for the signer (iam.evaluate_authority)',
+    'esig.seal_signature(uuid,text,text,text)': 'seals a signature applied in this same transaction only (EBMR-ESIG-062)',
+    'esig.stub_complete(uuid,uuid)': 'the test stub signable (kernel test aggregate): refuses administrators and needs valid signatures of its meanings',
+    'esig.assert_signature(uuid,text,text,text)': 'verification: refuses unless the signature is valid for the record and meaning; writes nothing',
+    'esig.signature_problem(uuid,text,text,text)': 'verification read (volatile because content providers are); writes nothing',
+    'esig.signature_problems(uuid)': 'verification read (volatile because content providers are); writes nothing',
+    'esig.signature_state(uuid)': 'verification read (volatile because content providers are); writes nothing',
+    'esig.signature_state_problem(uuid)': 'verification read (volatile because content providers are); writes nothing',
+    // Reads of signatures and their content (volatile because the content providers are); an edition revokes them and
+    // reads through its own definers that check the reader (tablets 0410).
+    'esig.content_for_signing(text,text)': 'a read of a record\'s content to sign; writes nothing',
+    'esig.record_signatures(text,text)': 'a read of a record\'s signatures; writes nothing',
+    'esig.manifestation(uuid)': 'a read of a signature\'s manifestation; writes nothing',
+    'esig.evidence_package(uuid)': 'a read of a signature\'s evidence; writes nothing',
+    'esig.resigning_required(text,text)': 'a read: whether a record\'s signatures must be given again; writes nothing',
+    'esig.verify_signatures(timestamp with time zone)': 'verification read of the signatures since an instant; writes nothing',
+    'esig.invariant_violations()': 'invariant query; writes nothing',
+    'esig.record_signing_failure(uuid,uuid,text,text)': 'logs a failed signing against its challenge with its security alert (DI-23); records the failure only',
+    'iam.keep_session_alive(uuid,uuid)': 'the session\'s own keep-alive, with a fresh authentication of its person',
+    'iam.unlock_session(uuid,uuid)': 'the session\'s own unlock, with a fresh authentication of its person',
+    'esig.enrol_dsc_certificate(jsonb)': 'the person\'s own certificate, from their own personal HUMAN account, with proof of possession; refuses administrators (kernel 1321)',
+    'esig.record_dsc_signature(uuid,jsonb)': 'the DSC of a password signature made in this same command, by the certificate enrolled for its signer; refuses administrators (kernel 1321)',
+    // Sandbox: training on the sandbox installation only, the person's own attempts.
+    'sandbox.start_training(text,integer,integer)': 'training on the sandbox installation only (EBMR-SBX-039): the person\'s own attempt',
+    'sandbox.complete_training_step(uuid,integer)': 'training on the sandbox installation only: a step of the person\'s own attempt (EBMR-SBX-040)',
+  },
+  delegates: {
+    'esig.retire_meaning_type(text,text)': 'esig.configure_meaning_type',
+  },
+  adminAfterPermission: {
+    'esig.add_meaning_type(text,jsonb,text)': 'asks MBR.APPROVE in its declarations, then refuses administrators before it reads or writes anything',
+    'esig.configure_meaning_type(text,jsonb,text)': 'asks MBR.APPROVE in its declarations, then refuses administrators before it reads or writes anything',
+    'esig.register_dsc_anchor(text,text,text,bytea,text)': 'asks its permission in its declarations, then refuses administrators before it reads or writes anything',
+    'esig.set_dsc_meaning(text,boolean,text)': 'asks its permission in its declarations, then refuses administrators before it reads or writes anything',
+    'esig.set_policy(text,text,text,text)': 'asks MBR.APPROVE in its declarations, then refuses administrators before it reads or writes anything',
+  },
+};
+
+describe('the authorization scan of the identity, e-signature and sandbox schemas (6jc-R7)', () => {
+  it('[DI-17][DI-18] every app-callable writer of iam, esig and sandbox checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no table is app-writable', async () => {
+    const r = await authorizationScan(db.admin, ['iam', 'esig', 'sandbox'], KERNEL_WIDE);
+    expect(r.functions).toBeGreaterThanOrEqual(80);
+    expect(r.ungated).toEqual([]);
+    expect(r.unknownPermissions).toEqual([]);
+    expect(r.adminNotFirst).toEqual([]);
+    expect(r.staleEntries).toEqual([]);
+    expect(r.appWritableTables).toEqual([]);
+  });
+
+  it('[DI-18] the DSC enrolment, its end and the DSC record refuse administrators first (6jc-R6, kernel 1321)', async () => {
+    const { rows } = await db.admin.query<{ fn: string; src: string }>(
+      "select p.oid::regprocedure::text as fn, p.prosrc as src from pg_proc p where p.oid in ('esig.enrol_dsc_certificate(jsonb)'::regprocedure, 'esig.record_dsc_signature(uuid,jsonb)'::regprocedure, 'esig.end_dsc_enrolment(uuid,text)'::regprocedure) order by 1");
+    expect(rows).toHaveLength(3);
+    for (const f of rows) {
+      const body = f.src.slice(f.src.indexOf('begin'));
+      expect(body.trimStart().split('\n').map((l) => l.trim()).filter((l) => l !== '' && !l.startsWith('--'))[1], f.fn).toBe('perform iam.assert_not_administrator();');
+    }
+    const { admin } = await seedAdministration(db);
+    await expect(sql(admin, "select esig.enrol_dsc_certificate('{}'::jsonb)")).rejects.toThrow(/EBMR-IAM-042/);
+    await expect(sql(admin, "select esig.record_dsc_signature(gen_random_uuid(), '{}'::jsonb)")).rejects.toThrow(/EBMR-IAM-042/);
+    await expect(sql(admin, "select esig.end_dsc_enrolment(gen_random_uuid(), 'lost token')")).rejects.toThrow(/EBMR-IAM-042/);
   });
 });
 

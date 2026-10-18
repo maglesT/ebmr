@@ -12,7 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { RUNTIME_LIBRARIES, defaultParameters } from '@ebmr/analytics';
 import { codeIdentity, parametersSha256 } from '../../src/analytics/catalog.ts';
 import { readSnapshot } from '../../src/analytics/inputs.ts';
-import { createAnalyticsPool } from '../../src/analytics/pool.ts';
+import { analyticsRoleProblems, createAnalyticsPool, type AnalyticsRoleFacts } from '../../src/analytics/pool.ts';
 import { IMPLEMENTATIONS } from '../../src/analytics/implementation.ts';
 import { AnalyticsRunner, type EffectiveVersion } from '../../src/analytics/runner.ts';
 import { startServer, type TestServer } from '../support/harness.ts';
@@ -55,6 +55,33 @@ describe('the analytics runner (apps/tablets-server/src/analytics)', () => {
     }
     // The server tests' default is off: the role has four connections on the whole cluster.
     expect(gmp.config.analytics.url).toMatch(/^postgres:\/\/ebmr_analytics:/);
+  });
+
+  it('[DI-51] the runner starts only on ebmr_analytics with no elevated attribute; on another login it does not start (P6A7-8)', async () => {
+    const errors: unknown[] = [];
+    const log = { ...SILENT, error: (o: unknown) => void errors.push(o) };
+    const own = new AnalyticsRunner({ pool: createAnalyticsPool(analyticsUrl(gmp.database)), log, siteZone: () => 'Asia/Kolkata', commit: 'test', implementations: [] });
+    try {
+      expect(await own.start()).toBe(true);
+      expect(errors).toEqual([]);
+    } finally {
+      await own.stop();
+    }
+    // A misconfigured EBMR_DB_ANALYTICS_URL naming the application's login: the runner never starts.
+    const wrong = new AnalyticsRunner({ pool: createAnalyticsPool(analyticsUrl(gmp.database).replace('ebmr_analytics:ebmr_analytics@', 'ebmr_app:ebmr_app@')), log, siteZone: () => 'UTC', commit: 'test', implementations: [] });
+    try {
+      expect(await wrong.start()).toBe(false);
+      expect(JSON.stringify(errors)).toMatch(/connects as ebmr_app acting as ebmr_app, not as ebmr_analytics/);
+    } finally {
+      await wrong.stop();
+    }
+    // Each elevated attribute and any membership is a reason on its own (the database's answer, analyticsRoleProblems).
+    const ok: AnalyticsRoleFacts = { current_user: 'ebmr_analytics', session_user: 'ebmr_analytics', rolsuper: false, rolcreaterole: false, rolcreatedb: false, rolreplication: false, rolbypassrls: false, member_of: [] };
+    expect(analyticsRoleProblems(ok)).toEqual([]);
+    for (const k of ['rolsuper', 'rolcreaterole', 'rolcreatedb', 'rolreplication', 'rolbypassrls'] as const) expect(analyticsRoleProblems({ ...ok, [k]: true })).toHaveLength(1);
+    expect(analyticsRoleProblems({ ...ok, member_of: ['ebmr_app'] })).toEqual(['the role is a member of ebmr_app']);
+    expect(analyticsRoleProblems({ ...ok, current_user: 'ebmr_owner' })).toHaveLength(1);
+    expect(analyticsRoleProblems(undefined)).toHaveLength(1);
   });
 
   it('[DI-52] every output names its run, method version and input references; a re-run reproduces it', async () => {
