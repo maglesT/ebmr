@@ -47,5 +47,7 @@ The module list behind the generated pages is [modules.yaml](modules.yaml). Writ
 | [tablets-web](modules/tablets-web.md) | `apps/tablets-web`: the Tablets edition's screens |
 | [integrations](modules/integrations.md) | `packages/integration-sdk`, `apps/site-gateway`, `apps/simulators` |
 | [shared-kits](modules/shared-kits.md) | `packages/ui-kit`, `packages/test-kit`, `packages/validation-kit` |
+| [validation-kit](modules/validation-kit.md) | `packages/validation-kit`: the evidence bundle and the validation pack generators (Phase 7) |
 | [injectables](modules/injectables.md) | `apps/injectables-*`: placeholders for Phase 5 |
 | [tools](modules/tools.md) | `tools/*`: register, boundaries, SQL mutation, demo, end-to-end suite, handbook |
+| [tools-validation](modules/tools-validation.md) | `tools/validation`: the evidence bundle, the pack, the IQ and OQ scripts, the build statuses |

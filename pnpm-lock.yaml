@@ -522,6 +522,28 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
 
+  tools/validation:
+    dependencies:
+      '@ebmr/api-contract':
+        specifier: workspace:0.1.0
+        version: link:../../packages/api-contract
+      '@ebmr/kernel':
+        specifier: workspace:0.1.0
+        version: link:../../packages/kernel
+      '@ebmr/test-kit':
+        specifier: workspace:0.1.0
+        version: link:../../packages/test-kit
+      '@ebmr/validation-kit':
+        specifier: workspace:0.1.0
+        version: link:../../packages/validation-kit
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+
 packages:
 
   '@axe-core/playwright@4.13.0':
