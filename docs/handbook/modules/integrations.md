@@ -191,6 +191,14 @@ names the source's highest published sequence number, and the database refuses i
 alone never keeps a blocking mirror fresh; a lost message keeps the mirror ageing until it arrives or a person
 acknowledges its gap with a note on the integration health page.
 
+Who acknowledges a gap (Phase 7 slice 7b-1, 6jc-R11, kernel
+[1320](../../../packages/kernel/sql/1320_sequence_gap_acknowledgment.sql)): a SEQUENCE_GAP on the adapter of a system
+that feeds a blocking mirror (LMS, CMMS, QMS, ERP/WMS, L3) is acknowledged only with ALARM.ACKNOWLEDGE_GAP, held by the
+system owner (PROCESS_OWNER) and QA (QA_REVIEWER); the note is then the account of the lost messages that lets the
+mirror be used again. Every other integration alarm stays ALARM.ACKNOWLEDGE's (operators and shift supervisors), and an
+administrator acknowledges none. `platform.gap_needs_owner_or_qa(alarm)` says which rule applies. An operator who tries
+reads EBMR-PLAT-006 naming ALARM.ACKNOWLEDGE_GAP: call QA or the system owner.
+
 ## The ERP/WMS adapter and the worker base (Phase 6, slice 6a, builder A)
 
 **The worker framework** ([framework.ts](../../../apps/tablets-server/src/features/integrations/adapters/framework.ts#sym=AdapterWorker)):

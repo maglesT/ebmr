@@ -151,7 +151,7 @@ describe('the analytics routes (GMP)', () => {
     // The monitor counts the flag as dispositioned, and not as a false alarm (its current verdict is a real issue).
     const m = valueOf(await qa.call(routes.analytics.monitor)).rows.filter((r) => r.method === 'SPC.IMR');
     expect(m.length).toBeGreaterThan(0);
-    expect(m.reduce((n, r) => n + r.flags, 0)).toBeGreaterThanOrEqual(1);
+    expect(m.reduce((n, r) => n + (r.flags ?? 0), 0)).toBeGreaterThanOrEqual(1);
   });
 
   it('[DI-53] a person flag is unreadable without ANALYTICS.DI_REVIEW, also through the app role directly', async () => {

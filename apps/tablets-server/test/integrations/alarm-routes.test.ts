@@ -62,21 +62,28 @@ describe('integrations routes with data (DI-31)', () => {
 
   it('[DI-31][DI-14][INV-40] a person acknowledges an alarm with a note, once, from a kiosk only with a fresh tap; others cannot', async () => {
     const kiosk = await gmp.asPersona('operator1');
-    const path = `/api/integrations/alarms/${gapAlarm}/acknowledge`;
+    const path = `/api/integrations/alarms/${refusalAlarm}/acknowledge`;
     const body = { note: 'ERP team asked to resend shipments 2 and 3' };
-    expect(refusalOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: gapAlarm }, body }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });
+    expect(refusalOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: refusalAlarm }, body }))).toMatchObject({ status: 428, code: 'TAP_REQUIRED' });
     // A note is required (the contract and the database); QA without ALARM.ACKNOWLEDGE is refused by the database.
-    expect(refusalOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: gapAlarm }, body: { note: ' ' }, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, { note: ' ' }) }))?.status).toBe(400);
+    expect(refusalOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: refusalAlarm }, body: { note: ' ' }, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, { note: ' ' }) }))?.status).toBe(400);
     const qa = await gmp.asPersona('qaInvestigator');
-    expect(refusalOf(await qa.call(I.acknowledgeAlarm, { params: { alarmId: gapAlarm }, body }))).toMatchObject({ code: 'EBMR-PLAT-006' });
-    const acked = valueOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: gapAlarm }, body, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, body) }));
-    expect(acked).toMatchObject({ alarmId: gapAlarm, acknowledgement: { note: body.note, by: { personId: personaIn(gmp, 'operator1').personId } } });
+    expect(refusalOf(await qa.call(I.acknowledgeAlarm, { params: { alarmId: refusalAlarm }, body }))).toMatchObject({ code: 'EBMR-PLAT-006' });
+    const acked = valueOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: refusalAlarm }, body, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, body) }));
+    expect(acked).toMatchObject({ alarmId: refusalAlarm, acknowledgement: { note: body.note, by: { personId: personaIn(gmp, 'operator1').personId } } });
     // Once: a second acknowledgment is refused.
     const again = { note: 'second note' };
-    expect(refusalOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: gapAlarm }, body: again, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, again) }))?.status).toBe(409);
-    const lists = async (state: 'OPEN' | 'ACKNOWLEDGED') => valueOf(await qa.call(I.alarms, { query: { state, adapterCode: erp.code } })).alarms.map((a) => a.alarmId);
-    expect(await lists('ACKNOWLEDGED')).toEqual([gapAlarm]);
-    expect(await lists('OPEN')).toEqual([refusalAlarm]);
+    expect(refusalOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: refusalAlarm }, body: again, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', path, again) }))?.status).toBe(409);
+    // A sequence gap on the ERP adapter (it feeds a blocking mirror, ERP lot status) is QA's or the system owner's to
+    // acknowledge (kernel 1320, 6jc-R11): the operator is refused by the database, QA acknowledges it.
+    const gapPath = `/api/integrations/alarms/${gapAlarm}/acknowledge`;
+    expect(refusalOf(await kiosk.call(I.acknowledgeAlarm, { params: { alarmId: gapAlarm }, body, attribution: await tapFor(kiosk, personaIn(gmp, 'operator1'), 'POST', gapPath, body) })))
+      .toMatchObject({ code: 'EBMR-PLAT-006' });
+    const gapAcked = valueOf(await qa.call(I.acknowledgeAlarm, { params: { alarmId: gapAlarm }, body }));
+    expect(gapAcked).toMatchObject({ alarmId: gapAlarm, acknowledgement: { note: body.note, by: { personId: personaIn(gmp, 'qaInvestigator').personId } } });
+    const lists = async (state: 'OPEN' | 'ACKNOWLEDGED') => valueOf(await qa.call(I.alarms, { query: { state, adapterCode: erp.code } })).alarms.map((a) => a.alarmId).sort();
+    expect(await lists('ACKNOWLEDGED')).toEqual([gapAlarm, refusalAlarm].sort());
+    expect(await lists('OPEN')).toEqual([]);
     // The integration identity never acknowledges (DI-14), not even its own alarm.
     const actor = await adapterActor(gmp, erp);
     await expect(withCommand(gmp.db.app, { ...actor, correlationId: randomUUID() }, (c) => c.query('select platform.acknowledge_integration_alarm($1, $2)', [refusalAlarm, 'self'])))

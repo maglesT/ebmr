@@ -155,7 +155,8 @@ export const AnalyticsMonitorView = z.strictObject({
     runs: Count,
     /** FAILED runs and runs unended an hour after they started (D-6A-0-3). */
     failures: Count,
-    flags: Count,
+    /** Null for an audit-trail method (ATA.*) read without ANALYTICS.DI_REVIEW: restricted, with its shares (DI-53, kernel 1322). */
+    flags: Count.nullable(),
     dispositionedShare: StatNumber.nullable(),
     falseAlarmRate: StatNumber.nullable(),
   })),

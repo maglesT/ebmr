@@ -1023,6 +1023,18 @@ types the permissions they need and registers their content providers.
 Pitfall: a grant limited to a product never matched a platform transition until 1150 (the SCOPE hook). Phase 3 slice
 3a found recipe-core with its own copy of the authority function; there is one adapter only.
 
+**The authorization meta scan (Phase 7 slice 7b-1, 6jc-R7).** The scan of
+[authorization-scan.ts](../../../packages/kernel/test/support/authorization-scan.ts) checks a set of schemas: every
+function the application role may execute that can write (VOLATILE) asks `iam.require_permission` or
+`platform.authorize`, or is a proven delegate of one that does, or is listed with its reason; one that names a GMP
+permission refuses administrators before it asks (or is listed, when it asks in its declarations and refuses next,
+before anything is written); the catalogue knows every permission it names; the application role writes no table of
+the schemas. A list entry that names no function, or one that no longer needs it, fails the scan. The kernel's
+authorization test runs it on iam, esig and sandbox, recipe-core's on plant, the server's
+[authorization-scan.test.ts](../../../apps/tablets-server/test/validation/authorization-scan.test.ts) on tab; the older
+scan above covers market, records, continuity, site and platform. A new definer in one of these schemas either asks a
+permission or gets an entry with its reason in the owner's list.
+
 ## Sandbox
 
 ### What it does
@@ -1187,7 +1199,9 @@ account), the server verifies chain and signature ([dsc.ts](../../../packages/ke
 `esig.enrol_dsc_certificate` stores it (`esig.dsc_enrolment`, insert-only). A certificate is live for one person only
 (EBMR-ESIG-086); a new enrolment ends the person's old one; an enrolment counts only under the anchor it was verified
 against. `esig.end_dsc_enrolment` ends one (the person, or QA with MBR.APPROVE; EBMR-ESIG-088). `esig.record_dsc_signature`
-(replaced) refuses a certificate that is not the signer's live enrolment (EBMR-ESIG-087).
+(replaced) refuses a certificate that is not the signer's live enrolment (EBMR-ESIG-087). Since kernel
+[1321](../../../packages/kernel/sql/1321_dsc_administrator_refusal.sql) (Phase 7 slice 7b-1, 6jc-R6) all three refuse an
+administrator first (EBMR-IAM-042, DI-18), as every other definer that writes signature evidence does.
 
 > **Why this exists**
 > - **Pharma reason:** supplier access is limited, approved by the regulated company and time-boxed (Annex 11, 21 CFR

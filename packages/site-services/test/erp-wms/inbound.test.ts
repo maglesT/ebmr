@@ -243,4 +243,24 @@ describe('the outbound queue to the ERP (DI-31)', () => {
     expect(await refusal(db.app.query('delete from site.erp_outbound_message'))).toMatch(/permission denied/);
     expect(await refusal(run('select site.erp_outbound_pending($1) as r', [0]))).toMatch(/EBMR-ERP-011/);
   });
+
+  it('[DI-31] a queued ERP message is insert-only for every writer, the owner and a superuser included (6jc-R5, site services 1110)', async () => {
+    const { rows } = await db.admin.query<{ id: string; payload: unknown }>('select id::text, payload from site.erp_outbound_message order by created_at limit 1');
+    const message = rows[0];
+    if (!message) throw new Error('no queued ERP message to try');
+    expect(await refusal(db.admin.query("update site.erp_outbound_message set payload = '{}'::jsonb where id = $1", [message.id]))).toMatch(/EBMR-PLAT-002 site\.erp_outbound_message is insert-only; update is refused/);
+    expect(await refusal(db.admin.query('delete from site.erp_outbound_message where id = $1', [message.id]))).toMatch(/EBMR-PLAT-002 .*delete is refused/);
+    // A TRUNCATE is refused by its statement trigger too (the queue's foreign keys refuse a plain one first).
+    expect((await db.admin.query<{ t: string }>("select tgname as t from pg_trigger where tgrelid = 'site.erp_outbound_message'::regclass and tgname like 'aa_%' order by 1")).rows.map((r) => r.t))
+      .toEqual(['aa_insert_only_site_erp_outbound_message', 'aa_no_truncate_site_erp_outbound_message']);
+    const owner = await db.admin.connect();
+    try {
+      await owner.query('set role ebmr_owner');
+      expect(await refusal(owner.query('delete from site.erp_outbound_message where id = $1', [message.id]))).toMatch(/EBMR-PLAT-002/);
+    } finally {
+      await owner.query('reset role');
+      owner.release();
+    }
+    expect((await db.admin.query<{ payload: unknown }>('select payload from site.erp_outbound_message where id = $1', [message.id])).rows[0]?.payload).toEqual(message.payload);
+  });
 });
