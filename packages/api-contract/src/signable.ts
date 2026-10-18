@@ -79,6 +79,13 @@
  *              FACILITY_RULE_APPROVE      facility_rule <proposal id>            QA_APPROVED (QA, never the proposer), state PROPOSED
  *              BETA_LACTAM_APPROVE        beta_lactam_class <proposal id>        QA_APPROVED (QA, never the proposer), state PROPOSED
  *              (Phase 7 slice 7a, recipe-core 1210; PR-27: the penicillin facility rule and the beta-lactam classification)
+ * Phase 7 slice 7g-2 (decision 0025; tablets 1479; ns/designer.ts):
+ *  - MBR_MARKET_ACT REGULATORY_CONFIRM  mbr_market_authorisation <id>  REGULATORY_CONFIRMED (regulatory signer), state PROPOSED
+ *                   AUTHORISE           mbr_market_authorisation <id>  MBR_MARKET_AUTHORISED (QA, another person than the
+ *                                       regulatory signer), state PROPOSED; the same command activates the record with
+ *                                       the regulatory confirmation already on it and QA's own reason (recipe-core 0290)
+ *  - SPECIMEN_ACT APPROVE  labelling_specimen <reference document id>  SPECIMEN_APPROVED (MBR.APPROVE, never the person who
+ *                          recorded the specimen), state RECORDED
  * Phase 6 slice 6f (kernel 1202; ns/support.ts):
  *  - SUPPORT_ACT QA_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_QA_APPROVED (QA), state PENDING
  *                IT_APPROVE  support_grant <grant id>  SUPPORT_ACCESS_IT_APPROVED (system or process owner), state PENDING
@@ -424,6 +431,24 @@ export const SignableAction = z.discriminatedUnion('kind', [
     /** Phase 6 slice 6i (ns/transfers.ts): QA approves a proposed peer installation's key (DI-31). */
     kind: z.literal('PEER_INSTALLATION_APPROVE'),
     peerId: Uuid,
+  }),
+  z.strictObject({
+    /**
+     * Phase 7 slice 7g-2 (ns/designer.ts; recipe-core 0160, 0290; ADR 0014): the regulatory signer confirms the
+     * registration of a proposed market authorisation (REGULATORY_CONFIRMED); QA then authorises it (MBR_MARKET_AUTHORISED)
+     * and the same command activates it with that confirmation and QA's own reason. The database refuses one person as both.
+     */
+    kind: z.literal('MBR_MARKET_ACT'),
+    act: z.enum(['REGULATORY_CONFIRM', 'AUTHORISE']),
+    authorisationId: Uuid,
+    /** AUTHORISE: QA's own reason for the activation, both halves (DI-22, EBMR-AUDIT-002); REGULATORY_CONFIRM carries none. */
+    reason: z.strictObject({ code: z.string().trim().min(1).max(64), text: z.string().trim().min(1).max(2000) }).optional(),
+  }),
+  z.strictObject({
+    /** Phase 7 slice 7g-2 (tablets 1479; DI-35): QA approves a labelling specimen recorded by another person (SPECIMEN_APPROVED). */
+    kind: z.literal('SPECIMEN_ACT'),
+    act: z.literal('APPROVE'),
+    documentId: Uuid,
   }),
 ]);
 export type SignableAction = z.infer<typeof SignableAction>;

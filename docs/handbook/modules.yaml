@@ -727,13 +727,14 @@ modules:
     page: modules/tablets-server.md
     package: apps/tablets-server
     migrations:
-      apps/tablets-server/sql: ['^0150_', '^0280_', '^1090_']
+      apps/tablets-server/sql: ['^0150_', '^0280_', '^1090_', '^1479_']
     server: [apps/tablets-server/src/features/designer]
     contract: [packages/api-contract/src/ns/designer.ts]
-    screens: [apps/tablets-web/src/features/designer]
+    screens: [apps/tablets-web/src/features/designer, apps/tablets-web/src/features/master-records]
     tests:
       - 'apps/tablets-server/test/designer/**'
       - 'apps/tablets-web/test/designer/**'
+      - 'apps/tablets-web/test/slice7g2/master-records.test.tsx'
       - 'apps/tablets-server/test/mutation/designer-guards.test.ts'
 
   - id: ts-devices
@@ -915,8 +916,18 @@ modules:
       apps/tablets-server/sql: ['^121\d_']
     server: [apps/tablets-server/src/features/alarms, apps/tablets-server/src/features/equipment-data, apps/tablets-server/src/features/plant-rules]
     contract: [packages/api-contract/src/ns/alarms.ts, packages/api-contract/src/ns/equipment-data.ts, packages/api-contract/src/ns/plant-rules.ts]
-    screens: [apps/tablets-web/src/features/plant-status]
-    tests: ['apps/tablets-server/test/alarms/**', 'apps/tablets-server/test/equipment-data/**', 'apps/tablets-web/test/plant-status/**']
+    screens: [apps/tablets-web/src/features/plant-status, apps/tablets-web/src/features/plant-rules]
+    tests: ['apps/tablets-server/test/alarms/**', 'apps/tablets-server/test/equipment-data/**', 'apps/tablets-web/test/plant-status/**',
+            'apps/tablets-web/test/slice7g2/plant-rules.test.tsx']
+
+  - id: ts-incidents
+    title: Incident register and the CERT-In step on screen (Phase 7 slice 7g-2)
+    page: modules/tablets-web.md
+    package: apps/tablets-server
+    server: [apps/tablets-server/src/features/incidents]
+    contract: [packages/api-contract/src/ns/incidents.ts]
+    screens: [apps/tablets-web/src/features/incidents]
+    tests: ['apps/tablets-server/test/incidents/**', 'apps/tablets-web/test/slice7g2/incidents.test.tsx']
 
   - id: ts-capa
     title: CAPA register and closure (Phase 6 slice 6a, builder B)

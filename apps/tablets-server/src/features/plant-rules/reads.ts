@@ -6,7 +6,7 @@
  * qualification matrix from iam.person_qualification (PR-15).
  */
 import type pg from 'pg';
-import type { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, Instant, LineStationView, ReagentLotView, RoomConditionsView, RoomStateView, StatusBoardEntry } from '@ebmr/api-contract';
+import type { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, BetaLactamSubjectView, FacilityRuleSubjectView, Instant, PlantRuleProposalView, LineStationView, ReagentLotView, RoomConditionsView, RoomStateView, StatusBoardEntry } from '@ebmr/api-contract';
 import type { AppContext } from '../../platform/context.ts';
 import { refusal } from '../../platform/http/refusal.ts';
 import { peopleOf, personRef, usOf } from '../common/people.ts';
@@ -286,4 +286,62 @@ export async function areaAuthorisationRecord(app: AppContext, db: Db, id: strin
   const r = rows[0];
   if (!r) throw refusal(404, { code: 'EBMR-PLANT-185', kind: 'INVALID_INPUT', whatHappened: 'There is no such area authorisation record.', whatYouCanDo: ['Open the area authorisations again and choose the record from the list.'], whoCanHelp: ['The training coordinator'], controls: ['PR-15'] });
   return (await authViews(app, db, [r])).get(r.id) as AreaAuthorisationRecordView;
+}
+
+interface ProposalRow {
+  subject: string; kind: 'MATERIAL' | 'PRODUCT' | null; id: string; version: string; state: PlantRuleProposalView['state']; value: boolean; reason: string;
+  prev: boolean; by: string; at_us: string; approver: string | null; approved_us: string | null;
+}
+
+/**
+ * The penicillin facility rules and beta-lactam classifications (recipe-core 0973, 1210; PR-27; Phase 7 slice 7g-2): per
+ * subject the value in force and whether a proposal waits (the database's views), and every version with its state, its
+ * effect against the value approved before it (as the signed content states it), its proposer and its approver.
+ */
+export async function plantRuleProposals(app: AppContext, db: Db): Promise<{ facilityRules: FacilityRuleSubjectView[]; betaLactam: BetaLactamSubjectView[]; readAt: Instant }> {
+  const effect = (value: boolean, prev: boolean, tightensWhen: boolean): PlantRuleProposalView['effect'] => (value === prev ? 'UNCHANGED' : value === tightensWhen ? 'TIGHTENS' : 'LOOSENS');
+  const facility = (await db.query<ProposalRow>(
+    `select f.site_code as subject, null::text as kind, f.id, f.version::text, plant.facility_rule_state(f.id) as state, f.penicillin_facility as value, f.justification as reason,
+            coalesce((select p.penicillin_facility from plant.facility_rule p join plant.facility_rule_approval a on a.rule_id = p.id
+                       where p.site_code = f.site_code and p.version < f.version order by p.version desc limit 1), false) as prev,
+            f.recorded_by_person as by, ${usOf('f.recorded_at')} as at_us, ap.approved_by_person as approver, ${tsUs('ap.approved_at')} as approved_us
+       from plant.facility_rule f left join plant.facility_rule_approval ap on ap.rule_id = f.id
+      order by f.site_code, f.version desc`,
+  )).rows;
+  const classes = (await db.query<ProposalRow>(
+    `select c.code as subject, c.subject_kind as kind, c.id, c.version::text, plant.beta_lactam_class_state(c.id) as state, c.beta_lactam as value, c.reason,
+            coalesce((select p.beta_lactam from plant.beta_lactam_class p join plant.beta_lactam_class_approval a on a.class_id = p.id
+                       where p.subject_kind = c.subject_kind and p.code = c.code and p.version < c.version order by p.version desc limit 1), false) as prev,
+            c.recorded_by_person as by, ${usOf('c.recorded_at')} as at_us, ap.approved_by_person as approver, ${tsUs('ap.approved_at')} as approved_us
+       from plant.beta_lactam_class c left join plant.beta_lactam_class_approval ap on ap.class_id = c.id
+      order by c.subject_kind, c.code, c.version desc`,
+  )).rows;
+  const inForceF = new Map((await db.query<{ site_code: string; penicillin_facility: boolean; approved_version: number | null; pending: boolean }>(
+    'select site_code, penicillin_facility, approved_version, pending from plant.facility_rule_in_force')).rows.map((r) => [r.site_code, r]));
+  const inForceB = new Map((await db.query<{ subject_kind: string; code: string; beta_lactam: boolean; approved_version: number | null; pending: boolean }>(
+    'select subject_kind, code, beta_lactam, approved_version, pending from plant.beta_lactam_class_in_force')).rows.map((r) => [`${r.subject_kind}:${r.code}`, r]));
+  const people = await peopleOf(db, [...facility, ...classes].flatMap((r) => [r.by, r.approver]));
+  const view = (r: ProposalRow, tightensWhen: boolean): PlantRuleProposalView => ({
+    proposalId: r.id, version: r.version, state: r.state, effect: effect(r.value, r.prev, tightensWhen), value: r.value, reason: r.reason,
+    proposedBy: personRef(people, r.by, 'MASTER_DATA_STEWARD'), proposedAt: app.formatInstant(r.at_us),
+    approvedBy: r.approver ? personRef(people, r.approver, 'QA_APPROVED') : null, approvedAt: r.approved_us ? app.formatInstant(r.approved_us) : null,
+  });
+  const group = <T>(rows: ProposalRow[], key: (r: ProposalRow) => string, make: (k: string, rows: ProposalRow[]) => T): T[] => {
+    const m = new Map<string, ProposalRow[]>();
+    for (const r of rows) m.set(key(r), [...(m.get(key(r)) ?? []), r]);
+    return [...m.entries()].map(([k, rs]) => make(k, rs));
+  };
+  const text = (v: number | null): string | null => (v === null ? null : String(v));
+  // A facility rule that says "not a penicillin facility" tightens; a beta-lactam classification that says "beta-lactam" does.
+  const facilityRules = group(facility, (r) => r.subject, (site, rs): FacilityRuleSubjectView => {
+    const f = inForceF.get(site);
+    return { site, inForce: f?.penicillin_facility ?? false, approvedVersion: text(f?.approved_version ?? null), pending: f?.pending ?? false, versions: rs.map((r) => view(r, false)) };
+  });
+  const betaLactam = group(classes, (r) => `${r.kind ?? ''}:${r.subject}`, (k, rs): BetaLactamSubjectView => {
+    const b = inForceB.get(k);
+    const first = rs[0] as ProposalRow;
+    return { kind: first.kind ?? 'MATERIAL', code: first.subject, inForce: b?.beta_lactam ?? false, approvedVersion: text(b?.approved_version ?? null), pending: b?.pending ?? false, versions: rs.map((r) => view(r, true)) };
+  });
+  const now = (await db.query<{ us: string }>(`select ${NOW_US} as us`)).rows[0]?.us ?? '0';
+  return { facilityRules, betaLactam, readAt: app.formatInstant(now) };
 }

@@ -4,7 +4,7 @@
  * batches stay sandbox-only, the GMP batch issue GMP-only, by the contract's route installations; each installation has its
  * own gateways and scales). A module replaces only its own index.ts. Phase 3 slice 6: planning, master-data
  * (formulation library) and plant on GMP; the GMP batch family `/api/batches/*` is bound by execution (D-S6-1). Phase 4
- * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP. Phase 4 slice 6b: archive (retention, contingency packs, evidence export, inspection) on GMP. Phase 6 slice 6b-0: alarms (plant alarm log) and equipment-data (native series, equipment events, original records) on GMP. Phase 6 slice 6d: genealogy (genealogy and recall namespaces) on GMP. Phase 6 slice 6g: dashboards (dashboards and changeImpact) on GMP, training on the SANDBOX only. Phase 6 slice 6i: transfers (transfers and federation namespaces) on GMP. Phase 6A slice 6A-1: analytics (analytics and analyticsConfig namespaces) on GMP. Phase 6A slice 6A-4: analytics-audit (analyticsAudit) on GMP. Phase 6A slice 6A-2: analytics-spc (analyticsSpc) on GMP. Phase 6A slice 6A-5: analytics-review (analyticsReview) on GMP. Phase 6A slice 6A-6: analytics-profile (analyticsProfile) on GMP. Phase 6A slice 6A-3: analytics-mspc (analyticsMspc) on GMP.
+ * slice 1: review on GMP. Phase 4 slice 2b: lims (specifications, samples, returned goods; quality/lims.ts) on GMP. Phase 4 slice 3: release and notifications on GMP. Phase 4 slice 4b: qp-package and erp-shipping on GMP. Phase 4 slice 5b: records (locking, amendment, bulk reconciliation) on GMP. Phase 4 slice 6c: pqr (PQR extract and sign-off) on GMP. Phase 4 slice 6b: archive (retention, contingency packs, evidence export, inspection) on GMP. Phase 6 slice 6b-0: alarms (plant alarm log) and equipment-data (native series, equipment events, original records) on GMP. Phase 6 slice 6d: genealogy (genealogy and recall namespaces) on GMP. Phase 6 slice 6g: dashboards (dashboards and changeImpact) on GMP, training on the SANDBOX only. Phase 6 slice 6i: transfers (transfers and federation namespaces) on GMP. Phase 6A slice 6A-1: analytics (analytics and analyticsConfig namespaces) on GMP. Phase 6A slice 6A-4: analytics-audit (analyticsAudit) on GMP. Phase 6A slice 6A-2: analytics-spc (analyticsSpc) on GMP. Phase 6A slice 6A-5: analytics-review (analyticsReview) on GMP. Phase 6A slice 6A-6: analytics-profile (analyticsProfile) on GMP. Phase 6A slice 6A-3: analytics-mspc (analyticsMspc) on GMP. Phase 7 slice 7g-2: incidents (the incident register and its CERT-In step) on GMP.
  */
 import * as access from './access/index.ts';
 import * as alarms from './alarms/index.ts';
@@ -26,6 +26,7 @@ import * as governance from './governance/index.ts';
 import * as erpShipping from './erp-shipping/index.ts';
 import * as execution from './execution/index.ts';
 import * as genealogy from './genealogy/index.ts';
+import * as incidents from './incidents/index.ts';
 import * as india from './india/index.ts';
 import * as masterData from './master-data/index.ts';
 import * as integrations from './integrations/index.ts';
@@ -98,6 +99,7 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'analytics-review', installations: ['GMP'], module: analyticsReview satisfies FeatureModule },
   // Phase 7 slice 7g-1 (decision 0025): people and access, and the device registry, on both installations.
   { name: 'administration', installations: ['GMP', 'SANDBOX'], module: administration satisfies FeatureModule },
+  { name: 'incidents', installations: ['GMP'], module: incidents satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

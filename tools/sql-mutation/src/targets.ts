@@ -1359,7 +1359,9 @@ export const TARGETS: Target[] = [
                 'recipe.record_federation_failure', 'recipe.record_federated_excerpt', 'recipe.mock_recall_result_v2',
                 'recipe.mock_recall_federation', 'recipe.record_mock_recall_remote', 'tab.kernel_signing_meanings',
                 'tab.aggregate_read_class'],
-    tests: [site('transfer/transfer.test.ts'), s('transfers/transfer-routes.test.ts')],
+    tests: [site('transfer/transfer.test.ts'), s('transfers/transfer-routes.test.ts'),
+            // Phase 7 slice 7g-2: tablets 1479 re-created both tab.* functions for the labelling specimen approval.
+            s('designer/master-records.test.ts')],
     threshold: 90,
   },
   // ---- 6A-0, analytics interfaces (kernel 1240-1244; ADR 0020): the runner's run lifecycle and output recording, the QA
@@ -1544,6 +1546,14 @@ export const TARGETS: Target[] = [
     group: 'validation-summary-gate',
     functions: ['recipe.batch_execution_validation_gate'],
     tests: [r('lifecycle/gmp-issue.test.ts')],
+    threshold: 90,
+  },
+  // Phase 7 slice 7g-2 (decision 0025): QA's approval of a labelling specimen, its state and its signed content (DI-35;
+  // tablets 1479). The re-created tab.aggregate_read_class and tab.kernel_signing_meanings stay in their group.
+  {
+    group: 'specimen-approval',
+    functions: ['tab.approve_labelling_specimen', 'tab.labelling_specimen_state', 'tab.labelling_specimen_content'],
+    tests: [s('designer/master-records.test.ts')],
     threshold: 90,
   },
 ];

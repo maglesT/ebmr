@@ -1018,6 +1018,78 @@ fails unless every route of the contract and every signable action is called by 
 [administration-routes.test.ts](../../../apps/tablets-server/test/administration/administration-routes.test.ts) and the
 browser suite's [administration.spec.ts](../../../tools/e2e/specs/administration/administration.spec.ts).
 
+## Master records, plant rules and incidents (Phase 7 slice 7g-2)
+
+Decision 0025 asks for a screen for every act a person performs. Slice 7g-2 added three features. Every act is offered
+to whoever opens the page: who may do what, and the separation of duties (the checker is not the author, the approver
+is neither, the approver of a plant rule is not its proposer), is the database's rule, and its refusal is shown in its
+own words ([How refusals are shown](#how-refusals-are-shown)).
+
+### master-records: MBR signatures, market authorisations and specimens
+
+**What the person does.** On `/mbr/versions/$versionId/signing` (the designer's toolbar links to it as "Signatures and
+markets") the author signs a version as *Prepared*, a checker as *Independently checked*, the regulatory-conformity
+signer confirms the registration references and QA approves it. For an approved version QA proposes the authorisation
+for a market and scope (site, line, batch size) with its regulatory basis; the regulatory signer confirms the market's
+registration; QA, another person, authorises it with its own reason, which makes it effective; QA may withdraw it with a
+reason. On `/mbr/specimens` (home tile **Labelling specimens**) QA approves a label or packaging specimen that the
+master-data steward recorded as a SPECIMEN reference document.
+
+**Screens.** [MbrSigningPage.tsx](../../../apps/tablets-web/src/features/master-records/MbrSigningPage.tsx),
+[SpecimensPage.tsx](../../../apps/tablets-web/src/features/master-records/SpecimensPage.tsx).
+
+**Routes.** `designer.version`, `esig.signatures`, `designer.marketAuthorisations`,
+`designer.proposeMarketAuthorisation`, `designer.withdrawMarketAuthorisation`, `designer.specimens`.
+
+**Signatures.** `MBR_TRANSITION` (SUBMIT: PREPARED, CHECK: CHECKED, REGULATORY_CONFIRM: REGULATORY_CONFIRMED, APPROVE:
+APPROVED, on the revision shown); `MBR_MARKET_ACT` (REGULATORY_CONFIRM: REGULATORY_CONFIRMED; AUTHORISE:
+MBR_MARKET_AUTHORISED with QA's reason, the same command activates the record); `SPECIMEN_ACT` APPROVE
+(SPECIMEN_APPROVED, never the person who recorded the specimen; tablets 1479).
+
+**Tests.** [slice7g2/master-records.test.tsx](../../../apps/tablets-web/test/slice7g2/master-records.test.tsx). Browser
+[phase7/master-records.spec.ts](../../../tools/e2e/specs/phase7/master-records.spec.ts) (four people from draft to an
+active IN authorisation; the author's own check refused; a specimen refused to the steward and approved by QA).
+
+### plant-rules: penicillin facility and beta-lactam rules
+
+**What the person does.** On `/plant-rules` (home tile **Penicillin and beta-lactam rules**) the master-data steward
+proposes that a site is (or is not) a penicillin facility, or that a material or product is (or is not) beta-lactam. A
+QA person who did not propose it approves the latest proposal. The screen shows, per subject, the value in force, whether
+a proposal waits for QA, and each version with its effect: a tightening (a site that is not a penicillin facility, a
+beta-lactam material) is in force at once; a loosening only once approved.
+
+**Screen.** [PlantRulesPage.tsx](../../../apps/tablets-web/src/features/plant-rules/PlantRulesPage.tsx).
+
+**Routes.** `plantRules.proposals` (new: the database's in-force views and every version), `plantRules.setFacilityRule`,
+`plantRules.classifyBetaLactam`.
+
+**Signature.** `INDIA_ACT` FACILITY_RULE_APPROVE or BETA_LACTAM_APPROVE (QA_APPROVED; recipe-core 1210).
+
+**Tests.** [slice7g2/plant-rules.test.tsx](../../../apps/tablets-web/test/slice7g2/plant-rules.test.tsx). Browser
+[phase7/plant-rules.spec.ts](../../../tools/e2e/specs/phase7/plant-rules.spec.ts) (the proposer refused, QA approves).
+
+### incidents: the incident register and the CERT-In step
+
+**What the person does.** On `/incidents` (home tile **Incident register**) anyone holding INCIDENT.RAISE raises an
+incident with its source, type, severity and an affected record, and sees the register with the CERT-In reports due and
+their deadlines. On `/incidents/$incidentId` QA links further records, starts the investigation, changes the severity
+with a justification, assesses the impact on each linked record (which lifts that record's disposition block), marks the
+incident reportable to CERT-In, records the report made (when, and CERT-In's acknowledgement) and closes it. The window,
+the deadline and whether it has passed are the database's (`records.cert_in_reporting_window`, not yet verified against
+the official text). The report time is a claimed time typed with its offset (seconds may be left out; the screen sends
+them as `:00`, the form the contract takes); the database alone checks that it lies between the occurrence and its own
+now, so the browser's clock decides nothing (7g-2 defect P7G2-2).
+
+**Screens.** [IncidentsPage.tsx](../../../apps/tablets-web/src/features/incidents/IncidentsPage.tsx),
+[IncidentPage.tsx](../../../apps/tablets-web/src/features/incidents/IncidentPage.tsx).
+
+**Routes.** `incidents.*` (new namespace, kernel 0410's commands): `register`, `detail`, `raise`, `link`,
+`startInvestigation`, `reclassify`, `assessImpact`, `markCertInReportable`, `recordCertInReport`, `close`.
+
+**Tests.** [slice7g2/incidents.test.tsx](../../../apps/tablets-web/test/slice7g2/incidents.test.tsx). Browser
+[phase7/incidents.spec.ts](../../../tools/e2e/specs/phase7/incidents.spec.ts) (raised by a batch issuer; the closure
+before the CERT-In report refused).
+
 ## How to test this app
 
 - **Component tests** (Vitest `dom` project, happy-dom, no server): `pnpm vitest run --project dom apps/tablets-web/test/<area>`.

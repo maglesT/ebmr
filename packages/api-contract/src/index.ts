@@ -31,6 +31,8 @@ export {
   FamilyView,
   FindingView,
   JustificationView,
+  LabellingSpecimenView,
+  MarketAuthorisationView,
   MbrContentWire,
   PaletteBlock,
   ProductRef,
@@ -258,7 +260,8 @@ export {
 export { AlarmLimitKind, AlarmSubjectKind, PlantAlarmSource, PlantAlarmView } from './ns/alarms.ts';
 export { DeviceOriginalView, EquipmentEventView, NativeSampleView, SERIES_PAGE_MAX, SeriesChunkView, SeriesSubjectKind, SeriesTagView } from './ns/equipment-data.ts';
 export { LineStationView, StatusBoardEntry } from './ns/equipment-data.ts';
-export { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
+export { AdjacencyView, AreaAuthorisationMatrixView, AreaAuthorisationRecordView, BetaLactamSubjectView, FacilityRuleSubjectView, PlantRuleProposalView, ReagentLotView, RoomCleaningState, RoomConditionsView, RoomStateView } from './ns/plant-rules.ts';
+export { IncidentSeverity, IncidentSource, IncidentStatus, IncidentSummaryView, IncidentView } from './ns/incidents.ts';
 export {
   ComplaintLookupView,
   DeviationImpactView,

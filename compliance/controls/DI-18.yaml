@@ -116,6 +116,8 @@ tests:
   - "apps/tablets-server/test/validation/authorization-scan.test.ts > the authorization scan of the Tablets schema (6jc-R7) > [DI-17][DI-18] every app-callable writer of tab checks a known permission or is listed with its reason, refuses administrators first when it names a GMP permission, and no tab table is app-writable"
   - "tools/security/test/security-tools.test.ts > installation hardening check (slice 7d) > [DI-13][DI-18] roles: the installation logins hold no strong right, the owner cannot log in, passwords are SCRAM, only the break-glass login is a superuser"
   - "apps/tablets-server/test/security/route-matrix.test.ts > the route-by-role authorization matrix (slice 7d) > [DI-17][DI-14][DI-18] in a session of every role, every route answers that role's right (403 without it), never a 5xx or a 401"
+  - "apps/tablets-server/test/alarms/plant-rule-proposals.test.ts > plant-rule proposals and what is in force (PR-27) > [DI-18][PR-27] an administrator may neither propose a plant rule nor approve one"
+  - "apps/tablets-server/test/incidents/incident-routes.test.ts > the incident register over HTTP (DI-12) > [DI-18][DI-12] an administrator can neither raise an incident nor act on one"
 clauses:
   - clause: "Assign an administrator role to a user who holds a QA role. Refused."
     tests:

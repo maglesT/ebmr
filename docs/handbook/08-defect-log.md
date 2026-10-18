@@ -1719,6 +1719,33 @@ refused without the letter (issue, the step before it, a superuser's direct writ
 India-only batch never asked, FLAG only reports. **Lesson.** A guard function is only a control once a path calls it; a
 test of the guard alone proved nothing about the issue.
 
+## Slice 7g-2: master records, plant rules and incidents on screen (Phase 7, decision 0025)
+
+### P7G2-1: the labelling specimen approval was a meaning without a record (found while building, 18 October 2026)
+
+**Symptom.** The e-signature catalogue had the meaning `SPECIMEN_APPROVED` (kernel 0210) and the guides listed "approve a
+labelling specimen" as an MBR act, but no record, command or signing route used it: a specimen was only a SPECIMEN
+reference document recorded by the steward, with nobody's approval. **Fix.** Tablets 1479: `tab.approve_labelling_specimen`
+records QA's own valid `SPECIMEN_APPROVED` on a recorded specimen (never an administrator, MBR.APPROVE, never the person
+who recorded it, once, never a retired one), in the insert-only, audited `tab.labelling_specimen_approval`; the ceremony
+signs it (`SPECIMEN_ACT`). The market authorisation's two signatures had no route either (only the set-up scripts signed
+them); `MBR_MARKET_ACT` signs them, the database's activation unchanged. **Tests.** Server
+`test/designer/master-records.test.ts` ("[DI-35] the person who recorded a specimen may not approve it, even holding the QA
+MBR approver role"). **Open.** The validator's GMP-SPECIMENS rule still counts a recorded specimen as approved; requiring
+the approval would move the golden set-ups (owner or lead to decide).
+
+### P7G2-2: the CERT-In report time shown as an example was refused by the contract (found by the browser suite, 18 October 2026)
+
+**Symptom.** The incident screen offered "When the report was made (e.g. 2026-10-18T10:15+05:30)" and accepted a time
+without seconds, but the route's contract takes an ISO date-time with seconds, so the report a person typed as shown was
+refused before it reached the database; the browser flow had typed the browser's own clock in that form. **Fix.** The
+screen sends a typed time without seconds as `:00` (`claimedTime`, incidents/reads.ts); the browser flow takes the time
+it types from the server's own clock (the marking's time shown in the history), never from the browser's. The database's
+check that the claimed time lies between the occurrence and its own now is unchanged (kernel 0410). **Tests.** Web
+`test/slice7g2/incidents.test.tsx` (the body sent parses with the contract), browser `phase7/incidents.spec.ts`.
+**Lesson.** A unit test that mocks the client must still check the body against the route's contract; a regulatory time
+in a browser test comes from the server, not from the test machine.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.
