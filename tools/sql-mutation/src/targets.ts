@@ -1495,8 +1495,10 @@ export const TARGETS: Target[] = [
   {
     group: 'full-export',
     functions: [
-      'records.closed_di_investigation_records', 'records.closed_incident_records', 'records.full_export_chain_keys',
-      'records.full_export_index', 'records.full_export_snapshot', 'records.register_full_export',
+      'records.closed_di_investigation_records', 'records.closed_incident_records',
+      'records.full_export_snapshot', 'records.register_full_export', 'records.register_export_restricted_table',
+      'records.require_export_permissions', 'records.closed_record_chains', 'records.export_chain_parts',
+      'records.open_export_run', 'records.begin_full_export', 'records.full_export_records', 'records.readability_snapshot',
       'report.closed_batch_records', 'report.closed_record_rows_v1', 'report.readability_sample_rows_v1',
       'report.register_closed_record_source',
     ],
