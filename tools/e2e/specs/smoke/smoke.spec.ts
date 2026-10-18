@@ -49,14 +49,16 @@ test.describe('smoke', () => {
       await expect(brand.getByRole('img', { name: 'Medhanta' })).toBeVisible();
       await expect(brand.getByTestId('maker-mark')).toContainText('by');
     }, page);
+    // The page's own origin (the config sets no baseURL).
+    const at = (path: string) => new URL(path, page.url()).toString();
     for (const [path, type] of [['/favicon.svg', 'image/svg+xml'], ['/icon-192.png', 'image/png'], ['/icon-512.png', 'image/png'], ['/apple-touch-icon.png', 'image/png'], ['/manifest.webmanifest', 'application/manifest+json']] as const) {
-      const res = await page.request.get(path);
+      const res = await page.request.get(at(path));
       expect({ path, status: res.status(), type: (res.headers()['content-type'] ?? '').split(';')[0] }).toEqual({ path, status: 200, type });
     }
-    const manifest = (await (await page.request.get('/manifest.webmanifest')).json()) as { name: string };
+    const manifest = (await (await page.request.get(at('/manifest.webmanifest'))).json()) as { name: string };
     expect(manifest.name).toBe('Batchwright Tablets');
     await axe.check(page);
-    const meta = (await (await page.request.get('/api/meta')).json()) as { version: string };
+    const meta = (await (await page.request.get(at('/api/meta'))).json()) as { version: string };
     await evidence.step('Sign in and open the about page from the header', 'The about page names the product, edition, version, maker and installation', async () => {
       await signIn.office(page, persona('GMP', 'author'));
       await page.getByTestId('header-brand').getByRole('link', { name: 'Batchwright Tablets' }).click();
