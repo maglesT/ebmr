@@ -45,6 +45,7 @@ import * as analyticsProfile from './analytics/profile/index.ts';
 import * as analyticsSpc from './analytics/spc/index.ts';
 import * as analyticsMspc from './analytics/mspc/index.ts';
 import * as analyticsReview from './analytics/review/index.ts';
+import * as administration from './administration/index.ts';
 import * as review from './review/index.ts';
 import * as session from './session/index.ts';
 import * as transfers from './transfers/index.ts';
@@ -95,6 +96,8 @@ export const FEATURES: readonly FeatureEntry[] = [
   { name: 'analytics-spc', installations: ['GMP'], module: analyticsSpc satisfies FeatureModule },
   { name: 'analytics-mspc', installations: ['GMP'], module: analyticsMspc satisfies FeatureModule },
   { name: 'analytics-review', installations: ['GMP'], module: analyticsReview satisfies FeatureModule },
+  // Phase 7 slice 7g-1 (decision 0025): people and access, and the device registry, on both installations.
+  { name: 'administration', installations: ['GMP', 'SANDBOX'], module: administration satisfies FeatureModule },
 ];
 
 export type { FeatureEntry, FeatureModule, FeatureSeedContext } from './types.ts';

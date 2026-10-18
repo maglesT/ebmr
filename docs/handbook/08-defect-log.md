@@ -1477,6 +1477,20 @@ the site's zone (site services 0821). **Fix.** The scenario reads the 28th of th
 in the site's zone. No product code changed; the database's check was right. **Lesson.** A golden scenario takes every
 date from the database's clock, never from the machine's.
 
+## Slice 7g-1: a screen for every act of people and devices (Phase 7, decision 0025)
+
+### 7g1-1: person-facing routes with no screen (gap; found by the [meta] completeness test, 18 October 2026)
+
+**Symptom.** Decision 0025 asks for a screen for every act a person performs. The new [meta] test
+([screen-completeness.test.ts](../../apps/tablets-web/test/meta/screen-completeness.test.ts)) found, besides the people
+and device acts this slice built and the MBR, plant-rule and labelling acts slice 7g-2 builds, 25 routes of the contract
+that a person calls and no screen calls (for example the kiosk keep-alive, the India shelf-life bases and hazards, the
+reagent lots and room rules of plant rules, scheduling another CAPA check, proposing a peer installation, the dashboard
+export). **Cause.** Each was added with its server feature and tested over HTTP; nothing checked that a screen used it.
+**Fix.** Not fixed here: the test lists them by name in `NO_SLICE_YET`, so it passes now and fails on any new route
+without a screen; each entry is removed when its screen is built. **Lesson.** Completeness is a test over the contract,
+not a list in a document.
+
 ## Open residuals for the owner
 
 From the Phase 2 exit backlog, the Phase 3 and 4 backlogs and PROGRESS.md. Defaults stand until the owner decides.

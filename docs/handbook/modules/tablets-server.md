@@ -1721,6 +1721,23 @@ start and step commands (FRESH_ON_SHARED, so a kiosk taps), kept in the sandbox 
 **Pitfalls.** Periods are site-zone dates (the zone from `app.siteZone`); a start after the end is EBMR-RPT-001. The
 alarm list is capped at 500 rows but the counts never are. Tests: `apps/tablets-server/test/dashboards/`.
 
+## ts-administration: people, access and the device registry (Phase 7 slice 7g-1)
+
+Decision 0025. [features/administration](../../../apps/tablets-server/src/features/administration/index.ts) binds the
+`people` routes ([people.ts](../../../apps/tablets-server/src/features/administration/people.ts): people, identity checks,
+accounts, credentials, badges, role grants, recertification, break-glass windows) and the `deviceRegistry` routes
+([devices.ts](../../../apps/tablets-server/src/features/administration/devices.ts): terminals and their hardening
+attestation, gateway keys, balance, print and process-device bindings, integration adapters and the OPC UA feed binding
+of slice 7a) on both installations. Each act is the kernel's or the edition's own function (`iam.*`,
+`continuity.record_hardening_attestation`, `tab.bind_*`, `tab.enrol_gateway_key`, `tab.bind_gateway_feed`,
+`iam.register_integration_adapter`) as the person's command with a reason (`ACCESS_ADMINISTRATION`,
+`DEVICE_ADMINISTRATION`); no migration was needed. The reads are gated to SYSTEM_ADMINISTRATOR, PROCESS_OWNER and
+BREAK_GLASS_ADMIN (`ADMIN_READERS`, ROLE_NOT_ALLOWED otherwise). `issueCredential` calls `identity.issueInitialSecret`
+and returns the generated secret once; it and `issueBadge` (which carries the badge UID) are plain commands, not
+idempotent and not FRESH_ON_SHARED, so no stored answer or request hash keeps a secret (on a kiosk the kernel refuses
+them without a fresh tap). A unique-index refusal (23505) is answered as `EBMR-API-DUPLICATE` with the database's
+message. Tests: [administration-routes.test.ts](../../../apps/tablets-server/test/administration/administration-routes.test.ts).
+
 ## ts-core: the golden batches
 
 A **golden batch** is a whole batch run end to end, over HTTP, against a real database, whose every quantity, yield
