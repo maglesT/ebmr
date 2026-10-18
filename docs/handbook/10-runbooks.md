@@ -483,6 +483,45 @@ clock or its timestamp settings are wrong: check its time synchronisation and th
 database refuses series, alarms and events from any other path, and sessions, older than the gateway's offline buffer (`integration.opcua_offline_buffer_s`, default 7 days;
 raise it under a change record before a planned longer outage).
 
+## Full export and periodic evaluation (Phase 7 slice 7b-2)
+
+The full export of the installation and the periodic evaluation pack of the system
+([kernel](modules/kernel.md#the-full-export-the-closed-records-and-the-periodic-evaluation-pack-phase-7-slice-7b-2-kernel-1335-1336),
+[record viewer](modules/record-viewer.md); DI-08, DI-11, DI-44). Both are run by the CSV / DI lead with the operators'
+command line [records-cli.ts](../../packages/kernel/src/records/records-cli.ts), as an open session of that person
+(`--actor-json`, the same form as the restore drill's). Exit code 0 is done, 1 a refusal (the message names the
+`EBMR-` code), 2 a usage error.
+
+**Make a full export** (at a contract's end, for an inspector, or to test the archive).
+1. `tsx packages/kernel/src/records/records-cli.ts full-export --url <app URL> --actor-json @lead.json --out <empty folder> --seal-key-file <the installation's seal key file>`.
+   The person needs RECORD.EXPORT (CSV / DI lead or read-only auditor). The seal key file lets the installation record
+   its own check of each HMAC seal; leave it out and the viewer shows those seals as not checked.
+2. Keep the printed export SHA-256 with the export (it is also in `records.full_export`). Give it to whoever opens the
+   export: the viewer compares the folder with it.
+3. Build the viewer once per release, `pnpm --filter @ebmr/record-viewer build`, and hand over
+   `apps/record-viewer/dist/record-viewer.html` with the export. It opens from the file system in a current browser.
+4. In the viewer: pick the export folder, type the export SHA-256, and read the verdict. "All checks passed" with "It
+   matches the expected export SHA-256" means every record shown is the registered copy. Any failed record is listed
+   with its findings and not shown; treat it as a data-integrity event (raise an incident, DI-12).
+
+**Run the periodic evaluation** (DI-11 default: every 12 months; the readability sample DI-44 default: quarterly).
+1. Choose a period that has ended, for example `--from 2026-07-01T00:00:00+05:30 --to 2026-10-01T00:00:00+05:30`, and a
+   seed (any text, kept with the pack so the sample can be repeated, for example `2026-Q3`).
+2. `tsx packages/kernel/src/records/records-cli.ts evaluation-pack --url <app URL> --report-url <URL of the role ebmr_report> --actor-json @lead.json --from <time> --to <time> --seed <text> --sample 10 --out pack-2026-Q3.json`.
+   The person needs VALIDATION.MANAGE and RECORD.EXPORT (the CSV / DI lead). The entries are read through the reporting
+   role, so the pack shows what the source logs hold, nothing else.
+3. The command prints the pack id, the entries per topic, the records sampled and how many were unreadable, and the
+   pack SHA-256. The database has stored the pack only after checking it against the source logs and the seeded sample
+   (EBMR-REC-152 to -157 name what did not match).
+4. Review the pack: every entry names its source log and row, so any entry can be traced (`select * from <source log>
+   where id = <row>`). An UNREADABLE record is a data-integrity event: raise an incident (DI-12) with the findings.
+5. QA (QA_REVIEWER or QA_MBR_APPROVER, not the person who generated it) signs the pack off with the
+   PERIODIC_EVALUATION_APPROVED signature over aggregate `evaluation_pack`, id the pack id, and records it with
+   `records.approve_evaluation_pack(pack id, signature id)`. The signature binds the pack SHA-256; a second sign-off is
+   refused. There is no screen for this sign-off yet (residual of slice 7b-2): until there is, the signature is made
+   through the kernel's signing flow (`esig.createChallenge`, the signer's SIGNATURE authentication, `esig.sign`) as the
+   test-kit's helpers do.
+
 ## Related pages
 
 - [Testing and debugging](06-testing-and-debugging.md): what each test layer proves, and CI failures with real cases.

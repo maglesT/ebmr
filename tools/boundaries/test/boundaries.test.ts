@@ -62,6 +62,12 @@ const PHASE_6A_RULES: Record<string, string> = {
   'no-gmp-feature-imports-analytics': 'apps/tablets-server/src/features/bad-analytics.ts',
 };
 
+// Phase 7 slice 7b-2: the stand-alone record viewer (DI-08) reaches nothing of the repository and no node core module.
+const PHASE_7_RULES: Record<string, string> = {
+  'record-viewer-standalone': 'apps/record-viewer/src/bad-reach.ts',
+  'record-viewer-no-node-core': 'apps/record-viewer/src/bad-node.ts',
+};
+
 describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
   it('[meta] every boundary rule fires on a deliberate violation', async () => {
     const rules = new Set((await violations()).map((v) => v.rule));
@@ -77,7 +83,7 @@ describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
       ).toBe(true);
     }
     // Every configured rule except no-circular (dependency-cruiser's own) is proven by a fixture.
-    const proven = new Set([...PHASE_1_RULES, ...Object.keys(PHASE_2_RULES), ...Object.keys(PHASE_6A_RULES)]);
+    const proven = new Set([...PHASE_1_RULES, ...Object.keys(PHASE_2_RULES), ...Object.keys(PHASE_6A_RULES), ...Object.keys(PHASE_7_RULES)]);
     for (const r of config.forbidden) if (r.name !== 'no-circular') expect(proven, r.name).toContain(r.name);
   });
 
@@ -108,5 +114,18 @@ describe('architecture boundaries (ADR 0001, 0011, 0015)', () => {
     expect(found).toContainEqual({ rule: 'no-gmp-feature-imports-analytics', from: 'apps/tablets-server/src/features/bad-analytics.ts', to: 'apps/tablets-server/src/analytics/runner.ts' });
     // The runner importing the package breaks no rule.
     expect(found.filter((v) => v.from === 'apps/tablets-server/src/analytics/runner.ts')).toEqual([]);
+  });
+
+  it('[meta][DI-08] the record viewer\'s rules fire on their own fixtures: no package, no database driver, no node core module; its own files are allowed', async () => {
+    const found = await violations();
+    for (const [rule, from] of Object.entries(PHASE_7_RULES)) {
+      expect(
+        found.some((v) => v.rule === rule && v.from === from),
+        `${rule} should fire on ${from}`,
+      ).toBe(true);
+    }
+    expect(found).toContainEqual({ rule: 'record-viewer-standalone', from: 'apps/record-viewer/src/bad-reach.ts', to: 'pg' });
+    expect(found).toContainEqual({ rule: 'record-viewer-standalone', from: 'apps/record-viewer/src/bad-reach.ts', to: 'packages/kernel/src/index.ts' });
+    expect(found.filter((v) => v.to === 'apps/record-viewer/src/verify/ok.ts')).toEqual([]);
   });
 });
