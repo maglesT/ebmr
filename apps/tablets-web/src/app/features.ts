@@ -11,8 +11,10 @@
  * Phase 6A slice 6A-2: analytics-spc (control charts, capability, deviation rates; GMP).
  * Phase 6A slice 6A-3: analytics-mspc (multivariate monitoring; GMP).
  * Phase 6A slice 6A-5: analytics-review (one record's review priority; the queue's priority note; GMP).
+ * Phase 7 slice 7g-1: administration (people and access, the device registry; both installations; decision 0025).
  */
 import * as access from '../features/access/index.tsx';
+import * as administration from '../features/administration/index.tsx';
 import * as analytics from '../features/analytics/index.tsx';
 import * as analyticsAudit from '../features/analytics-audit/index.tsx';
 import * as analyticsSpc from '../features/analytics/spc/index.tsx';
@@ -81,4 +83,5 @@ export const WEB_FEATURES: readonly (readonly [string, WebFeature])[] = [
   ['analytics-spc', analyticsSpc satisfies WebFeature],
   ['analytics-mspc', analyticsMspc satisfies WebFeature],
   ['analytics-review', analyticsReview satisfies WebFeature],
+  ['administration', administration satisfies WebFeature],
 ];

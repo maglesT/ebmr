@@ -87,6 +87,8 @@ export {
 } from './ns/quality.ts';
 export { DeviationClassificationInput, DeviationClosureBasisInput, DeviationDetailView, DeviationReleaseItem, DeviationState } from './ns/deviation.ts';
 export * from './tablet-entries.ts';
+export * from './ns/people.ts';
+export * from './ns/device-registry.ts';
 export { AdditionSourceView, BulkIssueView, ProposedActView, SsccRegisterView, SsccView } from './ns/batches.ts';
 export { PackagingBulkView, PackagingOrderView, PackagingParentView, PlanningOrderView } from './ns/planning.ts';
 export {

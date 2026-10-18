@@ -33,6 +33,7 @@ import * as integrations from '../../src/features/integrations/index.tsx';
 import * as notifications from '../../src/features/notifications/index.tsx';
 import * as release from '../../src/features/release/index.tsx';
 import * as review from '../../src/features/review/index.tsx';
+import * as administration from '../../src/features/administration/index.tsx';
 
 export interface Recorded {
   method: string;
@@ -94,7 +95,7 @@ export function renderOffice(path: string, opts: OfficeOptions = {}) {
   setTransport(transport);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
   const root = createRootRoute({ component: () => <Outlet /> });
-  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...review.routes(root), ...release.routes(root), ...notifications.routes(root), ...designer.routes(root), ...records.routes(root), ...pqr.routes(root), ...india.routes(root), ...capa.routes(root), ...integrations.routes(root), ...plantStatus.routes(root), ...config.routes(root), ...governance.routes(root), ...controlled.routes(root), ...labels.routes(root), ...genealogy.routes(root), ...transfers.routes(root)]);
+  const tree = root.addChildren([...planning.routes(root), ...masterData.routes(root), ...plant.routes(root), ...quality.routes(root), ...review.routes(root), ...release.routes(root), ...notifications.routes(root), ...designer.routes(root), ...records.routes(root), ...pqr.routes(root), ...india.routes(root), ...capa.routes(root), ...integrations.routes(root), ...plantStatus.routes(root), ...config.routes(root), ...governance.routes(root), ...controlled.routes(root), ...labels.routes(root), ...genealogy.routes(root), ...transfers.routes(root), ...administration.routes(root)]);
   const router = createRouter({ routeTree: tree, history: createMemoryHistory({ initialEntries: [path] }) });
   const ceremony = opts.ceremony ?? signedCeremony();
   const tap = fakeTap();
