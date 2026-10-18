@@ -1761,13 +1761,16 @@ of the registers are not verified, so the export layout is generic.
 >   tests because it needs real lots and consumptions).
 > - **Error:** `EBMR-CSM-001` to `EBMR-CSM-059`.
 
-**Who reads the records (Phase 7 slice 7a, 6jc-R2; decision 0022).** The application role reads none of these tables
-and none of their read functions: [1214](../../../packages/recipe-core/sql/1214_controlled_reads_closed.sql) revokes
-SELECT on the eight tables of 1031 to 1034 and EXECUTE on the controlled list, state, custodian, balance, checkpoint
-problem, batch-end problem and register-reproduction functions. The writers keep their grants and their own
-permission checks. An edition reads the records through its own definers, which decide CONTROLLED.READ (kernel 1300)
-for the session behind the request, in the record's {site, product} scope (Tablets: tablets 1413). Nothing in recipe-core
-changes except these privileges. A test or tool that reads the records uses the owner's connection.
+**Who reads the records (Phase 7 slice 7a, 6jc-R2; decision 0022).** A person reads these records only through the
+edition's gated definers. They decide CONTROLLED.READ (kernel 1300) for the session behind the request, in the
+record's {site, product} scope (Tablets: tablets 1413 to 1415). [1214](../../../packages/recipe-core/sql/1214_controlled_reads_closed.sql)
+revokes the application role's EXECUTE on the old read functions: the controlled list, the states, the custodians,
+the balance, the checkpoint problem, the batch-end problem and the register reproduction. Only the definers call them,
+as the owner. 1214 also revoked SELECT on the eight tables, and
+[1215](../../../packages/recipe-core/sql/1215_controlled_tables_app_select.sql) grants it back (finding P7A-7, lead
+decision). The application role is the server's own identity, and its generic readers of registered tables (a true
+copy of a batch, lot or flag, evidence exports, archives) must see the whole record. The writers keep their grants
+and their own permission checks.
 
 **Pitfalls.** The stage key of a checkpoint is the frame key the sign-off names (`<stage>@<context>`); a checkpoint
 recorded under another key does not close the stage. A return or destruction confirmed after a checkpoint moves the

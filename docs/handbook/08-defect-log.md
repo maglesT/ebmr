@@ -1060,7 +1060,10 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
 - **Why it matters.** Draft IN-53 limits these records to the people who hold them in custody and to QA. The register
   and the balance show where a narcotic or psychotropic API is and how much of it, which is what a diversion needs.
 - **Fix.** Recipe-core [1214](../../packages/recipe-core/sql/1214_controlled_reads_closed.sql) revokes the application
-  role's reads of the eight tables and fourteen read functions (the writers keep their grants). Tablets
+  role's EXECUTE on the fourteen old read functions (the writers keep their grants). It also revoked SELECT on the
+  eight tables, which broke the kernel's true copy of any batch or lot (finding P7A-7). Recipe-core
+  [1215](../../packages/recipe-core/sql/1215_controlled_tables_app_select.sql) grants SELECT back: the application role is
+  the server's own identity, and true copies and archives must be complete. Every person-facing path stays gated. Tablets
   [1413](../../apps/tablets-server/sql/1413_controlled_reads_gated.sql) adds gated definers for the session behind the
   request: CONTROLLED.READ (tablets 1400), no administrator, and a grant whose scope covers the record's {site, product};
   lists are filtered row by row, a named batch or record out of scope is refused (EBMR-CSM-060, 061: 403). Tablets
@@ -1075,8 +1078,8 @@ assertions name the fields. **Lesson.** Lint and `pnpm deps:check` the slice's f
   product and site scope, the preview, `[IN-53] the audit trail shows controlled-substance entries only to a reader
   holding CONTROLLED.READ`); the bypass of 1214 again in the package database in
   [controlled.test.ts](../../packages/site-services/test/controlled/controlled.test.ts).
-- **Lesson:** a read route that checks only "a session exists" is no control; when the data is restricted, the grant on
-  the table is the first thing to close.
+- **Lesson:** a read route that checks only "a session exists" is no control. Gate every path a person reads through.
+  Before revoking a table from the application role, find the generic readers that run as it (true copy, exports).
 
 ## Floor screens (web)
 

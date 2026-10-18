@@ -113,11 +113,7 @@ describe('privilege separation of the recipe schema (ADR 0012)', () => {
     expect(rows.filter((r) => r.app_writes).map((r) => r.t)).toEqual([]);
     // The transaction clock marker (INV-16) is owner-only and unlogged, like kernel.command_marker: no record, no audit.
     const MARKERS = ['recipe.execution_clock'];
-    // The controlled-substance records (draft IN-53, 6jc-R2) are read only through the edition's gated definers, which
-    // need CONTROLLED.READ in the record's scope (recipe-core 1214, tablets 1413): the application role reads none.
-    const CONTROLLED = ['recipe.controlled_checkpoint', 'recipe.controlled_checkpoint_signature', 'recipe.controlled_custody', 'recipe.controlled_custody_signature',
-      'recipe.controlled_custody_use', 'recipe.controlled_register_extract'];
-    expect(rows.filter((r) => !r.app_reads).map((r) => r.t)).toEqual([...CONTROLLED, ...MARKERS].sort());
+    expect(rows.filter((r) => !r.app_reads).map((r) => r.t)).toEqual(MARKERS);
     // The run-state projection is rebuilt from the audited, hash-chained command rows and checked against them
     // (recipe.execution_violations); it holds no fact of its own.
     const PROJECTIONS = ['recipe.execution_state'];

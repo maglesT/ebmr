@@ -178,10 +178,12 @@ describe('controlled-substance reads need CONTROLLED.READ (IN-53, draft; 6jc-R2)
     await expect(db.app.query('select tab.controlled_balance($1, $2)', ['0'.repeat(64), batchId])).rejects.toThrow(/EBMR-TAB-018/);
   });
 
-  it('[IN-53] the application role reads no controlled-substance table or read function directly (recipe-core 1214; bypass)', async () => {
+  it('[IN-53] the person-facing controlled reads are gated: the old read functions are closed to the application role, which keeps table SELECT for true copies and archives (recipe-core 1214, 1215; bypass)', async () => {
+    // P7A-7 (lead decision): the application role is the server's own identity; its generic readers of registered tables
+    // (true copies, evidence exports, archives) must see the whole record. A person reads only through the gated definers.
     const tables = ['plant.controlled_product', 'plant.controlled_product_approval', 'recipe.controlled_custody', 'recipe.controlled_custody_signature',
       'recipe.controlled_custody_use', 'recipe.controlled_checkpoint', 'recipe.controlled_checkpoint_signature', 'recipe.controlled_register_extract'];
-    for (const t of tables) await expect(db.app.query(`select count(*) from ${t}`), t).rejects.toThrow(/permission denied/);
+    for (const t of tables) await expect(db.app.query(`select count(*) from ${t}`), t).resolves.toBeDefined();
     const reads: [string, unknown[]][] = [
       ['select plant.controlled_materials($1)', [product]],
       ['select plant.material_is_controlled($1)', [material]],

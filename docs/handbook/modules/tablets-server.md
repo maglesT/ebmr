@@ -1521,7 +1521,8 @@ preview them is [tablets 1290](../../../apps/tablets-server/sql/1290_controlled_
 back after a write, is the session's own: the route passes the session's token hash to a gated definer of
 [tablets 1413](../../../apps/tablets-server/sql/1413_controlled_reads_gated.sql) (`tab.controlled_products`,
 `tab.controlled_custody`, `tab.controlled_checkpoints`, `tab.controlled_balance`, `tab.controlled_register_extracts`).
-The application role no longer reads the tables (recipe-core 1214). `tab.controlled_reader_problem` lets a session read
+No person-facing path reads the tables directly (the application role keeps SELECT for true copies and archives,
+recipe-core 1215). `tab.controlled_reader_problem` lets a session read
 only when its role holds CONTROLLED.READ now (tablets 1400 grants it to every role holding a CONTROLLED.* permission and
 to QA_REVIEWER), the role is not an administration role, the account is not a break-glass account, and the account
 holds the role through a grant whose scope covers the record's {site, product}:
