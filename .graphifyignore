@@ -1,2 +1,0 @@
-# graphify: skip PDFs (reading copies of documents whose sources are in the repository)
-*.pdf
