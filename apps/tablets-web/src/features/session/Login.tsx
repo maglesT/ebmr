@@ -18,10 +18,11 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { badgeUidOf, PIN_MAX_LENGTH, routes, type CallError, type DemoDeviceView, type LoginMethod } from '@ebmr/api-contract';
-import { Banner, Button, Field, identity, t, takeSecret, wasFilled } from '@ebmr/ui-kit';
+import { Banner, brand, Button, Field, identity, t, takeSecret, wasFilled } from '@ebmr/ui-kit';
 import { api, deviceProof } from '../../api/client.ts';
 import { cls } from '../../app/classes.ts';
 import { useBoot } from '../../app/boot.tsx';
+import { EDITION } from '../../app/brand.tsx';
 import { installationLabel } from '../../app/installation.ts';
 import { RefusalMessage } from '../../app/refusal.tsx';
 
@@ -327,6 +328,7 @@ export function OfficeLogin() {
 
   return (
     <div className={cls('center')}>
+      <brand.SignInBrand edition={EDITION} />
       <h1>{t('session.signIn')}</h1>
       <p className={cls('muted')}>
         {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode}
@@ -396,6 +398,7 @@ export function KioskLogin() {
 
   return (
     <div className={cls('center')}>
+      <brand.SignInBrand edition={EDITION} />
       <h1>{t('session.signIn')}</h1>
       <p className={cls('muted')}>
         {installationLabel(boot.meta?.installation)} · {boot.device?.deviceCode} · room {boot.device?.roomCode ?? '?'}

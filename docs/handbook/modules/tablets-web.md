@@ -145,6 +145,52 @@ answer is named GMP, so a screen never claims to be a sandbox it was not told it
 >   [smoke.spec.ts](../../../tools/e2e/specs/smoke/smoke.spec.ts) (`[DI-05]`).
 > - **Lesson:** Phase 2 exit review F09, the kiosk sign-in said "Sandbox" on GMP.
 
+### The brand: Batchwright Tablets, by Medhanta (slice 7e)
+
+The product's name and logos (decision [0020](../../decisions/0020-product-name-batchwright.md)) appear on the
+application's own screens only. Code names do not change: the packages, schemas, environment variables and the `ebmr`
+prefix stay.
+
+- **Where.** The sign-in pages (`OfficeLogin`, `KioskLogin`) show ui-kit's `SignInBrand`: the edition lockup ("Batchwright
+  Tablets") and the maker's mark ("by" and the Medhanta logo). The header shows
+  [AppHeaderBrand](../../../apps/tablets-web/src/app/brand.tsx#sym=AppHeaderBrand) (the icon, the name, the maker's
+  mark) in both banners; under the router the name links to the about page, `/about`
+  ([About](../../../apps/tablets-web/src/features/session/About.tsx#sym=About), feature `session`), which shows the
+  product, edition, the version `/api/meta` reports (the server package's version), the maker, the installation and the
+  site. Outside the router (the role choice) the name is plain text
+  ([InRouter](../../../apps/tablets-web/src/app/brand.tsx#sym=InRouter)).
+- **Title and icons.** [index.html](../../../apps/tablets-web/index.html) sets the title "Batchwright Tablets", the SVG
+  favicon, a 32 px PNG, the 180 px Apple touch icon and the web app manifest
+  ([public/manifest.webmanifest](../../../apps/tablets-web/public/manifest.webmanifest), 192 and 512 px icons). The files
+  in `public/` are copied to `dist/` as they are and served by the server's static handler (same origin, so the CSP's
+  `img-src 'self'` and the default source cover them). They keep fixed names under a long cache time: a changed icon
+  needs a new file name.
+- **Assets.** The kit's copies of the owner's files are in
+  [packages/ui-kit/src/brand/assets](../../../packages/ui-kit/src/brand/assets/); a test proves they equal
+  [docs/brand](../../brand/) byte for byte. Vite inlines the small SVGs as data URIs (the CSP allows `data:` images) and
+  emits the PNG under a hashed name.
+- **Tokens.** [BRAND_COLOURS](../../../packages/ui-kit/src/tokens/tokens.ts#sym=BRAND_COLOURS) in ui-kit, mirrored in
+  `tokens.css` as `--ebmr-brand-red-orange` (#D4553A), `--ebmr-brand-amber` (#EF9E45) and `--ebmr-brand-grey`
+  (#6C6C6C), the colours sampled in decision 0020. They mark the product's identity only, never a state (states keep
+  the colour, icon and word palette). Their use follows their contrast on white: grey for text (5.3:1), red-orange only
+  for non-text marks such as the 3 px rule under the header and the sign-in brand (4.1:1, above the 3:1 of WCAG 1.4.11),
+  amber never alone (2.2:1). [brand.test.tsx](../../../packages/ui-kit/test/brand.test.tsx) checks the values, the
+  mirror and the uses; 7d's audit checks the rendered pages.
+- **Screen texts.** A text that named the product "eBMR" says "Batchwright" (the alarm source on the plant alarms page
+  and its tile). The server's messages that named the system now say "this system", so no server text names the vendor.
+
+> **Why this exists** (GMP records keep the manufacturer's identity)
+> - **Pharma reason:** a batch record, true copy, label, report or certificate belongs to the manufacturer that runs
+>   the system; it shows their company and site, never the software vendor's logo or name.
+> - **Decision:** [0020](../../decisions/0020-product-name-batchwright.md) point 3; D-P7-11 (no "Batchwright" version
+>   line on a true copy in v1.0).
+> - **Code:** the brand lives in [packages/ui-kit/src/brand](../../../packages/ui-kit/src/brand/) and this app only.
+> - **Tests:** [vendor-identity.test.ts](../../../tools/boundaries/test/vendor-identity.test.ts) (no code that makes a
+>   record names Batchwright or Medhanta); the golden batches' "no vendor name" tests over each record head and GB-T-01's
+>   PDF/A-3 true copies ([vendor-identity.ts](../../../apps/tablets-server/test/golden/vendor-identity.ts)); the web
+>   app's [branding.test.tsx](../../../apps/tablets-web/test/session/branding.test.tsx); browser
+>   [smoke.spec.ts](../../../tools/e2e/specs/smoke/smoke.spec.ts) (title, icons, manifest, sign-in brand, about page).
+
 ### Reads are per person
 
 What a screen offers (the actions, their reasons, the cockpit) is computed by the server for the viewer. When the
@@ -454,7 +500,10 @@ at `/demo/devices` (demo databases only) picks a seeded terminal.
 React state. The kiosk takes only a reader burst that can be a badge UID, and the pad stops at `PIN_MAX_LENGTH`. The
 sign-in method per terminal class and the lockout are the kernel's.
 
-**Tests.** [session/](../../../apps/tablets-web/test/session/): `sign-in-screens`, `secret-inputs`, `badge-autofill`.
+**About.** `/about` ([About.tsx](../../../apps/tablets-web/src/features/session/About.tsx)) names the product, edition,
+version, maker, installation and site (slice 7e; see [The brand](#the-brand-batchwright-tablets-by-medhanta-slice-7e)).
+
+**Tests.** [session/](../../../apps/tablets-web/test/session/): `sign-in-screens`, `secret-inputs`, `badge-autofill`, `branding`.
 Browser: [smoke.spec.ts](../../../tools/e2e/specs/smoke/smoke.spec.ts).
 
 ### access: kiosk access and the signature ceremony

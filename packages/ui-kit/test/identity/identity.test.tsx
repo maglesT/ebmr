@@ -271,7 +271,7 @@ describe('lock screen and banner', () => {
 
   it('[DI-14] the banner names the person, user ID, role and terminal, with lock, switch (kiosk) and sign out', async () => {
     const onLock = vi.fn();
-    render(<IdentityBanner productName="eBMR Tablets" installation="SANDBOX" installationLabel="Sandbox (test runs)" legalName="TEST-Priya Nair" loginName="test-operator-1" role="OPERATOR" deviceCode="TEST-KIOSK-DISP-1" roomCode="DISP-1" kiosk attribution="TAP" onLock={onLock} onSwitch={noop} onSignOut={noop} />);
+    render(<IdentityBanner productName="Batchwright Tablets" installation="SANDBOX" installationLabel="Sandbox (test runs)" legalName="TEST-Priya Nair" loginName="test-operator-1" role="OPERATOR" deviceCode="TEST-KIOSK-DISP-1" roomCode="DISP-1" kiosk attribution="TAP" onLock={onLock} onSwitch={noop} onSignOut={noop} />);
     expect(screen.getByTestId('identity').textContent).toBe('Signed in as TEST-Priya Nair (test-operator-1), OPERATOR');
     expect(screen.getByText(/TEST-KIOSK-DISP-1 · room DISP-1 · each entry: badge tap/)).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Lock' }));

@@ -21,6 +21,7 @@ import { resultsOf, type BatchResults } from '../gb-t-01/results.ts';
 import { startGoldenWorld, type GoldenWorld } from '../gb-t-01/world.ts';
 import { lotFacts, orderFacts, type LotFacts, type OrderFacts } from '../gb-t-01/release-results.ts';
 import { BLEND, BOTTLE_PLAN, COMPRESSION, packAndRelease, runBatch, setUpGbt02, type Gbt02Release } from './scenario.ts';
+import { vendorNames } from '../vendor-identity.ts';
 
 type Json = Record<string, unknown>;
 const expected = JSON.parse(readFileSync(new URL('./expected.json', import.meta.url), 'utf8')) as Json & {
@@ -111,6 +112,10 @@ describe.runIf(goldenClockAvailable)('GB-T-02, direct compression in HDPE bottle
 
   it('[INV-43][IN-24][PR-56] the US added after the vendor-history lot was consumed is INELIGIBLE on the recorded evidence, and the US disposition is refused', () => {
     expect({ evaluation: run.rel?.usAdd, disposition: run.rel?.usDisposition, usDispose: run.rel?.usDispose }).toEqual(expected.fromTheRun.usAdd);
+  });
+
+  it.each(['batch', 'order'] as const)('the %s record carries the manufacturer\'s identity only: no Batchwright and no Medhanta in its normalised true copy (decision 0020, D-P7-11)', (k) => {
+    expect(vendorNames(r(k).trueCopy.normalised)).toEqual([]);
   });
 
   it.each(['batch', 'order'] as const)('the %s ends in the expected states, exceptions, genealogy, signatures and true-copy hash', (k) => {

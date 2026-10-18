@@ -62,8 +62,9 @@
   margin: 0 0 8px 0;
 }
 
-/* Identity banner */
+/* Identity banner (the brand's rule under it: decision 0020) */
 .banner {
+  border-bottom: 3px solid var(--ebmr-brand-red-orange);
   display: flex;
   justify-content: space-between;
   align-items: center;

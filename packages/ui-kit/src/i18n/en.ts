@@ -3,7 +3,21 @@
  * keys become i18next resources. Plain words, as the outline's message style asks.
  */
 export const EN = {
-  'app.name': 'eBMR Tablets',
+  'app.name': 'Batchwright Tablets',
+  'app.product': 'Batchwright',
+  'app.edition': 'Tablets',
+  'app.maker': 'Medhanta',
+  'app.by': 'by',
+  'about.link': 'About Batchwright Tablets',
+  'about.title': 'About Batchwright Tablets',
+  'about.product': 'Product',
+  'about.edition': 'Edition',
+  'about.version': 'Version',
+  'about.maker': 'Made by',
+  'about.makerName': 'Medhanta Digipartner',
+  'about.installation': 'Installation',
+  'about.site': 'Site',
+  'about.records': 'Batch records, true copies, labels, reports and certificates made here carry your company\'s name and site only; they never carry the Batchwright name or the Medhanta logo.',
   'app.loading': 'Loading…',
   'app.installationMismatch': 'This page belongs to another installation. Reload the page.',
   'app.notFound.title': 'This page does not exist',

@@ -16,11 +16,12 @@ branch `phase-7/slice-7g`.
 | (notes) | #55 | these resume notes and the CLAUDE.md token rules |
 | 7b-2 | #56 | stand-alone record viewer, full export of closed records, periodic evaluation pack |
 | 7c | #57 | validation pack generators, DI-03 validation-summary gate (recipe-core 1250), DI-06 interface drift (kernel 1350 rebuilt from main's latest definitions, SERIES_GAP kept); review: no findings; golden 44/44 without a re-take |
-| 7d | (next PR) | release drills, security tools and the route-by-role matrix, load driver (analytics runner in a worker thread, P6A7-8 role check kept in the worker), inactivity warning (tablets 1460), accessibility audit run (A11Y-4 to -7 fixed); review: no findings; golden run by CI's golden job (decision D-P7R-1: the local golden cluster was busy with 7e; same suite, same clock library) |
+| 7d | #58 | release drills, security tools and the route-by-role matrix, load driver (analytics runner in a worker thread, P6A7-8 role check kept in the worker), inactivity warning (tablets 1460), accessibility audit run (A11Y-4 to -7 fixed); review: no findings; golden run by CI's golden job (decision D-P7R-1: the local golden cluster was busy with 7e; same suite, same clock library) |
+| 7e | (next PR) | branding (Batchwright, decision 0020), user and administrator guides, `tools/guides` (reference lists from a migration-built database, self-contained HTML and PDF); review: P7E-1 (low: a link with another scheme than http, https or mailto was live) fixed with a test; golden 51/51 |
 
 ## Merge order from here (D-P7-9, amended by decision 0025)
 
-7e, then 7g (its parts 7g-1, 7g-2, 7g-4, 7g-5, and 7g-3 still to build), then 7f (exit).
+7g (its parts 7g-1, 7g-2, 7g-4, 7g-5, and 7g-3 still to build), then 7f (exit).
 Each slice: merge main into its branch, resolve, register its new SQL functions in `tools/sql-mutation/src/targets.ts`
 (with a job in `.github/workflows/mutation.yml` for a new group, same order as TARGETS), claim its migrations in
 `docs/handbook/modules.yaml`, `pnpm handbook`, run every test file the slice changed (and the folders around them) and
@@ -32,19 +33,38 @@ merge when green.
 
 | Branch | State | What is left |
 |---|---|---|
-| `phase-7/slice-7e` | built (branding, guides, `tools/guides`), not reviewed | modules.yaml entry `tools-guides` (page modules/tools.md, src tools/guides/src, tests tools/guides/test/**); golden run (vendor-name tests read outputs only); apply the guide changes of 7g (below) after 7g merges or in 7g; review |
 | `phase-7/slice-7g` | decision 0025 and the 7g plan | the integration branch of the 7g parts |
 | `phase-7/slice-7g1` | built: administration screens (people, grants, recertification, break-glass, devices), the route-completeness `[meta]` test | modules.yaml `ts-administration`; review |
-| `phase-7/slice-7g2` | WIP 4f3fc4c: MBR signing, plant-rule proposal and approval, incidents screens; tablets 1479; E2E master-records and plant-rules pass | `tools/e2e/specs/phase7/incidents.spec.ts` fails at line 70 (CERT-In report time typed from the browser clock; check the server's refusal); then summary items: targets, modules.yaml, which completeness routes leave the pending list, guide text |
-| `phase-7/slice-7g4` | WIP f438066: kernel 1375 (set-up token, first-run set-up), 1376 (worker acts, backup requests, 3 permissions), tablets 1485 (GMP refusal of demo acts, backup reads); `features/operations` routes and screens, `ns/operations.ts`, `meta.setupRequired`, `meta.openapi`; `tools/install`; `[meta]` `commands-have-screens.test.ts`; server, web, installer and kernel tests pass | run `tools/e2e/specs/operations/operations.spec.ts` (a selector was fixed, the rerun was cut off); targets for the new functions; modules.yaml entries (the handbook test fails until then) |
-| `phase-7/slice-7g5` (from 7g-1) | WIP 6625ec3: the 25 gap routes have screens; access-governance routes and screens (role-permission requests, delegations, US e-signature certification); `[meta]` test `db-acts-have-routes` (64 database acts without a route listed, 7g5-1) | run `tools/e2e/specs/administration/governance.spec.ts` and `screen-gaps.spec.ts`; the 64 acts of 7g5-1 need routes and screens (decision 0025) |
+| `phase-7/slice-7g2` | done 9a33286d: main merged; incidents E2E fixed (P7G2-2: report time without seconds was refused by the contract; the screen adds `:00`, the spec takes the server's clock); E2E phase7 3/3; group `specimen-approval`; modules ts-designer/ts-alarms/ts-incidents; register synced | integrate into 7g; the completeness `[meta]` test (only on 7g-1) must drop `plantRules.setFacilityRule`, `plantRules.classifyBetaLactam` and signable `MBR_TRANSITION`; `labels.masterLabelling` and `labels.declareLabelling` still have no screen (PENDING_7G2, open) |
+| `phase-7/slice-7g4` | done a393aa52: main merged; operations E2E 5/5 (demo load: routes without a session no longer look one up during maintenance; the job panel follows the job); groups first-run-setup, operations-acts, operations-demo-backups; modules kernel-operations, ts-operations, tools-install; register synced | integrate into 7g; apply D-P7R-2 to `commands-have-screens.test.ts`; residual: `/api/meta` reads the database during maintenance (the page does not call it then) |
+| `phase-7/slice-7g5` (from 7g-1) | WIP 6625ec3 plus 60628136: main merged; the US e-signature certification is now enforced (recipe-core 1260: `gmp_issue_problem` from 1250 plus the check, and a BEFORE INSERT trigger on `recipe.batch_execution`; 3 `[DI-15]` tests; demo set-up records the DEMO-ONLY letter) | run `governance.spec.ts` and `screen-gaps.spec.ts`; the 64 database acts of 7g5-1 need routes and screens (decision 0025); claim the 5 unclaimed WIP files in modules.yaml (administration feature and screens; contract people, device-registry, access-governance); review whether the merge's choice of main's idle warning lost the branch's rule that device-nonce and identify requests are not activity |
 | 7g-3 | not started | after 7b-2, 7c, 7d merge: screens for the system description, validation-summary approval, full export, evaluation pack and its QA sign-off, evidence bundle, validation pack, IQ, restore and upgrade drills |
+
+## Next steps (7g, then 7f)
+
+1. Integrate the 7g parts on `phase-7/slice-7g`: merge main, then 7g-1, 7g-2, 7g-4, 7g-5 (each already has main up to
+   7d merged; 7e is merged in main by then). Expected conflicts: `targets.ts`/`mutation.yml` (keep all groups, main's
+   first), the defect log and runbooks (keep all sections), generated handbook pages (regenerate), the completeness
+   `[meta]` tests (apply the 7g-2 row above and D-P7R-2).
+2. Finish 7g-5 (row above), then build 7g-3 (screens for the system description, validation-summary approval, full
+   export, evaluation pack and its QA sign-off, evidence bundle, validation pack, IQ, restore and upgrade drills).
+3. Per slice steps as above; the golden batches on the clock cluster (GB-T-03 moves with the US letter); E2E specs
+   phase7, operations, administration; one quick review; PR; merge when green.
+4. 7f exit: trace at 7, one review pass, the release-candidate checklist.
+
+Decisions taken on resume (owner's standing instruction to decide and record):
+- D-P7R-1: when the local golden cluster is busy, CI's golden job on the PR (same suite, same clock library) serves as
+  the slice's golden run (used for 7d).
+- D-P7R-2 (`commands-have-screens`): IQ, the records CLI and the validation-pack builds (bundle, generate, oq) are
+  acts that wait for 7g-3's screens (listed pending 7g-3, not exempt); `register:status` (a developer tool on the
+  control register) and the stand-alone record viewer (itself the reading tool) are exempt.
 
 ## Open findings to carry
 
-- **US e-signature certification not enforced (from 7g-5):** `iam.assert_us_esig_certification` is called by no batch
-  issue path, so the BLOCK policy for a US-market issue is not enforced. Treat as high (Part 11's certification before
-  use): fix in a 7g part or in 7f, with a test that a US-market batch issue is refused without the certification.
+- **US e-signature certification (high, from 7g-5): fixed on `phase-7/slice-7g5`** (recipe-core 1260, 3 `[DI-15]`
+  tests), merges with 7g. GB-T-03 issues a US-market batch: run the golden batches in the 7g integration (the demo
+  set-up now records the letter; re-take a golden output once with the reason in the defect log if it moves, D-P7-12).
+  Whether a loan licensee also needs its own letter is left to the DI-15 expert decision (owner).
 - A role-permission approval needs an approved change record (DI-09): the 7g-5 screen must lead the user through it.
 - P7A-6 (feed signature does not cover the envelope's source time and record id): residual, low.
 - F-6jb-g1 (record lock counts as a change since review): residual, fail-safe.

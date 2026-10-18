@@ -24,6 +24,7 @@ the tool you touch. Testing in general is in [Testing and debugging](../06-testi
 | Load and soak driver (slice 7d) | [tools/load/src/](../../../tools/load/src/) | `pnpm load smoke`, `pnpm load reference`, `pnpm load soak` |
 | Restore and upgrade drills, migration dry run (slice 7d) | [tools/drills/](../../../tools/drills/) | `pnpm drills restore`, `pnpm drills upgrade`, `bash tools/drills/build-release-db.sh` |
 | Security sweeps (slice 7d) | [tools/security/src/](../../../tools/security/src/) | `pnpm security:hardening`, `pnpm security:licences`, `pnpm security:secrets`, `pnpm security:release`, `pnpm security:verify` |
+| User and administrator guides | [tools/guides/src/](../../../tools/guides/src/) | `pnpm guides:lists`, `pnpm guides:build` |
 
 All of them are wired into `pnpm run ci` ([package.json](../../../package.json)):
 typecheck, lint, `deps:check`, `pins:check`, `register:validate`, `build:web`, `test:json`, `trace`.
@@ -263,7 +264,8 @@ short version.
     first module whose pattern matches claims a file; [model.ts](../../../tools/handbook/src/model.ts));
   - a folder under `packages/`, `apps/` or `tools/` is no module's package;
   - a module page is missing (and not `pending:`) or not linked from the handbook README;
-  - a relative link in `docs/handbook/**/*.md` or a README's `Handbook:` line reaches no file; a `#sym=<name>` link
+  - a relative link in `docs/handbook/**/*.md`, in the guides (`docs/guides/**/*.md`, slice 7e) or in a README's
+    `Handbook:` line reaches no file; a `#sym=<name>` link
     names something the file does not define (SQL `create function|procedure|trigger|view|table`, TypeScript
     `function|const|class|interface|type|enum` or `export`; comments do not count, [sql.ts](../../../tools/handbook/src/sql.ts));
     a `#anchor` names no heading of the page (GitHub slugs, [slug](../../../tools/handbook/src/links.ts#sym=slug));
@@ -312,6 +314,31 @@ scan, the CycloneDX SBOM and the release manifest signed with Ed25519
 for the run and marked DEMO-ONLY. The checklist these serve is
 [pentest-checklist.md](../../security/pentest-checklist.md). Tests:
 [security-tools.test.ts](../../../tools/security/test/security-tools.test.ts).
+
+## tools-guides: the user and administrator guides (slice 7e)
+
+[tools/guides](../../../tools/guides/) keeps the product's guides ([docs/guides](../../guides/README.md)) honest; its
+[README](../../../tools/guides/README.md) is the short version.
+
+- `pnpm guides:lists` writes the guides' generated reference: [permissions.md](../../guides/reference/permissions.md)
+  (every right, role and signature meaning, read from a database built from the migrations by
+  [catalogueFromMigrations](../../../tools/guides/src/catalogue.ts#sym=catalogueFromMigrations), so the list is what the
+  database grants) and [screens.md](../../guides/reference/screens.md) (every route and home tile of the web app, parsed
+  from the features' `index.tsx` with the TypeScript compiler by
+  [readScreens](../../../tools/guides/src/screens.ts#sym=readScreens)). It needs `EBMR_PG_ADMIN_URL`.
+- `pnpm guides:build` ([build.ts](../../../tools/guides/src/build.ts)) writes each guide as one self-contained HTML file
+  (its pages and the reference in order, the stylesheet and the brand's images inline, every link between its pages an
+  anchor in the file; a link to a repository file outside the guide is shown as its path) and prints it to PDF with
+  the browser suite's Playwright and Chromium (`tools/e2e`'s `playwright-core`, `/opt/pw-browsers`; `--no-pdf` for
+  HTML only). Output in `.reports/guides/`, not committed (D-P7-13). The Markdown subset is converted by
+  [toHtml](../../../tools/guides/src/html.ts#sym=toHtml); raw HTML in a page is escaped.
+- `pnpm handbook:check` checks the guides' links as it checks the handbook's.
+
+Test: [guides.test.ts](../../../tools/guides/test/guides.test.ts) (in the `db` project, it builds its own edition
+database): both reference pages are current; every task table names screens that exist, rights and signature meanings
+the database holds; each database function a guide names exists and its latest definition checks one of the rights the
+guide gives for it; each guide builds into self-contained HTML whose anchors all resolve; the Markdown converter escapes
+raw HTML.
 
 ## Adding a control to the register (slice 6e, IN-53)
 

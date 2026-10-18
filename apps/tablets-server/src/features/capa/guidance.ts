@@ -17,7 +17,7 @@ export const CAPA_GUIDANCE: Readonly<Record<string, GuidanceEntry>> = {
     status: 409,
     kind: 'NOT_ALLOWED',
     whatHappened: 'This site keeps its CAPAs in the QMS, so they are changed there and mirrored here.',
-    whatYouCanDo: ['Make the change in the QMS; the eBMR shows it after the next synchronisation.'],
+    whatYouCanDo: ['Make the change in the QMS; this system shows it after the next synchronisation.'],
     whoCanHelp: ['The QMS system owner'],
     controls: ['PR-51', 'DI-31'],
   },

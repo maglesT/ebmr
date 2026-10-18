@@ -1,4 +1,13 @@
-# eBMR developer handbook
+# Batchwright developer handbook
+
+![Batchwright Tablets](../brand/batchwright-tablets.svg)
+
+by ![Medhanta](../brand/medhanta-logo-278x148.png)
+
+**Batchwright by Medhanta**: the electronic batch manufacturing record system, editions Tablets and Injectables
+(decision [0020](../decisions/0020-product-name-batchwright.md)). In the code and in this handbook it keeps its working
+name, eBMR: the packages, schemas, environment variables and the `ebmr` prefix do not change. The product's users and
+administrators have their own guides: [docs/guides](../guides/README.md).
 
 Start here if you are a developer joining this project. The handbook explains what the software does, why
 (the pharma rules behind it), and how the code does it. You do not need to know pharma: the primer and the glossary

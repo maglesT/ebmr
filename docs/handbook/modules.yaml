@@ -1212,6 +1212,13 @@ modules:
     src: [tools/handbook/src]
     tests: ['tools/handbook/test/**']
 
+  - id: tools-guides
+    title: User and administrator guide builder (Markdown to self-contained HTML and PDF; built in slice 7e)
+    page: modules/tools.md
+    package: tools/guides
+    src: [tools/guides/src]
+    tests: ['tools/guides/test/**']
+
   - id: tools-register
     title: Control register tooling
     page: modules/tools.md

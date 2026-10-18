@@ -146,7 +146,7 @@ export function alarmSummary(kind: AlarmRow['kind'], d: Record<string, string | 
     case 'OUT_OF_ORDER':
       return `Message ${d['received'] ?? '?'} arrived after message ${d['highestBefore'] ?? '?'}`;
     case 'RECONCILIATION_MISMATCH':
-      return `The source reports ${d['sourceCount'] ?? '?'} messages for the period; the eBMR received ${d['receivedCount'] ?? '?'}`;
+      return `The source reports ${d['sourceCount'] ?? '?'} messages for the period; this system received ${d['receivedCount'] ?? '?'}`;
     case 'INTERFACE_DRIFT':
       return `This interface is not in the approved system description (${d['at'] === 'ADAPTER_START' ? 'at adapter start' : d['at'] === 'REGISTERED' ? 'when it was registered' : d['at'] === 'ENABLED' ? 'when it was enabled' : 'a message refused'}): the system owner describes it under an approved change record, or it stays refused`;
     case 'SERIES_GAP':

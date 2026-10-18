@@ -10,7 +10,7 @@ Generates the developer handbook's reference pages from the repository and check
     `modules.yaml` (matching is ordered: the first module whose pattern matches claims the file);
   - every folder under `packages/`, `apps/` and `tools/` is some module's package;
   - every module page exists (or is listed under `pending:`) and is linked from the handbook README;
-  - every relative link in `docs/handbook/**/*.md`, and the `Handbook:` line of each package or feature README, reaches
+  - every relative link in `docs/handbook/**/*.md` and in the guides (`docs/guides/**/*.md`, slice 7e), and the `Handbook:` line of each package or feature README, reaches
     a file; `#sym=<name>` needs the file to define `<name>`; `#anchor` into a page needs a heading with that slug;
   - a migration numbered above `migration_header_from` carries a `-- Handbook: <page>` line in its first 10 lines.
 - `tools/handbook/test/handbook.test.ts` runs the same checks in the test suite and proves each on a fixture.

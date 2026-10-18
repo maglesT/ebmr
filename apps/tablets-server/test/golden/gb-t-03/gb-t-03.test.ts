@@ -23,6 +23,7 @@ import { BLEND, COMPRESSION } from '../gb-t-02/scenario.ts';
 import { connect, GOLDEN_CLOCK_LIB, MIRRORED_CLASSES, type Connected } from './connected.ts';
 import { ACK, connectPress, type PressFacts, type PressRig } from './opcua.ts';
 import { BOTTLE_PLAN, CALIBRATED, LMS_TRAINING, packReleaseAndRecall, PERFORMERS, runBatch, SERIALS, setUpGbt03, type Gbt03Release } from './scenario.ts';
+import { vendorNames } from '../vendor-identity.ts';
 
 type Json = Record<string, unknown>;
 const expected = JSON.parse(readFileSync(new URL('./expected.json', import.meta.url), 'utf8')) as Json & {
@@ -218,6 +219,10 @@ describe.runIf(goldenClockAvailable && GOLDEN_CLOCK_LIB !== '')('GB-T-03, connec
 
   it('[IN-29][PR-57] the mock recall from the API lot reaches the batch, the order, the finished lot and both consignees of the ERP\'s shipments, reproduces, and is signed off by the AP', () => {
     expect(run.recall).toEqual(expected.fromTheRun.recall);
+  });
+
+  it.each(['batch', 'order'] as const)('the %s record carries the manufacturer\'s identity only: no Batchwright and no Medhanta in its normalised true copy (decision 0020, D-P7-11)', (k) => {
+    expect(vendorNames(r(k).trueCopy.normalised)).toEqual([]);
   });
 
   it.each(['batch', 'order'] as const)('the %s ends in the expected states, exceptions, genealogy, signatures and true-copy hash', (k) => {

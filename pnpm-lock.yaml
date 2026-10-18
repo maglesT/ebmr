@@ -533,6 +533,8 @@ importers:
         specifier: 1.56.1
         version: 1.56.1
 
+  tools/guides: {}
+
   tools/handbook: {}
 
   tools/load:

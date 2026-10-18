@@ -1,0 +1,7 @@
+{
+  "name": "@ebmr/tool-guides",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The user and administrator guides (slice 7e): their permission, role, meaning and screen lists generated from the code, and a build of each guide to one self-contained HTML file and a PDF",
+  "type": "module"
+}

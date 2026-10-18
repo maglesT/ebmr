@@ -1,5 +1,6 @@
 /**
- * The handbook link checker (decision 0014 3c). Every relative link in docs/handbook/**.md must reach an existing file
+ * The handbook link checker (decision 0014 3c). Every relative link in docs/handbook/**.md (and, since slice 7e, in the
+ * guides, docs/guides/**.md) must reach an existing file
  * (or a page listed as pending in modules.yaml); `#sym=<name>` needs the target to define `<name>`; `#anchor` into a
  * Markdown page needs a heading with that GitHub slug. Links inside code spans and fenced code are not links.
  */
