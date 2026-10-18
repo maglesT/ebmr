@@ -6,6 +6,10 @@
   checks, priority), and the owner's open questions. This is the basis of the URS and of the test scripts.
 - `brand/medhanta-logo-278x148.png`: the Medhanta company logo (supplied by the owner). Small (278 x 148 px): use it at
   a small size in headers; never upscale it beyond its resolution.
+- `brand/medhanta-logo-transparent.png` (165 x 104 px): the same Medhanta logo (mark, wordmark and the tagline "Where
+  Expertise Meets Intelligence"), trimmed and with a transparent background. Use this one on the cover and in page
+  headers (about 25 mm wide in headers, up to 45 mm on the cover; not wider, or it blurs). Replace it with a larger or
+  SVG file if Medhanta supplies one.
 - `brand/learnova-logo-from-video.png`, `brand/title-frame.png`: the Learnova logo as it appears on a dark background in
   the product video (white "Lear", orange "nova", orange mortarboard cap). For reference only.
 - `brand/screen-*.jpg`: frames of the product video (employees screen, create SOP, peer review, sequential learning,
