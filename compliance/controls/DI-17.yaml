@@ -363,6 +363,10 @@ tests:
   - "packages/site-services/test/mutation/qms-capa-lims-cmms.test.ts > the CAPA register commands (IN-01 (d), PR-51; site services 0925) > [DI-17][PR-51] the signed content of a CAPA counts its own rows only and shows its own QMS history only"
   - "packages/kernel/test/analytics/analytics.test.ts > the runner functions (kernel 1242) and the read views (kernel 1243) > [DI-17][DI-18] every analytics function the application may call refuses administrators, then checks a catalogued permission; the runner functions are the analytics role's alone"
   - "apps/tablets-server/test/analytics/routes.test.ts > the analytics routes (GMP) > [DI-17] every analytics read needs ANALYTICS.VIEW; the sandbox serves no analytics route"
+  - "packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts > the alarm acknowledgment in the batch's {site, product} scope (6jc-R16) > [DI-17][DI-49] O-T1-1: a person whose grant is limited to one product acknowledges an alarm bound only to batches of that product, not one bound to another product nor one bound to no batch"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the GMP batch issue in the order's product scope (6jc-R16) > [IN-04][DI-21][DI-17] a product-limited requirement no longer refuses the batch issue on another product's batch"
+  - "packages/recipe-core/test/review/batch-scope.test.ts > the GMP batch issue in the order's product scope (6jc-R16) > [IN-04][DI-17] the planned batch's issue checks the order's product in begin and issue too: a requirement limited to this product put in force after planning refuses the issue"
+  - "packages/site-services/test/lots/consumption-batch-scope.test.ts > the dispensing consumption in the batch's product scope (6jc-R16) > [IN-04][DI-17][INV-13] both checks of the consumption name the batch's product: the batch side at the actor's location, the site side in the lot's site"
 clauses:
   - clause: "Run a permission-matrix suite with positive and negative tests for every role and action."
     tests:

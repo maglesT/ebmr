@@ -40,7 +40,7 @@ of each database function.
 | [ss-erp](#ss-erp) | ERP masters and production orders | [modules/site-services.md](modules/site-services.md) | 5 | 0 | 1 | 3 |
 | [ss-shipping](#ss-shipping) | Manufacturer release guard, shipping interlock and after-release lot exits | [modules/site-services.md](modules/site-services.md) | 4 | 0 | 1 | 6 |
 | [ss-quality](#ss-quality) | Deviations, evidence documents, LIMS-lite, specifications, samples, OOS | [modules/site-services.md](modules/site-services.md) | 17 | 0 | 8 | 26 |
-| [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 16 | 0 | 6 | 12 |
+| [ss-lots](#ss-lots) | Material lots, release, retest, finished and returned lots, shelf life | [modules/site-services.md](modules/site-services.md) | 16 | 0 | 6 | 15 |
 | [ss-capa-qms](#ss-capa-qms) | CAPA register, QMS mirror and the QMS status at release, LIMS results received (Phase 6 slice 6a, builder B) | [modules/site-services.md](modules/site-services.md) | 3 | 0 | 2 | 3 |
 | [ss-controlled](#ss-controlled) | WMS moves of a controlled API lot need a dual-custody transfer record (Phase 6 slice 6e, draft IN-53) | [modules/site-services.md](modules/site-services.md) | 1 | 0 | 1 | 1 |
 | [ss-genealogy](#ss-genealogy) | Chemical recovery, distribution records, genealogy and mock-recall DB tests (Phase 6 slice 6d) | [modules/site-services.md](modules/site-services.md) | 2 | 0 | 3 | 6 |
@@ -52,7 +52,7 @@ of each database function.
 | [ss-core](#ss-core) | Site services package entry and shared tests | [modules/site-services.md](modules/site-services.md) | 0 | 0 | 9 | 20 |
 | [rc-lifecycle](#rc-lifecycle) | MBR life cycle (families, versions, evidence, market authorisation, periodic review) | [modules/recipe-core.md](modules/recipe-core.md) | 18 | 0 | 19 | 36 |
 | [rc-plant](#rc-plant) | Plant (equipment, areas, logbook, status, hazard dedication) | [modules/recipe-core.md](modules/recipe-core.md) | 13 | 0 | 6 | 14 |
-| [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 5 | 9 |
+| [rc-equipment-data](#rc-equipment-data) | Plant alarm log, equipment events, native series and device original records (Phase 6 slice 6b) | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 5 | 13 |
 | [rc-mirrors](#rc-mirrors) | CMMS mirror at equipment use, QMS status at release (G-REL), CAPA master resolver (Phase 6 slice 6a, builder B) | [modules/recipe-core.md](modules/recipe-core.md) | 3 | 0 | 1 | 3 |
 | [rc-labels](#rc-labels) | Label templates, their approval and the packaging master's labelling declaration (Phase 6 slice 6c) | [modules/recipe-core.md](modules/recipe-core.md) | 1 | 0 | 1 | 2 |
 | [rc-genealogy](#rc-genealogy) | Genealogy traversal, mock recall, deviation impact and recurrence (Phase 6 slice 6d) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
@@ -64,7 +64,7 @@ of each database function.
 | [rc-blocks](#rc-blocks) | Generic block versions (G-06, G-21 and others) | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 13 | 54 |
 | [rc-reprocessing](#rc-reprocessing) | Reprocessing and recovery | [modules/recipe-core.md](modules/recipe-core.md) | 8 | 0 | 0 | 4 |
 | [rc-formula](#rc-formula) | Formulation library and planning reads | [modules/recipe-core.md](modules/recipe-core.md) | 5 | 0 | 1 | 2 |
-| [rc-review](#rc-review) | Batch record review (production approval, QA review, audit-trail review, evidence epochs) | [modules/recipe-core.md](modules/recipe-core.md) | 15 | 0 | 3 | 7 |
+| [rc-review](#rc-review) | Batch record review (production approval, QA review, audit-trail review, evidence epochs) | [modules/recipe-core.md](modules/recipe-core.md) | 15 | 0 | 3 | 12 |
 | [rc-release](#rc-release) | Release gate G-REL and manufacturer release | [modules/recipe-core.md](modules/recipe-core.md) | 6 | 0 | 7 | 32 |
 | [rc-notifications](#rc-notifications) | Notification centre | [modules/recipe-core.md](modules/recipe-core.md) | 4 | 0 | 0 | 0 |
 | [rc-markets](#rc-markets) | Market dispositions and QP certification | [modules/recipe-core.md](modules/recipe-core.md) | 7 | 0 | 0 | 0 |
@@ -726,7 +726,7 @@ of each database function.
 
 **Tests** (6): [lots/consumption-batch-scope.test.ts](../../packages/site-services/test/lots/consumption-batch-scope.test.ts), [lots/exit-review.test.ts](../../packages/site-services/test/lots/exit-review.test.ts), [lots/label-store.test.ts](../../packages/site-services/test/lots/label-store.test.ts), [lots/lots.test.ts](../../packages/site-services/test/lots/lots.test.ts), [lots/machine.test.ts](../../packages/site-services/test/lots/machine.test.ts), [mutation/lots-and-lims.test.ts](../../packages/site-services/test/mutation/lots-and-lims.test.ts)
 
-**Controls** (12): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-05](../../compliance/controls/IN-05.yaml), [IN-20](../../compliance/controls/IN-20.yaml), [IN-24](../../compliance/controls/IN-24.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-32](../../compliance/controls/PR-32.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
+**Controls** (15): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-21](../../compliance/controls/DI-21.yaml), [DI-22](../../compliance/controls/DI-22.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-33](../../compliance/controls/DI-33.yaml), [DI-35](../../compliance/controls/DI-35.yaml), [DI-37](../../compliance/controls/DI-37.yaml), [IN-04](../../compliance/controls/IN-04.yaml), [IN-05](../../compliance/controls/IN-05.yaml), [IN-20](../../compliance/controls/IN-20.yaml), [IN-24](../../compliance/controls/IN-24.yaml), [PR-18](../../compliance/controls/PR-18.yaml), [PR-32](../../compliance/controls/PR-32.yaml), [PR-46](../../compliance/controls/PR-46.yaml)
 
 ## ss-capa-qms
 
@@ -923,7 +923,7 @@ of each database function.
 
 **Tests** (5): [equipment-data/opcua-endpoint-identity.test.ts](../../packages/recipe-core/test/equipment-data/opcua-endpoint-identity.test.ts), [integrations/plant-alarms-series.test.ts](../../packages/recipe-core/test/integrations/plant-alarms-series.test.ts), [plant-rules/alarm-ack-batch-scope.test.ts](../../packages/recipe-core/test/plant-rules/alarm-ack-batch-scope.test.ts), [plant-rules/room-rules.test.ts](../../packages/recipe-core/test/plant-rules/room-rules.test.ts), [plant-rules/rule-approval.test.ts](../../packages/recipe-core/test/plant-rules/rule-approval.test.ts)
 
-**Controls** (9): [DI-20](../../compliance/controls/DI-20.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-49](../../compliance/controls/DI-49.yaml), [PR-15](../../compliance/controls/PR-15.yaml), [PR-22](../../compliance/controls/PR-22.yaml), [PR-25](../../compliance/controls/PR-25.yaml), [PR-27](../../compliance/controls/PR-27.yaml), [PR-35](../../compliance/controls/PR-35.yaml)
+**Controls** (13): [DI-17](../../compliance/controls/DI-17.yaml), [DI-18](../../compliance/controls/DI-18.yaml), [DI-20](../../compliance/controls/DI-20.yaml), [DI-21](../../compliance/controls/DI-21.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-32](../../compliance/controls/DI-32.yaml), [DI-49](../../compliance/controls/DI-49.yaml), [IN-04](../../compliance/controls/IN-04.yaml), [PR-15](../../compliance/controls/PR-15.yaml), [PR-22](../../compliance/controls/PR-22.yaml), [PR-25](../../compliance/controls/PR-25.yaml), [PR-27](../../compliance/controls/PR-27.yaml), [PR-35](../../compliance/controls/PR-35.yaml)
 
 ## rc-mirrors
 
@@ -1127,7 +1127,7 @@ of each database function.
 
 **Tests** (3): [batch-scope.test.ts](../../packages/recipe-core/test/review/batch-scope.test.ts), [rbe-rules.test.ts](../../packages/recipe-core/test/review/rbe-rules.test.ts), [review.test.ts](../../packages/recipe-core/test/review/review.test.ts)
 
-**Controls** (7): [DI-24](../../compliance/controls/DI-24.yaml), [DI-25](../../compliance/controls/DI-25.yaml), [DI-26](../../compliance/controls/DI-26.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [PR-07](../../compliance/controls/PR-07.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-52](../../compliance/controls/PR-52.yaml)
+**Controls** (12): [DI-17](../../compliance/controls/DI-17.yaml), [DI-21](../../compliance/controls/DI-21.yaml), [DI-24](../../compliance/controls/DI-24.yaml), [DI-25](../../compliance/controls/DI-25.yaml), [DI-26](../../compliance/controls/DI-26.yaml), [DI-31](../../compliance/controls/DI-31.yaml), [DI-34](../../compliance/controls/DI-34.yaml), [IN-04](../../compliance/controls/IN-04.yaml), [PR-07](../../compliance/controls/PR-07.yaml), [PR-45](../../compliance/controls/PR-45.yaml), [PR-49](../../compliance/controls/PR-49.yaml), [PR-52](../../compliance/controls/PR-52.yaml)
 
 ## rc-release
 
