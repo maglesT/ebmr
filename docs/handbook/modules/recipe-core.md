@@ -1865,6 +1865,11 @@ verifies its seal and that it answers that request (`recipe.record_federated_exc
 ([IN-29](../../../compliance/controls/IN-29.yaml)): the mock recall's query version 2 lists the outbound transfers it
 reaches; `recipe.record_mock_recall_remote` records what each destination answered (ANSWERED only as of the run's own
 instant) and `recipe.mock_recall_federation` says whether the run is complete; the AP signs that off with the rest.
+[1225](../../../packages/recipe-core/sql/1225_mock_recall_destinations.sql) (Phase 7 slice 7b-1, 6jc-R12):
+`recipe.mock_recall_destinations(run)` names the destinations to ask, the stored run's outbound transfers without an
+ANSWERED row, after refusing administrators and checking RECALL.MOCK_RUN (and EBMR-RCL-010, -020). The server asks
+exactly these, after the run is stored, so no other site is asked before the permission check and a failed read fails
+the command instead of standing for "no destination".
 
 [1093](../../../packages/recipe-core/sql/1093_federation_actor_and_audit.sql): the four federation functions refuse
 administrators and check GENEALOGY.FEDERATE (asking) or FEDERATION.ANSWER (the endpoint's INTEGRATION identity, role

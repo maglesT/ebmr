@@ -37,7 +37,8 @@ function chunk(subjectCode: string, chunkNo: string, startUs: bigint): Record<st
   return { ...c, chunkHash: sha(text) };
 }
 const sendChunk = (payload: unknown) => receive(db, opcua, 'plant.receive_series_chunk', envelopeFor(opcua, 'opcua.series_chunk', payload));
-let clock = BigInt(Date.now()) * 1000n - 3_600_000_000n;
+// Slice 7b-1 (6jc-R13, recipe-core 1233): data are dated within five minutes of the session they stand on.
+let clock = BigInt(Date.now()) * 1000n - 150_000_000n;
 const nextStart = (): bigint => (clock += 10_000_000n);
 
 async function admin<T>(fn: (c: PoolClient) => Promise<T>): Promise<T> {

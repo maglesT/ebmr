@@ -6,7 +6,7 @@
  * every request (the server's site policy, DI-27); log lines go back to the server's logger.
  */
 import { parentPort, workerData } from 'node:worker_threads';
-import { createAnalyticsPool } from './pool.ts';
+import { analyticsRoleProblem, createAnalyticsPool } from './pool.ts';
 import { AnalyticsRunner, type EffectiveVersion, type RunTrigger } from './runner.ts';
 
 export interface AnalyticsWorkerData {
@@ -18,7 +18,7 @@ export interface AnalyticsWorkerData {
 }
 
 export type AnalyticsRequest =
-  | { id: number; siteZone: string; op: 'tick' | 'nightlyDue' | 'pollCompleted' | 'stop' }
+  | { id: number; siteZone: string; op: 'tick' | 'nightlyDue' | 'pollCompleted' | 'stop' | 'roleProblem' }
   | { id: number; siteZone: string; op: 'runAll'; trigger: RunTrigger }
   | { id: number; siteZone: string; op: 'runVersionAll'; version: EffectiveVersion; trigger: RunTrigger }
   | { id: number; siteZone: string; op: 'runVersion'; version: EffectiveVersion; trigger: RunTrigger; referenceSet: string | null };
@@ -41,8 +41,9 @@ if (parentPort) {
   const post = (m: AnalyticsMessage) => port.postMessage(m);
   const logAt = (level: 'info' | 'warn' | 'error' | 'debug') => (obj: unknown, msg?: string) => post({ type: 'log', level, obj: plain(obj), msg: msg ?? '' });
   const log = { info: logAt('info'), warn: logAt('warn'), error: logAt('error'), debug: logAt('debug') } as unknown as ConstructorParameters<typeof AnalyticsRunner>[0]['log'];
+  const pool = createAnalyticsPool(data.url);
   const runner = new AnalyticsRunner({
-    pool: createAnalyticsPool(data.url),
+    pool,
     log,
     siteZone: () => zone,
     commit: data.commit,
@@ -50,6 +51,9 @@ if (parentPort) {
   });
   const handle = (r: AnalyticsRequest): Promise<unknown> => {
     switch (r.op) {
+      case 'roleProblem':
+        // P6A7-8 (DI-51): the parent starts its timer only when this connection is the analytics role alone.
+        return analyticsRoleProblem(pool);
       case 'tick':
         return runner.tick();
       case 'nightlyDue':

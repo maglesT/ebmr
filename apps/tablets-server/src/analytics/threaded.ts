@@ -23,7 +23,7 @@ import type { AnalyticsMessage, AnalyticsRequest, AnalyticsWorkerData } from './
 
 /** The operations of the runner the server and its tests use, in process (AnalyticsRunner) or in a worker thread. */
 export interface AnalyticsRunnerApi {
-  start(): void;
+  start(): Promise<boolean>;
   stop(): Promise<void>;
   tick(): Promise<void>;
   nightlyDue(): Promise<boolean>;
@@ -115,12 +115,28 @@ export class ThreadedAnalyticsRunner implements AnalyticsRunnerApi {
     });
   }
 
-  /** Starts the timer; the first tick sets the poll's baseline and the nightly day (runner.ts). */
-  start(): void {
-    if (this.timer || this.ended || this.stopping) return;
+  /**
+   * Starts the timer once the worker's connection is proven to be ebmr_analytics with no elevated attribute (P6A7-8,
+   * DI-51, as AnalyticsRunner.start); the first tick sets the poll's baseline and the nightly day (runner.ts). Resolves
+   * true when started; false, with an operations alert logged, when the role is wrong or cannot be read.
+   */
+  async start(): Promise<boolean> {
+    if (this.timer || this.ended || this.stopping) return this.timer !== null;
+    let problem: string | null;
+    try {
+      problem = await this.ask<string | null>({ op: 'roleProblem' });
+    } catch (error) {
+      problem = `its role could not be read: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    if (problem !== null) {
+      this.o.log.error({ problem }, 'analytics runner: not started, its database connection is not the analytics role alone (DI-51; check EBMR_DB_ANALYTICS_URL)');
+      return false;
+    }
+    if (this.timer || this.ended || this.stopping) return this.timer !== null;
     this.timer = setInterval(() => void this.tick(), this.o.pollMs ?? POLL_MS);
     this.timer.unref();
     void this.tick();
+    return true;
   }
 
   /** Stops the timer, lets the worker finish the work in progress and close its pool, then ends the thread. */

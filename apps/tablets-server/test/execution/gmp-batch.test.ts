@@ -534,4 +534,27 @@ describe('a product-limited qualification requirement applies to batches of that
       if (before) await asOwner((c) => c.query("update iam.mirror_heartbeat set last_synced_at = $1 where source_code = 'LMS'", [before]));
     }
   }, 300_000);
+
+  it('[DI-31] F-6jb-2: the stale-mirror refusal names the mirror, its age and the system owner to call', async () => {
+    const { batchId, driver } = await recorded();
+    const req = await requirement({ product: gmpMbr.header.product.code });
+    const before = (await gmp.db.admin.query<{ last_synced_at: Date }>("select last_synced_at from iam.mirror_heartbeat where source_code = 'LMS'")).rows[0]?.last_synced_at;
+    try {
+      await asOwner((c) => c.query("insert into iam.mirror_heartbeat (source_code, last_synced_at) values ('LMS', now() - interval '30 days') on conflict (source_code) do update set last_synced_at = excluded.last_synced_at"));
+      await qualify(req.code, 'LMS');
+      expect((await signatureCheck(batchId)).reasons).toEqual([`STALE_QUALIFICATION_SOURCE:${req.code}`]);
+      const refused = await driver.sign('operator1', { type: 'SIGN_PERFORMED', stepKey: STEP });
+      expect(refused.result.ok).toBe(false);
+      const r = refusalOf(refused.result) as unknown as { why: string; whoCanHelp: string[]; whatYouCanDo: string[]; details?: Record<string, string> };
+      expect(r.why).toContain(`STALE_QUALIFICATION_SOURCE:${req.code}`);
+      expect(r.why).toMatch(/the LMS qualification heartbeat is stale: last synchronised \d+ s ago, more than its bound of \d+ s; call the LMS system owner/);
+      expect(r.details).toMatchObject({ staleMirror: 'LMS qualification heartbeat', systemOwner: 'the LMS system owner' });
+      expect(BigInt(r.details?.['staleMirrorAgeSeconds'] ?? '0')).toBeGreaterThanOrEqual(2_592_000n);
+      expect(r.whoCanHelp[0]).toBe('The LMS system owner');
+      expect(r.whatYouCanDo[0]).toMatch(/^Call the LMS system owner/);
+    } finally {
+      await endRequirement(req.id);
+      await asOwner((c) => (before ? c.query("update iam.mirror_heartbeat set last_synced_at = $1 where source_code = 'LMS'", [before]) : c.query("delete from iam.mirror_heartbeat where source_code = 'LMS'")));
+    }
+  }, 300_000);
 });

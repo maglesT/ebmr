@@ -18,7 +18,9 @@
 import { z } from 'zod';
 import { PROCESS_TAGS, tagSpec, type TagSpec } from '../../process/tags.ts';
 import type { SystemContract } from '../contract.ts';
-import { EquipmentAlarmV1, EquipmentEventV1, SeriesChunkV1 } from '../equipment-data.ts';
+import { SourceCode, SourceValue } from '../contract.ts';
+import { EpochMicrosText } from '../envelope.ts';
+import { EquipmentAlarmV1, EquipmentEventV1, SeriesChunkV1, TagName } from '../equipment-data.ts';
 import { FEED_SIGNATURE_REFUSALS } from '../feed-signature.ts';
 
 /** The namespace of the eBMR's tag map on an equipment OPC UA server. */
@@ -132,6 +134,27 @@ export const OpcuaEndpointSessionV1 = z.strictObject({
 });
 export type OpcuaEndpointSessionV1 = z.infer<typeof OpcuaEndpointSessionV1>;
 
+/**
+ * `opcua.series_gap` v1 (Phase 7 slice 7b-1; DI-32, DI-31): a stretch of one unit's series the gateway could not record.
+ * The gateway spools each sample of an open chunk on receipt; after a crash it completes the open chunk from the spool,
+ * and reports what it cannot fill, from the source time of the last sample it spooled (`fromUs`) to its restart (`toUs`,
+ * the gateway's clock), as this message. recipe-core 1232 raises the SERIES_GAP alarm naming the unit, the tag and the
+ * interval.
+ */
+export const SeriesGapV1 = z
+  .strictObject({
+    subjectKind: z.literal('EQUIPMENT'),
+    subjectCode: SourceCode,
+    tag: TagName,
+    unit: SourceValue.shape.unit,
+    fromUs: EpochMicrosText,
+    toUs: EpochMicrosText,
+    reason: z.literal('GATEWAY_RESTART'),
+    detail: z.string().min(1).max(500),
+  })
+  .refine((g) => BigInt(g.fromUs) < BigInt(g.toUs), { message: 'fromUs is before toUs', path: ['toUs'] });
+export type SeriesGapV1 = z.infer<typeof SeriesGapV1>;
+
 /** The refusals of the equipment-data and alarm receiving commands (recipe-core 0960), shared by OPCUA and EMS. */
 export const EQUIPMENT_DATA_REFUSALS = {
   'EBMR-EQD-001': 'MALFORMED',
@@ -146,6 +169,8 @@ export const EQUIPMENT_DATA_REFUSALS = {
   'EBMR-ALM-005': 'OUT_OF_ORDER',
   // Slice 6b builder A (recipe-core 0961): a malformed endpoint session; a wrong endpoint is recorded, not refused.
   'EBMR-EQD-020': 'MALFORMED',
+  // Slice 7b-1 (recipe-core 1232): a malformed series gap.
+  'EBMR-EQD-040': 'MALFORMED',
 } as const satisfies SystemContract['refusalCodes'];
 
 export const OPCUA: SystemContract = {
@@ -155,6 +180,7 @@ export const OPCUA: SystemContract = {
     'opcua.alarm': { summary: 'An alarm occurrence of a unit raised, cleared or acknowledged at the source (DI-49)', versions: { '1': EquipmentAlarmV1 } },
     'opcua.equipment_event': { summary: 'An equipment event: state change, recipe loaded or mismatched, phase, operator action, fault', versions: { '1': EquipmentEventV1 } },
     'opcua.endpoint_session': { summary: 'A session the gateway opened to an enrolled endpoint: security, certificate, location, units (DI-20)', versions: { '1': OpcuaEndpointSessionV1 } },
+    'opcua.series_gap': { summary: 'A stretch of a unit\'s series the gateway could not record (a crash, the time it was down) (DI-32)', versions: { '1': SeriesGapV1 } },
   },
   outbound: [],
   // Slice 7a (tablets 1405): the gateway feed signature's refusals (EBMR-INT-031 to -033) besides the data's own.

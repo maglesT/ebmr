@@ -172,7 +172,8 @@ export async function buildApp(env: EnvConfig, deps: AppDeps = {}): Promise<Buil
             commit: config.analytics.commit,
             ...(deps.analytics?.pollMs ? { pollMs: deps.analytics.pollMs } : {}),
           });
-    analytics?.start();
+    // The runner starts only on the analytics role alone (P6A7-8); a refusal is logged and the server serves on.
+    void analytics?.start();
     return {
       app,
       ctx,

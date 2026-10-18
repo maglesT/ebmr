@@ -11,6 +11,7 @@
  */
 import { generateKeyPairSync, randomUUID } from 'node:crypto';
 import { mkdtempSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -212,6 +213,43 @@ describe('federated genealogy over HTTP (PR-57, IN-29)', () => {
     const again = valueOf(await pune.qa.call(routes.recall.refreshFederation, { params: { mockRecallId: run.mockRecallId }, body: {} }));
     expect(again.federation).toMatchObject({ complete: true, transfers: [{ status: 'ANSWERED' }] });
     expect(again.federation!.transfers[0]!.excerptAsOf?.us).toBe(run.asOf.us);
+  });
+
+  it('[IN-29][PR-57] a mock recall asks the destinations of its own stored run, so a failed genealogy read is no "no destination"; and nobody is asked before RECALL.MOCK_RUN is checked (6jc-R12)', async () => {
+    // The server's own forward-genealogy read fails (the application role may not run it for this test): the run still
+    // asks GOA, because the destinations are the stored run's (recipe-core 1225), and GOA answers.
+    await pune.server.db.admin.query('revoke execute on function recipe.genealogy(text, uuid, text, timestamptz) from ebmr_app');
+    const answered = await (async () => {
+      try {
+        return await pune.qa.call(routes.recall.run, { body: { subjectKind: 'LOT', subjectId: lot.id, authorityInformed: false } });
+      } finally {
+        await pune.server.db.admin.query('grant execute on function recipe.genealogy(text, uuid, text, timestamptz) to ebmr_app');
+      }
+    })();
+    const run = valueOf(answered);
+    expect(run.federation).toMatchObject({ complete: true, transfers: [{ transferId: file.packageId, destination: goa.code, status: 'ANSWERED' }] });
+
+    // A person holding GENEALOGY.FEDERATE but not RECALL.MOCK_RUN (the QA MBR approver) is refused before any site is
+    // asked: a stand-in listens at GOA's address and counts what reaches it.
+    goa.server.built.app.server.closeAllConnections();
+    await new Promise<void>((resolve) => goa.server.built.app.server.close(() => resolve()));
+    let asked = 0;
+    const standIn = createServer((_req, res) => {
+      asked += 1;
+      res.writeHead(503).end();
+    });
+    await new Promise<void>((resolve, reject) => standIn.listen(goa.port, '127.0.0.1', () => resolve()).once('error', reject));
+    try {
+      const approver = await pune.server.asPersona('approver');
+      const refused = await approver.call(routes.recall.run, { body: { subjectKind: 'LOT', subjectId: lot.id, authorityInformed: false } });
+      expect(refused.ok).toBe(false);
+      expect(JSON.stringify(refused)).toMatch(/RECALL\.MOCK_RUN/);
+      expect(refused.ok ? null : await approver.call(routes.recall.refreshFederation, { params: { mockRecallId: run.mockRecallId }, body: {} })).toMatchObject({ ok: false });
+      expect(asked).toBe(0);
+    } finally {
+      await new Promise<void>((resolve) => standIn.close(() => resolve()));
+      await new Promise<void>((resolve, reject) => goa.server.built.app.server.listen(goa.port, '127.0.0.1', () => resolve()).once('error', reject));
+    }
   });
 
   it('[DI-31] the site-to-site endpoint is counted per client address: past the limit it answers 429 without asking the database (review 6i-R3)', async () => {
