@@ -377,6 +377,31 @@ a misleading answer; the rest stay in the backlogs with a line in the pack's kno
 - **Migrations:** none expected (kernel 1375-1379 and tablets 1470-1474 reserved).
 - **Handbook:** the cover page and `README.md`; `modules/tablets-web.md` (branding tokens).
 
+### Slice 7g: a screen for every act (decision 0025)
+
+- **Scope:** every act listed in decision 0025 gets a screen in `apps/tablets-web`, calling the existing routes (new
+  routes where an act has only a database function), with the database's refusals shown as they are:
+  - **7g-1 people and devices:** people, accounts, credentials, badges and PINs, role-grant request and approval,
+    recertification, break-glass; terminal registration and hardening attestation, balances, printers, equipment
+    bindings, gateway keys and the feed binding (slice 7a), adapter registration.
+  - **7g-2 master records and quality acts:** the MBR life-cycle signatures (Prepared, Checked, regulatory
+    confirmation, Approved), market authorisations, labelling specimens; plant-rule proposals and QA approval (slice
+    7a); the incident register and the CERT-In step.
+  - **7g-3 validation and records:** the approved system description, the validation-summary approval (7c), the full
+    export, the periodic evaluation pack and its QA sign-off (7b-2). Built after 7b-2 and 7c have merged.
+- **The completeness test (`[meta]`):** every route of the contract whose permission a person can hold is called by a
+  screen; a route held only by a service identity is listed with its reason. The test fails on a new person-facing
+  route without a screen.
+- **Tests:** web unit tests per screen; a browser-suite flow per area (people, devices, MBR signing, plant-rule approval,
+  incidents, system description, validation summary, evaluation pack); the existing role-matrix and accessibility
+  checks of 7d cover the new screens.
+- **Migrations (only where an act needs a route the database does not yet serve):** kernel 1380-1389, site-services
+  1150-1159, recipe-core 1270-1279, tablets 1475-1484 (7g-1: kernel 1380-1384, tablets 1475-1478; 7g-2: kernel
+  1385-1389, recipe-core 1270-1279, site-services 1150-1159, tablets 1479-1482; 7g-3: tablets 1483-1484).
+- **Handbook:** `modules/tablets-web.md` (the new screens), the user and administrator guides (the "no screen" rows
+  become the screen's name), `08-defect-log.md` if a gap is found.
+- **Merge order:** after 7e and before 7f (D-P7-9 amended).
+
 ### Slice 7f: the Phase 7 exit and v1.0-rc
 
 - **Trace at 7:** `phase.yaml` goes to 7 in this slice's PR. Every Phase 7 deferral is proven by its slice (table
