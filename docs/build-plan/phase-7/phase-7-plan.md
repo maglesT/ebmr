@@ -389,15 +389,20 @@ a misleading answer; the rest stay in the backlogs with a line in the pack's kno
     7a); the incident register and the CERT-In step.
   - **7g-3 validation and records:** the approved system description, the validation-summary approval (7c), the full
     export, the periodic evaluation pack and its QA sign-off (7b-2). Built after 7b-2 and 7c have merged.
+  - **7g-4 operations without a terminal:** the first-run set-up, demo and test data load and reset, backups and the
+    restore and upgrade drills with their records, adapters and analytics runner start and stop, the simulators' test
+    console (demo and sandbox only), the API reference page; and a one-command installer for a server.
 - **The completeness test (`[meta]`):** every route of the contract whose permission a person can hold is called by a
   screen; a route held only by a service identity is listed with its reason. The test fails on a new person-facing
-  route without a screen.
+  route without a screen. A second `[meta]` test does the same for every command used to operate an installation (the
+  installer excepted).
 - **Tests:** web unit tests per screen; a browser-suite flow per area (people, devices, MBR signing, plant-rule approval,
   incidents, system description, validation summary, evaluation pack); the existing role-matrix and accessibility
   checks of 7d cover the new screens.
 - **Migrations (only where an act needs a route the database does not yet serve):** kernel 1380-1389, site-services
   1150-1159, recipe-core 1270-1279, tablets 1475-1484 (7g-1: kernel 1380-1384, tablets 1475-1478; 7g-2: kernel
-  1385-1389, recipe-core 1270-1279, site-services 1150-1159, tablets 1479-1482; 7g-3: tablets 1483-1484).
+  1385-1389, recipe-core 1270-1279, site-services 1150-1159, tablets 1479-1482; 7g-3: tablets 1483-1484; 7g-4: kernel 1375-1379, site-services 1160-1169, recipe-core 1280-1289, tablets
+  1485-1489).
 - **Handbook:** `modules/tablets-web.md` (the new screens), the user and administrator guides (the "no screen" rows
   become the screen's name), `08-defect-log.md` if a gap is found.
 - **Merge order:** after 7e and before 7f (D-P7-9 amended).
