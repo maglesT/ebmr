@@ -149,6 +149,8 @@ export function alarmSummary(kind: AlarmRow['kind'], d: Record<string, string | 
       return `The source reports ${d['sourceCount'] ?? '?'} messages for the period; the eBMR received ${d['receivedCount'] ?? '?'}`;
     case 'INTERFACE_DRIFT':
       return `This interface is not in the approved system description (${d['at'] === 'ADAPTER_START' ? 'at adapter start' : d['at'] === 'REGISTERED' ? 'when it was registered' : d['at'] === 'ENABLED' ? 'when it was enabled' : 'a message refused'}): the system owner describes it under an approved change record, or it stays refused`;
+    case 'SERIES_GAP':
+      return `The gateway could not record ${d['tag'] ?? '?'} of ${d['unit'] ?? '?'} from ${d['fromUs'] ?? '?'} to ${d['toUs'] ?? '?'} (epoch microseconds): ${d['detail'] ?? d['reason'] ?? ''}`;
     default:
       return d['detail'] ?? kind;
   }

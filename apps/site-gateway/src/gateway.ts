@@ -223,7 +223,7 @@ export class SiteGateway {
     this.opcuaFeed = feed;
     const out: { config: { code: string; equipment: EquipmentKind; expectedSerial: string }; driver: OpcuaUnit }[] = [];
     for (const e of endpoints) {
-      const transport = this.opcuaTransport?.(e) ?? new NodeOpcuaTransport({ pkiDir: this.config.opcuaPkiDir, units: e.units.map((u) => u.equipmentCode) });
+      const transport = this.opcuaTransport?.(e) ?? new NodeOpcuaTransport({ pkiDir: this.config.opcuaPkiDir, units: e.units.map((u) => u.equipmentCode), wallUs: () => this.clock.wallUs() });
       const driver = new OpcuaDriver({
         code: e.code, endpoint: e.endpoint, equipment: Object.fromEntries(e.units.map((u) => [u.equipmentCode, u.equipment])), transport, clock: this.clock,
         sink: feed.sink(), nextChunkNo: (unit, tag) => feed.nextChunkNo(unit, tag), gapAfterMs: this.config.opcuaGapAfterMs,

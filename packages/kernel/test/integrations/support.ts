@@ -203,9 +203,10 @@ export async function acknowledgeGaps(db: TestDatabase, code: string): Promise<v
     [code],
   );
   if (rows.length === 0) return;
-  const operator = await testActor(db);
+  // QA acknowledges: a gap on a blocking mirror's adapter is the system owner's or QA's (kernel 1320, 6jc-R11).
+  const qa = await testActor(db, { roleCode: 'QA_REVIEWER' });
   for (const r of rows) {
-    await withCommand(db.app, { ...operator, correlationId: randomUUID() }, (c) =>
+    await withCommand(db.app, { ...qa, correlationId: randomUUID() }, (c) =>
       c.query('select platform.acknowledge_integration_alarm($1, $2)', [r.id, 'test feed: the skipped numbers were refused messages']));
   }
 }

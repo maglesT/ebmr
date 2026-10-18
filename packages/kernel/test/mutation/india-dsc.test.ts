@@ -95,7 +95,9 @@ describe('the database refuses what the server should have refused (kernel 1206)
                                                                   approved_by_account, approved_at, valid_to)
                                values ($1, $2, $3, 'emergency for the kill test', 60, $4, $5, clock_timestamp() - interval '1 minute', clock_timestamp() + interval '1 hour')`,
                           [person.accountId, person.personId, person.accountId, qa.personId, qa.accountId]);
-    await expectRefused(rawEnrol(person, await enrolment(person, cert)), 'EBMR-ESIG-086', own);
+    // Since kernel 1321 (slice 7b-1, 6jc-R6) the administrator refusal runs first, and a break-glass account counts as
+    // one (DI-18): it is refused before the enrolment's own account check (EBMR-ESIG-086) is reached.
+    await expectRefused(rawEnrol(person, await enrolment(person, cert)), 'EBMR-IAM-042');
     await asTimeTraveller(db, 'update iam.account set is_break_glass = false, is_generic = true where id = $1', [person.accountId]);
     await expectRefused(rawEnrol(person, await enrolment(person, cert)), 'EBMR-IAM-106');
     await asTimeTraveller(db, 'update iam.account set is_generic = false where id = $1', [person.accountId]);

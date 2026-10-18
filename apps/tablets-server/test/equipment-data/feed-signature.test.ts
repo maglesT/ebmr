@@ -230,6 +230,11 @@ describe('the gateway signs its OPC UA feed and the database verifies it (6jc-R9
       tag: null, value: null, limit: null, limitKind: null, message: 'reject burst', occurredAt: nowUs(),
     }), gw))).rejects.toThrow(/EBMR-INT-030/);
     await expect(direct('select plant.receive_opcua_endpoint_session($1::jsonb) as r', signed(envelope('opcua.endpoint_session', session()), gw))).rejects.toThrow(/EBMR-INT-030/);
+    // Slice 7b-1 (recipe-core 1232): the series gap message too.
+    await expect(direct('select plant.receive_series_gap($1::jsonb) as r', signed(envelope('opcua.series_gap', {
+      subjectKind: 'EQUIPMENT', subjectCode: w.unit.code, tag: 'force.main_kN', unit: 'kN', fromUs: (BigInt(nowUs()) - 1_000_000n).toString(), toUs: nowUs(),
+      reason: 'GATEWAY_RESTART', detail: 'forged gap',
+    }), gw))).rejects.toThrow(/EBMR-INT-030/);
     await expect(direct('select platform.accept_inbound_detail($1::jsonb) as r', env)).rejects.toThrow(/EBMR-INT-030/);
     // Nor can the identity mark an envelope verified itself.
     await expect(direct("select platform.record_source_verification(platform.inbound_envelope_key($1::jsonb), 'forged') as r", env)).rejects.toThrow(/permission denied/);

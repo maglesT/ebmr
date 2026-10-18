@@ -423,6 +423,7 @@ tests:
   - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > training mode over HTTP (SANDBOX; DI-05) > [DI-05] a training session's attempts are the person's own and stay in the sandbox"
   - "apps/tablets-web/test/dashboards/dashboards.test.tsx > training (SANDBOX) > [DI-05] the training screen carries the TEST, NOT GMP watermark"
   - "apps/tablets-web/test/dashboards/dashboards.test.tsx > training (SANDBOX) > [DI-05] a step is marked done in the person's own attempt; a new exercise is started by its code"
+  - "apps/tablets-server/test/dashboards/dashboards-routes.test.ts > training mode over HTTP (SANDBOX; DI-05) > [DI-05] the training attempt read answers the person's own attempt only; another person's is refused as no attempt of theirs (6jc-R15)"
 clauses:
   - clause: "From the training tenant, try to post to a production batch or reuse a real lot number. It is blocked."
     tests:

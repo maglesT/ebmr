@@ -85,7 +85,7 @@ export async function referenceSets(app: AppContext, db: Db, id: string): Promis
 }
 
 export async function monitor(db: Db): Promise<AnalyticsMonitorView> {
-  const { rows } = await db.query<{ method: string; version: number; month: string; runs: number; failures: number; flags: number; dispositioned_share: number | null; false_alarm_rate: number | null }>(
+  const { rows } = await db.query<{ method: string; version: number; month: string; runs: number; failures: number; flags: number | null; dispositioned_share: number | null; false_alarm_rate: number | null }>(
     "select method, version, to_char(month, 'YYYY-MM') as month, runs, failures, flags, dispositioned_share, false_alarm_rate from analytics.method_monitor_v1 order by method, version, month",
   );
   return {

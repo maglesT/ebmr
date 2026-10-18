@@ -25,7 +25,7 @@
 --                                              is not described raises the INTERFACE_DRIFT alarm in the same transaction:
 --                                              "enable an interface that is not in the approved description, the drift
 --                                              alarm fires" (DI-06 catalog test).
---   platform.integration_alarm.kind            gains INTERFACE_DRIFT.
+--   platform.integration_alarm.kind            gains INTERFACE_DRIFT (re-created from kernel 1328: SERIES_GAP kept).
 --
 -- A refused message leaves nothing: the receiving transaction rolls back, and the alarm is written by the refusal's own
 -- command (platform.record_inbound_refusal, ACK_RULE of the integration SDK), by the start check or by the enabling
@@ -36,7 +36,7 @@ set local role ebmr_owner;
 alter table platform.integration_alarm drop constraint integration_alarm_kind_check;
 alter table platform.integration_alarm add constraint integration_alarm_kind_check check (kind in (
   'SEQUENCE_GAP', 'OUT_OF_ORDER', 'MALFORMED', 'DUPLICATE', 'WRONG_IDENTITY', 'OUT_OF_RANGE', 'STALE', 'PARTIAL', 'TRANSPORT',
-  'RECONCILIATION_MISMATCH', 'INTERFACE_DRIFT'));
+  'RECONCILIATION_MISMATCH', 'SERIES_GAP', 'INTERFACE_DRIFT'));
 
 -- NULL when adapter p_adapter may exchange messages under the approved system description, else EBMR-INT-035 with why.
 create function platform.interface_drift_problem(p_adapter iam.integration_adapter) returns text

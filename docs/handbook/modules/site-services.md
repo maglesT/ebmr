@@ -898,7 +898,9 @@ and its issue until QA closes it with a deviation linked to the lot (`site.resol
 is refused STALE); in MIRROR, `site.erp_lot_status_problem` fails closed on a stale mirror (EBMR-INT-010) and refuses a
 lot the WMS does not hold RELEASED. `site.erp_outbound_message` is the ERP/WMS queue (stock blocks, lot statuses, goods
 issues, yields, each written by a trigger with its fact), delivered by the adapter (`site.erp_outbound_pending`,
-`site.erp_outbound_delivered`, `site.erp_outbound_failed`).
+`site.erp_outbound_delivered`, `site.erp_outbound_failed`). A queued message is insert-only for every writer, the owner
+and a superuser included (site services [1110](../../../packages/site-services/sql/1110_erp_outbound_insert_only.sql),
+Phase 7 slice 7b-1, 6jc-R5; EBMR-PLAT-002): what the ERP is sent is what the eBMR queued.
 
 **The issue gate.** Triggers `zz_issue_gate` and `zz_issue_by_person` on `site.lot_reservation` and
 `site.lot_consumption` refuse, whoever writes the row: an incomplete receipt record (EBMR-SITE-917), an unapproved

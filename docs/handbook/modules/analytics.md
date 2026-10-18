@@ -147,6 +147,12 @@ The read views (SELECT to the application role): `input_catalog_v1`, `method_ver
 Its time is the database's: the site-zone day and hour of the nightly run come from `statement_timestamp()`, and
 every recorded instant from the analytics tables' defaults.
 
+It starts only on its own role (Phase 7 slice 7b-1, P6A7-8): `start()` first asks the database what the connection is
+(`analyticsRoleProblem`, [pool.ts](../../../apps/tablets-server/src/analytics/pool.ts#sym=analyticsRoleProblem)):
+ebmr_analytics as the current and the session user, no superuser, create-role, create-database, replication or
+bypass-RLS attribute, member of no role. Otherwise it logs an operations alert naming the problem ("check
+EBMR_DB_ANALYTICS_URL") and never starts its timer; the server serves on (analytics is advisory).
+
 > **Why this exists**
 > - **Pharma reason:** a statistic must never become a GMP record by the back door; analytics that can write GMP data
 >   would need the validation of a GMP system for every output (decision 0015).
@@ -333,6 +339,13 @@ queue and shows its top three reasons. It never skips, narrows or completes a re
 - **Screens**: the queue shows each record's score and reasons (or "not scored yet") under the advisory band;
   `/analytics/review-priority/$batchId` shows one record's priority with every reason and the link into its review.
 - QA puts version 1 in force (`REVIEW_METHOD_DEFINITIONS`) under a change record; no migration writes it.
+- **Restricted reasons and counts (Phase 7 slice 7b-1, P6A7-6, P6A7-7; DI-53).** The top reasons are chosen among the
+  terms every reader sees; the audit-trail reason (OPEN_AUDIT_FLAG) follows them when it scores (`scoreOf`), so a reader
+  without `ANALYTICS.DI_REVIEW`, from whom the database leaves that reason out (kernel 1281), still sees the same number
+  of top reasons. Kernel [1322](../../../packages/kernel/sql/1322_analytics_audit_method_counts.sql) re-creates
+  `analytics.method_monitor_v1` and `analytics.run_v1`: for the audit-trail methods (ATA.*) the monitor's flags,
+  dispositioned share and false-alarm rate, and a run's output and flag counts, are shown only to `ANALYTICS.DI_REVIEW`
+  holders; others see the runs and failures, with "restricted" on the methods screen.
 
 ## The golden batch profile (slice 6A-6)
 
