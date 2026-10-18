@@ -987,7 +987,9 @@ their deadlines. On `/incidents/$incidentId` QA links further records, starts th
 with a justification, assesses the impact on each linked record (which lifts that record's disposition block), marks the
 incident reportable to CERT-In, records the report made (when, and CERT-In's acknowledgement) and closes it. The window,
 the deadline and whether it has passed are the database's (`records.cert_in_reporting_window`, not yet verified against
-the official text).
+the official text). The report time is a claimed time typed with its offset (seconds may be left out; the screen sends
+them as `:00`, the form the contract takes); the database alone checks that it lies between the occurrence and its own
+now, so the browser's clock decides nothing (7g-2 defect P7G2-2).
 
 **Screens.** [IncidentsPage.tsx](../../../apps/tablets-web/src/features/incidents/IncidentsPage.tsx),
 [IncidentPage.tsx](../../../apps/tablets-web/src/features/incidents/IncidentPage.tsx).

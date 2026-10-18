@@ -13,7 +13,7 @@ import { Field, floor, StatusChip } from '@ebmr/ui-kit';
 import { useApiQuery } from '../../api/hooks.ts';
 import { ActButton, ActResult, Section, useCommand } from '../../app/acts.tsx';
 import { RefusalMessage } from '../../app/refusal.tsx';
-import { INCIDENT_READS, SEVERITIES, severityTone, statusTone, words } from './reads.ts';
+import { claimedTime, INCIDENT_READS, SEVERITIES, severityTone, statusTone, words } from './reads.ts';
 
 export function IncidentPage() {
   const params: { incidentId?: string } = useParams({ strict: false });
@@ -141,7 +141,7 @@ function CertIn({ i }: { i: IncidentView }) {
   const [justification, setJustification] = useState('');
   const [at, setAt] = useState('');
   const [reference, setReference] = useState('');
-  const atOk = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:\d{2})$/.test(at.trim());
+  const reportedAt = claimedTime(at);
   const c = i.certIn;
   return (
     <Section title="CERT-In reporting" testId="incident-cert-in">
@@ -173,8 +173,8 @@ function CertIn({ i }: { i: IncidentView }) {
           <Field name="certInReference" label="CERT-In acknowledgement reference" value={reference} onChange={setReference} />
           <ActButton
             label="Record the CERT-In report"
-            onPress={() => atOk && reference.trim() && report.run({ params: { incidentId: i.incidentId }, body: { reportedAt: at.trim(), reference: reference.trim() } })}
-            disabled={!atOk || !reference.trim() || report.busy}
+            onPress={() => reportedAt && reference.trim() && report.run({ params: { incidentId: i.incidentId }, body: { reportedAt, reference: reference.trim() } })}
+            disabled={!reportedAt || !reference.trim() || report.busy}
           />
           <ActResult error={report.error} done={report.done} label="The CERT-In report is recorded." />
         </>

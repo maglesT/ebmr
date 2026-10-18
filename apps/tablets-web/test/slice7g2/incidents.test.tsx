@@ -6,7 +6,9 @@
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
+import { routes } from '@ebmr/api-contract';
 import { apiState } from '../../src/api/client.ts';
+import { claimedTime } from '../../src/features/incidents/reads.ts';
 import { refusal, renderOffice } from '../office/support.tsx';
 import { INCIDENT } from './fixtures.ts';
 
@@ -59,10 +61,26 @@ describe('one incident', () => {
     await userEvent.type(within(certIn).getByRole('textbox', { name: 'CERT-In acknowledgement reference' }), 'CERTIN-ACK-9');
     await userEvent.click(within(certIn).getByRole('button', { name: 'Record the CERT-In report' }));
     await waitFor(() => expect(ui.posts(`/api/incidents/${INCIDENT.incidentId}/cert-in/report`)).toHaveLength(1));
-    expect(ui.posts(`/api/incidents/${INCIDENT.incidentId}/cert-in/report`)[0]?.body).toEqual({ reportedAt: '2026-10-18T10:15+05:30', reference: 'CERTIN-ACK-9' });
+    const sent = ui.posts(`/api/incidents/${INCIDENT.incidentId}/cert-in/report`)[0]?.body;
+    expect(sent).toEqual({ reportedAt: '2026-10-18T10:15:00+05:30', reference: 'CERTIN-ACK-9' });
+    // The time as typed without seconds is sent in the form the contract takes (the E2E refusal of 7g-2).
+    expect(routes.incidents.recordCertInReport.body?.safeParse(sent).success).toBe(true);
     const inv = screen.getByTestId('incident-investigation');
     await userEvent.type(within(inv).getByRole('textbox', { name: 'Closure summary' }), 'Blocked');
     await userEvent.click(within(inv).getByRole('button', { name: 'Close the incident' }));
     expect(await screen.findByText(/closed only with a root cause and a CAPA reference/)).toBeTruthy();
+  });
+});
+
+describe('the claimed CERT-In report time', () => {
+  it('[DI-12] is sent with its offset and seconds as the contract takes it; a time without its offset is not sent', () => {
+    expect(claimedTime('2026-10-18T10:15+05:30')).toBe('2026-10-18T10:15:00+05:30');
+    expect(claimedTime(' 2026-10-18T10:15:42Z ')).toBe('2026-10-18T10:15:42Z');
+    expect(claimedTime('2026-10-18T10:15:42.123-04:00')).toBe('2026-10-18T10:15:42.123-04:00');
+    expect(claimedTime('2026-10-18T10:15')).toBeNull();
+    expect(claimedTime('18-OCT-2026 10:15')).toBeNull();
+    for (const t of ['2026-10-18T10:15+05:30', '2026-10-18T10:15:42Z']) {
+      expect(routes.incidents.recordCertInReport.body?.safeParse({ reportedAt: claimedTime(t), reference: 'R' }).success).toBe(true);
+    }
   });
 });

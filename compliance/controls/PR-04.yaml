@@ -82,6 +82,10 @@ tests:
   - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the batch size of an ERP order (recipe-core 0602) > [PR-04][PR-17] the order is for the approved size: an unknown size, another quantity or unit, or a size whose value is not a decimal is refused"
   - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the batch size of an ERP order (recipe-core 0602) > [PR-04][PR-17] the MBR states its reference size: none, not a decimal, zero, or in another unit than the batch size is refused"
   - "packages/recipe-core/test/mutation/erp-interfaces.test.ts > the open order offered for a family, site and size (recipe-core 0602) > [PR-04][PR-17] the oldest open order of the family's product, strength, site, unit and size, in its latest version, not yet planned"
+  - "apps/tablets-server/test/designer/master-records.test.ts > market authorisations (ADR 0014) > [PR-04][PR-05] QA proposes, the regulatory signer confirms, QA authorises (ACTIVE) and withdraws it with its own reason; the wrong person is refused at each step"
+  - "tools/e2e/specs/phase7/master-records.spec.ts > [INV-04][DI-35][PR-04] an MBR from draft through Prepared, Checked, the regulatory confirmation and Approved, and its market authorisation, by different people; a labelling specimen approved by QA @office"
+  - "apps/tablets-web/test/slice7g2/master-records.test.tsx > market authorisations > [PR-04] a proposed authorisation offers the regulatory confirmation and QA's authorisation, which carries QA's own reason"
+  - "apps/tablets-web/test/slice7g2/master-records.test.tsx > market authorisations > [PR-04][PR-05] QA proposes an authorisation for a market of the master and scope; an active one shows who confirmed and authorised it and can be withdrawn with a reason"
 clauses:
   - clause: "Widening a registered CPP range with no variation reference is blocked."
     tests:

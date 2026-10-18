@@ -64,7 +64,10 @@ test('[DI-12] an incident raised, investigated, assessed, reported to CERT-In an
 
   await evidence.step('QA records the CERT-In report and closes the incident', 'The report with its acknowledgement; the incident is CLOSED', async () => {
     const certIn = q.getByTestId('incident-cert-in');
-    await certIn.getByRole('textbox', { name: /^When the report was made/ }).fill(new Date().toISOString().slice(0, 16) + 'Z');
+    // The claimed report time comes from the server's clock (the time the server recorded the marking, shown in the
+    // history), never from the browser's: the database refuses a report time after its own now (EBMR-REC-055).
+    const marked = await q.getByTestId('incident-events').getByRole('listitem').filter({ hasText: /^Cert in reportable/ }).innerText();
+    await certIn.getByRole('textbox', { name: /^When the report was made/ }).fill(serverTimeAsTyped(marked));
     await certIn.getByRole('textbox', { name: 'CERT-In acknowledgement reference' }).fill('CERTIN-ACK-E2E');
     await certIn.getByRole('button', { name: 'Record the CERT-In report' }).click();
     await expect(q.getByTestId('cert-in-status')).toHaveAttribute('data-reported', 'yes');
@@ -75,3 +78,13 @@ test('[DI-12] an incident raised, investigated, assessed, reported to CERT-In an
     return { status: 'CLOSED' };
   }, q);
 });
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+/** The server's site-time text ("28-SEP-2026 14:05:03 +05:30 (Asia/Kolkata)") as a person types it (2026-09-28T14:05+05:30). */
+function serverTimeAsTyped(text: string): string {
+  const m = /(\d{2})-([A-Z]{3})-(\d{4}) (\d{2}:\d{2}):\d{2} ([+-]\d{2}:\d{2})/.exec(text);
+  if (!m) throw new Error(`no server time in "${text}"`);
+  const month = String(MONTHS.indexOf(m[2] ?? '') + 1).padStart(2, '0');
+  return `${m[3]}-${month}-${m[1]}T${m[4]}${m[5]}`;
+}

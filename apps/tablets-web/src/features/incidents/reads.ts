@@ -23,3 +23,13 @@ export function words(code: string): string {
   const w = code.toLowerCase().replace(/_/g, ' ');
   return w.charAt(0).toUpperCase() + w.slice(1);
 }
+
+/**
+ * A claimed time as typed (e.g. 2026-10-18T10:15+05:30) in the form the contract takes: seconds added when left out,
+ * null when it is not a date and time with its offset. Only the form changes; whether the time lies between the occurrence
+ * and now is the database's check, against its own clock (kernel 0410; the browser's clock decides nothing).
+ */
+export function claimedTime(typed: string): string | null {
+  const m = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2}(?:\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/.exec(typed.trim());
+  return m ? `${m[1]}${m[2] ?? ':00'}${m[3]}` : null;
+}
